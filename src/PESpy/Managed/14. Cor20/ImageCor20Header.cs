@@ -1,0 +1,116 @@
+﻿using System;
+using ClrDebug;
+using PESpy.View;
+#if !DEBUG_POSITION
+using RawOffset = System.Int32;
+#endif
+
+namespace PESpy
+{
+    /// <summary>
+    /// Represents the <see cref="IMAGE_COR20_HEADER"/> type that is pointed to by IMAGE_OPTIONAL_HEADER.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR] in managed assemblies.
+    /// </summary>
+    public class ImageCor20Header : IValue, IViewable
+    {
+        public int ByteCount { get; init; }
+        public ushort MajorRuntimeVersion { get; init; }
+        public ushort MinorRuntimeVersion { get; init; }
+
+        //This field should be called MetaData but I really don't like how that looks
+        public ImageDataDirectory<MetadataRoot> Metadata { get; init; }
+
+        public COMIMAGE_FLAGS Flags { get; init; }
+        public int EntryPointTokenOrRVA { get; init; }
+        public ImageDataDirectory Resources { get; init; }
+        public ImageDataDirectory StrongNameSignature { get; init; }
+        public ImageDataDirectory CodeManagerTable { get; init; }
+        public ImageDataDirectory VTableFixups { get; init; } //While this member IS meant to be an IMAGE_DATA_DIRECTORY, there are apparently extra members in this directory as well: https://blog.xpnsec.com/the-net-export-portal/
+        public ImageDataDirectory ExportAddressTableJumps { get; init; }
+        public ImageDataDirectory ManagedNativeHeader { get; init; }
+
+        public RawOffset Offset { get; }
+
+        internal const int StructSize =
+            sizeof(int) +   //ByteCount
+            sizeof(short) + //MajorRuntimeVersion
+            sizeof(short) + //MinorRuntimeVersion
+            sizeof(long) +  //Metadata
+            sizeof(int) +   //Flags
+            sizeof(int) +   //EntryPointTokenOrRelativeVirtualAddress
+            sizeof(long) +  //Resources
+            sizeof(long) +  //StrongNameSignature
+            sizeof(long) +  //CodeManagerTable
+            sizeof(long) +  //VTableFixups
+            sizeof(long) +  //ExportAddressTableJumps
+            sizeof(long);   //ManagedNativeHeader
+
+        internal ImageCor20Header(ref FileReader reader, PEFile peFile)
+        {
+            Offset = (RawOffset) reader.Position;
+
+            reader.FillBuffer(StructSize);
+
+            ByteCount = reader.ReadInt32();
+            MajorRuntimeVersion = reader.ReadUInt16();
+            MinorRuntimeVersion = reader.ReadUInt16();
+
+            Metadata = new ImageDataDirectory<MetadataRoot>(ref reader, peFile, PERegionKind.Cor20Header_Metadata, static (ref FileReader r, PEFile p) => new MetadataRoot(ref r, p));
+
+            Flags = (COMIMAGE_FLAGS) reader.ReadUInt32();
+            EntryPointTokenOrRVA = reader.ReadInt32();
+
+            Resources = new ImageDataDirectory(ref reader);
+            StrongNameSignature = new ImageDataDirectory(ref reader);
+            CodeManagerTable = new ImageDataDirectory(ref reader);
+            VTableFixups = new ImageDataDirectory(ref reader);
+            ExportAddressTableJumps = new ImageDataDirectory(ref reader);
+            ManagedNativeHeader = new ImageDataDirectory(ref reader);
+        #region Metadata
+
+        //This type does not have a well-known native struct declaration
+        //EMCA-335 II.24.2
+        public class MetadataRoot : IValue, IViewable
+        {
+            public RawOffset Offset { get; }
+
+            public StorageSignature Signature { get; }
+
+            public StorageHeader Header { get; }
+
+            public MetadataRoot(ref FileReader reader, PEFile peFile)
+            {
+                Offset = (RawOffset) reader.Position;
+
+                Signature = new StorageSignature(ref reader);
+                Header = new StorageHeader(ref reader, peFile, Signature.Offset);
+            }
+
+            void IViewable.WriteView(ViewWriter writer)
+            {
+                //A region will be created around everything during merging
+
+                writer.WriteGlobal(Signature);
+                writer.WriteGlobal(Header);
+            }
+        }
+
+        #endregion
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(IMAGE_COR20_HEADER), this, ViewKind.ImageCor20Header);
+
+            s.WriteField("cb", ByteCount);
+            s.WriteField(nameof(MajorRuntimeVersion), MajorRuntimeVersion);
+            s.WriteField(nameof(MinorRuntimeVersion), MinorRuntimeVersion);
+            s.WriteStructField("MetaData", Metadata);
+            s.WriteField(nameof(Flags), Flags, sizeof(int));
+            s.WriteField(nameof(EntryPointTokenOrRVA), EntryPointTokenOrRVA);
+            s.WriteStructField(nameof(Resources), Resources);
+            s.WriteStructField(nameof(StrongNameSignature), StrongNameSignature);
+            s.WriteStructField(nameof(CodeManagerTable), CodeManagerTable);
+            s.WriteStructField(nameof(VTableFixups), VTableFixups);
+            s.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumps);
+            s.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeader);
+        }
+    }
+}

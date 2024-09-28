@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Iced" Version="1.21.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.3" />
+    <PackageReference Include="coverlet.collector" Version="3.0.2" />
+
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent.SupportFiles" Version="1.0.23" ExcludeAssets="compile;runtime" />
+    <PackageReference Include="Microsoft.Debugging.Platform.SymSrv" Version="20230731.1609.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PESpy\PESpy.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(TraceEventSupportFilesBase)native\x86\msdia140.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x86\%(FileName)%(Extension)" />
+		<None Include="$(TraceEventSupportFilesBase)native\amd64\msdia140.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x64\%(FileName)%(Extension)" />
+
+		<None Include="$(MicrosoftDebuggingPlatformSymSrvContent)x86\symsrv.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x86\%(FileName)%(Extension)" />
+		<None Include="$(MicrosoftDebuggingPlatformSymSrvContent)amd64\symsrv.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x64\%(FileName)%(Extension)" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ChaosLib">
+      <HintPath>..\..\..\ChaosLib\src\ChaosLib\bin\Debug\net472\ChaosLib.dll</HintPath>
+    </Reference>
+    <Reference Include="ClrDebug">
+      <HintPath>..\..\..\ClrDebug\ClrDebug\bin\Debug\netstandard2.0\ClrDebug.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

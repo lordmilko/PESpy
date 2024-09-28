@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32126.315
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy", "src\PESpy\PESpy.csproj", "{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.Tests", "src\PESpy.Tests\PESpy.Tests.csproj", "{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A4C13A3D-C903-4119-A999-DF030E1EB96D}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AC68D9ED-C696-4523-9E2B-1FEEC6692796}
+	EndGlobalSection
+EndGlobal
