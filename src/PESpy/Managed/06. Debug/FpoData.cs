@@ -75,7 +75,7 @@ namespace PESpy
             sizeof(short) + //Params
             sizeof(short); //Flags
 
-        public FpoData(ref FileReader reader)
+        internal FpoData(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

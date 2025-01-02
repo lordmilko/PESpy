@@ -58,7 +58,7 @@ namespace PESpy
 
             public RawOffset Offset { get; }
 
-            internal String(ref FileReader reader)
+            internal String(IFileReader reader)
             {
                 Offset = (RawOffset) reader.Position;
 
@@ -71,7 +71,7 @@ namespace PESpy
                 Type = reader.ReadInt16();
                 Key = reader.ReadUTF16NullTerminatedString();
 
-                Padding = Align32(ref reader, out var didAlign);
+                Padding = Align32(reader, out var didAlign);
 
                 Value = reader.ReadUTF16NullTerminatedString();
 

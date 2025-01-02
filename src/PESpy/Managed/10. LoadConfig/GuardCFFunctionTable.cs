@@ -10,7 +10,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal GuardCFFunctionTable(ref FileReader reader, PEFile peFile, IMAGE_GUARD flags, long functionCount)
+        internal GuardCFFunctionTable(IFileReader reader, PEFile peFile, IMAGE_GUARD flags, long functionCount)
         {
             Offset = (int) reader.Position;
 
@@ -36,7 +36,7 @@ namespace PESpy
 
             //On the first run, don't query XFG info, as we've already filled our reader's buffer with the data of all of the entries to be read
             for (var i = 0; i < functionCount; i++)
-                entries[i] = new Entry(ref reader, metadataSize);
+                entries[i] = new Entry(reader, metadataSize);
 
             //Update each entry that should also have an XFG
             for (var i = 0; i < functionCount; i++)
@@ -97,7 +97,7 @@ namespace PESpy
 
             public int Offset { get; init; }
 
-            public Entry(ref FileReader reader, int metadataSize)
+            internal Entry(IFileReader reader, int metadataSize)
             {
                 Offset = (int) reader.Position;
 

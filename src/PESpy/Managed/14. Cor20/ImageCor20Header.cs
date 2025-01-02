@@ -44,7 +44,7 @@ namespace PESpy
             sizeof(long) +  //ExportAddressTableJumps
             sizeof(long);   //ManagedNativeHeader
 
-        internal ImageCor20Header(ref FileReader reader, PEFile peFile)
+        internal ImageCor20Header(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -54,7 +54,7 @@ namespace PESpy
             MajorRuntimeVersion = reader.ReadUInt16();
             MinorRuntimeVersion = reader.ReadUInt16();
 
-            Metadata = new ImageDataDirectory<MetadataRoot>(ref reader, peFile, PERegionKind.Cor20Header_Metadata, static (ref FileReader r, PEFile p) => new MetadataRoot(ref r, p));
+            Metadata = new ImageDataDirectory<MetadataRoot>(reader, peFile, PERegionKind.Cor20Header_Metadata, static (IFileReader r, PEFile p) => new MetadataRoot(r, p));
 
             Flags = (COMIMAGE_FLAGS) reader.ReadUInt32();
             EntryPointTokenOrRVA = reader.ReadInt32();
@@ -77,12 +77,12 @@ namespace PESpy
 
             public StorageHeader Header { get; }
 
-            public MetadataRoot(ref FileReader reader, PEFile peFile)
+            public MetadataRoot(IFileReader reader, PEFile peFile)
             {
                 Offset = (RawOffset) reader.Position;
 
-                Signature = new StorageSignature(ref reader);
-                Header = new StorageHeader(ref reader, peFile, Signature.Offset);
+                Signature = new StorageSignature(reader);
+                Header = new StorageHeader(reader, peFile, Signature.Offset);
             }
 
             void IViewable.WriteView(ViewWriter writer)

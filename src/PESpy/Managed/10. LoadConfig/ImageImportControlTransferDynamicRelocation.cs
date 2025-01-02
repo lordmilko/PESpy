@@ -15,7 +15,7 @@ namespace PESpy
 
         private readonly uint flags;
 
-        internal ImageImportControlTransferDynamicRelocation(ref FileReader reader)
+        internal ImageImportControlTransferDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
 

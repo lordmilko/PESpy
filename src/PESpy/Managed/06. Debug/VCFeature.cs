@@ -25,7 +25,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal VCFeature(ref FileReader reader)
+        internal VCFeature(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

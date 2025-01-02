@@ -18,7 +18,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public PogoItem(ref FileReader reader)
+        internal PogoItem(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

@@ -27,7 +27,7 @@ namespace PESpy
             sizeof(ushort) + //OffsetModuleName
             sizeof(ushort);  //Reserved
 
-        internal ImageBoundForwarderRef(ref FileReader reader, PEFile peFile)
+        internal ImageBoundForwarderRef(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 

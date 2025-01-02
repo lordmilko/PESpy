@@ -16,7 +16,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal HandlerType(ref FileReader reader, PEFile peFile)
+        internal HandlerType(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 
@@ -32,7 +32,7 @@ namespace PESpy
 
                 reader.Seek(offset);
 
-                Type = new RVA<TypeDescriptor>(dispType, offset, new TypeDescriptor(ref reader, peFile));
+                Type = new RVA<TypeDescriptor>(dispType, offset, new TypeDescriptor(reader, peFile));
 
                 reader.Seek(oldPosition);
             }

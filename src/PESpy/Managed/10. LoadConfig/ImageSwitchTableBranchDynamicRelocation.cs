@@ -13,7 +13,7 @@ namespace PESpy
 
         private readonly ushort flags;
 
-        internal ImageSwitchTableBranchDynamicRelocation(ref FileReader reader)
+        internal ImageSwitchTableBranchDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
 

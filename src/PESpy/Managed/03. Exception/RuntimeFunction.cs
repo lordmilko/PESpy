@@ -26,7 +26,7 @@ namespace PESpy
             sizeof(int) + //EndAddress
             sizeof(int);  //UnwindData
 
-        internal RuntimeFunction(ref FileReader reader, PEFile peFile, in ImageDataDirectory exceptionDirectory, ExceptionHandlerContext context)
+        internal RuntimeFunction(IFileReader reader, PEFile peFile, in ImageDataDirectory exceptionDirectory, ExceptionHandlerContext context)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -44,7 +44,7 @@ namespace PESpy
             {
                 reader.Seek(offset);
 
-                var data = new UnwindInfo(ref reader, peFile, exceptionDirectory, context);
+                var data = new UnwindInfo(reader, peFile, exceptionDirectory, context);
 
                 UnwindData = new RVA<UnwindInfo>(unwindData, offset, data);
             }

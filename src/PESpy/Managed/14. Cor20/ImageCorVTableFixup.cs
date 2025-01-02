@@ -18,7 +18,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public ImageCorVTableFixup(ref FileReader reader)
+        internal ImageCorVTableFixup(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

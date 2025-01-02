@@ -10,9 +10,9 @@ namespace PESpy.View.Builder
 {
     class Extension
     {
-        private FileReader reader;
+        private IFileReader reader;
 
-        internal Extension(ref FileReader reader)
+        internal Extension(IFileReader reader)
         {
             this.reader = reader;
         }

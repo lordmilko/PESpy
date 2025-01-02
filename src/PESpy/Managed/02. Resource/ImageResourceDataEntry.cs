@@ -112,7 +112,7 @@ namespace PESpy
             sizeof(int) + //CodePage
             sizeof(int);  //Reserved
 
-        internal ImageResourceDataEntry(ref FileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent)
+        internal ImageResourceDataEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -154,7 +154,7 @@ namespace PESpy
                             goto default;
 
                         case ResourceType.Version:
-                            value = new VsVersionInfo(ref reader);
+                            value = new VsVersionInfo(reader);
                             break;
 
                         case ResourceType.DlgInclude:
@@ -165,7 +165,7 @@ namespace PESpy
                         case ResourceType.Html:
                         case ResourceType.Manifest:
                         default:
-                            value = new ByteBlob(ref reader, Size);
+                            value = new ByteBlob(reader, Size);
                             break;
                     }
                 }
@@ -176,7 +176,7 @@ namespace PESpy
                     //IMAGE
                     //MUI
                     //WEVT_TEMPLATE (https://github.com/libyal/libfwevt/blob/main/documentation/Windows%20Event%20manifest%20binary%20format.asciidoc). need to include this reference permanently
-                    value = new ByteBlob(ref reader, Size);
+                    value = new ByteBlob(reader, Size);
                 }
 
                 OffsetToData = new RVA<IValue>(offsetToData, offset, value);

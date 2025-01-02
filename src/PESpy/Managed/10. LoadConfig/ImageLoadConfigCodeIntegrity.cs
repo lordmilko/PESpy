@@ -24,7 +24,7 @@ namespace PESpy
             sizeof(int) +    //CatalogOffset
             sizeof(int);     //Reserved
 
-        internal ImageLoadConfigCodeIntegrity(ref FileReader reader)
+        internal ImageLoadConfigCodeIntegrity(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

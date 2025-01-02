@@ -17,7 +17,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ImageResourceDirStringU(ref FileReader reader)
+        internal ImageResourceDirStringU(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

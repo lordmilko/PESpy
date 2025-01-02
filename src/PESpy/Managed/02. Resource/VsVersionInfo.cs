@@ -40,7 +40,7 @@ namespace PESpy
             16 +            //Key
             sizeof(short);  //Padding1
 
-        internal VsVersionInfo(ref FileReader reader)
+        internal VsVersionInfo(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -57,19 +57,19 @@ namespace PESpy
             Key = reader.ReadUnicodeString(16); //VS_VERSION_INFO + \0
 
             //Due to the fact we've read 3 shorts and then 16 bits, we should always align here
-            Padding1 = Align32(ref reader, out var didAlign);
+            Padding1 = Align32(reader, out var didAlign);
             Debug.Assert(didAlign);
 
             if (ValueLength > 0)
             {
                 Debug.Assert(ValueLength == VsFixedFileInfo.StructSize);
-                Value = new VsFixedFileInfo(ref reader);
+                Value = new VsFixedFileInfo(reader);
             }
 
             if (reader.Position < end)
             {
                 //In the event we read VS_FIXEDFILEINFO, it has an even number of shorts, so we should never need to align here
-                Padding2 = Align32(ref reader, out didAlign);
+                Padding2 = Align32(reader, out didAlign);
                 Debug.Assert(!didAlign);
 
                 //Read StringFileInfo/VarFileInfo structures. The start of these structures are identical
@@ -88,11 +88,11 @@ namespace PESpy
                     switch (szKey)
                     {
                         case "StringFileInfo":
-                            children.Add(new StringFileInfo(offset, infoLength, infoValueLength, type, szKey, ref reader));
+                            children.Add(new StringFileInfo(offset, infoLength, infoValueLength, type, szKey, reader));
                             break;
 
                         case "VarFileInfo":
-                            children.Add(new VarFileInfo(offset, infoLength, infoValueLength, type, szKey, ref reader));
+                            children.Add(new VarFileInfo(offset, infoLength, infoValueLength, type, szKey, reader));
                             break;
 
                         default:
@@ -102,7 +102,7 @@ namespace PESpy
                     if (reader.Position < end)
                     {
                         //Not sure if we have to align again here, but to be safe I think the answer is yes
-                        Align32(ref reader, out didAlign);
+                        Align32(reader, out didAlign);
                     }
                 }
 
@@ -113,7 +113,7 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static short Align32(ref FileReader reader, out bool didAlign)
+        internal static short Align32(IFileReader reader, out bool didAlign)
         {
             var alignedPosition = (reader.Position + 3) & ~3;
 

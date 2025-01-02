@@ -35,7 +35,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageFunctionOverrideDynamicRelocation(ref FileReader reader)
+        internal ImageFunctionOverrideDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
 
@@ -60,7 +60,7 @@ namespace PESpy
             // BaseRelocSize size in bytes
             while (reader.Position < end)
             {
-                baseRelocs.Add(new ImageBaseRelocation(ref reader));
+                baseRelocs.Add(new ImageBaseRelocation(reader));
 
                 //Must be 32-bit aligned
                 var alignedPosition = (reader.Position + 3) & ~3;

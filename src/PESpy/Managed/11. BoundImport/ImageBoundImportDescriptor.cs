@@ -32,7 +32,7 @@ namespace PESpy
             sizeof(ushort) + //OffsetModuleName
             sizeof(ushort); //NumberOfModuleForwarderRefs
 
-        internal ImageBoundImportDescriptor(ref FileReader reader, PEFile peFile)
+        internal ImageBoundImportDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -54,7 +54,7 @@ namespace PESpy
                 if (i > 0)
                     reader.Seek(pos);
 
-                refs.Add(new ImageBoundForwarderRef(ref reader, peFile));
+                refs.Add(new ImageBoundForwarderRef(reader, peFile));
 
                 pos += ImageBoundForwarderRef.StructSize;
             }

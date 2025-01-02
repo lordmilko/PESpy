@@ -38,7 +38,7 @@ namespace PESpy
             sizeof(int) + //UnloadInformationTableRVA
             sizeof(int);  //TimeDateStamp
 
-        internal ImageDelayLoadDescriptor(ref FileReader reader, PEFile peFile)
+        internal ImageDelayLoadDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -107,7 +107,7 @@ namespace PESpy
                 ImportAddressTableRVA = default;
             else
             {
-                ImportAddressTableRVA = ImageImportDescriptor.ParseThunks(importAddressTableRVA, ref reader, peFile, null, true);
+                ImportAddressTableRVA = ImageImportDescriptor.ParseThunks(importAddressTableRVA, reader, peFile, null, true);
             }
 
             #endregion
@@ -117,7 +117,7 @@ namespace PESpy
                 ImportNameTableRVA = default;
             else
             {
-                ImportNameTableRVA = ImageImportDescriptor.ParseThunks(importNameTableRVA, ref reader, peFile, null, false);
+                ImportNameTableRVA = ImageImportDescriptor.ParseThunks(importNameTableRVA, reader, peFile, null, false);
             }
 
             #endregion

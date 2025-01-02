@@ -15,7 +15,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageDynamicRelocationTable(ref FileReader reader, PEFile peFile)
+        internal ImageDynamicRelocationTable(IFileReader reader, PEFile peFile)
         {
             //We already read Version
             Offset = (int) reader.Position - 4;
@@ -37,7 +37,7 @@ namespace PESpy
                 reader.FillBuffer(Size - 8); //We've already read 8 bytes
 
                 while (reader.Position < end)
-                    dynamicRelocations.Add(new ImageDynamicRelocation(ref reader, peFile));
+                    dynamicRelocations.Add(new ImageDynamicRelocation(reader, peFile));
 
                 Debug.Assert(reader.Position == end);
 

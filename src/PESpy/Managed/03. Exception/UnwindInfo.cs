@@ -36,7 +36,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal UnwindInfo(ref FileReader reader, PEFile peFile, in ImageDataDirectory exceptionDirectory, ExceptionHandlerContext context)
+        internal UnwindInfo(IFileReader reader, PEFile peFile, in ImageDataDirectory exceptionDirectory, ExceptionHandlerContext context)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -77,7 +77,7 @@ namespace PESpy
                 var opInfo = (byte) ((unwindOpAndInfo & 0xF0) >> 4);
 
                 //https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#struct-unwind_code
-                unwindCodes.Add(GetUnwindCodeInfo(offset, codeOffset, unwindOp, opInfo, ref reader, ref i));
+                unwindCodes.Add(GetUnwindCodeInfo(offset, codeOffset, unwindOp, opInfo, reader, ref i));
             }
 
             if (alignedCount > CountOfCodes)
@@ -118,7 +118,7 @@ namespace PESpy
 
                 var oldOffset = (RawOffset) reader.Position;
 
-                if (ByteMatcher.TryMatch(ref reader, peFile, (RVA) ExceptionHandler, context, out var kind))
+                if (ByteMatcher.TryMatch(reader, peFile, (RVA) ExceptionHandler, context, out var kind))
                 {
                     reader.Seek(oldOffset);
 
@@ -132,7 +132,7 @@ namespace PESpy
 
                         case ByteMatchKind.__C_specific_handler:
                         case ByteMatchKind.__C_specific_handler_noexcept:
-                            ExceptionData = new ScopeTable(ref reader);
+                            ExceptionData = new ScopeTable(reader);
                             break;
 
                         case ByteMatchKind.__CxxFrameHandler:
@@ -143,7 +143,7 @@ namespace PESpy
                             if (peFile.TryGetOffset(infoRVA, out var infoOffset))
                             {
                                 reader.Seek(infoOffset);
-                                ExceptionData = new RVA<FuncInfoV1>(infoRVA, infoOffset, new FuncInfoV1(ref reader, peFile));
+                                ExceptionData = new RVA<FuncInfoV1>(infoRVA, infoOffset, new FuncInfoV1(reader, peFile));
                             }
                             else
                                 ExceptionData = new RVA<FuncInfoV1>(infoRVA);
@@ -159,7 +159,7 @@ namespace PESpy
                             if (peFile.TryGetOffset(infoRVA, out var infoOffset))
                             {
                                 reader.Seek(infoOffset);
-                                ExceptionData = new RVA<FuncInfo>(infoRVA, infoOffset, new FuncInfo(ref reader, peFile));
+                                ExceptionData = new RVA<FuncInfo>(infoRVA, infoOffset, new FuncInfo(reader, peFile));
                             }
                             else
                                 ExceptionData = new RVA<FuncInfo>(infoRVA);
@@ -176,7 +176,7 @@ namespace PESpy
                             if (peFile.TryGetOffset(infoRVA, out var infoOffset))
                             {
                                 reader.Seek(infoOffset);
-                                ExceptionData = new RVA<FuncInfo4>(infoRVA, infoOffset, new FuncInfo4(ref reader));
+                                ExceptionData = new RVA<FuncInfo4>(infoRVA, infoOffset, new FuncInfo4(reader));
                             }
                             else
                                 ExceptionData = new RVA<FuncInfo4>(infoRVA);*/
@@ -189,7 +189,7 @@ namespace PESpy
                             //GSHandlerCheck_SEH_noexcept too?
 
                             http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf
-                            ExceptionData = new ScopeTable(ref reader);
+                            ExceptionData = new ScopeTable(reader);
                             break;
 
                         //case ByteMatch.__GSHandlerCheck_EH: //Apparently it's an RVA to a FuncInfo and the Int32 GS Data from GSHandlerCheck
@@ -211,7 +211,7 @@ namespace PESpy
                  * chained RUNTIME_FUNCTION now follows
                  */
 
-                FunctionEntry = new RuntimeFunction(ref reader, peFile, exceptionDirectory, context);
+                FunctionEntry = new RuntimeFunction(reader, peFile, exceptionDirectory, context);
             }
         }
 
@@ -220,7 +220,7 @@ namespace PESpy
             byte codeOffset,
             UWOP unwindOp,
             byte opInfo,
-            ref FileReader reader,
+            IFileReader reader,
             ref int i)
         {
             switch (unwindOp)

@@ -12,7 +12,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal TypeDescriptor(ref FileReader reader, PEFile peFile)
+        internal TypeDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 

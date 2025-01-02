@@ -10,7 +10,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal GuardEHContinuationTable(ref FileReader reader, IMAGE_GUARD flags, long entryCount)
+        internal GuardEHContinuationTable(IFileReader reader, IMAGE_GUARD flags, long entryCount)
         {
             Offset = (int) reader.Position;
 
@@ -23,7 +23,7 @@ namespace PESpy
             var entries = new Entry[entryCount];
 
             for (var i = 0; i < entryCount; i++)
-                entries[i] = new Entry(ref reader, metadataSize);
+                entries[i] = new Entry(reader, metadataSize);
 
             Entries = entries;
         }
@@ -47,7 +47,7 @@ namespace PESpy
 
             public int Offset { get; init; }
 
-            public Entry(ref FileReader reader, int metadataSize)
+            internal Entry(IFileReader reader, int metadataSize)
             {
                 Offset = (int) reader.Position;
 

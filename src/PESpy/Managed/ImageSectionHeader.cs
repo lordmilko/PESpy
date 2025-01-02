@@ -1,5 +1,4 @@
-﻿using System;
-using ClrDebug;
+﻿using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RVA = System.Int32;
@@ -96,7 +95,7 @@ namespace PESpy
             sizeof(short) + // NumberOfLineNumbers
             sizeof(int);    // SectionCharacteristics
 
-        internal ImageSectionHeader(ref FileReader reader)
+        internal ImageSectionHeader(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

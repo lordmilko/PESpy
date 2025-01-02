@@ -62,7 +62,7 @@ namespace PESpy
             sizeof(short) + // SizeOfOptionalHeader:
             sizeof(ushort); // Characteristics
 
-        internal ImageFileHeader(ref FileReader reader)
+        internal ImageFileHeader(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

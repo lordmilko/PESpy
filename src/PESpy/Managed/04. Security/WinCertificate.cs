@@ -26,7 +26,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public WinCertificate(ref FileReader reader)
+        internal WinCertificate(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -42,12 +42,12 @@ namespace PESpy
                     //PKCS SignedData is in ASN.1 format, which is a crazy complicated encoding. BouncyCastle.Cryptography can parse these values easily with new X509CertificateParser().ReadCertificate(bytes);
                     //There's also a new .NET library System.Formats.Asn1 that you can use to parse ASN.1 values yourself, however it is very unintuitive. You can easily create a certificate without any external
                     //libraries by doing new X509Certificate2(bytes), but the whole point is that we want to describe what each byte is doing.
-                    Certificate = new SignedData(ref reader, certificateLength);
+                    Certificate = new SignedData(reader, certificateLength);
                     break;
 
                 default:
                     Debug.Assert(false, $"Don't know how to parse a certificate of type {CertificateType}");
-                    Certificate = new ByteBlob(ref reader, certificateLength);
+                    Certificate = new ByteBlob(reader, certificateLength);
                     break;
             }
         }

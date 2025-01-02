@@ -31,7 +31,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal StorageSignature(ref FileReader reader)
+        internal StorageSignature(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
             MajorVersion = reader.ReadInt16();

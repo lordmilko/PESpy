@@ -39,11 +39,12 @@ namespace PESpy.View
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
         
         internal ViewWriter(ref FileReader reader, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
+        internal ViewWriter(IFileReader reader, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
         {
             this.mode = mode;
             this.tryGetViewOffset = tryGetViewOffset;
             this.getRealOffset = getRealOffset;
-            extension = new Extension(ref reader);
+            extension = new Extension(reader);
             globalList = new List<IView>();
             listPool = new Stack<List<IView>>();
         }

@@ -36,7 +36,7 @@ namespace PESpy
             ImageFileHeader.StructSize +
             ImageOptionalHeader.StructSize(is32Bit);
 
-        internal ImageNtHeaders(ref FileReader reader)
+        internal ImageNtHeaders(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -52,8 +52,8 @@ namespace PESpy
                 throw new BadImageFormatException("Invalid PE signature.");
             }
 
-            FileHeader = new ImageFileHeader(ref reader);
-            OptionalHeader = new ImageOptionalHeader(ref reader);
+            FileHeader = new ImageFileHeader(reader);
+            OptionalHeader = new ImageOptionalHeader(reader);
         }
 
         void IViewable.WriteView(ViewWriter writer)

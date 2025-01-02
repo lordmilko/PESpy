@@ -86,7 +86,7 @@ namespace PESpy
             sizeof(ushort) + //NumberOfNamedEntries
             sizeof(ushort);  //NumberOfIdEntries
 
-        internal ImageResourceDirectory(ref FileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
+        internal ImageResourceDirectory(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -106,7 +106,7 @@ namespace PESpy
                 var entries = new ImageResourceDirectoryEntry[totalEntries];
 
                 for (var i = 0; i < totalEntries; i++)
-                    entries[i] = new ImageResourceDirectoryEntry(ref reader, peFile, parent, rootOffset);
+                    entries[i] = new ImageResourceDirectoryEntry(reader, peFile, parent, rootOffset);
 
                 Entries = entries;
             }

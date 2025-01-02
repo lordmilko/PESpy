@@ -76,10 +76,10 @@ namespace PESpy.Ecma335
         internal void Enter() => reader.Enter();
         internal void Exit() => reader.Exit();
 
-        private FileReader reader;
+        private IFileReader reader;
         private int[] rowCounts;
 
-        internal MetadataReader(ref FileReader reader, HeapSizes heapSizes, int[] rowCounts)
+        internal MetadataReader(IFileReader reader, HeapSizes heapSizes, int[] rowCounts)
         {
             this.reader = reader;
 

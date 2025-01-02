@@ -31,7 +31,7 @@ namespace PESpy
             sizeof(int) + //PdbSignature
             sizeof(int);  //Age
 
-        internal NB10I(ref FileReader reader, int signature)
+        internal NB10I(IFileReader reader, int signature)
         {
             //Signature has already been read
             Offset = (RawOffset) reader.Position - 4;

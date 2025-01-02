@@ -69,7 +69,7 @@ namespace PESpy
             sizeof(int) + //Name
             sizeof(int);  //FirstThunk
 
-        internal ImageImportDescriptor(ref FileReader reader, PEFile peFile, ImageThunkData[]? importAddressTable)
+        internal ImageImportDescriptor(IFileReader reader, PEFile peFile, ImageThunkData[]? importAddressTable)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -89,7 +89,7 @@ namespace PESpy
                 return;
             }
 
-            OriginalFirstThunk = ParseThunks(originalFirstThunk, ref reader, peFile, null, false);
+            OriginalFirstThunk = ParseThunks(originalFirstThunk, reader, peFile, null, false);
 
             if (peFile.TryGetOffset(name, out var offset))
             {
@@ -114,10 +114,10 @@ namespace PESpy
                 }
             }
 
-            FirstThunk = ParseThunks(firstThunk, ref reader, peFile, iatCache, true);
+            FirstThunk = ParseThunks(firstThunk, reader, peFile, iatCache, true);
         }
 
-        internal static RVA<ImageThunkData[]> ParseThunks(RVA rva, ref FileReader reader, PEFile peFile, Dictionary<RawOffset, ImageThunkData>? iatCache, bool isIAT)
+        internal static RVA<ImageThunkData[]> ParseThunks(RVA rva, IFileReader reader, PEFile peFile, Dictionary<RawOffset, ImageThunkData>? iatCache, bool isIAT)
         {
             if (!peFile.TryGetOffset(rva, out var offset))
                 return new RVA<ImageThunkData[]>(rva);
@@ -137,7 +137,7 @@ namespace PESpy
                 {
                     reader.Seek(itemOffset);
 
-                    thunk = new ImageThunkData(ref reader, peFile, is32Bit, isIAT);
+                    thunk = new ImageThunkData(reader, peFile, is32Bit, isIAT);
                 }
 
                 results.Add(thunk);

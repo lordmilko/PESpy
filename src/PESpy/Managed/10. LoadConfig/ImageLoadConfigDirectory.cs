@@ -234,7 +234,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ImageLoadConfigDirectory(ref FileReader reader, PEFile peFile)
+        internal ImageLoadConfigDirectory(IFileReader reader, PEFile peFile)
         {
             #region Init
 
@@ -310,35 +310,35 @@ namespace PESpy
                         break;
 
                     case 7:
-                        DeCommitFreeBlockThreshold = ReadPointer(ref reader, is32Bit);
+                        DeCommitFreeBlockThreshold = ReadPointer(reader, is32Bit);
                         break;
 
                     case 8:
-                        DeCommitTotalFreeThreshold = ReadPointer(ref reader, is32Bit);
+                        DeCommitTotalFreeThreshold = ReadPointer(reader, is32Bit);
                         break;
 
                     case 9:
-                        LockPrefixTable = ReadPointer(ref reader, is32Bit);
+                        LockPrefixTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 10:
-                        MaximumAllocationSize = ReadPointer(ref reader, is32Bit);
+                        MaximumAllocationSize = ReadPointer(reader, is32Bit);
                         break;
 
                     case 11:
-                        VirtualMemoryThreshold = ReadPointer(ref reader, is32Bit); //Flags
+                        VirtualMemoryThreshold = ReadPointer(reader, is32Bit); //Flags
                         break;
 
                     case 12:
                         if (is32Bit)
                             ProcessHeapFlags = reader.ReadInt32(); //Flags
                         else
-                            ProcessAffinityMask = ReadPointer(ref reader, is32Bit); //Don't think this is flags
+                            ProcessAffinityMask = ReadPointer(reader, is32Bit); //Don't think this is flags
                         break;
 
                     case 13:
                         if (is32Bit)
-                            ProcessAffinityMask = ReadPointer(ref reader, is32Bit); //Don't think this is flags
+                            ProcessAffinityMask = ReadPointer(reader, is32Bit); //Don't think this is flags
                         else
                             ProcessHeapFlags = reader.ReadInt32(); //Flags
                         break;
@@ -352,38 +352,38 @@ namespace PESpy
                         break;
 
                     case 16:
-                        EditList = ReadPointer(ref reader, is32Bit);
+                        EditList = ReadPointer(reader, is32Bit);
                         break;
 
                     case 17:
-                        securityCookie = ReadPointer(ref reader, is32Bit);
+                        securityCookie = ReadPointer(reader, is32Bit);
                         break;
 
                     case 18:
-                        sehandlerTable = ReadPointer(ref reader, is32Bit);
+                        sehandlerTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 19:
-                        SEHandlerCount = ReadPointer(ref reader, is32Bit);
+                        SEHandlerCount = ReadPointer(reader, is32Bit);
                         break;
 
                     #endregion
                     #region Windows SDK 8.1+
 
                     case 20:
-                        guardCFCheckFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardCFCheckFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 21:
-                        guardCFDispatchFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardCFDispatchFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 22:
-                        guardCFFunctionTable = ReadPointer(ref reader, is32Bit);
+                        guardCFFunctionTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 23:
-                        GuardCFFunctionCount = ReadPointer(ref reader, is32Bit);
+                        GuardCFFunctionCount = ReadPointer(reader, is32Bit);
                         break;
 
                     case 24:
@@ -394,42 +394,42 @@ namespace PESpy
                     #region Windows SDK 10.0.10586.0+
 
                     case 25:
-                        CodeIntegrity = new ImageLoadConfigCodeIntegrity(ref reader);
+                        CodeIntegrity = new ImageLoadConfigCodeIntegrity(reader);
                         break;
 
                     case 26:
-                        guardAddressTakenIatEntryTable = ReadPointer(ref reader, is32Bit);
+                        guardAddressTakenIatEntryTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 27:
-                        GuardAddressTakenIatEntryCount = ReadPointer(ref reader, is32Bit);
+                        GuardAddressTakenIatEntryCount = ReadPointer(reader, is32Bit);
                         break;
 
                     case 28:
-                        guardLongJumpTargetTable = ReadPointer(ref reader, is32Bit);
+                        guardLongJumpTargetTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 29:
-                        GuardLongJumpTargetCount = ReadPointer(ref reader, is32Bit);
+                        GuardLongJumpTargetCount = ReadPointer(reader, is32Bit);
                         break;
 
                     case 30:
-                        DynamicValueRelocTable = ReadPointer(ref reader, is32Bit);
+                        DynamicValueRelocTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 31:
-                        CHPEMetadataPointer = ReadPointer(ref reader, is32Bit);
+                        CHPEMetadataPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     #endregion
                     #region Windows SDK 10.0.15063.468+
 
                     case 32:
-                        GuardRFFailureRoutine = ReadPointer(ref reader, is32Bit);
+                        GuardRFFailureRoutine = ReadPointer(reader, is32Bit);
                         break;
 
                     case 33:
-                        guardRFFailureRoutineFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardRFFailureRoutineFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 34:
@@ -445,7 +445,7 @@ namespace PESpy
                         break;
 
                     case 37:
-                        guardRFVerifyStackPointerFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardRFVerifyStackPointerFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 38:
@@ -457,42 +457,42 @@ namespace PESpy
                         break;
 
                     case 40:
-                        enclaveConfigurationPointer = ReadPointer(ref reader, is32Bit);
+                        enclaveConfigurationPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 41:
-                        VolatileMetadataPointer = ReadPointer(ref reader, is32Bit);
+                        VolatileMetadataPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 42:
-                        guardEHContinuationTable = ReadPointer(ref reader, is32Bit);
+                        guardEHContinuationTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 43:
-                        GuardEHContinuationCount = ReadPointer(ref reader, is32Bit);
+                        GuardEHContinuationCount = ReadPointer(reader, is32Bit);
                         break;
 
                     case 44:
-                        guardXFGCheckFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardXFGCheckFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 45:
-                        guardXFGDispatchFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardXFGDispatchFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 46:
-                        guardXFGTableDispatchFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardXFGTableDispatchFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     case 47:
-                        CastGuardOsDeterminedFailureMode = ReadPointer(ref reader, is32Bit);
+                        CastGuardOsDeterminedFailureMode = ReadPointer(reader, is32Bit);
                         break;
 
                     #endregion
                     #region Windows SDK 10.0.22621+
 
                     case 48:
-                        guardMemcpyFunctionPointer = ReadPointer(ref reader, is32Bit);
+                        guardMemcpyFunctionPointer = ReadPointer(reader, is32Bit);
                         break;
 
                     #endregion
@@ -565,8 +565,8 @@ namespace PESpy
 
             #endregion
 
-            GuardCFCheckFunctionPointer    = GetFunctionPointer(guardCFCheckFunctionPointer, ref reader, peFile, is32Bit);
-            GuardCFDispatchFunctionPointer = GetFunctionPointer(guardCFDispatchFunctionPointer, ref reader, peFile, is32Bit);
+            GuardCFCheckFunctionPointer    = GetFunctionPointer(guardCFCheckFunctionPointer, reader, peFile, is32Bit);
+            GuardCFDispatchFunctionPointer = GetFunctionPointer(guardCFDispatchFunctionPointer, reader, peFile, is32Bit);
 
             #region GuardCFFunctionTable
 
@@ -583,7 +583,7 @@ namespace PESpy
                     GuardCFFunctionTable = new VA<GuardCFFunctionTable>(
                         guardCFFunctionTable,
                         offset,
-                        new GuardCFFunctionTable(ref reader, peFile, GuardFlags, GuardCFFunctionCount)
+                        new GuardCFFunctionTable(reader, peFile, GuardFlags, GuardCFFunctionCount)
                     );
                 }
                 else
@@ -604,7 +604,7 @@ namespace PESpy
                     GuardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(
                         guardLongJumpTargetTable,
                         offset,
-                        new GuardAddressTakenIatEntryTable(ref reader, GuardFlags, GuardAddressTakenIatEntryCount)
+                        new GuardAddressTakenIatEntryTable(reader, GuardFlags, GuardAddressTakenIatEntryCount)
                     );
                 }
                 else
@@ -625,7 +625,7 @@ namespace PESpy
                     GuardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(
                         guardLongJumpTargetTable,
                         offset,
-                        new GuardLongJumpTargetTable(ref reader, GuardFlags, GuardLongJumpTargetCount)
+                        new GuardLongJumpTargetTable(reader, GuardFlags, GuardLongJumpTargetCount)
                     );
                 }
                 else
@@ -646,7 +646,7 @@ namespace PESpy
 
             #endregion
 
-            GuardRFFailureRoutineFunctionPointer = GetFunctionPointer(guardRFFailureRoutineFunctionPointer, ref reader, peFile, is32Bit);
+            GuardRFFailureRoutineFunctionPointer = GetFunctionPointer(guardRFFailureRoutineFunctionPointer, reader, peFile, is32Bit);
 
             #region DynamicValueRelocTableOffset
 
@@ -670,7 +670,7 @@ namespace PESpy
                             DynamicValueRelocTableOffset = new RVA<ImageDynamicRelocationTable>(
                                 dynamicValueRelocTableOffset,
                                 offset,
-                                new ImageDynamicRelocationTable(ref reader, peFile)
+                                new ImageDynamicRelocationTable(reader, peFile)
                             );
                         }
                         else
@@ -683,7 +683,7 @@ namespace PESpy
 
             #endregion
 
-            GuardRFVerifyStackPointerFunctionPointer = GetFunctionPointer(guardRFVerifyStackPointerFunctionPointer, ref reader, peFile, is32Bit);
+            GuardRFVerifyStackPointerFunctionPointer = GetFunctionPointer(guardRFVerifyStackPointerFunctionPointer, reader, peFile, is32Bit);
 
             #region HotPatchTableOffset
 
@@ -703,7 +703,7 @@ namespace PESpy
                     EnclaveConfigurationPointer = new VA<ImageEnclaveConfig>(
                         guardEHContinuationTable,
                         offset,
-                        new ImageEnclaveConfig(ref reader, peFile)
+                        new ImageEnclaveConfig(reader, peFile)
                     );
                 }
                 else
@@ -734,7 +734,7 @@ namespace PESpy
                     GuardEHContinuationTable = new VA<GuardEHContinuationTable>(
                         guardEHContinuationTable,
                         offset,
-                        new GuardEHContinuationTable(ref reader, GuardFlags, GuardEHContinuationCount)
+                        new GuardEHContinuationTable(reader, GuardFlags, GuardEHContinuationCount)
                     );
                 }
                 else
@@ -743,16 +743,16 @@ namespace PESpy
 
             #endregion
 
-            GuardXFGCheckFunctionPointer         = GetFunctionPointer(guardXFGCheckFunctionPointer,         ref reader, peFile, is32Bit);
-            GuardXFGDispatchFunctionPointer      = GetFunctionPointer(guardXFGDispatchFunctionPointer,      ref reader, peFile, is32Bit);
-            GuardXFGTableDispatchFunctionPointer = GetFunctionPointer(guardXFGTableDispatchFunctionPointer, ref reader, peFile, is32Bit);
-            GuardMemcpyFunctionPointer           = GetFunctionPointer(guardMemcpyFunctionPointer, ref reader, peFile, is32Bit);
+            GuardXFGCheckFunctionPointer         = GetFunctionPointer(guardXFGCheckFunctionPointer,         reader, peFile, is32Bit);
+            GuardXFGDispatchFunctionPointer      = GetFunctionPointer(guardXFGDispatchFunctionPointer,      reader, peFile, is32Bit);
+            GuardXFGTableDispatchFunctionPointer = GetFunctionPointer(guardXFGTableDispatchFunctionPointer, reader, peFile, is32Bit);
+            GuardMemcpyFunctionPointer           = GetFunctionPointer(guardMemcpyFunctionPointer, reader, peFile, is32Bit);
 
             #endregion
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long ReadPointer(ref FileReader reader, bool is32Bit)
+        private static long ReadPointer(IFileReader reader, bool is32Bit)
         {
             if (is32Bit)
                 return reader.ReadUInt32();
@@ -760,7 +760,7 @@ namespace PESpy
             return reader.ReadInt64();
         }
 
-        private static VA<long> GetFunctionPointer(long value, ref FileReader reader, PEFile peFile, bool is32Bit)
+        private static VA<long> GetFunctionPointer(long value, IFileReader reader, PEFile peFile, bool is32Bit)
         {
             //The function pointers are not stored in the load config table; a pointer _to_ the function pointer is stored
 
@@ -772,7 +772,7 @@ namespace PESpy
                 {
                     reader.Seek(offset);
 
-                    var fnPtr = ReadPointer(ref reader, is32Bit);
+                    var fnPtr = ReadPointer(reader, is32Bit);
 
                     return new VA<long>(value, offset, fnPtr);
                 }

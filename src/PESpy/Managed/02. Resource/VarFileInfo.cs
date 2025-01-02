@@ -25,7 +25,7 @@ namespace PESpy
 
             public RawOffset Offset { get; }
 
-            internal VarFileInfo(RawOffset offset, short length, short valueLength, short type, string key, ref FileReader reader)
+            internal VarFileInfo(RawOffset offset, short length, short valueLength, short type, string key, IFileReader reader)
             {
                 Offset = offset;
 
@@ -38,7 +38,7 @@ namespace PESpy
                 Key = key;
 
                 //Will always require alignment, because name is 24 bytes and we only read 3 shorts
-                Padding = Align32(ref reader, out var didAlign);
+                Padding = Align32(reader, out var didAlign);
                 Debug.Assert(didAlign);
 
                 var end = (int) Offset + length;
@@ -47,12 +47,12 @@ namespace PESpy
 
                 while (reader.Position < end)
                 {
-                    items.Add(new Var(ref reader));
+                    items.Add(new Var(reader));
 
                     if (reader.Position < end)
                     {
                         //On the basis that each String must be 32-bit aligned, I'm going to assume that each Var must be 32-bit aligned too
-                        Align32(ref reader, out didAlign);
+                        Align32(reader, out didAlign);
                     }
                 }
 

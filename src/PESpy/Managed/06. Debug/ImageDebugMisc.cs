@@ -29,7 +29,7 @@ namespace PESpy
             sizeof(byte) + //Unicode
             3;             //Reserved
 
-        public ImageDebugMisc(ref FileReader reader)
+        internal ImageDebugMisc(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

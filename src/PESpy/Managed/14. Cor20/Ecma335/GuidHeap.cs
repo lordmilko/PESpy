@@ -18,9 +18,9 @@ namespace PESpy
 
         public int Offset { get; }
 
-        private FileReader reader;
+        private IFileReader reader;
 
-        internal GuidHeap(ref FileReader reader, int size)
+        internal GuidHeap(IFileReader reader, int size)
         {
             Offset = (int) reader.Position;
             Size = size;

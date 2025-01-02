@@ -40,7 +40,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ImageThunkData(ref FileReader reader, PEFile peFile, bool is32Bit, bool isIAT)
+        internal ImageThunkData(IFileReader reader, PEFile peFile, bool is32Bit, bool isIAT)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -122,7 +122,7 @@ namespace PESpy
                 {
                     reader.Seek(offset);
 
-                    var importByName = new ImageImportByName(ref reader);
+                    var importByName = new ImageImportByName(reader);
 
                     name = new RVA<ImageImportByName>((RVA)(int)Value, offset, importByName);
                 }

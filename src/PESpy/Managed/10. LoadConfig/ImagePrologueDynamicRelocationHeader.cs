@@ -11,7 +11,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImagePrologueDynamicRelocationHeader(ref FileReader reader)
+        internal ImagePrologueDynamicRelocationHeader(IFileReader reader)
         {
             Offset = (int) reader.Position;
 

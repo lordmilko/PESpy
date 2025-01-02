@@ -44,7 +44,7 @@ namespace PESpy
             tree = ByteSequenceTreeNode.BuildTree(sequences.Keys.ToArray());
         }
 
-        internal static bool TryMatch(ref FileReader reader, PEFile peFile, RVA virtualOffset, ExceptionHandlerContext context, out ByteMatchKind kind)
+        internal static bool TryMatch(IFileReader reader, PEFile peFile, RVA virtualOffset, ExceptionHandlerContext context, out ByteMatchKind kind)
         {
             if (context.TryGetKind(virtualOffset, out var rawKind))
             {

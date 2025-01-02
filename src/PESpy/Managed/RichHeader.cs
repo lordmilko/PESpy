@@ -13,7 +13,7 @@ namespace PESpy
     /// </summary>
     public class RichHeader : IValue, IViewable //May be null, so can't be a struct
     {
-        public static RichHeader? New(RawOffset ntHeaderOffset, ref FileReader reader)
+        internal static RichHeader? New(RawOffset ntHeaderOffset, IFileReader reader)
         {
             //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
 

@@ -17,7 +17,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ImageBaseRelocation(ref FileReader reader)
+        internal ImageBaseRelocation(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -29,7 +29,7 @@ namespace PESpy
             var entries = new Entry[numEntries];
 
             for (var i = 0; i < numEntries; i++)
-                entries[i] = new Entry(ref reader);
+                entries[i] = new Entry(reader);
 
             Entries = entries;
         }
@@ -66,7 +66,7 @@ namespace PESpy
 
             public ushort Value { get; init; }
 
-            internal Entry(ref FileReader reader)
+            internal Entry(IFileReader reader)
             {
                 Value = reader.ReadUInt16();
             }

@@ -37,7 +37,7 @@ namespace PESpy
             sizeof(int) * 4 + //Guid
             sizeof(int);      //Age
 
-        internal RSDSI(ref FileReader reader, int signature)
+        internal RSDSI(IFileReader reader, int signature)
         {
             //Signature has already been read
             Offset = (RawOffset) reader.Position - 4;

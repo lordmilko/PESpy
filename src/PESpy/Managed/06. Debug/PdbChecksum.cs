@@ -15,7 +15,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal PdbChecksum(ref FileReader reader, int size)
+        internal PdbChecksum(IFileReader reader, int size)
         {
             Offset = (RawOffset) reader.Position;
 

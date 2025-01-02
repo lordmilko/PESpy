@@ -48,7 +48,7 @@ namespace PESpy
 
             public RawOffset Offset { get; }
 
-            internal StringTable(ref FileReader reader)
+            internal StringTable(IFileReader reader)
             {
                 Offset = (RawOffset) reader.Position;
 

@@ -10,7 +10,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal UnwindMapEntry(ref FileReader reader)
+        internal UnwindMapEntry(IFileReader reader)
         {
             Offset = (int) reader.Position;
 

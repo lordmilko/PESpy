@@ -34,7 +34,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageEnclaveImport(ref FileReader reader, PEFile peFile)
+        internal ImageEnclaveImport(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 

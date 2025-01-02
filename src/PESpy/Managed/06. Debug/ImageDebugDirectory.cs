@@ -75,7 +75,7 @@ namespace PESpy
             sizeof(uint) +   // AddressOfRawData
             sizeof(uint);    // PointerToRawData
 
-        internal ImageDebugDirectory(ref FileReader reader, PEFile peFile)
+        internal ImageDebugDirectory(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -124,7 +124,7 @@ namespace PESpy
                     goto default;
 
                 case ImageDebugType.CodeView:
-                    Data = ReadCodeView(ref reader, SizeOfData);
+                    Data = ReadCodeView(reader, SizeOfData);
                     break;
 
                 case ImageDebugType.FPO:
@@ -134,14 +134,14 @@ namespace PESpy
                     var entries = new FpoData[numEntries];
 
                     for (var i = 0; i < numEntries; i++)
-                        entries[i] = new FpoData(ref reader);
+                        entries[i] = new FpoData(reader);
 
                     Data = entries;
                     break;
                 }
 
                 case ImageDebugType.Misc:
-                    Data = new ImageDebugMisc(ref reader);
+                    Data = new ImageDebugMisc(reader);
                     break;
 
                 case ImageDebugType.Exception:
@@ -155,7 +155,7 @@ namespace PESpy
                     //C:\Windows\system32\FM20.dll has this with a size of 4. Nobody knows what to do with this directory however
                     //Format seems to be BB 00 and then two more bytes. Not sure if the 00 is always 00?
                     if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
-                        Data = new ByteBlob(ref reader, SizeOfData);
+                        Data = new ByteBlob(reader, SizeOfData);
                     else
                         Data = default;
                     break;
@@ -164,12 +164,12 @@ namespace PESpy
                     goto default;
 
                 case ImageDebugType.VCFeature:
-                    Data = new VCFeature(ref reader);
+                    Data = new VCFeature(reader);
                     break;
 
                 case ImageDebugType.Pogo:
                     //Are they maybe called IMAGE_POGO_BLOCK and IMAGE_POGO_INFO? Need more citations
-                    Data = ReadPogo(ref reader, SizeOfData);
+                    Data = ReadPogo(reader, SizeOfData);
                     break;
 
                 case ImageDebugType.ILTCG:
@@ -187,20 +187,20 @@ namespace PESpy
                     //dotnet/runtime says that this directory must be empty, but that's not true, it can sometimes have a hash.
                     //it can also sometimes be empty as well
                     if (SizeOfData != 0)
-                        Data = new Reproducible(ref reader);
+                        Data = new Reproducible(reader);
                     else
                         Data = default;
                     break;
 
                 case ImageDebugType.EmbeddedPortablePdb:
-                    Data = new EmbeddedPortablePdb(ref reader, SizeOfData);
+                    Data = new EmbeddedPortablePdb(reader, SizeOfData);
                     break;
 
                 case ImageDebugType.SPGO:
                     goto default;
 
                 case ImageDebugType.PdbChecksum:
-                    Data = new PdbChecksum(ref reader, SizeOfData);
+                    Data = new PdbChecksum(reader, SizeOfData);
                     break;
 
                 case ImageDebugType.ExDllCharacteristics:
@@ -210,7 +210,7 @@ namespace PESpy
                         Data = new RawValue<ImageDllCharacteristicsEx>((RawOffset) offset, value);
                     }
                     else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
-                        Data = new ByteBlob(ref reader, SizeOfData);
+                        Data = new ByteBlob(reader, SizeOfData);
                     else
                         Data = default;
                     break;
@@ -222,7 +222,7 @@ namespace PESpy
 #endif
                     //Defensively check for 0 length
                     if (SizeOfData > 0)
-                        Data = new ByteBlob(ref reader, SizeOfData);
+                        Data = new ByteBlob(reader, SizeOfData);
                     else
                         Data = default;
                     break;
@@ -233,27 +233,27 @@ namespace PESpy
 
         #region Data
 
-        private static IValue ReadCodeView(ref FileReader reader, int sizeOfData)
+        private static IValue ReadCodeView(IFileReader reader, int sizeOfData)
         {
             var signature = reader.ReadInt32();
 
             switch (signature)
             {
                 case RSDSI.RSDSSignature:
-                    return new RSDSI(ref reader, signature);
+                    return new RSDSI(reader, signature);
 
                 case NB10I.NB10Signature:
-                    return new NB10I(ref reader, signature);
+                    return new NB10I(reader, signature);
 
                 default:
                     Debug.Assert(false, $"Don't know how to read CodeView signature '{signature:X}'");
 
                     //Unsupported value; read as a byte blob
-                    return new ByteBlob(ref reader, sizeOfData);
+                    return new ByteBlob(reader, sizeOfData);
             }
         }
 
-        private static IValue ReadPogo(ref FileReader reader, int sizeOfData)
+        private static IValue ReadPogo(IFileReader reader, int sizeOfData)
         {
             var signature = reader.ReadInt32();
 
@@ -265,13 +265,13 @@ namespace PESpy
                 case PogoData.PGOSignature:
                 case PogoData.PGUSignature:
                 case PogoData.SPGOSignature:
-                    return new PogoData(ref reader, signature, sizeOfData);
+                    return new PogoData(reader, signature, sizeOfData);
 
                 default:
                     Debug.Assert(false, $"Don't know how to read Pogo signature '{signature:X}'");
 
                     //Unsupported value; read as a byte blob
-                    return new ByteBlob(ref reader, sizeOfData);
+                    return new ByteBlob(reader, sizeOfData);
             }
         }
 

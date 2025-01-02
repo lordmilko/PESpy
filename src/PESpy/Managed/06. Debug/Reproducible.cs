@@ -18,7 +18,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public Reproducible(ref FileReader reader)
+        internal Reproducible(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

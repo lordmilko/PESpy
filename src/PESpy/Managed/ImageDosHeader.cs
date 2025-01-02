@@ -132,7 +132,7 @@ namespace PESpy
             sizeof(short) * 10 + //ReservedWords2
             sizeof(int);
 
-        internal ImageDosHeader(ref FileReader reader)
+        internal ImageDosHeader(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

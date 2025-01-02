@@ -313,7 +313,7 @@ namespace PESpy
         {
         }
 
-        internal ImageOptionalHeader(ref FileReader reader)
+        internal ImageOptionalHeader(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -394,24 +394,24 @@ namespace PESpy
             Debug.Assert(NumberOfRvaAndSizes == 16);
 
             //Directory entries
-            ExportTableDirectory = new ImageDataDirectory(ref reader);
-            ImportTableDirectory = new ImageDataDirectory(ref reader);
-            ResourceTableDirectory = new ImageDataDirectory(ref reader);
-            ExceptionTableDirectory = new ImageDataDirectory(ref reader);
-            SecurityTableDirectory = new ImageDataDirectory(ref reader);
-            BaseRelocationTableDirectory = new ImageDataDirectory(ref reader);
-            DebugTableDirectory = new ImageDataDirectory(ref reader);
-            CopyrightTableDirectory = new ImageDataDirectory(ref reader);
-            GlobalPointerTableDirectory = new ImageDataDirectory(ref reader);
-            ThreadLocalStorageTableDirectory = new ImageDataDirectory(ref reader);
-            LoadConfigTableDirectory = new ImageDataDirectory(ref reader);
-            BoundImportTableDirectory = new ImageDataDirectory(ref reader);
-            ImportAddressTableDirectory = new ImageDataDirectory(ref reader);
-            DelayImportTableDirectory = new ImageDataDirectory(ref reader);
-            CorHeaderTableDirectory = new ImageDataDirectory(ref reader);
+            ExportTableDirectory = new ImageDataDirectory(reader);
+            ImportTableDirectory = new ImageDataDirectory(reader);
+            ResourceTableDirectory = new ImageDataDirectory(reader);
+            ExceptionTableDirectory = new ImageDataDirectory(reader);
+            SecurityTableDirectory = new ImageDataDirectory(reader);
+            BaseRelocationTableDirectory = new ImageDataDirectory(reader);
+            DebugTableDirectory = new ImageDataDirectory(reader);
+            CopyrightTableDirectory = new ImageDataDirectory(reader);
+            GlobalPointerTableDirectory = new ImageDataDirectory(reader);
+            ThreadLocalStorageTableDirectory = new ImageDataDirectory(reader);
+            LoadConfigTableDirectory = new ImageDataDirectory(reader);
+            BoundImportTableDirectory = new ImageDataDirectory(reader);
+            ImportAddressTableDirectory = new ImageDataDirectory(reader);
+            DelayImportTableDirectory = new ImageDataDirectory(reader);
+            CorHeaderTableDirectory = new ImageDataDirectory(reader);
 
             // ReservedDirectory (should be 0, 0)
-            NullDirectory = new ImageDataDirectory(ref reader);
+            NullDirectory = new ImageDataDirectory(reader);
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -45,7 +45,7 @@ namespace PESpy.Ecma335
             sizeof(long) + //Valid
             sizeof(long);  //Sorted
 
-        internal CompressedModelHeader(ref FileReader reader, out int[] rowCounts)
+        internal CompressedModelHeader(IFileReader reader, out int[] rowCounts)
         {
             //ECMA-335 II.24.2.6
 

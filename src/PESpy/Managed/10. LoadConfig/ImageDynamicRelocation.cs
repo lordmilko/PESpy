@@ -17,7 +17,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageDynamicRelocation(ref FileReader reader, PEFile peFile)
+        internal ImageDynamicRelocation(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 
@@ -53,7 +53,7 @@ namespace PESpy
                         var entries = new ImageImportControlTransferDynamicRelocation[numEntries];
 
                         for (var i = 0; i < numEntries; i++)
-                            entries[i] = new ImageImportControlTransferDynamicRelocation(ref reader);
+                            entries[i] = new ImageImportControlTransferDynamicRelocation(reader);
 
                         list.Add(new ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>(offset, virtualAddress, sizeOfBlock, entries));
 
@@ -87,7 +87,7 @@ namespace PESpy
                         var entries = new ImageIndirControlTransferDynamicRelocation[numEntries];
 
                         for (var i = 0; i < numEntries; i++)
-                            entries[i] = new ImageIndirControlTransferDynamicRelocation(ref reader);
+                            entries[i] = new ImageIndirControlTransferDynamicRelocation(reader);
 
                         list.Add(new ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>(offset, virtualAddress, sizeOfBlock, entries));
 
@@ -121,7 +121,7 @@ namespace PESpy
                         var entries = new ImageSwitchTableBranchDynamicRelocation[numEntries];
 
                         for (var i = 0; i < numEntries; i++)
-                            entries[i] = new ImageSwitchTableBranchDynamicRelocation(ref reader);
+                            entries[i] = new ImageSwitchTableBranchDynamicRelocation(reader);
 
                         list.Add(new ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>(offset, virtualAddress, sizeOfBlock, entries));
 
@@ -139,7 +139,7 @@ namespace PESpy
                 }
 
                 case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
-                    Data = new ImageFunctionOverrideHeader(ref reader, end);
+                    Data = new ImageFunctionOverrideHeader(reader, end);
                     break;
 
                 default:
@@ -151,7 +151,7 @@ namespace PESpy
 
                     while (reader.Position < end)
                     {
-                        list.Add(new ImageBaseRelocation(ref reader));
+                        list.Add(new ImageBaseRelocation(reader));
 
                         //Must be 32-bit aligned
                         var alignedPosition = (reader.Position + 3) & ~3;

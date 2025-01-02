@@ -23,7 +23,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageEnclaveConfig(ref FileReader reader, PEFile peFile)
+        internal ImageEnclaveConfig(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 
@@ -50,7 +50,7 @@ namespace PESpy
                 var imports = new ImageEnclaveImport[NumberOfImports];
 
                 for (var i = 0; i < NumberOfImports; i++)
-                    imports[i] = new ImageEnclaveImport(ref reader, peFile);
+                    imports[i] = new ImageEnclaveImport(reader, peFile);
 
                 ImportList = new RVA<ImageEnclaveImport[]>(importList, offset, imports);
             }

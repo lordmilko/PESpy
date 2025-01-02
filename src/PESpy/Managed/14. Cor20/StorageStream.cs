@@ -31,7 +31,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public StorageStream(ref FileReader reader, PEFile peFile, RawOffset metadataRootOffset)
+        public StorageStream(IFileReader reader, PEFile peFile, RawOffset metadataRootOffset)
             Offset = (RawOffset) reader.Position;
 
             iOffset = reader.ReadInt32();

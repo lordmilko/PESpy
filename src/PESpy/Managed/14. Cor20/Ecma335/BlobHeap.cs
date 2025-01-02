@@ -12,9 +12,9 @@ namespace PESpy
 
         public int Offset { get; }
 
-        private FileReader reader;
+        private IFileReader reader;
 
-        internal BlobHeap(ref FileReader reader, int size)
+        internal BlobHeap(IFileReader reader, int size)
         {
             Offset = (int) reader.Position;
             Size = size;

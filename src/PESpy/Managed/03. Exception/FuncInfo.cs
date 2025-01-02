@@ -74,7 +74,7 @@ namespace PESpy
 
         private readonly int magicNumberAndBBTFlags;
 
-        internal FuncInfo(ref FileReader reader, PEFile peFile)
+        internal FuncInfo(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 
@@ -102,7 +102,7 @@ namespace PESpy
                     var entries = new UnwindMapEntry[MaxState];
 
                     for (var i = 0; i < MaxState; i++)
-                        entries[i] = new UnwindMapEntry(ref reader);
+                        entries[i] = new UnwindMapEntry(reader);
 
                     UnwindMap = new RVA<UnwindMapEntry[]>(dispUnwindMap, offset, entries);
                 }
@@ -123,7 +123,7 @@ namespace PESpy
                     var entries = new TryBlockMapEntry[nTryBlocks];
 
                     for (var i = 0; i < nTryBlocks; i++)
-                        entries[i] = new TryBlockMapEntry(ref reader, peFile);
+                        entries[i] = new TryBlockMapEntry(reader, peFile);
 
                     TryBlockMap = new RVA<TryBlockMapEntry[]>(dispTryBlockMap, offset, entries);
                 }
@@ -144,7 +144,7 @@ namespace PESpy
                     var states = new IptoStateMapEntry[nIPMapEntries];
 
                     for (var i = 0; i < nIPMapEntries; i++)
-                        states[i] = new IptoStateMapEntry(ref reader);
+                        states[i] = new IptoStateMapEntry(reader);
 
                     IPToStateMap = new RVA<IptoStateMapEntry[]>(dispIPtoStateMap, offset, states);
                 }

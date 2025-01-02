@@ -134,7 +134,7 @@ namespace PESpy
 
         internal MetadataReader MetadataReader { get; }
 
-        internal CompressedModelHeap(ref FileReader reader, int size)
+        internal CompressedModelHeap(IFileReader reader, int size)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -142,9 +142,9 @@ namespace PESpy
 
             //Reader is filled by parent
 
-            Header = new CompressedModelHeader(ref reader, out var rowCounts);
+            Header = new CompressedModelHeader(reader, out var rowCounts);
 
-            var metadataReader = new MetadataReader(ref reader, Header.HeapSizes, rowCounts);
+            var metadataReader = new MetadataReader(reader, Header.HeapSizes, rowCounts);
 
             #region ECMA-335
 

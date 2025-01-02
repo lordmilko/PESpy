@@ -16,7 +16,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageBDDInfo(ref FileReader reader)
+        internal ImageBDDInfo(IFileReader reader)
         {
             Offset = (int) reader.Position;
 
@@ -26,7 +26,7 @@ namespace PESpy
             var nodes = new ImageBDDDynamicRelocation[BDDSize / ImageBDDDynamicRelocation.StructSize];
 
             for (var i = 0; i < nodes.Length; i++)
-                nodes[i] = new ImageBDDDynamicRelocation(ref reader);
+                nodes[i] = new ImageBDDDynamicRelocation(reader);
 
             BDDNodes = nodes;
         }

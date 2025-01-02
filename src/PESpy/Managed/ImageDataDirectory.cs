@@ -32,7 +32,7 @@ namespace PESpy
             sizeof(int) + //RelativeVirtualAddress
             sizeof(int);  //Size
 
-        internal ImageDataDirectory(ref FileReader reader)
+        internal ImageDataDirectory(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

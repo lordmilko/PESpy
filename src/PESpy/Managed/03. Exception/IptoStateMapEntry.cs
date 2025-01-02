@@ -10,7 +10,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal IptoStateMapEntry(ref FileReader reader)
+        internal IptoStateMapEntry(IFileReader reader)
         {
             Offset = (int) reader.Position;
 

@@ -31,7 +31,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal TryBlockMapEntry(ref FileReader reader, PEFile peFile)
+        internal TryBlockMapEntry(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
 
@@ -50,7 +50,7 @@ namespace PESpy
                     var handlers = new HandlerType[nCatches];
 
                     for (var i = 0; i < nCatches; i++)
-                        handlers[i] = new HandlerType(ref reader, peFile);
+                        handlers[i] = new HandlerType(reader, peFile);
 
                     HandlerArray = new RVA<HandlerType[]>(dispHandlerArray, nCatches, handlers);
                 }

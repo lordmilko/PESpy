@@ -15,7 +15,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public ByteBlob(ref FileReader reader, int length)
+        internal ByteBlob(IFileReader reader, int length)
         {
             if (length == 0)
                 throw new ArgumentException("Length should not be 0", nameof(length));

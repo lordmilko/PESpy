@@ -22,7 +22,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ScopeTable(ref FileReader reader)
+        internal ScopeTable(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 
@@ -31,7 +31,7 @@ namespace PESpy
             var records = new ScopeRecord[Count];
 
             for (var i = 0; i < Count; i++)
-                records[i] = new ScopeRecord(ref reader);
+                records[i] = new ScopeRecord(reader);
 
             Records = records;
         }
@@ -83,7 +83,7 @@ namespace PESpy
                 sizeof(int) + //HandlerAddress
                 sizeof(int);  //JumpTarget
 
-            internal ScopeRecord(ref FileReader reader)
+            internal ScopeRecord(IFileReader reader)
             {
                 Offset = (RawOffset) reader.Position;
 

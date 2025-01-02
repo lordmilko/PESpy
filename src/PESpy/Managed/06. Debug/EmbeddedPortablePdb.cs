@@ -18,7 +18,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        public EmbeddedPortablePdb(ref FileReader reader, int sizeOfData)
+        internal EmbeddedPortablePdb(IFileReader reader, int sizeOfData)
         {
             Offset = (int) reader.Position;
 

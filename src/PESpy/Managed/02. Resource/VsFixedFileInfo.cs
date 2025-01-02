@@ -105,7 +105,7 @@ namespace PESpy
             sizeof(int) +    //FileDateMS
             sizeof(int);     //FileDateLS
 
-        internal VsFixedFileInfo(ref FileReader reader)
+        internal VsFixedFileInfo(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
 

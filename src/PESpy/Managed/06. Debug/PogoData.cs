@@ -26,7 +26,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public PogoData(ref FileReader reader, int signature, int sizeOfData)
+        internal PogoData(IFileReader reader, int signature, int sizeOfData)
         {
             //Signature has already been read
             Offset = (RawOffset) reader.Position - 4;
@@ -37,7 +37,7 @@ namespace PESpy
             var entries = new List<PogoItem>();
 
             while (reader.Position < end)
-                entries.Add(new PogoItem(ref reader));
+                entries.Add(new PogoItem(reader));
 
             Entries = entries.ToArray();
         }

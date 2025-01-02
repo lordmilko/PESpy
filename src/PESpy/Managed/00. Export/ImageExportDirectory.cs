@@ -96,7 +96,7 @@ namespace PESpy
             sizeof(int) + //AddressOfNames
             sizeof(int); //AddressOfNameOrdinals
 
-        internal ImageExportDirectory(ref FileReader reader, PEFile peFile)
+        internal ImageExportDirectory(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
 

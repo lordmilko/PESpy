@@ -41,7 +41,7 @@ namespace PESpy
 
             public RawOffset Offset { get; }
 
-            internal StringFileInfo(RawOffset offset, short length, short valueLength, short type, string key, ref FileReader reader)
+            internal StringFileInfo(RawOffset offset, short length, short valueLength, short type, string key, IFileReader reader)
             {
                 Offset = offset;
                 Length = length;
@@ -53,6 +53,7 @@ namespace PESpy
                 Key = key;
 
                 Padding = Align32(ref reader, out var didAlign);
+                Padding = Align32(reader, out var didAlign);
                 Debug.Assert(!didAlign);
 
                 var end = (int) Offset + Length;
@@ -61,12 +62,12 @@ namespace PESpy
 
                 while (reader.Position < end)
                 {
-                    items.Add(new StringTable(ref reader));
+                    items.Add(new StringTable(reader));
 
                     if (reader.Position < end)
                     {
                         //Not sure if I have to align here, but based on the fact VsVersionInfo is very strict about alignment, I want to say yes
-                        Align32(ref reader, out didAlign);
+                        Align32(reader, out didAlign);
                     }
                 }
 

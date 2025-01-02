@@ -15,7 +15,7 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal ImageFunctionOverrideHeader(ref FileReader reader, int end)
+        internal ImageFunctionOverrideHeader(IFileReader reader, int end)
         {
             Offset = (int) reader.Position;
 
@@ -30,7 +30,7 @@ namespace PESpy
 
             //ImageFunctionOverrideDynamicRelocation is dynamic in size
             while (reader.Position < funcOverrideEnd)
-                funcOverrides.Add(new ImageFunctionOverrideDynamicRelocation(ref reader));
+                funcOverrides.Add(new ImageFunctionOverrideDynamicRelocation(reader));
 
             FuncOverrides = funcOverrides.ToArray();
 
@@ -38,7 +38,7 @@ namespace PESpy
             var bddSize = end - reader.Position;
             Debug.Assert(bddSize != 0);
 
-            BDDInfo = new ImageBDDInfo(ref reader);
+            BDDInfo = new ImageBDDInfo(reader);
         }
 
         void IViewable.WriteView(ViewWriter writer)

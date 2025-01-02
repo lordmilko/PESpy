@@ -34,7 +34,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public SignedData(ref FileReader reader, int length)
+        internal SignedData(IFileReader reader, int length)
         {
             Offset = (RawOffset) reader.Position;
 

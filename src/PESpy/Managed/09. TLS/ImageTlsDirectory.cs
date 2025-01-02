@@ -27,14 +27,14 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public ImageTlsDirectory(ref FileReader reader, bool is32Bit)
+        internal ImageTlsDirectory(IFileReader reader, bool is32Bit)
         {
             Offset = (RawOffset) reader.Position;
 
-            StartAddressOfRawData = ReadPointer(ref reader, is32Bit);
-            EndAddressOfRawData = ReadPointer(ref reader, is32Bit);
-            AddressOfIndex = ReadPointer(ref reader, is32Bit);
-            AddressOfCallBacks = ReadPointer(ref reader, is32Bit);
+            StartAddressOfRawData = ReadPointer(reader, is32Bit);
+            EndAddressOfRawData = ReadPointer(reader, is32Bit);
+            AddressOfIndex = ReadPointer(reader, is32Bit);
+            AddressOfCallBacks = ReadPointer(reader, is32Bit);
             SizeOfZeroFill = reader.ReadInt32();
             Characteristics = (IMAGE_SCN_ALIGN) reader.ReadInt32();
 
@@ -43,7 +43,7 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long ReadPointer(ref FileReader reader, bool is32Bit)
+        private static long ReadPointer(IFileReader reader, bool is32Bit)
         {
             if (is32Bit)
                 return reader.ReadInt32();

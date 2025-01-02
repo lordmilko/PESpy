@@ -108,14 +108,14 @@ namespace PESpy
             sizeof(int) + //NameOrId
             sizeof(int);  //Offset
 
-        public ImageResourceDirectoryEntry(ref FileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
+        internal ImageResourceDirectoryEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
         {
             Offset = (RawOffset) reader.Position;
 
             Parent = parent;
 
-            NameOrId = new UnionNameOrId(ref reader, rootOffset);
-            dataAndDirectoryUnion = new UnionOffsetToData(ref reader, peFile, this, rootOffset);
+            NameOrId = new UnionNameOrId(reader, rootOffset);
+            dataAndDirectoryUnion = new UnionOffsetToData(reader, peFile, this, rootOffset);
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -172,7 +172,7 @@ namespace PESpy
 
             public ushort Id => (ushort) Name; //Must be ushort, you can have big values
 
-            public UnionNameOrId(ref FileReader reader, RawOffset rootOffset)
+            internal UnionNameOrId(IFileReader reader, RawOffset rootOffset)
             {
                 var value = reader.ReadInt32();
 
@@ -188,7 +188,7 @@ namespace PESpy
                     var offset = rootOffset + (int) nameOffset;
                     reader.Seek(offset);
 
-                    var name = new ImageResourceDirStringU(ref reader);
+                    var name = new ImageResourceDirStringU(reader);
 
                     NameOffset = new RVA<ImageResourceDirStringU>(nameOffset, offset, name);
 
@@ -235,7 +235,7 @@ namespace PESpy
 
             #endregion
 
-            public UnionOffsetToData(ref FileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent, RawOffset rootOffset)
+            public UnionOffsetToData(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent, RawOffset rootOffset)
             {
                 var value = reader.ReadInt32();
 
@@ -249,7 +249,7 @@ namespace PESpy
                     var offset = rootOffset + (int) offsetToDirectory;
                     reader.Seek(offset);
 
-                    var directory = new ImageResourceDirectory(ref reader, peFile, parent, rootOffset);
+                    var directory = new ImageResourceDirectory(reader, peFile, parent, rootOffset);
 
                     OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value); //Just store the raw data
                     OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory, offset, directory);
@@ -259,7 +259,7 @@ namespace PESpy
                     var offset = rootOffset + value; //The high bit isn't set, so the value is OffsetToData
                     reader.Seek(offset);
 
-                    var data = new ImageResourceDataEntry(ref reader, peFile, parent);
+                    var data = new ImageResourceDataEntry(reader, peFile, parent);
 
                     OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value, offset, data);
 

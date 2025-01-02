@@ -15,9 +15,9 @@ namespace PESpy
 
         public int Offset { get; }
 
-        private FileReader reader;
+        private IFileReader reader;
 
-        internal StringHeap(ref FileReader reader, int size)
+        internal StringHeap(IFileReader reader, int size)
         {
             Offset = (int) reader.Position;
             Size = size;
