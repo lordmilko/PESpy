@@ -39,7 +39,7 @@ namespace PESpy
 
                 //Whether we need to align or not will depend on whether Key has an odd number of characters or not.
                 //If it's odd, including the \0 it's even, but we read 3 shorts so we're down a word
-                Padding = Align32(reader, out var didAlign);
+                Padding = Align32(reader, out var didAlign, end);
 
                 var numItems = ValueLength / 4;
                 var items = new int[numItems];

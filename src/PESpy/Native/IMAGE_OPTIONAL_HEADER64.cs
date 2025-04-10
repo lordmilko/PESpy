@@ -4,7 +4,7 @@ namespace PESpy.Native
 {
     //ImageOptionalHeader
     [StructLayout(LayoutKind.Sequential)]
-    internal struct IMAGE_OPTIONAL_HEADER64
+    public unsafe struct IMAGE_OPTIONAL_HEADER64
     {
         public PEMagic Magic;
         public byte MajorLinkerVersion;
@@ -38,5 +38,6 @@ namespace PESpy.Native
 
         //Array of data directories
         //public IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+        public fixed byte DataDirectory[1];
     }
 }

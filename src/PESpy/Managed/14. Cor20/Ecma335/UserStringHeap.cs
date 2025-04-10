@@ -37,7 +37,7 @@ namespace PESpy
                  * 0x08, 0x0E–0x1F, 0x27, 0x2D, 0x7F. Otherwise, it holds 0. The 1 signifies Unicode characters that
                  * require handling beyond that normally provided for 8-bit encoding sets. */
 
-                reader.Seek(offset);
+                reader.Seek(Offset + offset);
 
                 var rawByteCount = reader.ReadCorCompressedInteger(out var compressedSize);
 
@@ -80,8 +80,8 @@ namespace PESpy
             internal Enumerator(UserStringHeap userStringHeap)
             {
                 this.userStringHeap = userStringHeap;
-                currentOffset = userStringHeap.Offset;
-                endOffset = currentOffset + userStringHeap.Size;
+                currentOffset = 0;
+                endOffset = userStringHeap.Size;
                 Current = default;
             }
 

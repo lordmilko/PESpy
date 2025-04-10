@@ -17,7 +17,7 @@ namespace PESpy
         public ushort MinorRuntimeVersion { get; init; }
 
         //This field should be called MetaData but I really don't like how that looks
-        public ImageDataDirectory<MetadataRoot> Metadata { get; init; }
+        public ImageDataDirectory<ClrMetadata> Metadata { get; init; }
 
         public COMIMAGE_FLAGS Flags { get; init; }
         public int EntryPointTokenOrRVA { get; init; }
@@ -54,22 +54,29 @@ namespace PESpy
             MajorRuntimeVersion = reader.ReadUInt16();
             MinorRuntimeVersion = reader.ReadUInt16();
 
-            Metadata = new ImageDataDirectory<MetadataRoot>(reader, peFile, PERegionKind.Cor20Header_Metadata, static (IFileReader r, PEFile p) => new MetadataRoot(r, p));
+            Metadata = new ImageDataDirectory<ClrMetadata>(reader, peFile, PERegionKind.Cor20Header_Metadata, static (IFileReader r, PEFile p) => new ClrMetadata(r, p));
 
             Flags = (COMIMAGE_FLAGS) reader.ReadUInt32();
             EntryPointTokenOrRVA = reader.ReadInt32();
 
-            Resources = new ImageDataDirectory(ref reader);
-            StrongNameSignature = new ImageDataDirectory(ref reader);
-            CodeManagerTable = new ImageDataDirectory(ref reader);
-            VTableFixups = new ImageDataDirectory(ref reader);
-            ExportAddressTableJumps = new ImageDataDirectory(ref reader);
-            ManagedNativeHeader = new ImageDataDirectory(ref reader);
+            Resources = new ImageDataDirectory(reader);
+            StrongNameSignature = new ImageDataDirectory(reader);
+            CodeManagerTable = new ImageDataDirectory(reader);
+            VTableFixups = new ImageDataDirectory(reader);
+            ExportAddressTableJumps = new ImageDataDirectory(reader);
+            ManagedNativeHeader = new ImageDataDirectory(reader);
+
+            //If Flags has IL_LIBRARY set, and ManagedNativeHeader is present, it's R2R
+
+            //it's also possible for the r2r header to be listed in exports
+            //https://github.com/dotnet/runtime/blob/a38ab4c0bc3780754259be600db1501cc2907a84/docs/design/coreclr/botr/readytorun-format.md#pe-headers-and-cli-headers
+        }
+
         #region Metadata
 
         //This type does not have a well-known native struct declaration
         //EMCA-335 II.24.2
-        public class MetadataRoot : IValue, IViewable
+        public class ClrMetadata : IValue, IViewable
         {
             public RawOffset Offset { get; }
 
@@ -77,12 +84,12 @@ namespace PESpy
 
             public StorageHeader Header { get; }
 
-            public MetadataRoot(IFileReader reader, PEFile peFile)
+            internal ClrMetadata(IFileReader reader, IMetadataCallback callback)
             {
                 Offset = (RawOffset) reader.Position;
 
                 Signature = new StorageSignature(reader);
-                Header = new StorageHeader(reader, peFile, Signature.Offset);
+                Header = new StorageHeader(reader, callback, Signature.Offset);
             }
 
             void IViewable.WriteView(ViewWriter writer)
@@ -95,6 +102,7 @@ namespace PESpy
         }
 
         #endregion
+
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct(nameof(IMAGE_COR20_HEADER), this, ViewKind.ImageCor20Header);

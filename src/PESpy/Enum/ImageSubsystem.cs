@@ -90,6 +90,6 @@ namespace PESpy
         /// Windows boot application.
         /// </summary>
         [Description("IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION")]
-        WindowsBootApplication = 16,
+        WindowsBootApplication = 16
     }
 }

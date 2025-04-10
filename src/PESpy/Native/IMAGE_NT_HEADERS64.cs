@@ -4,7 +4,7 @@ namespace PESpy.Native
 {
     //ImageNTHeaders
     [StructLayout(LayoutKind.Sequential)]
-    internal struct IMAGE_NT_HEADERS64
+    public struct IMAGE_NT_HEADERS64
     {
         public int Signature;
         public IMAGE_FILE_HEADER FileHeader;

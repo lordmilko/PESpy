@@ -39,18 +39,24 @@ namespace PESpy.Ecma335
 #endif
         }
 
-        public T this[int index]
+        public T this[int entryNo]
         {
             get
             {
-                if (index >= Count)
-                    throw new ArgumentOutOfRangeException(nameof(index));
+                //Per ECMA-335 II.22, indexes are 1 based. If an index of 0 is specified, it means
+                //that the value is essentially a "null reference"
+
+                if (entryNo == 0)
+                    return default;
+
+                if (entryNo > Count)
+                    throw new ArgumentOutOfRangeException(nameof(entryNo));
 
                 metadataReader.Enter();
 
                 try
                 {
-                    metadataReader.Seek(Offset + (index * rowSize));
+                    metadataReader.Seek(Offset + ((entryNo - 1) * rowSize));
 
                     return createRow(metadataReader);
                 }
@@ -77,13 +83,13 @@ namespace PESpy.Ecma335
             internal Enumerator(Table<T> table)
             {
                 this.table = table;
-                index = 0;
+                index = 1;
                 Current = default;
             }
 
             public bool MoveNext()
             {
-                if (index >= table.Count)
+                if (index > table.Count)
                     return false;
 
                 Current = table[index];

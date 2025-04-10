@@ -24,7 +24,7 @@ namespace PESpy
             this.reader = reader;
         }
 
-        internal RawValue<string> ReadString(int offset)
+        public RawValue<string> ReadString(int offset)
         {
             reader.Enter();
 
@@ -40,7 +40,7 @@ namespace PESpy
                 //The default UTF8Encoding (in Encoding.UTF8) doesn't throw on invalid bytes. This is important, because
                 //the #Strings heap is allowed to contain garbage
 
-                reader.Seek(offset);
+                reader.Seek(Offset + offset);
 
                 var str = reader.ReadUTF8NullTerminatedString();
 
@@ -69,8 +69,8 @@ namespace PESpy
             internal Enumerator(StringHeap stringHeap)
             {
                 this.stringHeap = stringHeap;
-                currentOffset = stringHeap.Offset;
-                endOffset = currentOffset + stringHeap.Size;
+                currentOffset = 0;
+                endOffset = stringHeap.Size;
                 Current = default;
             }
 

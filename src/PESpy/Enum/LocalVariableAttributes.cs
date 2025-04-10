@@ -6,6 +6,6 @@ namespace PESpy
     public enum LocalVariableAttributes
     {
         None = 0,
-        DebuggerHidden = 1,
+        DebuggerHidden = 1
     }
 }

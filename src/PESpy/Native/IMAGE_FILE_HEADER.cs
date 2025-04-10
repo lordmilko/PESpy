@@ -4,7 +4,7 @@ namespace PESpy.Native
 {
     //ImageFileHeader
     [StructLayout(LayoutKind.Sequential)]
-    internal struct IMAGE_FILE_HEADER
+    public struct IMAGE_FILE_HEADER
     {
         public ushort Machine; //IMAGE_FILE_MACHINE
         public ushort NumberOfSections;

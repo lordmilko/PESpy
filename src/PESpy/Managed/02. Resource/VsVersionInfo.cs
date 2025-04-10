@@ -57,7 +57,7 @@ namespace PESpy
             Key = reader.ReadUnicodeString(16); //VS_VERSION_INFO + \0
 
             //Due to the fact we've read 3 shorts and then 16 bits, we should always align here
-            Padding1 = Align32(reader, out var didAlign);
+            Padding1 = Align32(reader, out var didAlign, end);
             Debug.Assert(didAlign);
 
             if (ValueLength > 0)
@@ -69,7 +69,7 @@ namespace PESpy
             if (reader.Position < end)
             {
                 //In the event we read VS_FIXEDFILEINFO, it has an even number of shorts, so we should never need to align here
-                Padding2 = Align32(reader, out didAlign);
+                Padding2 = Align32(reader, out didAlign, end);
                 Debug.Assert(!didAlign);
 
                 //Read StringFileInfo/VarFileInfo structures. The start of these structures are identical
@@ -102,7 +102,7 @@ namespace PESpy
                     if (reader.Position < end)
                     {
                         //Not sure if we have to align again here, but to be safe I think the answer is yes
-                        Align32(reader, out didAlign);
+                        Align32(reader, out didAlign, end);
                     }
                 }
 
@@ -113,7 +113,7 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static short Align32(IFileReader reader, out bool didAlign)
+        internal static short Align32(IFileReader reader, out bool didAlign, int end)
         {
             var alignedPosition = (reader.Position + 3) & ~3;
 
@@ -123,10 +123,35 @@ namespace PESpy
                 return 0;
             }
 
-            var diff = alignedPosition - reader.Position;
-            Debug.Assert(diff == 2);
-            didAlign = true;
-            return reader.ReadInt16();
+            //You can have dodgy end values that are not 32-bit aligned. If aligning will push us past our limit,
+            //just clamp to the limit
+            if (alignedPosition > end)
+            {
+                var diff = end - reader.Position;
+
+                Debug.Assert(diff == 1);
+                didAlign = true;
+                return reader.ReadByte();
+            }
+            else
+            {
+                var diff = alignedPosition - reader.Position;
+
+                //If the previous alignment attempt aligned 1 byte because the end was not aligned, we're now
+                //going to be unaligned here too
+
+                if (diff == 1)
+                {
+                    didAlign = true;
+                    return reader.ReadByte();
+                }
+                else
+                {
+                    Debug.Assert(diff == 2);
+                    didAlign = true;
+                    return reader.ReadInt16();
+                }
+            }
         }
 
         void IViewable.WriteView(ViewWriter writer)

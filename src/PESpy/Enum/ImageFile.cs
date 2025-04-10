@@ -102,6 +102,6 @@ namespace PESpy
         /// Big endian: the MSB precedes the LSB in memory. This flag is deprecated and should be zero.
         /// </summary>
         [Description("IMAGE_FILE_BYTES_REVERSED_HI")]
-        BytesReversedHi = 32768,
+        BytesReversedHi = 32768
     }
 }

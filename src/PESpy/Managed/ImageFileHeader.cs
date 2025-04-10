@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using ClrDebug;
+﻿using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -32,7 +31,7 @@ namespace PESpy
         /// The file pointer to the COFF symbol table, or zero if no COFF symbol table is present.
         /// This value should be zero for a PE image.
         /// </summary>
-        public int PointerToSymbolTable { get; init; }
+        public VA<CoffSymbolTable> PointerToSymbolTable { get; init; }
 
         /// <summary>
         /// The number of entries in the symbol table. This data can be used to locate the string table,
@@ -71,12 +70,29 @@ namespace PESpy
             Machine = (IMAGE_FILE_MACHINE) reader.ReadUInt16();
             NumberOfSections = reader.ReadInt16();
             TimeDateStamp = reader.ReadUInt32();
-            PointerToSymbolTable = reader.ReadInt32();
+            var pointerToSymbolTable = reader.ReadInt32();
             NumberOfSymbols = reader.ReadInt32();
             SizeOfOptionalHeader = reader.ReadInt16();
             Characteristics = (ImageFile) reader.ReadUInt16();
 
-            Debug.Assert(PointerToSymbolTable == 0, "Need to add support for legacy symbol table");
+            if (pointerToSymbolTable != 0)
+            {
+                //The symbols are usually in the overlay
+
+                var oldOffset = reader.Position;
+
+                reader.Seek(pointerToSymbolTable);
+
+                PointerToSymbolTable = new VA<CoffSymbolTable>(
+                    pointerToSymbolTable,
+                    pointerToSymbolTable,
+                    new CoffSymbolTable(reader, NumberOfSymbols)
+                );
+
+                reader.Seek(oldOffset);
+            }
+            else
+                PointerToSymbolTable = default;
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -86,7 +102,7 @@ namespace PESpy
             s.WriteField(nameof(Machine), Machine, sizeof(short));
             s.WriteField(nameof(NumberOfSections), NumberOfSections);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(PointerToSymbolTable), PointerToSymbolTable);
+            s.WriteVAPointerField(nameof(PointerToSymbolTable), PointerToSymbolTable);
             s.WriteField(nameof(NumberOfSymbols), NumberOfSymbols);
             s.WriteField(nameof(SizeOfOptionalHeader), SizeOfOptionalHeader);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(short));

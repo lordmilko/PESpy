@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace PESpy.View
+namespace PESpy.Native
 {
     //ImageExportDirectory
     [StructLayout(LayoutKind.Sequential)]

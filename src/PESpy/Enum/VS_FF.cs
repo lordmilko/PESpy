@@ -46,6 +46,6 @@ namespace PESpy
         /// If this flag is set, the <see cref="VsVersionInfo.StringFileInfo"/> structure should contain a SpecialBuild entry.<para/>
         /// VS_FF_SPECIALBUILD
         /// </summary>
-        SpecialBuild = 0x00000020,
+        SpecialBuild = 0x00000020
     }
 }

@@ -52,11 +52,10 @@ namespace PESpy
                 Type = type;
                 Key = key;
 
-                Padding = Align32(ref reader, out var didAlign);
-                Padding = Align32(reader, out var didAlign);
-                Debug.Assert(!didAlign);
-
                 var end = (int) Offset + Length;
+
+                Padding = Align32(reader, out var didAlign, end);
+                Debug.Assert(!didAlign);
 
                 var items = new List<StringTable>();
 
@@ -67,7 +66,7 @@ namespace PESpy
                     if (reader.Position < end)
                     {
                         //Not sure if I have to align here, but based on the fact VsVersionInfo is very strict about alignment, I want to say yes
-                        Align32(reader, out didAlign);
+                        Align32(reader, out didAlign, end);
                     }
                 }
 

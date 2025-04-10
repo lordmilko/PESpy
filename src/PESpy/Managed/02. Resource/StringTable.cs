@@ -60,21 +60,21 @@ namespace PESpy
                 Type = reader.ReadInt16();
                 Key = reader.ReadUTF16NullTerminatedString();
 
-                Padding = Align32(ref reader, out var didAlign);
-
                 var end = (int) Offset + Length;
+
+                Padding = Align32(reader, out var didAlign, end);
 
                 var items = new List<String>();
 
                 while (reader.Position < end)
                 {
-                    items.Add(new String(ref reader));
+                    items.Add(new String(reader));
 
                     if (reader.Position < end)
                     {
                         //The documentation doesn't say it, but it seems that each String also needs to be 32-bit aligned
 
-                        Align32(ref reader, out didAlign);
+                        Align32(reader, out didAlign, end);
                     }
                 }
 

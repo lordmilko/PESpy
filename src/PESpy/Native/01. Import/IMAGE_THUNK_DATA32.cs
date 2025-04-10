@@ -22,7 +22,7 @@ namespace PESpy.Native
      */
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct IMAGE_THUNK_DATA32
+    public struct IMAGE_THUNK_DATA32
     {
         [FieldOffset(0)]
         public int ForwarderString;      // PUCHAR

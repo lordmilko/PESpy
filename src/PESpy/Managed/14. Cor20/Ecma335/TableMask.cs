@@ -2,11 +2,9 @@
 
 namespace PESpy.Ecma335
 {
-    //This is part of our internal API for parsing ECMA-335 metadata, hence not part of the enums folder
-
     //Name is made up
     [Flags]
-    internal enum TableMask : ulong
+    public enum TableMask : ulong
     {
         Module = 1UL << TableKind.Module,
         TypeRef = 1UL << TableKind.TypeRef,
@@ -61,6 +59,6 @@ namespace PESpy.Ecma335
         LocalConstant = 1UL << TableKind.LocalConstant,
         ImportScope = 1UL << TableKind.ImportScope,
         StateMachineMethod = 1UL << TableKind.StateMachineMethod,
-        CustomDebugInformation = 1UL << TableKind.CustomDebugInformation,
+        CustomDebugInformation = 1UL << TableKind.CustomDebugInformation
     }
 }

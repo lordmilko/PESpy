@@ -71,9 +71,22 @@ namespace PESpy
                 Type = reader.ReadInt16();
                 Key = reader.ReadUTF16NullTerminatedString();
 
-                Padding = Align32(reader, out var didAlign);
+                Padding = Align32(reader, out var didAlign, end);
 
-                Value = reader.ReadUTF16NullTerminatedString();
+                if (ValueLength > 0)
+                {
+                    Value = reader.ReadUTF16NullTerminatedString();
+
+                    //You can have a null terminator in the middle of the value. So we'll say that if there's still at least 4 bytes remaining,
+                    //there's more to the string remaining
+                    while (reader.Position < end - 4)
+                        Value += reader.ReadUTF16NullTerminatedString();
+                }
+                else
+                    Value = default;
+
+                if (reader.Position < end)
+                    Align32(reader, out var didAlign2, end);
 
                 Debug.Assert(reader.Position == end);
             }

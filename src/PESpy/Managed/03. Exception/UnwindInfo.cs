@@ -43,7 +43,7 @@ namespace PESpy
             var versionAndFlags = reader.ReadByte();
 
             Version = (byte) (versionAndFlags & 0x7); //bottom 3 bytes
-            Debug.Assert(Version == 1 || Version == 2);
+            Debug.Assert(Version == 1 || Version == 2 || Version == 3);
             Flags = (UNW_FLAG) ((versionAndFlags >> 3) & 0x1f); //top 5 bytes
             SizeOfProlog = reader.ReadByte();
             CountOfCodes = reader.ReadByte();

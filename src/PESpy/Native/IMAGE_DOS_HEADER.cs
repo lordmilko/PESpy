@@ -4,7 +4,7 @@ namespace PESpy.Native
 {
     //ImageDosHeader
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct IMAGE_DOS_HEADER
+    public unsafe struct IMAGE_DOS_HEADER
     {
         // DOS .EXE header
         public ushort e_magic;                     // Magic number

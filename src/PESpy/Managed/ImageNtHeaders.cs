@@ -12,7 +12,7 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageNtHeaders : IViewable, IValue
     {
-        private const uint PESignature = 0x00004550;    //PE00
+        public const uint PESignature = 0x00004550;    //PE00
 
         /// <summary>
         /// A 4-byte signature identifying the file as a PE image. The bytes are "PE\0\0".
@@ -40,7 +40,11 @@ namespace PESpy
         {
             Offset = (RawOffset) reader.Position;
 
-            Signature = reader.ReadInt32();
+            //If e_lfanew points to garbage, this will fail
+            if (!reader.TryReadInt32(out var signature))
+                throw new BadImageFormatException("e_lfanew does not point to a PE Header");
+
+            Signature = signature;
 
             if (Signature != PESignature)
             {

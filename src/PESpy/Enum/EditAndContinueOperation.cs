@@ -7,6 +7,6 @@
         AddField = 2,
         AddParameter = 3,
         AddProperty = 4,
-        AddEvent = 5,
+        AddEvent = 5
     }
 }

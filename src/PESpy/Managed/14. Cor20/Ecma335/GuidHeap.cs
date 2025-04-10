@@ -28,18 +28,24 @@ namespace PESpy
             this.reader = reader;
         }
 
-        public RawValue<Guid> this[int index]
+        public RawValue<Guid> this[int entryNo]
         {
             get
             {
-                if (index >= Count)
-                    throw new ArgumentOutOfRangeException(nameof(index));
+                //Per ECMA-335 II.22, indexes are 1 based. If an index of 0 is specified, it means
+                //that the value is essentially a "null reference"
+
+                if (entryNo == 0)
+                    return default;
+
+                if (entryNo > Count)
+                    throw new ArgumentOutOfRangeException(nameof(entryNo));
 
                 reader.Enter();
 
                 try
                 {
-                    var offset = Offset + 16 * index;
+                    var offset = Offset + 16 * (entryNo - 1);
                     reader.Seek(offset);
 
                     var value = reader.ReadGuid();
@@ -69,13 +75,13 @@ namespace PESpy
             internal Enumerator(GuidHeap guidHeap)
             {
                 this.guidHeap = guidHeap;
-                index = 0;
+                index = 1;
                 Current = default;
             }
 
             public bool MoveNext()
             {
-                if (index >= guidHeap.Count)
+                if (index > guidHeap.Count)
                     return false;
 
                 Current = guidHeap[index];

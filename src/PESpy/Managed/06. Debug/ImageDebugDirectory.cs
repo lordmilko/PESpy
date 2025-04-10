@@ -113,6 +113,14 @@ namespace PESpy
 
             var offset = peFile.IsLoadedImage ? AddressOfRawData : PointerToRawData;
 
+            //PointerToRawData can be a bogus negative value
+
+            if (PointerToRawData < 0)
+            {
+                Data = default;
+                return;
+            }
+
             reader.Seek(offset);
 
             reader.FillBuffer(SizeOfData);
@@ -120,8 +128,19 @@ namespace PESpy
             switch (Type)
             {
                 case ImageDebugType.Unknown:
-                case ImageDebugType.Coff:
+                    if (SizeOfData == 0)
+                    {
+                        Data = default;
+                        return;
+                    }
+
                     goto default;
+
+                case ImageDebugType.Coff:
+                {
+                    Data = new ImageCoffSymbolsHeader(reader, peFile);
+                    break;
+                }
 
                 case ImageDebugType.CodeView:
                     Data = ReadCodeView(reader, SizeOfData);
@@ -145,7 +164,19 @@ namespace PESpy
                     break;
 
                 case ImageDebugType.Exception:
+                    goto default;
+
                 case ImageDebugType.Fixup:
+                {
+                    var entries = new XFixupData[SizeOfData / XFixupData.StructSize];
+
+                    for (var i = 0; i < entries.Length; i++)
+                        entries[i] = new XFixupData(reader);
+
+                    Data = entries;
+                    break;
+                }
+
                 case ImageDebugType.OmapToSrc: //OMAP type?
                 case ImageDebugType.OmapFromSrc: //OMAP type?
                 case ImageDebugType.Borland:

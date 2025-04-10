@@ -98,6 +98,6 @@ namespace PESpy
         /// Terminal Server aware.
         /// </summary>
         [Description("IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE")]
-        TerminalServerAware = 32768,
+        TerminalServerAware = 32768
     }
 }

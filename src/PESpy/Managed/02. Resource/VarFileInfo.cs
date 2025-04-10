@@ -37,11 +37,11 @@ namespace PESpy
                 Type = type;
                 Key = key;
 
-                //Will always require alignment, because name is 24 bytes and we only read 3 shorts
-                Padding = Align32(reader, out var didAlign);
-                Debug.Assert(didAlign);
-
                 var end = (int) Offset + length;
+
+                //Will always require alignment, because name is 24 bytes and we only read 3 shorts
+                Padding = Align32(reader, out var didAlign, end);
+                Debug.Assert(didAlign);
 
                 var items = new List<Var>();
 
@@ -52,7 +52,7 @@ namespace PESpy
                     if (reader.Position < end)
                     {
                         //On the basis that each String must be 32-bit aligned, I'm going to assume that each Var must be 32-bit aligned too
-                        Align32(reader, out didAlign);
+                        Align32(reader, out didAlign, end);
                     }
                 }
 

@@ -169,6 +169,10 @@ namespace PESpy
             OEMInformation = reader.ReadInt16();
             ReservedWords2 = reader.ReadArray<short>(10);
             FileAddressOfNewExeHeader = (RawOffset) reader.ReadInt32();
+
+            //We don't yet know whether we're actually a PE File or an MS-DOS executable. You can't look at e_lfanew because sometimes it contains garbage
+            //(or perhaps more precisely: data that makes sense to MS-DOS). As such, the caller will need to load the NT Header to see if e_lfanew actually points
+            //to the PE signature
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -9,8 +9,8 @@ using RawOffset = System.Int32;
 namespace PESpy
 {
     /// <summary>
-    /// Represents the stack frame layout for a function on an x86 computer when frame pointer omission (FPO) optimization is used.
-    /// The structure is used to locate the base of the call frame.
+    /// Represents the <see cref="FPO_DATA"/> structure that describes stack frame layout for a function on an x86 computer
+    /// when frame pointer omission (FPO) optimization is used. The structure is used to locate the base of the call frame.
     /// </summary>
     public readonly struct FpoData : IValue, IViewable
     {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.Native;
@@ -72,7 +73,7 @@ namespace PESpy
         /// [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP
         /// on single processor machines.
         /// </summary>
-        public long LockPrefixTable { get; init; } //9
+        public VA<long[]> LockPrefixTable { get; init; } //9
 
         /// <summary>
         /// Maximum allocation size, in bytes.
@@ -250,7 +251,7 @@ namespace PESpy
             //Exclude Size since we already read it
             reader.FillBuffer(Size - sizeof(int));
 
-            //LockPrefixTable
+            long lockPrefixTable = 0;
             //EditList
             long securityCookie = 0;
             long sehandlerTable = 0;
@@ -318,7 +319,7 @@ namespace PESpy
                         break;
 
                     case 9:
-                        LockPrefixTable = ReadPointer(reader, is32Bit);
+                        lockPrefixTable = ReadPointer(reader, is32Bit);
                         break;
 
                     case 10:
@@ -511,7 +512,31 @@ namespace PESpy
 
             #region LockPrefixTable
 
-            Debug.Assert(LockPrefixTable == 0, $"Don't know how to handle {LockPrefixTable}");
+            //List is terminated by a 0 entry
+
+            if (lockPrefixTable != 0)
+            {
+                var rva = (int) (lockPrefixTable - peFile.OptionalHeader.ImageBase);
+
+                if (peFile.TryGetOffset(rva, out var offset))
+                {
+                    reader.Seek(offset);
+
+                    var entries = new List<long>();
+
+                    while (true)
+                    {
+                        var value = ReadPointer(reader, is32Bit);
+
+                        entries.Add(value);
+
+                        if (value == 0)
+                            break;
+                    }
+
+                    LockPrefixTable = new VA<long[]>(lockPrefixTable, offset, entries.ToArray());
+                }
+            }
 
             #endregion
             #region EditList
@@ -828,7 +853,7 @@ namespace PESpy
                         break;
 
                     case 9:
-                        s.WritePointerField(nameof(LockPrefixTable), LockPrefixTable);
+                        s.WriteVAPointerField(nameof(LockPrefixTable), LockPrefixTable, ViewKind.LockPrefixTable);
                         break;
 
                     case 10:
