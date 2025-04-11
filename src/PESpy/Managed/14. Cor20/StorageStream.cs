@@ -20,6 +20,7 @@ namespace PESpy
         public const string GuidPoolStream = "#GUID";
         public const string CompressedModelStream = "#~";
         public const string EnCModelStream = "#-";
+        public const string PdbStream = "#Pdb";
 
         public int iOffset { get; }
 
@@ -31,7 +32,8 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        public StorageStream(IFileReader reader, PEFile peFile, RawOffset metadataRootOffset)
+        internal StorageStream(IFileReader reader, IMetadataCallback callback, RawOffset metadataRootOffset)
+        {
             Offset = (RawOffset) reader.Position;
 
             iOffset = reader.ReadInt32();
@@ -55,8 +57,8 @@ namespace PESpy
             {
                 //II.24.2.1
                 case CompressedModelStream: //#~
-                    Data = new CompressedModelHeap(ref reader, Size);
-                    peFile.SetCLRMetadata((CompressedModelHeap) Data);
+                    Data = new CompressedModelHeap(reader, Size);
+                    callback.NotifyCompressedModel((CompressedModelHeap) Data);
                     break;
 
                 //II.24.2.3
@@ -66,17 +68,20 @@ namespace PESpy
 
                 //II.24.4
                 case USBlobPoolStream: //#US
-                    Data = new UserStringHeap(ref reader, Size);
+                    Data = new UserStringHeap(reader, Size);
+                    callback.NotifyUserStringPool((UserStringHeap) Data);
                     break;
 
                 //II.24.2.4
                 case BlobPoolStream: //#Blob
-                    Data = new BlobHeap(ref reader, Size);
+                    Data = new BlobHeap(reader, Size);
+                    callback.NotifyBlobPool((BlobHeap) Data);
                     break;
 
                 //II.24.2.5
                 case GuidPoolStream: //#GUID
-                    Data = new GuidHeap(ref reader, Size);
+                    Data = new GuidHeap(reader, Size);
+                    callback.NotifyGuidPool((GuidHeap) Data);
                     break;
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -85,6 +90,8 @@ namespace PESpy
             s.WriteField("iOffset", iOffset);
             s.WriteField("iSize", Size);
             s.WriteAnsiNullTerminatedField("rcName", Name);
+
+            s.Align(4);
 
             switch (Name)
             {
@@ -136,11 +143,16 @@ namespace PESpy
                 {
                     var data = (GuidHeap) Data;
 
-                    using var r = writer.CreateRegion(data[0].Offset, Name, ViewKind.GuidPoolHeap, global: true);
+                    using var r = writer.CreateRegion(data.Offset, Name, ViewKind.GuidPoolHeap, global: true);
 
                     foreach (var value in data)
                         r.WriteValue(value.Offset, value.Value, ViewKind.Metadata_Guid);
 
                     break;
                 }
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
 }

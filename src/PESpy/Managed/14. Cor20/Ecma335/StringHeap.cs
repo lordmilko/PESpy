@@ -40,11 +40,13 @@ namespace PESpy
                 //The default UTF8Encoding (in Encoding.UTF8) doesn't throw on invalid bytes. This is important, because
                 //the #Strings heap is allowed to contain garbage
 
-                reader.Seek(Offset + offset);
+                var off = Offset + offset;
+
+                reader.Seek(off);
 
                 var str = reader.ReadUTF8NullTerminatedString();
 
-                return new RawValue<string>(offset, str);
+                return new RawValue<string>(off, str);
             }
             finally
             {

@@ -26,7 +26,7 @@ namespace PESpy
 
         internal StorageHeader(
             IFileReader reader,
-            PEFile peFile,
+            IMetadataCallback callback,
             RawOffset metadataRootOffset)
         {
             Offset = (RawOffset) reader.Position;
@@ -39,7 +39,7 @@ namespace PESpy
             var streamHeaders = new StorageStream[Streams];
 
             for (var i = 0; i < Streams; i++)
-                streamHeaders[i] = new StorageStream(reader, peFile, metadataRootOffset);
+                streamHeaders[i] = new StorageStream(reader, callback, metadataRootOffset);
 
             StreamHeaders = streamHeaders;
         }

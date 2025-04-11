@@ -16,7 +16,7 @@ namespace PESpy.View
             private List<IView> fields;
             private int offset;
             private int bitsUsed;
-            private int maxSize;
+            private int maxSize; //In bytes
             private ViewWriter viewWriter;
 
             internal StructBitFieldWriter(string name, RawOffset offset, ViewKind kind, List<IView> parentFields, int bytes, ViewWriter viewWriter)
@@ -28,7 +28,7 @@ namespace PESpy.View
                 this.viewWriter = viewWriter;
                 this.fields = viewWriter.RentList();
                 bitsUsed = 0;
-                maxSize = bytes * 8;
+                maxSize = bytes;
             }
 
             public void WriteField(string name, short value, int bits) =>
@@ -39,7 +39,7 @@ namespace PESpy.View
 
             private void WriteFieldInternal<T>(string name, T value, int bits)
             {
-                var element = new BitFieldView<T>(offset, name, value, bits);
+                var element = new BitFieldView<T>(offset, name, value, bits, maxSize);
 
                 bitsUsed += bits;
 
@@ -48,10 +48,10 @@ namespace PESpy.View
 
             public void Dispose()
             {
-                if (bitsUsed != maxSize)
+                if (bitsUsed != maxSize * 8)
                     throw new NotImplementedException();
 
-                var structView = new StructView(offset, structName, fields.ToArray(), maxSize / 8, kind);
+                var structView = new StructView(offset, structName, fields.ToArray(), maxSize, kind);
 
                 parentFields.Add(structView);
                 viewWriter.ReturnList(fields);

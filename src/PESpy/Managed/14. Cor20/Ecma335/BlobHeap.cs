@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace PESpy
 {
@@ -21,13 +22,13 @@ namespace PESpy
             this.reader = reader;
         }
 
-        internal BlobEntry ReadBlob(int offset)
+        public BlobEntry ReadBlob(int offset)
         {
             reader.Enter();
 
             try
             {
-                reader.Seek(offset);
+                reader.Seek(Offset + offset);
 
                 var byteCount = reader.ReadCorCompressedInteger(out var compressedSize);
 
@@ -58,8 +59,8 @@ namespace PESpy
             internal Enumerator(BlobHeap blobHeap)
             {
                 this.blobHeap = blobHeap;
-                currentOffset = blobHeap.Offset;
-                endOffset = currentOffset + blobHeap.Size;
+                currentOffset = 0;
+                endOffset = blobHeap.Size;
                 Current = default;
             }
 

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using PESpy.Native;
+using PESpy.View;
+
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -12,7 +15,7 @@ namespace PESpy
     /// Represents the <see cref="SCOPE_TABLE"/> structure.
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
-    public readonly struct ScopeTable : IValue, IEnumerable<ScopeTable.ScopeRecord>
+    public readonly struct ScopeTable : IValue, IViewable, IEnumerable<ScopeTable.ScopeRecord>
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Count { get; init; }
@@ -44,7 +47,7 @@ namespace PESpy
 
         //The native representation of is an anonymous struct in the ScopeRecord field of the SCOPE_TABLE
         [DebuggerDisplay("BeginAddress = {BeginAddress.ToString(\"X\"),nq}, EndAddress = {EndAddress.ToString(\"X\"),nq}, HandlerAddress = {HandlerAddress.ToString(\"X\"),nq}, JumpTarget = {JumpTarget.ToString(\"X\"),nq}")]
-        public readonly struct ScopeRecord : IValue
+        public readonly struct ScopeRecord : IValue, IViewable
         {
             /// <summary>
             /// Gets the offset of the first instruction contained in the __try block.
@@ -94,8 +97,26 @@ namespace PESpy
                 HandlerAddress = reader.ReadInt32();
                 JumpTarget = reader.ReadInt32();
             }
+
+            void IViewable.WriteView(ViewWriter writer)
+            {
+                using var s = writer.CreateStruct("ScopeRecord", this, ViewKind.ScopeRecord);
+
+                s.WriteField(nameof(BeginAddress), BeginAddress);
+                s.WriteField(nameof(EndAddress), EndAddress);
+                s.WriteField(nameof(HandlerAddress), HandlerAddress);
+                s.WriteField(nameof(JumpTarget), JumpTarget);
+            }
         }
 
         #endregion
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(SCOPE_TABLE), this, ViewKind.ScopeTable);
+
+            s.WriteField(nameof(Count), Count);
+            s.WriteInline(Records);
+        }
     }
 }

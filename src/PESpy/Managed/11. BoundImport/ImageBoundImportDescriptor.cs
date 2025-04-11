@@ -73,9 +73,14 @@ namespace PESpy
             using var s = writer.CreateStruct(nameof(IMAGE_BOUND_IMPORT_DESCRIPTOR), this, ViewKind.ImageBoundImportDescriptor);
 
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+
             s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
+
+            if (Name.IsValid && Name.ListedOffset != 0)
+                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
+
             s.WriteField(nameof(NumberOfModuleForwarderRefs), NumberOfModuleForwarderRefs);
-            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
+            
             s.WriteInline(Refs);
         }
 

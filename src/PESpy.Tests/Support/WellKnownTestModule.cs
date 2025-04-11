@@ -9,6 +9,7 @@ namespace PESpy.Tests
         public static SymbolStoreKey AuthExt = new SymbolStoreKey("authext.dll/350DD84419000/authext.dll", "C:\\Windows\\System32\\AuthExt.dll");
         public static SymbolStoreKey AzureAttest = new SymbolStoreKey("azureattest.dll/6250867848000/azureattest.dll", "C:\\Windows\\System32\\AzureAttest.dll");
         public static SymbolStoreKey cdd = new SymbolStoreKey("cdd.dll/76CEFE3B47000/cdd.dll", "C:\\Windows\\System32\\cdd.dll");
+        public static SymbolStoreKey coreclr = new SymbolStoreKey("coreclr.dll/674F3D104e7000/coreclr.dll", "C:\\symbols\\coreclr.dll\\674F3D104e7000\\coreclr.dll");
         public static SymbolStoreKey crtdll = new SymbolStoreKey("crtdll.dll/30C91E2D27000/crtdll.dll", "C:\\Windows\\SysWOW64\\crtdll.dll");
         public static SymbolStoreKey ctl3d32 = new SymbolStoreKey("ctl3d32.dll/3005CC7211000/ctl3d32.dll", "C:\\Windows\\SysWow64\\ctl3d32.dll");
         public static SymbolStoreKey d3dx9_24 = new SymbolStoreKey("d3dx9_24.dll/4205627437c000/d3dx9_24.dll", "C:\\Windows\\System32\\d3dx9_24.dll");

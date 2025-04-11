@@ -210,7 +210,7 @@ namespace PESpy.View.Builder
             {
                 //We've been building up the members of a directory
 
-                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
+                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), this is PdbMerger ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
 
                 masterList.Add(directoryRegion);
             }

@@ -176,6 +176,8 @@ namespace PESpy
                 b.WriteField("bbtFlags", BBTFlags, 3);
             }
 
+            s.WriteField("maxState", MaxState);
+
             s.WriteRVAField("dispUnwindMap", UnwindMap);
             s.WriteField(nameof(nTryBlocks), nTryBlocks);
             s.WriteRVAField("dispTryBlockMap", TryBlockMap);

@@ -20,7 +20,7 @@ namespace PESpy.Tests
 
             stream.Seek(0, SeekOrigin.Begin);
 
-            var reader = new FileReader(stream, true);
+            var reader = new StreamFileReader(stream, true);
             var actual = reader.ReadArray<int>(numbers.Length);
 
             Assert.AreEqual(numbers.Length, actual.Length);

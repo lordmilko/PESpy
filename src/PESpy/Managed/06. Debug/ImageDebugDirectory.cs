@@ -326,7 +326,7 @@ namespace PESpy
                 if (Data is IViewable v)
                     writer.WriteGlobal(v);
                 else if (Data is RawValue<ImageDllCharacteristicsEx> r)
-                    writer.WriteGlobal(r.Offset, r, sizeof(int), ViewKind.ExDllCharacteristics);
+                    writer.WriteGlobal(r.Offset, r.Value, sizeof(int), ViewKind.ExDllCharacteristics);
                 else
                     throw new NotImplementedException($"Don't know how to write a value of type {Data.GetType().Name}");
             }

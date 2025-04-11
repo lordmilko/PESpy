@@ -8,6 +8,7 @@ namespace PESpy.View
         string Name { get; }
         object Value { get; }
         int Bits { get; }
+        int Size { get; }
     }
 
     [DebuggerDisplay("{ViewDebuggerDisplay.BitField(this),nq}")]
@@ -31,12 +32,13 @@ namespace PESpy.View
 
         public ViewKind Kind => ViewKind.BitField;
 
-        public BitFieldView(int offset, string name, TValue value, int bits)
+        public BitFieldView(int offset, string name, TValue value, int bits, int size)
         {
             Offset = offset;
             Name = name;
             Value = value;
             Bits = bits;
+            Size = size;
         }
 
         public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitBitField(this);

@@ -12,23 +12,75 @@ namespace PESpy
     /// </summary>
     public class ImageCor20Header : IValue, IViewable
     {
+#if PEFAST
+        public int ByteCount => chunk.PeekInt32(0);
+#else
         public int ByteCount { get; init; }
+#endif
+#if PEFAST
+        public ushort MajorRuntimeVersion => chunk.PeekUInt16(4);
+#else
         public ushort MajorRuntimeVersion { get; init; }
+#endif
+#if PEFAST
+        public ushort MinorRuntimeVersion => chunk.PeekUInt16(6);
+#else
         public ushort MinorRuntimeVersion { get; init; }
+#endif
 
         //This field should be called MetaData but I really don't like how that looks
+#if PEFAST
+        public ImageDataDirectory Metadata => new ImageDataDirectory(chunk.Slice(8));
+#else
         public ImageDataDirectory<ClrMetadata> Metadata { get; init; }
+#endif
 
+#if PEFAST
+        public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS) chunk.PeekUInt32(16);
+#else
         public COMIMAGE_FLAGS Flags { get; init; }
+#endif
+#if PEFAST
+        public int EntryPointTokenOrRVA => chunk.PeekInt32(20);
+#else
         public int EntryPointTokenOrRVA { get; init; }
+#endif
+#if PEFAST
+        public ImageDataDirectory Resources => new ImageDataDirectory(chunk.Slice(24));
+#else
         public ImageDataDirectory Resources { get; init; }
+#endif
+#if PEFAST
+        public ImageDataDirectory StrongNameSignature => new ImageDataDirectory(chunk.Slice(32));
+#else
         public ImageDataDirectory StrongNameSignature { get; init; }
+#endif
+#if PEFAST
+        public ImageDataDirectory CodeManagerTable => new ImageDataDirectory(chunk.Slice(40));
+#else
         public ImageDataDirectory CodeManagerTable { get; init; }
+#endif
+#if PEFAST
+        public ImageDataDirectory VTableFixups => new ImageDataDirectory(chunk.Slice(48));
+#else
         public ImageDataDirectory VTableFixups { get; init; } //While this member IS meant to be an IMAGE_DATA_DIRECTORY, there are apparently extra members in this directory as well: https://blog.xpnsec.com/the-net-export-portal/
+#endif
+#if PEFAST
+        public ImageDataDirectory ExportAddressTableJumps => new ImageDataDirectory(chunk.Slice(56));
+#else
         public ImageDataDirectory ExportAddressTableJumps { get; init; }
+#endif
+#if PEFAST
+        public ImageDataDirectory ManagedNativeHeader => new ImageDataDirectory(chunk.Slice(64));
+#else
         public ImageDataDirectory ManagedNativeHeader { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) +   //ByteCount
@@ -44,6 +96,14 @@ namespace PESpy
             sizeof(long) +  //ExportAddressTableJumps
             sizeof(long);   //ManagedNativeHeader
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageCor20Header(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageCor20Header(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -71,6 +131,7 @@ namespace PESpy
             //it's also possible for the r2r header to be listed in exports
             //https://github.com/dotnet/runtime/blob/a38ab4c0bc3780754259be600db1501cc2907a84/docs/design/coreclr/botr/readytorun-format.md#pe-headers-and-cli-headers
         }
+#endif
 
         #region Metadata
 

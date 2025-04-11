@@ -21,6 +21,8 @@ namespace PESpy
         string ReadUTF8NullTerminatedString();
         string ReadUTF16NullTerminatedString();
 
+        bool TryMatchAnsiNullTerminatedString(string value);
+
         byte ReadByte();
         sbyte ReadSByte();
 
@@ -29,6 +31,8 @@ namespace PESpy
 
         int ReadInt32();
         uint ReadUInt32();
+
+        int Read7BitEncodedInt32();
 
         long ReadInt64();
         ulong ReadUInt64();
@@ -42,6 +46,7 @@ namespace PESpy
         string ReadNullPaddedUTF8(int byteCount);
         string ReadUnicodeString(int charCount);
         string ReadAsciiString(int charCount);
+        string ReadUTF8String(int charCount);
         byte[] ReadBytes(int count);
         bool TryReadBytes(int count, out byte[] bytes);
 

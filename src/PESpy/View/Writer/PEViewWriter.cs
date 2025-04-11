@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using ClrDebug.DIA;
+using PESpy.Ecma335;
 using PESpy.View.Builder;
+using static System.Collections.Specialized.BitVector32;
 
 namespace PESpy.View
 {
@@ -10,10 +14,122 @@ namespace PESpy.View
 
         public bool Is32Bit => peFile.OptionalHeader.Magic == PEMagic.PE32;
 
-        public PEViewWriter(PEFile peFile, ref FileReader reader, ViewMode mode) : base(ref reader, mode)
+        private MetadataReader metadataReader;
+
+        internal MetadataReader MetadataReader
+        {
+            get
+            {
+                if (metadataReader == null)
+                    metadataReader = ((CompressedModelHeap) peFile.Cor20Header!.Metadata.Data.Header.StreamHeaders.First(f => f.Name == StorageStream.CompressedModelStream).Data).MetadataReader;
+
+                return metadataReader;
+            }
+        }
+
+        internal PEViewWriter(PEFile peFile, IFileReader reader, ViewMode mode) : base(reader, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
         {
             this.peFile = peFile;
         }
+
+        private static TryGetOffsetDelegate GetViewOffsetResolver(PEFile peFile, ViewMode mode)
+        {
+            switch (mode)
+            {
+                case ViewMode.Default:
+                    //Whatever the values are is what the values are
+                    break;
+
+                case ViewMode.Virtual:
+                    if (!peFile.IsLoadedImage) //If we're already virtual, nothing to do
+                    {
+                        return (int offset, out int viewOffset) =>
+                        {
+                            //Physical and need to convert to virtual
+
+                            if (!peFile.TryGetRVA(offset, out var rva))
+                            {
+                                //We're a physical file, trying to pretend that we're virtual. If an RVA can't be resolved to a particular section, this means that the RVA either exists in the file headers,
+                                //or in the overlay. Overlay data is not loaded into virtual memory. As such, if we're overlay, we don't want to write the value
+                                if (offset < peFile.OptionalHeader.SizeOfHeaders)
+                                {
+                                    viewOffset = offset;
+                                    return true;
+                                }
+
+                                //Overlay, ignore
+                                viewOffset = default;
+                                return false;
+                            }
+                                
+
+                            viewOffset = rva;
+                            return true;
+                        };
+                    }
+                    break;
+
+                case ViewMode.Physical:
+                    if (peFile.IsLoadedImage) //If we're already physical, nothing to do
+                    {
+                        return (int rva, out int viewRVA) =>
+                        {
+                            //Virtual and need to convert to physical
+
+                            if (!peFile.TryGetOffset(rva, out var offset))
+                                viewRVA = rva; //Anything that exists virtually also exists physically
+
+                            viewRVA = offset;
+                            return true;
+                        };
+                    }
+                    break;
+            return (int offset, out int viewOffset) =>
+            {
+                viewOffset = offset;
+                return true;
+            };
+        }
+
+        private static Func<int, int> GetRealOffsetResolver(PEFile peFile, ViewMode mode)
+        {
+            switch (mode)
+            {
+                case ViewMode.Default:
+                    break;
+
+                case ViewMode.Physical:
+                    if (peFile.IsLoadedImage)
+                    {
+                        return offset =>
+                        {
+                            if (!peFile.TryGetRVA(offset, out var rva))
+                                return offset;
+
+                            return rva;
+                        };
+                    }
+                    break;
+
+                case ViewMode.Virtual:
+                    if (!peFile.IsLoadedImage)
+                    {
+                        return rva =>
+                        {
+                            if (!peFile.TryGetOffset(rva, out var offset))
+                                return rva;
+
+                            return offset;
+                        };
+                    }
+                    break;
+            }
+
+            return v => v;
+        }
+
+        public override IView Finalize()
+        {
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
@@ -25,13 +141,76 @@ namespace PESpy.View
             {
                 if (directory.VirtualAddress != 0)
                 {
-                    if (peFile.TryGetDirectoryOffset(directory, out var offset, true))
-                        dataDirectories.Add(new DirectoryInfo(name, offset, directory.Size));
+                    bool isVirtualMode;
+
+                    switch (mode)
+                    {
+                        case ViewMode.Default:
+                            isVirtualMode = peFile.IsLoadedImage; //Whatever the PEFile says
+                            break;
+
+                        case ViewMode.Physical:
+                            isVirtualMode = false;
+                            break;
+
+                        case ViewMode.Virtual:
+                            isVirtualMode = true;
+                            break;
+                    }
+
+                    var sectionIndex = peFile.GetSectionContainingRVA(directory.VirtualAddress);
+
+                    if (sectionIndex == -1)
+                        return;
+
+                    var section = peFile.SectionHeaders[sectionIndex];
+
+                    int offset;
+
+                    if (isVirtualMode)
+                    {
+                        offset = directory.VirtualAddress;
+                    }
+                    else
+                    {
+                        var relativeOffset = (int) (directory.VirtualAddress - directory.VirtualAddress);
+
+                        offset = section.PointerToRawData + relativeOffset;
+                    }
+
+                    dataDirectories.Add(new DirectoryInfo(name, offset, directory.Size));
                 }
             }
+
+            #region IMAGE_OPTIONAL_HEADER
+
+            var o = peFile.OptionalHeader;
+            AddVirtualDirectory(o.ExportTableDirectory, nameof(o.ExportTableDirectory));
+            AddVirtualDirectory(o.ImportTableDirectory, nameof(o.ImportTableDirectory));
+            AddVirtualDirectory(o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
+            AddVirtualDirectory(o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
+
+            if (o.SecurityTableDirectory.VirtualAddress != 0)
+                dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
+
+            AddVirtualDirectory(o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
+            AddVirtualDirectory(o.DebugTableDirectory, nameof(o.DebugTableDirectory));
+            AddVirtualDirectory(o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
+            AddVirtualDirectory(o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
+            AddVirtualDirectory(o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
+            AddVirtualDirectory(o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
+
+            if (o.BoundImportTableDirectory.VirtualAddress != 0)
+                dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
+
+            AddVirtualDirectory(o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
+            AddVirtualDirectory(o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
+            AddVirtualDirectory(o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
+            #endregion
+
             dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
 
-            var merger = new PEMerger(peFile, structs, delayNameViews, dataDirectories, extension);
+            var merger = new PEMerger(peFile, structs, delayNameViews, dataDirectories, extension, mode);
 
             var results = merger.Merge();
 

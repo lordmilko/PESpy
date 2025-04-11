@@ -34,7 +34,7 @@ namespace PESpy.Tests
 
         static ILDecoder()
         {
-            var opcodes = typeof(OpCodes).GetFields().Select(f => (OpCode) f.GetValue(null)).ToArray();
+            var opcodes = typeof(OpCodes).GetFields().Select(f => (OpCode) f.GetValue(null)!).ToArray();
 
             foreach (var opcode in opcodes)
             {
@@ -144,7 +144,7 @@ namespace PESpy.Tests
             }
         }
 
-        private object ReadOperand(OpCode opcode)
+        private object? ReadOperand(OpCode opcode)
         {
             switch (opcode.OperandType)
             {

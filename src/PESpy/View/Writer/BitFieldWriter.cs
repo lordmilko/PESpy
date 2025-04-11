@@ -17,7 +17,7 @@ namespace PESpy.View
                 this.offset = offset;
                 this.fields = fields;
                 bitsUsed = 0;
-                maxSize = bytes * 8;
+                maxSize = bytes;
             }
 
             public void WriteField(string name, byte value, int bits) =>
@@ -42,7 +42,7 @@ namespace PESpy.View
 
             private void WriteFieldInternal<T>(string name, T value, int bits)
             {
-                var element = new BitFieldView<T>(offset, name, value, bits);
+                var element = new BitFieldView<T>(offset, name, value, bits, maxSize);
 
                 bitsUsed += bits;
 
@@ -51,8 +51,10 @@ namespace PESpy.View
 
             public void Dispose()
             {
-                if (bitsUsed != maxSize)
-                    throw new InvalidOperationException($"Expected exactly {maxSize} bits to be written, however {bitsUsed} bits were written instead.");
+                var expectedBits = maxSize * 8;
+
+                if (bitsUsed != expectedBits)
+                    throw new InvalidOperationException($"Expected exactly {expectedBits} bits to be written, however {bitsUsed} bits were written instead.");
             }
         }
     }

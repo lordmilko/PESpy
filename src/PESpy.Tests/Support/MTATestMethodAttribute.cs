@@ -42,7 +42,9 @@ namespace PESpy.Tests
                 }
             });
             thread.Name = testMethod.TestMethodName;
+#pragma warning disable CA1416
             thread.SetApartmentState(ApartmentState.MTA);
+#pragma warning restore CA1416
             
             thread.Start();
             thread.Join();

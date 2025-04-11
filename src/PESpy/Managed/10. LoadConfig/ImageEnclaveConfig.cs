@@ -60,7 +60,7 @@ namespace PESpy
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            var s = writer.CreateStruct("IMAGE_ENCLAVE_CONFIG", this, ViewKind.ImageEnclaveConfig);
+            using var s = writer.CreateStruct("IMAGE_ENCLAVE_CONFIG", this, ViewKind.ImageEnclaveConfig);
 
             s.WriteField(nameof(Size), Size);
             s.WriteField(nameof(MinimumRequiredConfigSize), MinimumRequiredConfigSize);

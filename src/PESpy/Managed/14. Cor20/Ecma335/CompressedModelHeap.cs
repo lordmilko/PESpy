@@ -234,12 +234,12 @@ namespace PESpy
             {
                 if (table != null && table.Count > 0)
                 {
-                    var first = table[0];
+                    var first = table[1]; //Indices are 1 based
                     using var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable);
 
                     r.WriteValue(first);
 
-                    for (var i = 1; i < table.Count; i++)
+                    for (var i = 2; i <= table.Count; i++)
                         r.WriteValue(table[i]);
                 }
             }

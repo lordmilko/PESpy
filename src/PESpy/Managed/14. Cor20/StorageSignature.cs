@@ -46,9 +46,9 @@ namespace PESpy
             s.WriteField("iSignature", Signature);
             s.WriteField("iMajorVer", MajorVersion);
             s.WriteField("iMinorVer", MinorVersion);
-            s.WriteField("IExtraData", ExtraData);
-            s.WriteField("IVersionString", VersionStringLength);
-            s.WriteNullPaddedUTF8Field(Version, Version, VersionStringLength);
+            s.WriteField("iExtraData", ExtraData);
+            s.WriteField("iVersionString", VersionStringLength);
+            s.WriteNullPaddedUTF8Field("pVersion", Version, VersionStringLength);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using PESpy.PDB;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -35,6 +36,9 @@ namespace PESpy.View
             }
 
             public void WriteValue(int value) =>
+                WriteValueInternal(value, sizeof(int));
+
+            public void WriteValue(uint value) =>
                 WriteValueInternal(value, sizeof(int));
 
             public void WriteValue(RawOffset offset, Guid value, ViewKind kind = ViewKind.Value)
@@ -84,6 +88,16 @@ namespace PESpy.View
                     viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
             }
 
+#if PEFAST
+            public void WriteAnsiNullTerminatedValue(RVA<PCSTR> value)
+            {
+                WriteValueInternal((int) value.ListedOffset, sizeof(int));
+
+                if (value.IsValid)
+                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+            }
+#endif
+
             public void WriteUTF8NullTerminatedValue(RawOffset offset, string value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
@@ -95,6 +109,12 @@ namespace PESpy.View
             {
                 for (var i = 0; i < value.Length; i++)
                     WriteValueInternal(value[i], sizeof(short));
+            }
+
+            public void WriteValues(PN[] value)
+            {
+                for (var i = 0; i < value.Length; i++)
+                    WriteValueInternal(value[i], sizeof(int));
             }
 
             public void WriteUnique<T>(T[]? value) where T : IViewable, IValue

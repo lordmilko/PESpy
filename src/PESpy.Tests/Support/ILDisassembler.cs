@@ -19,7 +19,7 @@ namespace PESpy.Tests
         private readonly Stream stream;
 
         public static ILInstruction[] Disassemble(MethodBase method) =>
-            Disassemble(method.GetMethodBody().GetILAsByteArray());
+            Disassemble(method.GetMethodBody()!.GetILAsByteArray()!);
 
         public static ILInstruction[] Disassemble(byte[] ilBytes)
         {

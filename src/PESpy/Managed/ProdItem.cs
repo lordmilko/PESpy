@@ -15,15 +15,15 @@ namespace PESpy
     [DebuggerDisplay("VisualStudioVersion = {VisualStudioVersion}, ProductId = {ProductId}, BuildId = {BuildId}, Count = {Count}")]
     public readonly struct ProdItem : IValue, IViewable //Stored in an array, so can be a struct
     {
-        public short ProdId { get; }
+        public short ProdId { get; init; }
 
-        public short BuildId { get; }
+        public short BuildId { get; init; }
         
-        public int Count { get; }
+        public int Count { get; init; }
 
-        public string ProductId { get; }
+        public string ProductId { get; init; }
 
-        public string? VisualStudioVersion { get; }
+        public string? VisualStudioVersion { get; init; }
 
         public RawOffset Offset { get; }
 

@@ -221,10 +221,19 @@ namespace PESpy.View
                 }
                 else
                 {
-                    var typeField = fields.FirstOrDefault(f => f.Name == "Type")?.Value;
+                    var nameField = fields.FirstOrDefault(f => f.Name == "Name")?.Value;
 
-                    if (typeField != null && typeField.GetType().IsEnum)
-                        builder.Append(" (").Append(typeField).Append(")");
+                    if (nameField != null)
+                    {
+                        builder.Append(" ").Append(nameField);
+                    }
+                    else
+                    {
+                        var typeField = fields.FirstOrDefault(f => f.Name == "Type")?.Value;
+
+                        if (typeField != null && typeField.GetType().IsEnum)
+                            builder.Append(" (").Append(typeField).Append(")");
+                    }
                 }
             }
 

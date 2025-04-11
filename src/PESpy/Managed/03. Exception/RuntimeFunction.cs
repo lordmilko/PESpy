@@ -8,7 +8,7 @@ using RVA = System.Int32;
 namespace PESpy
 {
     /// <summary>
-    /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure.
+    /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure that provides information on how an 64-bit stack frame should be unwound.
     /// </summary>
     [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}, UnwindData = 0x{UnwindData.ListedOffset.ToString(\"X\"),nq}")]
     public readonly struct RuntimeFunction : IValue, IViewable

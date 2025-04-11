@@ -1,9 +1,7 @@
-﻿using ClrDebug;
-
-namespace PESpy
+﻿namespace PESpy
 {
     /// <summary>
-    /// Represents the <see cref="IMAGE_SECTION_HEADER"/> structure.
+    /// Represents the <see cref="IMAGE_RELOCATION"/> structure.
     /// </summary>
     public readonly struct ImageRelocation : IValue
     {

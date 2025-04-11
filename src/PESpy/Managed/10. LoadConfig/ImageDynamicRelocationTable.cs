@@ -17,8 +17,7 @@ namespace PESpy
 
         internal ImageDynamicRelocationTable(IFileReader reader, PEFile peFile)
         {
-            //We already read Version
-            Offset = (int) reader.Position - 4;
+            Offset = (int) reader.Position;
 
             //Is it a V1 or V2 structure?
             Version = reader.ReadInt32();

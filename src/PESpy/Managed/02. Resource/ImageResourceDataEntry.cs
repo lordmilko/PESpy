@@ -147,7 +147,14 @@ namespace PESpy
                         case ResourceType.FontDir:
                         case ResourceType.Font:
                         case ResourceType.Accelerator:
+                            goto default;
+
                         case ResourceType.RCData:
+                            if (!TryParseRCData(reader, out value))
+                                goto default;
+
+                            break;
+
                         case ResourceType.MessageTable:
                         case ResourceType.GroupCursor:
                         case ResourceType.GroupIcon:

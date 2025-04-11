@@ -12,7 +12,8 @@ namespace PESpy.View
     public enum ViewTag
     {
         Import = 1,
-        DelayImport
+        DelayImport,
+        FatEH
     }
 
     public abstract partial  class ViewWriter
@@ -37,8 +38,9 @@ namespace PESpy.View
         private Func<int, int> getRealOffset;
 
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
-        
-        internal ViewWriter(ref FileReader reader, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
+
+        internal ViewTag CurrentTag => currentTag;
+
         internal ViewWriter(IFileReader reader, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
         {
             this.mode = mode;

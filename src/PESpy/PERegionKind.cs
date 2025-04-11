@@ -6,7 +6,7 @@ namespace PESpy
     /// Specifies kinds of regions that can be loaded from a PE File.
     /// </summary>
     [Flags]
-    public enum PERegionKind
+    public enum PERegionKind : ulong
     {
         None = 0,
         DosHeader = 1,
@@ -46,6 +46,9 @@ namespace PESpy
         Cor20Header_ManagedNativeHeader = 0x8000000,
 
         ReadyToRunHeader        = 0x10000000,
-        AppHostSignature        = 0x20000000
+        AppHostSignature        = 0x20000000,
+        ClrEngineMetrics        = 0x40000000,
+        RuntimeInfo             = 0x80000000,
+        DotNetRuntimeDebugHeader = 0x100000000
     }
 }

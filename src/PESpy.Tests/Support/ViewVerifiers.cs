@@ -57,7 +57,14 @@ namespace PESpy.Tests
                     Assert.AreEqual(expectedArray.GetValue(i), actualArray.GetValue(i));
             }
             else
-                Assert.AreEqual(value, fieldView.Value, $"Value of field {name} was incorrect");
+            {
+                var fieldValue = fieldView.Value;
+
+                if (value is string s) //Could be PCSTR
+                    fieldValue = fieldValue.ToString();
+
+                Assert.AreEqual(value, fieldValue, $"Value of field {name} was incorrect");
+            }
         }
 
         public static void VerifyFieldIgnoreValue(this IView view, string name)
