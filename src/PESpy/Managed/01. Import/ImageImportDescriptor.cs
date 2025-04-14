@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using PESpy.Native;
@@ -15,32 +16,81 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_IMPORT_DESCRIPTOR"/> structure.
     /// </summary>
-    public readonly struct ImageImportDescriptor : IValue, IViewable
+    public class ImageImportDescriptor : IValue, IViewable //A class so that we don't have to keep recreating [Original]FirstThunk depending on which struct copy loaded it
     {
         /// <summary>
         /// The RVA of the import lookup table. This table contains a name or ordinal for each import.
         /// </summary>
+#if PEFAST
+        private RVA<ImageThunkData[]>? originalFirstThunk;
+
+        public RVA<ImageThunkData[]> OriginalFirstThunk
+        {
+            get
+            {
+                if (originalFirstThunk == null)
+                {
+                    //chunk.PeekInt32(0);
+                }
+
+                throw new NotImplementedException();
+            }
+        }
+#else
         public RVA<ImageThunkData[]> OriginalFirstThunk { get; init; }
+#endif
 
         /// <summary>
         /// The stamp that is set to zero until the image is bound. After the image is bound, this field is set to the time/data stamp of the DLL.
         /// </summary>
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(4);
+#else
         public uint TimeDateStamp { get; init; }
+#endif
 
         /// <summary>
         /// The index of the first forwarder reference.
         /// </summary>
+#if PEFAST
+        public int ForwarderChain => chunk.PeekInt32(8);
+#else
         public int ForwarderChain { get; init; }
+#endif
 
         /// <summary>
         /// The address of an ASCII string that contains the name of the DLL. This address is relative to the image base.
         /// </summary>
+#if PEFAST
+        public RVA<AnsiString> Name
+        {
+            get
+            {
+                //chunk.PeekInt32(12);
+                throw new NotImplementedException();
+            }
+        }
+#else
         public RVA<string> Name { get; init; }
+#endif
 
         /// <summary>
         /// The RVA of the import address table. The contents of this table are identical to the contents of the import lookup table until the image is bound.
         /// </summary>
+#if PEFAST
+        private RVA<ImageThunkData[]>? firstThunk;
+
+        public RVA<ImageThunkData[]> FirstThunk
+        {
+            get
+            {
+                //chunk.PeekInt32(16);
+                throw new NotImplementedException();
+            }
+        }
+#else
         public RVA<ImageThunkData[]> FirstThunk { get; init; }
+#endif
 
         //"ILT" vs "IAT" are confusing enough; having to decipher "OriginalFirstThunk" and "FirstThunk" makes it even more confusing.
         //Our design goal however is try and mirror the native API definitions; so we define hidden ILT/IAT members that simply redirect
@@ -60,7 +110,11 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public RVA<ImageThunkData[]> ImportAddressTable => FirstThunk;
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //OriginalFirstThunk
@@ -69,6 +123,14 @@ namespace PESpy
             sizeof(int) + //Name
             sizeof(int);  //FirstThunk
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageImportDescriptor(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageImportDescriptor(IFileReader reader, PEFile peFile, ImageThunkData[]? importAddressTable)
         {
             Offset = (RawOffset) reader.Position;
@@ -116,6 +178,7 @@ namespace PESpy
 
             FirstThunk = ParseThunks(firstThunk, reader, peFile, iatCache, true);
         }
+#endif
 
         internal static RVA<ImageThunkData[]> ParseThunks(RVA rva, IFileReader reader, PEFile peFile, Dictionary<RawOffset, ImageThunkData>? iatCache, bool isIAT)
         {

@@ -63,19 +63,42 @@ namespace PESpy
         /// <summary>
         /// The address of a unit of resource data in the Resource Data area.
         /// </summary>
+#if PEFAST
+        public RVA<IValue> OffsetToData
+        {
+            get
+            {
+                //chunk.PeekInt32(0);
+                throw new NotImplementedException();
+            }
+        }
+#else
         public RVA<IValue> OffsetToData { get; init; }
+#endif
 
         /// <summary>
         /// The size, in bytes, of the resource data that is pointed to by the Data RVA field.
         /// </summary>
+#if PEFAST
+        public int Size => chunk.PeekInt32(4);
+#else
         public int Size { get; init; }
+#endif
 
         /// <summary>
         /// The code page that is used to decode code point values within the resource data. Typically, the code page would be the Unicode code page.
         /// </summary>
+#if PEFAST
+        public int CodePage => chunk.PeekInt32(8);
+#else
         public int CodePage { get; init; }
+#endif
 
+#if PEFAST
+        public int Reserved => chunk.PeekInt32(12);
+#else
         public int Reserved { get; init; }
+#endif
 
         /// <summary>
         /// Gets the <see cref="ResourceType"/> or <see cref="string"/> that describes the type of data contained in this entry.
@@ -104,7 +127,11 @@ namespace PESpy
             }
         }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //OffsetToData
@@ -112,6 +139,14 @@ namespace PESpy
             sizeof(int) + //CodePage
             sizeof(int);  //Reserved
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageResourceDataEntry(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageResourceDataEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent)
         {
             Offset = (RawOffset) reader.Position;
@@ -190,6 +225,34 @@ namespace PESpy
             }
         }
 
+        private bool TryParseRCData(IFileReader reader, out IValue value)
+        {
+            value = null;
+
+            if (Parent?.Parent?.NameOrId.ToString().StartsWith("CLRDEBUGINFO") == true)
+            {
+                if (Size != ClrDebugResource.StructSize)
+                    return false;
+
+                //https://github.com/dotnet/runtime/blob/511d26611c051c56e546404ea616c220cc78817c/src/coreclr/dlls/mscoree/coreclr/GenClrDebugResource.ps1#L4
+                var version = reader.ReadInt32();
+
+                if (version != 0)
+                    throw new NotImplementedException("Don't know how to handle version being 0. Rewind our IFileReader?");
+
+                var signature = reader.ReadGuid();
+
+                if (signature != ClrDebugResource.CLR_ID_ONECORE_CLR)
+                    throw new NotImplementedException("Don't know how to handle Guid not being CLR_ID_ONECORE_CLR. Rewind our IFileReader?");
+
+                value = new ClrDebugResource(version, signature, reader);
+                return true;
+            }
+
+            return false;
+        }
+#endif
+
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct(nameof(IMAGE_RESOURCE_DATA_ENTRY), this, ViewKind.ImageResourceDataEntry);
@@ -203,6 +266,8 @@ namespace PESpy
             {
                 if (OffsetToData.Value is VsVersionInfo v)
                     writer.WriteGlobal(v);
+                else if (OffsetToData.Value is ClrDebugResource c)
+                    writer.WriteGlobal(c);
                 else if (OffsetToData.Value is ByteBlob b)
                     writer.WriteGlobal(b);
                 else

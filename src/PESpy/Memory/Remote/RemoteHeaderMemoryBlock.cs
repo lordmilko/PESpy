@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using PESpy.Fast;
 
 namespace PESpy
 {
@@ -36,6 +35,7 @@ namespace PESpy
 
             var oldPtr = LocalPointer;
             LocalPointer = (byte*) Marshal.AllocHGlobal(newSize);
+            throw new NotImplementedException($"{Length} -> {newSize}. Need to copy the old memory based on our current length and then update the current pointer and size");
         }
 
         public override void Dispose(bool disposing)

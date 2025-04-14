@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
@@ -35,6 +36,59 @@ namespace PESpy
                 var bytes = reader.ReadBytes(byteCount);
 
                 return new BlobEntry(offset, compressedSize, bytes);
+            }
+            finally
+            {
+                reader.Exit();
+            }
+        }
+
+        public string ReadDocumentName(int offset)
+        {
+            reader.Enter();
+
+            try
+            {
+                reader.Seek(Offset + offset);
+
+                var byteCount = reader.ReadCorCompressedInteger(out var compressedSize);
+
+                var end = reader.Position + byteCount;
+
+                if (reader.Position >= end)
+                    throw new NotImplementedException("Not sure how to handle size of document name going beyond the end of the file reader");
+
+                var separator = reader.ReadByte();
+
+                var builder = new StringBuilder();
+
+                var isFirst = true;
+
+                while (reader.Position < end)
+                {
+                    var partOffset = reader.ReadCorCompressedInteger(out var partCompressedSize);
+
+                    var oldPosition = reader.Position;
+
+                    reader.Seek(Offset + partOffset);
+
+                    var partByteCount = reader.ReadCorCompressedInteger(out _);
+
+                    var str = reader.ReadNullPaddedUTF8(partByteCount);
+
+                    reader.Seek(oldPosition);
+
+                    if (!isFirst)
+                    {
+                        builder.Append((char) separator);
+                    }
+                    else
+                        isFirst = false;
+
+                    builder.Append(str);
+                }
+
+                return builder.ToString();
             }
             finally
             {

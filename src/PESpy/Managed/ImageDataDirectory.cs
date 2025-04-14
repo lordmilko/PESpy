@@ -19,19 +19,39 @@ namespace PESpy
         /// <summary>
         /// The relative virtual address of the table.
         /// </summary>
+#if PEFAST
+        public int VirtualAddress => chunk.PeekInt32(0);
+#else
         public RVA VirtualAddress { get; init; }
+#endif
 
         /// <summary>
         /// The size of the table, in bytes.
         /// </summary>
+#if PEFAST
+        public int Size => chunk.PeekInt32(4);
+#else
         public int Size { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //RelativeVirtualAddress
             sizeof(int);  //Size
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageDataDirectory(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageDataDirectory(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -43,6 +63,7 @@ namespace PESpy
             VirtualAddress = (RVA) reader.ReadInt32();
             Size = reader.ReadInt32();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

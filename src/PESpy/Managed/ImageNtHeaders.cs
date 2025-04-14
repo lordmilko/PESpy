@@ -17,25 +17,51 @@ namespace PESpy
         /// <summary>
         /// A 4-byte signature identifying the file as a PE image. The bytes are "PE\0\0".
         /// </summary>
+#if PEFAST
+        public int Signature => chunk.PeekInt32(0);
+#else
         public int Signature { get; init; }
+#endif
 
         /// <summary>
         /// An <see cref="ImageFileHeader"/> structure that specifies the file header.
         /// </summary>
+#if PEFAST
+        public readonly ImageFileHeader FileHeader;
+#else
         public ImageFileHeader FileHeader { get; init; }
+#endif
 
         /// <summary>
         /// An <see cref="ImageOptionalHeader"/> structure that specifies the optional file header.
         /// </summary>
+#if PEFAST
+        public readonly ImageOptionalHeader OptionalHeader;
+#else
         public ImageOptionalHeader OptionalHeader { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal static int StructSize(bool is32Bit) =>
             sizeof(int) + //Signature
             ImageFileHeader.StructSize +
             ImageOptionalHeader.StructSize(is32Bit);
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageNtHeaders(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            FileHeader = new ImageFileHeader(chunk.Slice(4));
+            OptionalHeader = new ImageOptionalHeader(chunk.Slice(24));
+        }
+#else
         internal ImageNtHeaders(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -59,6 +85,7 @@ namespace PESpy
             FileHeader = new ImageFileHeader(reader);
             OptionalHeader = new ImageOptionalHeader(reader);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

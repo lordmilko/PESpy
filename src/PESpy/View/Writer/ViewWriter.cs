@@ -41,12 +41,12 @@ namespace PESpy.View
 
         internal ViewTag CurrentTag => currentTag;
 
-        internal ViewWriter(IFileReader reader, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
+        internal ViewWriter(IFileReader reader, IViewDisassembler? viewDisassembler, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
         {
             this.mode = mode;
             this.tryGetViewOffset = tryGetViewOffset;
             this.getRealOffset = getRealOffset;
-            extension = new Extension(reader);
+            extension = new Extension(reader, viewDisassembler);
             globalList = new List<IView>();
             listPool = new Stack<List<IView>>();
         }
@@ -134,7 +134,7 @@ namespace PESpy.View
 
             if (shouldAdd)
             {
-                if (extension.TryParseRawBytes(viewOffset, ViewKind.DosStub, byteBlob.Bytes, out var views))
+                if (extension.TryParseRawBytes(viewOffset, ViewKind.DosStub, byteBlob.Bytes, null, out var views))
                     AddViews(views);
                 else
                     AddView(new ByteBlobView(viewOffset, byteBlob.Bytes, ViewKind.DosStub));
@@ -179,6 +179,8 @@ namespace PESpy.View
 
         internal RegionWriter CreateRegion(RawOffset offset, string name, ViewKind kind, bool global = false)
         {
+            //todo: if its not global, are we writing the region under a structwriter? how does that make sense? will the offsets actually be inside the struct?
+            //if not it doesnt make sense. if so, we wouldnt be correctly updating the offsets on the struct
             if (global)
                 Push(globalList);
 
@@ -213,7 +215,7 @@ namespace PESpy.View
 
         internal IView[] CreateByteBlob(ref int currentOffset, int size)
         {
-            var views = extension.ReadBytes(ref currentOffset, currentOffset + size, null, getRealOffset, false);
+            var views = extension.ReadBytes(ref currentOffset, currentOffset + size, null, getRealOffset, null, false);
             currentOffset++; //ReadBytes subtracts 1 from the new offset
             return views;
         }

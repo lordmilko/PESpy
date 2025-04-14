@@ -5,9 +5,13 @@
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>enable</Nullable>
-
+    <!--<DefineConstants>$(DefineConstants);PEFAST</DefineConstants>-->
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\PESpy.xml</DocumentationFile>
 		<DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Managed\14. Cor20\NGEN\" />
+    <Folder Include="Managed\CLR\NGEN\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.5" />
   </ItemGroup>
 
 </Project>

@@ -16,6 +16,6 @@ namespace PESpy
         public int SymbolTableIndex;
 
         [FieldOffset(8)]
-        public short Type;
+        public short Type; //One of several ImageRel* enum values (based on the target architecture)
     }
 }

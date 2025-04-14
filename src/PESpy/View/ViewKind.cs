@@ -466,6 +466,19 @@ namespace PESpy.View
         PortablePdb_CustomDebugInformationRow,
 
         #endregion
+        #region CLR
+
+        RuntimeInfo,
+        ModuleIndex,
+
+        //Native AOT
+        DotNetRuntimeDebugHeader,
+        DebugTypeEntries,
+        GlobalValueEntries,
+        DebugTypeEntry,
+        GlobalValueEntry,
+
+        #endregion
 
         //PDB
         Page

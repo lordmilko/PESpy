@@ -76,6 +76,16 @@ namespace PESpy.Tests
 
             var originalType = root.DescendantNodes().OfType<TypeDeclarationSyntax>().First();
 
+            switch (originalType.Identifier.Text)
+            {
+                case "VsVersionInfo":
+                    var childType = originalType.Members.OfType<TypeDeclarationSyntax>().FirstOrDefault();
+
+                    if (childType != null)
+                        originalType = childType;
+                    break;
+            }
+
             var properties = originalType.Members.OfType<PropertyDeclarationSyntax>();
             var ctors = originalType.Members.OfType<ConstructorDeclarationSyntax>().ToArray();
 
@@ -88,6 +98,11 @@ namespace PESpy.Tests
                 switch (fullMemberName)
                 {
                     case "ImageExportDirectory.Exports":
+                    case "ImageResourceDataEntry.Type":
+                    case "ImageResourceDirectoryEntry.Type":
+                    case "ImageResourceDirectoryEntry.OffsetToData":
+                    case "ImageResourceDirectoryEntry.OffsetToDirectory":
+                    case "ImageResourceDirectoryEntry.DataIsDirectory":
                         continue;
                 }
 
@@ -114,7 +129,23 @@ namespace PESpy.Tests
                     .Add(EndOfLine(Environment.NewLine))
                     .Add(Whitespace("        "));
 
-                var newProperty = newPropertiesAndFields[property.Identifier.Text];
+                var propertyName = property.Identifier.Text;
+
+                if (!newPropertiesAndFields.TryGetValue(propertyName, out var newProperty))
+                {
+                    switch (propertyName)
+                    {
+                        case "Data":
+                        case "Parent":
+                        case "ImportAddressTable":
+                        case "ImportLookupTable":
+                        case "DebuggerDisplay":
+                        case "Entries":
+                            continue;
+                    }
+
+                    throw new NotImplementedException();
+                }
 
                 newProperty = newProperty
                     .WithLeadingTrivia(existingLeadingTrivia)
@@ -167,6 +198,7 @@ namespace PESpy.Tests
             }
             else
             {
+                throw new NotImplementedException();
             }
 
             var result = root.ReplaceNodes(changes.Keys, (a, b) => changes[a]);

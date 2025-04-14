@@ -33,6 +33,15 @@ namespace PESpy.Tests
             Assert.AreEqual(size, structView.Size, $"Size of {name} was incorrect");
         }
 
+        public static void VerifyStructField(this IView view, string name, string type, int offset, int size, params Action<IView>[] verifyChildren)
+        {
+            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+
+            var fieldView = (IFieldView) view;
+
+            VerifyStruct((IView) fieldView.Value, type, offset, size, verifyChildren);
+        }
+
         public static void VerifyField(this IView view, string name, object value)
         {
             Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");

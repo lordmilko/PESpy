@@ -114,6 +114,17 @@ namespace PESpy
                 case CorILMethodSect.OptILTable:
                 case CorILMethodSect.Reserved:
                     break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
+            }
+
+            if (sectFlags.HasFlag(CorILMethodSect.MoreSects))
+                throw new NotImplementedException("Don't know how to handle having more sections. Do we need to align first? And then jump back to the start (after initializing our list)?");
+
+            return sections.ToArray();
+        }
+
         void IViewable.WriteView(ViewWriter writer)
         {
             var kind = (CorILMethodFlags) ((int) Flags & Extensions.CorILMethod_FormatMask);
@@ -128,7 +139,7 @@ namespace PESpy
                     var value = (byte) (((byte) Flags & Extensions.CorILMethod_FormatMask) | (CodeSize << (Extensions.CorILMethod_FormatShift - 1)));
 
                     s.WriteField("Flags_CodeSize", value);
-                    s.WriteField("ILBytes", ILBytes); //temp
+                    s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
                     break;
                 }
 
@@ -145,6 +156,10 @@ namespace PESpy
 
                     s.WriteField(nameof(CodeSize), CodeSize);
                     s.WriteField(nameof(LocalVarSigTok), LocalVarSigTok);
+                    s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
+
+                    throw new NotImplementedException("Need to align and then write the sections");
+                    break;
                 }
             }
         }

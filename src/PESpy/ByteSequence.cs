@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+
+namespace PESpy
+{
+    //Based on DittedBitSequence.java, Pattern.java from Ghidra, licensed under the Apache License.
+    //See ThirdPartyNotices.txt for full license notice.
+
     internal class ByteSequence
     {
         /// <summary>

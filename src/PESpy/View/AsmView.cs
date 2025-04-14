@@ -7,6 +7,8 @@ namespace PESpy.View
 {
     public interface IAsmView : IView
     {
+        string Name { get; }
+
         byte Bitness { get; }
 
         int Count { get; }
@@ -16,6 +18,7 @@ namespace PESpy.View
     public class AsmView<T> : IAsmView
     {
         public RawOffset Offset { get; }
+        public string Name { get; }
         public int Size { get; }
         public ViewKind Kind { get; }
 
@@ -26,11 +29,11 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public T[] Instructions { get; }
 
-        public AsmView(RawOffset offset, int size, byte bitness, T[] instructions, ViewKind? kind)
+        public AsmView(RawOffset offset, string name, int size, byte bitness, T[] instructions, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;
             Size = size;
-            Kind = kind ?? ViewKind.Assembly;
+            Kind = kind;
             Bitness = bitness;
             Instructions = instructions;
         }

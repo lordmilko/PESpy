@@ -17,6 +17,14 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal CoffSymbolTable(in MemoryChunk chunk, int numberOfSymbols)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal CoffSymbolTable(IFileReader reader, int numberOfSymbols)
         {
             Offset = (int) reader.Position;
@@ -55,6 +63,7 @@ namespace PESpy
 
             Debug.Assert(reader.Position == end);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

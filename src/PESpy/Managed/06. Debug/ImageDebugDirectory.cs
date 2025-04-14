@@ -11,12 +11,16 @@ namespace PESpy
     /// <summary>
     /// Represents one of several <see cref="IMAGE_DEBUG_DIRECTORY"/> entries that may be pointed to by IMAGE_OPTIONAL_HEADER.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].
     /// </summary>
-    public readonly struct ImageDebugDirectory : IValue, IViewable
+    public struct ImageDebugDirectory : IValue, IViewable
     {
         /// <summary>
         /// Reserved.
         /// </summary>
+#if PEFAST
+        public int Characteristics => chunk.PeekInt32(0);
+#else
         public int Characteristics { get; init; }
+#endif
 
         /// <summary>
         /// The time and date that the debug data was created if the PE/COFF file is not deterministic,
@@ -26,45 +30,240 @@ namespace PESpy
         /// The algorithm used to calculate this value is an implementation
         /// detail of the tool that produced the file.
         /// </remarks>
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(4);
+#else
         public uint TimeDateStamp { get; init; }
+#endif
 
         /// <summary>
         /// The major version number of the debug data format.
         /// </summary>
+#if PEFAST
+        public ushort MajorVersion => chunk.PeekUInt16(8);
+#else
         public ushort MajorVersion { get; init; }
+#endif
 
         /// <summary>
         /// The minor version number of the debug data format.
         /// </summary>
+#if PEFAST
+        public ushort MinorVersion => chunk.PeekUInt16(10);
+#else
         public ushort MinorVersion { get; init; }
+#endif
 
         /// <summary>
         /// The format of debugging information.
         /// </summary>
+#if PEFAST
+        public ImageDebugType Type => (ImageDebugType) chunk.PeekUInt32(12);
+#else
         public ImageDebugType Type { get; init; }
+#endif
 
         /// <summary>
         /// The size of the debug data (not including the debug directory itself).
         /// </summary>
+#if PEFAST
+        public int SizeOfData => chunk.PeekInt32(16);
+#else
         public int SizeOfData { get; init; }
+#endif
 
         /// <summary>
         /// The address of the debug data when loaded, relative to the image base.
         /// </summary>
+#if PEFAST
+        public int AddressOfRawData => chunk.PeekInt32(20);
+#else
         public int AddressOfRawData { get; init; }
+#endif
 
         /// <summary>
         /// The file pointer to the debug data.
         /// </summary>
+#if PEFAST
+        public int PointerToRawData => chunk.PeekInt32(24);
+#else
         public int PointerToRawData { get; init; }
+#endif
 
         /// <summary>
         /// Gets the data pointed to by this directory.<para/>
-        /// This value is not part of the native type definition/
+        /// This value is not part of the native type definition.
         /// </summary>
-        public object? Data { get; }
+#if PEFAST
+        private object? data;
 
+        public object? Data
+        {
+            get
+            {
+                if (data == null)
+                {
+                    //ImageDebugDirectory stores both AddressOfRawData and PointerToRawData. This ultimately doesn't help us however, as we still need to know
+                    //which MemoryBlock should own the corresponding memory
+                    if (chunk.PEFile.TryGetValueChunkFromSection(AddressOfRawData, out var valueChunk))
+                    {
+                        switch (Type)
+                        {
+                            case ImageDebugType.Unknown:
+                                if (SizeOfData == 0)
+                                    return null;
+
+                                goto default;
+
+                            case ImageDebugType.Coff:
+                            {
+                                //data = new ImageCoffSymbolsHeader(valueChunk);
+                                throw new NotImplementedException();
+                                break;
+                            }
+
+                            case ImageDebugType.CodeView:
+                                data = ReadCodeView(valueChunk, SizeOfData);
+                                break;
+
+                            case ImageDebugType.FPO:
+                            {
+                                //var numEntries = SizeOfData / FpoData.StructSize;
+
+                                //var entries = new FpoData[numEntries];
+
+                                //for (var i = 0; i < numEntries; i++)
+                                //    entries[i] = new FpoData(valueChunk.Slice(i * FpoData.StructSize));
+
+                                //data = entries;
+                                throw new NotImplementedException();
+                                break;
+                            }
+
+                            case ImageDebugType.Misc:
+                                //data = new ImageDebugMisc(valueChunk);
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.Exception:
+                                goto default;
+
+                            case ImageDebugType.Fixup:
+                            {
+                                //var entries = new XFixupData[SizeOfData / XFixupData.StructSize];
+
+                                //for (var i = 0; i < entries.Length; i++)
+                                //    entries[i] = new XFixupData(valueChunk.Slice(i * XFixupData.StructSize));
+
+                                //data = entries;
+                                throw new NotImplementedException();
+                                break;
+                            }
+
+                            case ImageDebugType.OmapToSrc: //OMAP type?
+                            case ImageDebugType.OmapFromSrc: //OMAP type?
+                            case ImageDebugType.Borland:
+                                goto default;
+
+                            case ImageDebugType.Reserved10:
+                                //C:\Windows\system32\FM20.dll has this with a size of 4. Nobody knows what to do with this directory however
+                                //Format seems to be BB 00 and then two more bytes. Not sure if the 00 is always 00?
+                                if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
+                                    //data = new ByteBlob(valueChunk, SizeOfData);
+                                    throw new NotImplementedException();
+                                else
+                                    data = default;
+                                break;
+
+                            case ImageDebugType.Clsid:
+                                goto default;
+
+                            case ImageDebugType.VCFeature:
+                                //data = new VCFeature(valueChunk);
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.Pogo:
+                                //Are they maybe called IMAGE_POGO_BLOCK and IMAGE_POGO_INFO? Need more citations
+                                //data = ReadPogo(valueChunk, SizeOfData);
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.ILTCG:
+                                //I've seen this with size 0
+                                if (SizeOfData != 0)
+                                    goto default;
+                                else
+                                    data = default;
+                                break;
+
+                            case ImageDebugType.MPX:
+                                goto default;
+
+                            case ImageDebugType.Reproducible:
+                                //dotnet/runtime says that this directory must be empty, but that's not true, it can sometimes have a hash.
+                                //it can also sometimes be empty as well
+                                if (SizeOfData != 0)
+                                    //data = new Reproducible(valueChunk);
+                                    throw new NotImplementedException();
+                                else
+                                    data = default;
+                                break;
+
+                            case ImageDebugType.EmbeddedPortablePdb:
+                                //data = new EmbeddedPortablePdb(valueChunk, SizeOfData);
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.SPGO:
+                                goto default;
+
+                            case ImageDebugType.PdbChecksum:
+                                //data = new PdbChecksum(valueChunk, SizeOfData);
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.ExDllCharacteristics:
+                                //if (SizeOfData == 4)
+                                //{
+                                //    var value = (ImageDllCharacteristicsEx) reader.ReadInt32();
+                                //    data = new RawValue<ImageDllCharacteristicsEx>((RawOffset) offset, value);
+                                //}
+                                //else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
+                                //    data = new ByteBlob(reader, SizeOfData);
+                                //else
+                                //    data = default;
+                                throw new NotImplementedException();
+                                break;
+
+                            case ImageDebugType.R2RPerfMap:
+                            default:
+#if DEBUG
+                                Debug.Assert(false, $"Reading a debug directory of type '{Type}' with size {SizeOfData} is not implemented");
+#endif
+                                //Defensively check for 0 length
+                                if (SizeOfData > 0)
+                                    //data = new ByteBlob(reader, SizeOfData);
+                                    throw new NotImplementedException();
+                                else
+                                    data = default;
+                                break;
+                        }
+                    }
+                }
+
+                return data;
+            }
+        }
+#else
+        public object? Data { get; }
+#endif
+
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(uint) +   // Characteristics
@@ -75,6 +274,15 @@ namespace PESpy
             sizeof(uint) +   // AddressOfRawData
             sizeof(uint);    // PointerToRawData
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageDebugDirectory(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            data = default;
+        }
+#else
         internal ImageDebugDirectory(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -261,9 +469,32 @@ namespace PESpy
 
             #endregion
         }
+#endif
 
         #region Data
 
+#if PEFAST
+        private static IValue ReadCodeView(in MemoryChunk chunk, int sizeOfData)
+        {
+            //var signature = chunk.PeekInt32(0);
+
+            //switch (signature)
+            //{
+            //    case RSDSI.RSDSSignature:
+            //        return new RSDSI(chunk);
+
+            //    case NB10I.NB10Signature:
+            //        return new NB10I(chunk);
+
+            //    default:
+            //        Debug.Assert(false, $"Don't know how to read CodeView signature '{signature:X}'");
+
+            //        //Unsupported value; read as a byte blob
+            //        return new ByteBlob(chunk, sizeOfData);
+            //}
+            throw new NotImplementedException();
+        }
+#else
         private static IValue ReadCodeView(IFileReader reader, int sizeOfData)
         {
             var signature = reader.ReadInt32();
@@ -283,6 +514,7 @@ namespace PESpy
                     return new ByteBlob(reader, sizeOfData);
             }
         }
+#endif
 
         private static IValue ReadPogo(IFileReader reader, int sizeOfData)
         {

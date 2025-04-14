@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System;
+using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -11,12 +12,32 @@ namespace PESpy
     /// </summary>
     public class ImageResourceDirStringU : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
     {
+#if PEFAST
+        public short Length => chunk.PeekInt16(0);
+#else
         public short Length { get; init; }
+#endif
 
+#if PEFAST
+        public ReadOnlySpan<char> NameString => chunk.PeekUnicodeFixedLength(2);
+#else
         public string NameString { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageResourceDirStringU(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageResourceDirStringU(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -25,6 +46,7 @@ namespace PESpy
 
             NameString = reader.ReadUnicodeString(Length);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -36,7 +58,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            return NameString;
+            return NameString.ToString();
         }
     }
 }

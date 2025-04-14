@@ -50,10 +50,16 @@ namespace PESpy
         public Span<T> PeekSpan<T>(int offset, int numElems) => new Span<T>(Pointer + offset, numElems);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PCSTR PeekNullPaddedUTF8(int offset, int numChars) => new PCSTR(Pointer + offset);
+        public Guid PeekGuid(int offset) => *(Guid*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PCSTR PeekAnsiNullTerminatedString(int offset) => new PCSTR(Pointer + offset);
+        public Utf8String PeekNullPaddedUTF8(int offset, int numChars) => new Utf8String(Pointer + offset);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public AnsiString PeekAnsiNullTerminatedString(int offset) => new AnsiString(Pointer + offset);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ReadOnlySpan<char> PeekUnicodeFixedLength(int numChars) => new ReadOnlySpan<char>(Pointer + AbsoluteOffset, numChars);
 
         internal MemoryChunk Slice(int offset) => new MemoryChunk(block, this.BlockOffset + offset);
 

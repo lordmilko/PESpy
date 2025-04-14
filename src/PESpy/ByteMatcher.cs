@@ -61,8 +61,8 @@ namespace PESpy
 
             if (peFile.TryGetOffset(virtualOffset, out var offset))
             {
-                var stream = reader.GetStreamStartUnsafe();
-                stream.Seek((int) offset, System.IO.SeekOrigin.Current);
+                var stream = ((StreamFileReader) reader).GetStreamStartUnsafe();
+                stream.Seek((int) offset, SeekOrigin.Begin);
 
                 var match = tree.GetMatches(stream, true).FirstOrDefault();
 

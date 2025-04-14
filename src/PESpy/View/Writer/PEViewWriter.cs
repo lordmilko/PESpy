@@ -20,14 +20,18 @@ namespace PESpy.View
         {
             get
             {
+#if PEFAST
+                throw new NotImplementedException();
+#else
                 if (metadataReader == null)
                     metadataReader = ((CompressedModelHeap) peFile.Cor20Header!.Metadata.Data.Header.StreamHeaders.First(f => f.Name == StorageStream.CompressedModelStream).Data).MetadataReader;
 
                 return metadataReader;
+#endif
             }
         }
 
-        internal PEViewWriter(PEFile peFile, IFileReader reader, ViewMode mode) : base(reader, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
+        internal PEViewWriter(PEFile peFile, IFileReader reader, IViewDisassembler? viewDisassembler, ViewMode mode) : base(reader, viewDisassembler, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
         {
             this.peFile = peFile;
         }
@@ -84,6 +88,11 @@ namespace PESpy.View
                         };
                     }
                     break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
+            }
+
             return (int offset, out int viewOffset) =>
             {
                 viewOffset = offset;
@@ -123,6 +132,9 @@ namespace PESpy.View
                         };
                     }
                     break;
+                
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
             }
 
             return v => v;
@@ -130,6 +142,9 @@ namespace PESpy.View
 
         public override IView Finalize()
         {
+            if (viewStack.Count != 0)
+                throw new InvalidOperationException("Expected viewStack to be empty");
+
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
@@ -156,6 +171,9 @@ namespace PESpy.View
                         case ViewMode.Virtual:
                             isVirtualMode = true;
                             break;
+
+                        default:
+                            throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
                     }
 
                     var sectionIndex = peFile.GetSectionContainingRVA(directory.VirtualAddress);
@@ -173,7 +191,7 @@ namespace PESpy.View
                     }
                     else
                     {
-                        var relativeOffset = (int) (directory.VirtualAddress - directory.VirtualAddress);
+                        var relativeOffset = (int) (directory.VirtualAddress - section.VirtualAddress);
 
                         offset = section.PointerToRawData + relativeOffset;
                     }
@@ -185,6 +203,7 @@ namespace PESpy.View
             #region IMAGE_OPTIONAL_HEADER
 
             var o = peFile.OptionalHeader;
+
             AddVirtualDirectory(o.ExportTableDirectory, nameof(o.ExportTableDirectory));
             AddVirtualDirectory(o.ImportTableDirectory, nameof(o.ImportTableDirectory));
             AddVirtualDirectory(o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
@@ -206,6 +225,7 @@ namespace PESpy.View
             AddVirtualDirectory(o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
             AddVirtualDirectory(o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
             AddVirtualDirectory(o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
+
             #endregion
 
             dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));

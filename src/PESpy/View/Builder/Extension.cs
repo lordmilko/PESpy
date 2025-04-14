@@ -11,12 +11,22 @@ namespace PESpy.View.Builder
     class Extension
     {
         private IFileReader reader;
+        private IViewDisassembler? viewDisassembler;
+        private List<IView> rawBytesResults = new List<IView>();
 
-        internal Extension(IFileReader reader)
+        internal Extension(IFileReader reader, IViewDisassembler viewDisassembler)
         {
             this.reader = reader;
+            this.viewDisassembler = viewDisassembler;
         }
+
+        internal IView[] ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
+        {
             var offset = currentRVA;
+
+            //We're going to read some data from the target. We need to use the "real" offset, not whatever we're pretending it is
+            if (getRealOffset != null)
+                offset = getRealOffset(offset);
 
             reader.Seek(offset);
 
@@ -39,36 +49,51 @@ namespace PESpy.View.Builder
 
             IView[] views;
 
-            if (!TryParseRawBytes(currentRVA, kind, bytes, out views))
+            if (!TryParseRawBytes(currentRVA, kind, bytes, getRVA, out views))
             {
                 var result = new ByteBlobView(currentRVA, bytes, kind);
                 views = new IView[] { result };
             }
-        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, byte[] bytes, out IView[]? views)
+
+            currentRVA += bytesToRead - 1;
+
+            return views;
+        }
+
+        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, byte[] bytes, Func<int, int>? getRVA, out IView[]? views)
         {
             //Try get code first, then strings
 
-            List<IView>? results = null;
+            rawBytesResults.Clear();
 
-            if (kind == ViewKind.DosStub && bytes.Length > 0)
+            if (kind == ViewKind.DosStub)
             {
-                results = TryParseDosStub(ref offset, ref bytes, kind);
+                if (bytes.Length > 0)
+                {
+                    if (viewDisassembler != null)
+                    {
+                        viewDisassembler.TryParseDosStub(ref offset, ref bytes, rawBytesResults);
+                    }
+                }
+            }
+            else
+            {
+                if (getRVA != null) //Known padding does not provide a getRVA
+                    viewDisassembler?.TryParseBytes(ref offset, getRVA(offset), ref bytes, rawBytesResults);
             }
 
-            if (bytes.Length >= StringParser.MinimumStringLength || results != null) //If we've already read some assembly code, force processing
+            if (bytes.Length >= StringParser.MinimumStringLength || rawBytesResults.Count > 0) //If we've already read some assembly code, force processing
             {
                 var strs = StringParser.GetStrings(bytes);
 
-                if (strs.Length > 0 || results != null)
+                if (strs.Length > 0 || rawBytesResults.Count > 0)
                 {
-                    if (results == null)
-                        results = new List<IView>();
-
-                    SplitBytes(offset, bytes, strs, results, kind);
+                    SplitBytes(offset, bytes, strs, rawBytesResults, kind);
 
                     //Don't attempt to create Strings regions. Merger may already have an existing repeating group going on.
                     //Leave it to them to merge everything in
-                    views = results.ToArray();
+                    views = rawBytesResults.ToArray();
+                    rawBytesResults.Clear();
                     return true;
                 }
             }
@@ -76,6 +101,7 @@ namespace PESpy.View.Builder
             views = null;
             return false;
         }
+
         private void SplitBytes(RawOffset offset, byte[] bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
         {
             var strIndex = 0;
@@ -104,6 +130,21 @@ namespace PESpy.View.Builder
                     results.Add(CreateByteBlob(offset, ref i, kind, bytes.Length, bytes));
                 }
             }
+        }
+
+        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, byte[] bytes)
+        {
+            var length = end - i;
+            var arr = new byte[length];
+            Array.Copy(bytes, i, arr, 0, length);
+
+            //If we have a name, but all of the bytes in this section are 0, it's now padding (e.g. after the DOS Stub)
+            if (localKind != null && arr.All(b => b == 0))
+                localKind = null;
+
+            var blob = new ByteBlobView(offset + i, arr, localKind);
+            i += length - 1;
+            return blob;
         }
     }
 }

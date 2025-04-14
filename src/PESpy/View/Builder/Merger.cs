@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
+using PESpy.PDB;
+
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -43,6 +46,7 @@ namespace PESpy.View.Builder
             RawOffset startRva,
             RawOffset endRva,
             Func<int, int> getRealOffset,
+            Func<int, int> getRVA,
             bool isOverlay = false)
         {
             masterList.Clear();
@@ -68,7 +72,7 @@ namespace PESpy.View.Builder
 
                 nextValue = null;
 
-                GetValueOrBytes(ref rva, currentEnd, endRva, getRealOffset, isOverlay);
+                GetValueOrBytes(ref rva, currentEnd, endRva, getRealOffset, getRVA, isOverlay);
             }
 
             FinalizeRepeatingTypeRegion();
@@ -110,14 +114,24 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void GetValueOrBytes(ref RawOffset rva, RawOffset currentEnd, RawOffset endRva, Func<int, int> getRealOffset, bool isOverlay)
+        private void GetValueOrBytes(ref RawOffset rva, RawOffset currentEnd, RawOffset endRva, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
         {
             if (nextStructIndex < sortedStructs.Count && (nextValue = sortedStructs[nextStructIndex]).Offset < currentEnd)
             {
 #if DEBUG
                 if (rva > nextValue.Offset)
                 {
+                    //Multiple RuntimeFunction entries may point to the same UnwindCode
+
                     var previous = sortedStructs[nextStructIndex - 1];
+
+                    while (previous.Kind == nextValue.Kind && previous.Offset == nextValue.Offset && previous.Size == nextValue.Size)
+                    {
+                        nextStructIndex++;
+
+                        if (nextStructIndex < sortedStructs.Count)
+                            nextValue = sortedStructs[nextStructIndex];
+                    }
 
                     Debug.Assert(rva <= nextValue.Offset);
                 }
@@ -128,7 +142,7 @@ namespace PESpy.View.Builder
                     //If we see a bunch of strings in a row, synthesize a virtual strings region.
                     //If we see a bunch of logical regions with the same in a row, synthesize a virtual region around them
 
-                    ProcessValueOrRepeatingGroup();
+                    ProcessValueOrRepeatingGroup(getRVA);
 
                     Debug.Assert(nextValue.Size != 0);
                     rva += nextValue.Size - 1;
@@ -137,17 +151,17 @@ namespace PESpy.View.Builder
                 else
                 {
                     //Read all bytes up to the next metadata item
-                    ReadByteBlob(ref rva, nextValue.Offset, endRva, getRealOffset, isOverlay);
+                    ReadByteBlob(ref rva, nextValue.Offset, endRva, getRealOffset, getRVA, isOverlay);
                 }
             }
             else
             {
                 //Read all bytes to the end
-                ReadByteBlob(ref rva, currentEnd, endRva, getRealOffset, isOverlay);
+                ReadByteBlob(ref rva, currentEnd, endRva, getRealOffset, getRVA, isOverlay);
             }
         }
 
-        private void ProcessValueOrRepeatingGroup()
+        private void ProcessValueOrRepeatingGroup(Func<int, int> getRVA)
         {
             if (nextValue is ValueView<string> v) //Use generics to avoid boxing
             {
@@ -187,8 +201,206 @@ namespace PESpy.View.Builder
             else
             {
                 FinalizeRepeatingTypeRegion();
+
+                if (nextDataDirectoryIndex < discoveredDataDirectories.Count)
+                {
+                    var currentDirectory = discoveredDataDirectories[nextDataDirectoryIndex];
+
+                    var nextValueEnd = nextValue.Offset + nextValue.Size;
+
+                    //The calling method is going to increment its rva based on how many bytes we wrote here; but in PDBs,
+                    //values can span multiple pages. A DirectoryInfo only knows how many pages large it is. This says nothing
+                    //about the number of pages the values within those pages span
+                    if (nextValueEnd > currentDirectory.End)
+                    {
+                        //We need to split this value in two. If it's a structure, it becomes a SplitStructure.
+                        //If the value that goes past the ends of the current directory's bounds is also a struct,
+                        //it becomes a SplitStructure too. Ultimately, we'll get down to the individual overlapping value.
+                        //That becomes a SplitValue, and then all members after the point where we split should become
+                        //part of the new secondary SplitStructure. Finally, we insert it into the sorted struct list so that
+                        //we add it to the next directory
+
+                        /* The current value may exist between 0x1000-0x1120. However, the current directory may only
+                         * span from 0x1000-0x1100, meaning that the bytes at 0x1100-0x1120 need to be split off. However,
+                         * it's actually erroneous to say that these bytes necessarily existed at 0x1100-0x1120; they may have been
+                         * read from a page far, far away from here, e.g. in the 0x4000 range. To figure out the offset
+                         * to use for the split page, we must figure out what our current page is, which stream that's in
+                         * what our index is within that stream, and then what the next page after us is */
+
+                        var pdbMerger = (PdbMerger) this;
+                        var currentPage = (PN) nextValue.Offset / pdbMerger.pdbFile.Header.PageSize; //We want the current page, so don't divide up
+                        var siIndex = pdbMerger.pageNumberToSIIndex[currentPage];
+                        ref var si = ref pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
+
+                        var nextPageFound = false;
+
+                        var secondStartOffset = 0;
+
+                        for (var i = 0; i < si.PageList.Length; i++)
+                        {
+                            if (si.PageList[i] == currentPage)
+                            {
+                                //The next page in the list is the one that our split value begins from
+                                var nextPage = si.PageList[i + 1];
+                                secondStartOffset = nextPage * pdbMerger.pdbFile.Header.PageSize;
+                                nextPageFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!nextPageFound)
+                            throw new NotImplementedException();
+
+                        var (first, second) = ((ISplittableView) nextValue).Split(secondStartOffset, currentDirectory.End);
+                        sortedStructs[nextStructIndex] = first;
+
+                        /* While it is true that "most of the time" page numbers run in ascending order, due to the crazy way in which PDBs are constructed,
+                         * you can have a very high page number at the front of the PageList, and then smaller page numbers following it. So, with the value
+                         * we just split out, ideally we want it to belong to an offset that we haven't attempted to process yet. If so, we can just
+                         * find the relevant insertion point and insert it into the sortedStructs array. If we've already gone past the offset where
+                         * that struct should have belonged, we've now got a big mess and are going to need to backtrack and somehow patch up the views
+                         * we've already constructed */
+                        if (second.Offset >= currentDirectory.End)
+                        {
+                            //Good news! Just insert it into the list
+                            for (var i = nextStructIndex + 1; i < sortedStructs.Count; i++)
+                            {
+                                if (second.Offset < sortedStructs[i].Offset)
+                                {
+                                    //This is the insertion point
+                                    sortedStructs.Insert(i, second);
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //Oh boy. We're going to need to patch up data in the masterList, potentially removing junk we defaulted to reading
+                            //and inserting this proper structure instead (and then re-reading junk to fill in any gaps)
+
+                            //Find the item in the masterList that contains this address. Then drill into its children until we find the overlapping items.
+                            //We expect they should be junk: ByteBlobView and ValueView<string> or a LogicalRegionView with any of these items in them.
+                            //There may also be padding.
+                            ReplaceGarbage(second, getRVA);
+                        }
+
+                        nextValue = first;
+                    }
+                }
+
                 currentList.Add(nextValue);
             }
+        }
+
+        private void ReplaceGarbage(IView replacement, Func<int, int> getRVA)
+        {
+            for (var i = 0; i < masterList.Count; i++)
+            {
+                var directory = (LogicalRegionView) masterList[i];
+
+                if (directory.Offset >= replacement.Offset)
+                {
+                    //This is the directory that our value should be inserted into. Now get all of the values that conflict with the value we're inserting
+
+                    void CheckSafeToDelete(IView view)
+                    {
+                        if (view is LogicalRegionView r)
+                        {
+                            foreach (var child in r.Children)
+                                CheckSafeToDelete(child);
+
+                            return;
+                        }
+                        else if (view is ValueView<string> || view is ByteBlobView)
+                        {
+                            return;
+                        }
+
+                        throw new NotImplementedException();
+                    }
+
+                    for (var j = 0; j < directory.Children.Length; j++)
+                    {
+                        var child = directory.Children[j];
+
+                        if (child.Offset >= replacement.Offset)
+                        {
+                            //This is the first overlapping child
+
+                            var replacementEnd = replacement.Offset + replacement.Size;
+
+                            var k = j + 1;
+
+                            for (; k < directory.Children.Length; k++)
+                            {
+                                var endChild = directory.Children[k];
+
+                                if (endChild.Offset > replacementEnd)
+                                    break;
+
+                                //endChild is marked for deletion. Let's double check that it's indeed safe to delete
+                                CheckSafeToDelete(endChild);
+                            }
+
+                            var numItemsToReplace = k - j - 1;
+
+                            var newViews = new List<IView>();
+
+                            if (child.Offset > replacement.Offset)
+                            {
+                                //There's extra data prior to the start of our replacement value. Read the junk
+                                throw new NotImplementedException();
+                            }
+
+                            newViews.Add(replacement);
+
+                            var lastChild = directory.Children[j + numItemsToReplace];
+                            var lastChildEnd = lastChild.Offset + lastChild.Size;
+
+                            if (lastChildEnd > replacementEnd)
+                            {
+                                //There's additional space after the end of our replacement value. Read any junk
+
+                                var junkStart = replacementEnd;
+
+                                var views = extension.ReadBytes(ref junkStart, lastChildEnd, null, null, getRVA, false);
+
+                                //This method messes with global state. Backup our global state so that we can restore it afterwards
+
+                                var oldRepeatingTypeList = repeatingTypeList;
+                                var oldRepeatingGroupMode = repeatingGroupMode;
+                                var oldCurrentList = currentList;
+
+                                repeatingTypeList = new List<IView>();
+                                repeatingGroupMode = 0;
+                                currentList = new List<IView>();
+
+                                ProcessParsedByteViews(views);
+
+                                FinalizeRepeatingTypeRegion();
+
+                                newViews.AddRange(currentList);
+
+                                repeatingTypeList = oldRepeatingTypeList;
+                                repeatingGroupMode = oldRepeatingGroupMode;
+                                currentList = oldCurrentList;
+                            }
+
+                            //Add all other children after the junk we're replacing in the directory to the new list of children
+                            for (var l = k; l < directory.Children.Length; l++)
+                                newViews.Add(directory.Children[l]);
+
+                            //We've got everything we need now. Patch the original directory!
+                            masterList[i] = new LogicalRegionView(directory.Offset, directory.Name, newViews.ToArray(), directory.Kind, directory.Size);
+                            return;
+                        }
+                    }
+
+                    throw new NotImplementedException();
+                }
+            }
+
+            throw new NotImplementedException();
         }
 
         void FinalizeDirectoryRegion(RawOffset endRva, ref RawOffset currentEnd)
@@ -265,7 +477,7 @@ namespace PESpy.View.Builder
             repeatingGroupMode = 0;
         }
 
-        void ReadByteBlob(ref RawOffset rva, RawOffset end, RawOffset endRva, Func<int, int> getRealOffset, bool isOverlay)
+        void ReadByteBlob(ref RawOffset rva, RawOffset end, RawOffset endRva, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
         {
             var dirIndex = directory == null ? nextDataDirectoryIndex : nextDataDirectoryIndex + 1;
 
@@ -284,7 +496,7 @@ namespace PESpy.View.Builder
                 }
             }
 
-            var views = extension.ReadBytes(ref rva, end, null, getRealOffset, isOverlay);
+            var views = extension.ReadBytes(ref rva, end, null, getRealOffset, getRVA, isOverlay);
 
             if (isOverlay && views == null)
             {

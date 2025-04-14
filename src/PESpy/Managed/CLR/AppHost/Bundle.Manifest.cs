@@ -10,6 +10,7 @@
 
             public FileEntry[] Files { get; }
 
+#if !PEFAST
             internal Manifest(IFileReader reader)
             {
                 Header = new HeaderFixed(reader);
@@ -28,6 +29,7 @@
 
                 Files = files;
             }
+#endif
         }
     }    
 }

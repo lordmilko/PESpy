@@ -47,36 +47,64 @@ namespace PESpy
         /// <summary>
         /// Resource flags. This field is reserved for future use. It is currently set to zero.
         /// </summary>
+#if PEFAST
+        public uint Characteristics => chunk.PeekUInt32(0);
+#else
         public uint Characteristics { get; init; }
+#endif
 
         /// <summary>
         /// The time that the resource data was created by the resource compiler.
         /// </summary>
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(4);
+#else
         public uint TimeDateStamp { get; init; }
+#endif
 
         /// <summary>
         /// The major version number, set by the user.
         /// </summary>
+#if PEFAST
+        public ushort MajorVersion => chunk.PeekUInt16(8);
+#else
         public ushort MajorVersion { get; init; }
+#endif
 
         /// <summary>
         /// The minor version number, set by the user.
         /// </summary>
+#if PEFAST
+        public ushort MinorVersion => chunk.PeekUInt16(10);
+#else
         public ushort MinorVersion { get; init; }
+#endif
 
         /// <summary>
         /// The number of directory entries immediately following the table that use strings to identify Type, Name, or Language entries (depending on the level of the table).
         /// </summary>
+#if PEFAST
+        public ushort NumberOfNamedEntries => chunk.PeekUInt16(12);
+#else
         public ushort NumberOfNamedEntries { get; init; }
+#endif
 
         /// <summary>
         /// The number of directory entries immediately following the Name entries that use numeric IDs for Type, Name, or Language entries.
         /// </summary>
+#if PEFAST
+        public ushort NumberOfIdEntries => chunk.PeekUInt16(14);
+#else
         public ushort NumberOfIdEntries { get; init; }
+#endif
 
         public ImageResourceDirectoryEntry[] Entries { get; }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(uint) + //Characteristics
@@ -86,6 +114,14 @@ namespace PESpy
             sizeof(ushort) + //NumberOfNamedEntries
             sizeof(ushort);  //NumberOfIdEntries
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageResourceDirectory(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageResourceDirectory(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
         {
             Offset = (RawOffset) reader.Position;
@@ -113,6 +149,7 @@ namespace PESpy
             else
                 Entries = Array.Empty<ImageResourceDirectoryEntry>();
         }
+#endif
 
         public IEnumerable<IValue> EnumerateResources() => EnumerateResources<IValue>();
 

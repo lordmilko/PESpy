@@ -1,5 +1,7 @@
 ﻿namespace PESpy.Native
 {
+    //https://github.com/dotnet/runtime/blob/e220a94d842524b408c35b381fc326c4159005f0/src/coreclr/debug/inc/runtimeinfo.h#L15
+
     //.NET Single File runtime info
     internal unsafe struct RuntimeInfo
     {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 #if !DEBUG_POSITION
 using RVA = System.Int32;
@@ -57,7 +58,7 @@ namespace PESpy
                         {
                             var name = descriptor.ImportLookupTable.Value[j].Name;
 
-                            if (TryGetKindForName(name.Value.Name, out kind))
+                            if (TryGetKindForName(name.Value.Name.ToString(), out kind))
                                 addressCache[(int) virtualAddress] = kind;
                             else
                                 addressCache[(int) virtualAddress] = kind;
@@ -79,6 +80,7 @@ namespace PESpy
 
         public bool TryGetSymbol(int virtualAddress, out ByteMatchKind kind)
         {
+#if !PEFAST
             if (peFile.Services != null)
             {
                 var name = peFile.Services.GetSymbolForAddress(virtualAddress);
@@ -89,6 +91,9 @@ namespace PESpy
                     return true;
                 }
             }
+#else
+            throw new NotImplementedException();
+#endif
 
             kind = default;
             return false;

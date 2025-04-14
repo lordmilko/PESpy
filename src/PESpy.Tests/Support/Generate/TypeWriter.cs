@@ -25,30 +25,54 @@ namespace PESpy.Tests
             Indent();
 
             var fixedOffset = 0;
+            string dynamicOffset = null;
             var numPointers = 0;
+            var numDynamicOffset = 0;
 
             string GetOffset(int off = 0) //off allows the caller to adjust the known fixed offset
             {
                 off += fixedOffset;
 
-                if (numPointers == 0)
+                if (numPointers == 0 && dynamicOffset == null)
                     return off.ToString();
 
                 var builder = new StringBuilder();
 
                 if (off > 0)
-                    builder.Append(off).Append(" + ");
+                    builder.Append(off);
 
-                if (numPointers == 1)
-                    builder.Append("chunk.PointerSize");
-                else
+                if (numPointers > 0)
                 {
-                    if (off > 0)
+                    if (builder.Length > 0)
+                        builder.Append(" + ");
+
+                    if (numPointers == 1)
+                        builder.Append("chunk.PointerSize");
+                    else
+                    {
+                        if (off > 0)
+                            builder.Append("(");
+
+                        builder.Append($"{numPointers} * chunk.PointerSize");
+
+                        if (off > 0)
+                            builder.Append(")");
+                    }
+                }                
+
+                if (dynamicOffset != null)
+                {
+                    var needParen = builder.Length > 0 && numDynamicOffset == 1;
+
+                    if (builder.Length > 0)
+                        builder.Append(" + ");
+
+                    if (needParen)
                         builder.Append("(");
 
-                    builder.Append($"{numPointers} * chunk.PointerSize");
+                    builder.Append(dynamicOffset);
 
-                    if (off > 0)
+                    if (needParen)
                         builder.Append(")");
                 }
 
@@ -67,7 +91,34 @@ namespace PESpy.Tests
                     return builder.Type.Name;
 
                 if (builder.Type.IsEnum)
-                    return builder.EnumImpl.Name;
+                    return builder.SerializationType.Name;
+
+                if (builder.Type == typeof(Guid))
+                    return "Guid";
+
+                switch (builder.StringType)
+                {
+                    case null:
+                        break;
+
+                    case StringType.AnsiNullTerminated:
+                        return "AnsiNullTerminatedString";
+
+                    case StringType.Utf8NullTerminated:
+                        return "Utf8NullTerminated";
+
+                    case StringType.Utf16NullTerminated:
+                        return "Utf16NullTerminated";
+
+                    case StringType.UnicodeFixedLength:
+                        return "UnicodeFixedLength";
+
+                    case StringType.NullPaddedUTF8:
+                        return "NullPaddedUTF8";
+
+                    default:
+                        throw new NotImplementedException($"Don't know how to handle {nameof(StringType)} '{builder.StringType}'");
+                }
 
                 return null;
             }
@@ -107,7 +158,7 @@ namespace PESpy.Tests
 
                     //When the pointer size is 4, we're after them. Otherwise, we
                     //overlap them
-                    var previousSize = structBuilder.Fields[i - 1].Size;
+                    var previousSize = Convert.ToInt32(structBuilder.Fields[i - 1].Size); //We currently don't support having a pointer after a dynamically sized field
                     WriteLine($"chunk.Is32Bit ? chunk.PeekPointer({GetOffset()}) : chunk.PeekPointer({GetOffset(-previousSize)});");
 
                     //We're going to increase the offset by 8, so decrease the current offset by 4 so we're not doubling up
@@ -132,7 +183,26 @@ namespace PESpy.Tests
                 if (field.IsPointer)
                     numPointers++;
                 else
-                    fixedOffset += field.Size;
+                {
+                    var s = field.Size;
+
+                    if (int.TryParse(s, out var @fixed))
+                        fixedOffset += @fixed;
+                    else
+                    {
+                        if (dynamicOffset == null)
+                            dynamicOffset = s;
+                        else
+                        {
+                            if (numDynamicOffset == 1)
+                                dynamicOffset = $"({dynamicOffset}) + ({s})";
+                            else
+                                dynamicOffset = $"{dynamicOffset} + ({s})";
+                        }
+
+                        numDynamicOffset++;
+                    }
+                }
 
                 if (field.Eager)
                 {

@@ -19,6 +19,9 @@ namespace PESpy.Tests
 
                     var currentEnd = current.Offset + current.Size;
 
+                    if (current is IBitFieldView && next is IBitFieldView)
+                        continue;
+
                     if (currentEnd != next.Offset)
                         Assert.AreEqual("0x" + currentEnd.ToString("X"), "0x" + next.Offset.ToString("X"), "Subviews were not aligned");
                 }

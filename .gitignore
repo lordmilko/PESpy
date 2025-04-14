@@ -6,6 +6,8 @@ PdbMerger.cs
 PdbFileView.cs
 PdbViewWriter.cs
 R2R/
+BenchmarkDotnet.Artifacts/
+PESpy.Benchmarks/
 
 #################
 # Visual Studio #

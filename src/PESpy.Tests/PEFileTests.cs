@@ -13,6 +13,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
 using PESpy.Tests.SymStore;
 using PESpy.View;
+using SymHelp;
+using static PESpy.ScopeTable;
+using static PESpy.UnwindCode;
+
 namespace PESpy.Tests
 {
 #pragma warning disable HAA0101 // Array allocation for params parameter
@@ -595,7 +599,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageResourceDirectoryEntry>(
                 v => v.Parent == null,
-                v => v.NameOrId.NameOffset.Value.NameString == "MUI",
+                v => GetStringSpan(v.NameOrId.NameOffset.Value, "NameString") == "MUI",
                 v => v.OffsetToData.ListedOffset == -2147483608,
                 v => v.OffsetToDirectory.ListedOffset == 40,
                 v => v.DataIsDirectory == true,
@@ -644,7 +648,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageResourceDirStringU>(
                 v => v.Length == 3,
-                v => v.NameString == "MUI"
+                v => GetStringSpan(v, "NameString") == "MUI"
             );
 
             TestView<ImageResourceDirStringU>(
@@ -946,6 +950,115 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void UnwindCode_Test()
+        {
+            var str = GenerateTest<UnwindCode>();
+
+            throw new NotImplementedException();
+        }
+
+        #region UnwindCode Types
+
+        [TestMethod]
+        public void UnwindCode_PushNonVolatile_Test()
+        {
+            var str = GenerateTest<PushNonVolatile>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_AllocLarge_Test()
+        {
+            var str = GenerateTest<AllocLarge>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_AllocSmall_Test()
+        {
+            var str = GenerateTest<AllocSmall>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_SetFpReg_Test()
+        {
+            var str = GenerateTest<SetFpReg>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_SaveNonVolatile_Test()
+        {
+            var str = GenerateTest<SaveNonVolatile>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_SaveNonVolatileFar_Test()
+        {
+            var str = GenerateTest<SaveNonVolatileFar>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_Epilog_Test()
+        {
+            var str = GenerateTest<Epilog>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_SaveXmm128_Test()
+        {
+            var str = GenerateTest<SaveXmm128>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_SaveXmm128Far_Test()
+        {
+            var str = GenerateTest<SaveXmm128Far>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_PushMachFrame_Test()
+        {
+            var str = GenerateTest<PushMachFrame>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindCode_NullUnwindCode_Test()
+        {
+            var str = GenerateTest<NullUnwindCode>();
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        [TestMethod]
+        public void ScopeTable_Test()
+        {
+            TestStruct<ScopeTable>(
+                v => v.Count == 2,
+                v => v.Records == IgnoreValue
+            );
+
+            TestView<ScopeTable>(
+                v => v.VerifyStruct(
+                    name: "SCOPE_TABLE", offset: 1425940, size: 36,
+                    WithIgnores(
+                        c => c.VerifyField(name: "Count", value: 2),
+                        after: 2
+                    )
+                )
+            );
+        }
+
         [TestMethod]
         public void ScopeRecord_Test()
         {
@@ -968,7 +1081,29 @@ namespace PESpy.Tests
         }
         }
         }
+
+        [TestMethod]
+        public void TypeDescriptor_Test()
+        {
+            var str = GenerateTest<TypeDescriptor>();
+
+            throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void IptoStateMapEntry_Test()
+        {
+            var str = GenerateTest<IptoStateMapEntry>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void UnwindMapEntry_Test()
+        {
+            var str = GenerateTest<HandlerType>();
+
+            throw new NotImplementedException();
         }
         }
         #region Security Table (4)
@@ -1089,6 +1224,13 @@ namespace PESpy.Tests
             );
         }
 
+        [TestMethod]
+        public void ImageRelocation_Test()
+        {
+            var str = GenerateTest<ImageRelocation>();
+            throw new NotImplementedException();
+        }
+
         #endregion
         #region Debug Table (6)
 
@@ -1128,7 +1270,9 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDebugDirectory_Coff_Test()
         {
-            Assert.Inconclusive();
+            var str = GenerateTest<ImageCoffSymbolsHeader>();
+
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -1304,6 +1448,14 @@ namespace PESpy.Tests
         }
 
         #endregion
+        #region VCFeature (12)
+
+        [TestMethod]
+        public void ImageDebugDirectory_VCFeature_Test()
+        {
+            var str = GenerateTest<VCFeature>();
+
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -1622,6 +1774,24 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "Reserved", value: 0)
                 )
             );
+        }
+
+        [TestMethod]
+        public void GuardAddressTakenIatEntryTable_Test()
+        {
+            var str = GenerateTest<GuardAddressTakenIatEntryTable>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void GuardAddressTakenIatEntryTable_Entry_Test()
+        {
+            var str = GenerateTest<GuardAddressTakenIatEntryTable.Entry>();
+
+            throw new NotImplementedException();
+        }
+
         [TestMethod]
         public void GuardCFFunctionTable_Test()
         {
@@ -1690,6 +1860,24 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void GuardLongJumpTargetTable_Test()
+        {
+            var str = GenerateTest<GuardLongJumpTargetTable>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void GuardLongJumpTargetTable_Entry_Test()
+        {
+            var str = GenerateTest<GuardLongJumpTargetTable.Entry>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
         public void ImageDynamicRelocation_Test()
         {
             TestStruct<ImageDynamicRelocation>(
@@ -1723,6 +1911,16 @@ namespace PESpy.Tests
                     c => c.VerifyStructIgnoreChildren(name: "IMAGE_DYNAMIC_RELOCATION", offset: 2155876, size: 192) //There's a massive hierarchy of children; test each of these in their own test
                 )
             );
+        }
+
+        [TestMethod]
+        public void ImageDynamicRelocationV2_Test()
+        {
+            var str = GenerateTest<ImageDynamicRelocationV2>();
+
+            throw new NotImplementedException();
+        }
+
         #region Symbol 1
 
         [TestMethod]
@@ -1954,7 +2152,6 @@ namespace PESpy.Tests
                 v => v.ByteCount == 72,
                 v => v.MajorRuntimeVersion == 2,
                 v => v.MinorRuntimeVersion == 5,
-                v => v.Metadata == IgnoreValue,
                 v => v.Flags == (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED),
                 v => v.EntryPointTokenOrRVA == 0,
                 v => (object) v.Resources               == IgnoreValue,
@@ -2064,6 +2261,19 @@ namespace PESpy.Tests
             );
         }
         }
+
+        [TestMethod]
+        public void ECMA335_CompressedModelHeap_Test()
+        {
+            var str = GenerateTest<CompressedModelHeap>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ECMA335_UserString_Test()
+        {
+            var str = GenerateTest<UserString>();
+            throw new NotImplementedException();
         }
 
         [TestMethod]
@@ -2090,9 +2300,208 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void ImageCorILMethodSect_Test()
+        {
+            var str = GenerateTest<ImageCorILMethodSect>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageCorILMethodSectEH_Test()
+        {
+            var str = GenerateTest<ImageCorILMethodSectEH>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageCorILMethodSectEHClause_Test()
+        {
+            var str = GenerateTest<ImageCorILMethodSectEHClause>();
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region R2R
+
+        [TestMethod]
+        public void ReadyToRunCoreHeader_Test()
+        {
+            var str = GenerateTest<ReadyToRunCoreHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ReadyToRunHeader_Test()
+        {
+            var str = GenerateTest<ReadyToRunHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ReadyToRunImportSection_Test()
+        {
+            var str = GenerateTest<ReadyToRunImportSection>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ReadyToRunSection_Test()
+        {
+            var str = GenerateTest<ReadyToRunSection>();
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region CLR
+
+        [TestMethod]
+        [TestMethod]
+        public void ClrEngineMetrics_Test()
+        {
+            var str = GenerateTest<ClrEngineMetrics>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void DotNetRuntimeDebugHeader_Test()
+        {
+            TestStruct<DotNetRuntimeDebugHeader>(
+                v => v.Cookie == 0x48444E44,
+                v => v.MajorVersion == 4,
+                v => v.MinorVersion == 0,
+                v => v.Flags == 1,
+                v => v.ReservedPadding1 == 0
+            );
+
+            TestView<DotNetRuntimeDebugHeader>(
+                v => v.VerifyStruct(
+                    name: "DotNetRuntimeDebugHeader", offset: 1012640, size: 0,
+                    c => c.VerifyField(name: "Cookie", value: 1212436036),
+                    c => c.VerifyField(name: "MajorVersion", value: (short) 4),
+                    c => c.VerifyField(name: "MinorVersion", value: (short) 0),
+                    c => c.VerifyField(name: "Flags", value: 1),
+                    c => c.VerifyField(name: "ReservedPadding1", value: 0),
+                    c => c.VerifyField(name: "DebugTypeEntries", value: 140701570544704),
+                    c => c.VerifyField(name: "GlobalValueEntries", value: 140701570547104)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void DebugTypeEntry_Test()
+        {
+            TestStruct<DebugTypeEntry>(
+                v => v.TypeName.Value == "GcDacVars",
+                v => v.FieldName.Value == "SIZEOF",
+                v => v.FieldOffset == 320,
+                v => v.ReservedPadding == 0
+            );
+
+            TestView<DebugTypeEntry>(
+                v => v.VerifyValue(0x13ECB0, "GcDacVars"),
+                v => v.VerifyValue(0x13ECBC, "SIZEOF"),
+                v => v.VerifyStruct(
+                    name: "DebugTypeEntry GcDacVars.SIZEOF", offset: 1466672, size: 24,
+                    c => c.VerifyFieldIgnoreValue(name: "TypeName"),
+                    c => c.VerifyFieldIgnoreValue(name: "FieldName"),
+                    c => c.VerifyField(name: "FieldOffset", value: 320),
+                    c => c.VerifyField(name: "ReservedPadding", value: 0)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void GlobalValueEntry_Test()
+        {
+            TestStruct<GlobalValueEntry>(
+                v => v.Name.Value == "g_CrashInfoBuffer"
+            );
+
+            TestView<GlobalValueEntry>(
+                v => v.VerifyValue(0x13F210, "g_CrashInfoBuffer"),
+                v => v.VerifyStruct(
+                    name: "GlobalValueEntry g_CrashInfoBuffer", offset: 1469072, size: 16,
+                    c => c.VerifyFieldIgnoreValue(name: "Name"),
+                    c => c.VerifyFieldIgnoreValue(name: "Address")
+                )
+            );
+        }
+
+        [TestMethod]
+        public void RuntimeInfo_Test()
+        {
+            TestStruct<RuntimeInfo>(
+                v => v.Signature == "DotNetRuntimeInfo",
+                v => v.Version == 2,
+                v => v.RuntimeModuleIndex.Size == 8,
+                v => v.RuntimeModuleIndex.TimeStamp == 1739315076,
+                v => v.RuntimeModuleIndex.ImageSize == 4890624,
+
+                v => v.DacModuleIndex.Size == 8,
+                v => v.DacModuleIndex.TimeStamp == 1739314892,
+                v => v.DacModuleIndex.ImageSize == 1368064,
+
+                v => v.DbiModuleIndex.Size == 8,
+                v => v.DbiModuleIndex.TimeStamp == 1739314885,
+                v => v.DbiModuleIndex.ImageSize == 1249280,
+
+                v => v.RuntimeVersion.ToString() == "9.0.325.11113"
+            );
+
+            TestView<RuntimeInfo>(
+                v => v.VerifyStruct(
+                    name: "RuntimeInfo", offset: 8204944, size: 112,
+                    c => c.VerifyField(name: "Signature", value: "DotNetRuntimeInfo"),
+                    c => c.VerifyByteBlob(offset: 0x007d32a2, new byte[] {0, 0}),
+                    c => c.VerifyField(name: "Version", value: 2),
+
+                    c => c.VerifyStructField(name: "RuntimeModuleIndex", type: "Module Index", offset: 8204968, size: 24,
+                        c1 => c1.VerifyField(name: "Size", value: (byte) 8),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739315076),
+                        c1 => c1.VerifyField(name: "ImageSize", value: 4890624),
+                        c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
+                    ),
+
+                    c => c.VerifyStructField(name: "DacModuleIndex", type: "Module Index", offset: 8204992, size: 24,
+                        c1 => c1.VerifyField(name: "Size", value: (byte) 8),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739314892),
+                        c1 => c1.VerifyField(name: "ImageSize", value: 1368064),
+                        c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
+                    ),
+
+                    c => c.VerifyStructField(name: "DbiModuleIndex", type: "Module Index", offset: 8205016, size: 24,
+                        c1 => c1.VerifyField(name: "Size", value: (byte) 8),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739314885),
+                        c1 => c1.VerifyField(name: "ImageSize", value: 1249280),
+                        c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
+                    ),
+
+                    c => c.VerifyField(name: "RuntimeVersion", value: new[]{9, 0, 325, 11113})
+                )
+            );
+        }
+
+        #endregion
+        #region Symbols
+
+        [TestMethod]
+        public void CoffSymbolTable_Test()
+        {
+            var str = GenerateTest<CoffSymbolTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageAuxSymbol_Test()
+        {
+            var str = GenerateTest<ImageAuxSymbol>();
+            throw new NotImplementedException();
+        }
         private void TestStruct<TSelector, TVerifier>(params Expression<Func<TVerifier, bool>>[] asserts)
         {
-            FileStream fs = null;
+            Stream fs = null;
             object rawValue;
 
             rawValue = GetStruct<TSelector, TVerifier>(out fs);
@@ -2183,6 +2592,16 @@ namespace PESpy.Tests
 
                         actual = lambda.DynamicInvoke(rawValue);
                     }
+                    else if (c.Method.Name == "GetStringSpan")
+                    {
+                        var propertyName = ((ConstantExpression) c.Arguments[1]).Value.ToString();
+                        memberInfo = rawValue.GetType().GetProperty(propertyName);
+                        memberType = ((PropertyInfo) memberInfo).PropertyType;
+
+                        var lambda = Expression.Lambda(c, assert.Parameters).Compile();
+
+                        actual = lambda.DynamicInvoke(rawValue);
+                    }
                     else if (c.Method.Name == "ToString")
                     {
                         memberInfo = GetPropertyInfo(c.Object, ref local);
@@ -2238,7 +2657,7 @@ namespace PESpy.Tests
             if (verify == null)
                 throw new ArgumentNullException(nameof(verify));
 
-            FileStream fs = null;
+            Stream fs = null;
 
             try
             {
@@ -2275,7 +2694,7 @@ namespace PESpy.Tests
 
         private string GenerateTest<T>() where T : IValue
         {
-            FileStream fs = null;
+            Stream fs = null;
 
             try
             {
@@ -2477,7 +2896,7 @@ namespace PESpy.Tests
             }
         }
 
-        private TVerifier GetStruct<TSelector, TVerifier>(out FileStream fs)
+        private TVerifier GetStruct<TSelector, TVerifier>(out Stream fs)
         {
             var t = typeof(TSelector);
 
@@ -2660,10 +3079,17 @@ namespace PESpy.Tests
                 #region Cor Header (14)
 
                 nameof(ImageCor20Header) => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header,
+#if !PEFAST
                 nameof(StorageSignature) => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Signature,
                 nameof(StorageHeader)    => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Header,
                 //nameof(ImageCorILMethod) => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
                 nameof(StorageStream)    => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Header.StreamHeaders[0],
+#endif
+                nameof(RuntimeInfo)              => GetLocalFile(TestProcessKind.SingleFile, out fs).RuntimeInfo,
+
+                nameof(DotNetRuntimeDebugHeader) => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader,
+                nameof(DebugTypeEntry)           => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
+                nameof(GlobalValueEntry)         => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0],
 
                 #endregion
                 //_ => throw new NotImplementedException($"Don't know how to handle type '{typeof(T).Name}'")
@@ -2673,7 +3099,7 @@ namespace PESpy.Tests
             return (TVerifier) rawValue;
         }
 
-        static PEFile GetFile(SymbolStoreKey key, out FileStream fs)
+        private static PEFile GetFile(SymbolStoreKey key, out Stream fs)
         {
             var path = WellKnownTestModule.GetStoreFile(key);
 
@@ -2684,9 +3110,39 @@ namespace PESpy.Tests
             return peFile;
         }
 
+        private static PEFile GetLocalFile(TestProcessKind kind, out Stream fs)
+        {
+            var path = kind switch
+            {
+                TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
+                TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
+            };
+
+            fs = File.OpenRead(path);
+
+            var peFile = PEFile.FromStream(fs, false);
+
+            return peFile;
+        }
+
+        private static PEFile GetTestProcess(TestProcessKind kind, out Stream fs)
+        {
+            var path = kind switch
+            {
+                TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
+                TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
+            };
+
+            fs = ProcessHolderStream.New(path);
+
+            var peFile = PEFile.FromStream(fs, true);
+
+            return peFile;
+        }
+
         private void TestBytes(string fieldName, byte[] expected)
         {
-            FileStream fs;
+            Stream fs;
 
             ByteBlob rawValue = fieldName switch
             {
@@ -2713,6 +3169,7 @@ namespace PESpy.Tests
 
             if (expression is not MemberExpression m)
             {
+                throw new NotImplementedException();
             }
 
             var exprs = new List<MemberExpression>();
@@ -2815,6 +3272,21 @@ namespace PESpy.Tests
                     "ReservedWords2" => Unsafe.As<T[]>(a.ReservedWords2.ToArray())
                 };
             }
+
+            throw new NotImplementedException();
+        }
+
+        private string GetStringSpan(object value, string field)
+        {
+            if (value is ImageResourceDirStringU r)
+            {
+                return field switch
+                {
+                    "NameString" => r.NameString
+                };
+            }
+
+            throw new NotImplementedException();
         }
 
         private Action<IView>[] WithIgnores(Action<IView> action, int after) => WithIgnores(0, action, after);

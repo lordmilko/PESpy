@@ -27,7 +27,7 @@ namespace PESpy.View.Builder
 
             var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
 
-            var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection((Int32) 0, (Int32) sizeOfHeaders, v => v));
+            var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection((Int32) 0, (Int32) sizeOfHeaders, v => v, v => v));
             results.Add(headerMetadata);
 
             var isVirtualMode = (mode == ViewMode.Default && peFile.IsLoadedImage) || mode == ViewMode.Virtual;
@@ -41,9 +41,26 @@ namespace PESpy.View.Builder
 
                 Func<int, int> getRealOffset = null;
 
+                //When requesting bytes from the user, we need to tell them what their RVA is
+                Func<int, int> getRVA;
+
                 switch (mode)
                 {
                     case ViewMode.Default:
+                        if (peFile.IsLoadedImage)
+                            getRVA = v => v; //We're loaded and we want loaded. All addresses are RVAs anyway
+                        else
+                        {
+                            //We're unloaded. The merge is going to send us physical addresses, so we need to convert them to RVAs
+                            getRVA = offset =>
+                            {
+                                if (!peFile.TryGetRVA(offset, out var rva))
+                                    return offset;
+
+                                return rva;
+                            };
+                        }
+
                         break;
 
                     case ViewMode.Physical:
@@ -59,10 +76,21 @@ namespace PESpy.View.Builder
 
                                 return rva;
                             };
+
+                            getRVA = getRealOffset;
                         }
                         else
                         {
                             //We're physical and trying to read physical
+
+                            //Still need to convert to resolve RVAs though
+                            getRVA = offset =>
+                            {
+                                if (!peFile.TryGetRVA(offset, out var rva))
+                                    return offset;
+
+                                return rva;
+                            };
                         }
                         break;
 
@@ -70,6 +98,7 @@ namespace PESpy.View.Builder
                         if (peFile.IsLoadedImage)
                         {
                             //We're virtual and trying to read virtual
+                            getRVA = v => v;
                         }
                         else
                         {
@@ -83,6 +112,8 @@ namespace PESpy.View.Builder
 
                                 return offset;
                             };
+
+                            getRVA = v => v; //We want RVAs, so we're all good
                         }
                         break;
 
@@ -104,7 +135,7 @@ namespace PESpy.View.Builder
                     size = section.SizeOfRawData;
                 }
 
-                var data = BuildSection(start, start + size, getRealOffset);
+                var data = BuildSection(start, start + size, getRealOffset, getRVA);
 
                 results.Add(new SectionView(start, section, data, size));
             }
@@ -118,7 +149,7 @@ namespace PESpy.View.Builder
                 var lastResult = results.Last();
                 var overlayStart = lastResult.Offset + lastResult.Size;
                 var fileEnd = (Int32) peFile.OptionalHeader.SizeOfImage;
-                var overlayData = BuildSection(overlayStart, fileEnd, v => v, true);
+                var overlayData = BuildSection(overlayStart, fileEnd, v => v, v => v, true);
 
                 if (overlayData.Length > 0)
                 {

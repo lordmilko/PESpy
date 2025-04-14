@@ -171,6 +171,8 @@ namespace PESpy
         {
             using var s = writer.CreateStruct($"{nameof(IMAGE_DELAYLOAD_DESCRIPTOR)} {DllNameRVA}", this, ViewKind.ImageDelayLoadDescriptor);
 
+            //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
+            //from regular import names
             using var _ = writer.EnterTag(ViewTag.DelayImport);
 
             s.WriteField(nameof(Attributes), Attributes);

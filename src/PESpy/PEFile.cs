@@ -2,16 +2,20 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
-using PESpy.View.Builder;
 #if !DEBUG_POSITION
 using RVA = System.Int32;
 using RawOffset = System.Int32;
 #endif
 
+namespace PESpy
+{
+    //ref readonly properties don't display properly in the debugger. We don't want to hurt application performance, but we also want
+    //to ensure that we have a good debugging experience. Using a custom DebuggerTypeProxy allows us to have both
     class PEFileDebugView
     {
         private PEFile peFile;
@@ -48,9 +52,106 @@ using RawOffset = System.Int32;
         public ImageDelayLoadDescriptor[]? DelayImportTable => peFile.DelayImportTable;
         public ImageCor20Header? Cor20Header => peFile.Cor20Header;
 
+        #endregion
+
+        public ImageCorILMethod[]? ILMethods => peFile.ILMethods;
+
+        public ReadyToRunHeader ReadyToRunHeader => peFile.ReadyToRunHeader;
+
+        public AppHostSignature? AppHostSignature => peFile.AppHostSignature;
+
+        public ClrEngineMetrics? ClrEngineMetrics => peFile.ClrEngineMetrics;
+
+        public RuntimeInfo? RuntimeInfo => peFile.RuntimeInfo;
+
+        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
+    }
+
+    public interface IMetadataCallback
+    {
+        void NotifyCompressedModel(CompressedModelHeap data);
+        void NotifyStringPool(StringHeap data);
+        void NotifyUserStringPool(UserStringHeap data);
+        void NotifyBlobPool(BlobHeap data);
+        void NotifyGuidPool(GuidHeap data);
+        void NotifyPdb(PdbHeap data);
+    }
+
+    [DebuggerTypeProxy(typeof(PEFileDebugView))]
+    public class PEFile : IViewable, IMetadataCallback, IDisposable
+    {
+        #region Static
+#if PEFAST
+        /// <summary>
+        /// Reads a <see cref="PEFile"/> from a file on disk.
+        /// </summary>
+        /// <param name="path">The path to the file to read.</param>
+        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified file.</returns>
+        public static PEFile FromFile(string path)
+        {
+            using var fs = File.OpenRead(path);
+
+            return new PEFile(fs);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="PEFile"/> from a module contained in a remote process.
+        /// </summary>
+        /// <param name="hProcess">A handle to the process containing the module that should be read.</param>
+        /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
+        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
+        public static PEFile FromProcess(IntPtr hProcess, long moduleBase) =>
+            new PEFile(new RemoteMemoryReader(hProcess), moduleBase);
+
+        public static PEFile FromStream(Stream stream, bool isLoadedImage)
+        {
+            //If it's a FileStream, implicitly it's not a loaded image
+            if (stream is FileStream fs)
+            {
+                return new PEFile(fs);
+            }
+
+            return new PEFile(new StreamMemoryReader(stream), stream.Position);
+        }
+#else
+        /// <summary>
+        /// Reads a <see cref="PEFile"/> from a specified path.<para/>
+        /// This method opens the specified file, and does not close it until <see cref="Dispose()"/> is called.
+        /// </summary>
+        /// <param name="filePath">The path to the file to read.</param>
+        /// <returns>A <see cref="PEFile"/> that encapsulates the specified file.</returns>
+        public static PEFile FromFile(string filePath) => FromFile(filePath, null);
+
+        public static PEFile FromFile(string filePath, IFileServices? services) =>
+            new PEFile(File.OpenRead(filePath), false, services);
+        public static PEFile FromStream(Stream stream, bool isLoadedImage) => FromStream(stream, isLoadedImage, null);
+
+        public static PEFile FromStream(Stream stream, bool isLoadedImage, IFileServices? services) =>
+            new PEFile(stream, isLoadedImage, services);
+
+#if DEBUG
+        public static Func<long, string> GetSymbolName { get; set; }
+#endif
+
+#endif
+        #endregion
+
+        /// <summary>
+        /// Gets whether the image exists within the memory a live process, or exists on disk. Offsets are slightly different in some areas when in memory vs on disk.
+        /// </summary>
+        public bool IsLoadedImage { get; init; }
+
+        #region DosHeader
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ImageDosHeader dosHeader;
+
         /// <summary>
         /// Gets the MS-DOS 2.0 compatible <see cref="IMAGE_DOS_HEADER"/>.
         /// </summary>
+#if PEFAST
+        public ref readonly ImageDosHeader DosHeader => ref dosHeader;
+#else
         public ref readonly ImageDosHeader DosHeader
         {
             get
@@ -61,7 +162,7 @@ using RawOffset = System.Int32;
                     lock (readerLock)
                     {
                         reader.Seek(0);
-                        dosHeader = new ImageDosHeader(ref reader);
+                        dosHeader = new ImageDosHeader(reader);
                     }
 
                     SetRegionFlag(PERegionKind.DosHeader);
@@ -70,6 +171,7 @@ using RawOffset = System.Int32;
                 return ref dosHeader;
             }
         }
+#endif
 
         #endregion
         #region DosStub
@@ -77,6 +179,9 @@ using RawOffset = System.Int32;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ByteBlob dosStub;
 
+#if PEFAST
+        public ref readonly ByteBlob DosStub => throw new NotImplementedException();
+#else
         public ref readonly ByteBlob DosStub
         {
             get
@@ -109,7 +214,7 @@ using RawOffset = System.Int32;
                             end = DosHeader.FileAddressOfNewExeHeader;
                         }
 
-                        var length = (int)(end - start);
+                        var length = (int) (end - start);
 
                         reader.Seek(start);
 
@@ -125,6 +230,7 @@ using RawOffset = System.Int32;
                 return ref dosStub;
             }
         }
+#endif
 
         #endregion
         #region RichHeader
@@ -136,7 +242,10 @@ using RawOffset = System.Int32;
         /// Gets the undocumented Rich Header which describes the build environment that was used to create the file.<para/>
         /// If the file does not have a Rich Header, this property returns <see langword="null"/>.
         /// </summary>
-        public RichHeader? RichHeader
+#if PEFAST
+        public RichHeader? RichHeader => throw new NotImplementedException();
+#else
+		public RichHeader? RichHeader
         {
             get
             {
@@ -144,8 +253,12 @@ using RawOffset = System.Int32;
                 {
                     lock (readerLock)
                     {
+                        //We don't yet know whether we're actually a PE File yet (as opposed to an MS-DOS one). Force load
+                        //the NT Headers to verify that e_lfanew points to the PE signature
+                        _ = NtHeaders;
+
                         reader.Seek(ImageDosHeader.StructSize);
-                        richHeader = RichHeader.New(DosHeader.FileAddressOfNewExeHeader, ref reader);
+                        richHeader = RichHeader.New(DosHeader.FileAddressOfNewExeHeader, reader);
                     }
 
                     SetRegionFlag(PERegionKind.RichHeader);
@@ -154,6 +267,7 @@ using RawOffset = System.Int32;
                 return richHeader;
             }
         }
+#endif
 
         #endregion
         #region NtHeaders
@@ -161,6 +275,9 @@ using RawOffset = System.Int32;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageNtHeaders ntHeaders;
 
+#if PEFAST
+        public ref readonly ImageNtHeaders NtHeaders => ref ntHeaders;
+#else
         public ref readonly ImageNtHeaders NtHeaders
         {
             get
@@ -170,7 +287,7 @@ using RawOffset = System.Int32;
                     lock (readerLock)
                     {
                         reader.Seek(DosHeader.FileAddressOfNewExeHeader);
-                        ntHeaders = new ImageNtHeaders(ref reader);
+                        ntHeaders = new ImageNtHeaders(reader);
                     }
 
                     SetRegionFlag(PERegionKind.NtHeaders);
@@ -179,16 +296,25 @@ using RawOffset = System.Int32;
                 return ref ntHeaders;
             }
         }
+#endif
 
         /// <summary>
         /// Gets the <see cref="IMAGE_NT_HEADERS.FileHeader"/> field that represents the file header of the image.
         /// </summary>
+#if PEFAST
+        public ref readonly ImageFileHeader FileHeader => ref ntHeaders.FileHeader;
+#else
         public ImageFileHeader FileHeader => NtHeaders.FileHeader; //Cannot be ref readonly
+#endif
 
         /// <summary>
         /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
+#if PEFAST
+        public ref readonly ImageOptionalHeader OptionalHeader => ref ntHeaders.OptionalHeader;
+#else
         public ImageOptionalHeader OptionalHeader => NtHeaders.OptionalHeader; //Cannot be ref readonly
+#endif
 
         #endregion
         #region SectionHeaders
@@ -200,6 +326,32 @@ using RawOffset = System.Int32;
         /// Gets the section headers of the image. These values represent the <see cref="IMAGE_SECTION_HEADER"/> values (e.g. .text, .data) that immediately follow the <see cref="OptionalHeader"/>.<para/>
         /// Each section header points to a relative location within the image at which that section actually resides.
         /// </summary>
+#if PEFAST
+        public ImageSectionHeader[] SectionHeaders
+        {
+            get
+            {
+                if (sectionHeaders == null)
+                {
+                    var numberOfSections = ntHeaders.FileHeader.NumberOfSections;
+
+                    var list = new ImageSectionHeader[numberOfSections];
+
+                    var offset = dosHeader.FileAddressOfNewExeHeader + ImageNtHeaders.StructSize(headerBlock.Is32Bit);
+
+                    for (var i = 0; i < numberOfSections; i++)
+                        list[i] = new ImageSectionHeader(new MemoryChunk(headerBlock, offset + (i * ImageSectionHeader.StructSize)));
+
+                    //No need to CompareExchange (which is also marginally slower).
+                    //Unlike our blocks, we don't care what gets returned here;
+                    //everything is a just pointers into our header block anyway
+                    sectionHeaders = list;
+                }
+
+                return sectionHeaders;
+            }
+        }
+#else
         public ImageSectionHeader[] SectionHeaders
         {
             get
@@ -217,7 +369,7 @@ using RawOffset = System.Int32;
                         var list = new ImageSectionHeader[FileHeader.NumberOfSections];
 
                         for (var i = 0; i < FileHeader.NumberOfSections; i++)
-                            list[i] = new ImageSectionHeader(ref reader);
+                            list[i] = new ImageSectionHeader(reader);
 
                         sectionHeaders = list;
                     }
@@ -228,6 +380,7 @@ using RawOffset = System.Int32;
                 return sectionHeaders!;
             }
         }
+#endif
 
         #endregion
         #region Directories
@@ -235,6 +388,33 @@ using RawOffset = System.Int32;
 
         private ImageExportDirectory? exportTable;
 
+        /// <summary>
+        /// Gets the export table, containing all exports present in the image.<para/>
+        /// If the image does not have an exports table, this property returns <see langword="null"/>.
+        /// </summary>
+#if PEFAST
+        public ImageExportDirectory? ExportTable
+        {
+            get
+            {
+                if (exportTable == null)
+                {
+                    var exportTableDirectory = OptionalHeader.ExportTableDirectory;
+
+                    if (exportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(exportTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(exportTableDirectory.VirtualAddress, ImageExportDirectory.StructSize);
+                        var local = new ImageExportDirectory(chunk);
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref exportTable, local, null);
+                    }
+                }
+
+                return exportTable;
+            }
+        }
+#else
         public ImageExportDirectory? ExportTable
         {
             get
@@ -248,7 +428,7 @@ using RawOffset = System.Int32;
                         lock (readerLock)
                         {
                             reader.Seek(offset);
-                            exportTable = new ImageExportDirectory(ref reader, this);
+                            exportTable = new ImageExportDirectory(reader, this);
                         }
                     }
 
@@ -258,12 +438,16 @@ using RawOffset = System.Int32;
                 return exportTable;
             }
         }
+#endif
 
         #endregion
         #region Import Table (1)
 
         private ImageImportDescriptor[]? importTable;
 
+#if PEFAST
+        public ImageImportDescriptor[]? ImportTable => throw new NotImplementedException();
+#else
         public ImageImportDescriptor[]? ImportTable
         {
             get
@@ -282,7 +466,7 @@ using RawOffset = System.Int32;
                             {
                                 //If the ImportAddressTable has been loaded, use the same ImageThunkData objects where applicable.
                                 //Use the internal field so we don't force load them if they're not already loaded
-                                var item = new ImageImportDescriptor(ref reader, this, importAddressTable);
+                                var item = new ImageImportDescriptor(reader, this, importAddressTable);
 
                                 results.Add(item);
 
@@ -305,15 +489,41 @@ using RawOffset = System.Int32;
                 return importTable;
             }
         }
+#endif
 
         #endregion
         #region Resource Directory (2)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageResourceDirectory? resourceDirectory;
 
+#if PEFAST
+        public ImageResourceDirectory? ResourceDirectory
+        {
+            get
+            {
+                //if (resourceDirectory == null)
+                //{
+                //    var resourceTableDirectory = OptionalHeader.ResourceTableDirectory;
+
+                //    if (resourceTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(resourceTableDirectory, out var chunk))
+                //    {
+                //        chunk.Demand(resourceTableDirectory.VirtualAddress, ImageResourceDirectory.StructSize);
+                //        var local = new ImageResourceDirectory(chunk);
+
+                //        //Since this property returns a reference, we should always return the same object
+                //        Interlocked.CompareExchange(ref resourceDirectory, local, null);
+                //    }
+                //}
+
+                //return resourceDirectory;
+                throw new NotImplementedException();
+            }
+        }
+#else
         //Resources can theoretically be 2^31 levels deep. The general convention that Windows uses however
         //is a three level hierarchy: Type/Name/Language
-        public ImageResourceDirectory? ResourceDirectory //todo: make class i think, cant ref readonly a nullable
+        public ImageResourceDirectory? ResourceDirectory
         {
             get
             {
@@ -325,20 +535,27 @@ using RawOffset = System.Int32;
                         {
                             reader.Seek(offset);
 
-                            resourceDirectory = new ImageResourceDirectory(ref reader, this, null, offset);
+                            resourceDirectory = new ImageResourceDirectory(reader, this, null, offset);
                         }
                     }
+
+                    SetRegionFlag(PERegionKind.ResourceDirectory);
                 }
 
                 return resourceDirectory;
             }
         }
+#endif
 
         #endregion
         #region Exception Table (3)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private RuntimeFunction[]? exceptionTable;
 
+#if PEFAST
+        public RuntimeFunction[]? ExceptionTable => throw new NotImplementedException();
+#else
         public RuntimeFunction[]? ExceptionTable
         {
             get
@@ -363,7 +580,7 @@ using RawOffset = System.Int32;
                                 if (i > 0)
                                     reader.Seek(offset + i * RuntimeFunction.StructSize);
 
-                                entries[i] = new RuntimeFunction(ref reader, this, OptionalHeader.ExceptionTableDirectory, context);
+                                entries[i] = new RuntimeFunction(reader, this, OptionalHeader.ExceptionTableDirectory, context);
                             }
 
                             exceptionTable = entries;
@@ -376,12 +593,17 @@ using RawOffset = System.Int32;
                 return exceptionTable;
             }
         }
+#endif
 
         #endregion
         #region Security Table (4)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private WinCertificate[]? securityTable;
 
+#if PEFAST
+        public WinCertificate[]? SecurityTable => throw new NotImplementedException();
+#else
         public WinCertificate[]? SecurityTable
         {
             get
@@ -407,7 +629,7 @@ using RawOffset = System.Int32;
 
                             while (reader.Position < end)
                             {
-                                var item = new WinCertificate(ref reader);
+                                var item = new WinCertificate(reader);
 
                                 results.Add(item);
                             }
@@ -417,17 +639,24 @@ using RawOffset = System.Int32;
                             securityTable = results.ToArray();
                         }
                     }
+
+                    SetRegionFlag(PERegionKind.SecurityTable);
                 }
 
                 return securityTable;
             }
         }
+#endif
 
         #endregion
         #region Base Relocation Table (5)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageBaseRelocation[]? baseRelocationTable;
 
+#if PEFAST
+        public ImageBaseRelocation[]? BaseRelocationTable => throw new NotImplementedException();
+#else
         public ImageBaseRelocation[]? BaseRelocationTable
         {
             get
@@ -448,7 +677,7 @@ using RawOffset = System.Int32;
 
                             while (reader.Position < (int) end)
                             {
-                                var item = new ImageBaseRelocation(ref reader);
+                                var item = new ImageBaseRelocation(reader);
 
                                 results.Add(item);
 
@@ -462,17 +691,49 @@ using RawOffset = System.Int32;
                             baseRelocationTable = results.ToArray();
                         }
                     }
+
+                    SetRegionFlag(PERegionKind.BaseRelocationTable);
                 }
 
                 return baseRelocationTable;
             }
         }
+#endif
 
         #endregion
         #region Debug Table (6)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageDebugDirectory[]? debugTable;
 
+#if PEFAST
+        public ImageDebugDirectory[]? DebugTable
+        {
+            get
+            {
+                if (debugTable == null)
+                {
+                    var debugTableDirectory = OptionalHeader.DebugTableDirectory;
+
+                    if (debugTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(debugTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(debugTableDirectory.VirtualAddress, debugTableDirectory.Size);
+
+                        var entryCount = OptionalHeader.DebugTableDirectory.Size / ImageDebugDirectory.StructSize;
+
+                        var entries = new ImageDebugDirectory[entryCount];
+
+                        for (var i = 0; i < entryCount; i++)
+                            entries[i] = new ImageDebugDirectory(chunk.Slice(i * ImageDebugDirectory.StructSize));
+
+                        debugTable = entries;
+                    }
+                }
+
+                return debugTable;
+            }
+        }
+#else
         public ImageDebugDirectory[]? DebugTable
         {
             get
@@ -491,17 +752,20 @@ using RawOffset = System.Int32;
                             {
                                 reader.Seek(offset + (i * ImageDebugDirectory.StructSize));
 
-                                entries[i] = new ImageDebugDirectory(ref reader, this);
+                                entries[i] = new ImageDebugDirectory(reader, this);
                             }
 
                             debugTable = entries;
                         }
                     }
+
+                    SetRegionFlag(PERegionKind.DebugDirectory);
                 }
 
                 return debugTable;
             }
         }
+#endif
 
         #endregion
         #region Copyright Table (7)
@@ -512,8 +776,12 @@ using RawOffset = System.Int32;
         #endregion
         #region Thread Local Storage Table (9)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageTlsDirectory? tlsDirectory;
 
+#if PEFAST
+        public ImageTlsDirectory? TlsDirectory => throw new NotImplementedException();
+#else
         public ImageTlsDirectory? TlsDirectory
         {
             get
@@ -525,7 +793,7 @@ using RawOffset = System.Int32;
                         lock (readerLock)
                         {
                             reader.Seek(offset);
-                            tlsDirectory = new ImageTlsDirectory(ref reader, OptionalHeader.Magic == PEMagic.PE32);
+                            tlsDirectory = new ImageTlsDirectory(reader, OptionalHeader.Magic == PEMagic.PE32);
                         }
                     }
 
@@ -535,12 +803,17 @@ using RawOffset = System.Int32;
                 return tlsDirectory;
             }
         }
+#endif
 
         #endregion
         #region Load Config Table (10)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageLoadConfigDirectory? loadConfigTable;
 
+#if PEFAST
+        public ImageLoadConfigDirectory? LoadConfigTable => throw new NotImplementedException();
+#else
         public ImageLoadConfigDirectory? LoadConfigTable
         {
             get
@@ -552,7 +825,7 @@ using RawOffset = System.Int32;
                         lock (readerLock)
                         {
                             reader.Seek(offset);
-                            loadConfigTable = new ImageLoadConfigDirectory(ref reader, this);
+                            loadConfigTable = new ImageLoadConfigDirectory(reader, this);
                         }
                     }
 
@@ -562,12 +835,17 @@ using RawOffset = System.Int32;
                 return loadConfigTable;
             }
         }
+#endif
 
         #endregion
         #region Bound Import Table (11)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageBoundImportDescriptor[]? boundImportTable;
 
+#if PEFAST
+        public ImageBoundImportDescriptor[]? BoundImportTable => throw new NotImplementedException();
+#else
         public ImageBoundImportDescriptor[]? BoundImportTable
         {
             get
@@ -591,7 +869,7 @@ using RawOffset = System.Int32;
 
                             while (reader.Position < (int) end)
                             {
-                                var item = new ImageBoundImportDescriptor(ref reader, this);
+                                var item = new ImageBoundImportDescriptor(reader, this);
 
                                 if (item.TimeDateStamp == 0 && item.OffsetModuleName == 0 && item.NumberOfModuleForwarderRefs == 0)
                                     break;
@@ -614,12 +892,17 @@ using RawOffset = System.Int32;
                 return boundImportTable;
             }
         }
+#endif
 
         #endregion
         #region Import Address Table (12)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageThunkData[]? importAddressTable;
 
+#if PEFAST
+        public ImageThunkData[]? ImportAddressTable => throw new NotImplementedException();
+#else
         public ImageThunkData[]? ImportAddressTable
         {
             get
@@ -676,7 +959,7 @@ using RawOffset = System.Int32;
                                 {
                                     reader.Seek(itemOffset);
 
-                                    thunk = new ImageThunkData(ref reader, this, is32Bit, true);
+                                    thunk = new ImageThunkData(reader, this, is32Bit, true);
                                 }
 
                                 results.Add(thunk);
@@ -694,12 +977,17 @@ using RawOffset = System.Int32;
                 return importAddressTable;
             }
         }
+#endif
 
         #endregion
         #region Delay Import Table (13)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageDelayLoadDescriptor[]? delayImportTable;
 
+#if PEFAST
+        public ImageDelayLoadDescriptor[]? DelayImportTable => throw new NotImplementedException();
+#else
         public ImageDelayLoadDescriptor[]? DelayImportTable
         {
             get
@@ -716,7 +1004,7 @@ using RawOffset = System.Int32;
 
                             while (true)
                             {
-                                var item = new ImageDelayLoadDescriptor(ref reader, this);
+                                var item = new ImageDelayLoadDescriptor(reader, this);
 
                                 results.Add(item);
 
@@ -730,17 +1018,24 @@ using RawOffset = System.Int32;
                             delayImportTable = results.ToArray();
                         }
                     }
+
+                    SetRegionFlag(PERegionKind.DebugDirectory);
                 }
 
                 return delayImportTable;
             }
         }
+#endif
 
         #endregion
         #region Cor20Header (14)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageCor20Header? cor20Header;
 
+#if PEFAST
+        public ImageCor20Header? Cor20Header => throw new NotImplementedException();
+#else
         public ImageCor20Header? Cor20Header
         {
             get
@@ -753,7 +1048,7 @@ using RawOffset = System.Int32;
                         {
                             reader.Seek(offset);
 
-                            cor20Header = new ImageCor20Header(ref reader, this);
+                            cor20Header = new ImageCor20Header(reader, this);
                         }
                     }
 
@@ -763,9 +1058,13 @@ using RawOffset = System.Int32;
                 return cor20Header;
             }
         }
+#endif
 
         private ImageCorILMethod[]? ilMethods;
 
+#if PEFAST
+        public ImageCorILMethod[]? ILMethods => throw new NotImplementedException();
+#else
         public ImageCorILMethod[]? ILMethods
         {
             get
@@ -780,7 +1079,8 @@ using RawOffset = System.Int32;
 
                         lock (readerLock)
                         {
-                            for (var i = 0; i < methods.Count; i++)
+                            //References are 1 based
+                            for (var i = 1; i <= methods.Count; i++)
                             {
                                 var method = methods[i];
 
@@ -791,25 +1091,195 @@ using RawOffset = System.Int32;
 
                                 reader.Seek(offset);
 
-                                ilMethods.Add(new ImageCorILMethod(ref reader));
+                                var item = new ImageCorILMethod(reader, out var isValid);
+
+                                if (isValid)
+                                    ilMethods.Add(item);
                             }
 
                             this.ilMethods = ilMethods.ToArray();
                         }
                     }
-                    
+
                     SetRegionFlag(PERegionKind.ILMethods);
                 }
 
                 return ilMethods;
             }
         }
+        private CompressedModelHeap? clrMetadata;
+
+        public CompressedModelHeap? GetCLRMetadata()
+        {
+            if (clrMetadata == null)
+            {
+                _ = Cor20Header?.Metadata.Data;
+            }
+
+            return clrMetadata;
         }
+#endif
 
         #endregion
         #endregion
+        #region ReadyToRun
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ReadyToRunHeader? readyToRunHeader;
+
+#if PEFAST
+        public ReadyToRunHeader? ReadyToRunHeader => throw new NotImplementedException();
+#else
+        public ReadyToRunHeader? ReadyToRunHeader
+        {
+        #region AppHost
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private AppHostSignature? appHostSignature;
+
+#if PEFAST
+        public AppHostSignature? AppHostSignature => throw new NotImplementedException();
+#else
+        public AppHostSignature? AppHostSignature
+        {
+            get
+            {
+                if (!HasRegionFlag(PERegionKind.AppHostSignature))
+                {
+                    //Scanning the entire DLL for the AppHost signature could be slow,
+                    //so we don't want the Visual Studio debugger to automatically do this just
+                    //because we looked at the properties of the PEFile
+                    Debugger.NotifyOfCrossThreadDependency();
+
+                    lock (readerLock)
+                        appHostSignature = AppHostSignature.New(reader);
+
+                    SetRegionFlag(PERegionKind.AppHostSignature);
+                }
+
+                return appHostSignature;
+            }
         }
+#endif
+
+        #endregion
+        #region ClrEngineMetrics
+
+        private ClrEngineMetrics? clrEngineMetrics;
+
+#if PEFAST
+        public ClrEngineMetrics? ClrEngineMetrics => throw new NotImplementedException();
+#else
+        public ClrEngineMetrics? ClrEngineMetrics
+        {
+            get
+            {
+                if (!HasRegionFlag(PERegionKind.ClrEngineMetrics))
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    //Doesn't seem like the base matters; if the base is 2, g_CLREngineMetrics is still at ordinal 2
+                    //after factoring in ordinal + base (which is what export.Ordinal shows)
+                    if (ExportTable?.TryGetExport("g_CLREngineMetrics", out export) == true && !export.ForwardOrAddress.IsForward && export.Ordinal == 2)
+                    {
+                        var rva = export.ForwardOrAddress.Address;
+
+                        if (TryGetOffset(rva, out var offset))
+                        {
+                            lock (readerLock)
+                            {
+                                reader.Seek(offset);
+
+                                clrEngineMetrics = new ClrEngineMetrics(reader, this);
+                            }
+                        }
+                    }
+
+                    SetRegionFlag(PERegionKind.ClrEngineMetrics);
+                }
+
+                return clrEngineMetrics;
+            }
         }
+#endif
+
+        #endregion
+        #region Single File
+
+        //If this is a single file .NET application, there should be a "DotNetRuntimeInfo" export
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private RuntimeInfo? runtimeInfo;
+
+#if PEFAST
+        public RuntimeInfo? RuntimeInfo => throw new NotImplementedException();
+#else
+        public RuntimeInfo? RuntimeInfo
+        {
+            get
+            {
+                if (!HasRegionFlag(PERegionKind.RuntimeInfo))
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    if (ExportTable?.TryGetExport("DotNetRuntimeInfo", out export) == true && !export.ForwardOrAddress.IsForward)
+                    {
+                        if (TryGetOffset(export.ForwardOrAddress.Address, out var offset))
+                        {
+                            lock (readerLock)
+                            {
+                                reader.Seek(offset);
+
+                                runtimeInfo = new RuntimeInfo(reader);
+                            }
+                        }
+                    }
+
+                    SetRegionFlag(PERegionKind.RuntimeInfo);
+                }
+
+                return runtimeInfo;
+            }
+        }
+#endif
+
+        #endregion
+        #region Native AOT
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private DotNetRuntimeDebugHeader? dotNetRuntimeDebugHeader;
+
+#if PEFAST
+        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => throw new NotImplementedException();
+#else
+        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
+        {
+            get
+            {
+                if (!HasRegionFlag(PERegionKind.DotNetRuntimeDebugHeader))
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    if (ExportTable?.TryGetExport("DotNetRuntimeDebugHeader", out export) == true && !export.ForwardOrAddress.IsForward)
+                    {
+                        if (TryGetOffset(export.ForwardOrAddress.Address, out var offset))
+                        {
+                            lock (readerLock)
+                            {
+                                reader.Seek(offset);
+
+                                dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(reader, OptionalHeader.Magic == PEMagic.PE32);
+                            }
+                        }
+                    }
+
+                    SetRegionFlag(PERegionKind.DotNetRuntimeDebugHeader);
+                }
+
+                return dotNetRuntimeDebugHeader;
+            }
+        }
+#endif
 
         #endregion
 
@@ -824,23 +1294,47 @@ using RawOffset = System.Int32;
             //View may use Stream to read bytes
             lock (readerLock)
             {
-                var writer = new PEViewWriter(this, ref reader, mode);
+                var writer = new PEViewWriter(this, reader, mode);
                 ((IViewable) this).WriteView(writer);
 
                 return (PEFileView) writer.Finalize();
             }
         }
 
-        private FileReader reader;
+        public IView GetView(IViewable viewable, ViewMode mode = ViewMode.Default)
+        {
+            lock (readerLock)
+            {
+                var writer = new PEViewWriter(this, reader, mode);
+                viewable.WriteView(writer);
+
+                if (writer.Current.Count != 1)
+                    throw new NotImplementedException();
+
+                return writer.Current[0];
+            }
+        }
         private object readerLock = new object();
         private volatile int flags;
         private bool disposed;
 
         internal IFileServices? Services { get; }
 
+        internal PEFile(IFileReader reader)
+        {
+            IsLoadedImage = false;
+            (this.reader, this.readerLock) = ((StreamFileReader) reader).CreateSubReader();
+        }
+
         private PEFile(Stream stream, bool isLoadedImage, IFileServices? services)
         {
-            reader = new FileReader(stream, readerLock);
+            //Reading strings from a FileStream is very slow, so use an MMF reader instead
+
+            if (stream is FileStream fs && false)
+                reader = new MemoryMappedFileReader(fs, readerLock); //todo: do we need to set isloaded to true if we do this? i think no, cos nobody specifies sec_image, not even c#'s memorymappedfile
+            else
+                reader = new StreamFileReader(stream, readerLock);
+
             IsLoadedImage = isLoadedImage;
             Services = services;
 
@@ -872,6 +1366,7 @@ using RawOffset = System.Int32;
             _ = AppHostSignature;
 #endif
         }
+#endif
 
         ~PEFile()
         {
@@ -887,7 +1382,7 @@ using RawOffset = System.Int32;
         /// <param name="offset">Offset from the start of the image to the given directory data.</param>
         /// <param name="canCrossSectionBoundary">Whether size of the entry is allowed to cross over the end of the section boundary.</param>
         /// <returns>True if the <see cref="ImageDataDirectory"/> points to a valid section, otherwise false.</returns>
-        public bool TryGetDirectoryOffset(ImageDataDirectory entry, out RawOffset offset, bool canCrossSectionBoundary)
+        public bool TryGetDirectoryOffset(in ImageDataDirectory entry, out RawOffset offset, bool canCrossSectionBoundary)
         {
             var sectionIndex = GetSectionContainingRVA(entry.VirtualAddress);
 
@@ -910,6 +1405,9 @@ using RawOffset = System.Int32;
             return true;
         }
 
+        //We do not lock on this field; if we match, we match
+        private ImageSectionHeader lastUsedSection;
+
         /// <summary>
         /// Tries to get the physical offset within the image of a specified relative virtual address.
         /// </summary>
@@ -918,6 +1416,40 @@ using RawOffset = System.Int32;
         /// <returns>True if the RVA was translated to a physical offset, otherwise false.</returns>
         public bool TryGetOffset(RVA rva, out RawOffset offset)
         {
+            //When we're reading data, we'll typically be seeking between data contained within the same section. As such, as an optimization
+            //we can cache the last section we seeked to, and check whether that section contains our RVA
+            if (lastUsedSection.VirtualAddress != 0)
+            {
+                var local = lastUsedSection;
+
+                var start = local.VirtualAddress;
+                var end = local.VirtualAddress + local.VirtualSize;
+
+                if (start <= rva && rva < end)
+                {
+                    if (IsLoadedImage)
+                    {
+                        offset = rva;
+                    }
+                    else
+                    {
+                        var diff = rva - local.VirtualAddress;
+
+                        //The location this value points to does not exist in the unloaded image; the directory that the address
+                        //points to will be expanded when loaded into memory
+                        if (diff > local.SizeOfRawData)
+                        {
+                            offset = default;
+                            return false;
+                        }
+
+                        offset = local.PointerToRawData + diff;
+                    }
+
+                    return true;
+                }
+            }
+
             var sectionIndex = GetSectionContainingRVA(rva);
 
             if (sectionIndex < 0)
@@ -927,11 +1459,26 @@ using RawOffset = System.Int32;
             }
 
             var section = SectionHeaders[sectionIndex];
-            var relativeOffset = (int) (rva - section.VirtualAddress);
+            lastUsedSection = section;
 
-            offset = IsLoadedImage
-                ? (RawOffset) (int) rva
-                : section.PointerToRawData + relativeOffset;
+            if (IsLoadedImage)
+            {
+                offset = rva;
+            }
+            else
+            {
+                var diff = rva - section.VirtualAddress;
+
+                //The location this value points to does not exist in the unloaded image; the directory that the address
+                //points to will be expanded when loaded into memory
+                if (diff > section.SizeOfRawData)
+                {
+                    offset = default;
+                    return false;
+                }
+
+                offset = section.PointerToRawData + diff;
+            }
 
             return true;
         }
@@ -970,12 +1517,15 @@ using RawOffset = System.Int32;
             if (rva == 0)
                 return -1;
 
-            Debug.Assert(SectionHeaders != null);
+            //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
+            var headers = SectionHeaders;
 
-            for (var i = 0; i < SectionHeaders.Length; i++)
+            Debug.Assert(headers != null);
+
+            for (var i = 0; i < headers.Length; i++)
             {
-                var start = SectionHeaders[i].VirtualAddress;
-                var end = SectionHeaders[i].VirtualAddress + SectionHeaders[i].VirtualSize;
+                var start = headers[i].VirtualAddress;
+                var end = headers[i].VirtualAddress + headers[i].VirtualSize;
 
                 if (start <= rva && rva < end)
                     return i;
@@ -990,10 +1540,13 @@ using RawOffset = System.Int32;
             if (IsLoadedImage)
                 return GetSectionContainingRVA((RVA) offset);
 
-            for (var i = 0; i < SectionHeaders.Length; i++)
+            //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
+            var headers = SectionHeaders;
+
+            for (var i = 0; i < headers.Length; i++)
             {
-                var start = SectionHeaders[i].PointerToRawData;
-                var end = SectionHeaders[i].PointerToRawData + SectionHeaders[i].VirtualSize;
+                var start = headers[i].PointerToRawData;
+                var end = headers[i].PointerToRawData + headers[i].VirtualSize;
 
                 if (start <= offset && offset < end)
                     return i;
@@ -1004,13 +1557,14 @@ using RawOffset = System.Int32;
 
         #endregion
 
+#if !PEFAST
         /// <summary>
         /// Invalidates all regions that have been read from the Portable Executable file,
         /// requiring that they be re-read when they are next accessed.
         /// </summary>
         public void Invalidate() => SetRegionFlag(0);
 
-        internal delegate T WithReaderCallback<T>(ref FileReader reader, PEFile peFile);
+        internal delegate T WithReaderCallback<T>(IFileReader reader, PEFile peFile);
 
         internal T WithReader<T>(RawOffset offset, WithReaderCallback<T> callback)
         {
@@ -1018,7 +1572,7 @@ using RawOffset = System.Int32;
             {
                 reader.Seek(offset);
 
-                return callback(ref reader, this);
+                return callback(reader, this);
             }
         }
 
@@ -1030,6 +1584,7 @@ using RawOffset = System.Int32;
         public void Invalidate(PERegionKind regions) =>
             SetRegionFlag(~regions);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool HasRegionFlag(PERegionKind flag) =>
             (this.flags & (int) flag) != 0;
 
@@ -1044,9 +1599,13 @@ using RawOffset = System.Int32;
                 newValue = newFlag == 0 ? 0 : original | (int) newFlag;
             } while (Interlocked.CompareExchange(ref this.flags, newValue, original) != original);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
+#if PEFAST
+            throw new NotImplementedException();
+#else
             writer.WriteGlobal(DosHeader);
             writer.WriteDosStub(DosStub);
             writer.WriteGlobal(RichHeader);
@@ -1076,6 +1635,7 @@ using RawOffset = System.Int32;
             Dispose(true);
         }
 
+#if PEFAST
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
@@ -1083,7 +1643,22 @@ using RawOffset = System.Int32;
 
             if (disposing)
             {
-                reader.Dispose();
+                (blockProvider as IDisposable)?.Dispose();
+
+                //This is a bit of a gotcha! If you declare a finalizer, it won't be GC'd until the finalizer thread processes it.
+                //Which means if you're generating a lot of objects, the finalizer thread might not be able to keep up
+                GC.SuppressFinalize(this);
+            }
+        }
+#else
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                (reader as IDisposable)?.Dispose();
 
                 //This is a bit of a gotcha! If you declare a finalizer, it won't be GC'd until the finalizer thread processes it.
                 //Which means if you're generating a lot of objects, the finalizer thread might not be able to keep up

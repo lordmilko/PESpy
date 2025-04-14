@@ -26,6 +26,7 @@ namespace PESpy
             Offset = (int) reader.Position;
 
             if (isFat)
+            {
                 Flags = (CorExceptionFlag) reader.ReadInt32();
                 TryOffset = reader.ReadInt32();
                 TryLength = reader.ReadInt32();

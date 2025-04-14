@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using PESpy.Native;
@@ -67,7 +68,18 @@ namespace PESpy
         /// <summary>
         /// Provides access to the string or numeric identifier of this directory entry.
         /// </summary>
+#if PEFAST
+        public UnionNameOrId NameOrId
+        {
+            get
+            {
+                //chunk.PeekInt32(0);
+                throw new NotImplementedException();
+            }
+        }
+#else
         public UnionNameOrId NameOrId { get; }
+#endif
 
         /// <summary>
         /// Gets the offset to the <see cref="IMAGE_RESOURCE_DATA_ENTRY"/> this entry points to. Only applies when <see cref="DataIsDirectory"/> is false.
@@ -102,12 +114,24 @@ namespace PESpy
             }
         }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //NameOrId
             sizeof(int);  //Offset
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageResourceDirectoryEntry(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageResourceDirectoryEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
         {
             Offset = (RawOffset) reader.Position;
@@ -117,6 +141,7 @@ namespace PESpy
             NameOrId = new UnionNameOrId(reader, rootOffset);
             dataAndDirectoryUnion = new UnionOffsetToData(reader, peFile, this, rootOffset);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -172,6 +197,7 @@ namespace PESpy
 
             public ushort Id => (ushort) Name; //Must be ushort, you can have big values
 
+#if !PEFAST
             internal UnionNameOrId(IFileReader reader, RawOffset rootOffset)
             {
                 var value = reader.ReadInt32();
@@ -200,6 +226,7 @@ namespace PESpy
                     NameOffset = new RVA<ImageResourceDirStringU>(nameOffset);
                 }
             }
+#endif
 
             public override string ToString()
             {
@@ -235,6 +262,7 @@ namespace PESpy
 
             #endregion
 
+#if !PEFAST
             public UnionOffsetToData(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent, RawOffset rootOffset)
             {
                 var value = reader.ReadInt32();
@@ -269,6 +297,7 @@ namespace PESpy
 
                 reader.Seek(oldPosition);
             }
+#endif
         }
     }
 }

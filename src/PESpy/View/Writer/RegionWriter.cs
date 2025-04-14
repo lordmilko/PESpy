@@ -89,7 +89,7 @@ namespace PESpy.View
             }
 
 #if PEFAST
-            public void WriteAnsiNullTerminatedValue(RVA<PCSTR> value)
+            public void WriteAnsiNullTerminatedValue(RVA<AnsiString> value)
             {
                 WriteValueInternal((int) value.ListedOffset, sizeof(int));
 

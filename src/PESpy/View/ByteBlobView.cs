@@ -37,15 +37,15 @@ namespace PESpy.View
             }
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
-
-        public void Accept(PEViewVisitor visitor) => visitor.VisitByteBlob(this);
-
         public ByteBlobView(RawOffset offset, byte[] bytes, ViewKind? kind)
         {
             Offset = offset;
             Bytes = bytes;
             this.kind = kind;
         }
+
+        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
+
+        public void Accept(PEViewVisitor visitor) => visitor.VisitByteBlob(this);
     }
 }

@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
@@ -21,6 +22,8 @@ namespace PESpy
 
             if (kind.HasFlag(CorILMethodSect.FatFormat))
             {
+                //The data pointed to by the section is in fat format, and its length is encoded in 3 bytes
+                throw new NotImplementedException();
             }
             else
             {

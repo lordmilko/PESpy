@@ -15,6 +15,7 @@ namespace PESpy.Tests
         public static SymbolStoreKey d3dx9_24 = new SymbolStoreKey("d3dx9_24.dll/4205627437c000/d3dx9_24.dll", "C:\\Windows\\System32\\d3dx9_24.dll");
         public static SymbolStoreKey kdstub = new SymbolStoreKey("kdstub.dll/0EA20E6D13000/kdstub.dll", "C:\\Windows\\Boot\\EFI\\kdstub.dll");
         public static SymbolStoreKey kd_02_15b3 = new SymbolStoreKey("kd_02_15b3.dll/972BFA0319000/kd_02_15b3.dll", "C:\\Windows\\Boot\\EFI\\kd_02_15b3.dll");
+        public static SymbolStoreKey notepad = new SymbolStoreKey("notepad.exe/A8673AF85a000/notepad.exe", "C:\\Windows\\system32\\notepad.exe");
         public static SymbolStoreKey Ntdll = new SymbolStoreKey("ntdll.dll/BCED4B82217000/ntdll.dll", "C:\\windows\\system32\\ntdll.dll");
         public static SymbolStoreKey ntoskrnl = new SymbolStoreKey("ntoskrnl.exe/2C33C5081047000/ntoskrnl.exe", "C:\\windows\\system32\\ntoskrnl.exe");
         public static SymbolStoreKey mfc40 = new SymbolStoreKey("mfc40.dll/31E55C32e7000/mfc40.dll", "C:\\Windows\\SysWOW64\\mfc40.dll"); //The 64-bit one also has ImageDebugMisc

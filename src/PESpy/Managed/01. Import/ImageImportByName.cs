@@ -11,12 +11,32 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageImportByName : IValue, IViewable
     {
+#if PEFAST
+        public short Hint => chunk.PeekInt16(0);
+#else
         public short Hint { get; init; }
+#endif
 
+#if PEFAST
+        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(2);
+#else
         public string Name { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageImportByName(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageImportByName(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -26,6 +46,7 @@ namespace PESpy
             Hint = reader.ReadInt16();
             Name = reader.ReadAnsiNullTerminatedString();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -37,7 +58,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            return Name;
+            return Name.ToString();
         }
     }
 }

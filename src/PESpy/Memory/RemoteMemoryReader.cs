@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PESpy.Fast
+namespace PESpy
 {
     public unsafe class RemoteMemoryReader : IMemoryReader
     {

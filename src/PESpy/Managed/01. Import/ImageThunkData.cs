@@ -124,7 +124,7 @@ namespace PESpy
 
                     var importByName = new ImageImportByName(reader);
 
-                    name = new RVA<ImageImportByName>((RVA)(int)Value, offset, importByName);
+                    name = new RVA<ImageImportByName>((RVA) (int) Value, offset, importByName);
                 }
 
                 Kind = DataKind.Name;

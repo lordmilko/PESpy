@@ -8,17 +8,17 @@ namespace PESpy
     /// A pointer to a null-terminated, constant, ANSI character string.
     /// </summary>
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-    public readonly unsafe struct PCSTR : IEquatable<PCSTR>, IEquatable<string>
+    public readonly unsafe struct AnsiString : IEquatable<AnsiString>, IEquatable<string>
     {
         public readonly byte* Value;
 
-        public PCSTR(byte* value) => this.Value = value;
+        public AnsiString(byte* value) => this.Value = value;
 
-        public static implicit operator byte*(PCSTR value) => value.Value;
+        public static implicit operator byte*(AnsiString value) => value.Value;
 
-        public static explicit operator PCSTR(byte* value) => new PCSTR(value);
+        public static explicit operator AnsiString(byte* value) => new AnsiString(value);
 
-        public bool Equals(PCSTR other) => this.Value == other.Value;
+        public bool Equals(AnsiString other) => this.Value == other.Value;
 
         public bool Equals(string? other)
         {
@@ -42,15 +42,15 @@ namespace PESpy
             return true;
         }
 
-        public static bool operator ==(PCSTR left, string right) => left.Equals(right);
-        public static bool operator !=(PCSTR left, string right) => left.Equals(right);
+        public static bool operator ==(AnsiString left, string right) => left.Equals(right);
+        public static bool operator !=(AnsiString left, string right) => left.Equals(right);
 
-        public static bool operator ==(string left, PCSTR right) => right.Equals(left);
-        public static bool operator !=(string left, PCSTR right) => right.Equals(left);
+        public static bool operator ==(string left, AnsiString right) => right.Equals(left);
+        public static bool operator !=(string left, AnsiString right) => right.Equals(left);
 
         public override bool Equals(object obj)
         {
-            if (obj is PCSTR p)
+            if (obj is AnsiString p)
                 return Equals(p);
 
             if (obj is string s)
@@ -81,7 +81,7 @@ namespace PESpy
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
-        public override string ToString() => this.Value is null ? null : new string((sbyte*) this.Value, 0, this.Length, global::System.Text.Encoding.Default);
+        public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, global::System.Text.Encoding.Default);
 
         private string DebuggerDisplay => this.ToString();
     }

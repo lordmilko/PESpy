@@ -14,7 +14,7 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(view.Kind).Append(" (").Append(view.Count).Append(")");
+            builder.Append(view.Name).Append(" (").Append(view.Count).Append(")");
 
             return builder.ToString();
         }
@@ -47,8 +47,6 @@ namespace PESpy.View
             var builder = new StringBuilder();
 
             WriteRange(builder, view);
-
-            builder.Append(" | ");
 
             builder.Append(view.Name);
 
@@ -140,6 +138,8 @@ namespace PESpy.View
             WriteRange(builder, view);
             builder.Append("Overlay");
 
+            builder.Append(" (").Append(FormatBytes(view.Size)).Append(")");
+
             return builder.ToString();
         }
 
@@ -154,7 +154,29 @@ namespace PESpy.View
             WriteRange(builder, view);
             builder.Append(view.Header.Name);
 
+            builder.Append(" (").Append(FormatBytes(view.Size)).Append(")");
+
             return builder.ToString();
+        }
+
+        internal static string FormatBytes(double bytes)
+        {
+            if (bytes < 1024)
+                return bytes.ToString("N2") + " B";
+
+            var kb = bytes / 1024;
+
+            if (kb < 1024)
+                return kb.ToString("N2") + " KB";
+
+            var mb = kb / 1024;
+
+            if (mb < 1024)
+                return mb.ToString("N2") + " MB";
+
+            var gb = mb / 1024;
+
+            return gb.ToString("N2") + " GB";
         }
 
         public static string Struct(StructView view)
@@ -236,6 +258,9 @@ namespace PESpy.View
                     }
                 }
             }
+
+            if (view is SplitStructView)
+                builder.Append(" (Split)");
 
             return builder.ToString();
         }

@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace PESpy
 {
+    //Based on SequenceSearchState.java from Ghidra, licensed under the Apache License.
+    //See ThirdPartyNotices.txt for full license notice.
+
     /// <summary>
     /// Provides facilities for simultaneously comparing a byte value against multiple possible <see cref="ByteSequence"/> values
     /// by constructing a tree that can be traversed to "dig down" to possible patterns that may match. e.g. given the patterns

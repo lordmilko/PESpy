@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ClrDebug.PDB;
+using PESpy.PDB;
+using Enum = System.Enum;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -79,16 +82,77 @@ namespace PESpy.View
             #region Array
 
             /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, byte[] value) =>
-                WriteFieldInternal(name, value, value.Length);
+            public void WriteField(string name, Span<byte> value)
+            {
+                //A field with a length of 0 will calculate itself as having a negative size (since if it starts at 0 and is 2 large it ends at 1)
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value.ToArray(), value.Length);
+            }
 
             /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, short[] value) =>
+            public void WriteField(string name, Span<short> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value.ToArray(), value.Length * 2);
+            }
+
+            public void WriteField(string name, ushort[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
                 WriteFieldInternal(name, value, value.Length * 2);
+            }
 
             /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, int[] value) =>
+            public void WriteField(string name, int[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
                 WriteFieldInternal(name, value, value.Length * 4);
+            }
+
+            public void WriteField(string name, PN[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * 4);
+            }
+
+            public void WriteField(string name, CV_typ_t[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * 4);
+            }
+
+            public void WriteField(string name, CV_ItemId[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * 4);
+            }
+
+            public void WriteUTF8NullTerminatedField(string name, string[] value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                var size = 0;
+
+                foreach (var item in value)
+                    size += item.Length + 1;
+
+                WriteFieldInternal(name, value, size);
+            }
 
             #endregion
             #region Pointer
@@ -112,6 +176,14 @@ namespace PESpy.View
             public void WriteVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
             {
                 WriteField(name, value.ListedAddress);
+
+                if (value.IsValid)
+                    viewWriter.WriteGlobal(value.Value);
+            }
+
+            public void WriteSmallVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
+            {
+                WriteField(name, (int) value.ListedAddress);
 
                 if (value.IsValid)
                     viewWriter.WriteGlobal(value.Value);
@@ -149,6 +221,13 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
+#if PEFAST
+            public void WriteAnsiNullTerminatedField(string name, AnsiString value)
+            {
+                WriteFieldInternal(name, value, value.Length + 1);
+            }
+#endif
+
             public void WriteUTF8NullTerminatedField(string name, string value)
             {
                 WriteFieldInternal(name, value, value.Length + 1);
@@ -159,14 +238,20 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, (value.Length + 1) * 2);
             }
 
-            public void WriteNullPaddedUTF8Field(string name, string value, int length)
-            {
-                WriteFieldInternal(name, value, length);
-            }
+            public void WriteNullPaddedUTF8Field(string name, string value, int length) => WriteFieldInternal(name, value, length);
+
+#if PEFAST
+            public void WriteNullPaddedUTF8Field(string name, Utf8String value, int length) => WriteFieldInternal(name, value, length);
+#endif
 
             public void WriteUTF16Field(string name, string value, int numChars)
             {
                 WriteFieldInternal(name, value, numChars * 2);
+            }
+
+            public void WriteUTF16Field(string name, ReadOnlySpan<char> value, int numChars)
+            {
+                WriteFieldInternal(name, value.ToString(), numChars * 2);
             }
 
             #endregion
@@ -200,6 +285,24 @@ namespace PESpy.View
                 if (value.IsValid && value.ListedOffset != 0)
                     viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
             }
+
+            public void WriteVAAnsiNullTerminatedField(string name, VA<string> value)
+            {
+                WriteField(name, value.ListedAddress);
+
+                if (value.IsValid && value.ListedAddress != 0)
+                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+            }
+
+#if PEFAST
+            public void WriteRVAAnsiNullTerminatedField(string name, RVA<AnsiString> value)
+            {
+                WriteField(name, (int) value.ListedOffset);
+
+                if (value.IsValid && value.ListedOffset != 0)
+                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+            }
+#endif
 
             public void WriteRVAField<T>(string name, RVA<T> value) where T : IViewable, IValue
             {

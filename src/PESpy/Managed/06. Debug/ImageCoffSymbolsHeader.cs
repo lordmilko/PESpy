@@ -15,6 +15,7 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if !PEFAST
         internal ImageCoffSymbolsHeader(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -57,5 +58,6 @@ namespace PESpy
                 Debug.Assert(false);
             }
         }
+#endif
     }
 }

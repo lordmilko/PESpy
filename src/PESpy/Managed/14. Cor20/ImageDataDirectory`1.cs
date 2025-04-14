@@ -32,6 +32,8 @@ namespace PESpy
                 return data;
             }
         }
+#else
+        public T Data => throw new System.NotImplementedException();
 #endif
 
         public RawOffset Offset { get; }

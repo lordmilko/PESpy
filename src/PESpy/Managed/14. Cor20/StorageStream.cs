@@ -63,7 +63,8 @@ namespace PESpy
 
                 //II.24.2.3
                 case StringPoolStream: //#Strings
-                    Data = new StringHeap(ref reader, Size);
+                    Data = new StringHeap(reader, Size);
+                    callback.NotifyStringPool((StringHeap) Data);
                     break;
 
                 //II.24.4
@@ -83,6 +84,22 @@ namespace PESpy
                     Data = new GuidHeap(reader, Size);
                     callback.NotifyGuidPool((GuidHeap) Data);
                     break;
+
+                case PdbStream: //#Pdb
+                    Data = new PdbHeap(reader, Size);
+                    callback.NotifyPdb((PdbHeap) Data);
+                    break;
+
+                case "#!": //I've seen this header in mscorlib.ni but nobody knows how to handle it
+                    throw new NotImplementedException("Need to parse #1 stream as bytes");
+
+                default:
+                    throw new NotImplementedException($"Don't know how to parse stream '{Name}'");
+            }
+
+            reader.Seek(oldPosition);
+        }
+
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct(nameof(STORAGESTREAM), this, ViewKind.StorageStream);
@@ -150,6 +167,19 @@ namespace PESpy
 
                     break;
                 }
+
+                case "#!":
+                {
+                    var data = (ByteBlob) Data;
+
+                    throw new NotImplementedException($"Serializing stream '{Name}' is not implemented");
+                }
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle serializing stream '{Name}'");
+            }
+        }
+
         public override string ToString()
         {
             return Name;
