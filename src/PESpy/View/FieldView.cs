@@ -44,7 +44,7 @@ namespace PESpy.View
 
         public void Accept(PEViewVisitor visitor) => visitor.VisitField(this);
 
-        (IView first, IView second) ISplittableView.Split(int secondStart, int cutoff)
+        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
         {
             var currentEnd = Offset + Size;
             var diff = currentEnd - cutoff;
@@ -64,7 +64,7 @@ namespace PESpy.View
                 first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff);
             }
 
-            var second = new SplitFieldView<TValue>(secondStart, Name, Value, diff);
+            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff);
             second.Previous = first;
             first.Next = second;
 

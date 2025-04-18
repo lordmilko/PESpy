@@ -9,9 +9,6 @@ using PESpy.View;
 using RawOffset = System.Int32;
 using RVA = System.Int32;
 #endif
-#if !PEFAST
-using AnsiString = System.String;
-#endif
 
 namespace PESpy
 {
@@ -662,7 +659,11 @@ namespace PESpy
                 //Function ordinals are not guaranteed to be in order, so we need to store them in a map. While we're at it,
                 //we may as well map each ordinal to the name of the function it corresponds to (rather than just mapping the ordinal
                 //to the index at which it resides)
+#if PEFAST
                 var ordinalToNameAddressMap = new Dictionary<int, RVA<AnsiString>>();
+#else
+                var ordinalToNameAddressMap = new Dictionary<int, RVA<string>>();
+#endif
 
                 for (var i = 0; i < AddressOfNameOrdinals.Value.Length; i++)
                     ordinalToNameAddressMap.Add(AddressOfNameOrdinals.Value[i], AddressOfNames.Value[i]);
@@ -675,7 +676,11 @@ namespace PESpy
                     var functionAddressOrName = AddressOfFunctions.Value[i];
                     var ordinalPlusBase = i + Base;
 
+#if PEFAST
                     AnsiString exportName = default;
+#else
+                    string exportName = default;
+#endif
 
                     if (ordinalToNameAddressMap.TryGetValue(i, out var nameValue) && nameValue.IsValid)
                         exportName = nameValue.Value;
@@ -786,7 +791,11 @@ namespace PESpy
             }
         }
 
+#if PEFAST
         private bool TryProcessExportAtIndex(AnsiString name, int i, out Export export)
+#else
+        private bool TryProcessExportAtIndex(string name, int i, out Export export)
+#endif
         {
             export = default;
 
@@ -897,7 +906,11 @@ namespace PESpy
         /// </summary>
         public readonly struct ForwardOrAddress
         {
+#if PEFAST
             public RVA<AnsiString> ForwardName { get; }
+#else
+            public RVA<string> ForwardName { get; }
+#endif
 
             /// <summary>
             /// Gets the relative virtual address of the function that this forwarder points to.
@@ -906,7 +919,11 @@ namespace PESpy
 
             public bool IsForward { get; }
 
+#if PEFAST
             public ForwardOrAddress(in RVA<AnsiString> name)
+#else
+            public ForwardOrAddress(in RVA<string> name)
+#endif
             {
                 ForwardName = name;
                 Address = (RVA) 0;
@@ -957,7 +974,11 @@ namespace PESpy
                 }
             }
 
+#if PEFAST
             public AnsiString? Name { get; }
+#else
+            public string? Name { get; }
+#endif
 
             public int Index { get; }
 
@@ -969,7 +990,11 @@ namespace PESpy
 
             public int Ordinal { get; }
 
+#if PEFAST
             public Export(AnsiString? name, int index, ForwardOrAddress nameOrAddress, int ordinal)
+#else
+            public Export(string? name, int index, ForwardOrAddress nameOrAddress, int ordinal)
+#endif
             {
                 Name = name;
                 Index = index;

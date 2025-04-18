@@ -481,6 +481,30 @@ namespace PESpy.View
         #endregion
 
         //PDB
-        Page
+
+        Page,
+
+        //MSF
+        BigMsfHdr,
+        SI_PERSIST,
+        StreamTable,
+        SI,
+
+        //snPDB
+        PDBStream70,
+        StreamNameTable,
+
+        //snDbi
+        NewDbiHdr,
+        Modi60Persist,
+        ECInfo,
+        SC,
+        SectionContribsV60,
+        OMFSegMap,
+        OMFSegMapDesc,
+        FileInfo,
+        NameTable,
+        VHdr,
+        DbgDataHdr,
     }
 }

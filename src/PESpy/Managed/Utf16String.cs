@@ -50,7 +50,7 @@ namespace PESpy
 
         public override bool Equals(object obj)
         {
-            if (obj is AnsiString p)
+            if (obj is Utf16String p)
                 return Equals(p);
 
             if (obj is string s)

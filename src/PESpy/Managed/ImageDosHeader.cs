@@ -12,7 +12,7 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageDosHeader : IValue, IViewable
     {
-        public const ushort DosSignature = 0x5A4D;     //MZ
+        public const ushort IMAGE_DOS_SIGNATURE = 0x5A4D;     //MZ
 
         /// <summary>
         /// Magic number
@@ -20,7 +20,7 @@ namespace PESpy
 #if PEFAST
         public short Magic => chunk.PeekInt16(0);
 #else
-        public short Magic { get; init; }
+        public ushort Magic { get; init; }
 #endif
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace PESpy
 #endif
 
         internal const int StructSize =
-            sizeof(short) +      //Magic
+            sizeof(ushort) +     //Magic
             sizeof(short) +      //BytesOnLastPageOfFile
             sizeof(short) +      //PagesInFile
             sizeof(short) +      //Relocations
@@ -226,10 +226,10 @@ namespace PESpy
 
             reader.FillBuffer(StructSize);
 
-            Magic = reader.ReadInt16();
+            Magic = reader.ReadUInt16();
             BytesOnLastPageOfFile = reader.ReadInt16();
 
-            if (Magic != DosSignature)
+            if (Magic != IMAGE_DOS_SIGNATURE)
             {
                 if (Magic != 0 || BytesOnLastPageOfFile != -1)
                 {

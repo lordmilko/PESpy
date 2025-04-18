@@ -102,8 +102,13 @@ namespace PESpy.Tests
 
             var valueView = (IValueView) view;
 
+            var actualValue = valueView.Value;
+
+            if (actualValue is AnsiString s)
+                actualValue = s.ToString();
+
             Assert.AreEqual(offset, view.Offset);
-            Assert.AreEqual(value, valueView.Value);
+            Assert.AreEqual(value, actualValue);
         }
 
         public static void VerifyByteBlob(this IView view, int offset, byte[] value)
@@ -117,6 +122,33 @@ namespace PESpy.Tests
 
             for (var i = 0; i < value.Length; i++)
                 Assert.AreEqual(value[i], byteView.Bytes[i]);
+        }
+
+        public static void VerifyLogicalRegion(this IView view, string name, int offset, int size, params Action<IView>[] verifyChildren)
+        {
+            Assert.IsInstanceOfType(view, typeof(LogicalRegionView));
+
+            var logicalRegion = (LogicalRegionView) view;
+
+            Assert.AreEqual(name, logicalRegion.Name, "Name was incorrect");
+            Assert.AreEqual(offset, logicalRegion.Offset, $"Offset of {name} was incorrect. Also size is {logicalRegion.Size}");
+            Assert.AreEqual(size, logicalRegion.Size, $"Size of {name} was incorrect");
+
+            Assert.AreEqual(verifyChildren.Length, logicalRegion.Children.Length, "Number of LogicalRegionView children was incorrect");
+
+            for (var i = 0; i < logicalRegion.Children.Length; i++)
+                verifyChildren[i](logicalRegion.Children[i]);
+        }
+
+        public static void VerifyLogicalRegionIgnoreChildren(this IView view, string name, int offset, int size)
+        {
+            Assert.IsInstanceOfType(view, typeof(LogicalRegionView));
+
+            var logicalRegion = (LogicalRegionView) view;
+
+            Assert.AreEqual(name, logicalRegion.Name, "Name was incorrect");
+            Assert.AreEqual(offset, logicalRegion.Offset, $"Offset of {name} was incorrect. Also size is {logicalRegion.Size}");
+            Assert.AreEqual(size, logicalRegion.Size, $"Size of {name} was incorrect");
         }
     }
 }

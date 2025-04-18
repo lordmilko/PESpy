@@ -23,7 +23,6 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(" | ");
             builder.Append(view.Name);
             builder.Append(" = ");
             builder.Append(view.Value);
@@ -85,6 +84,9 @@ namespace PESpy.View
                         builder.Append(view.Value);
                 }
             }
+
+            if (view is SplitFieldView<T>)
+                builder.Append(" (Split)");
 
             return builder.ToString();
         }

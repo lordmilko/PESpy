@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
 namespace PESpy
@@ -13,6 +12,11 @@ namespace PESpy
         public int AbsoluteOffset => block.RemoteStartOffset + BlockOffset;
 
         public byte* Pointer => block.LocalPointer + BlockOffset;
+
+        /// <summary>
+        /// Gets the number of bytes remaining in this chunk's underlying block relative to the <see cref="BlockOffset"/> of this chunk.
+        /// </summary>
+        public int Remaining => block.Length - BlockOffset;
 
         public PEFile PEFile => block.Provider.PEFile;
 
@@ -59,7 +63,10 @@ namespace PESpy
         public AnsiString PeekAnsiNullTerminatedString(int offset) => new AnsiString(Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<char> PeekUnicodeFixedLength(int numChars) => new ReadOnlySpan<char>(Pointer + AbsoluteOffset, numChars);
+        public FixedAnsiString PeekAnsiFixedLength(int offset, int numChars) => new FixedAnsiString(Pointer + offset, numChars);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FixedUtf16String PeekUtf16FixedLength(int offset, int numChars) => new FixedUtf16String((char*) (Pointer + offset), numChars);
 
         internal MemoryChunk Slice(int offset) => new MemoryChunk(block, this.BlockOffset + offset);
 
@@ -72,4 +79,3 @@ namespace PESpy
         }
     }
 }
-#endif

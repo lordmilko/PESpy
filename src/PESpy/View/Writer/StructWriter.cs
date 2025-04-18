@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using Enum = System.Enum;
+using SN = PESpy.PDB.SN;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -72,6 +73,18 @@ namespace PESpy.View
             public void WriteField(string name, ulong value) =>
                 WriteFieldInternal(name, value, sizeof(long));
 
+            public void WriteField(string name, PN value) =>
+                WriteFieldInternal(name, value, sizeof(uint));
+
+            public void WriteField(string name, SN value) =>
+                WriteFieldInternal(name, value, sizeof(ushort));
+
+            public void WriteField(string name, IMOD value) =>
+                WriteFieldInternal(name, value, sizeof(ushort));
+
+            public void WriteField(string name, ISECT value) =>
+                WriteFieldInternal(name, value, sizeof(ushort));
+
             #endregion
             #region Enum
 
@@ -106,6 +119,14 @@ namespace PESpy.View
                     return;
 
                 WriteFieldInternal(name, value, value.Length * 2);
+            }
+
+            public void WriteField(string name, Span<int> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value.ToArray(), value.Length * 4);
             }
 
             /// <inheritdoc cref="WriteField(string, short)"/>
@@ -221,12 +242,10 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
-#if PEFAST
             public void WriteAnsiNullTerminatedField(string name, AnsiString value)
             {
                 WriteFieldInternal(name, value, value.Length + 1);
             }
-#endif
 
             public void WriteUTF8NullTerminatedField(string name, string value)
             {
@@ -249,7 +268,7 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, numChars * 2);
             }
 
-            public void WriteUTF16Field(string name, ReadOnlySpan<char> value, int numChars)
+            public void WriteUTF16Field(string name, FixedUtf16String value, int numChars)
             {
                 WriteFieldInternal(name, value.ToString(), numChars * 2);
             }
@@ -366,6 +385,20 @@ namespace PESpy.View
                     currentOffset += fields[i].Size;
 
                 viewWriter.Pop();
+            }
+
+            public void WriteInlineAnsiNullTerminated(RawValue<string> value)
+            {
+                var size = value.Value.Length + 1;
+                fields.Add(new ValueView<string>(value.Offset, value.Value, size, ViewKind.Value));
+                currentOffset += size;
+            }
+
+            public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)
+            {
+                var size = value.Value.Length + 1;
+                fields.Add(new ValueView<AnsiString>(value.Offset, value.Value, size, ViewKind.Value));
+                currentOffset += size;
             }
 
             public BitFieldWriter WriteBitFields<TSize>()

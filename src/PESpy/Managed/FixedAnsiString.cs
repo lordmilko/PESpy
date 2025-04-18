@@ -1,21 +1,15 @@
-﻿using System;
-using System.Diagnostics;
-
-namespace PESpy
+﻿namespace PESpy
 {
-    /// <summary>
-    /// A pointer to a null-terminated, constant, ANSI character string.
-    /// </summary>
-    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-    public readonly unsafe struct AnsiString : IEquatable<AnsiString>, IEquatable<string>
+    public readonly unsafe struct FixedAnsiString
     {
         public readonly byte* Value;
+        public readonly int Length;
 
-        public AnsiString(byte* value) => this.Value = value;
-
-        public static implicit operator byte*(AnsiString value) => value.Value;
-
-        public static explicit operator AnsiString(byte* value) => new AnsiString(value);
+        public FixedAnsiString(byte* value, int length)
+        {
+            Value = value;
+            Length = length;
+        }
 
         public bool Equals(AnsiString other) => this.Value == other.Value;
 
@@ -41,15 +35,15 @@ namespace PESpy
             return true;
         }
 
-        public static bool operator ==(AnsiString left, string right) => left.Equals(right);
-        public static bool operator !=(AnsiString left, string right) => left.Equals(right);
+        public static bool operator ==(FixedAnsiString left, string right) => left.Equals(right);
+        public static bool operator !=(FixedAnsiString left, string right) => left.Equals(right);
 
-        public static bool operator ==(string left, AnsiString right) => right.Equals(left);
-        public static bool operator !=(string left, AnsiString right) => right.Equals(left);
+        public static bool operator ==(string left, FixedAnsiString right) => right.Equals(left);
+        public static bool operator !=(string left, FixedAnsiString right) => right.Equals(left);
 
         public override bool Equals(object obj)
         {
-            if (obj is AnsiString p)
+            if (obj is FixedAnsiString p)
                 return Equals(p);
 
             if (obj is string s)
@@ -59,22 +53,6 @@ namespace PESpy
         }
 
         public override int GetHashCode() => unchecked((int) this.Value);
-
-        public int Length
-        {
-            get
-            {
-                byte* p = this.Value;
-
-                if (p is null)
-                    return 0;
-
-                while (*p != 0)
-                    p++;
-
-                return checked((int) (p - this.Value));
-            }
-        }
 
         /// <summary>
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.

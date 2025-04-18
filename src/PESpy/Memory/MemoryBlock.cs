@@ -19,7 +19,7 @@ namespace PESpy
 
         //RemoteStartOffset and RemoteEndOffset are often needed in Demand(),
         //but we don't currently use Length anywhere performance critical, so we make this a computed property
-        public int Length => RemoteEndOffset - RemoteStartOffset;
+        public virtual int Length => RemoteEndOffset - RemoteStartOffset;
 
         //Gets the size of a pointer in the context of the PE File (4 or 8 bytes).
         //We don't need to know the pointer size? when we're reading a pointer, we still either do ReadInt32 or ReadInt64

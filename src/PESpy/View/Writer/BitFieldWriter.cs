@@ -26,6 +26,9 @@ namespace PESpy.View
             public void WriteField(string name, short value, int bits) =>
                 WriteFieldInternal(name, value, bits);
 
+            public void WriteField(string name, ushort value, int bits) =>
+                WriteFieldInternal(name, value, bits);
+
             public void WriteField(string name, int value, int bits) =>
                 WriteFieldInternal(name, value, bits);
 

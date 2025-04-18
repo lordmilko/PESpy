@@ -19,7 +19,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public ReadOnlySpan<char> NameString => chunk.PeekUnicodeFixedLength(2);
+        public FixedUtf16String NameString => chunk.PeekUtf16FixedLength(2, Length);
 #else
         public string NameString { get; init; }
 #endif

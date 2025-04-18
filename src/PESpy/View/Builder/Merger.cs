@@ -228,21 +228,33 @@ namespace PESpy.View.Builder
                          * what our index is within that stream, and then what the next page after us is */
 
                         var pdbMerger = (PdbMerger) this;
-                        var currentPage = (PN) nextValue.Offset / pdbMerger.pdbFile.Header.PageSize; //We want the current page, so don't divide up
+                        var currentPage = (PN) nextValue.Offset / pdbMerger.pdbFile.MsfHeader.PageSize; //We want the current page, so don't divide up
                         var siIndex = pdbMerger.pageNumberToSIIndex[currentPage];
-                        ref var si = ref pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
+
+                        PN[] siPageList;
+
+                        if (siIndex == -1)
+                        {
+                            //For the pages of the stream table itself, we list these as belonging to "index 0"
+                            siPageList = pdbMerger.pdbFile.StreamTableLocation.PageList;
+                        }
+                        else
+                        {
+                            ref var si = ref pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
+                            siPageList = si.PageList;
+                        }
 
                         var nextPageFound = false;
 
                         var secondStartOffset = 0;
 
-                        for (var i = 0; i < si.PageList.Length; i++)
+                        for (var i = 0; i < siPageList.Length; i++)
                         {
-                            if (si.PageList[i] == currentPage)
+                            if (siPageList[i] == currentPage)
                             {
                                 //The next page in the list is the one that our split value begins from
-                                var nextPage = si.PageList[i + 1];
-                                secondStartOffset = nextPage * pdbMerger.pdbFile.Header.PageSize;
+                                var nextPage = siPageList[i + 1];
+                                secondStartOffset = nextPage * pdbMerger.pdbFile.MsfHeader.PageSize;
                                 nextPageFound = true;
                                 break;
                             }

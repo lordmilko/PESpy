@@ -42,8 +42,9 @@ namespace PESpy.View
 
     internal interface ISplittableView : IView
     {
-        //Split all elements of this value whose end address is greater than "cutoff"
-        (IView first, IView second) Split(int secondStart, int cutoff);
+        //Split all elements of this value whose end address is greater than "cutoff".
+        //newBaseOffset may be the same as cutoff, or if the second half is in a completely different page, newBaseOffset may be something wildly different
+        (IView first, IView second) Split(int newBaseOffset, int cutoff);
 
         IView WithOffset(int newOffset);
     }

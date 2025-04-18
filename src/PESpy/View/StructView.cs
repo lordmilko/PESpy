@@ -48,7 +48,7 @@ namespace PESpy.View
             Kind = kind;
         }
 
-        (IView first, IView second) ISplittableView.Split(int secondStart, int cutoff)
+        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
         {
             var currentEnd = Offset + Size;
             var diff = currentEnd - cutoff;
@@ -65,15 +65,19 @@ namespace PESpy.View
                     IView? firstChild;
                     IView secondChild;
 
+                    var numLeftChildren = i + 1;
+                    var numRightChildren = Children.Length - i;
+
                     if (child.Offset == cutoff)
                     {
                         //This child starts exactly over the edge of the cutoff boundary. We don't need to split it,
                         //we can just move it into the second half
+                        numLeftChildren--;
                         firstChild = null;
                         secondChild = child;
                     }
                     else
-                        (firstChild, secondChild) = child.Split(secondStart, cutoff);
+                        (firstChild, secondChild) = child.Split(newBaseOffset, cutoff);
 
                     SplitStructView first;
                     var originalChildren = Children;
@@ -87,19 +91,20 @@ namespace PESpy.View
 
                         if (firstChild == null)
                         {
-                            newChildren = new IView[i];
-                            Array.Copy(Children, newChildren, i);
+                            Debug.Assert(numLeftChildren > 0);
+                            newChildren = new IView[numLeftChildren];
+                            Array.Copy(Children, newChildren, numLeftChildren);
                         }
                         else
                         {
-                            newChildren = new IView[i];
+                            newChildren = new IView[numLeftChildren];
 
-                            Array.Copy(Children, newChildren, i - 1);
-                            newChildren[i - 1] = firstChild;
+                            Array.Copy(Children, newChildren, numLeftChildren - 1);
+                            newChildren[numLeftChildren - 1] = firstChild;
                         }
                         
                         Children = newChildren;
-                        Size = Size - diff;
+                        Size -= diff;
                     }
                     else
                     {
@@ -109,14 +114,14 @@ namespace PESpy.View
 
                         if (firstChild == null)
                         {
-                            firstChildren = new IView[i];
-                            Array.Copy(Children, firstChildren, i);
+                            firstChildren = new IView[numLeftChildren];
+                            Array.Copy(Children, firstChildren, numLeftChildren);
                         }
                         else
                         {
-                            firstChildren = new IView[i];
-                            Array.Copy(Children, firstChildren, i - 1); //Don't need to adjust the offsets of our children, since they still belong to the first half with the original offset
-                            firstChildren[i - 1] = firstChild;
+                            firstChildren = new IView[numLeftChildren];
+                            Array.Copy(Children, firstChildren, numLeftChildren - 1); //Don't need to adjust the offsets of our children, since they still belong to the first half with the original offset
+                            firstChildren[numLeftChildren - 1] = firstChild;
                         }
 
                         first = new SplitStructView(Offset, Name, firstChildren, Size - diff, Kind);
@@ -124,18 +129,16 @@ namespace PESpy.View
 
                     //Create second
 
-                    var remaining = originalChildren.Length - i;
+                    Debug.Assert(numRightChildren >= 1); //There should be at least 1 item in the new struct (the child we split out)
 
-                    Debug.Assert(remaining >= 1); //There should be at least 1 item in the new struct (the child we split out)
-
-                    var secondChildren = new IView[remaining];
+                    var secondChildren = new IView[numRightChildren];
                     secondChildren[0] = secondChild;
 
-                    if (remaining > 1)
+                    if (numRightChildren > 1)
                     {
-                        var runningOffset = secondStart + secondChild.Size;
+                        var runningOffset = newBaseOffset + secondChild.Size;
 
-                        for (var j = 1; j < remaining; j++)
+                        for (var j = 1; j < numRightChildren; j++)
                         {
                             var newSibling = ((ISplittableView) originalChildren[i + j]).WithOffset(runningOffset);
                             secondChildren[j] = newSibling;
@@ -143,7 +146,7 @@ namespace PESpy.View
                         }
                     }
 
-                    var second = new SplitStructView(secondStart, Name, secondChildren, diff, Kind);
+                    var second = new SplitStructView(newBaseOffset, Name, secondChildren, diff, Kind);
 
                     //todo: we're not setting next and previous?
 
