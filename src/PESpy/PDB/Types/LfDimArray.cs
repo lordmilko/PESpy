@@ -1,0 +1,29 @@
+using System.Diagnostics;
+using ClrDebug.PDB;
+
+namespace PESpy.PDB
+{
+    /// <summary>
+    /// Represents the <see cref="lfDimArray"/> structure.
+    /// </summary>
+    public readonly unsafe struct LfDimArray
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly lfDimArray* value;
+
+        public ushort typlen => *(ushort*) ((byte*) value - 2);
+
+        public LEAF_ENUM_e leaf => value->leaf;
+
+        public CV_typ_t utype => value->utype;
+
+        public CV_typ_t diminfo => value->diminfo;
+
+        public FixedUtf8String name => TypType.ReadString(value->name);
+
+        internal LfDimArray(lfDimArray* value)
+        {
+            this.value = value;
+        }
+    }
+}

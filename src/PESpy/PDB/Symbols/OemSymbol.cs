@@ -16,7 +16,7 @@ namespace PESpy.PDB
 
         public SYM_ENUM_e rectyp => value->rectyp;
 
-        public Guid idOem => *(Guid*) value->idOem;
+        public Guid idOem => value->idOem;
 
         public CV_typ_t typind => value->typind;
 

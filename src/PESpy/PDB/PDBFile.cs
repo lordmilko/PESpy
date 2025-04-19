@@ -111,6 +111,25 @@ namespace PESpy.PDB
         }
 
         #endregion
+        #region snTpi (2)
+
+        private MsfStream.TPI? tpi;
+
+        public MsfStream.TPI? TPI
+        {
+            get
+            {
+                if (tpi == null)
+                {
+                    if (TryGetStreamChunk(SN.TPI, out var chunk))
+                        tpi = new MsfStream.TPI(chunk);
+                }
+
+                return tpi;
+            }
+        }
+
+        #endregion
         #region snDbi (3)
 
         private MsfStream.DBI? dbi;
@@ -166,6 +185,7 @@ namespace PESpy.PDB
 #if DEBUG
             _ = PreviousStreamTable;
             _ = PDB;
+            _ = TPI;
             _ = DBI;
 #endif
         }
@@ -259,7 +279,7 @@ namespace PESpy.PDB
             //We have now read the minimum amount of info that must exist in a valid PDB file. All other sections like PDB, DBI, etc are completely optional
         }
 
-        private bool TryGetStreamChunk(SN sn, out MemoryChunk chunk)
+        internal bool TryGetStreamChunk(SN sn, out MemoryChunk chunk)
         {
             if (sn == SN.Nil)
             {
