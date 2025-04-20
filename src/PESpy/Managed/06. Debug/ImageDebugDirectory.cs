@@ -105,7 +105,7 @@ namespace PESpy
                 {
                     //ImageDebugDirectory stores both AddressOfRawData and PointerToRawData. This ultimately doesn't help us however, as we still need to know
                     //which MemoryBlock should own the corresponding memory
-                    if (chunk.PEFile.TryGetValueChunkFromSection(AddressOfRawData, out var valueChunk))
+                    if (chunk.PEFile().TryGetValueChunkFromSection(AddressOfRawData, out var valueChunk))
                     {
                         switch (Type)
                         {

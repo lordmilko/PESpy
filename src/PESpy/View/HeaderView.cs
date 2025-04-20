@@ -21,9 +21,9 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public HeaderView(int size, IView[] children)
+        public HeaderView(int size, IView[] children, int offset = 0)
         {
-            Offset = (RawOffset) 0;
+            Offset = (RawOffset) offset;
             Size = size;
             Children = children;
         }

@@ -18,10 +18,8 @@ namespace PESpy
         /// </summary>
         public int Remaining => block.Length - BlockOffset;
 
-        public PEFile PEFile => block.Provider.PEFile;
-
         //length is the length remaining in the MemoryBlock after subtracting our offset
-        private readonly MemoryBlock block;
+        internal readonly MemoryBlock block;
 
         public bool Is32Bit => block.Is32Bit;
         public int PointerSize => block.Is32Bit ? 4 : 8;
@@ -66,9 +64,18 @@ namespace PESpy
         public FixedAnsiString PeekAnsiFixedLength(int offset, int numChars) => new FixedAnsiString(Pointer + offset, numChars);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FixedUtf8String PeekUtf8FixedLength(int offset, int numChars) => new FixedUtf8String(Pointer + offset, numChars);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FixedUtf16String PeekUtf16FixedLength(int offset, int numChars) => new FixedUtf16String((char*) (Pointer + offset), numChars);
 
-        internal MemoryChunk Slice(int offset) => new MemoryChunk(block, this.BlockOffset + offset);
+        internal MemoryChunk Slice(int offset)
+        {
+            if ((uint) offset > (uint) Remaining)
+                throw new InvalidOperationException("Attempted to slice beyond the end of a block");
+
+            return new MemoryChunk(block, this.BlockOffset + offset);
+        }
 
         internal void Demand(int rva, int length) => block.Demand(rva, length);
 

@@ -50,8 +50,19 @@ namespace PESpy
             {
                 var offset = chunk.PeekInt32(8);
 
-                if (chunk.PEFile.TryGetValueChunkFromSectionOrHeader(offset, out var symbolTableChunk))
-                    return new VA<CoffSymbolTable>(offset, offset, new CoffSymbolTable(symbolTableChunk, NumberOfSymbols));
+                if (offset != 0)
+                {
+                    if (chunk.block is GlobalMemoryBlock b)
+                    {
+                        //obj file
+                        return new VA<CoffSymbolTable>(offset, offset, new CoffSymbolTable(new MemoryChunk(b, offset), NumberOfSymbols));
+                    }
+                    else
+                    {
+                        if (chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out var symbolTableChunk))
+                            return new VA<CoffSymbolTable>(offset, offset, new CoffSymbolTable(symbolTableChunk, NumberOfSymbols));
+                    }
+                }
 
                 return new VA<CoffSymbolTable>(offset);
             }

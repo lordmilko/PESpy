@@ -10,7 +10,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A4C13A3D-C903-4119-A999-DF030E1EB96D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.Benchmarks", "src\PESpy.Benchmarks\PESpy.Benchmarks.csproj", "{803D83FB-4BC1-424D-968C-BD3C95CA5451}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +29,10 @@ Global
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -20,6 +20,8 @@ namespace PESpy.View.Builder
             this.viewDisassembler = viewDisassembler;
         }
 
+        internal long GetInputLength() => ((StreamFileReader) reader).GetStreamUnsafe().Length;
+
         internal IView[] ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
         {
             var offset = currentRVA;

@@ -25,11 +25,34 @@ namespace PESpy.PDB
 
             public DbgDataHdr? DbgHdr { get; }
 
-            public int Offset { get; }
+            private SymType[]? symbols;
+
+            public unsafe SymType[]? Symbols
+            {
+                get
+                {
+                    if (symbols == null)
+                    {
+                        var pdbFile = chunk.PDBFile();
+
+                        if (pdbFile.TryGetStreamChunk(DbiHdr.snSymRecs, out var symRecChunk))
+                        {
+                            Debug.Assert(symRecChunk.BlockOffset == 0);
+                            symbols = ReadSymbols(symRecChunk.Pointer, symRecChunk.Remaining);
+                        }
+                    }
+
+                    return symbols;
+                }
+            }
+
+            private readonly MemoryChunk chunk;
+
+            public int Offset => chunk.AbsoluteOffset;
 
             internal DBI(in MemoryChunk chunk)
             {
-                Offset = chunk.AbsoluteOffset;
+                this.chunk = chunk;
 
                 dbiHdr = new NewDBIHdr(chunk);
 
@@ -118,6 +141,33 @@ namespace PESpy.PDB
                 {
                     DbgHdr = new DbgDataHdr(dataChunk, dbiHdr.cbDbgHdr);
                 }
+
+#if DEBUG
+                _ = Symbols;
+#endif
+            }
+
+            internal static unsafe SymType[] ReadSymbols(byte* ptr, int length)
+            {
+                var end = ptr + length;
+
+                var results = new List<SymType>();
+
+                while (ptr < end)
+                {
+                    SymType symType = (SYMTYPE*) ptr;
+
+#if DEBUG
+                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
+                    SymTypeProxy.GetValue(symType);
+#endif
+
+                    results.Add(symType);
+
+                    ptr += symType.reclen + 2;
+                }
+
+                return results.ToArray();
             }
 
             void IViewable.WriteView(ViewWriter writer)

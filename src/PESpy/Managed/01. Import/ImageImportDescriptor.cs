@@ -178,7 +178,6 @@ namespace PESpy
 
             FirstThunk = ParseThunks(firstThunk, reader, peFile, iatCache, true);
         }
-#endif
 
         internal static RVA<ImageThunkData[]> ParseThunks(RVA rva, IFileReader reader, PEFile peFile, Dictionary<RawOffset, ImageThunkData>? iatCache, bool isIAT)
         {
@@ -213,6 +212,7 @@ namespace PESpy
 
             return new RVA<ImageThunkData[]>(rva, offset, results.ToArray());
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

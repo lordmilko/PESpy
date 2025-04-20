@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ClrDebug;
 using ClrDebug.DIA;
 using PESpy.Ecma335;
 using PESpy.View.Builder;
@@ -8,11 +9,18 @@ using static System.Collections.Specialized.BitVector32;
 
 namespace PESpy.View
 {
-    public class PEViewWriter : ViewWriter
+    interface IMachineWriter
+    {
+        IMAGE_FILE_MACHINE Machine { get; }
+    }
+
+    public class PEViewWriter : ViewWriter, IMachineWriter
     {
         private PEFile peFile;
 
         public bool Is32Bit => peFile.OptionalHeader.Magic == PEMagic.PE32;
+
+        public IMAGE_FILE_MACHINE Machine => peFile.FileHeader.Machine;
 
         private MetadataReader metadataReader;
 

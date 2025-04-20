@@ -27,7 +27,7 @@ namespace PESpy
         /// An <see cref="ImageFileHeader"/> structure that specifies the file header.
         /// </summary>
 #if PEFAST
-        public readonly ImageFileHeader FileHeader;
+        public ImageFileHeader FileHeader { get; }
 #else
         public ImageFileHeader FileHeader { get; init; }
 #endif
@@ -36,7 +36,7 @@ namespace PESpy
         /// An <see cref="ImageOptionalHeader"/> structure that specifies the optional file header.
         /// </summary>
 #if PEFAST
-        public readonly ImageOptionalHeader OptionalHeader;
+        public ImageOptionalHeader OptionalHeader { get; }
 #else
         public ImageOptionalHeader OptionalHeader { get; init; }
 #endif

@@ -21,11 +21,16 @@ namespace PESpy.PDB
 
         public int signature => value->signature;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public FixedUtf8String Name => TypType.ReadString(value->name);
 
         internal LfPreComp(lfPreComp* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return Name.ToString();
         }
     }
 }

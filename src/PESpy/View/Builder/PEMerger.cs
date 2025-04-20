@@ -27,7 +27,7 @@ namespace PESpy.View.Builder
 
             var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
 
-            var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection((Int32) 0, (Int32) sizeOfHeaders, v => v, v => v));
+            var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v));
             results.Add(headerMetadata);
 
             var isVirtualMode = (mode == ViewMode.Default && peFile.IsLoadedImage) || mode == ViewMode.Virtual;
@@ -36,7 +36,7 @@ namespace PESpy.View.Builder
             {
                 //We are dealing with RVAs, so I think this whole thing is predicated on using virtual addresses
 
-                Int32 start;
+                int start;
                 int size;
 
                 Func<int, int> getRealOffset = null;

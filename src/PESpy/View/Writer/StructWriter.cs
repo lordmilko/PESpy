@@ -210,6 +210,14 @@ namespace PESpy.View
                     viewWriter.WriteGlobal(value.Value);
             }
 
+            public void WriteSmallVAPointerField<T>(string name, VA<T[]> value) where T : IViewable, IValue
+            {
+                WriteField(name, (int) value.ListedAddress);
+
+                if (value.IsValid)
+                    viewWriter.WriteGlobal(value.Value);
+            }
+
             public void WriteVAPointerField(string name, VA<long> value, ViewKind valueKind)
             {
                 WriteField(name, value.ListedAddress);
@@ -392,6 +400,12 @@ namespace PESpy.View
                 var size = value.Value.Length + 1;
                 fields.Add(new ValueView<string>(value.Offset, value.Value, size, ViewKind.Value));
                 currentOffset += size;
+            }
+
+            public void WriteInlineAnsiNullTerminated(RawValue<string>[] value)
+            {
+                foreach (var item in value)
+                    WriteInlineAnsiNullTerminated(item);
             }
 
             public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)

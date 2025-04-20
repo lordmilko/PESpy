@@ -34,7 +34,7 @@ namespace PESpy.PDB
         internal DefRangeSymHLSL(DEFRANGESYMHLSL* value)
         {
             this.value = value;
-            Debug.Assert(false, "Read data and multi-dimensional offsets of variable locations in register space");
+            Debug.Assert(false, "Use macros in DEFRANGESYMHLSL to read gaps, data and multi-dimensional offsets of variable locations in register space");
         }
     }
 }

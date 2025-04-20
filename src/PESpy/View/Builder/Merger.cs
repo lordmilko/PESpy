@@ -21,7 +21,7 @@ namespace PESpy.View.Builder
         private int nextDataDirectoryIndex;
         private IView nextValue;
         private DirectoryInfo? directory;
-        private Extension extension;
+        protected Extension extension;
         private RepeatingGroupMode repeatingGroupMode;
 
         private List<IView> masterList = new List<IView>();

@@ -15,6 +15,15 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->u.leaf;
 
-        
+        public CV_typ_t utype => value->u.utype;
+
+        public lfPointer.lfPointerAttr attr => value->u.attr;
+
+        public lfPointer.BaseInfo pbase => value->pbase;
+
+        internal LfPointer(lfPointer* value)
+        {
+            this.value = value;
+        }
     }
 }

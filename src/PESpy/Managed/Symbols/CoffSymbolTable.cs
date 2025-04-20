@@ -67,7 +67,11 @@ namespace PESpy
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            throw new NotImplementedException();
+            using var s = writer.CreateStruct("Coff Symbol Table", this, ViewKind.CoffSymbolTable);
+
+            s.WriteInline(Symbols);
+            s.WriteField("String Table Size", Strings.Length);
+            s.WriteInlineAnsiNullTerminated(Strings);
         }
     }
 }

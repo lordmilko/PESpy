@@ -17,11 +17,16 @@ namespace PESpy.PDB
 
         public CV_ItemId id => value->id;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public FixedUtf8String Name => TypType.ReadString(value->name);
 
         internal LfStringId(lfStringId* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return Name.ToString();
         }
     }
 }

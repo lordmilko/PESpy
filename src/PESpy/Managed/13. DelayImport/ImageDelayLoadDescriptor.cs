@@ -38,6 +38,7 @@ namespace PESpy
             sizeof(int) + //UnloadInformationTableRVA
             sizeof(int);  //TimeDateStamp
 
+#if !PEFAST
         internal ImageDelayLoadDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -166,6 +167,7 @@ namespace PESpy
 
             #endregion
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

@@ -19,11 +19,16 @@ namespace PESpy.PDB
 
         public CV_typ_t diminfo => value->diminfo;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public FixedUtf8String Name => TypType.ReadString(value->name);
 
         internal LfDimArray(lfDimArray* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return Name.ToString();
         }
     }
 }

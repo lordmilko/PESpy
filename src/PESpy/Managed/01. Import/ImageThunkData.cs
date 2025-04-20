@@ -40,6 +40,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
+#if !PEFAST
         internal ImageThunkData(IFileReader reader, PEFile peFile, bool is32Bit, bool isIAT)
         {
             Offset = (RawOffset) reader.Position;
@@ -131,6 +132,7 @@ namespace PESpy
                 Name = name;
             }
         }
+#endif
 
         private static int IMAGE_ORDINAL32(uint value) => (int)(value & 0xffff);
 

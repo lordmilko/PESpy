@@ -26,5 +26,10 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        public override string ToString()
+        {
+            return name.ToString();
+        }
     }
 }

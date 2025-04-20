@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Text;
+using PESpy.Native;
+using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct ImageSymbol : IValue
+    public readonly struct ImageSymbol : IValue, IViewable
     {
         //Special section numbers
         public const short IMAGE_SYM_UNDEFINED = 0;
@@ -63,9 +65,31 @@ namespace PESpy
                 AuxSymbols = Array.Empty<ImageAuxSymbol>();
         }
 
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(IMAGE_SYMBOL), this, ViewKind.ImageSymbol);
+
+            if (Name.ShortName == null)
+            {
+                s.WriteField("Name.Short", Name.Short);
+                s.WriteField("Name.Long", Name.Long);
+            }
+            else
+            {
+                s.WriteNullPaddedUTF8Field(nameof(Name), Name.ShortName, 8);
+            }
+
+            s.WriteField(nameof(Value), Value);
+            s.WriteField(nameof(SectionNumber), SectionNumber);
+            s.WriteField(nameof(Type), Type, sizeof(short));
+            s.WriteField(nameof(StorageClass), StorageClass, sizeof(byte));
+            s.WriteField(nameof(NumberOfAuxSymbols), NumberOfAuxSymbols);
+            s.WriteInline(AuxSymbols);
+        }
+
         public struct NameOrOffset
         {
-            public string ShortName { get; }
+            public string? ShortName { get; }
 
             public int Short { get; }
             public int Long { get; }

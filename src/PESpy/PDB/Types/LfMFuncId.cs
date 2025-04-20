@@ -19,11 +19,16 @@ namespace PESpy.PDB
 
         public CV_typ_t type => value->type;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public FixedUtf8String Name => TypType.ReadString(value->name);
 
         internal LfMFuncId(lfMFuncId* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return Name.ToString();
         }
     }
 }

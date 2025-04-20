@@ -11,7 +11,7 @@
             Length = length;
         }
 
-        public bool Equals(AnsiString other) => this.Value == other.Value;
+        public bool Equals(FixedAnsiString other) => this.Value == other.Value;
 
         public bool Equals(string? other)
         {

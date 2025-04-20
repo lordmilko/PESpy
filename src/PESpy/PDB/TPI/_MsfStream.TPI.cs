@@ -18,8 +18,12 @@ namespace PESpy.PDB
 
                 var ptr = chunk.Pointer + HDR.StructSize;
 
-                var end = ptr + hdr.cbGprec;
+                Types = ReadTypes(ptr, hdr.cbGprec);
+            }
 
+            internal static unsafe TypType[] ReadTypes(byte* ptr, int length)
+            {
+                var end = ptr + length;
                 var results = new List<TypType>();
 
                 while (ptr < end)
@@ -36,7 +40,7 @@ namespace PESpy.PDB
                     ptr += typType.len + 2;
                 }
 
-                Types = results.ToArray();
+                return results.ToArray();
             }
         }
     }

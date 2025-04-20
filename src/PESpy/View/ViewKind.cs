@@ -110,6 +110,16 @@ namespace PESpy.View
         /// </summary>
         ImageSectionHeader,
 
+        ImageRelocation,
+
+        CoffSymbolTable,
+
+        ImageSymbol,
+
+        ImageAuxSymbol,
+
+        AnonObjectHeader,
+
         #endregion
         #region Exports Table (0)
 

@@ -46,6 +46,9 @@
     <Reference Include="ClrDebug">
       <HintPath>..\..\..\ClrDebug\ClrDebug\bin\Debug\netstandard2.0\ClrDebug.dll</HintPath>
     </Reference>
+    <Reference Include="PInvoke">
+      <HintPath>..\..\..\PInvoke\src\PInvoke\bin\Debug\netstandard2.0\PInvoke.dll</HintPath>
+    </Reference>
     <Reference Include="SymHelp">
       <HintPath>..\..\..\SymHelp\src\SymHelp\bin\Debug\net472\SymHelp.dll</HintPath>
     </Reference>

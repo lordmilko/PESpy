@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RVA = System.Int32;
@@ -10,7 +11,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_SECTION_HEADER"/> structure.
     /// </summary>
-    public readonly struct ImageSectionHeader : IValue, IViewable //Stored in an array, so can be a struct
+    public struct ImageSectionHeader : IValue, IViewable //Stored in an array, so can be a struct
     {
         /// <summary>
         /// The name of the section.
@@ -75,9 +76,51 @@ namespace PESpy
         /// This is set to zero for PE images or if there are no relocations.
         /// </summary>
 #if PEFAST
-        public int PointerToRelocations => chunk.PeekInt32(24);
+        private VA<ImageRelocation[]>? pointerToRelocations;
+
+        public VA<ImageRelocation[]> PointerToRelocations
+        {
+            get
+            {
+                if (pointerToRelocations == null)
+                {
+                    var offset = chunk.PeekInt32(24);
+
+                    if (offset == 0)
+                    {
+                        pointerToRelocations = new VA<ImageRelocation[]>(offset);
+                    }
+                    else
+                    {
+                        MemoryChunk symbolTableChunk;
+
+                        if (chunk.block is GlobalMemoryBlock b)
+                        {
+                            symbolTableChunk = new MemoryChunk(b, offset);
+                        }
+                        else
+                        {
+                            if (!chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out symbolTableChunk))
+                            {
+                                pointerToRelocations = new VA<ImageRelocation[]>(offset);
+                                return pointerToRelocations.Value;
+                            }
+                        }
+
+                        var relocations = new ImageRelocation[NumberOfRelocations];
+
+                        for (var i = 0; i < NumberOfRelocations; i++)
+                            relocations[i] = new ImageRelocation(symbolTableChunk.Slice(i * ImageRelocation.StructSize));
+
+                        pointerToRelocations = new VA<ImageRelocation[]>(offset, offset, relocations);
+                    }
+                }
+
+                return pointerToRelocations.Value;
+            }
+        }
 #else
-        public int PointerToRelocations { get; init; }
+        public VA<ImageRelocation[]> PointerToRelocations { get; init; }
 #endif
 
         /// <summary>
@@ -144,6 +187,7 @@ namespace PESpy
 
         internal ImageSectionHeader(in MemoryChunk chunk)
         {
+            pointerToRelocations = default;
             this.chunk = chunk;
         }
 #else
@@ -158,17 +202,39 @@ namespace PESpy
             VirtualAddress = (RVA) reader.ReadInt32();
             SizeOfRawData = reader.ReadInt32();
             PointerToRawData = (RawOffset) reader.ReadInt32();
-            PointerToRelocations = reader.ReadInt32();
+            var pointerToRelocations = reader.ReadInt32();
             PointerToLineNumbers = reader.ReadInt32();
             NumberOfRelocations = reader.ReadInt16();
             NumberOfLineNumbers = reader.ReadInt16();
             Characteristics = (IMAGE_SCN) reader.ReadUInt32();
+
+            //@comp.id.Value apparently has the compiler type in the top 16 bits and the compiler id version in the bottom?
+            if (pointerToRelocations == 0)
+                PointerToRelocations = new VA<ImageRelocation[]>(pointerToRelocations);
+            else
+            {
+                var oldOffset = reader.Position;
+
+                reader.Seek(pointerToRelocations);
+
+                var relocations = new ImageRelocation[NumberOfRelocations];
+
+                for (var i = 0; i < NumberOfRelocations; i++)
+                    relocations[i] = new ImageRelocation(reader);
+
+                PointerToRelocations = new VA<ImageRelocation[]>(pointerToRelocations, pointerToRelocations, relocations);
+
+                reader.Seek(oldOffset);
+            }
+
+            if (PointerToLineNumbers > 0)
+                Debug.Assert(false, "Reading line numbers is not implemented");
         }
 #endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_SECTION_HEADER), this, ViewKind.VCFeature);
+            using var s = writer.CreateStruct(nameof(IMAGE_SECTION_HEADER), this, ViewKind.ImageSectionHeader);
 
             //Name is exactly 8 bytes. If the name is only 4 bytes, the remaining 4 bytes are \0
             s.WriteNullPaddedUTF8Field(nameof(Name), Name, NameSize);
@@ -176,7 +242,7 @@ namespace PESpy
             s.WriteField(nameof(VirtualAddress), (int) VirtualAddress);
             s.WriteField(nameof(SizeOfRawData), SizeOfRawData);
             s.WriteField(nameof(PointerToRawData), (int) PointerToRawData);
-            s.WriteField(nameof(PointerToRelocations), PointerToRelocations);
+            s.WriteSmallVAPointerField(nameof(PointerToRelocations), PointerToRelocations);
             s.WriteField(nameof(PointerToLineNumbers), PointerToLineNumbers);
             s.WriteField(nameof(NumberOfRelocations), NumberOfRelocations);
             s.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbers);

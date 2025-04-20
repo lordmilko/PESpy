@@ -54,7 +54,7 @@ namespace PESpy
                 {
                     var rva = chunk.PeekInt32(12);
 
-                    if (chunk.PEFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
                         var str = valueChunk.PeekAnsiNullTerminatedString(0);
                         lazyName = new RVA<AnsiString>(rva, valueChunk.AbsoluteOffset, str);
@@ -175,9 +175,11 @@ namespace PESpy
 
         private RVA<ForwardOrAddress[]> GetAddressOfFunctions(int addressOfFunctions)
         {
-            if (chunk.PEFile.TryGetValueChunkFromSection(addressOfFunctions, out var addressOfFunctionsChunk))
+            var peFile = chunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(addressOfFunctions, out var addressOfFunctionsChunk))
             {
-                var exportTableDirectory = chunk.PEFile.OptionalHeader.ExportTableDirectory;
+                var exportTableDirectory = peFile.OptionalHeader.ExportTableDirectory;
 
                 var exportTableStart = exportTableDirectory.VirtualAddress;
                 var exportTableEnd = exportTableDirectory.Size;
@@ -200,7 +202,7 @@ namespace PESpy
                     if (functionAddress >= exportTableStart && functionAddress <= exportTableEnd)
                     {
                         //It's a name
-                        if (chunk.PEFile.TryGetValueChunkFromSection(functionAddress, out var valueChunk))
+                        if (peFile.TryGetValueChunkFromSection(functionAddress, out var valueChunk))
                         {
                             //Even if we're not holding onto the chunk, the memory that the name points to will still exist
                             var redirectName = valueChunk.PeekAnsiNullTerminatedString(0);
@@ -230,7 +232,9 @@ namespace PESpy
 
         private RVA<RVA<AnsiString>[]> GetAddressOfNames(int addressOfNames)
         {
-            if (chunk.PEFile.TryGetValueChunkFromSection(addressOfNames, out var addressOfNamesChunk))
+            var peFile = chunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(addressOfNames, out var addressOfNamesChunk))
             {
                 var numberOfNames = NumberOfNames;
 
@@ -244,7 +248,7 @@ namespace PESpy
 
                     //Often the section.PointerToRawData will cause the functionNameAddress RVA to be correct
                     //in both loaded and unloaded images, but this is a gotcha: often, but not always!
-                    if (chunk.PEFile.TryGetValueChunkFromSection(functionNameAddress, out var nameChunk))
+                    if (peFile.TryGetValueChunkFromSection(functionNameAddress, out var nameChunk))
                     {
                         var functionName = nameChunk.PeekAnsiNullTerminatedString(0);
                         names[i] = new RVA<AnsiString>(functionNameAddress, nameChunk.AbsoluteOffset, functionName);
@@ -267,7 +271,9 @@ namespace PESpy
 
         private RVA<ushort[]> GetAddressOfNameOrdinals(int addressOfNameOrdinals)
         {
-            if (chunk.PEFile.TryGetValueChunkFromSection(addressOfNameOrdinals, out var addressOfNameOrdinalsChunk))
+            var peFile = chunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(addressOfNameOrdinals, out var addressOfNameOrdinalsChunk))
             {
                 var numberOfNames = NumberOfNames;
 

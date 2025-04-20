@@ -19,11 +19,16 @@ namespace PESpy.PDB
 
         public int age => value->age;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public FixedUtf8String Name => TypType.ReadString(value->name);
 
         internal LfTypeServer(lfTypeServer* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return Name.ToString();
         }
     }
 }
