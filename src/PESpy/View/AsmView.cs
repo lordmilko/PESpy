@@ -32,14 +32,15 @@ namespace PESpy.View
         public AsmView(RawOffset offset, string name, int size, byte bitness, T[] instructions, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;
+            Name = name;
             Size = size;
             Kind = kind;
             Bitness = bitness;
             Instructions = instructions;
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitAsm(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitAsm(this);
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitAsm(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitAsm(this);
     }
 }

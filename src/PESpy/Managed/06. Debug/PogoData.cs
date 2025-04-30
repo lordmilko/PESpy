@@ -6,27 +6,84 @@ using RawOffset = System.Int32;
 
 namespace PESpy
 {
+    //Name is made up
+    public enum PogoSignatureKind : uint
+    {
+        Zero = 0,
+        LCTG = 0x4C544347, //LCTG
+        PGI = 0x50474900, //PGI\0
+        PGO = 0x50474F00, //PGO\0
+        PGU = 0x50475500, //PGU\0
+        SPGO = 0x5350474f, //SPGO
+    }
+
     /// <summary>
     /// Represents the data contained in the POGO debug directory.<para/>
     /// This type does not have a well-known native struct declaration.
     /// </summary>
-    public readonly struct PogoData : IValue, IViewable
+    public struct PogoData : IValue, IViewable
     {
-        //todo: -1 and 0 signatures?
-        public const int ZeroSignature = 0;
-        public const int LCTGSignature = 0x4C544347; //LCTG
-        public const int PGISignature = 0x50474900; //PGI\0
-        public const int PGOSignature = 0x50474F00; //PGO\0
-        public const int PGUSignature = 0x50475500; //PGU\0
-        public const int SPGOSignature = 0x5350474f; //SPGO
+#if PEFAST
+        public PogoSignatureKind Signature => (PogoSignatureKind) chunk.PeekUInt32(0);
+#else
+        public PogoSignatureKind Signature { get; }
+#endif
 
-        public int Signature { get; }
+#if PEFAST
+        private PogoItem[]? entries;
 
+        public PogoItem[] Entries
+        {
+            get
+            {
+                if (entries == null)
+                {
+                    var end = sizeOfData - 4;
+
+                    var read = 4;
+
+                    var results = new List<PogoItem>();
+
+                    while (read < end)
+                    {
+                        var item = new PogoItem(chunk.Slice(read));
+                        read += PogoItem.FixedStructSize + item.Name.Length + 1;
+
+                        //Each entry should be aligned to 4 bytes
+                        read = (read + 3) & ~3;
+
+                        results.Add(item);
+                    }
+
+                    entries = results.ToArray();
+                }
+
+                return entries;
+            }
+        }
+
+#else
         public PogoItem[] Entries { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
-        internal PogoData(IFileReader reader, int signature, int sizeOfData)
+#if PEFAST
+        private readonly MemoryChunk chunk;
+        private readonly int sizeOfData;
+
+        internal PogoData(in MemoryChunk chunk, int sizeOfData)
+        {
+            this.chunk = chunk;
+            this.sizeOfData = sizeOfData;
+            entries = default;
+        }
+#else
+        internal PogoData(IFileReader reader, PogoSignatureKind signature, int sizeOfData)
         {
             //Signature has already been read
             Offset = (RawOffset) reader.Position - 4;
@@ -41,12 +98,13 @@ namespace PESpy
 
             Entries = entries.ToArray();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct(nameof(PogoData), this, ViewKind.PogoData);
 
-            s.WriteField(nameof(Signature), Signature);
+            s.WriteField(nameof(Signature), Signature, sizeof(int));
             s.WriteInline(Entries);
         }
     }

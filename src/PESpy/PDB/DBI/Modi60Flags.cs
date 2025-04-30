@@ -8,11 +8,6 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ushort value;
 
-        public Modi60Flags(ushort value)
-        {
-            this.value = value;
-        }
-
         /// <summary>
         /// TRUE if mod has been written since DBI opened
         /// </summary>
@@ -32,6 +27,11 @@ namespace PESpy.PDB
         /// index into TSM list for this mods server
         /// </summary>
         public byte iTSM => (byte) ((value >> 8) & 0xFF);
+
+        public Modi60Flags(ushort value)
+        {
+            this.value = value;
+        }
 
         public static implicit operator Modi60Flags(ushort value) => new Modi60Flags(value);
     }

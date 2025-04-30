@@ -57,7 +57,7 @@ namespace PESpy.PDB
                 //Suppose the capacity is 6 but the actual size is 4. The capacity being 6 means that at most the 6th bit (at index 5)
                 //is set. In-between bits 0-5, there will be two false ones. We need to locate the 4 set bits within the range of possible
                 //bits. All of the other bits in the BitArray after the capacity should be false and can be ignored
-                if (presentBits[i])
+                if (i < presentBits.Length && presentBits[i]) //In Visual C++ 4, you can have an empty PresentWords
                 {
                     entries[bucketIndex] = new Entry(entryChunk);
                     bucketIndex++;

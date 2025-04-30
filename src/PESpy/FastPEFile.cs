@@ -133,12 +133,12 @@ namespace PESpy
         {
             var dosHeader = (IMAGE_DOS_HEADER*) hView;
 
-            if (dosHeader->e_magic != ImageDosHeader.DosSignature)
+            if (dosHeader->e_magic != ImageDosHeader.IMAGE_DOS_SIGNATURE)
                 return false;
 
             var ntHeaders = (IMAGE_NT_HEADERS*) (hView + dosHeader->e_lfanew);
 
-            if (ntHeaders->Signature != ImageNtHeaders.PESignature)
+            if (ntHeaders->Signature != ImageNtHeaders.IMAGE_NT_SIGNATURE)
                 return false;
 
             return true;

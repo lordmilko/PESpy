@@ -60,6 +60,8 @@ namespace PESpy
 
         public ImageResourceDirectoryEntry Parent { get; }
 
+        private RVA<IValue> offsetToData;
+
         /// <summary>
         /// The address of a unit of resource data in the Resource Data area.
         /// </summary>
@@ -68,8 +70,74 @@ namespace PESpy
         {
             get
             {
-                //chunk.PeekInt32(0);
-                throw new NotImplementedException();
+                if (offsetToData.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(0);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var type = Type;
+                        IValue value;
+
+                        if (type is ResourceType t)
+                        {
+                            switch (t)
+                            {
+                                case ResourceType.Cursor:
+                                case ResourceType.Bitmap:
+                                case ResourceType.Icon:
+                                case ResourceType.Menu:
+                                case ResourceType.Dialog:
+                                case ResourceType.String:
+                                case ResourceType.FontDir:
+                                case ResourceType.Font:
+                                case ResourceType.Accelerator:
+                                    goto default;
+
+                                case ResourceType.RCData:
+                                    if (!TryParseRCData(valueChunk, out value))
+                                        goto default;
+
+                                    break;
+
+                                case ResourceType.MessageTable:
+                                case ResourceType.GroupCursor:
+                                case ResourceType.GroupIcon:
+                                    goto default;
+
+                                case ResourceType.Version:
+                                    value = new VsVersionInfo(valueChunk);
+                                    break;
+
+                                case ResourceType.DlgInclude:
+                                case ResourceType.PlugPlay:
+                                case ResourceType.Vxd:
+                                case ResourceType.AniCursor:
+                                case ResourceType.AniIcon:
+                                case ResourceType.Html:
+                                case ResourceType.Manifest:
+                                default:
+                                    value = new ByteBlob(valueChunk, Size);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            //If it's not a well known type, just parse as a byte blob
+
+                            //IMAGE
+                            //MUI
+                            //WEVT_TEMPLATE (https://github.com/libyal/libfwevt/blob/main/documentation/Windows%20Event%20manifest%20binary%20format.asciidoc). need to include this reference permanently
+                            value = new ByteBlob(valueChunk, Size);
+                        }
+
+                        offsetToData = new RVA<IValue>(rva, valueChunk.AbsoluteOffset, value);
+                    }
+                    else
+                        offsetToData = new RVA<IValue>(rva);
+                }
+
+                return offsetToData;
             }
         }
 #else
@@ -142,9 +210,10 @@ namespace PESpy
 #if PEFAST
         private readonly MemoryChunk chunk;
 
-        internal ImageResourceDataEntry(in MemoryChunk chunk)
+        internal ImageResourceDataEntry(in MemoryChunk chunk, ImageResourceDirectoryEntry parent)
         {
             this.chunk = chunk;
+            Parent = parent;
         }
 #else
         internal ImageResourceDataEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent)
@@ -224,7 +293,35 @@ namespace PESpy
                 OffsetToData = new RVA<IValue>(offsetToData, offset, value);
             }
         }
+#endif
+#if PEFAST
+        private bool TryParseRCData(in MemoryChunk chunk, out IValue value)
+        {
+            value = null;
 
+            if (Parent?.Parent?.NameOrId.ToString().StartsWith("CLRDEBUGINFO") == true)
+            {
+                if (Size != ClrDebugResource.StructSize)
+                    return false;
+
+                //https://github.com/dotnet/runtime/blob/511d26611c051c56e546404ea616c220cc78817c/src/coreclr/dlls/mscoree/coreclr/GenClrDebugResource.ps1#L4
+                var version = chunk.PeekInt32(0);
+
+                if (version != 0)
+                    throw new NotImplementedException("Don't know how to handle version being 0. Rewind our IFileReader?");
+
+                var signature = chunk.PeekGuid(4);
+
+                if (signature != ClrDebugResource.CLR_ID_ONECORE_CLR)
+                    throw new NotImplementedException("Don't know how to handle Guid not being CLR_ID_ONECORE_CLR. Rewind our IFileReader?");
+
+                value = new ClrDebugResource(chunk);
+                return true;
+            }
+
+            return false;
+        }
+#else
         private bool TryParseRCData(IFileReader reader, out IValue value)
         {
             value = null;

@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace PESpy
 {
     abstract unsafe class MemoryBlock : IDisposable
     {
-        internal IMemoryBlockProvider Provider { get; }
+        internal IMemoryBlockProvider? Provider { get; }
 
         /// <summary>
         /// Gets the absolute pointer to the data contained in the block.
@@ -27,7 +28,7 @@ namespace PESpy
 
         protected bool disposed;
 
-        protected MemoryBlock(IMemoryBlockProvider provider)
+        protected MemoryBlock(IMemoryBlockProvider? provider)
         {
             Provider = provider;
         }
@@ -38,12 +39,27 @@ namespace PESpy
         }
 
         //Demand that the entire block be loaded into memory
-        public void Demand() => Demand(0, Length);
+        public void Demand() => Demand(RemoteStartOffset, Length);
+
+        public void Demand(int length) => Demand(RemoteStartOffset, length);
 
         //Demand that the memory range between offset and offset + length is loaded into memory
         public virtual void Demand(int offset, int length)
         {
         }
+
+        public virtual bool Contains(int offset)
+        {
+            //If you don't have a RemoteEndOffset, override this method
+            Debug.Assert(Length != 0 && RemoteEndOffset != 0);
+
+            if (RemoteStartOffset + offset > RemoteEndOffset)
+                return false;
+
+            return true;
+        }
+
+        public virtual int GetAbsoluteOffset(int blockOffset) => RemoteStartOffset + blockOffset;
 
         public void Dispose() => Dispose(true);
 

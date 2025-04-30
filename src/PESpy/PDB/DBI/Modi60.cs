@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
+using ClrDebug.PDB;
+using PESpy.OBJ;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -13,7 +14,7 @@ namespace PESpy.PDB
      * PMODI60 is a typedef for MODI_60_PERSIST, and PMODI is a typedef for MODI
      *
      * As MODI60 is the same thing as MODI_60_PERSIST, and is a more sensible name, I have opted to use that name for our managed type definition */
-    public struct Modi60 : IValue, IViewable
+    public class Modi60 : IModi, IValue, IViewable //Will always be boxed
     {
         //Supposedly this field is used to store the "currently open mod", but in version 6.0 I don't think its actually used
         public int pmod => chunk.PeekInt32(0);
@@ -57,32 +58,9 @@ namespace PESpy.PDB
         public AnsiString szObjFile { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private SigAndSymbols? symbols;
+        private PDBModuleSymbols? symbols;
 
-        public unsafe SigAndSymbols? Symbols
-        {
-            get
-            {
-                if (symbols == null && cbSyms > 0)
-                {
-                    var pdbFile = chunk.PDBFile();
-
-                    if (pdbFile.TryGetStreamChunk(sn, out var moduleChunk))
-                    {
-                        var signature = (CV_SIGNATURE) moduleChunk.PeekInt32(0);
-
-                        var ptr = moduleChunk.Pointer;
-                        Debug.Assert(moduleChunk.BlockOffset == 0);
-
-                        var results = MsfStream.DBI.ReadSymbols(ptr + 4, cbSyms - 4);
-
-                        symbols = new SigAndSymbols(signature, results);
-                    }
-                }
-
-                return symbols;
-            }
-        }
+        public unsafe PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, chunk);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private CvDebugSSubsectionHeader[]? c13Lines;
@@ -143,10 +121,10 @@ namespace PESpy.PDB
             //Modules are 32-bit aligned
             read = (read + 3) & ~3;
 
-#if DEBUG
             symbols = default;
             c13Lines = default;
 
+#if STRESS_TEST
             _ = Symbols;
 
             if (cbLines > 0)
@@ -162,6 +140,8 @@ namespace PESpy.PDB
 
             s.WriteField(nameof(pmod), pmod);
             s.WriteInline(sc);
+
+            writer.WriteGlobal(Symbols);
 
             using (var bitField = s.WriteBitFields<ushort>())
             {

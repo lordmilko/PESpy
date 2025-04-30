@@ -54,8 +54,11 @@ namespace PESpy
                 {
                     if (chunk.block is GlobalMemoryBlock b)
                     {
-                        //obj file
-                        return new VA<CoffSymbolTable>(offset, offset, new CoffSymbolTable(new MemoryChunk(b, offset), NumberOfSymbols));
+                        //If ImageFileHeader is at the start of the file, the offset is used as is. Otherwise, we ne need to skip over the anon header.
+                        //The pointer we're given seems to assume we're relative to the very start of the file
+                        var actualOffset = Offset + offset;
+
+                        return new VA<CoffSymbolTable>(offset, actualOffset, new CoffSymbolTable(new MemoryChunk(b, actualOffset), NumberOfSymbols));
                     }
                     else
                     {
@@ -167,7 +170,12 @@ namespace PESpy
             s.WriteField(nameof(Machine), Machine, sizeof(short));
             s.WriteField(nameof(NumberOfSections), NumberOfSections);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteSmallVAPointerField(nameof(PointerToSymbolTable), PointerToSymbolTable);
+
+            s.WriteField(nameof(PointerToSymbolTable), (int) PointerToSymbolTable.ListedAddress);
+
+            if (PointerToSymbolTable.IsValid)
+                writer.WriteUniqueGlobal(PointerToSymbolTable.Value); //ImageCoffSymbolsHeader can declare the Coff Symbol Table as well
+
             s.WriteField(nameof(NumberOfSymbols), NumberOfSymbols);
             s.WriteField(nameof(SizeOfOptionalHeader), SizeOfOptionalHeader);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(short));

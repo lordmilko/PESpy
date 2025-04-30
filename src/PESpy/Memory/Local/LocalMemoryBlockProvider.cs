@@ -1,45 +1,35 @@
 ﻿#if PEFAST
 using System;
 using System.IO;
-using System.IO.MemoryMappedFiles;
-using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
-    internal unsafe class LocalMemoryBlockProvider : IMemoryBlockProvider, IDisposable
+    internal unsafe class LocalMemoryBlockProvider : IFileMemoryBlockProvider, IDisposable
     {
-        private MemoryMappedFile mmf;
-        private MemoryMappedViewAccessor mma;
-        private byte* baseAddress;
-        private long length;
+        private MemoryMappedFileHolder mmf;
 
-        public PEFile PEFile { get; }
+        public PEFile File { get; }
 
-        internal byte* Pointer => baseAddress;
+        IFile IFileMemoryBlockProvider.File => File;
+
+        internal byte* Pointer => mmf.Address;
+
+        internal long Length => mmf.Length;
 
         private bool disposed;
 
         internal LocalMemoryBlockProvider(FileStream stream, PEFile peFile)
         {
-            PEFile = peFile;
+            File = peFile;
 
-            mmf = MemoryMappedFile.CreateFromFile(stream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
-            mma = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            mmf = new MemoryMappedFileHolder(stream);
+        }
 
-            RuntimeHelpers.PrepareConstrainedRegions();
+        internal LocalMemoryBlockProvider(in MemoryMappedFileHolder mmf, PEFile peFile)
+        {
+            File = peFile;
 
-            try
-            {
-                //Empty; needed to make constrained region work
-            }
-            finally
-            {
-                //While MMA does have some helper methods on it that can be used to read certain value types,
-                //it acquires/releases the pointer after each value read, inside of a try/finally block, which I feel
-                //adds a bit of overhead
-                mma.SafeMemoryMappedViewHandle.AcquirePointer(ref baseAddress);
-                length = (long) mma.SafeMemoryMappedViewHandle.ByteLength;
-            }
+            this.mmf = mmf;
         }
 
         ~LocalMemoryBlockProvider()
@@ -60,26 +50,7 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
-            if (baseAddress != (byte*) 0)
-            {
-                RuntimeHelpers.PrepareConstrainedRegions();
-
-                try
-                {
-                    //Empty
-                }
-                finally
-                {
-                    mma.SafeMemoryMappedViewHandle.ReleasePointer();
-                    baseAddress = (byte*) 0;
-                }
-            }
-
-            mma.Dispose();
-            mmf.Dispose();
-
-            mma = null;
-            mmf = null;
+            mmf.Close();
 
             disposed = true;
         }

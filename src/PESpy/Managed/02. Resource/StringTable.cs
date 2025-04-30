@@ -11,7 +11,7 @@ namespace PESpy
     public partial class VsVersionInfo
     {
         [DebuggerDisplay("{DebuggerDisplay,nq}")]
-        public readonly struct StringTable : IValue, IViewable
+        public struct StringTable : IValue, IViewable
         {
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private string DebuggerDisplay
@@ -20,20 +20,92 @@ namespace PESpy
                 {
                     var builder = new StringBuilder();
 
-                    for (var i = 0; i < Children.Length; i++)
+                    if (Children != null)
                     {
-                        var child = Children[i];
+                        for (var i = 0; i < Children.Length; i++)
+                        {
+                            var child = Children[i];
 
-                        builder.Append(child.Key).Append(" = ").Append(child.Value);
+                            builder.Append(child.Key).Append(" = ").Append(child.Value);
 
-                        if (i < Children.Length - 1)
-                            builder.Append(", ");
+                            if (i < Children.Length - 1)
+                                builder.Append(", ");
+                        }
                     }
+                    else
+                        builder.Append("<No Children>");
 
                     return builder.ToString();
                 }
             }
 
+#if PEFAST
+            public short Length => chunk.PeekInt16(0);
+
+            public short ValueLength => chunk.PeekInt16(2);
+
+            public short Type => chunk.PeekInt16(4);
+
+            public Utf16String Key => chunk.PeekUtf16NullTerminatedString(FixedStructSize);
+
+            public short Padding
+            {
+                get
+                {
+                    var currentLength = FixedStructSize + ((Key.Length + 1) * 2);
+
+                    var alignedLength = (currentLength + 3) & ~3;
+
+                    if (alignedLength == 0)
+                        return 0;
+
+                    return chunk.PeekInt16(currentLength);
+                }
+            }
+
+            private String[]? children;
+
+            public String[]? Children
+            {
+                get
+                {
+                    if (children == null)
+                    {
+                        var read = FixedStructSize + ((Key.Length + 1) * 2);
+
+                        var alignedRead = (read + 3) & ~3;
+
+                        var length = Length;
+
+                        if (alignedRead < length)
+                        {
+                            var results = new List<String>();
+
+                            do
+                            {
+                                var item = new String(chunk.Slice(alignedRead));
+                                results.Add(item);
+                                Debug.Assert(item.Length != 0);
+
+                                //The documentation doesn't say it, but it seems that each String also needs to be 32-bit aligned
+                                alignedRead += (item.Length + 3) & ~3;
+                            } while (alignedRead < length);
+
+                            children = results.ToArray();
+                        }
+                    }
+
+                    return children;
+                }
+            }
+
+            public int Offset => chunk.AbsoluteOffset;
+
+            internal const int FixedStructSize =
+                sizeof(short) + //Length
+                sizeof(short) + //ValueLength
+                sizeof(short);  //Type
+#else
             public short Length { get; init; }
 
             public short ValueLength { get; init; }
@@ -47,7 +119,21 @@ namespace PESpy
             public String[] Children { get; init; }
 
             public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+            private readonly MemoryChunk chunk;
+
+            internal StringTable(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+                children = default;
+
+#if STRESS_TEST
+                _ = Children;
+#endif
+            }
+#else
             internal StringTable(IFileReader reader)
             {
                 Offset = (RawOffset) reader.Position;
@@ -82,6 +168,7 @@ namespace PESpy
 
                 Children = items.ToArray();
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {
@@ -98,13 +185,16 @@ namespace PESpy
                     s.WriteField(nameof(Padding), Padding);
                 }
 
-                for (var i = 0; i < Children.Length; i++)
+                if (Children != null)
                 {
-                    var item = Children[i];
-                    s.WriteInline(item);
+                    for (var i = 0; i < Children.Length; i++)
+                    {
+                        var item = Children[i];
+                        s.WriteInline(item);
 
-                    if (i < Children.Length - 1)
-                        s.Align(4); //todo: need to test that we'll fill in the gap with a byteblob?
+                        if (i < Children.Length - 1)
+                            s.Align(4);
+                    }
                 }
 
                 s.VerifyLength(Length);

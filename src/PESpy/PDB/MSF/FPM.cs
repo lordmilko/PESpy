@@ -20,7 +20,7 @@ namespace PESpy.PDB
         /// </summary>
         public BitArray PageMap { get; }
 
-        internal FPM(int fpmPageNo, int pageSize, int numPages, PDBGlobalMemoryBlock globalBlock)
+        internal FPM(PN fpmPageNo, int pageSize, int numPages, PDBGlobalMemoryBlock globalBlock, bool isBig)
         {
             /* The FPM uses bits to indicate whether a given page is free or not. If there are 1024 bytes per page, that means
              * that a singular FPM page can track the state of the first 8192 pages in the file. Given that FPM0 is on page 1 and FPM1
@@ -48,28 +48,38 @@ namespace PESpy.PDB
              * serializeFpm() correctly identifies the correct _number_ of pages that the FPM needs to span, but still has to utilize the buggy logic
              * of writing the first set of data into Page 1, and the second into Page 1025, etc */
 
-            //This _should_ be pageSize * 8, but to emulate the bug, we don't do the * 8
-            //var bitsPerPage = pageSize * 8;
-            var bitsPerPage = pageSize;
-
-            var numFpmPages = SI.DivideUp(numPages, bitsPerPage);
-
-            var fpmPages = new PN[numFpmPages];
-            var currentFpmPage = fpmPageNo;
-
-            for (var i = 0; i < numFpmPages; i++)
+            if (isBig)
             {
-                fpmPages[i] = currentFpmPage;
+                //In Big MSFs, there are multiple FPM pages scattered at regular intervals
 
-                //If there's another FPM page, it's 4096 pages away from the last one
-                currentFpmPage += pageSize;
+                //This _should_ be pageSize * 8, but to emulate the bug, we don't do the * 8
+                //var bitsPerPage = pageSize * 8;
+                var bitsPerPage = pageSize;
+
+                var numFpmPages = SI.DivideUp(numPages, bitsPerPage);
+
+                var fpmPages = new PN[numFpmPages];
+                var currentFpmPage = fpmPageNo;
+
+                for (var i = 0; i < numFpmPages; i++)
+                {
+                    fpmPages[i] = currentFpmPage;
+
+                    //If there's another FPM page, it's 4096 pages away from the last one
+                    currentFpmPage += pageSize;
+                }
+
+                FpmPages = fpmPages;
             }
-
-            FpmPages = fpmPages;
+            else
+            {
+                //In small MSFs there's a single FPM page
+                FpmPages = new[] { fpmPageNo };
+            }
 
             //Now read the actual bits of the FPM
             var fpmNumBytes = SI_old.DivideUp(numPages, 8); //How many bytes does it take to represent all of the pages? e.g. if there's 25 pages, read 4 bytes (32-bits)
-            var fpmReader = globalBlock.SlicePaged(fpmPages, fpmNumBytes);
+            var fpmReader = globalBlock.SlicePaged(FpmPages, fpmNumBytes);
             //var fpmReader = new MemoryChunk(new PdbPageStream(reader.GetStreamUnsafe(), fpmPages, fpmNumBytes, pageSize), false);
 
             /* We're going to read, say, 4 byte's worth, but might only be interested in the first 25 bits. If you look at the hex in the FPM,

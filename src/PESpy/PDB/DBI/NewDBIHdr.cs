@@ -4,8 +4,14 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct NewDBIHdr : IValue, IViewable
+    public class NewDBIHdr : IDBIHdr, IValue, IViewable
     {
+        //In DBIHdr the first member is snGSSyms. I imagine that DBI will always
+        //create a snGSSyms, which would mean that it would never be snNil. Therefore,
+        //I think the expectation is that when verSignature is hdrSignature (-1) this means
+        //we _must_ be NewDBIHdr
+        public const int hdrSignature = -1;
+
         //verSignature. Value is always hdrSignature (-1)
         public int verSignature => chunk.PeekInt32(0);
 
@@ -81,6 +87,8 @@ namespace PESpy.PDB
         /// pad out to 64 bytes for future growth.
         /// </summary>
         public int rgulReserved => chunk.PeekInt32(60);
+
+        int IDBIHdr.StructSize => StructSize;
 
         public int Offset => chunk.AbsoluteOffset;
 

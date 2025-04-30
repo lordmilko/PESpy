@@ -21,15 +21,15 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public HeaderView(int size, IView[] children, int offset = 0)
+        public HeaderView(int size, IView[] children)
         {
-            Offset = (RawOffset) offset;
+            Offset = 0;
             Size = size;
             Children = children;
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitHeader(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitHeader(this);
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitHeader(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitHeader(this);
     }
 }

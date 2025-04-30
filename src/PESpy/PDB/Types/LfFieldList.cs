@@ -18,7 +18,8 @@ namespace PESpy.PDB
         internal LfFieldList(lfFieldList* value)
         {
             this.value = value;
-            Debug.Assert(false, "Read data");
+            
+            //TypType.AssertMissing(false, "Read data");
         }
     }
 }

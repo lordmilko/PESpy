@@ -23,7 +23,8 @@ namespace PESpy.PDB
 
         internal static FixedUtf8String ReadString<T>(T* symType, byte* start) where T : unmanaged
         {
-            var impv = PDBIMPV.PDBImpvVC140; //temp: use global binary searched list of ranges resolved by demanding our pagedmemoryblock
+            //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
+            var isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) symType);
 
             /* PDB files have two different ways of encoding strings
              * - ST, which means the string is length prefixed
@@ -32,13 +33,23 @@ namespace PESpy.PDB
              * The rules for determining whether a given string is SZ or ST is as follows:
              *
              * 1. if the PDB impv > impvVC98, SZ is used everywhere
-             * 2. if the PDB impv <= impvVC98, it's ST if the string type is < S_ST_MAX. If it's >= S_ST_MAX, it's SZ */
+             * 2. if the PDB impv <= impvVC98, it's ST if the string type is < S_ST_MAX. If it's >= S_ST_MAX, it's SZ
+             * 
+             * PDB1::fIsSZPDB() performs this check between PDBStream.impv and impvVC98
+             *
+             * Confusingly, dumppdb.cpp says that UTF8 applies when the PDB interface version >= PDBImpvVC70. In between VC98
+             * and VC70 is VC70Dep, so I think dumppdb is just ignoring VC70Dep, which means > impvVC98 and >= PDBImpvVC70 are saying
+             * the same thing */
 
             var raw = (SYMTYPE*) symType;
 
-            if (impv <= PDBIMPV.PDBImpvVC98 && raw->rectyp < SYM_ENUM_e.S_ST_MAX)
+            if (isLengthPrefixedData && raw->rectyp < SYM_ENUM_e.S_ST_MAX)
             {
-                throw new NotImplementedException();
+                byte length = *start;
+
+                var pdbString = new FixedUtf8String(start + 1, length);
+
+                return pdbString;
             }
             else
             {

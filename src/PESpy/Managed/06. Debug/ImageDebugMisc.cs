@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System;
+using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -9,19 +10,39 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_DEBUG_MISC"/> structure.
     /// </summary>
-    public class ImageDebugMisc : IValue, IViewable
+    public class ImageDebugMisc : IValue, IViewable //It will always be boxed
     {
+#if PEFAST
+        public ImageDebugMiscType DataType => (ImageDebugMiscType) chunk.PeekUInt32(0);
+#else
         public ImageDebugMiscType DataType { get; }
+#endif
 
+#if PEFAST
+        public int Length => chunk.PeekInt32(4);
+#else
         public int Length { get; }
+#endif
 
+#if PEFAST
+        public bool Unicode => chunk.PeekByte(8) != 0;
+#else
         public bool Unicode { get; }
+#endif
 
+#if PEFAST
+        public Span<byte> Reserved => chunk.PeekSpan<byte>(9, 3);
+#else
         public byte[] Reserved { get; }
+#endif
 
         public string Data { get; }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int FixedStructSize =
             sizeof(int) +  //DataType
@@ -29,6 +50,19 @@ namespace PESpy
             sizeof(byte) + //Unicode
             3;             //Reserved
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageDebugMisc(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+
+            if (Unicode)
+                Data = chunk.PeekUtf16NullTerminatedString(FixedStructSize).ToString();
+            else
+                Data = chunk.PeekAnsiNullTerminatedString(FixedStructSize).ToString();
+        }
+#else
         internal ImageDebugMisc(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -45,6 +79,7 @@ namespace PESpy
             else
                 Data = reader.ReadAnsiNullTerminatedString();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -59,6 +94,11 @@ namespace PESpy
                 s.WriteUTF16NullTerminatedField(nameof(Data), Data);
             else
                 s.WriteAnsiNullTerminatedField(nameof(Data), Data);
+        }
+
+        public override string ToString()
+        {
+            return Data;
         }
     }
 }

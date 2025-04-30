@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -27,12 +28,12 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        internal ProdItem(RawOffset start, int bufferPos, byte[] bytes)
+        internal ProdItem(RawOffset start, int bufferPos, Span<byte> bytes)
         {
             Offset = start + bufferPos;
 
-            var dwProdid = BitConverter.ToInt32(bytes, bufferPos);
-            var dwCount = BitConverter.ToInt32(bytes, bufferPos + 4);
+            var dwProdid = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
+            var dwCount = MemoryMarshal.Read<int>(bytes.Slice(bufferPos + 4));
 
             ProdId = (short) ((dwProdid & 0xFFFF0000) >> 16);
             BuildId = (short)((dwProdid & 0x0000FFFF));

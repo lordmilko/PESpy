@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -9,6 +11,8 @@ namespace PESpy.PDB
         public VHdr vhdr => new VHdr(chunk);
 
         public int NameBufferSize => chunk.PeekInt32(VHdr.StructSize);
+        
+        //Names are physically located after NameBufferSize and before NumOffsets
 
         public int NumOffsets => chunk.PeekInt32(VHdr.StructSize + 4 + NameBufferSize);
 
@@ -58,12 +62,20 @@ namespace PESpy.PDB
 
             s.WriteInline(vhdr);
             s.WriteField("Name Buffer Size", NameBufferSize);
+
+            //The same string could be pointed to by multiple offset items
+
+            var seenAddresses = new HashSet<int>();
+
+            foreach (var str in Strings.OrderBy(v => v.Offset))
+            {
+                if (seenAddresses.Add(str.Offset))
+                    s.WriteInlineAnsiNullTerminated(str);
+            }
+
             s.WriteField("Num Offsets", NumOffsets);
             s.WriteField("Offsets", Offsets);
             s.WriteField("Num Strings", NumStrings);
-
-            foreach (var str in Strings)
-                s.WriteInlineAnsiNullTerminated(str);
         }
     }
 }

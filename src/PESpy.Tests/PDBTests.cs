@@ -17,6 +17,7 @@ namespace PESpy.Tests
     [TestClass]
     public class PDBTests
     {
+        private const string VC40Pdb = "vc40\\DbgTest.pdb";
         #region MSF
 
         [TestMethod]
@@ -35,7 +36,7 @@ namespace PESpy.Tests
                             c2 => c2.VerifyField(name: "cb", value: 4),
                             c2 => c2.VerifyField(name: "mpspnpn", value: 0)
                         ),
-                        c1 => c1.VerifyField(name: "mpspnpnSt", (PN) 4)
+                        c1 => c1.VerifyField(name: "mpspnpnSt", new[] { (PN) 4 })
                     ),
                     c => c.VerifyByteBlob(offset: 56, value: new byte[968])
                 ),
@@ -53,10 +54,8 @@ namespace PESpy.Tests
                     ),
                     c => c.VerifyByteBlob(offset: 0xC04, new byte[1020])
                 ),
-                v => v.VerifyLogicalRegion(name: "4 | Stream Table Page List", offset: 0x1000, size: 0x400,
-                    c => c.VerifyLogicalRegion(name: "SI Pages", offset: 0x1000, size: 4,
-                        c1 => c1.VerifyValue(offset: 0x1000, value: (PN) 3)
-                    ),
+                v => v.VerifyLogicalRegion(name: "4 | Stream Table Page List (1/1)", offset: 0x1000, size: 0x400,
+                    c => c.VerifyValue(offset: 0x1000, value: (PN) 3),
                     c => c.VerifyByteBlob(offset: 0x1004, new byte[1020])
                 ),
 
@@ -240,6 +239,62 @@ namespace PESpy.Tests
 
                     Assert.IsTrue(fpm1[1].Bytes.All(v => v == 0));
                 }
+            );
+        }
+
+        [TestMethod]
+        public unsafe void PDB_StreamNumber_StressTest()
+        {
+            //Creating 75 streams with (1024 * 1024) byte pages should cause us to require 1204 bytes to store the 301
+            //pages that the stream table itself spans, thus causing mpspnpnSt to contain more than one value
+
+            void ConfigureMsf(MSF msf)
+            {
+                //For some reason, even though we're starting from Stream 5, data is still getting written into Stream 1,
+                //so we need to explicitly create and zero it out
+                msf.ReplaceStream(SN.PDB, IntPtr.Zero, 0);
+                msf.ReplaceStream(SN.TPI, IntPtr.Zero, 0);
+                msf.ReplaceStream(SN.DBI, IntPtr.Zero, 0);
+                msf.ReplaceStream(SN.IPI, IntPtr.Zero, 0);
+
+                var cbBuf = 1024 * 1024;
+
+                var pvBuf = Marshal.AllocHGlobal(cbBuf);
+
+                for (var i = 0; i < cbBuf; i++)
+                    *(byte*) (pvBuf + i) = 0xCD;
+
+                for (var i = 0; i < 75; i++)
+                {
+                    var sn = msf.GetFreeSn();
+
+                    msf.AppendStream(sn, pvBuf, cbBuf);
+                }
+
+                Marshal.FreeHGlobal(pvBuf);
+
+                msf.Commit();
+            }
+
+            TestMsfView(
+                ConfigureMsf,
+                WithIgnores(
+                    v => v.VerifyLogicalRegion(name: "0 | Master Index", offset: 0, size: 1024,
+                        c => c.VerifyStruct(name: "BIGMSF_HDR", offset: 0, size: 60,
+                            c1 => c1.VerifyField(name: "szMagic", value: "Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0"),
+                            c1 => c1.VerifyField(name: "cbPg", value: 1024),
+                            c1 => c1.VerifyField(name: "pnFpm", value: (PN) 2),
+                            c1 => c1.VerifyField(name: "pnMac", value: 77259),
+                            c1 => c1.VerifyStructField(name: "siSt", type: "SI_PERSIST", offset: 44, size: 8,
+                                c2 => c2.VerifyField(name: "cb", value: 307528),
+                                c2 => c2.VerifyField(name: "mpspnpn", value: 0)
+                            ),
+                            c1 => c1.VerifyField(name: "mpspnpnSt", new[] { (PN) 77256, (PN) 77257 })
+                        ),
+                        c => c.VerifyByteBlob(offset: 0x3C, value: new byte[964])
+                    ),
+                    after: 77258
+                )
             );
         }
 
@@ -916,7 +971,7 @@ namespace PESpy.Tests
                 }
 
                 //Get the page associated with our target data
-                var targetPage = pdb.StreamTable.StreamBlocks[targetData.Value][0];
+                var targetPage = pdb.StreamTable.StreamPages[targetData.Value][0];
 
                 var targetPageView = views[targetPage];
 

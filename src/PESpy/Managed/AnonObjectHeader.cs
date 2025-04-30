@@ -15,7 +15,7 @@ namespace PESpy
          *
          * Note that obj files compiled with LTCG (/GL) seem to have a different ClassID
          * have a ClassID {0CB3FE38-D9A5-4DAB-AC9B-D6B6222653C2} */
-        internal static readonly Guid EXTENDED_COFF_OBJ_GUID = new Guid("D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8");
+        internal static readonly Guid EXTENDED_COFF_OBJ_GUID = new Guid("D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8"); //Used in c2!CoffTerm (called by coff_end)
 
         /// <summary>
         /// Must be IMAGE_FILE_MACHINE_UNKNOWN

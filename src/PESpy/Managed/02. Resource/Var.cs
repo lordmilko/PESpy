@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -10,18 +11,82 @@ namespace PESpy
     {
         public readonly struct Var : IValue, IViewable
         {
+#if PEFAST
+            public short Length => chunk.PeekInt16(0);
+#else
             public short Length { get; init; }
+#endif
 
+#if PEFAST
+            public short ValueLength => chunk.PeekInt16(2);
+#else
             public short ValueLength { get; init; }
+#endif
 
+#if PEFAST
+            public short Type => chunk.PeekInt16(4);
+#else
             public short Type { get; init; }
+#endif
 
+#if PEFAST
+            public Utf16String Key => chunk.PeekUtf16NullTerminatedString(FixedStructSize);
+#else
             public string Key { get; init; }
+#endif
 
+#if PEFAST
+            public short Padding
+            {
+                get
+                {
+                    //Whether we need to align or not will depend on whether Key has an odd number of characters or not.
+                    //If it's odd, including the \0 it's even, but we read 3 shorts so we're down a word
+                    var currentLength = FixedStructSize + ((Key.Length + 1) * 2);
+
+                    var alignedLength = (currentLength + 3) & ~3;
+
+                    if (alignedLength == 0)
+                        return 0;
+
+                    return chunk.PeekInt16(currentLength);
+                }
+            }
+#else
             public short Padding { get; init; }
+#endif
 
+#if PEFAST
+            public Span<int> Value
+            {
+                get
+                {
+                    var offset = (FixedStructSize + ((Key.Length + 1) * 2) + 3) & ~3;
+
+                    var numItems = ValueLength / 4;
+
+                    return chunk.PeekSpan<int>(offset, numItems);
+                }
+            }
+#else
             public int[] Value { get; init; }
+#endif
 
+#if PEFAST
+            public int Offset => chunk.AbsoluteOffset;
+
+            internal const int FixedStructSize =
+                sizeof(short) + //Length
+                sizeof(short) + //ValueLength
+                sizeof(short);  //Type
+
+            private readonly MemoryChunk chunk;
+
+            internal Var(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+            }
+#else
             public RawOffset Offset { get; }
 
             internal Var(IFileReader reader)
@@ -51,6 +116,7 @@ namespace PESpy
 
                 Value = items;
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {

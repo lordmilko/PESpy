@@ -22,7 +22,7 @@ namespace PESpy
         public static string GetDescription(this Enum element, bool toStringFallback = true)
         {
             if (TryGetDescription(element, out var description))
-                return description;
+                return description!;
 
             if (toStringFallback)
                 return element.ToString();
@@ -30,7 +30,7 @@ namespace PESpy
             throw new InvalidOperationException($"{element} is missing a {nameof(DescriptionAttribute)}");
         }
 
-        public static bool TryGetDescription(this Enum element, out string description)
+        public static bool TryGetDescription(this Enum element, out string? description)
         {
             var memberInfo = element.GetType().GetMember(element.ToString());
 

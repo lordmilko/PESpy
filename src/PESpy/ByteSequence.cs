@@ -32,7 +32,7 @@ namespace PESpy
 
         public int Length => Bytes.Length;
 
-        private object[] items;
+        private object[]? items;
         private bool flirt;
 
         public ByteSequence(params byte[] bytes)
@@ -62,13 +62,17 @@ namespace PESpy
             Mark = mark;
         }
 
-        internal string debugStr; //temp
+#if DEBUG
+        internal string? debugStr;
+#endif
 
         public ByteSequence(string value, bool flirt = false)
         {
             value = Regex.Replace(value, "0x +", "0x");
 
+#if DEBUG
             debugStr = value;
+#endif
             this.flirt = flirt;
 
             var items = value.Split(new[]{' '}, StringSplitOptions.RemoveEmptyEntries);

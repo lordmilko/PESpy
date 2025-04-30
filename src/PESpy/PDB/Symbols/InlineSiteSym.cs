@@ -24,7 +24,11 @@ namespace PESpy.PDB
         internal InlineSiteSym(INLINESITESYM* value)
         {
             this.value = value;
-            Debug.Assert(false, "binaryAnnotations. Anything that is a compressed binary annotation is apparently a PCompressedBinaryAnnotation (just a uint8) but can be decompressed into a BinaryAnnotationOpcode using CVUncompressData (which may be the same as CorSigUncompressData?) dumppdb.cpp has examples for several of these");
+
+            //There is complex logic required to parse binary annotations.
+            //See dumpsym7.cpp!C17BinaryAnnotations
+
+            //Debug.Assert(false, "binaryAnnotations. Anything that is a compressed binary annotation is apparently a PCompressedBinaryAnnotation (just a uint8) but can be decompressed into a BinaryAnnotationOpcode using CVUncompressData (which may be the same as CorSigUncompressData?) dumppdb.cpp has examples for several of these");
         }
     }
 }

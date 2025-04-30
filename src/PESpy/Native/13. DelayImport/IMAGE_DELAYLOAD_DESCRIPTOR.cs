@@ -13,6 +13,6 @@ namespace PESpy
         public int ImportNameTableRVA;               // RVA to the start of the name table (PIMAGE_THUNK_DATA::AddressOfData)
         public int BoundImportAddressTableRVA;       // RVA to an optional bound IAT
         public int UnloadInformationTableRVA;        // RVA to an optional unload info table
-        public int TimeDateStamp;                    // 0 if not bound, otherwise, date/time of the target DLL
+        public uint TimeDateStamp;                    // 0 if not bound, otherwise, date/time of the target DLL
     }
 }

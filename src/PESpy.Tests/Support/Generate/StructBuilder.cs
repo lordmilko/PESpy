@@ -79,6 +79,7 @@ namespace PESpy.Tests
         /// <param name="serializationType">If <paramref name="type"/> is an enum or bool type, this is the underlying type that should actually be read.</param>
         /// <param name="help">XmlDocs that should be displayed on the field.</param>
         /// <param name="eager">Whether to eagerly initialize this field in the constructor and use readonly fields that can be referenced by ref.</param>
+        /// <param name="lengthCondition">The field is only conditionally read if its offset is less than the specified length field</param>
         /// <returns>This <see cref="StructBuilder"/>.</returns>
         public StructBuilder Field(
             string name,
@@ -94,7 +95,8 @@ namespace PESpy.Tests
             Type serializationType = null,
             string help = null,
             bool eager = false,
-            string modifier = null)
+            string modifier = null,
+            string lengthCondition = null)
         {
             var field = new FieldBuilder(
                 name,
@@ -109,7 +111,8 @@ namespace PESpy.Tests
                 nullPaddedUTF8,
                 serializationType,
                 eager,
-                modifier
+                modifier,
+                lengthCondition
             );
 
             Fields.Add(field);

@@ -1,6 +1,6 @@
 ﻿namespace PESpy.View
 {
-    public abstract class PEViewWalker : PEViewVisitor
+    public abstract class ViewWalker : ViewVisitor
     {
         protected internal override void VisitAsm(IAsmView view)
         {
@@ -27,7 +27,7 @@
         protected internal override void VisitLogicalReview(LogicalRegionView view) => VisitChildren(view);
 
         protected internal override void VisitOverlay(OverlayView view) => VisitChildren(view);
-        protected internal override void VisitPEFile(PEFileView view) => VisitChildren(view);
+        protected internal override void VisitFile(FileView view) => VisitChildren(view);
 
         protected internal override void VisitSection(SectionView view) => VisitChildren(view);
 

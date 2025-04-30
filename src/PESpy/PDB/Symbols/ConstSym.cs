@@ -19,6 +19,7 @@ namespace PESpy.PDB
 
         public short value => raw->value;
 
+        //Note: according to dumpsym7.cpp!C7ConSym, name does not actually contain name; you have to skip over a type encoded value indicated by "value"
         public FixedUtf8String name => SymType.ReadString(raw, raw->name);
 
         internal ConstSym(CONSTSYM* value)

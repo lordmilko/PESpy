@@ -1,28 +1,125 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 using static PESpy.ImageLoadConfigDirectory;
 
 namespace PESpy
 {
     //IMAGE_ENCLAVE_CONFIG32 / IMAGE_ENCLAVE_CONFIG64
-    public readonly struct ImageEnclaveConfig : IValue, IViewable
+    public struct ImageEnclaveConfig : IValue, IViewable
     {
+#if PEFAST
+        public int Size => chunk.PeekInt32(0);
+#else
         public int Size { get; }
+#endif
+#if PEFAST
+        public int MinimumRequiredConfigSize => chunk.PeekInt32(4);
+#else
         public int MinimumRequiredConfigSize { get; }
+#endif
+#if PEFAST
+        public int PolicyFlags => chunk.PeekInt32(8);
+#else
         public int PolicyFlags { get; }
+#endif
+#if PEFAST
+        public int NumberOfImports => chunk.PeekInt32(12);
+#else
         public int NumberOfImports { get; }
+#endif
+
+#if PEFAST
+        private RVA<ImageEnclaveImport[]> importList;
+
+        public RVA<ImageEnclaveImport[]> ImportList
+        {
+            get
+            {
+                if (importList.ListedOffset == 0)
+                {
+                    var value = chunk.PeekInt32(16);
+
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromSection(value, out var valueChunk))
+                    {
+                        Debug.Assert(ImportEntrySize == ImageEnclaveImport.StructSize);
+
+                        var imports = new ImageEnclaveImport[NumberOfImports];
+
+                        for (var i = 0; i < NumberOfImports; i++)
+                            imports[i] = new ImageEnclaveImport(valueChunk.Slice(i * ImageEnclaveImport.StructSize));
+
+                        importList = new RVA<ImageEnclaveImport[]>(value, valueChunk.AbsoluteOffset, imports);
+                    }
+                    else
+                        importList = new RVA<ImageEnclaveImport[]>(value);
+                }
+
+                return importList;
+            }
+        }
+#else
         public RVA<ImageEnclaveImport[]> ImportList { get; }
+#endif
+
+#if PEFAST
+        public int ImportEntrySize => chunk.PeekInt32(20);
+#else
         public int ImportEntrySize { get; }
+#endif
+#if PEFAST
+        public Span<byte> FamilyID => chunk.PeekSpan<byte>(24, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+#else
         public byte[] FamilyID { get; }
+#endif
+#if PEFAST
+        public Span<byte> ImageID => chunk.PeekSpan<byte>(24 + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+#else
         public byte[] ImageID { get; }
+#endif
+#if PEFAST
+        public int ImageVersion => chunk.PeekInt32(24 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+#else
         public int ImageVersion { get; }
+#endif
+#if PEFAST
+        public int SecurityVersion => chunk.PeekInt32(28 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+#else
         public int SecurityVersion { get; }
+#endif
+#if PEFAST
+        public long EnclaveSize => (long) chunk.PeekPointer(32 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+#else
         public long EnclaveSize { get; }
+#endif
+#if PEFAST
+        public int NumberOfThreads => chunk.PeekInt32(32 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+#else
         public int NumberOfThreads { get; }
+#endif
+#if PEFAST
+        public int EnclaveFlags => chunk.PeekInt32(36 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+#else
         public int EnclaveFlags { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageEnclaveConfig(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            importList = default;
+        }
+#else
         internal ImageEnclaveConfig(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -57,6 +154,7 @@ namespace PESpy
             else
                 ImportList = new RVA<ImageEnclaveImport[]>(importList);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

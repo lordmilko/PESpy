@@ -3,11 +3,14 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public class SectionContribsV60 : IValue, IViewable //Class as it may not be present
+    //This type is made up, and merely encapsulates the version and SC entries which form a logical region
+    public class SectionContribsV60 : ISectionContribs, IValue, IViewable //Class as it may not be present
     {
         public DBISCImpv Version { get; }
 
         public SC[] Entries { get; }
+
+        public int Length => Entries.Length;
 
         public int Offset { get; }
 
@@ -22,12 +25,13 @@ namespace PESpy.PDB
 
             for (var i = 0; i < entries.Length; i++)
             {
-                entries[i] = new SC(scChunk);
-                scChunk = chunk.Slice(SC.StructSize);
+                entries[i] = new SC(scChunk.Slice(i * SC.StructSize));
             }
 
             Entries = entries;
         }
+
+        public SC40 this[int index] => Entries[index];
 
         void IViewable.WriteView(ViewWriter writer)
         {

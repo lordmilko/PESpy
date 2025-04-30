@@ -712,7 +712,43 @@ namespace PESpy
                 return Array.Empty<Export>();
         }
 
-#if !PEFAST
+#if PEFAST
+        public bool TryGetExport(string name, out Export export)
+        {
+            export = default;
+
+            if (exports != null)
+            {
+                //We already have exports, try and match against one that already exists
+
+                foreach (var item in exports)
+                {
+                    if (item.Name == name)
+                    {
+                        export = item;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            var names = AddressOfNames.ValueOrDefault;
+
+            if (names == null)
+                return false;
+
+            for (var i = 0; i < names.Length; i++)
+            {
+                var itemName = names[i];
+
+                if (itemName.IsValid && itemName.Value == name)
+                    return TryProcessExportAtIndex(itemName.Value, i, out export);
+            }
+
+            return false;
+        }
+#else
         public bool TryGetExport(string name, out Export export)
         {
             export = default;
@@ -796,12 +832,62 @@ namespace PESpy
                 reader.Exit();
             }
         }
-
+#endif
 #if PEFAST
         private bool TryProcessExportAtIndex(AnsiString name, int i, out Export export)
+        {
+            //The name of this function exists at index "i". The ordinal that is also at index "i"
+            //is the index into the AddressOfFunctions array that contains our function address
+            var addressOfNameOrdinals = chunk.PeekInt32(36);
+
+            var peFile = chunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(addressOfNameOrdinals, out var addressOfNameOrdinalsChunk))
+            {
+                var ordinal = addressOfNameOrdinalsChunk.PeekUInt16(i * sizeof(short));
+
+                var addressOfFunctions = chunk.PeekInt32(28);
+
+                if (peFile.TryGetValueChunkFromSection(addressOfFunctions, out var addressOfFunctionsChunk))
+                {
+                    var functionAddress = addressOfFunctionsChunk.PeekInt32(ordinal * sizeof(int));
+
+                    //We got the address, but now the question is: is it a forwarder or not!
+                    var exportTableStart = peFile.OptionalHeader.ExportTableDirectory.VirtualAddress;
+                    var exportTableEnd = exportTableStart + peFile.OptionalHeader.ExportTableDirectory.Size;
+
+                    ForwardOrAddress forwardOrAddress;
+
+                    if (functionAddress >= exportTableStart && functionAddress <= exportTableEnd)
+                    {
+                        //It's a name
+                        if (peFile.TryGetValueChunkFromSection(functionAddress, out var nameChunk))
+                        {
+                            var redirectName = nameChunk.PeekAnsiNullTerminatedString(0);
+                            forwardOrAddress = new ForwardOrAddress(new RVA<AnsiString>(functionAddress, nameChunk.AbsoluteOffset, redirectName));
+                        }
+                        else
+                        {
+                            //Bad
+                            forwardOrAddress = new ForwardOrAddress(functionAddress);
+                        }
+                    }
+                    else
+                    {
+                        //It's just an address
+                        forwardOrAddress = new ForwardOrAddress(functionAddress);
+                    }
+
+                    export = new Export(name, ordinal, forwardOrAddress, ordinal + Base);
+                    return true;
+                }
+            }
+
+            export = default;
+            return false;
+        }
 #else
         private bool TryProcessExportAtIndex(string name, int i, out Export export)
-#endif
         {
             export = default;
 
@@ -966,7 +1052,7 @@ namespace PESpy
                 {
                     var builder = new StringBuilder();
 
-                    var name = Name?.ToString();
+                    var name = Name.ToString();
 
                     if (!string.IsNullOrEmpty(name))
                         builder.Append($"[{Ordinal}] {name}");
@@ -981,7 +1067,7 @@ namespace PESpy
             }
 
 #if PEFAST
-            public AnsiString? Name { get; }
+            public AnsiString Name { get; }
 #else
             public string? Name { get; }
 #endif
@@ -997,7 +1083,7 @@ namespace PESpy
             public int Ordinal { get; }
 
 #if PEFAST
-            public Export(AnsiString? name, int index, ForwardOrAddress nameOrAddress, int ordinal)
+            public Export(AnsiString name, int index, ForwardOrAddress nameOrAddress, int ordinal)
 #else
             public Export(string? name, int index, ForwardOrAddress nameOrAddress, int ordinal)
 #endif
@@ -1010,7 +1096,7 @@ namespace PESpy
 
             public override string ToString()
             {
-                var name = Name?.ToString();
+                var name = Name.ToString();
 
                 if (!string.IsNullOrEmpty(name))
                     return name!;

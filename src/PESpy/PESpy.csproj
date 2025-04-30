@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(Build)ClrDebug.props" />
+
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>enable</Nullable>
-    <!--<DefineConstants>$(DefineConstants);PEFAST</DefineConstants>-->
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\PESpy.xml</DocumentationFile>
 		<DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants)</DefineConstants>
   </PropertyGroup>
@@ -17,12 +18,6 @@
   <ItemGroup>
     <Compile Remove="_old\**" />
     <None Include="_old\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="ClrDebug">
-      <HintPath>..\..\..\ClrDebug\ClrDebug\bin\Debug\netstandard2.0\ClrDebug.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>

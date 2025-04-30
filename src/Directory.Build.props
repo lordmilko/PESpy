@@ -1,6 +1,11 @@
 ﻿<Project>
   <PropertyGroup>
-    <BaseOutputPath>$(MSBuildThisFileDirectory)..\artifacts\$(MSBuildProjectName)\bin\</BaseOutputPath>
+    <Build>$(MSBuildThisFileDirectory)..\build\</Build>
+
+    <!--<BaseOutputPath>$(MSBuildThisFileDirectory)..\artifacts\$(MSBuildProjectName)\bin\</BaseOutputPath>-->
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\artifacts\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+
+    <DefineConstants>$(DefineConstants);PEFAST</DefineConstants>
+    <DefineConstants>$(DefineConstants);NEW_PDB</DefineConstants>
   </PropertyGroup>
 </Project>

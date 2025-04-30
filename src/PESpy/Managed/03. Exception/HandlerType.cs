@@ -2,20 +2,80 @@
 
 namespace PESpy
 {
-    public readonly struct HandlerType : IValue, IViewable
+    public struct HandlerType : IValue, IViewable
     {
+#if PEFAST
+        public int Adjectives => chunk.PeekInt32(0);
+#else
         public int Adjectives { get; }
+#endif
 
+#if PEFAST
+        private RVA<TypeDescriptor> type;
+
+        public RVA<TypeDescriptor> Type
+        {
+            get
+            {
+                if (type.ListedOffset == 0)
+                {
+                    var dispType = chunk.PeekInt32(4);
+
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromSection(dispType, out var valueChunk))
+                        type = new RVA<TypeDescriptor>(dispType, dispType, new TypeDescriptor(valueChunk));
+                    else
+                        type = new RVA<TypeDescriptor>(dispType);
+                }
+
+                return type;
+            }
+        }
+#else
         public RVA<TypeDescriptor> Type { get; }
+#endif
 
+#if PEFAST
+        public int CatchObj => chunk.PeekInt32(8);
+#else
         public int CatchObj { get; }
+#endif
 
+#if PEFAST
+        public int Handler => chunk.PeekInt32(12);
+#else
         public int Handler { get; }
+#endif
 
+#if PEFAST
+        public int Frame => chunk.PeekInt32(16);
+#else
         public int Frame { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+        internal const int StructSize =
+            sizeof(int) + //Adjectives
+            sizeof(int) + //Type
+            sizeof(int) + //CatchObj
+            sizeof(int) + //Handler
+            sizeof(int); //Frame
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal HandlerType(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            type = default;
+        }
+#else
         internal HandlerType(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -39,6 +99,7 @@ namespace PESpy
             else
                 Type = new RVA<TypeDescriptor>(dispType);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

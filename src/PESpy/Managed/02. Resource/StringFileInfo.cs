@@ -14,33 +14,111 @@ namespace PESpy
             /// <summary>
             /// The length, in bytes, of the entire StringFileInfo block, including all structures indicated by the Children member.
             /// </summary>
+#if PEFAST
+            public short Length => chunk.PeekInt16(0);
+#else
             public short Length { get; init; }
+#endif
 
             /// <summary>
             /// This member is always equal to zero.
             /// </summary>
+#if PEFAST
+            public short ValueLength => chunk.PeekInt16(2);
+#else
             public short ValueLength { get; init; }
+#endif
 
             /// <summary>
             /// The type of data in the version resource. This member is 1 if the version resource contains text data and 0
             /// if the version resource contains binary data.
             /// </summary>
+#if PEFAST
+            public short Type => chunk.PeekInt16(4);
+#else
             public short Type { get; init; }
+#endif
 
             /// <summary>
             /// The Unicode string L"StringFileInfo".
             /// </summary>
+#if PEFAST
+            public FixedUtf16String Key => chunk.PeekUtf16FixedLength(6, 14);
+#else
             public string Key { get; init; }
+#endif
+
+            //Will never need to align, as Key is 30 bytes, so we're now on byte 36
 
             /// <summary>
             /// As many zero words as necessary to align the Children member on a 32-bit boundary.
             /// </summary>
+#if PEFAST
+            public short Padding => 0; //There is never any padding, due to the length of the key
+#else
             public short Padding { get; init; }
+#endif
 
+#if PEFAST
+            private StringTable[]? children;
+
+            public StringTable[]? Children
+            {
+                get
+                {
+                    if (children == null)
+                    {
+                        var length = Length;
+
+                        var read = FixedStructSize; //Includes the key already
+
+                        if (read < length)
+                        {
+                            var results = new List<StringTable>();
+
+                            do
+                            {
+                                var item = new StringTable(chunk.Slice(read));
+                                Debug.Assert(item.Length != 0);
+                                results.Add(item);
+                                read += item.Length;
+                            } while (read < length);
+
+                            children = results.ToArray();
+                        }
+                    }
+
+                    return children;
+                }
+            }
+#else
             public StringTable[] Children { get; init; }
+#endif
 
+#if PEFAST
+            public RawOffset Offset => chunk.AbsoluteOffset;
+#else
             public RawOffset Offset { get; }
+#endif
 
+            internal const int FixedStructSize =
+                sizeof(short) + //Length
+                sizeof(short) + //ValueLength
+                sizeof(short) + //Type
+                30;             //Key
+
+#if PEFAST
+            private readonly MemoryChunk chunk;
+
+            internal StringFileInfo(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+
+#if STRESS_TEST
+                _ = Children;
+#endif
+            }
+#else
             internal StringFileInfo(RawOffset offset, short length, short valueLength, short type, string key, IFileReader reader)
             {
                 Offset = offset;
@@ -74,6 +152,7 @@ namespace PESpy
 
                 Children = items.ToArray();
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {
@@ -82,21 +161,25 @@ namespace PESpy
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);
                 s.WriteField("wType", Type);
-                s.WriteUTF16NullTerminatedField("szKey", Key);
+                s.WriteUTF16Field("szKey", Key, 15);
 
+#if !PEFAST
                 if (s.NeedAlignment(4, out var required))
                 {
                     Debug.Assert(required == 2);
                     s.WriteField(nameof(Padding), Padding);
                 }
-
-                for (var i = 0; i < Children.Length; i++)
+#endif
+                if (Children != null)
                 {
-                    var item = Children[i];
-                    s.WriteInline(item);
+                    for (var i = 0; i < Children.Length; i++)
+                    {
+                        var item = Children[i];
+                        s.WriteInline(item);
 
-                    if (i < Children.Length - 1)
-                        s.Align(4); //todo: need to test that we'll fill in the gap with a byteblob?
+                        if (i < Children.Length - 1)
+                            s.Align(4);
+                    }
                 }
 
                 s.VerifyLength(Length);

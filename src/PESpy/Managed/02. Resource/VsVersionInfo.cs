@@ -15,6 +15,87 @@ namespace PESpy
     /// </summary>
     public partial class VsVersionInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
     {
+#if PEFAST
+        public short Length => chunk.PeekInt16(0);
+
+        public short ValueLength => chunk.PeekInt16(2);
+
+        public short Type => chunk.PeekInt16(4);
+
+        public FixedUtf16String Key => chunk.PeekUtf16FixedLength(6, 15); //VS_VERSION_INFO + \0 (16 in total)
+
+        //Due to the fact we've read 3 shorts and then 16 bits, we should always align here
+        public short Padding1 => chunk.PeekInt16(38); //6 + (16 * 2)
+
+        private VsFixedFileInfo value;
+
+        public VsFixedFileInfo Value
+        {
+            get
+            {
+                if (value == null && ValueLength > 0)
+                    value = new VsFixedFileInfo(chunk.Slice(FixedStructSize));
+
+                return value;
+            }
+        }
+
+#if !PEFAST
+        public short Padding2 { get; init; }
+#endif
+        private IValue[] children;
+
+
+        public IValue[] Children
+        {
+            get
+            {
+                if (children == null)
+                {
+                    //In the event we read VS_FIXEDFILEINFO, it has an even number of shorts, so we should never need to align here
+                    var read = FixedStructSize + ValueLength;
+
+                    var length = Length;
+
+                    if (read < length)
+                    {
+                        var results = new List<IValue>();
+
+                        do
+                        {
+                            //We now have a sequence of StringFileInfo and/or VarFileInfo items. The header format of these types
+                            //is identical, they just have different keys
+
+                            var szKey = chunk.PeekUtf16NullTerminatedString(read + 6); //Skip over the InfoLength, InfoValueLength and Type
+
+                            if (szKey == "StringFileInfo")
+                            {
+                                var item = new StringFileInfo(chunk.Slice(read));
+                                read += item.Length;
+                                results.Add(item);
+                            }
+                            else if (szKey == "VarFileInfo")
+                            {
+                                var item = new VarFileInfo(chunk.Slice(read));
+                                read += item.Length;
+                                results.Add(item);
+                            }
+                            else
+                            {
+                                Debug.Assert(false);
+                            }
+                        } while (read < length);                        
+
+                        children = results.ToArray();
+                    }
+                }
+
+                return children;
+            }
+        }
+
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public short Length { get; init; }
 
         public short ValueLength { get; init; }
@@ -29,17 +110,31 @@ namespace PESpy
 
         public short Padding2 { get; init; }
 
-        public RawOffset Offset { get; }
-
         public IValue[] Children;
+
+        public RawOffset Offset { get; }
+#endif
 
         internal const int FixedStructSize =
             sizeof(short) + //Length
             sizeof(short) + //ValueLength
             sizeof(short) + //Type
-            16 +            //Key
+            32 +            //Key
             sizeof(short);  //Padding1
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal VsVersionInfo(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+
+#if STRESS_TEST
+            _ = Value;
+            _ = Children;
+#endif
+        }
+#else
         internal VsVersionInfo(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -111,6 +206,7 @@ namespace PESpy
                 Children = children.ToArray();
             }
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static short Align32(IFileReader reader, out bool didAlign, int end)
@@ -165,11 +261,13 @@ namespace PESpy
             s.WriteField(nameof(Padding1), Padding1);
             s.WriteInline(Value);
 
+#if !PEFAST
             if (s.NeedAlignment(4, out var required))
             {
                 Debug.Assert(required == 2);
                 s.WriteField(nameof(Padding2), Padding2);
             }
+#endif
 
             for (var i = 0; i < Children.Length; i++)
             {

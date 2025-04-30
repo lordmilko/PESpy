@@ -1,4 +1,6 @@
 ﻿#if PEFAST
+using System;
+
 namespace PESpy
 {
     class LocalMemoryBlock : MemoryBlock
@@ -14,6 +16,9 @@ namespace PESpy
         public override void Dispose(bool disposing)
         {
             //Nothing to do; all memory is owned by the memory mapped file
+
+            if (disposing)
+                GC.SuppressFinalize(this);
         }
     }
 }

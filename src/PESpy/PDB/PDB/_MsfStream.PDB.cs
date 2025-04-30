@@ -1,4 +1,5 @@
 ﻿using System;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -10,9 +11,7 @@ namespace PESpy.PDB
         /// </summary>
         public class PDB : IValue, IViewable
         {
-            private PDBStream70 pdbHeader;
-
-            public ref readonly PDBStream70 PDBHeader => ref pdbHeader;
+            public PDBStream PDBHeader { get; }
 
             private NMTNI streamNameTable;
 
@@ -21,15 +20,37 @@ namespace PESpy.PDB
             //The first entry can be 0 and that's normal
             public PdbFeature[] Features { get; }
 
-            public int Offset => pdbHeader.Offset;
+            public int Offset => PDBHeader.Offset;
 
             internal PDB(in MemoryChunk chunk)
             {
-                pdbHeader = new PDBStream70(chunk);
+                //Check if the size of exactly PDBStream, and if so if its impvVC2
 
-                streamNameTable = new NMTNI(chunk.Slice(PDBStream70.StructSize));
+                var impv = (PDBIMPV) chunk.PeekUInt32(0);
 
-                var remainingChunk = chunk.Slice(PDBStream70.StructSize + streamNameTable.StructSize);
+                if (chunk.Remaining == PDBStream.StructSize || impv == PDBIMPV.PDBImpvVC2)
+                    throw new NotImplementedException(); //microsoft-pdb does not support these anymore
+
+                //microsoft-pdb only parses the header if impv >= impvVC4 and <= impvVC140. However, we don't know what future
+                //PDBIMPV values Microsoft will add, so we can't be doing such checks
+
+                var headerSize = 0;
+
+                //it's only PDBStream70 if impv > impvVC70Dep
+                if (impv >= PDBIMPV.PDBImpvVC70Dep)
+                {
+                    PDBHeader = new PDBStream70(chunk);
+                    headerSize = PDBStream70.StructSize;
+                }
+                else
+                {
+                    PDBHeader = new PDBStream(chunk);
+                    headerSize = PDBStream.StructSize;
+                }
+
+                streamNameTable = new NMTNI(chunk.Slice(headerSize));
+
+                var remainingChunk = chunk.Slice(headerSize + streamNameTable.StructSize);
 
                 /* Following the end of the stream name table there may be one or more "feature codes"
                  * - impvVC110 (m_fContainIDStream)

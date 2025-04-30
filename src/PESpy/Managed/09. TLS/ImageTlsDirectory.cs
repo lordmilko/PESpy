@@ -13,20 +13,67 @@ namespace PESpy
     /// </summary>
     public class ImageTlsDirectory : IValue, IViewable
     {
-        public long StartAddressOfRawData { get; }
+#if PEFAST
+        public ulong StartAddressOfRawData => chunk.PeekPointer(0);
+#else
+        public ulong StartAddressOfRawData { get; }
+#endif
 
-        public long EndAddressOfRawData { get; }
+#if PEFAST
+        public ulong EndAddressOfRawData => chunk.PeekPointer(chunk.PointerSize);
+#else
+        public ulong EndAddressOfRawData { get; }
+#endif
 
-        public long AddressOfIndex { get; }
+#if PEFAST
+        public ulong AddressOfIndex => chunk.PeekPointer(2 * chunk.PointerSize);
+#else
+        public ulong AddressOfIndex { get; }
+#endif
 
-        public long AddressOfCallBacks { get; }
+#if PEFAST
+        public ulong AddressOfCallBacks => chunk.PeekPointer(3 * chunk.PointerSize);
+#else
+        public ulong AddressOfCallBacks { get; }
+#endif
 
+#if PEFAST
+        public int SizeOfZeroFill => chunk.PeekInt32(4 * chunk.PointerSize);
+#else
         public int SizeOfZeroFill { get; }
+#endif
 
+#if PEFAST
+        public IMAGE_SCN_ALIGN Characteristics => (IMAGE_SCN_ALIGN) chunk.PeekUInt32(4 + (4 * chunk.PointerSize));
+#else
         public IMAGE_SCN_ALIGN Characteristics { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+        internal static int StructSize(bool is32Bit) =>
+            is32Bit
+                ? (4 * 4)
+                : (4 * 8) + //StartAddressOfRawData, EndAddressOfRawData, AddressOfIndex, AddressOfCallBacks
+            sizeof(int) + //SizeOfZeroFill
+            sizeof(int); //Characteristics
+
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageTlsDirectory(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+
+            //I'm not sure if IMAGE_SCN_SCALE_INDEX is supposed to be included in the enum list
+            Debug.Assert(((int) Characteristics & 1) == 0, "Should IMAGE_SCN_SCALE_INDEX be listed as an enum value?");
+        }
+#else
         internal ImageTlsDirectory(IFileReader reader, bool is32Bit)
         {
             Offset = (RawOffset) reader.Position;
@@ -41,14 +88,15 @@ namespace PESpy
             //I'm not sure if IMAGE_SCN_SCALE_INDEX is supposed to be included in the enum list
             Debug.Assert(((int) Characteristics & 1) == 0, "Should IMAGE_SCN_SCALE_INDEX be listed as an enum value?");
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long ReadPointer(IFileReader reader, bool is32Bit)
+        private static ulong ReadPointer(IFileReader reader, bool is32Bit)
         {
             if (is32Bit)
-                return reader.ReadInt32();
+                return reader.ReadUInt32();
 
-            return reader.ReadInt64();
+            return reader.ReadUInt64();
         }
 
         void IViewable.WriteView(ViewWriter writer)

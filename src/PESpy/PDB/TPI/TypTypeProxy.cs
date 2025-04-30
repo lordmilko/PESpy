@@ -56,7 +56,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_FIELDLIST_16t:  return (LfFieldList16t) typType;
                 case LEAF_ENUM_e.LF_DERIVED_16t:    return (LfDerived16t) typType;
                 case LEAF_ENUM_e.LF_BITFIELD_16t:   return (LfBitfield16t) typType;
-                case LEAF_ENUM_e.LF_METHODLIST_16t: throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_METHODLIST_16t: return (LfMethodList16t) typType;
 
                 case LEAF_ENUM_e.LF_DIMCONU_16t:
                 case LEAF_ENUM_e.LF_DIMCONLU_16t:

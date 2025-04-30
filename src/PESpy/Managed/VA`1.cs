@@ -42,11 +42,11 @@ namespace PESpy
                 if (!IsValid)
                     throw new InvalidOperationException($"Cannot get value from VA 0x{ListedAddress:X}: address is not valid");
 
-                return value;
+                return value!;
             }
         }
 
-        public T ValueOrDefault
+        public T? ValueOrDefault
         {
             get
             {
@@ -193,7 +193,7 @@ namespace PESpy
                 return s;
 
             if (typeof(T).IsArray)
-                return "0x" + ListedAddress.ToString("X") + $" : (Length: {((Array) (object) Value).Length})";
+                return "0x" + ListedAddress.ToString("X") + $" : (Length: {((Array) (object) Value!).Length})";
 
             if (Value != null)
             {

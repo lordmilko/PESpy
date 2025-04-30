@@ -1,0 +1,91 @@
+﻿using System.Collections.Generic;
+using PESpy.PDB;
+using PESpy.View;
+
+namespace PESpy.OBJ
+{
+    //Name is made up
+    class OBJSymbolsTable : IValue, IViewable
+    {
+        public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
+
+        public SymType[]? c11Symbols;
+
+        //C7 or C11
+        public unsafe SymType[]? C11Symbols
+        {
+            get
+            {
+                var sig = Signature;
+
+                if (c11Symbols == null && sig is CV_SIGNATURE.C7 or CV_SIGNATURE.C11)
+                {
+                    //C7 and C11 use ST strings
+                    SymbolMemoryTracker.RegisterOBJSymbolMemory(sig, chunk);
+                    c11Symbols = MsfStream.DBI.ReadSymbols(chunk.Pointer + 4, length - 4);
+                }
+
+                return c11Symbols;
+            }
+        }
+
+        private CvDebugSSubsectionHeader[]? c13SubSections;
+
+        public CvDebugSSubsectionHeader[]? C13SubSections
+        {
+            get
+            {
+                if (c13SubSections == null && Signature == CV_SIGNATURE.C13)
+                {
+                    var totalOffset = 4;
+
+                    var results = new List<CvDebugSSubsectionHeader>();
+
+                    while (totalOffset < length)
+                    {
+                        //The start of each record must be 32-bit aligned relative to the start
+                        //of the section. i.e. if the section starts at 1, address 5 is aligned
+                        if ((totalOffset & 3) != 0)
+                        {
+                            var diff = 4 - (totalOffset & 3);
+                            totalOffset += diff;
+                        }
+
+                        //C13 uses UTF8 strings
+                        var header = new CvDebugSSubsectionHeader(chunk.Slice(totalOffset));
+
+                        results.Add(header);
+
+                        totalOffset += header.cbLen + 8; //sizeof(type) = sizeof(cbLen)
+                    }
+
+                    c13SubSections = results.ToArray();
+                }
+
+                return c13SubSections;
+            }
+        }
+
+        public int Offset => chunk.AbsoluteOffset;
+
+        private readonly MemoryChunk chunk;
+        private int length;
+
+        internal OBJSymbolsTable(in MemoryChunk chunk, int length)
+        {
+            this.chunk = chunk;
+            this.length = length;
+
+            _ = C11Symbols;
+#if STRESS_TEST
+            _ = C13SubSections;
+#endif
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
+            writer.WriteGlobal(C13SubSections);
+        }
+    }
+}

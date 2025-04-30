@@ -39,7 +39,7 @@ namespace PESpy.View.Builder
                 int start;
                 int size;
 
-                Func<int, int> getRealOffset = null;
+                Func<int, int>? getRealOffset = null;
 
                 //When requesting bytes from the user, we need to tell them what their RVA is
                 Func<int, int> getRVA;

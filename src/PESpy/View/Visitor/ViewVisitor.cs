@@ -1,6 +1,6 @@
 ﻿namespace PESpy.View
 {
-    public abstract class PEViewVisitor
+    public abstract class ViewVisitor
     {
         public virtual void Visit(IView view) => view.Accept(this);
 
@@ -11,7 +11,7 @@
         protected internal abstract void VisitHeader(HeaderView view);
         protected internal abstract void VisitLogicalReview(LogicalRegionView view);
         protected internal abstract void VisitOverlay(OverlayView view);
-        protected internal abstract void VisitPEFile(PEFileView view);
+        protected internal abstract void VisitFile(FileView view);
         protected internal abstract void VisitSection(SectionView view);
         protected internal abstract void VisitStruct(StructView view);
         protected internal abstract void VisitValue(IValueView view);

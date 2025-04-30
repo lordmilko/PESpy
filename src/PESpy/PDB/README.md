@@ -53,7 +53,7 @@ The meanings of these fields are as follows
 * `pnFPm`: the page number of the active *Free Page Map* (discussed in the next section below)
 * `pnMac`: the total (maximum) number of pages contained this PDB. As a page size of 1024 bytes was selected, 10 additional pages were allocated by default for a total of 11. `microsoft-pdb` seems to have a habit of spelling what I assume to be "max" as "mac"
 * `siSt`: lists the number of bytes that the "stream table" spans. See *Stream Table* below for more info on this field
-* `mpspnpnSt`: lists the page that lists the pages that the stream table spans. See *Stream Table* below for more info on this field.
+* `mpspnpnSt`: lists the page(s) that lists the pages that the stream table spans. See *Stream Table* below for more info on this field.
 
 `microsoft-pdb` uses a litany of cryptic types and typedefs for the various pieces of data it needs to model. The following table lists some commonly seen types and what their meanings are
 
@@ -113,17 +113,29 @@ The PageList is null! For some reason, the PageList is not stored inline in the 
 * = Map of array index of PN for the Stream Table
 * = *Literally just an array of the PNs for the Stream Table!*
 
-Complicating things further, while is `mpspnpnSt` is *theoretically* an array, in practice it only ever seems to contain a single value: the singular page containing the stream table page list. Microsoft seem to think that you will never need more than a single page to store the list of pages of the stream table. From `msf.cpp`:
+To understand how `mpspnpnSt` works, consider the following:
+
+* There exists a Stream Table that is 307,528 bytes large in a PDB that uses 1024 byte pages
+* The Stream Table itself therefore spans 301 pages (307,528 / 1024)
+* Each page number occupies 4 bytes
+* Therefore, listing the location of the Stream Table's 301 pages requires 1204 bytes
+* Which means that the list of pages that comprise the Stream Table itself spans 2 pages (1204 / 1024)
+
+The `microsoft-pdb` source code indicates that `mpspnpnSt` could be an array, however it is hard to decipher under what circumstance it could ever contain more than one value amidst the mess of legacy C++ code. Other third party PDB readers assume that `mpspnpnSt` only ever contains a single value. In practice, it seems that when the stream table page list spans multiple pages, these pages are sequential. Therefore, you can technically get away with only reading the first page listed in `mpspnpnSt`, and as you read "beyond" the end of the first page you will inadvertently correctly read into all subsequent pages. You can stress test creating a PDB whose stream table page list spans more than 1 page using `mspdbcore.dll` and creating a PDB with 75 streams, each with 1,048,576 bytes of junk in each stream, resulting in a ~77mb PDB.
+
+Confusingly, microsoft-pdb has the following remark in `msf.cpp`:
 
 > Also, a layer of indirection has been added to the stream table serialization. Where before the page list for the stream table was stored in the header page for the reconstruction of the stream table, now a page list of the pages is written instead. This way the page list for the stream table won't exceed a single page.
 
-Reading the tream table (using `SI_PERSIST.cb` coupled with the singular page listed in `mpspnpnSt`) we get the information we need to reconstruct the in-memory `SI` structs.
+As evidenced by the stress test I have performed, assuming my interpretation of what they are saying is right, this statement is incorrect.
+
+Overall, reading the stream table (using `SI_PERSIST.cb` coupled with the singular page listed in `mpspnpnSt`) we get the information we need to reconstruct the in-memory `SI` structs.
 
 ## The Stream Table Stream
 
-There is one more wrinkle to understand when it comes to the Stream Table. The first valid number you can use for a stream is 1 (`snUserMin`). SN 0 cannot be used because SN 0 has a special meaning: `snST`...the stream that stores the stream table!
+There is one more wrinkle to understand when it comes to the Stream Table. The first valid number you can use for a stream is 1 (`snUserMin`). SN 0 cannot be used because SN 0 has a special meaning: `snSt`...the stream that stores the stream table!
 
-Before you lose your mind, that this stream table madness never ends, fear not! What `snST` really does is it stores a backup of the *previous* stream table.
+Before you lose your mind, that this stream table madness never ends, fear not! What `snSt` really does is it stores a backup of the *previous* stream table.
 
 To illustrate this, consider the following
 1. create a brand new PDB (via `MSFOpenW`). The Stream Table is empty
@@ -134,7 +146,7 @@ To illustrate this, consider the following
 6. the `BIGMSF_HDR` Stream Table now says that Stream 0 exists on Page 5
 7. And the Stream Table on Page 5 now contains a copy of the `BIGMSF_HDR` that existed in Step 3
 
-Perhaps erroneously, the page(s) that `snST` spans appear be marked as free in the FPM. In one sense it might be true that they're free (in that the FPM may use them for something else) however in another sense, by virtue of the page being listed in a stream, there *must be* meaningful data there that a PDB reader should be able to read and understand
+Perhaps erroneously, the page(s) that `snSt` spans appear be marked as free in the FPM. In one sense it might be true that they're free (in that the FPM may use them for something else) however in another sense, by virtue of the page being listed in a stream, there *must be* meaningful data there that a PDB reader should be able to read and understand
 
 ## Free Page Map
 

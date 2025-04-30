@@ -6,7 +6,7 @@ namespace PESpy.Native
     [StructLayout(LayoutKind.Sequential)]
     internal struct IMAGE_BOUND_FORWARDER_REF
     {
-        public int TimeDateStamp;
+        public uint TimeDateStamp;
         public ushort OffsetModuleName;
         public ushort Reserved;
     }

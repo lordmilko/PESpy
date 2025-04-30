@@ -1,13 +1,17 @@
 ﻿#if PEFAST
+using System;
+
 namespace PESpy
 {
     class LocalHeaderMemoryBlock : HeaderMemoryBlock
     {
-        internal unsafe LocalHeaderMemoryBlock(byte* mmf, IMemoryBlockProvider provider) : base(provider)
+        internal unsafe LocalHeaderMemoryBlock(LocalMemoryBlockProvider provider) : base(provider)
         {
-            //Some applications are only 1024, but some are 4096
-            RemoteEndOffset = 0x1000;
-            LocalPointer = mmf;
+            //Some applications have a header of 1024 bytes, but others have 4096. However,
+            //as far as the Local Header Memory Block is concerned, we can provide access to the entire module,
+            //including the overlay.
+            RemoteEndOffset = (int) provider.Length;
+            LocalPointer = provider.Pointer;
         }
 
         internal override void Resize(int newSize)
@@ -17,6 +21,8 @@ namespace PESpy
 
         public override void Dispose(bool disposing)
         {
+            if (disposing)
+                GC.SuppressFinalize(this);
         }
     }
 }

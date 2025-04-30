@@ -1,31 +1,14 @@
-﻿using ClrDebug;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct SC : IValue, IViewable
+    public class SC : SC40
     {
-        public ISECT isect => chunk.PeekUInt16(0);
-
-        public ushort padding1 => chunk.PeekUInt16(2);
-
-        public int off => chunk.PeekInt32(4);
-
-        public int cb => chunk.PeekInt32(8);
-
-        public IMAGE_SCN dwCharacteristics => (IMAGE_SCN) chunk.PeekUInt32(12);
-
-        public IMOD imod => chunk.PeekUInt16(16);
-
-        public ushort padding2 => chunk.PeekUInt16(18);
-
         public int dwDataCrc => chunk.PeekInt32(20);
 
         public int dwRelocCrc => chunk.PeekInt32(24);
 
-        public int Offset => chunk.AbsoluteOffset;
-
-        internal const int StructSize =
+        internal new const int StructSize =
             sizeof(ushort) + //isect
             sizeof(ushort) + //padding1
             sizeof(int) + //off
@@ -36,14 +19,11 @@ namespace PESpy.PDB
             sizeof(int) + //dwDataCrc
             sizeof(int); //dwRelocCrc
 
-        private readonly MemoryChunk chunk;
-
-        internal SC(in MemoryChunk chunk)
+        internal SC(in MemoryChunk chunk) : base(chunk)
         {
-            this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        protected override void WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct(nameof(SC), this, ViewKind.SC);
 

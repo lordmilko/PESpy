@@ -17,7 +17,7 @@ namespace PESpy
         /// The name of the section.
         /// </summary>
 #if PEFAST
-        public Utf8String Name => chunk.PeekNullPaddedUTF8(0, 8);
+        public Utf8String Name => chunk.PeekNullPaddedUtf8(0, 8);
 #else
         public string Name { get; init; }
 #endif
@@ -96,6 +96,11 @@ namespace PESpy
 
                         if (chunk.block is GlobalMemoryBlock b)
                         {
+                            //If we have an Anon Header, I think we need to adjust for it. And if we've been embedded inside of a LIB file,
+                            //I think we need to further adjust for that too
+
+                            Debug.Assert(false, "Implement support for Anon Header and embedded in LIB file");
+                            
                             symbolTableChunk = new MemoryChunk(b, offset);
                         }
                         else
@@ -129,9 +134,56 @@ namespace PESpy
         /// This value should be zero for an image because COFF debugging information is deprecated.
         /// </summary>
 #if PEFAST
-        public int PointerToLineNumbers => chunk.PeekInt32(28);
+        private VA<ImageLineNumber[]>? pointerToLineNumbers;
+
+        public VA<ImageLineNumber[]> PointerToLineNumbers
+        {
+            get
+            {
+                if (pointerToLineNumbers == null)
+                {
+                    var offset = chunk.PeekInt32(28);
+
+                    if (offset == 0)
+                    {
+                        pointerToLineNumbers = new VA<ImageLineNumber[]>(offset);
+                    }
+                    else
+                    {
+                        MemoryChunk symbolTableChunk;
+
+                        if (chunk.block is GlobalMemoryBlock b)
+                        {
+                            //If we have an Anon Header, I think we need to adjust for it. And if we've been embedded inside of a LIB file,
+                            //I think we need to further adjust for that too
+
+                            Debug.Assert(false, "Implement support for Anon Header and embedded in LIB file");
+
+                            symbolTableChunk = new MemoryChunk(b, offset);
+                        }
+                        else
+                        {
+                            if (!chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out symbolTableChunk))
+                            {
+                                pointerToLineNumbers = new VA<ImageLineNumber[]>(offset);
+                                return pointerToLineNumbers.Value;
+                            }
+                        }
+
+                        var lineNumbers = new ImageLineNumber[NumberOfRelocations];
+
+                        for (var i = 0; i < NumberOfRelocations; i++)
+                            lineNumbers[i] = new ImageLineNumber(symbolTableChunk.Slice(i * ImageLineNumber.StructSize));
+
+                        pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
+                    }
+                }
+
+                return pointerToLineNumbers.Value;
+            }
+        }
 #else
-        public int PointerToLineNumbers { get; init; }
+        public VA<ImageLineNumber[]> PointerToLineNumbers { get; init; }
 #endif
 
         /// <summary>
@@ -188,7 +240,11 @@ namespace PESpy
         internal ImageSectionHeader(in MemoryChunk chunk)
         {
             pointerToRelocations = default;
+            pointerToLineNumbers = default;
             this.chunk = chunk;
+
+            //Note: we can't do any section lookups in the ctor for stuff like NumberOfLineNumbers,
+            //as these require that our sections have already been created!
         }
 #else
         internal ImageSectionHeader(IFileReader reader)
@@ -203,7 +259,7 @@ namespace PESpy
             SizeOfRawData = reader.ReadInt32();
             PointerToRawData = (RawOffset) reader.ReadInt32();
             var pointerToRelocations = reader.ReadInt32();
-            PointerToLineNumbers = reader.ReadInt32();
+            PointerToLineNumbers = new VA<ImageLineNumber[]>(reader.ReadInt32());
             NumberOfRelocations = reader.ReadInt16();
             NumberOfLineNumbers = reader.ReadInt16();
             Characteristics = (IMAGE_SCN) reader.ReadUInt32();
@@ -226,9 +282,6 @@ namespace PESpy
 
                 reader.Seek(oldOffset);
             }
-
-            if (PointerToLineNumbers > 0)
-                Debug.Assert(false, "Reading line numbers is not implemented");
         }
 #endif
 
@@ -243,7 +296,7 @@ namespace PESpy
             s.WriteField(nameof(SizeOfRawData), SizeOfRawData);
             s.WriteField(nameof(PointerToRawData), (int) PointerToRawData);
             s.WriteSmallVAPointerField(nameof(PointerToRelocations), PointerToRelocations);
-            s.WriteField(nameof(PointerToLineNumbers), PointerToLineNumbers);
+            s.WriteSmallVAPointerField(nameof(PointerToLineNumbers), PointerToLineNumbers);
             s.WriteField(nameof(NumberOfRelocations), NumberOfRelocations);
             s.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbers);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));

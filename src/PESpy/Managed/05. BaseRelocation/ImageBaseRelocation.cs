@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -9,14 +10,38 @@ namespace PESpy
 {
     public readonly struct ImageBaseRelocation : IValue, IViewable
     {
+#if PEFAST
+        public int VirtualAddress => chunk.PeekInt32(0);
+#else
         public int VirtualAddress { get; }
+#endif
 
+#if PEFAST
+        public int SizeOfBlock => chunk.PeekInt32(4);
+#else
         public int SizeOfBlock { get; }
+#endif
 
+#if PEFAST
+        public Span<Entry> Entries => chunk.PeekSpan<Entry>(8, (SizeOfBlock - 8) / 2);
+#else
         public Entry[] Entries { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageBaseRelocation(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageBaseRelocation(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -33,6 +58,7 @@ namespace PESpy
 
             Entries = entries;
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

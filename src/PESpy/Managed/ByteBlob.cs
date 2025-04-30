@@ -11,10 +11,28 @@ namespace PESpy
     /// </summary>
     public readonly struct ByteBlob : IValue, IViewable  //Small enough that returning a copy from properties is OK
     {
+#if PEFAST
+        public Span<byte> Bytes => chunk.PeekSpan<byte>(0, length);
+#else
         public byte[] Bytes { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+        private readonly int length;
+
+        internal ByteBlob(in MemoryChunk chunk, int length)
+        {
+            this.chunk = chunk;
+            this.length = length;
+        }
+#else
         internal ByteBlob(IFileReader reader, int length)
         {
             if (length == 0)
@@ -29,6 +47,7 @@ namespace PESpy
             Offset = fileOffset;
             Bytes = bytes;
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

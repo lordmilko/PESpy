@@ -10,14 +10,42 @@ namespace PESpy
     /// </summary>
     public readonly struct PogoItem : IValue, IViewable
     {
+#if PEFAST
+        public int RVA => chunk.PeekInt32(0);
+#else
         public int RVA { get; }
+#endif
 
+#if PEFAST
+        public int Size => chunk.PeekInt32(4);
+#else
         public int Size { get; }
+#endif
 
+#if PEFAST
+        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(8);
+#else
         public string Name { get; }
+#endif
 
+        internal const int FixedStructSize =
+            sizeof(int) + //RVA
+            sizeof(int); //Size
+
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal PogoItem(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal PogoItem(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -32,6 +60,7 @@ namespace PESpy
             while (reader.Position < alignmentTarget)
                 reader.ReadByte();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -44,7 +73,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            return Name;
+            return Name.ToString();
         }
     }
 }

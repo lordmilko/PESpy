@@ -24,7 +24,7 @@ namespace PESpy.View
 
         public TValue Value { get; }
 
-        object IFieldView.Value => Value;
+        object IFieldView.Value => Value!;
 
         public int Size { get; private set; }
 
@@ -40,9 +40,9 @@ namespace PESpy.View
             //We can't assert that we have a size because the first item in the ECMA 335 blob heap is an empty array
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitField(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitField(this);
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitField(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitField(this);
 
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
         {
@@ -87,9 +87,9 @@ namespace PESpy.View
 
     class SplitFieldView<TValue> : FieldView<TValue>, ISplitView
     {
-        public ISplitView Previous { get; internal set; }
+        public ISplitView? Previous { get; internal set; }
 
-        public ISplitView Next { get; internal set; }
+        public ISplitView? Next { get; internal set; }
 
         public SplitFieldView(RawOffset offset, string name, TValue value, int size) : base(offset, name, value, size)
         {

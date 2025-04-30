@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if PEFAST
+using System.Collections.Generic;
 using System.Linq;
 using PESpy.OBJ;
 
@@ -39,8 +40,12 @@ namespace PESpy.View.Builder
                 if (lastSectionEnd != -1 && start > lastSectionEnd)
                 {
                     var interSectionLength = start - lastSectionEnd;
-                    headerMetadata = new HeaderView(interSectionLength, BuildSection(lastSectionEnd, lastSectionEnd + interSectionLength, v => v, v => v), lastSectionEnd);
-                    results.Add(headerMetadata);
+                    var children = BuildSection(lastSectionEnd, lastSectionEnd + interSectionLength, v => v, v => v);
+
+                    var isRelocations = children.All(c => c is StructView {Name: "IMAGE_RELOCATION"});
+
+                    var interRegion = new LogicalRegionView(lastSectionEnd, isRelocations ? "Relocations" : "Inter-Section Data", children, ViewKind.Value, interSectionLength);
+                    results.Add(interRegion);
                 }
 
                 var data = BuildSection(start, start + size, null, null);
@@ -55,11 +60,19 @@ namespace PESpy.View.Builder
             if (length > lastSectionEnd)
             {
                 var overlayData = BuildSection(lastSectionEnd, length, v => v, v => v, true);
-                var size = overlayData.Sum(v => v.Size);
-                results.Add(new OverlayView(lastSectionEnd, overlayData, size));
+
+                //We will often just expect the COFF Symbol Table to be at the end. No point wrapping it up in an overlay
+                if (overlayData.Length == 1)
+                    results.Add(overlayData[0]);
+                else
+                {
+                    var size = overlayData.Sum(v => v.Size);
+                    results.Add(new OverlayView(lastSectionEnd, overlayData, size));
+                }
             }
 
             return results.ToArray();
         }
     }
 }
+#endif

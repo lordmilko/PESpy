@@ -16,6 +16,23 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if PEFAST
+        internal ImageBDDInfo(in MemoryChunk chunk)
+        {
+            Offset = chunk.AbsoluteOffset;
+
+            //Eagerly load; I presume all the info you want is in the BDD Nodes
+            Version = chunk.PeekInt32(0);
+            BDDSize = chunk.PeekInt32(4);
+
+            var nodes = new ImageBDDDynamicRelocation[BDDSize / ImageBDDDynamicRelocation.StructSize];
+
+            for (var i = 0; i < nodes.Length; i++)
+                nodes[i] = new ImageBDDDynamicRelocation(chunk.Slice(8 + (i * ImageBDDDynamicRelocation.StructSize)));
+
+            BDDNodes = nodes;
+        }
+#else
         internal ImageBDDInfo(IFileReader reader)
         {
             Offset = (int) reader.Position;
@@ -30,6 +47,7 @@ namespace PESpy
 
             BDDNodes = nodes;
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

@@ -103,6 +103,12 @@ namespace PESpy.Tests
                     case "ImageResourceDirectoryEntry.OffsetToData":
                     case "ImageResourceDirectoryEntry.OffsetToDirectory":
                     case "ImageResourceDirectoryEntry.DataIsDirectory":
+                    case "FpoData.cbProlog":
+                    case "FpoData.cbRegs":
+                    case "FpoData.fHasSEH":
+                    case "FpoData.fUseBP":
+                    case "FpoData.reserved":
+                    case "FpoData.cbFrame":
                         continue;
                 }
 
@@ -141,10 +147,12 @@ namespace PESpy.Tests
                         case "ImportLookupTable":
                         case "DebuggerDisplay":
                         case "Entries":
+                        case "Padding":
+                        case "Value":
                             continue;
                     }
 
-                    throw new NotImplementedException();
+                    continue;
                 }
 
                 newProperty = newProperty

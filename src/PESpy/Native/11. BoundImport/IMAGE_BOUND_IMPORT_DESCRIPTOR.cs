@@ -6,7 +6,7 @@ namespace PESpy.Native
     [StructLayout(LayoutKind.Sequential)]
     internal struct IMAGE_BOUND_IMPORT_DESCRIPTOR
     {
-        public int TimeDateStamp;
+        public uint TimeDateStamp;
         public ushort OffsetModuleName;
         public ushort NumberOfModuleForwarderRefs;
 

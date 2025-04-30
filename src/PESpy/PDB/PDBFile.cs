@@ -1,101 +1,159 @@
 ﻿using System;
 using System.IO;
-using System.IO.MemoryMappedFiles;
-using System.Runtime.CompilerServices;
+using PESpy.PDB;
 using PESpy.View;
+using SN = PESpy.PDB.SN;
 
-namespace PESpy.PDB
+namespace PESpy
 {
     /// <summary>
     /// Represents a CodeView Program Database (PDB) file.
     /// </summary>
-    public unsafe class PDBFile : IViewable, IDisposable
+    public abstract unsafe class PDBFile : IFile, IViewable, IDisposable
     {
-        public static PDBFile FromFile(string path)
+        public static unsafe PDBFile FromFile(string path)
         {
             using var fs = File.OpenRead(path);
 
-            return new PDBFile(fs);
-        }
+            var mmf = new MemoryMappedFileHolder(fs);
 
-        private MemoryMappedFile mmf;
-        private MemoryMappedViewAccessor mma;
-        private byte* baseAddress;
-        private long length;
+            try
+            {
+                //V2 magic is 44 bytes and a BIGMSF_HDR is close to 60
+                if (fs.Length < 44)
+                    throw new BadImageFormatException("File is not large enough to contain a PDB header");
+
+                var magic = new FixedAnsiString(mmf.Address, 32);
+
+                if (magic == BigMsfHdr.BigHdrMagic)
+                    return new PDB7File(fs.Name, mmf);
+
+                magic = new FixedAnsiString(mmf.Address, 44);
+
+                if (magic == MsfHdr.HdrMagic)
+                    return new PDB2File(fs.Name, mmf);
+
+                if (magic == OHDR.OHdrMagic)
+                    return new PDB1File(fs.Name, mmf);
+
+                throw new BadImageFormatException("File did not contain a PDB magic signature");
+            }
+            catch
+            {
+                mmf.Close();
+
+                throw;
+            }
+        }
 
         private bool disposed;
 
-        private BigMsfHdr msfHeader;
+        public PDBFileKind PDBKind { get; }
 
-        /// <summary>
-        /// Gets the MSF Header that provides high level information about the structure and layout of this PDB File.
-        /// </summary>
-        public ref readonly BigMsfHdr MsfHeader => ref msfHeader;
+        /// <inheritdoc/>
+        public string? Name { get; private set; }
 
-        private FPM fpm0;
+        /// <inheritdoc/>
+        public string? FileName { get; private set; }
+
+        /// <inheritdoc/>
+        public FileKind Kind => FileKind.PDB;
+
+        #region MSF
+
+        //Fields that are specific to MSF (PDB2/PDB7) files. PDB1 does not use MSF
+
+        protected FPM fpm0;
 
         /// <summary>
         /// Gets the first Free Page Map (FPM 0) which describes which pages are free vs in use in the PDB.<para/>
-        /// This is the active FPM if <see cref="BigMsfHdr.FpmPageNo"/> == 1.
+        /// In a <see cref="PDB7File"/> this is the active FPM if <see cref="BigMsfHdr.FpmPageNo"/> == 1.<para/>
+        /// In a <see cref="PDB2File"/> the primary and secondary page numbers depend on the page size used in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
         /// </summary>
         public ref readonly FPM FPM0 => ref fpm0;
 
-        private FPM fpm1;
+        protected FPM fpm1;
 
         /// <summary>
         /// Gets the second Free Page Map (FPM 1) which describes which pages are free vs in use in the PDB.<para/>
-        /// This is the active FPM if <see cref="BigMsfHdr.FpmPageNo"/> == 2.
+        /// This is the active FPM if <see cref="BigMsfHdr.FpmPageNo"/> == 2.<para/>
+        /// In a <see cref="PDB2File"/> the primary and secondary page numbers depend on the page size used in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
         /// </summary>
         public ref readonly FPM FPM1 => ref fpm1;
 
         /// <summary>
-        /// Gets the active Free Page Map, based on the FPM listed in <see cref="BigMsfHdr.FpmPageNo"/>.
+        /// Gets the active Free Page Map, based on the FPM listed in <see cref="MsfHdr.FpmPageNo"/> or <see cref="BigMsfHdr.FpmPageNo"/>.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
         /// </summary>
         public ref readonly FPM ActiveFPM
         {
             get
             {
-                if (msfHeader.FpmPageNo == 1)
+                if (ActiveFpmPageNo == 1)
                     return ref fpm0;
 
                 return ref fpm1;
             }
         }
 
-        private SI streamTableLocation;
+        /// <summary>
+        /// Gets the number of pages contained in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
+        protected internal abstract int NumPages { get; }
 
         /// <summary>
-        /// Gets the pages that comprise the stream table that describes all of the streams that exist in the PDB
+        /// Gets the size of each page in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
         /// </summary>
-        public ref readonly SI StreamTableLocation => ref streamTableLocation;
+        protected internal abstract int PageSize { get; }
 
-        public StreamTable StreamTable { get; private set; }
+        /// <summary>
+        /// Gets the number of the page that contains the active FPM.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
+        protected internal abstract int ActiveFpmPageNo { get; }
+
+        /// <summary>
+        /// Gets the stream table that describes which pages belong to which streams in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
+        public IStreamTable? StreamTable { get; protected set; }
 
         #region Streams
         #region snSt (0)
 
         //Whenever the PDB is committed, a copy of the previous stream table pointed to by the BIGMSF_HDR is copied into Stream 0 (snSt)
-        private StreamTable? previousStreamTable;
+        private IStreamTable? previousStreamTable;
 
-        public StreamTable? PreviousStreamTable
+        public IStreamTable? PreviousStreamTable
         {
             get
             {
                 if (previousStreamTable == null)
                 {
                     if (TryGetStreamChunk(SN.ST, out var chunk))
-                        previousStreamTable = new StreamTable(chunk, msfHeader.PageSize);
+                        previousStreamTable = CreateStreamTable(chunk, PageSize);
                 }
 
                 return previousStreamTable;
             }
         }
 
+        internal abstract IStreamTable CreateStreamTable(in MemoryChunk chunk, int pageSize);
+
         #endregion
         #region snPDB (1)
 
         private MsfStream.PDB? pdb;
 
+        /// <summary>
+        /// Provides access to the contents of the snPDB (1) stream which provides basic header information about the PDB
+        /// as well as the stream name table.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
         public MsfStream.PDB? PDB
         {
             get
@@ -115,6 +173,10 @@ namespace PESpy.PDB
 
         private MsfStream.TPI? tpi;
 
+        /// <summary>
+        /// Provides access to the contents of the snTpi (2) stream which contains records for types used in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
         public MsfStream.TPI? TPI
         {
             get
@@ -134,6 +196,11 @@ namespace PESpy.PDB
 
         private MsfStream.DBI? dbi;
 
+        /// <summary>
+        /// Provides access to the contents of the snDbi (3) stream which contains modules, symbols, section contributions, and most other types
+        /// of symbolic information found in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
         public MsfStream.DBI? DBI
         {
             get
@@ -149,147 +216,70 @@ namespace PESpy.PDB
         }
 
         #endregion
+        #region /names
+
+        private NMT? nameMap;
+
+        public NMT? NameMap
+        {
+            get
+            {
+                /* Note that there a confusing illusion that can occur with /names (and likely other data) when looking
+                 * at a view of the PDB. Consider the following page layout:
+                 * 100: NewDbiHdr, C:\Windows\sys
+                 * 102: /names(2) stem32\notepad.exe
+                 * 103: /names(1) C:\Windows\sys
+                 * 
+                 * This creates the illusion that /names is starting on page 100, right after the NewDbiHdr. This is not the case.
+                 * As you can see, the actual start of the string has been written in /names(1) on page 103. Page 100 previously
+                 * was being used to store /names(1), but got repurposed to store NewDbiHdr instead */
+
+                if (nameMap == null && TryGetStreamChunk("/names", out var chunk))
+                    nameMap = new NMT(chunk);
+
+                return nameMap;
+            }
+        }
+
+        #endregion
+        #endregion
         #endregion
 
-        private PDBGlobalMemoryBlock globalBlock;
+        private MemoryMappedFileHolder mmf;
+        internal PDBGlobalMemoryBlock globalBlock;
 
-        private PDBFile(FileStream fs)
+        internal unsafe PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
         {
-            //Initialize the MMF
+            this.mmf = mmf;
+            PDBKind = pdbKind;
 
-            StreamTable = null!;
+            FileName = fileName;
+            Name = Path.GetFileName(fileName);
 
-            mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
-            mma = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            RuntimeHelpers.PrepareConstrainedRegions();
-
-            try
-            {
-                //Empty; needed to make constrained region work
-            }
-            finally
-            {
-                //While MMA does have some helper methods on it that can be used to read certain value types,
-                //it acquires/releases the pointer after each value read, inside of a try/finally block, which I feel
-                //adds a bit of overhead
-                mma.SafeMemoryMappedViewHandle.AcquirePointer(ref baseAddress);
-                length = (long) mma.SafeMemoryMappedViewHandle.ByteLength;
-            }
-
-            globalBlock = new PDBGlobalMemoryBlock(baseAddress, (int) length, this);
-
-            //Read the PDB Headers
-            ReadMsfHeaders();
-
-#if DEBUG
-            _ = PreviousStreamTable;
-            _ = PDB;
-            _ = TPI;
-            _ = DBI;
-#endif
+            //In PDB2 and PDB7 this will read the MSF Headers. In PDB1 it will read the whole file (which just contains type information)
+            ReadHeaders();
         }
 
-        private void ReadMsfHeaders()
+        ~PDBFile()
         {
-            /* An absolutely minimal PDB created by MSF::Open is 11KB large. cbPgDef is 0x400, which is the default page size that is used if no explicit
-             * page size is provided. "Normal" PDBs tend to use 0x1000 (cbPgMax - 4096 bytes). 10 pages are allocated (after master) because lgCbPg is 10 in rgmsfparms_hc
-             * for 0x400
-             * 
-             * The minimal PDB has the following page layout
-             * 
-             * 0: Master
-             * - BIGMSF_HDR
-             * - Padding
-             * 
-             * 1: FPM 0 (Active)
-             * - 0xE0 in first byte, the rest are 0xFF
-             * 
-             * 2: FPM 1 (Inactive)
-             * - 0x00 in all bytes
-             * 
-             * 3: Stream Table
-             * - Stream Table
-             *   - Just contains NumStreams: 0
-             * - Padding
-             * 
-             * 4: Stream Table Page List
-             * - SI Pages
-             *   = Just contains "3", which is the singular page that the Stream Table encompasses (i.e. page above)
-             * - Padding
-             * 5-10: Free
-             * 
-             * Page numbers are allocated by calling FPM.nextPn(). There is nothing inherently hardcoded to say that pages 1-4 contain these items;
-             * but they inherently do as a result of the order in which FPM.nextPn() was called for certain purposes
-             */
-
-            var globalChunk = new MemoryChunk(globalBlock, 0);
-
-            //The PDB begins with the MSF Header
-            msfHeader = new BigMsfHdr(globalChunk);
-
-            /* PDBs have two Free Page Maps. The compiler plays games deciding which one is the active one as it constructs the PDB.
-             * The definition of which page number is the first one and which is the second one is defined in the MSFParms structure
-             * in rgmsfparms and rgmsfparms_hc respectively. In "high capacity" MSFs (i.e. anything with a BigMsfHeader) the FPMs are
-             * always on pages 1 and 2 respectively. However, in V2 PDBs, the pages containing the first FPM0 and FPM1 record
-             * are based on the selected page size of the PDB. As we currently only support V7 PDBs, we can hard code the fact that
-             * the FPMs exist on either page 1 or page 2 */
-            if (msfHeader.FpmPageNo != 1 && msfHeader.FpmPageNo != 2)
-                throw new InvalidOperationException("Active FPM should either be 1 or 2");
-
-            //We don't need to do any temporary slicing prior to constructing a paged memory block.
-            //The pages in the block could be all over the place; it's up to the paged block to seek X bytes
-            //into the PDB to read the correct data
-            fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock);
-            fpm1 = new FPM(2, msfHeader.PageSize, msfHeader.NumPages, globalBlock);
-
-            /* TLDR: In order to know what streams exist in the PDB, and which pages those streams span across, we need to read the Stream Table.
-             * And the Stream Table _itself_ could potentially be very big, and span multiple pages! So first, we must read the list of pages
-             * that the Stream Table spans
-             * 
-             * Detailed Explanation
-             * --------------------
-             * 
-             * How many streams are embedded in the PDB? To answer this, we need to read the "stream directory" from the PDB. The stream directory lists three pieces of information
-             * 1. How many streams are there?
-             * 2. How big are each of these streams?
-             * 3. Which pages do each of these streams occupy?
-             *
-             * e.g. we might have three streams:
-             *
-             * 1: 0x1000 bytes large, and occupies pages 1, 7 and 9
-             * 2: 0x2000 bytes large, and occupies pages 2, 3 and 5
-             * 3: 0x3000 bytes large, and occupies pages 4, 6 and 8
-             *
-             * All of this information, of course, is stored in pages within the PDB file. Which pages is the info stored in? And where? The answer to this can be found by utilizing the BIGMSF_HDR's
-             * "cb" and blockMapAddr members. blockMapAddr points to the list of pages that we should look at to find the stream directory. "cb" describes the total amount of size that all of those
-             * pages occupy. So if "cb" is 5000, we need two pages to store the stream directory, and blockMapAddr points to the indices of those two pages */
-            streamTableLocation = new SI(
-                globalChunk.Slice(msfHeader.PageOfStreamTablePageList * msfHeader.PageSize),
-                msfHeader.StreamTableSizeInfo.ByteCount,
-                msfHeader.PageSize
-            ); //Note: not sure if the byte count could exceed a single page?
-
-            //Now read the Stream Table from all of those pages
-            StreamTable = new StreamTable(
-                globalBlock.SlicePaged(StreamTableLocation),
-                msfHeader.PageSize
-            );
-
-            //We have now read the minimum amount of info that must exist in a valid PDB file. All other sections like PDB, DBI, etc are completely optional
+            Dispose(false);
         }
+
+        protected abstract void ReadHeaders();
 
         internal bool TryGetStreamChunk(SN sn, out MemoryChunk chunk)
         {
-            if (sn == SN.Nil)
+            if (sn == SN.Nil || StreamTable == null)
             {
                 chunk = default;
                 return false;
             }
 
-            if (StreamTable.StreamBlocks.Length > sn)
+            if (StreamTable.StreamPages.Length > sn)
             {
-                ref var si = ref StreamTable.StreamInfos[sn];
+                ref var si = ref StreamTable.StreamInfos[sn]; //temp
 
                 if (si.PageList.Length > 0)
                 {
@@ -301,34 +291,54 @@ namespace PESpy.PDB
             chunk = default;
             return false;
         }
-        public PdbFileView GetView()
-        {
-#if NEW_PDB
-            //todo: temp using reader+stream while we're still in transition
-            var writer = new PdbViewWriter(this, new StreamFileReader(new MMFStream(baseAddress), new object()));
-            ((IViewable) this).WriteView(writer);
 
-            return (PdbFileView) writer.Finalize();
-#else
-            throw new NotImplementedException();
-#endif
+        internal bool TryGetStreamChunk(string name, out MemoryChunk chunk)
+        {
+            chunk = default;
+
+            if (StreamTable == null)
+                return false;
+
+            var pdb = PDB;
+
+            if (pdb == null)
+                return false;
+
+            if (pdb.StreamNameTable.NameToStreamNumberMap.TryGetValue(name, out var sn))
+                return TryGetStreamChunk(sn, out chunk);
+
+            return false;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
+
+        protected abstract void WriteView(ViewWriter writer);
+
+        protected void WriteMsfStreamViews(ViewWriter writer)
         {
-            writer.WriteGlobal(MsfHeader);
-
-            //We do not write the FPM; these raw bytes are automatically collected during merging
-            //under the FPM0 and FPM1 regions
-
-            writer.WriteGlobal(StreamTableLocation);
             writer.WriteGlobal(StreamTable);
 
             writer.WriteGlobal(PreviousStreamTable); //snSt
             writer.WriteGlobal(PDB); //snPDB
+            writer.WriteGlobal(TPI); //snTpi
             writer.WriteGlobal(DBI); //snDbi
 
+            writer.WriteGlobal(NameMap);
+
             //Any Free pages are automatically detected during merging
+        }
+
+        public PdbFileView GetView()
+        public FileView GetView()
+        {
+#if NEW_PDB
+            var writer = new PDBViewWriter(this, new StreamFileReader(new MMFStream(mmf.Address, (int) mmf.Length), new object()));
+            ((IViewable) this).WriteView(writer);
+
+            return (FileView) writer.Finalize();
+#else
+            throw new NotImplementedException();
+#endif
         }
 
         public void Dispose()
@@ -336,7 +346,7 @@ namespace PESpy.PDB
             Dispose(true);
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected void Dispose(bool disposing)
         {
             if (disposed)
                 return;
@@ -344,28 +354,8 @@ namespace PESpy.PDB
             if (disposing)
                 GC.SuppressFinalize(this);
 
-            RuntimeHelpers.PrepareConstrainedRegions();
-
-            if (baseAddress != (byte*) 0)
-            {
-                RuntimeHelpers.PrepareConstrainedRegions();
-
-                try
-                {
-                    //Empty
-                }
-                finally
-                {
-                    mma.SafeMemoryMappedViewHandle.ReleasePointer();
-                    baseAddress = (byte*) 0;
-                }
-            }
-
-            mma.Dispose();
-            mmf.Dispose();
-
-            mma = null;
-            mmf = null;
+            globalBlock.Dispose();
+            mmf.Close();
 
             disposed = true;
         }

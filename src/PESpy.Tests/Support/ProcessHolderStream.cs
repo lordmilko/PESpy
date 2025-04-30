@@ -11,7 +11,7 @@ namespace PESpy.Tests
         public static unsafe ProcessHolderStream New(string path)
         {
             if (IntPtr.Size != 8)
-                throw new NotImplementedException();
+                throw new InvalidOperationException("Testing remote processes currently requires x64");
 
             Environment.SetEnvironmentVariable("PESPY_TEST_PARENT_PID", Process.GetCurrentProcess().Id.ToString());
 

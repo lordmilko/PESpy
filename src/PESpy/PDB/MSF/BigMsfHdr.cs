@@ -1,10 +1,14 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct BigMsfHdr : IValue, IViewable
+    /// <summary>
+    /// Represents the BIGMSF_HDR structure used in PDB v7 files.
+    /// </summary>
+    public readonly partial struct BigMsfHdr : IValue, IViewable
     {
-        private const string BigHdrMagic = "Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0";
+        internal const string BigHdrMagic = "Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0";
 
         //szMagic
         public FixedAnsiString Magic => chunk.PeekAnsiFixedLength(0, 32);
@@ -32,17 +36,16 @@ namespace PESpy.PDB
         public SI_PERSIST StreamTableSizeInfo { get; } //siSt
 
         /// <summary>
-        /// Lists the page number of a page that contains an array of page numbers that the stream table
+        /// Lists the page numbers of a stream that contains an array of page numbers that the stream table
         /// is distributed across. BIGMSF_HDR does not list this member explicitly; instead, it lists an array
-        /// mpspnpnSt that can hold 19 members, the first member of which is this value. It doesn't seem like
-        /// the remaining 18 members are used (or their usage is unclear). It seems like the purpose is to actually
-        /// store the stream table inline, but it doesn't actually get stored there, it gets stored somewhere else
+        /// mpspnpnSt that can hold 19 members, the first member of which is this value.
         /// </summary>
         /// <remarks>
-        /// This is the first element of mpspnpnSt. Gets copied into siPnList.mpspnpn which is then used
-        /// to read the list of pages that describe the streams that exist in the PDB
+        /// Suppose that the Stream Table is 524,288 bytes and we have 1024 byte pages. The Stream table itself spans 512 pages.
+        /// A single PN is 4 bytes, so merely recording the existance of these 512 pages requires 2048 bytes. Which means that
+        /// the list of PNs will itself span two pages
         /// </remarks>
-        public PN PageOfStreamTablePageList => chunk.PeekInt32(52);
+        public Span<PN> PagesOfStreamTablePageList => chunk.PeekSpan<PN>(52, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize)); //Normally there will be a single page that lists the location of the stream table. However, suppose we have 1024 byte pages. We can store 256 32-bit page numbers in 1 page. , and the stream table is so large that
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -62,11 +65,8 @@ namespace PESpy.PDB
             s.WriteField("cbPg", PageSize);
             s.WriteField("pnFpm", FpmPageNo);
             s.WriteField("pnMac", NumPages);
-
             s.WriteStructField("siSt", StreamTableSizeInfo);
-
-            //Perhaps it's possible to have more than one value in mpspnpnSt? Not sure what other name to give this
-            s.WriteField("mpspnpnSt", PageOfStreamTablePageList);
+            s.WriteField("mpspnpnSt", PagesOfStreamTablePageList.ToArray()); 
         }
     }
 }

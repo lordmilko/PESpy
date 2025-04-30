@@ -10,23 +10,75 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_BOUND_FORWARDER_REF"/> structure.
     /// </summary>
-    public readonly struct ImageBoundForwarderRef : IValue, IViewable
+    public struct ImageBoundForwarderRef : IValue, IViewable
     {
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(0);
+#else
         public uint TimeDateStamp { get; init; }
+#endif
 
+#if PEFAST
+        public ushort OffsetModuleName => chunk.PeekUInt16(4);
+#else
         public ushort OffsetModuleName { get; init; }
+#endif
 
+#if PEFAST
+        public ushort Reserved => chunk.PeekUInt16(6);
+#else
         public ushort Reserved { get; init; }
+#endif
 
+#if PEFAST
+        private RVA<AnsiString> name;
+
+        public RVA<AnsiString> Name
+        {
+            get
+            {
+                if (name.ListedOffset == 0)
+                {
+                    var peFile = chunk.PEFile();
+
+                    var rva = peFile.OptionalHeader.BoundImportTableDirectory.VirtualAddress + OffsetModuleName;
+
+                    if (peFile.TryGetValueChunkFromPhysicalOffset(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        name = new RVA<AnsiString>(rva, valueChunk.AbsoluteOffset, str);
+                    }
+                    else
+                        name = new RVA<AnsiString>(rva);
+                }
+
+                return name;
+            }
+        }
+#else
         public RVA<string> Name { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) +    //TimeDateStamp
             sizeof(ushort) + //OffsetModuleName
             sizeof(ushort);  //Reserved
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageBoundForwarderRef(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            name = default;
+        }
+#else
         internal ImageBoundForwarderRef(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -42,6 +94,7 @@ namespace PESpy
             var str = reader.ReadAnsiNullTerminatedString();
             Name = new RVA<string>((RVA) OffsetModuleName, nameRVA, str);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

@@ -23,7 +23,7 @@ namespace PESpy
 
         public short MaxStack { get; }
 
-        public byte[] ILBytes { get; }
+        public byte[]? ILBytes { get; }
 
         public mdSignature LocalVarSigTok { get; }
 

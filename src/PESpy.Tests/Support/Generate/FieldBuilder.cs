@@ -92,6 +92,8 @@ namespace PESpy.Tests
 
         public string Modifier { get; }
 
+        public string LengthCondition { get; }
+
         public string Size
         {
             get
@@ -206,7 +208,8 @@ namespace PESpy.Tests
             int nullPaddedUTF8,
             Type serializationType,
             bool eager,
-            string modifier)
+            string modifier,
+            string lengthCondition)
         {
             Name = name;
             Type = type;
@@ -234,6 +237,7 @@ namespace PESpy.Tests
             this.nullPaddedUTF8 = nullPaddedUTF8;
             Eager = eager;
             Modifier = modifier;
+            LengthCondition = lengthCondition;
         }
     }
 }

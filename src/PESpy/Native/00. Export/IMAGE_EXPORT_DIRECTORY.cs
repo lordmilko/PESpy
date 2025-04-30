@@ -7,7 +7,7 @@ namespace PESpy.Native
     internal struct IMAGE_EXPORT_DIRECTORY
     {
         public int Characteristics;
-        public int TimeDateStamp;
+        public uint TimeDateStamp;
         public ushort MajorVersion;
         public ushort MinorVersion;
         public int Name;

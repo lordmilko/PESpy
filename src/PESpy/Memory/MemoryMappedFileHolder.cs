@@ -47,13 +47,13 @@ namespace PESpy
                 }
                 finally
                 {
-                    mma.SafeMemoryMappedViewHandle.ReleasePointer();
+                    mma!.SafeMemoryMappedViewHandle.ReleasePointer();
                     Address = (byte*) 0;
                 }
             }
 
-            mma.Dispose();
-            mmf.Dispose();
+            mma!.Dispose();
+            mmf!.Dispose();
 
             mma = null;
             mmf = null;

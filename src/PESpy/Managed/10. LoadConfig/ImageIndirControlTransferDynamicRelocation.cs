@@ -11,16 +11,33 @@ namespace PESpy
         public bool CfgCheck            => ((flags >> 14) & 0x1) != 0;
         public bool Reserved            => ((flags >> 15) & 0x1) != 0;
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+#if PEFAST
+        private ushort flags => chunk.PeekUInt16(0);
+#else
         private readonly ushort flags;
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageIndirControlTransferDynamicRelocation(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageIndirControlTransferDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
 
             flags = reader.ReadUInt16();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

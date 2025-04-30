@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -12,12 +13,32 @@ namespace PESpy
     /// </summary>
     public readonly struct Reproducible : IValue, IViewable
     {
+#if PEFAST
+        public int Size => chunk.PeekInt32(0);
+#else
         public int Size { get; }
+#endif
 
+#if PEFAST
+        public Span<byte> Hash => chunk.PeekSpan<byte>(4, Size);
+#else
         public byte[] Hash { get; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal Reproducible(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal Reproducible(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -25,6 +46,7 @@ namespace PESpy
             Size = reader.ReadInt32();
             Hash = reader.ReadBytes(Size);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

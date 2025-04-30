@@ -16,6 +16,10 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal const int StructSize =
+            sizeof(int) +
+            sizeof(int);
+
         private readonly MemoryChunk chunk;
 
         internal SI_PERSIST(in MemoryChunk chunk)

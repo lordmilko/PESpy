@@ -17,17 +17,29 @@ namespace PESpy
             /// <summary>
             /// The length, in bytes, of this String structure.
             /// </summary>
+#if PEFAST
+            public short Length => chunk.PeekInt16(0);
+#else
             public short Length { get; init; }
+#endif
 
             /// <summary>
             /// The size, in words, of the Value member.
             /// </summary>
+#if PEFAST
+            public short ValueLength => chunk.PeekInt16(2);
+#else
             public short ValueLength { get; init; }
+#endif
 
             /// <summary>
             /// The type of data in the version resource. This member is 1 if the version resource contains text data and 0 if the version resource contains binary data.
             /// </summary>
+#if PEFAST
+            public short Type => chunk.PeekInt16(4);
+#else
             public short Type { get; init; }
+#endif
 
             /// <summary>
             /// An arbitrary Unicode string. The szKey member can be one or more of the following values. These values are guidelines only.
@@ -44,20 +56,62 @@ namespace PESpy
             /// - ProductVersion
             /// - SpecialBuild
             /// </summary>
+#if PEFAST
+            public Utf16String Key => chunk.PeekUtf16NullTerminatedString(FixedStructSize);
+#else
             public string Key { get; init; }
+#endif
 
             /// <summary>
             /// As many zero words as necessary to align the Value member on a 32-bit boundary.
             /// </summary>
+#if PEFAST
+            public short Padding
+            {
+                get
+                {
+                    var currentLength = FixedStructSize + ((Key.Length + 1) * 2);
+
+                    var alignedLength = (currentLength + 3) & ~3;
+
+                    if (alignedLength == 0)
+                        return 0;
+
+                    return chunk.PeekInt16(currentLength);
+                }
+            }
+#else
             public short Padding { get; init; }
+#endif
 
             /// <summary>
             /// A zero-terminated string. See the szKey member description for more information.
             /// </summary>
+#if PEFAST
+            public Utf16String Value => chunk.PeekUtf16NullTerminatedString((FixedStructSize + ((Key.Length + 1) * 2) + 3) & ~3);
+#else
             public string Value { get; init; }
+#endif
 
+            internal const int FixedStructSize =
+            sizeof(short) + //Length
+            sizeof(short) + //ValueLength
+            sizeof(short);  //Type
+
+#if PEFAST
+            public RawOffset Offset => chunk.AbsoluteOffset;
+#else
             public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+            private readonly MemoryChunk chunk;
+
+            internal String(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+            }
+#else
             internal String(IFileReader reader)
             {
                 Offset = (RawOffset) reader.Position;
@@ -90,6 +144,7 @@ namespace PESpy
 
                 Debug.Assert(reader.Position == end);
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {

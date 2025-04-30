@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
@@ -32,22 +34,22 @@ namespace PESpy
         /// </summary>
         public List<ByteSequence> Complete { get; } = new List<ByteSequence>();
 
-        public ByteSequenceTreeNode[] ChildNodes { get; } = new ByteSequenceTreeNode[LevelWidth];
+        public ByteSequenceTreeNode?[] ChildNodes { get; } = new ByteSequenceTreeNode[LevelWidth];
 
         public int Depth { get; }
 
-        public ByteSequenceTreeNode Parent { get; }
+        public ByteSequenceTreeNode? Parent { get; }
 
         public byte? MatchedByte { get; }
 
-        private ByteSequenceTreeNode(int depth, ByteSequenceTreeNode parent, byte? matchedByte)
+        private ByteSequenceTreeNode(int depth, ByteSequenceTreeNode? parent, byte? matchedByte)
         {
             Depth = depth;
             Parent = parent;
             MatchedByte = matchedByte;
         }
 
-        public ByteSequenceTreeNode this[byte index] => ChildNodes[index];
+        public ByteSequenceTreeNode? this[byte index] => ChildNodes[index];
 
         public static ByteSequenceTreeNode BuildTree(params ByteSequence[] patterns)
         {
@@ -83,7 +85,7 @@ namespace PESpy
                 {
                     for (var i = 0; i < LevelWidth; i++)
                     {
-                        ByteSequenceTreeNode nextLevel = null;
+                        ByteSequenceTreeNode? nextLevel = null;
 
                         foreach (var candidate in item.Candidates)
                         {
@@ -123,7 +125,7 @@ namespace PESpy
                             throw new NotImplementedException("Don't know how to remove a node whose completed items were different from its apparent duplicate.");
 
                         toRemove.Add(item);
-                        item.Parent.ChildNodes[item.MatchedByte.Value] = existing;
+                        item.Parent!.ChildNodes[item.MatchedByte!.Value] = existing;
                     }
                     else
                         dict[item] = item;
@@ -136,11 +138,11 @@ namespace PESpy
             } while (current.Length > 0);
         }
 
-        public IEnumerable<ByteMatch> GetMatches(byte[] bytes, bool startOnly)
+        public IEnumerable<ByteMatch> GetMatches(IntPtr bytes, int numBytes, bool startOnly)
         {
-            ByteSequenceTreeNode current;
+            ByteSequenceTreeNode? current;
 
-            for (var i = 0; i < bytes.Length; i++)
+            for (var i = 0; i < numBytes; i++)
             {
                 //Start at the root
                 current = this;
@@ -156,10 +158,16 @@ namespace PESpy
 
                     //We traversed down so many nodes
                     //we've run out of bytes
-                    if (j >= bytes.Length)
+                    if (j >= numBytes)
                         break;
 
-                    var currentByte = bytes[j];
+                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                    static unsafe byte GetByte(IntPtr bytes, int index)
+                    {
+                        return ((byte*) bytes)[index];
+                    }
+
+                    var currentByte = GetByte(bytes, j);
 
                     //For debugging
                     var previous = current;
@@ -173,7 +181,7 @@ namespace PESpy
             }
         }
 
-        public IEnumerable<ByteMatch> GetMatches(Stream stream, bool startOnly)
+        public unsafe IEnumerable<ByteMatch> GetMatches(Stream stream, bool startOnly)
         {
             var longestCandidate = Candidates.Max(c => c.Bytes.Length);
 
@@ -184,7 +192,17 @@ namespace PESpy
             if (read != longestCandidate)
                 Array.Resize(ref bytes, read);
 
-            return GetMatches(bytes, startOnly);
+            fixed (byte* p = bytes)
+            {
+                return GetMatches((IntPtr) p, bytes.Length, startOnly);
+            }
+        }
+
+        public unsafe IEnumerable<ByteMatch> GetMatches(in MemoryChunk chunk, bool startOnly)
+        {
+            var longestCandidate = Candidates.Max(c => c.Bytes.Length);
+
+            return GetMatches((IntPtr) chunk.Pointer, longestCandidate, startOnly);
         }
 
         public override string ToString()
@@ -193,7 +211,7 @@ namespace PESpy
             {
                 var bytes = new List<byte>();
 
-                bytes.Add(MatchedByte.Value);
+                bytes.Add(MatchedByte!.Value);
 
                 var parent = Parent;
 

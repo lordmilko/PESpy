@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using System.Diagnostics;
 
 namespace PESpy
@@ -86,4 +85,3 @@ namespace PESpy
         private string DebuggerDisplay => this.ToString();
     }
 }
-#endif

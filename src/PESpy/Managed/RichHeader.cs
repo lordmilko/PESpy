@@ -13,6 +13,61 @@ namespace PESpy
     /// </summary>
     public class RichHeader : IValue, IViewable //May be null, so can't be a struct
     {
+#if PEFAST
+        internal static unsafe RichHeader? New(int ntHeaderOffset, HeaderMemoryBlock headerBlock)
+        {
+            //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
+
+            /* The rich header, if it exists, lives between the DOS and NT header, and ends in the unencrypted word "Rich"
+             * followed by a XOR key that can be used to decrypt the previous bytes of the header, 4 bytes at a time.
+             * The beginning of the header is demarcated by the word "DanS" (which must be decrypted with the XOR key) */
+
+            var start = ImageDosHeader.StructSize;
+
+            var toRead = (int) (ntHeaderOffset - start);
+
+            var remoteBytes = new MemoryChunk(headerBlock, start).PeekSpan<byte>(0, toRead);
+
+            Span<byte> span;
+            IntPtr alloc = default;
+
+            //We need to mutate the bytes as we decode them, so we need to take a copy.
+            //We would normally expect the Rich Header to lie within the header region
+            //which should be 0x1000 bytes, but a bogus NT Header Offset could cause issues,
+            //so allocate a buffer on the heap in the event there's too much data
+            if (toRead < 0x1000)
+            {
+                var bytes = stackalloc byte[toRead];
+                span = new Span<byte>(bytes, toRead);
+                remoteBytes.CopyTo(span);
+            }
+            else
+            {
+                alloc = Marshal.AllocHGlobal(toRead);
+                span = new Span<byte>((void*) alloc, toRead);
+                remoteBytes.CopyTo(span);
+            }
+
+            try
+            {
+                if (!TryFindRich(span, out var richPosition))
+                    return null;
+
+                if (!TryFindDanS(span, richPosition, out var dansPosition))
+                    return null;
+
+                var richHeaderSize = richPosition - dansPosition;
+
+                return new RichHeader(span, start, dansPosition, richHeaderSize);
+            }
+            finally
+            {
+                if (alloc != default)
+                    Marshal.FreeHGlobal(alloc);
+            }
+            
+        }
+#else
         internal static RichHeader? New(RawOffset ntHeaderOffset, IFileReader reader)
         {
             //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
@@ -36,8 +91,9 @@ namespace PESpy
 
             return new RichHeader(bytes, start, dansPosition, richHeaderSize);
         }
+#endif
 
-        private static bool TryFindRich(byte[] bytes, out int richPosition)
+        private static bool TryFindRich(Span<byte> bytes, out int richPosition)
         {
             for (var i = 0; i < bytes.Length - 4; i++)
             {
@@ -53,13 +109,13 @@ namespace PESpy
             return false;
         }
 
-        private static bool TryFindDanS(byte[] bytes, int richPosition, out int dansPosition)
+        private static unsafe bool TryFindDanS(Span<byte> bytes, int richPosition, out int dansPosition)
         {
             //Skip over "Rich"
             var xorKeyStart = richPosition + 4;
 
-            var xorKey = new byte[4];
-            Array.Copy(bytes, xorKeyStart, xorKey, 0, 4);
+            var xorKey = stackalloc byte[4];
+            bytes.Slice(xorKeyStart, 4).CopyTo(new Span<byte>(xorKey, 4));
 
             var position = richPosition;
 
@@ -98,7 +154,7 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-        private RichHeader(byte[] bytes, RawOffset start, int bufferPos, int length)
+        private RichHeader(Span<byte> bytes, RawOffset start, int bufferPos, int length)
         {
             //"start" stores the start offset of the bytes after the DOS Stub, and bufferPos initially stores the address of
             //the start of the RichHeader section within that buffer
@@ -106,16 +162,16 @@ namespace PESpy
 
             //At the start of the rich header is 12 padding bytes, all 0
 
-            DanS = BitConverter.ToInt32(bytes, bufferPos);
+            DanS = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
             bufferPos += 4;
 
-            Padding1 = BitConverter.ToInt32(bytes, bufferPos);
+            Padding1 = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
             bufferPos += 4;
 
-            Padding2 = BitConverter.ToInt32(bytes, bufferPos);
+            Padding2 = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
             bufferPos += 4;
 
-            Padding3 = BitConverter.ToInt32(bytes, bufferPos);
+            Padding3 = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
             bufferPos += 4;
 
             //DanS + 3x padding bytes
@@ -135,10 +191,10 @@ namespace PESpy
 
             Items = items;
 
-            Rich = BitConverter.ToInt32(bytes, bufferPos);
+            Rich = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
             bufferPos += 4;
 
-            XorKey = BitConverter.ToInt32(bytes, bufferPos);
+            XorKey = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
         }
 
         void IViewable.WriteView(ViewWriter writer)

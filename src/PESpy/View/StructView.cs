@@ -35,9 +35,9 @@ namespace PESpy.View
 
         public ViewKind Kind { get; }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitStruct(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStruct(this);
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitStruct(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitStruct(this);
 
         public StructView(RawOffset offset, string name, IView[] children, int size, ViewKind kind)
         {
@@ -154,7 +154,7 @@ namespace PESpy.View
                 }
             }
 
-            throw new NotImplementedException();
+            throw new InvalidOperationException("Failed to find the child to split at. This can indicate that the children have the wrong offsets (e.g. multiple children erroneously share the same offset because their offset wasn't incremented as they were being built)");
         }
 
         IView ISplittableView.WithOffset(int newOffset)
@@ -183,9 +183,9 @@ namespace PESpy.View
 
     class SplitStructView : StructView, ISplitView
     {
-        public ISplitView Previous { get; internal set; }
+        public ISplitView? Previous { get; internal set; }
 
-        public ISplitView Next { get; internal set; }
+        public ISplitView? Next { get; internal set; }
 
         public SplitStructView(RawOffset offset, string name, IView[] children, int size, ViewKind kind) : base(offset, name, children, size, kind)
         {

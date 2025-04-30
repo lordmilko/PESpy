@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using PESpy.PDB;
 using PESpy.View.Builder;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -32,16 +33,16 @@ namespace PESpy.View
         protected ViewMode mode;
         private ViewTag currentTag;
         private ViewKind currentScope;
-        private List<IView> scopedList;
+        private List<IView>? scopedList;
         private Stack<List<IView>> listPool;
         private TryGetOffsetDelegate tryGetViewOffset;
-        private Func<int, int> getRealOffset;
+        private Func<int, int>? getRealOffset;
 
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
 
         internal ViewTag CurrentTag => currentTag;
 
-        internal ViewWriter(IFileReader reader, IViewDisassembler? viewDisassembler, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int> getRealOffset)
+        internal ViewWriter(IFileReader reader, IViewDisassembler? viewDisassembler, ViewMode mode, TryGetOffsetDelegate tryGetViewOffset, Func<int, int>? getRealOffset)
         {
             this.mode = mode;
             this.tryGetViewOffset = tryGetViewOffset;
@@ -124,8 +125,84 @@ namespace PESpy.View
             
                 AddView(new ValueView<T>(viewOffset, value, size, kind));
             
-                Pop();   
+                Pop();
             }
+        }
+
+        internal void WritePagedGlobal(int relativeOffset, PagedMemoryBlock block, SymType[] value)
+        {
+            var pageSize = block.pageSize;
+
+            var pageIndex = relativeOffset / pageSize;
+            var pageStart = block.pageList[pageIndex] * pageSize;
+
+            Push(globalList);
+
+            foreach (var item in value)
+            {
+                //If we overflow the end of the page, merger will split us
+                var totalLength = item.reclen + 2;
+                AddView(new ValueView<SymType>(pageStart + relativeOffset, item, totalLength, ViewKind.SymType));
+                relativeOffset += totalLength;
+
+                if (relativeOffset >= pageSize)
+                {
+                    //Move onto the next page
+                    pageIndex++;
+                    pageStart = block.pageList[pageIndex] * pageSize;
+
+                    //Adjust for any overflow
+                    relativeOffset -= pageSize;
+                }
+            }
+
+            Pop();
+        }
+
+        internal void WritePagedGlobal(int relativeOffset, PagedMemoryBlock block, TypType[] value)
+        {
+            var pageSize = block.pageSize;
+
+            var pageIndex = relativeOffset / pageSize;
+            var pageStart = block.pageList[pageIndex] * pageSize;
+
+            Push(globalList);
+
+            foreach (var item in value)
+            {
+                //If we overflow the end of the page, merger will split us
+                var totalLength = item.len + 2;
+                AddView(new ValueView<TypType>(pageStart + relativeOffset, item, totalLength, ViewKind.TypType));
+                relativeOffset += totalLength;
+
+                if (relativeOffset >= pageSize)
+                {
+                    //Move onto the next page
+                    pageIndex++;
+                    pageStart = block.pageList[pageIndex] * pageSize;
+
+                    //Adjust for any overflow
+                    relativeOffset -= pageSize;
+                }
+            }
+
+            Pop();
+        }
+
+        public void WriteGlobal(RawOffset offset, TypType[] value)
+        {
+            var written = 0;
+
+            Push(globalList);
+
+            foreach (var item in value)
+            {
+                var totalLength = item.len + 2;
+                AddView(new ValueView<TypType>(offset + written, item, totalLength, ViewKind.TypType));
+                written += totalLength;
+            }
+
+            Pop();
         }
 
         public void WriteDosStub(in ByteBlob byteBlob)
@@ -134,10 +211,27 @@ namespace PESpy.View
 
             if (shouldAdd)
             {
-                if (extension.TryParseRawBytes(viewOffset, ViewKind.DosStub, byteBlob.Bytes, null, out var views))
-                    AddViews(views);
+                if (extension.TryParseRawBytes(
+                    viewOffset,
+                    ViewKind.DosStub,
+#if PEFAST
+                    byteBlob.Bytes.ToArray(),
+#else
+                    byteBlob.Bytes,
+#endif
+                    null,
+                    out var views))
+                    AddViews(views!);
                 else
-                    AddView(new ByteBlobView(viewOffset, byteBlob.Bytes, ViewKind.DosStub));
+                    AddView(new ByteBlobView(
+                        viewOffset,
+#if PEFAST
+                        byteBlob.Bytes.ToArray(),
+#else
+                        byteBlob.Bytes,
+#endif
+                        ViewKind.DosStub
+                    ));
             }
         }
 
@@ -147,7 +241,15 @@ namespace PESpy.View
 
             if (shouldAdd)
             {
-                AddView(new ByteBlobView(viewOffset, byteBlob.Bytes, default));                
+                AddView(new ByteBlobView(
+                    viewOffset,
+#if PEFAST
+                    byteBlob.Bytes.ToArray(),
+#else
+                    byteBlob.Bytes,
+#endif
+                    default
+                ));                
             }
         }
 
@@ -213,7 +315,7 @@ namespace PESpy.View
             return new MetadataRowWriter(name, viewOffset, kind, (PEViewWriter) this, shouldAdd);
         }
 
-        internal IView[] CreateByteBlob(ref int currentOffset, int size)
+        internal IView[]? CreateByteBlob(ref int currentOffset, int size)
         {
             var views = extension.ReadBytes(ref currentOffset, currentOffset + size, null, getRealOffset, null, false);
             currentOffset++; //ReadBytes subtracts 1 from the new offset
@@ -250,7 +352,7 @@ namespace PESpy.View
         private void AddView(IView view)
         {
             if (currentScope != 0 && view.Kind == currentScope)
-                scopedList.Add(view);
+                scopedList!.Add(view);
             else
             {
                 //When StructWriter.Dispose runs, the stack might be empty

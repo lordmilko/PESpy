@@ -7,7 +7,7 @@ namespace PESpy.Native
     internal struct IMAGE_LOAD_CONFIG_DIRECTORY32
     {
         public int Size;
-        public int TimeDateStamp;
+        public uint TimeDateStamp;
         public ushort MajorVersion;
         public ushort MinorVersion;
         public int GlobalFlagsClear; //Flags

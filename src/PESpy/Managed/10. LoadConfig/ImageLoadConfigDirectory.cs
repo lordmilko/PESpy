@@ -23,7 +23,11 @@ namespace PESpy
         /// <summary>
         /// The size of the structure. For Windows XP, the size must be specified as 64 for x86 images.
         /// </summary>
+#if PEFAST
+        public int Size => chunk.PeekInt32(0);
+#else
         public int Size { get; init; } //0
+#endif
 
         #region Default
 
@@ -32,100 +36,311 @@ namespace PESpy
         /// (00:00:00), January 1, 1970, Universal Coordinated Time, according to the system clock. The time stamp can be
         /// printed by using the C runtime (CRT) time function.
         /// </summary>
+#if PEFAST
+        public uint TimeDateStamp => chunk.TryPeekUInt32(4, Size);
+#else
         public uint TimeDateStamp { get; init; } //1
+#endif
 
         /// <summary>
         /// Major version number.
         /// </summary>
+#if PEFAST
+        public ushort MajorVersion => chunk.TryPeekUInt16(8, Size);
+#else
         public ushort MajorVersion { get; init; } //2
+#endif
 
         /// <summary>
         /// Minor version number.
         /// </summary>
+#if PEFAST
+        public ushort MinorVersion => chunk.TryPeekUInt16(10, Size);
+#else
         public ushort MinorVersion { get; init; } //3
+#endif
 
         /// <summary>
         /// The global loader flags to clear for this process as the loader starts the process.
         /// </summary>
+#if PEFAST
+        public int GlobalFlagsClear => chunk.TryPeekInt32(12, Size);
+#else
         public int GlobalFlagsClear { get; init; } //4, Flags
+#endif
 
         /// <summary>
         /// The global loader flags to set for this process as the loader starts the process.
         /// </summary>
+#if PEFAST
+        public int GlobalFlagsSet => chunk.TryPeekInt32(16, Size);
+#else
         public int GlobalFlagsSet { get; init; } //5, Flags
+#endif
 
         /// <summary>
         /// The default timeout value to use for this process's critical sections that are abandoned.
         /// </summary>
+#if PEFAST
+        public int CriticalSectionDefaultTimeout => chunk.TryPeekInt32(20, Size);
+#else
         public int CriticalSectionDefaultTimeout { get; init; } //6
+#endif
 
         /// <summary>
         /// Memory that must be freed before it is returned to the system, in bytes.
         /// </summary>
+#if PEFAST
+        public long DeCommitFreeBlockThreshold => chunk.TryPeekPointer(24, Size);
+#else
         public long DeCommitFreeBlockThreshold { get; init; } //7
+#endif
 
         /// <summary>
         /// Total amount of free memory, in bytes.
         /// </summary>
+#if PEFAST
+        public long DeCommitTotalFreeThreshold => chunk.TryPeekPointer(24 + chunk.PointerSize, Size);
+#else
         public long DeCommitTotalFreeThreshold { get; init; } //8
+#endif
 
         /// <summary>
         /// [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP
         /// on single processor machines.
         /// </summary>
+#if PEFAST
+        private VA<long[]> lockPrefixTable;
+
+        public VA<long[]> LockPrefixTable
+        {
+            get
+            {
+                if (lockPrefixTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(24 + (2 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            var entries = new List<long>();
+
+                            var pointerSize = chunk.PointerSize;
+
+                            var read = 0;
+
+                            while (true)
+                            {
+                                var entry = chunk.PeekPointer(read);
+                                read += pointerSize;
+
+                                entries.Add(value);
+
+                                if (value == 0)
+                                    break;
+                            }
+
+                            lockPrefixTable = new VA<long[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
+                        }
+                        else
+                            lockPrefixTable = new VA<long[]>(value);
+                    }
+                }
+
+                return lockPrefixTable;
+
+                
+            }
+        }
+#else
         public VA<long[]> LockPrefixTable { get; init; } //9
+#endif
 
         /// <summary>
         /// Maximum allocation size, in bytes.
         /// </summary>
+#if PEFAST
+        public long MaximumAllocationSize => chunk.TryPeekPointer(24 + (3 * chunk.PointerSize), Size);
+#else
         public long MaximumAllocationSize { get; init; } //10
+#endif
 
         /// <summary>
         /// Maximum virtual memory size, in bytes.
         /// </summary>
+#if PEFAST
+        public long VirtualMemoryThreshold => chunk.TryPeekPointer(24 + (4 * chunk.PointerSize), Size);
+#else
         public long VirtualMemoryThreshold { get; init; } //11, Flags
+#endif
 
         /// <summary>
         /// Setting this field to a non-zero value is equivalent to calling SetProcessAffinityMask with this value
         /// during process startup (.exe only)
         /// </summary>
+#if PEFAST
+        public long ProcessAffinityMask
+        {
+            get
+            {
+                if (chunk.Is32Bit)
+                {
+                    //ProcessHeapFlags, ProcessAffinityMask
+                    //So we need to skip over the ProcessHeapFlags (which comes first) to get the ProcessAffinityMask
+                    return chunk.TryPeekPointer(28 + (5 * chunk.PointerSize), Size);
+                }
+                else
+                    return chunk.TryPeekPointer(24 + (5 * chunk.PointerSize), Size); //ProcessAffinityMask, ProcessHeapFlags
+            }
+        }
+#else
         public long ProcessAffinityMask { get; init; } //12, Don't think this is flags
+#endif
 
         /// <summary>
         /// Process heap flags that correspond to the first argument of the HeapCreate function. These flags apply to the
         /// process heap that is created during process startup.
         /// </summary>
+#if PEFAST
+        public int ProcessHeapFlags
+        {
+            get
+            {
+                if (chunk.Is32Bit)
+                {
+                    //ProcessHeapFlags, ProcessAffinityMask
+                    //So we need to read the value prior to the ProcessAffinityMask
+                    return chunk.TryPeekInt32(24 + (5 * chunk.PointerSize), Size);
+                }
+                else
+                    return chunk.TryPeekInt32(24 + (6 * chunk.PointerSize), Size); //ProcessAffinityMask, ProcessHeapFlags
+            }
+        }
+#else
         public int ProcessHeapFlags { get; init; } //13, Flags
+#endif
 
         /// <summary>
         /// The service pack version identifier.
         /// </summary>
+#if PEFAST
+        public ushort CSDVersion => chunk.TryPeekUInt16(28 + (6 * chunk.PointerSize), Size);
+#else
         public ushort CSDVersion { get; init; } //14
+#endif
 
         /// <summary>
         /// The default load flags used when the operating system resolves the statically linked imports of a module.
         /// </summary>
+#if PEFAST
+        public ushort DependentLoadFlags => chunk.TryPeekUInt16(30 + (6 * chunk.PointerSize), Size);
+#else
         public ushort DependentLoadFlags { get; init; } //15
+#endif
 
         /// <summary>
         /// Reserved for use by the system.
         /// </summary>
+#if PEFAST
+        public long EditList => chunk.TryPeekPointer(32 + (6 * chunk.PointerSize), Size);
+#else
         public long EditList { get; init; } //16
+#endif
 
         /// <summary>
         /// A pointer to a cookie that is used by Visual C++ or GS implementation.
         /// </summary>
+#if PEFAST
+        private VA<ulong> securityCookie;
+
+        public VA<ulong> SecurityCookie
+        {
+            get
+            {
+                if (securityCookie.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(32 + (7 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            //8 bytes in x86 and x64
+
+                            var cookie = valueChunk.PeekUInt64(0);
+
+                            securityCookie = new VA<ulong>(value, valueChunk.AbsoluteOffset, cookie);
+                        }
+                        else
+                            securityCookie = new VA<ulong>(value);
+                    }
+                }
+
+                return securityCookie;
+            }
+        }
+#else
         public VA<ulong> SecurityCookie { get; init; } //17
+#endif
 
         /// <summary>
         /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.
         /// </summary>
+#if PEFAST
+        private VA<long[]> seHandlerTable;
+
+        public VA<long[]> SEHandlerTable
+        {
+            get
+            {
+                if (seHandlerTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(32 + (8 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            var entries = new long[SEHandlerCount];
+
+                            for (var i = 0; i < SEHandlerCount; i++)
+                                entries[i] = valueChunk.PeekInt32(i * 8);
+
+                            seHandlerTable = new VA<long[]>(value, valueChunk.AbsoluteOffset, entries);
+                        }
+                        else
+                            seHandlerTable = new VA<long[]>(value);
+                    }
+                }
+
+                return seHandlerTable;
+            }
+        }
+#else
         public VA<long[]> SEHandlerTable { get; init; } //18
+#endif
 
         /// <summary>
         /// [x86 only] The count of unique handlers in the table.
         /// </summary>
+#if PEFAST
+        public long SEHandlerCount => chunk.TryPeekPointer(32 + (9 * chunk.PointerSize), Size);
+#else
         public long SEHandlerCount { get; init; } //19
+#endif
 
         #endregion
         #region Windows SDK 8.1+
@@ -133,27 +348,86 @@ namespace PESpy
         /// <summary>
         /// The VA where Control Flow Guard check-function pointer is stored.
         /// </summary>
+#if PEFAST
+        private VA<long> guardCFCheckFunctionPointer;
+
+        public VA<long> GuardCFCheckFunctionPointer =>
+            GetFunctionPointer(ref guardCFCheckFunctionPointer, chunk.TryPeekPointer(32 + (10 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardCFCheckFunctionPointer { get; init; } //20
+#endif
 
         /// <summary>
         /// The VA where Control Flow Guard dispatch-function pointer is stored.
         /// </summary>
+#if PEFAST
+        private VA<long> guardCFDispatchFunctionPointer;
+
+        public VA<long> GuardCFDispatchFunctionPointer =>
+            GetFunctionPointer(ref guardCFDispatchFunctionPointer, chunk.TryPeekPointer(32 + (11 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardCFDispatchFunctionPointer { get; init; } //21
+#endif
 
         /// <summary>
         /// The VA of the sorted table of RVAs of each Control Flow Guard function in the image.
         /// </summary>
+#if PEFAST
+        private VA<GuardCFFunctionTable> guardCFFunctionTable;
+
+        public VA<GuardCFFunctionTable> GuardCFFunctionTable
+        {
+            get
+            {
+                if (guardCFFunctionTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(32 + (12 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        //GuardCFFunctionTable lists a Virtual Address (which includes the module base).
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            guardCFFunctionTable = new VA<GuardCFFunctionTable>(
+                                value,
+                                valueChunk.AbsoluteOffset,
+                                new GuardCFFunctionTable(valueChunk, GuardFlags, GuardCFFunctionCount)
+                            );
+                        }
+                        else
+                            guardCFFunctionTable = new VA<GuardCFFunctionTable>(value);
+                    }
+                }
+
+                return guardCFFunctionTable;
+            }
+        }
+#else
         public VA<GuardCFFunctionTable> GuardCFFunctionTable { get; init; } //22
+#endif
 
         /// <summary>
         /// The count of unique RVAs in the above table.
         /// </summary>
+#if PEFAST
+        public long GuardCFFunctionCount => chunk.TryPeekPointer(32 + (13 * chunk.PointerSize), Size);
+#else
         public long GuardCFFunctionCount { get; init; } //23
+#endif
 
         /// <summary>
         /// Control Flow Guard related flags.
         /// </summary>
+#if PEFAST
+        public IMAGE_GUARD GuardFlags => (IMAGE_GUARD) chunk.TryPeekUInt32(32 + (14 * chunk.PointerSize), Size);
+#else
         public IMAGE_GUARD GuardFlags { get; init; } //24
+#endif
 
         #endregion
         #region Windows SDK 10.0.10586.0+
@@ -161,80 +435,388 @@ namespace PESpy
         /// <summary>
         /// Code integrity information.
         /// </summary>
+#if PEFAST
+        public ImageLoadConfigCodeIntegrity CodeIntegrity
+        {
+            get
+            {
+                var offset = 36 + (14 * chunk.PointerSize);
+
+                if (offset < Size)
+                    return new ImageLoadConfigCodeIntegrity(chunk.Slice(offset));
+
+                return default;
+            }
+        }
+#else
         public ImageLoadConfigCodeIntegrity CodeIntegrity { get; init; } //25
+#endif
 
         /// <summary>
         /// The VA where Control Flow Guard address taken IAT table is stored.
         /// </summary>
+#if PEFAST
+        private VA<GuardAddressTakenIatEntryTable> guardAddressTakenIatEntryTable;
+
+        public VA<GuardAddressTakenIatEntryTable> GuardAddressTakenIatEntryTable
+        {
+            get
+            {
+                if (guardAddressTakenIatEntryTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(48 + (14 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            guardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(
+                                value,
+                                valueChunk.AbsoluteOffset,
+                                new GuardAddressTakenIatEntryTable(valueChunk, GuardFlags, GuardAddressTakenIatEntryCount)
+                            );
+                        }
+                    }
+                }
+
+                return guardAddressTakenIatEntryTable;
+            }
+        }
+#else
         public VA<GuardAddressTakenIatEntryTable> GuardAddressTakenIatEntryTable { get; init; } //26
+#endif
 
         /// <summary>
         /// The count of unique RVAs in the above table.
         /// </summary>
+#if PEFAST
+        public long GuardAddressTakenIatEntryCount => chunk.TryPeekPointer(48 + (15 * chunk.PointerSize), Size);
+#else
         public long GuardAddressTakenIatEntryCount { get; init; } //27
+#endif
 
         /// <summary>
         /// The VA where Control Flow Guard long jump target table is stored.
         /// </summary>
+#if PEFAST
+        private VA<GuardLongJumpTargetTable> guardLongJumpTargetTable;
+
+        public VA<GuardLongJumpTargetTable> GuardLongJumpTargetTable
+        {
+            get
+            {
+                if (guardLongJumpTargetTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(48 + (16 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(
+                                value,
+                                valueChunk.AbsoluteOffset,
+                                new GuardLongJumpTargetTable(valueChunk, GuardFlags, GuardLongJumpTargetCount)
+                            );
+                        }
+                        else
+                            guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(value);
+                    }
+                }
+
+                return guardLongJumpTargetTable;
+            }
+        }
+#else
         public VA<GuardLongJumpTargetTable> GuardLongJumpTargetTable { get; init; } //28
+#endif
 
         /// <summary>
         /// The count of unique RVAs in the above table.
         /// </summary>
+#if PEFAST
+        public long GuardLongJumpTargetCount => chunk.TryPeekPointer(48 + (17 * chunk.PointerSize), Size);
+#else
         public long GuardLongJumpTargetCount { get; init; } //29
+#endif
 
+#if PEFAST
+        public long DynamicValueRelocTable => chunk.TryPeekPointer(48 + (18 * chunk.PointerSize), Size);
+#else
         public long DynamicValueRelocTable { get; init; } //30
+#endif
 
+#if PEFAST
+        public long CHPEMetadataPointer => chunk.TryPeekPointer(48 + (19 * chunk.PointerSize), Size);
+#else
         public long CHPEMetadataPointer { get; init; } //31
+#endif
 
         #endregion
         #region Windows SDK 10.0.15063.468+
 
+#if PEFAST
+        public long GuardRFFailureRoutine => chunk.TryPeekPointer(48 + (20 * chunk.PointerSize), Size);
+#else
         public long GuardRFFailureRoutine { get; init; } //32, This points straight to a function; there is no function pointer we have to read first
+#endif
 
+#if PEFAST
+        private VA<long> guardRFFailureRoutineFunctionPointer;
+
+        public VA<long> GuardRFFailureRoutineFunctionPointer =>
+            GetFunctionPointer(ref guardRFFailureRoutineFunctionPointer, chunk.TryPeekPointer(48 + (21 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardRFFailureRoutineFunctionPointer { get; init; } //33
+#endif
 
+#if PEFAST
+        private RVA<ImageDynamicRelocationTable> dynamicValueRelocTableOffset;
+
+        public RVA<ImageDynamicRelocationTable> DynamicValueRelocTableOffset
+        {
+            get
+            {
+                if (dynamicValueRelocTableOffset.ListedOffset == 0)
+                {
+                    var value = chunk.TryPeekInt32(48 + (22 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var sectionNumber = DynamicValueRelocTableSection;
+
+                        if (sectionNumber != 0)
+                        {
+                            //DynamicValueRelocTableSection lists the 1-based section index. Convert to 0-based
+                            var sectionIndex = sectionNumber - 1;
+
+                            var peFile = chunk.PEFile();
+
+                            if (sectionIndex < peFile.SectionHeaders.Length)
+                            {
+                                ref var section = ref peFile.SectionHeaders[sectionIndex];
+
+                                var rva = section.VirtualAddress + value;
+
+                                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                                {
+                                    dynamicValueRelocTableOffset = new RVA<ImageDynamicRelocationTable>(
+                                        value,
+                                        valueChunk.AbsoluteOffset,
+                                        new ImageDynamicRelocationTable(valueChunk)
+                                    );
+                                }
+                                else
+                                    dynamicValueRelocTableOffset = new RVA<ImageDynamicRelocationTable>(value);
+                            }
+                            else
+                                dynamicValueRelocTableOffset = new RVA<ImageDynamicRelocationTable>(value);
+                        }
+                        else
+                            dynamicValueRelocTableOffset = new RVA<ImageDynamicRelocationTable>(value);
+                    }
+                }
+
+                return dynamicValueRelocTableOffset;
+            }
+        }
+#else
         public RVA<ImageDynamicRelocationTable> DynamicValueRelocTableOffset { get; init; } //34
+#endif
 
+#if PEFAST
+        public ushort DynamicValueRelocTableSection => chunk.TryPeekUInt16(52 + (22 * chunk.PointerSize), Size);
+#else
         public ushort DynamicValueRelocTableSection { get; init; } //35
+#endif
 
+#if PEFAST
+        public ushort Reserved2 => chunk.TryPeekUInt16(54 + (22 * chunk.PointerSize), Size);
+#else
         public ushort Reserved2 { get; init; } //36
+#endif
 
+#if PEFAST
+        private VA<long> guardRFVerifyStackPointerFunctionPointer;
+
+        public VA<long> GuardRFVerifyStackPointerFunctionPointer =>
+            GetFunctionPointer(ref guardRFVerifyStackPointerFunctionPointer, chunk.TryPeekPointer(56 + (22 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardRFVerifyStackPointerFunctionPointer { get; init; } //37
+#endif
 
+#if PEFAST
+        public int HotPatchTableOffset => chunk.TryPeekInt32(56 + (23 * chunk.PointerSize), Size);
+#else
         public int HotPatchTableOffset { get; init; } //38
+#endif
 
+#if PEFAST
+        public int Reserved3 => chunk.TryPeekInt32(60 + (23 * chunk.PointerSize), Size);
+#else
         public int Reserved3 { get; init; } //39
+#endif
 
+#if PEFAST
+        private VA<ImageEnclaveConfig> enclaveConfigurationPointer;
+
+        public VA<ImageEnclaveConfig> EnclaveConfigurationPointer
+        {
+            get
+            {
+                if (enclaveConfigurationPointer.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(64 + (23 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(
+                                value,
+                                valueChunk.AbsoluteOffset,
+                                new ImageEnclaveConfig(valueChunk)
+                            );
+                        }
+                        else
+                            enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(value);
+                    }
+                }
+
+                return enclaveConfigurationPointer;
+            }
+        }
+#else
         public VA<ImageEnclaveConfig> EnclaveConfigurationPointer { get; init; } //40
+#endif
 
         //Each successive property from here may or not be present; there is no clear delineation between when each item was added
 
+#if PEFAST
+        public long VolatileMetadataPointer => chunk.TryPeekPointer(64 + (24 * chunk.PointerSize), Size);
+#else
         public long VolatileMetadataPointer { get; init; } //41
+#endif
 
+#if PEFAST
+        private VA<GuardEHContinuationTable> guardEHContinuationTable;
+
+        public VA<GuardEHContinuationTable> GuardEHContinuationTable
+        {
+            get
+            {
+                ////https://learn.microsoft.com/en-us/cpp/build/reference/guard-enable-eh-continuation-metadata?view=msvc-170
+                if (guardEHContinuationTable.ListedAddress == 0)
+                {
+                    var value = chunk.TryPeekPointer(64 + (25 * chunk.PointerSize), Size);
+
+                    if (value != 0)
+                    {
+                        var peFile = chunk.PEFile();
+
+                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
+                            guardEHContinuationTable = new VA<GuardEHContinuationTable>(
+                                value,
+                                valueChunk.AbsoluteOffset,
+                                new GuardEHContinuationTable(valueChunk, GuardFlags, GuardEHContinuationCount)
+                            );
+                        }
+                        else
+                            guardEHContinuationTable = new VA<GuardEHContinuationTable>(value);
+                    }
+                }
+
+                return guardEHContinuationTable;
+            }
+        }
+#else
         public VA<GuardEHContinuationTable> GuardEHContinuationTable { get; init; } //42
+#endif
 
+#if PEFAST
+        public long GuardEHContinuationCount => chunk.TryPeekPointer(64 + (26 * chunk.PointerSize), Size);
+#else
         public long GuardEHContinuationCount { get; init; } //43
+#endif
 
+#if PEFAST
+        private VA<long> guardXFGCheckFunctionPointer;
+
+        public VA<long> GuardXFGCheckFunctionPointer =>
+            GetFunctionPointer(ref guardXFGCheckFunctionPointer, chunk.TryPeekPointer(64 + (27 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardXFGCheckFunctionPointer { get; init; } //44
+#endif
 
+#if PEFAST
+        private VA<long> guardXFGDispatchFunctionPointer;
+
+        public VA<long> GuardXFGDispatchFunctionPointer =>
+            GetFunctionPointer(ref guardXFGDispatchFunctionPointer, chunk.TryPeekPointer(64 + (28 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardXFGDispatchFunctionPointer { get; init; } //45
+#endif
 
+#if PEFAST
+        private VA<long> guardXFGTableDispatchFunctionPointer;
+
+        public VA<long> GuardXFGTableDispatchFunctionPointer =>
+            GetFunctionPointer(ref guardXFGTableDispatchFunctionPointer, chunk.TryPeekPointer(64 + (29 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardXFGTableDispatchFunctionPointer { get; init; } //46
+#endif
 
+#if PEFAST
+        public long CastGuardOsDeterminedFailureMode => chunk.TryPeekPointer(64 + (30 * chunk.PointerSize), Size);
+#else
         public long CastGuardOsDeterminedFailureMode { get; init; } //47
+#endif
 
         #endregion
         #region Windows SDK 10.0.22621+
 
+#if PEFAST
+        private VA<long> guardMemcpyFunctionPointer;
+
+        public VA<long> GuardMemcpyFunctionPointer =>
+            GetFunctionPointer(ref guardMemcpyFunctionPointer, chunk.TryPeekPointer(64 + (31 * chunk.PointerSize), Size));
+#else
         public VA<long> GuardMemcpyFunctionPointer { get; init; } //48
+#endif
 
         #endregion
 
         public byte[]? UnknownBytes { get; init; }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageLoadConfigDirectory(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageLoadConfigDirectory(IFileReader reader, PEFile peFile)
         {
             #region Init
@@ -627,7 +1209,7 @@ namespace PESpy
                     reader.Seek(offset);
 
                     GuardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(
-                        guardLongJumpTargetTable,
+                        guardAddressTakenIatEntryTable,
                         offset,
                         new GuardAddressTakenIatEntryTable(reader, GuardFlags, GuardAddressTakenIatEntryCount)
                     );
@@ -726,7 +1308,7 @@ namespace PESpy
                     reader.Seek(offset);
 
                     EnclaveConfigurationPointer = new VA<ImageEnclaveConfig>(
-                        guardEHContinuationTable,
+                        enclaveConfigurationPointer,
                         offset,
                         new ImageEnclaveConfig(reader, peFile)
                     );
@@ -775,6 +1357,7 @@ namespace PESpy
 
             #endregion
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ReadPointer(IFileReader reader, bool is32Bit)
@@ -785,6 +1368,33 @@ namespace PESpy
             return reader.ReadInt64();
         }
 
+#if PEFAST
+        private VA<long> GetFunctionPointer(ref VA<long> field, long value)
+        {
+            if (field.ListedAddress != 0)
+                return field;
+
+            if (value == 0)
+                return default;
+
+            var peFile = chunk.PEFile();
+
+            var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            {
+                var fnPtr = (long) valueChunk.PeekPointer(0);
+
+                return new VA<long>(value, valueChunk.AbsoluteOffset, fnPtr);
+            }
+            else
+            {
+                field = new VA<long>(value);
+            }
+
+            return field;
+        }
+#else
         private static VA<long> GetFunctionPointer(long value, IFileReader reader, PEFile peFile, bool is32Bit)
         {
             //The function pointers are not stored in the load config table; a pointer _to_ the function pointer is stored
@@ -807,6 +1417,7 @@ namespace PESpy
             else
                 return default;
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

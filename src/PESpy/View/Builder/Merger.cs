@@ -14,12 +14,12 @@ namespace PESpy.View.Builder
     abstract class Merger
     {
         private List<IView> sortedStructs;
-        private HashSet<IView> delayNameViews;
+        private HashSet<IView>? delayNameViews;
         private List<DirectoryInfo> discoveredDataDirectories;
 
         private int nextStructIndex;
         private int nextDataDirectoryIndex;
-        private IView nextValue;
+        private IView? nextValue;
         private DirectoryInfo? directory;
         protected Extension extension;
         private RepeatingGroupMode repeatingGroupMode;
@@ -30,7 +30,7 @@ namespace PESpy.View.Builder
 
         protected Merger(
             List<IView> sortedStructs,
-            HashSet<IView> delayNameViews,
+            HashSet<IView>? delayNameViews,
             List<DirectoryInfo> discoveredDataDirectories,
             Extension extension)
         {
@@ -45,8 +45,8 @@ namespace PESpy.View.Builder
         protected IView[] BuildSection(
             RawOffset startRva,
             RawOffset endRva,
-            Func<int, int> getRealOffset,
-            Func<int, int> getRVA,
+            Func<int, int>? getRealOffset,
+            Func<int, int>? getRVA,
             bool isOverlay = false)
         {
             masterList.Clear();
@@ -104,6 +104,7 @@ namespace PESpy.View.Builder
                 if (rva >= candidateDirectory.Start && rva < candidateDirectory.End)
                 {
                     FinalizeRepeatingTypeRegion();
+
                     masterList.AddRange(currentList);
                     currentList.Clear();
                     directory = candidateDirectory;
@@ -114,7 +115,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void GetValueOrBytes(ref RawOffset rva, RawOffset currentEnd, RawOffset endRva, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
+        private void GetValueOrBytes(ref RawOffset rva, RawOffset currentEnd, RawOffset endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             if (nextStructIndex < sortedStructs.Count && (nextValue = sortedStructs[nextStructIndex]).Offset < currentEnd)
             {
@@ -161,7 +162,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ProcessValueOrRepeatingGroup(Func<int, int> getRVA)
+        private void ProcessValueOrRepeatingGroup(Func<int, int>? getRVA)
         {
             if (nextValue is ValueView<string> v) //Use generics to avoid boxing
             {
@@ -206,7 +207,7 @@ namespace PESpy.View.Builder
                 {
                     var currentDirectory = discoveredDataDirectories[nextDataDirectoryIndex];
 
-                    var nextValueEnd = nextValue.Offset + nextValue.Size;
+                    var nextValueEnd = nextValue!.Offset + nextValue.Size;
 
                     //The calling method is going to increment its rva based on how many bytes we wrote here; but in PDBs,
                     //values can span multiple pages. A DirectoryInfo only knows how many pages large it is. This says nothing
@@ -227,20 +228,38 @@ namespace PESpy.View.Builder
                          * to use for the split page, we must figure out what our current page is, which stream that's in
                          * what our index is within that stream, and then what the next page after us is */
 
-                        var pdbMerger = (PdbMerger) this;
-                        var currentPage = (PN) nextValue.Offset / pdbMerger.pdbFile.MsfHeader.PageSize; //We want the current page, so don't divide up
+                        var pdbMerger = (PdbMsfMerger) this;
+                        var currentPage = (PN) (nextValue.Offset / pdbMerger.pdbFile.PageSize); //We want the current page, so don't divide up
                         var siIndex = pdbMerger.pageNumberToSIIndex[currentPage];
 
-                        PN[] siPageList;
+                        Span<PN> siPageList;
 
                         if (siIndex == -1)
                         {
-                            //For the pages of the stream table itself, we list these as belonging to "index 0"
-                            siPageList = pdbMerger.pdbFile.StreamTableLocation.PageList;
+                            //For the pages of the stream table itself, we list these as belonging to "index -1"
+                            if (pdbMerger.pdbFile is PDB7File v7)
+                                siPageList = v7.StreamTableLocation.PageList;
+                            else
+                            {
+                                //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
+                                var rawPages = ((PDB2File) pdbMerger.pdbFile).MsfHeader.StreamTablePageList;
+
+                                var arr = new PN[rawPages.Length];
+
+                                for (var i = 0; i < rawPages.Length; i++)
+                                    arr[i] = rawPages[i];
+
+                                siPageList = arr;
+                            }
+                        }
+                        else if (siIndex == -2)
+                        {
+                            //It's a page describing the location of the stream table's pages
+                            siPageList = ((PDB7File) pdbMerger.pdbFile).MsfHeader.PagesOfStreamTablePageList;
                         }
                         else
                         {
-                            ref var si = ref pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
+                            ref var si = ref pdbMerger.pdbFile.StreamTable!.StreamInfos[siIndex];
                             siPageList = si.PageList;
                         }
 
@@ -254,7 +273,7 @@ namespace PESpy.View.Builder
                             {
                                 //The next page in the list is the one that our split value begins from
                                 var nextPage = siPageList[i + 1];
-                                secondStartOffset = nextPage * pdbMerger.pdbFile.MsfHeader.PageSize;
+                                secondStartOffset = nextPage * pdbMerger.pdbFile.PageSize;
                                 nextPageFound = true;
                                 break;
                             }
@@ -300,14 +319,16 @@ namespace PESpy.View.Builder
                     }
                 }
 
-                currentList.Add(nextValue);
+                currentList.Add(nextValue!);
             }
         }
 
-        private void ReplaceGarbage(IView replacement, Func<int, int> getRVA)
+        private void ReplaceGarbage(IView replacement, Func<int, int>? getRVA)
         {
             for (var i = 0; i < masterList.Count; i++)
             {
+                //We should only have LogicalRegionView items in the master list (at least, in PDBs this is the case)
+                //And this method is exclusively used in splitting scenarios (which we currently only need to do in PDBs)
                 var directory = (LogicalRegionView) masterList[i];
 
                 if (directory.Offset >= replacement.Offset)
@@ -339,7 +360,7 @@ namespace PESpy.View.Builder
                         {
                             //This is the first overlapping child
 
-                            var replacementEnd = replacement.Offset + replacement.Size;
+                            var replacementEnd = replacement.Offset + replacement.Size - 1;
 
                             var k = j + 1;
 
@@ -387,7 +408,7 @@ namespace PESpy.View.Builder
                                 repeatingGroupMode = 0;
                                 currentList = new List<IView>();
 
-                                ProcessParsedByteViews(views);
+                                ProcessParsedByteViews(views!);
 
                                 FinalizeRepeatingTypeRegion();
 
@@ -424,7 +445,7 @@ namespace PESpy.View.Builder
 
             Debug.Assert(currentList.Count > 0);
 
-            if (currentList.Count == 1 && currentList[0] is not ByteBlobView)
+            if (currentList.Count == 1 && currentList[0] is not ByteBlobView && this is not PdbMsfMerger) //When constructing PDB Views, even if we have one big value that takes up an entire page, it should still be wrapped in a page logical view
             {
                 //Only one item; no point creating a region view around it. But if it's a byte blob, we likely don't support this directory yet, so we should create a region around it
                 //so that it's clear that something is supposed to be there
@@ -434,7 +455,7 @@ namespace PESpy.View.Builder
             {
                 //We've been building up the members of a directory
 
-                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), this is PdbMerger ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
+                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), this is PdbMsfMerger ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
 
                 masterList.Add(directoryRegion);
             }
@@ -489,7 +510,7 @@ namespace PESpy.View.Builder
             repeatingGroupMode = 0;
         }
 
-        void ReadByteBlob(ref RawOffset rva, RawOffset end, RawOffset endRva, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
+        void ReadByteBlob(ref RawOffset rva, RawOffset end, RawOffset endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var dirIndex = directory == null ? nextDataDirectoryIndex : nextDataDirectoryIndex + 1;
 
@@ -525,12 +546,12 @@ namespace PESpy.View.Builder
 
                     //Iterate through the contents and identify any repeating groups
 
-                    ProcessParsedByteViews(views);
+                    ProcessParsedByteViews(views!);
                     break;
 
                 default: //It's some other type of repeating group. Finalize it, and then parse the results of the byte array
                     FinalizeRepeatingTypeRegion();
-                    ProcessParsedByteViews(views);
+                    ProcessParsedByteViews(views!);
                     break;
             }
         }

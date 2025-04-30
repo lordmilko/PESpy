@@ -12,7 +12,8 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageNtHeaders : IViewable, IValue
     {
-        public const uint PESignature = 0x00004550;    //PE00
+        public const uint IMAGE_NT_SIGNATURE = 0x00004550; //PE00
+        public const ushort IMAGE_OS2_SIGNATURE = 0x454E;    //NE
 
         /// <summary>
         /// A 4-byte signature identifying the file as a PE image. The bytes are "PE\0\0".
@@ -58,6 +59,19 @@ namespace PESpy
         internal ImageNtHeaders(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+
+            var sig = chunk.PeekInt32(0);
+
+            if (sig != IMAGE_NT_SIGNATURE)
+            {
+                var ne = sig & 0xFFFF; //NE header is 2 bytes not 4
+
+                if (ne == IMAGE_OS2_SIGNATURE) //NE
+                    throw new BadImageFormatException("'New Executable' files are not supported");
+
+                throw new BadImageFormatException("Invalid PE signature.");
+            }
+
             FileHeader = new ImageFileHeader(chunk.Slice(4));
             OptionalHeader = new ImageOptionalHeader(chunk.Slice(24));
         }
@@ -72,11 +86,11 @@ namespace PESpy
 
             Signature = signature;
 
-            if (Signature != PESignature)
+            if (Signature != IMAGE_NT_SIGNATURE)
             {
                 var ne = Signature & 0xFFFF;
 
-                if (ne == 0x454e) //NE
+                if (ne == IMAGE_OS2_SIGNATURE) //NE
                     throw new BadImageFormatException("'New Executable' files are not supported");
 
                 throw new BadImageFormatException("Invalid PE signature.");

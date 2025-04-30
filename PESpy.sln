@@ -15,6 +15,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.Benchmarks", "src\PESpy.Benchmarks\PESpy.Benchmarks.csproj", "{803D83FB-4BC1-424D-968C-BD3C95CA5451}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498-8619-4E11-92BF-F358D9DFC882}"
+	ProjectSection(SolutionItems) = preProject
+		build\ClrDebug.props = build\ClrDebug.props
+		build\PInvoke.props = build\PInvoke.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +42,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8A398498-8619-4E11-92BF-F358D9DFC882} = {A4C13A3D-C903-4119-A999-DF030E1EB96D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AC68D9ED-C696-4523-9E2B-1FEEC6692796}

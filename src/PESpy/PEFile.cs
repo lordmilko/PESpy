@@ -7,6 +7,8 @@ using System.Threading;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
+using System.Text;
+
 #if !DEBUG_POSITION
 using RVA = System.Int32;
 using RawOffset = System.Int32;
@@ -56,7 +58,7 @@ namespace PESpy
 
         public ImageCorILMethod[]? ILMethods => peFile.ILMethods;
 
-        public ReadyToRunHeader ReadyToRunHeader => peFile.ReadyToRunHeader;
+        public ReadyToRunHeader? ReadyToRunHeader => peFile.ReadyToRunHeader;
 
         public AppHostSignature? AppHostSignature => peFile.AppHostSignature;
 
@@ -77,8 +79,11 @@ namespace PESpy
         void NotifyPdb(PdbHeap data);
     }
 
+    /// <summary>
+    /// Represents a Portable Executable (PE) file.
+    /// </summary>
     [DebuggerTypeProxy(typeof(PEFileDebugView))]
-    public class PEFile : IViewable, IMetadataCallback, IDisposable
+    public class PEFile : IFile, IViewable, IMetadataCallback, IDisposable
     {
         #region Static
 #if PEFAST
@@ -91,7 +96,18 @@ namespace PESpy
         {
             using var fs = File.OpenRead(path);
 
-            return new PEFile(fs);
+            var mmf = new MemoryMappedFileHolder(fs);
+
+            try
+            {
+                return new PEFile(fs.Name, mmf);
+            }
+            catch
+            {
+                mmf.Close();
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -100,15 +116,26 @@ namespace PESpy
         /// <param name="hProcess">A handle to the process containing the module that should be read.</param>
         /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
-        public static PEFile FromProcess(IntPtr hProcess, long moduleBase) =>
-            new PEFile(new RemoteMemoryReader(hProcess), moduleBase);
+        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase) =>
+            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase);
 
         public static PEFile FromStream(Stream stream, bool isLoadedImage)
         {
             //If it's a FileStream, implicitly it's not a loaded image
             if (stream is FileStream fs)
             {
-                return new PEFile(fs);
+                var mmf = new MemoryMappedFileHolder(fs);
+
+                try
+                {
+                    return new PEFile(fs.Name, mmf);
+                }
+                catch
+                {
+                    mmf.Close();
+
+                    throw;
+                }
             }
 
             return new PEFile(new StreamMemoryReader(stream), stream.Position);
@@ -140,6 +167,97 @@ namespace PESpy
         /// Gets whether the image exists within the memory a live process, or exists on disk. Offsets are slightly different in some areas when in memory vs on disk.
         /// </summary>
         public bool IsLoadedImage { get; init; }
+
+        private SymStoreKey[]? symStoreKeys;
+
+        public SymStoreKey[] SymStoreKeys
+        {
+            get
+            {
+                if (symStoreKeys == null)
+                {
+                    var builder = new StringBuilder();
+
+                    var results = new List<SymStoreKey>();
+
+                    if (Name != null)
+                    {
+                        var lowerName = Name.ToLowerInvariant();
+
+                        var key = $"{lowerName}/{FileHeader.TimeDateStamp:X8}{OptionalHeader.SizeOfImage:x}/{lowerName}";
+
+                        results.Add(new SymStoreKey(key, SymStoreKeyKind.PE));
+                    }
+
+                    var debugTable = DebugTable;
+
+                    if (debugTable != null)
+                    {
+                        for (var i = 0; i < debugTable.Length; i++)
+                        {
+                            ref var debugDirectory = ref debugTable[i];
+
+                            switch (debugDirectory.Type)
+                            {
+                                case ImageDebugType.CodeView:
+                                    {
+                                        var data = (ICodeView?) debugDirectory.Data;
+
+                                        if (data != null)
+                                        {
+                                            switch (data.Signature)
+                                            {
+                                                case CodeViewSig.RSDS:
+                                                {
+                                                    var r = (RSDSI) data;
+
+                                                    //symsrv doesn't seem to modify the case
+                                                    var name = data.Path.ToString();
+
+                                                    //SymSrv seems to use uppercase GUIDs, and apparently certain symbol servers only support uppercase
+                                                    var key = $"{name}/{r.Guid.ToString("N").ToUpperInvariant()}{data.Age:X}/{name}";
+
+                                                    results.Add(new SymStoreKey(key, SymStoreKeyKind.PDB));
+
+                                                    break;
+                                                }
+                                                    
+
+                                                case CodeViewSig.NB10:
+                                                {
+                                                    var n = (NB10I) data;
+
+                                                    var name = data.Path.ToString();
+
+                                                    var key = $"{name}/{n.PdbSignature:X}{data.Age:X}/{name}";
+
+                                                    results.Add(new SymStoreKey(key, SymStoreKeyKind.PDB));
+
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+
+                    symStoreKeys = results.ToArray();
+                }
+
+                return symStoreKeys;
+            }
+        }
+
+        /// <inheritdoc/>
+        public string? Name { get; private set; }
+
+        /// <inheritdoc/>
+        public string? FileName { get; private set; }
+
+        /// <inheritdoc/>
+        public FileKind Kind => FileKind.PE;
 
         #region DosHeader
 
@@ -180,7 +298,44 @@ namespace PESpy
         private ByteBlob dosStub;
 
 #if PEFAST
-        public ref readonly ByteBlob DosStub => throw new NotImplementedException();
+        public ref readonly ByteBlob DosStub
+        {
+            get
+            {
+                if (dosStub.Offset == 0)
+                {
+                    /* Ostensibly, the DOS Stub should live between bytes 0x40 and 0x7F (inclusive).
+                     * The RichHeader (if present) begins immediately after the DOS Stub. Technically
+                     * speaking its possible to have a custom DOS Stub, so we can't just assume that the stub
+                     * will live exactly where we think it will be. In addition, we want to draw attention
+                     * to the case when the stub is non-standard. As such, we use the following logic:
+                     * - If the RichHeader was present, we know that the stub lives between the end of
+                     *   the DOS Header and the start of the RichHeader
+                     * - If the RichHeader was not present, we read all bytes between the end of the DOS Header
+                     *   and the start of the PE Header.
+                     *
+                     * The DOS stub is not guaranteed to always be the same. Certain compilers can cause minor differences in the order of the DOS instructions that are executed, as well as
+                     * include padding between the stub and the error message, which can also vary ("This program cannot be run in DOS mode", "This program must be run under Win32" */
+
+                    var start = ImageDosHeader.StructSize;
+                    int end;
+
+                    if (RichHeader != null)
+                        end = RichHeader.Offset;
+                    else
+                    {
+                        //We know there isn't a RichHeader. Read up until the start of the new PE Header
+                        end = DosHeader.FileAddressOfNewExeHeader;
+                    }
+
+                    var length = (int) (end - start);
+
+                    dosStub = new ByteBlob(new MemoryChunk(headerBlock, start), length);
+                }
+
+                return ref dosStub;
+            }
+        }
 #else
         public ref readonly ByteBlob DosStub
         {
@@ -237,13 +392,28 @@ namespace PESpy
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private RichHeader? richHeader;
+        private bool hasTriedRichHeader;
 
         /// <summary>
         /// Gets the undocumented Rich Header which describes the build environment that was used to create the file.<para/>
         /// If the file does not have a Rich Header, this property returns <see langword="null"/>.
         /// </summary>
 #if PEFAST
-        public RichHeader? RichHeader => throw new NotImplementedException();
+        public RichHeader? RichHeader
+        {
+            get
+            {
+                if (richHeader == null && !hasTriedRichHeader)
+                {
+                    //We already know we're a PE file, as the NT Headers have already been loaded
+
+                    richHeader = RichHeader.New(dosHeader.FileAddressOfNewExeHeader, headerBlock);
+                    hasTriedRichHeader = true;
+                }
+
+                return richHeader;
+            }
+        }
 #else
 		public RichHeader? RichHeader
         {
@@ -302,7 +472,7 @@ namespace PESpy
         /// Gets the <see cref="IMAGE_NT_HEADERS.FileHeader"/> field that represents the file header of the image.
         /// </summary>
 #if PEFAST
-        public ref readonly ImageFileHeader FileHeader => ref ntHeaders.FileHeader;
+        public ImageFileHeader FileHeader => ntHeaders.FileHeader;
 #else
         public ImageFileHeader FileHeader => NtHeaders.FileHeader; //Cannot be ref readonly
 #endif
@@ -311,7 +481,7 @@ namespace PESpy
         /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
 #if PEFAST
-        public ref readonly ImageOptionalHeader OptionalHeader => ref ntHeaders.OptionalHeader;
+        public ImageOptionalHeader OptionalHeader => ntHeaders.OptionalHeader;
 #else
         public ImageOptionalHeader OptionalHeader => NtHeaders.OptionalHeader; //Cannot be ref readonly
 #endif
@@ -404,6 +574,7 @@ namespace PESpy
                     if (exportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(exportTableDirectory, out var chunk))
                     {
                         chunk.Demand(exportTableDirectory.VirtualAddress, ImageExportDirectory.StructSize);
+
                         var local = new ImageExportDirectory(chunk);
 
                         //Since this property returns a reference, we should always return the same object
@@ -446,7 +617,49 @@ namespace PESpy
         private ImageImportDescriptor[]? importTable;
 
 #if PEFAST
-        public ImageImportDescriptor[]? ImportTable => throw new NotImplementedException();
+        public ImageImportDescriptor[]? ImportTable
+        {
+            get
+            {
+                if (importTable == null)
+                {
+                    var importTableDirectory = OptionalHeader.ImportTableDirectory;
+
+                    if (importTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(importTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(importTableDirectory.VirtualAddress, importTableDirectory.Size);
+
+                        //I don't know if we're guaranteed to fill up the entire ImportTableDirectory with
+                        //ImageImportDescriptor objects, or if there's other stuff in there too. I feel like
+                        //the latter is the case, as such we can't calculate exactly how many entries we'll have
+                        var results = new List<ImageImportDescriptor>();
+
+                        var read = 0;
+
+                        while (true)
+                        {
+                            //If the ImportAddressTable has been loaded, use the same ImageThunkData objects where applicable.
+                            //Use the internal field so we don't force load them if they're not already loaded
+                            var item = new ImageImportDescriptor(chunk.Slice(read));
+
+                            read += ImageImportDescriptor.StructSize;
+
+                            results.Add(item);
+
+                            //The last item is all 0's. We certainly expect the name should have a value, so we look at that.
+                            //We want to ensure that we include the null entry so that we can model the actual structure of the PE File
+                            if (item.Name.ListedOffset == 0)
+                                break;
+                        }
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref importTable, results.ToArray(), null);
+                    }
+                }
+
+                return importTable;
+            }
+        }
 #else
         public ImageImportDescriptor[]? ImportTable
         {
@@ -502,22 +715,22 @@ namespace PESpy
         {
             get
             {
-                //if (resourceDirectory == null)
-                //{
-                //    var resourceTableDirectory = OptionalHeader.ResourceTableDirectory;
+                if (resourceDirectory == null)
+                {
+                    var resourceTableDirectory = OptionalHeader.ResourceTableDirectory;
 
-                //    if (resourceTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(resourceTableDirectory, out var chunk))
-                //    {
-                //        chunk.Demand(resourceTableDirectory.VirtualAddress, ImageResourceDirectory.StructSize);
-                //        var local = new ImageResourceDirectory(chunk);
+                    if (resourceTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(resourceTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(resourceTableDirectory.VirtualAddress, resourceTableDirectory.Size);
 
-                //        //Since this property returns a reference, we should always return the same object
-                //        Interlocked.CompareExchange(ref resourceDirectory, local, null);
-                //    }
-                //}
+                        var local = new ImageResourceDirectory(chunk, resourceTableDirectory.VirtualAddress, null);
 
-                //return resourceDirectory;
-                throw new NotImplementedException();
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref resourceDirectory, local, null);
+                    }
+                }
+
+                return resourceDirectory;
             }
         }
 #else
@@ -554,7 +767,35 @@ namespace PESpy
         private RuntimeFunction[]? exceptionTable;
 
 #if PEFAST
-        public RuntimeFunction[]? ExceptionTable => throw new NotImplementedException();
+        public RuntimeFunction[]? ExceptionTable
+        {
+            get
+            {
+                if (exceptionTable == null)
+                {
+                    var exceptionTableDirectory = OptionalHeader.ExceptionTableDirectory;
+
+                    if (exceptionTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(exceptionTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(exceptionTableDirectory.VirtualAddress, exceptionTableDirectory.Size);
+
+                        var numEntries = OptionalHeader.ExceptionTableDirectory.Size / RuntimeFunction.StructSize;
+
+                        var entries = new RuntimeFunction[numEntries];
+
+                        //Cache resolved imports for faster lookup
+                        var context = new ExceptionHandlerContext(this);
+
+                        for (var i = 0; i < entries.Length; i++)
+                            entries[i] = new RuntimeFunction(chunk.Slice(i * RuntimeFunction.StructSize));
+
+                        exceptionTable = entries;
+                    }
+                }
+
+                return exceptionTable;
+            }
+        }
 #else
         public RuntimeFunction[]? ExceptionTable
         {
@@ -601,8 +842,54 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private WinCertificate[]? securityTable;
 
+        /// <summary>
+        /// Gets the certificates contained in the Security Table pointed to by <see cref="ImageOptionalHeader.SecurityTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_SECURITY),
+        /// or <see langword="null"/> if the Security Table was not present or did not point to a valid location.<para/>
+        /// The Security Table is typically contained in the Overlay (the area beyond the last section) and as such is not present when <see cref="IsLoadedImage"/> is <see langword="true"/>.
+        /// </summary>
 #if PEFAST
-        public WinCertificate[]? SecurityTable => throw new NotImplementedException();
+        public WinCertificate[]? SecurityTable
+        {
+            get
+            {
+                if (securityTable == null)
+                {
+                    var securityTableDirectory = OptionalHeader.SecurityTableDirectory;
+
+                    //SecurityTable uses an absolute address, and should be in the overlay. We will make a best effort attempt to resolve the physical
+                    //location of this value regardless of whether we are a loaded image or not
+                    if (securityTableDirectory.VirtualAddress != 0 && TryGetValueChunkFromPhysicalOffset(securityTableDirectory.VirtualAddress, out var chunk))
+                    {
+                        //https://blog.trailofbits.com/2020/05/27/verifying-windows-binaries-without-windows/
+                        //https://github.com/trailofbits/uthenticode
+                        //http://download.microsoft.com/download/9/c/5/9c5b2167-8017-4bae-9fde-d599bac8184a/Authenticode_PE.docx
+
+                        chunk.Demand(securityTableDirectory.VirtualAddress, securityTableDirectory.Size);
+
+                        var end = securityTableDirectory.Size;
+
+                        var results = new List<WinCertificate>();
+
+                        var read = 0;
+
+                        while (read < end)
+                        {
+                            var item = new WinCertificate(chunk.Slice(read));
+                            read += item.Length; //Length includes the fixed members as well
+
+                            results.Add(item);
+                        }
+
+                        Debug.Assert(results.Count <= 1, "Do you need to 8-byte align multiple certificates?");
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref securityTable, results.ToArray(), null);
+                    }
+                }
+
+                return securityTable;
+            }
+        }
 #else
         public WinCertificate[]? SecurityTable
         {
@@ -655,7 +942,40 @@ namespace PESpy
         private ImageBaseRelocation[]? baseRelocationTable;
 
 #if PEFAST
-        public ImageBaseRelocation[]? BaseRelocationTable => throw new NotImplementedException();
+        public ImageBaseRelocation[]? BaseRelocationTable
+        {
+            get
+            {
+                var baseRelocationTableDirectory = OptionalHeader.BaseRelocationTableDirectory;
+
+                if (baseRelocationTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(baseRelocationTableDirectory, out var chunk))
+                {
+                    chunk.Demand(baseRelocationTableDirectory.VirtualAddress, baseRelocationTableDirectory.Size);
+
+                    var end = OptionalHeader.BaseRelocationTableDirectory.Size;
+
+                    var results = new List<ImageBaseRelocation>();
+
+                    var read = 0;
+
+                    while (read < (int) end)
+                    {
+                        var item = new ImageBaseRelocation(chunk.Slice(read));
+
+                        read += item.SizeOfBlock;
+
+                        results.Add(item);
+
+                        //Must be 32-bit aligned
+                        read = (read + 3) & ~3;
+                    }
+
+                    baseRelocationTable = results.ToArray();
+                }
+
+                return baseRelocationTable;
+            }
+        }
 #else
         public ImageBaseRelocation[]? BaseRelocationTable
         {
@@ -780,7 +1100,28 @@ namespace PESpy
         private ImageTlsDirectory? tlsDirectory;
 
 #if PEFAST
-        public ImageTlsDirectory? TlsDirectory => throw new NotImplementedException();
+        public ImageTlsDirectory? TlsDirectory
+        {
+            get
+            {
+                if (tlsDirectory == null)
+                {
+                    var threadLocalStorageTableDirectory = OptionalHeader.ThreadLocalStorageTableDirectory;
+
+                    if (threadLocalStorageTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(threadLocalStorageTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(threadLocalStorageTableDirectory.VirtualAddress, ImageTlsDirectory.StructSize(chunk.Is32Bit));
+
+                        var local = new ImageTlsDirectory(chunk);
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref tlsDirectory, local, null);
+                    }
+                }
+
+                return tlsDirectory;
+            }
+        }
 #else
         public ImageTlsDirectory? TlsDirectory
         {
@@ -812,7 +1153,28 @@ namespace PESpy
         private ImageLoadConfigDirectory? loadConfigTable;
 
 #if PEFAST
-        public ImageLoadConfigDirectory? LoadConfigTable => throw new NotImplementedException();
+        public ImageLoadConfigDirectory? LoadConfigTable
+        {
+            get
+            {
+                if (loadConfigTable == null)
+                {
+                    var loadConfigTableDirectory = OptionalHeader.LoadConfigTableDirectory;
+
+                    if (loadConfigTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(loadConfigTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(loadConfigTableDirectory.VirtualAddress, loadConfigTableDirectory.Size);
+
+                        var local = new ImageLoadConfigDirectory(chunk);
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref loadConfigTable, local, null);
+                    }
+                }
+
+                return loadConfigTable;
+            }
+        }
 #else
         public ImageLoadConfigDirectory? LoadConfigTable
         {
@@ -844,7 +1206,46 @@ namespace PESpy
         private ImageBoundImportDescriptor[]? boundImportTable;
 
 #if PEFAST
-        public ImageBoundImportDescriptor[]? BoundImportTable => throw new NotImplementedException();
+        public ImageBoundImportDescriptor[]? BoundImportTable
+        {
+            get
+            {
+                if (boundImportTable == null)
+                {
+                    //The bound import directory actually describes an offset in the file, not an RVA
+                    //https://stackoverflow.com/questions/55857504/how-field-bound-import-directory-works
+
+                    var boundImportTableDirectory = OptionalHeader.BoundImportTableDirectory;
+
+                    if (boundImportTableDirectory.VirtualAddress != 0 && TryGetValueChunkFromPhysicalOffset(boundImportTableDirectory.VirtualAddress, out var chunk))
+                    {
+                        var end = boundImportTableDirectory.Size;
+
+                        chunk.Demand(boundImportTableDirectory.VirtualAddress, end);
+
+                        var results = new List<ImageBoundImportDescriptor>();
+
+                        var read = 0;
+
+                        while (read < (int) end)
+                        {
+                            var item = new ImageBoundImportDescriptor(chunk.Slice(read));
+
+                            if (item.TimeDateStamp == 0 && item.OffsetModuleName == 0 && item.NumberOfModuleForwarderRefs == 0)
+                                break;
+
+                            results.Add(item);
+
+                            read += ImageBoundImportDescriptor.FixedStructSize + (item.NumberOfModuleForwarderRefs * ImageBoundForwarderRef.StructSize);
+                        }
+
+                        boundImportTable = results.ToArray();
+                    }
+                }
+
+                return boundImportTable;
+            }
+        }
 #else
         public ImageBoundImportDescriptor[]? BoundImportTable
         {
@@ -1034,7 +1435,28 @@ namespace PESpy
         private ImageCor20Header? cor20Header;
 
 #if PEFAST
-        public ImageCor20Header? Cor20Header => throw new NotImplementedException();
+        public ImageCor20Header? Cor20Header
+        {
+            get
+            {
+                if (cor20Header == null)
+                {
+                    var corHeaderTableDirectory = OptionalHeader.CorHeaderTableDirectory;
+
+                    if (corHeaderTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(corHeaderTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(corHeaderTableDirectory.VirtualAddress, ImageExportDirectory.StructSize);
+
+                        var local = new ImageCor20Header(chunk);
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref cor20Header, local, null);
+                    }
+                }
+
+                return cor20Header;
+            }
+        }
 #else
         public ImageCor20Header? Cor20Header
         {
@@ -1268,7 +1690,7 @@ namespace PESpy
                             {
                                 reader.Seek(offset);
 
-                                dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(reader, OptionalHeader.Magic == PEMagic.PE32);
+                                dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(reader, this);
                             }
                         }
                     }
@@ -1305,7 +1727,7 @@ namespace PESpy
         {
             lock (readerLock)
             {
-                var writer = new PEViewWriter(this, reader, mode);
+                var writer = new PEViewWriter(this, reader, null, mode);
                 viewable.WriteView(writer);
 
                 if (writer.Current.Count != 1)
@@ -1314,6 +1736,76 @@ namespace PESpy
                 return writer.Current[0];
             }
         }
+#endif
+#if PEFAST
+        //Provides MemoryBlock objects which encompass an area of a PEFile
+        private IMemoryBlockProvider blockProvider;
+
+        //A special MemoryBlock containing the PE File header. We bypass the IMemoryBlockProvider
+        //and create this directly since we need a special MemoryBlock implementation with special behaviors
+        //just to get things going
+        private HeaderMemoryBlock headerBlock;
+        private MemoryBlock[]? sectionBlocks;
+        private bool disposed;
+
+        private ExceptionHandlerContext? exceptionHandlerContext;
+
+        internal ExceptionHandlerContext ExceptionHandlerContext
+        {
+            get
+            {
+                if (exceptionHandlerContext == null)
+                    exceptionHandlerContext = new ExceptionHandlerContext(this);
+
+                return exceptionHandlerContext;
+            }
+        }
+
+        //PERF: benchmarks consistently show that when accessing a single member a single time,
+        //it's faster to do lazy initialization of our core header types. However, once you start
+        //accessing members multiple times, it quickly becomes faster to preload everything
+
+        internal PEFile(string fileName, in MemoryMappedFileHolder mmf)
+        {
+            IsLoadedImage = false;
+
+            FileName = fileName;
+            Name = Path.GetFileName(fileName);
+            var localProvider = new LocalMemoryBlockProvider(mmf, this);
+            blockProvider = localProvider;
+
+            headerBlock = new LocalHeaderMemoryBlock(localProvider);
+
+            InitializeHeaders();
+        }
+
+        //ctor for initializing PEFile from an IMemoryReader that reads remote memory
+        private PEFile(IMemoryReader reader, long address)
+        {
+            IsLoadedImage = true;
+
+            blockProvider = new RemoteMemoryBlockProvider(reader, address, this);
+
+            //Will automatically demand
+            headerBlock = new RemoteHeaderMemoryBlock(reader, address, blockProvider);
+
+            InitializeHeaders();
+        }
+
+        private void InitializeHeaders()
+        {
+            dosHeader = new ImageDosHeader(new MemoryChunk(headerBlock, 0));
+            ntHeaders = new ImageNtHeaders(new MemoryChunk(headerBlock, dosHeader.FileAddressOfNewExeHeader));
+
+            //ImageOptionalHeader cannot be meaningfully read until the pointer size is known
+            headerBlock.Is32Bit = ntHeaders.OptionalHeader.Magic == PEMagic.PE32;
+
+            //If the header block was not big enough to store the size of the image, resize it before anyone has started using the PEFile.
+            //If the PEFile is a memory mapped file, this is a no-op
+            headerBlock.Resize(ntHeaders.OptionalHeader.SizeOfHeaders);
+        }
+#else
+        private IFileReader reader;
         private object readerLock = new object();
         private volatile int flags;
         private bool disposed;
@@ -1329,11 +1821,8 @@ namespace PESpy
         private PEFile(Stream stream, bool isLoadedImage, IFileServices? services)
         {
             //Reading strings from a FileStream is very slow, so use an MMF reader instead
-
-            if (stream is FileStream fs && false)
-                reader = new MemoryMappedFileReader(fs, readerLock); //todo: do we need to set isloaded to true if we do this? i think no, cos nobody specifies sec_image, not even c#'s memorymappedfile
-            else
-                reader = new StreamFileReader(stream, readerLock);
+ 
+            reader = new StreamFileReader(stream, readerLock);
 
             IsLoadedImage = isLoadedImage;
             Services = services;
@@ -1522,7 +2011,7 @@ namespace PESpy
 
             Debug.Assert(headers != null);
 
-            for (var i = 0; i < headers.Length; i++)
+            for (var i = 0; i < headers!.Length; i++)
             {
                 var start = headers[i].VirtualAddress;
                 var end = headers[i].VirtualAddress + headers[i].VirtualSize;
@@ -1554,6 +2043,225 @@ namespace PESpy
 
             return -1;
         }
+
+#if PEFAST
+        private bool TryGetDirectoryChunk(in ImageDataDirectory entry, out MemoryChunk chunk)
+        {
+            if (TryGetSectionBlockFromRVA(entry.VirtualAddress, out var block, out var relativeOffset))
+            {
+                chunk = new MemoryChunk(block!, relativeOffset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        internal bool TryGetValueChunkFromSectionOrHeader(int rva, out MemoryChunk chunk)
+        {
+            if (rva == 0)
+            {
+                chunk = default;
+                return false;
+            }
+
+            if (rva < OptionalHeader.SizeOfHeaders)
+            {
+                chunk = new MemoryChunk(headerBlock, 0);
+                return true;
+            }
+
+            return TryGetValueChunkFromSection(rva, out chunk);
+        }
+
+        internal bool TryGetValueChunkFromSection(int rva, out MemoryChunk chunk)
+        {
+            if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
+            {
+                chunk = new MemoryChunk(block!, relativeOffset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (TryGetSectionBlockFromOffset(offset, out var block, out var relativeOffset))
+            {
+                chunk = new MemoryChunk(block!, relativeOffset);
+                return true;
+            }
+
+            if (IsLoadedImage)
+            {
+                //The value isn't part of any known section, but if it's part of the header, we can do something with that
+                if (offset < OptionalHeader.SizeOfHeaders)
+                {
+                    chunk = new MemoryChunk(headerBlock, offset);
+                    return true;
+                }
+            }
+            else
+            {
+                //In an unloaded image, our header block technically provides access to the entire module
+                chunk = new MemoryChunk(headerBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        internal bool TryGetSectionBlockFromRVA(int rva, out MemoryBlock? block, out int relativeOffset)
+        {
+            //Will check for 0
+            if (!TryGetSectionContainingRVA(rva, out var sectionIndex, out var section))
+            {
+                block = null;
+                relativeOffset = default;
+                return false;
+            }
+
+            block = GetSectionBlock(sectionIndex, section);
+
+            //When it's a loaded image, block.Address is the section.VirtualAddress.
+            //Otherwise, its the PointerToRawData. But this is an issue, because we need to calculate
+            //the reltive offset into the section, which involves looking at the VirtualAddress, so we must
+            //do that calculation here
+            relativeOffset = rva - section.VirtualAddress;
+
+            return true;
+        }
+
+        internal bool TryGetSectionBlockFromOffset(int offset, out MemoryBlock? block, out int relativeOffset)
+        {
+            if (!TryGetSectionContainingOffset(offset, out var sectionIndex, out var section))
+            {
+                //The offset does not belong to any known section, thereby making it part of the header or overlay.
+                //In loaded modules, the overlay is not loaded into memory. If the caller wants to use the header block
+                //in order to access the overlay in an unloaded module, they need to decide to do that; it's not our responsibility
+
+                block = null;
+                relativeOffset = default;
+                return false;
+            }
+
+            block = GetSectionBlock(sectionIndex, section);
+
+            relativeOffset = offset - section.PointerToRawData;
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private MemoryBlock GetSectionBlock(int sectionIndex, in ImageSectionHeader section)
+        {
+            if (sectionBlocks == null)
+                Interlocked.CompareExchange(ref sectionBlocks, new MemoryBlock[ntHeaders.FileHeader.NumberOfSections], null);
+
+            var block = Volatile.Read(ref sectionBlocks[sectionIndex]);
+
+            if (block == null)
+            {
+                if (IsLoadedImage)
+                {
+                    block = blockProvider.CreateBlock(section.VirtualAddress, section.VirtualSize);
+                }
+                else
+                {
+                    //The file is on disk. In order to align sections,
+                    //the size of raw data might be padded out. That's OK;
+                    //we want to reflect reality
+
+                    block = blockProvider.CreateBlock(section.PointerToRawData, section.SizeOfRawData);
+                }
+
+                if (Interlocked.CompareExchange(ref sectionBlocks[sectionIndex], block, null!) != null)
+                {
+                    //Another thread tried to access the section at the same time, and wrote their value into our block list first.
+                    //Dispose the buffer we created
+                    block.Dispose();
+
+                    //The existing block won
+                    block = sectionBlocks[sectionIndex];
+                }
+            }
+
+            return block;
+        }
+
+        private bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)
+        {
+            if (rva == 0)
+            {
+                index = default;
+                header = default;
+                return false;
+            }
+
+            //I don't think we can use lastUsedSection here, as we need to return both the section and the index
+
+            //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
+            var headers = SectionHeaders;
+
+            Debug.Assert(headers != null);
+
+            for (var i = 0; i < headers!.Length; i++)
+            {
+                header = headers[i];
+
+                var start = header.VirtualAddress;
+                var end = start + header.VirtualSize;
+
+                if (start <= rva && rva < end)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            index = default;
+            header = default;
+            return false;
+        }
+
+        private bool TryGetSectionContainingOffset(int offset, out int index, out ImageSectionHeader header)
+        {
+            if (offset == 0)
+            {
+                index = default;
+                header = default;
+                return false;
+            }
+
+            //I don't think we can use lastUsedSection here, as we need to return both the section and the index
+
+            //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
+            var headers = SectionHeaders;
+
+            Debug.Assert(headers != null);
+
+            for (var i = 0; i < headers!.Length; i++)
+            {
+                header = headers[i];
+
+                var start = header.PointerToRawData;
+                var end = start + header.SizeOfRawData;
+
+                if (start <= offset && offset < end)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            index = default;
+            header = default;
+            return false;
+        }
+#endif
 
         #endregion
 
@@ -1636,7 +2344,7 @@ namespace PESpy
         }
 
 #if PEFAST
-        protected virtual void Dispose(bool disposing)
+        protected void Dispose(bool disposing)
         {
             if (disposed)
                 return;
@@ -1666,6 +2374,15 @@ namespace PESpy
             }
 
             disposed = true;
+        }
+#endif
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

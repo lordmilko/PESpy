@@ -11,12 +11,32 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageLoadConfigCodeIntegrity : IValue, IViewable
     {
+#if PEFAST
+        public ushort Flags => chunk.PeekUInt16(0);
+#else
         public ushort Flags { get; init; } //Flags
+#endif
+#if PEFAST
+        public ushort Catalog => chunk.PeekUInt16(2);
+#else
         public ushort Catalog { get; init; }
+#endif
+#if PEFAST
+        public int CatalogOffset => chunk.PeekInt32(4);
+#else
         public int CatalogOffset { get; init; }
+#endif
+#if PEFAST
+        public int Reserved => chunk.PeekInt32(8);
+#else
         public int Reserved { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(ushort) + //Flags
@@ -24,6 +44,14 @@ namespace PESpy
             sizeof(int) +    //CatalogOffset
             sizeof(int);     //Reserved
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageLoadConfigCodeIntegrity(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageLoadConfigCodeIntegrity(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -35,6 +63,7 @@ namespace PESpy
             CatalogOffset = reader.ReadInt32();
             Reserved = reader.ReadInt32();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

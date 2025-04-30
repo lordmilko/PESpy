@@ -3,7 +3,7 @@ using PESpy.View;
 
 namespace PESpy.Tests
 {
-    class ViewAlignmentVerifier : PEViewWalker
+    class ViewAlignmentVerifier : ViewWalker
     {
         protected override void VisitChildren(IContainerView view)
         {

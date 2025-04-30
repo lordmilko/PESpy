@@ -1,11 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(Build)ChaosLib.props" />
+  <Import Project="$(Build)ClrDebug.props" />
+  <Import Project="$(Build)PInvoke.props" />
+  <Import Project="$(Build)SymHelp.props" />
+
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
-    <DefineConstants>$(DefineConstants);PEFAST</DefineConstants>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
@@ -38,20 +42,5 @@
 		<None Include="$(MicrosoftDebuggingPlatformSymSrvContent)x86\symsrv.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x86\%(FileName)%(Extension)" />
 		<None Include="$(MicrosoftDebuggingPlatformSymSrvContent)amd64\symsrv.dll" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x64\%(FileName)%(Extension)" />
 	</ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="ChaosLib">
-      <HintPath>..\..\..\ChaosLib\src\ChaosLib\bin\Debug\net472\ChaosLib.dll</HintPath>
-    </Reference>
-    <Reference Include="ClrDebug">
-      <HintPath>..\..\..\ClrDebug\ClrDebug\bin\Debug\netstandard2.0\ClrDebug.dll</HintPath>
-    </Reference>
-    <Reference Include="PInvoke">
-      <HintPath>..\..\..\PInvoke\src\PInvoke\bin\Debug\netstandard2.0\PInvoke.dll</HintPath>
-    </Reference>
-    <Reference Include="SymHelp">
-      <HintPath>..\..\..\SymHelp\src\SymHelp\bin\Debug\net472\SymHelp.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 
 </Project>

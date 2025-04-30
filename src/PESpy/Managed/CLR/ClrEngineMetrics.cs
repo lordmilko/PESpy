@@ -4,12 +4,36 @@ namespace PESpy
 {
     public class ClrEngineMetrics : IValue, IViewable
     {
+#if PEFAST
+        public int Size => chunk.PeekInt32(0);
+#else
         public int Size { get; }
+#endif
+#if PEFAST
+        public int DbiVersion => chunk.PeekInt32(4);
+#else
         public int DbiVersion { get; }
-        public long ContinueStartupEvent { get; }
+#endif
+#if PEFAST
+        public ulong ContinueStartupEvent => chunk.PeekPointer(8);
+#else
+        public ulong ContinueStartupEvent { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ClrEngineMetrics(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ClrEngineMetrics(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -18,9 +42,10 @@ namespace PESpy
             DbiVersion = reader.ReadInt32();
 
             ContinueStartupEvent = peFile.OptionalHeader.Magic == PEMagic.PE32
-                ? reader.ReadInt32()
-                : reader.ReadInt64();
+                ? reader.ReadUInt32()
+                : reader.ReadUInt64();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

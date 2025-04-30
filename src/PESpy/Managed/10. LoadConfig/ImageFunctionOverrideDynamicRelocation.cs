@@ -1,40 +1,114 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct ImageFunctionOverrideDynamicRelocation : IValue, IViewable
+    public struct ImageFunctionOverrideDynamicRelocation : IValue, IViewable
     {
         /// <summary>
         /// RVA of original function
         /// </summary>
+#if PEFAST
+        public int OriginalRva => chunk.PeekInt32(0);
+#else
         public int OriginalRva { get; }
+#endif
 
         /// <summary>
         /// Offset into the BDD region
         /// </summary>
+#if PEFAST
+        public int BDDOffset => chunk.PeekInt32(4);
+#else
         public int BDDOffset { get; }
+#endif
 
         /// <summary>
         /// Size in bytes taken by RVAs. Must be multiple of sizeof(int).
         /// </summary>
+#if PEFAST
+        public int RvaSize => chunk.PeekInt32(8);
+#else
         public int RvaSize { get; }
+#endif
 
         /// <summary>
         /// Size in bytes taken by BaseRelocs
         /// </summary>
+#if PEFAST
+        public int BaseRelocSize => chunk.PeekInt32(12);
+#else
         public int BaseRelocSize { get; }
+#endif
 
         /// <summary>
         /// Array containing overriding func RVAs.
         /// </summary>
+#if PEFAST
+        public Span<int> RVAs => chunk.PeekSpan<int>(16, RvaSize / sizeof(int));
+#else
         public int[] RVAs { get; }
+#endif
 
+#if PEFAST
+        private ImageBaseRelocation[]? baseRelocs;
+
+        public ImageBaseRelocation[] BaseRelocs
+        {
+            get
+            {
+                if (baseRelocs == null)
+                {
+                    var read = 16 + RvaSize;
+                    var end = BaseRelocSize + read;
+
+                    var results = new List<ImageBaseRelocation>();
+
+                    // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY]; // Base relocations (RVA + Size + TO)
+                    // Padded with extra TOs for 4B alignment
+                    // BaseRelocSize size in bytes
+                    while (read < end)
+                    {
+                        var item = new ImageBaseRelocation(chunk.Slice(read));
+                        read += item.SizeOfBlock;
+                        results.Add(item);
+
+                        //Must be 32-bit aligned
+                        read = (read + 3) & ~3;
+                    }
+
+                    Debug.Assert(read == end);
+
+                    baseRelocs = results.ToArray();
+                }
+
+                return baseRelocs;
+            }
+        }
+#else
         public ImageBaseRelocation[] BaseRelocs { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
+        internal int StructSize => 16 + RvaSize + BaseRelocSize;
 
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageFunctionOverrideDynamicRelocation(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            baseRelocs = null;
+        }
+#else
         internal ImageFunctionOverrideDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
@@ -56,7 +130,7 @@ namespace PESpy
             var baseRelocs = new List<ImageBaseRelocation>();
 
             // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY]; // Base relocations (RVA + Size + TO)
-            //  Padded with extra TOs for 4B alignment
+            // Padded with extra TOs for 4B alignment
             // BaseRelocSize size in bytes
             while (reader.Position < end)
             {
@@ -71,6 +145,7 @@ namespace PESpy
 
             BaseRelocs = baseRelocs.ToArray();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

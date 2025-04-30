@@ -1,13 +1,11 @@
 _old/
 MsfTest/
-PDB/
+PDB/_old/
 .idea/
-PdbMerger.cs
-PdbFileView.cs
-PdbViewWriter.cs
 R2R/
 BenchmarkDotnet.Artifacts/
 PESpy.Benchmarks/
+VCV.386
 
 #################
 # Visual Studio #
@@ -15,7 +13,7 @@ PESpy.Benchmarks/
 
 # Build results
 [Bb]in/
-[Oo]bj/
+artifacts/
 
 # NuGet Packages Directory
 packages/

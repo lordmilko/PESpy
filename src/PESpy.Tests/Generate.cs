@@ -348,9 +348,19 @@ namespace PESpy.Tests
                 .Field("flags", typeof(int), modifier: "private");
 
             #endregion
+            #region ImageCoffSymbolsHeader
 
-            //06. Debug\ImageCoffSymbolsHeader.cs
+            c.Struct("ImageCoffSymbolsHeader")
+                .Field("NumberOfSymbols", typeof(int))
+                .Field("LvaToFirstSymbol", typeof(int))
+                .Field("NumberOfLinenumbers", typeof(int))
+                .Field("LvaToFirstLinenumber", typeof(int))
+                .Field("RvaToFirstByteOfCode", typeof(int))
+                .Field("RvaToLastByteOfCode", typeof(int))
+                .Field("RvaToFirstByteOfData", typeof(int))
+                .Field("RvaToLastByteOfData", typeof(int));
 
+            #endregion
             #region ImageDebugDirectory
 
             c.Struct("ImageDebugDirectory")
@@ -394,7 +404,11 @@ namespace PESpy.Tests
             #endregion
 
             //06. Debug\PogoData.cs
-            //06. Debug\PogoItem.cs
+
+            c.Struct("PogoItem")
+                .Field("RVA", typeof(int))
+                .Field("Size", typeof(int))
+                .Field("Name", typeof(string), stringType: StringType.AnsiNullTerminated);
 
             #region Reproducible
 
@@ -475,8 +489,8 @@ namespace PESpy.Tests
                 .Field("NumberOfImports", typeof(int))
                 .Field("ImportList", typeof(int))
                 .Field("ImportEntrySize", typeof(int))
-                .Field("FamilyID", typeof(int), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
-                .Field("ImageID", typeof(int), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
+                .Field("FamilyID", typeof(byte), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
+                .Field("ImageID", typeof(byte), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
                 .Field("ImageVersion", typeof(int))
                 .Field("SecurityVersion", typeof(int))
                 .Field("EnclaveSize", typeof(long), pointer: true)
@@ -490,7 +504,8 @@ namespace PESpy.Tests
                 .Field("MatchType", typeof(IMAGE_ENCLAVE_IMPORT_MATCH), serializationType: typeof(uint))
                 .Field("MinimumSecurityVersion", typeof(int))
                 .Field("UniqueOrAuthorID", typeof(byte), numElems: "IMAGE_ENCLAVE_LONG_ID_LENGTH")
-                .Field("FamilyID", typeof(int), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
+                .Field("FamilyID", typeof(byte), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
+                .Field("ImageID", typeof(byte), numElems: "IMAGE_ENCLAVE_SHORT_ID_LENGTH")
                 .Field("ImportName", typeof(int))
                 .Field("Reserved", typeof(int));
 
@@ -522,6 +537,71 @@ namespace PESpy.Tests
                 .Field("Reserved", typeof(int));
 
             #endregion
+
+            c.Struct("ImageLoadConfigDirectory")
+                .Field("Size", typeof(int)) //0
+            #region Default
+                .Field("TimeDateStamp", typeof(uint), lengthCondition: "Size") //1
+                .Field("MajorVersion", typeof(ushort), lengthCondition: "Size") //2
+                .Field("MinorVersion", typeof(ushort), lengthCondition: "Size") //3
+                .Field("GlobalFlagsClear", typeof(int), lengthCondition: "Size") //4
+                .Field("GlobalFlagsSet", typeof(int), lengthCondition: "Size") //5
+                .Field("CriticalSectionDefaultTimeout", typeof(int), lengthCondition: "Size") //6
+                .Field("DeCommitFreeBlockThreshold", typeof(long), pointer: true, lengthCondition: "Size") //7
+                .Field("DeCommitTotalFreeThreshold", typeof(long), pointer: true, lengthCondition: "Size") //8
+                .Field("LockPrefixTable", typeof(long), pointer: true, lengthCondition: "Size") //9
+                .Field("MaximumAllocationSize", typeof(long), pointer: true, lengthCondition: "Size") //10
+                .Field("VirtualMemoryThreshold", typeof(long), pointer: true, lengthCondition: "Size") //11
+
+                //todo: need special handling for these two; theyre back to front in x86 vs x64
+                .Field("ProcessAffinityMask", typeof(long), pointer: true, lengthCondition: "Size") //12
+                .Field("ProcessHeapFlags", typeof(int), lengthCondition: "Size") //13
+
+                .Field("CSDVersion", typeof(ushort), lengthCondition: "Size") //14
+                .Field("DependentLoadFlags", typeof(ushort), lengthCondition: "Size") //15
+                .Field("EditList", typeof(long), pointer: true, lengthCondition: "Size") //16
+                .Field("SecurityCookie", typeof(long), pointer: true, lengthCondition: "Size") //17
+                .Field("SEHandlerTable", typeof(long), pointer: true, lengthCondition: "Size") //18
+                .Field("SEHandlerCount", typeof(long), pointer: true, lengthCondition: "Size") //19
+            #endregion
+            #region Windows SDK 8.1+
+                .Field("GuardCFCheckFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //20
+                .Field("GuardCFDispatchFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //21
+                .Field("GuardCFFunctionTable", typeof(long), pointer: true, lengthCondition: "Size") //22
+                .Field("GuardCFFunctionCount", typeof(long), pointer: true, lengthCondition: "Size") //23
+                .Field("GuardFlags", typeof(IMAGE_GUARD), serializationType: typeof(uint), lengthCondition: "Size") //24
+            #endregion
+            #region #region Windows SDK 10.0.10586.0+
+                .Field("CodeIntegrity", typeof(ImageLoadConfigCodeIntegrity), lengthCondition: "Size") //25
+                .Field("GuardAddressTakenIatEntryTable", typeof(long), pointer: true, lengthCondition: "Size") //26
+                .Field("GuardAddressTakenIatEntryCount", typeof(long), pointer: true, lengthCondition: "Size") //27
+                .Field("GuardLongJumpTargetTable", typeof(long), pointer: true, lengthCondition: "Size") //28
+                .Field("GuardLongJumpTargetCount", typeof(long), pointer: true, lengthCondition: "Size") //29
+                .Field("DynamicValueRelocTable", typeof(long), pointer: true, lengthCondition: "Size") //30
+                .Field("CHPEMetadataPointer", typeof(long), pointer: true, lengthCondition: "Size") //31
+            #endregion
+            #region Windows SDK 10.0.15063.468+
+                .Field("GuardRFFailureRoutine", typeof(long), pointer: true, lengthCondition: "Size") //32
+                .Field("GuardRFFailureRoutineFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //33
+                .Field("DynamicValueRelocTableOffset", typeof(int), lengthCondition: "Size") //34
+                .Field("DynamicValueRelocTableSection", typeof(ushort), lengthCondition: "Size") //35
+                .Field("Reserved2", typeof(ushort), lengthCondition: "Size") //36
+                .Field("GuardRFVerifyStackPointerFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //37
+                .Field("HotPatchTableOffset", typeof(int), lengthCondition: "Size") //38
+                .Field("Reserved3", typeof(int), lengthCondition: "Size") //39
+                .Field("EnclaveConfigurationPointer", typeof(long), pointer: true, lengthCondition: "Size") //40
+                .Field("VolatileMetadataPointer", typeof(long), pointer: true, lengthCondition: "Size") //41
+                .Field("GuardEHContinuationTable", typeof(long), pointer: true, lengthCondition: "Size") //42
+                .Field("GuardEHContinuationCount", typeof(long), pointer: true, lengthCondition: "Size") //43
+                .Field("GuardXFGCheckFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //44
+                .Field("GuardXFGDispatchFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //45
+                .Field("GuardXFGTableDispatchFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size") //46
+                .Field("CastGuardOsDeterminedFailureMode", typeof(long), pointer: true, lengthCondition: "Size") //47
+            #endregion
+            #region Windows SDK 10.0.22621+
+                .Field("GuardMemcpyFunctionPointer", typeof(long), pointer: true, lengthCondition: "Size"); //48
+            #endregion
+
 
             //10. LoadConfig\ImageLoadConfigDirectory.cs
 

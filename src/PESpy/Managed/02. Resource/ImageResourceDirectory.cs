@@ -98,7 +98,36 @@ namespace PESpy
         public ushort NumberOfIdEntries { get; init; }
 #endif
 
+#if PEFAST
+        private ImageResourceDirectoryEntry[] entries;
+
+        public ImageResourceDirectoryEntry[] Entries
+        {
+            get
+            {
+                if (entries == null)
+                {
+                    var totalEntries = NumberOfNamedEntries + NumberOfIdEntries;
+
+                    if (totalEntries > 0)
+                    {
+                        var results = new ImageResourceDirectoryEntry[totalEntries];
+
+                        for (var i = 0; i < totalEntries; i++)
+                            results[i] = new ImageResourceDirectoryEntry(chunk.Slice(FixedStructSize + (i * ImageResourceDirectoryEntry.StructSize)), rootRVA, parent);
+
+                        entries = results;
+                    }
+                    else
+                        entries = Array.Empty<ImageResourceDirectoryEntry>();
+                }
+
+                return entries;
+            }
+        }
+#else
         public ImageResourceDirectoryEntry[] Entries { get; }
+#endif
 
 #if PEFAST
         public RawOffset Offset => chunk.AbsoluteOffset;
@@ -106,7 +135,7 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
-        internal const int StructSize =
+        internal const int FixedStructSize =
             sizeof(uint) + //Characteristics
             sizeof(uint) + //TimeDateStamp
             sizeof(ushort) + //MajorVersion
@@ -116,17 +145,27 @@ namespace PESpy
 
 #if PEFAST
         private readonly MemoryChunk chunk;
+        private readonly int rootRVA;
+        private readonly ImageResourceDirectoryEntry? parent;
 
-        internal ImageResourceDirectory(in MemoryChunk chunk)
+        internal ImageResourceDirectory(in MemoryChunk chunk, int rootRVA, ImageResourceDirectoryEntry? parent)
         {
             this.chunk = chunk;
+            this.rootRVA = rootRVA;
+            this.parent = parent;
+            
+            entries = null!;
+
+#if STRESS_TEST
+            _ = Entries;
+#endif
         }
 #else
         internal ImageResourceDirectory(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
         {
             Offset = (RawOffset) reader.Position;
 
-            reader.FillBuffer(StructSize);
+            reader.FillBuffer(FixedStructSize);
 
             Characteristics = reader.ReadUInt32();
             TimeDateStamp = reader.ReadUInt32();

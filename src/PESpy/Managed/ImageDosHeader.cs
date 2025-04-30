@@ -18,7 +18,7 @@ namespace PESpy
         /// Magic number
         /// </summary>
 #if PEFAST
-        public short Magic => chunk.PeekInt16(0);
+        public ushort Magic => chunk.PeekUInt16(0);
 #else
         public ushort Magic { get; init; }
 #endif
@@ -218,6 +218,14 @@ namespace PESpy
         internal ImageDosHeader(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+
+            if (Magic != IMAGE_DOS_SIGNATURE)
+            {
+                if (Magic != 0 || BytesOnLastPageOfFile != -1)
+                    throw new BadImageFormatException("Don't know how to handle COFF file.");
+
+                throw new BadImageFormatException("Unknown file format.");
+            }
         }
 #else
         internal ImageDosHeader(IFileReader reader)

@@ -3,18 +3,20 @@ using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
-    internal class RemoteMemoryBlockProvider : IMemoryBlockProvider
+    internal class RemoteMemoryBlockProvider : IFileMemoryBlockProvider
     {
         private IMemoryReader reader;
         private long baseAddress;
 
-        public PEFile PEFile { get; }
+        public PEFile File { get; }
+
+        IFile IFileMemoryBlockProvider.File => File;
 
         public RemoteMemoryBlockProvider(IMemoryReader reader, long baseAddress, PEFile peFile)
         {
             this.reader = reader;
             this.baseAddress = baseAddress;
-            PEFile = peFile;
+            File = peFile;
         }
 
         public MemoryBlock CreateBlock(int rva, int size) =>

@@ -26,8 +26,8 @@ namespace PESpy.View
             Size = size;
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitOverlay(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitOverlay(this);
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitOverlay(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitOverlay(this);
     }
 }

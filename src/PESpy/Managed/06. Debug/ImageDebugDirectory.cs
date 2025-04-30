@@ -103,9 +103,7 @@ namespace PESpy
             {
                 if (data == null)
                 {
-                    //ImageDebugDirectory stores both AddressOfRawData and PointerToRawData. This ultimately doesn't help us however, as we still need to know
-                    //which MemoryBlock should own the corresponding memory
-                    if (chunk.PEFile().TryGetValueChunkFromSection(AddressOfRawData, out var valueChunk))
+                    if (TryGetValueChunk(out var valueChunk))
                     {
                         switch (Type)
                         {
@@ -117,8 +115,7 @@ namespace PESpy
 
                             case ImageDebugType.Coff:
                             {
-                                //data = new ImageCoffSymbolsHeader(valueChunk);
-                                throw new NotImplementedException();
+                                data = new ImageCoffSymbolsHeader(valueChunk);
                                 break;
                             }
 
@@ -128,21 +125,19 @@ namespace PESpy
 
                             case ImageDebugType.FPO:
                             {
-                                //var numEntries = SizeOfData / FpoData.StructSize;
+                                var numEntries = SizeOfData / FpoData.StructSize;
 
-                                //var entries = new FpoData[numEntries];
+                                var entries = new FpoData[numEntries];
 
-                                //for (var i = 0; i < numEntries; i++)
-                                //    entries[i] = new FpoData(valueChunk.Slice(i * FpoData.StructSize));
+                                for (var i = 0; i < numEntries; i++)
+                                    entries[i] = new FpoData(valueChunk.Slice(i * FpoData.StructSize));
 
-                                //data = entries;
-                                throw new NotImplementedException();
+                                data = entries;
                                 break;
                             }
 
                             case ImageDebugType.Misc:
-                                //data = new ImageDebugMisc(valueChunk);
-                                throw new NotImplementedException();
+                                data = new ImageDebugMisc(valueChunk);
                                 break;
 
                             case ImageDebugType.Exception:
@@ -150,13 +145,12 @@ namespace PESpy
 
                             case ImageDebugType.Fixup:
                             {
-                                //var entries = new XFixupData[SizeOfData / XFixupData.StructSize];
+                                var entries = new XFixupData[SizeOfData / XFixupData.StructSize];
 
-                                //for (var i = 0; i < entries.Length; i++)
-                                //    entries[i] = new XFixupData(valueChunk.Slice(i * XFixupData.StructSize));
+                                for (var i = 0; i < entries.Length; i++)
+                                    entries[i] = new XFixupData(valueChunk.Slice(i * XFixupData.StructSize));
 
-                                //data = entries;
-                                throw new NotImplementedException();
+                                data = entries;
                                 break;
                             }
 
@@ -179,14 +173,12 @@ namespace PESpy
                                 goto default;
 
                             case ImageDebugType.VCFeature:
-                                //data = new VCFeature(valueChunk);
-                                throw new NotImplementedException();
+                                data = new VCFeature(valueChunk);
                                 break;
 
                             case ImageDebugType.Pogo:
                                 //Are they maybe called IMAGE_POGO_BLOCK and IMAGE_POGO_INFO? Need more citations
-                                //data = ReadPogo(valueChunk, SizeOfData);
-                                throw new NotImplementedException();
+                                data = ReadPogo(valueChunk, SizeOfData);
                                 break;
 
                             case ImageDebugType.ILTCG:
@@ -204,36 +196,32 @@ namespace PESpy
                                 //dotnet/runtime says that this directory must be empty, but that's not true, it can sometimes have a hash.
                                 //it can also sometimes be empty as well
                                 if (SizeOfData != 0)
-                                    //data = new Reproducible(valueChunk);
-                                    throw new NotImplementedException();
+                                    data = new Reproducible(valueChunk);
                                 else
                                     data = default;
                                 break;
 
                             case ImageDebugType.EmbeddedPortablePdb:
-                                //data = new EmbeddedPortablePdb(valueChunk, SizeOfData);
-                                throw new NotImplementedException();
+                                data = new EmbeddedPortablePdb(valueChunk, SizeOfData);
                                 break;
 
                             case ImageDebugType.SPGO:
                                 goto default;
 
                             case ImageDebugType.PdbChecksum:
-                                //data = new PdbChecksum(valueChunk, SizeOfData);
-                                throw new NotImplementedException();
+                                data = new PdbChecksum(valueChunk, SizeOfData);
                                 break;
 
                             case ImageDebugType.ExDllCharacteristics:
-                                //if (SizeOfData == 4)
-                                //{
-                                //    var value = (ImageDllCharacteristicsEx) reader.ReadInt32();
-                                //    data = new RawValue<ImageDllCharacteristicsEx>((RawOffset) offset, value);
-                                //}
-                                //else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
-                                //    data = new ByteBlob(reader, SizeOfData);
-                                //else
-                                //    data = default;
-                                throw new NotImplementedException();
+                                if (SizeOfData == 4)
+                                {
+                                    var value = (ImageDllCharacteristicsEx) valueChunk.PeekInt32(0);
+                                    data = new RawValue<ImageDllCharacteristicsEx>((RawOffset) valueChunk.AbsoluteOffset, value);
+                                }
+                                else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
+                                    data = new ByteBlob(valueChunk, SizeOfData);
+                                else
+                                    data = default;
                                 break;
 
                             case ImageDebugType.R2RPerfMap:
@@ -243,8 +231,7 @@ namespace PESpy
 #endif
                                 //Defensively check for 0 length
                                 if (SizeOfData > 0)
-                                    //data = new ByteBlob(reader, SizeOfData);
-                                    throw new NotImplementedException();
+                                    data = new ByteBlob(valueChunk, SizeOfData);
                                 else
                                     data = default;
                                 break;
@@ -253,6 +240,36 @@ namespace PESpy
                 }
 
                 return data;
+            }
+        }
+
+        private bool TryGetValueChunk(out MemoryChunk valueChunk)
+        {
+            if (chunk.block is GlobalMemoryBlock b)
+            {
+                //It's a DBG file
+                if (PointerToRawData != 0)
+                {
+                    valueChunk = new MemoryChunk(b, PointerToRawData);
+                    return true;
+                }
+
+                valueChunk = default;
+                return false;
+            }
+
+            //ImageDebugDirectory stores both AddressOfRawData and PointerToRawData. This ultimately doesn't help us however, as we still need to know
+            //which MemoryBlock should own the corresponding memory
+            var peFile = chunk.PEFile();
+
+            //We can't just use AddressOfRawData, because in an unloaded image that might be 0
+            if (peFile.IsLoadedImage)
+            {
+                return peFile.TryGetValueChunkFromSection(AddressOfRawData, out valueChunk);
+            }
+            else
+            {
+                return peFile.TryGetValueChunkFromPhysicalOffset(PointerToRawData, out valueChunk);
             }
         }
 #else
@@ -281,6 +298,10 @@ namespace PESpy
         {
             this.chunk = chunk;
             data = default;
+
+#if STRESS_TEST
+            _ = Data;
+#endif
         }
 #else
         internal ImageDebugDirectory(IFileReader reader, PEFile peFile)
@@ -474,37 +495,34 @@ namespace PESpy
         #region Data
 
 #if PEFAST
-        private static IValue ReadCodeView(in MemoryChunk chunk, int sizeOfData)
+        private static IValue? ReadCodeView(in MemoryChunk chunk, int sizeOfData)
         {
-            //var signature = chunk.PeekInt32(0);
+            switch ((CodeViewSig) chunk.PeekUInt32(0))
+            {
+                case CodeViewSig.RSDS:
+                    return new RSDSI(chunk);
 
-            //switch (signature)
-            //{
-            //    case RSDSI.RSDSSignature:
-            //        return new RSDSI(chunk);
+                case CodeViewSig.NB10:
+                    return new NB10I(chunk);
 
-            //    case NB10I.NB10Signature:
-            //        return new NB10I(chunk);
+                default:
+                    Debug.Assert(false, $"Don't know how to read CodeView signature '{chunk.PeekInt32(0):X}'");
 
-            //    default:
-            //        Debug.Assert(false, $"Don't know how to read CodeView signature '{signature:X}'");
-
-            //        //Unsupported value; read as a byte blob
-            //        return new ByteBlob(chunk, sizeOfData);
-            //}
-            throw new NotImplementedException();
+                    //Unsupported value; read as a byte blob
+                    return new ByteBlob(chunk, sizeOfData);
+            }
         }
 #else
         private static IValue ReadCodeView(IFileReader reader, int sizeOfData)
         {
-            var signature = reader.ReadInt32();
+            var signature = (CodeViewSig) reader.ReadUInt32();
 
             switch (signature)
             {
-                case RSDSI.RSDSSignature:
+                case CodeViewSig.RSDS:
                     return new RSDSI(reader, signature);
 
-                case NB10I.NB10Signature:
+                case CodeViewSig.NB10:
                     return new NB10I(reader, signature);
 
                 default:
@@ -516,18 +534,41 @@ namespace PESpy
         }
 #endif
 
-        private static IValue ReadPogo(IFileReader reader, int sizeOfData)
+#if PEFAST
+        private static IValue ReadPogo(in MemoryChunk chunk, int sizeOfData)
         {
-            var signature = reader.ReadInt32();
+            var signature = (PogoSignatureKind) chunk.PeekUInt32(0);
 
             switch (signature)
             {
-                case PogoData.ZeroSignature:
-                case PogoData.LCTGSignature:
-                case PogoData.PGISignature:
-                case PogoData.PGOSignature:
-                case PogoData.PGUSignature:
-                case PogoData.SPGOSignature:
+                case PogoSignatureKind.Zero:
+                case PogoSignatureKind.LCTG:
+                case PogoSignatureKind.PGI:
+                case PogoSignatureKind.PGO:
+                case PogoSignatureKind.PGU:
+                case PogoSignatureKind.SPGO:
+                    return new PogoData(chunk, sizeOfData);
+
+                default:
+                    Debug.Assert(false, $"Don't know how to read Pogo signature '{signature:X}'");
+
+                    //Unsupported value; read as a byte blob
+                    return new ByteBlob(chunk, sizeOfData);
+            }
+        }
+#else
+        private static IValue ReadPogo(IFileReader reader, int sizeOfData)
+        {
+            var signature = (PogoSignatureKind) reader.ReadInt32();
+
+            switch (signature)
+            {
+                case PogoSignatureKind.Zero:
+                case PogoSignatureKind.LCTG:
+                case PogoSignatureKind.PGI:
+                case PogoSignatureKind.PGO:
+                case PogoSignatureKind.PGU:
+                case PogoSignatureKind.SPGO:
                     return new PogoData(reader, signature, sizeOfData);
 
                 default:
@@ -537,6 +578,7 @@ namespace PESpy
                     return new ByteBlob(reader, sizeOfData);
             }
         }
+#endif
 
         #endregion
 

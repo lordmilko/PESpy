@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents the IMAGE_AUX_SYMBOL_TYPE enumeration.
     /// </summary>
-    public enum ImageAuxSymbolType
+    public enum ImageAuxSymbolType : byte
     {
         /// <summary>
         /// IMAGE_AUX_SYMBOL_TYPE_TOKEN_DEF

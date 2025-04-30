@@ -1,27 +1,77 @@
-﻿using PESpy.Native;
+﻿using System;
+using PESpy.Native;
 using PESpy.View;
 using static PESpy.ImageLoadConfigDirectory;
 
 namespace PESpy
 {
     //IMAGE_ENCLAVE_IMPORT
-    public readonly struct ImageEnclaveImport : IValue, IViewable
+    public struct ImageEnclaveImport : IValue, IViewable
     {
         private const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
 
+#if PEFAST
+        public IMAGE_ENCLAVE_IMPORT_MATCH MatchType => (IMAGE_ENCLAVE_IMPORT_MATCH) chunk.PeekUInt32(0);
+#else
         public IMAGE_ENCLAVE_IMPORT_MATCH MatchType { get; }
+#endif
 
+#if PEFAST
+        public int MinimumSecurityVersion => chunk.PeekInt32(4);
+#else
         public int MinimumSecurityVersion { get; }
+#endif
 
+#if PEFAST
+        public Span<byte> UniqueOrAuthorID => chunk.PeekSpan<byte>(8, IMAGE_ENCLAVE_LONG_ID_LENGTH);
+#else
         public byte[] UniqueOrAuthorID { get; }
+#endif
 
+#if PEFAST
+        public Span<byte> FamilyID => chunk.PeekSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+#else
         public byte[] FamilyID { get; }
+#endif
 
+#if PEFAST
+        public Span<byte> ImageID => chunk.PeekSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+#else
         public byte[] ImageID { get; }
+#endif
 
+#if PEFAST
+        private RVA<AnsiString>? importName;
+
+        public RVA<AnsiString> ImportName
+        {
+            get
+            {
+                if (importName == null)
+                {
+                    var rva = chunk.PeekInt32(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+
+                    if (rva != ushort.MaxValue && chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        return new RVA<AnsiString>(rva, valueChunk.AbsoluteOffset, str);
+                    }
+                    else
+                        importName = new RVA<AnsiString>(rva);
+                }
+
+                return importName.Value;
+            }
+        }
+#else
         public RVA<string> ImportName { get; }
+#endif
 
+#if PEFAST
+        public int Reserved => chunk.PeekInt32(12 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+#else
         public int Reserved { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //MatchType
@@ -32,8 +82,21 @@ namespace PESpy
             sizeof(int) + //ImportName
             sizeof(int); //Reserved
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageEnclaveImport(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            importName = default;
+        }
+#else
         internal ImageEnclaveImport(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -61,6 +124,7 @@ namespace PESpy
             else
                 ImportName = new RVA<string>(importName);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

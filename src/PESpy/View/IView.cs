@@ -35,9 +35,9 @@ namespace PESpy.View
         /// </summary>
         ViewKind Kind { get; }
 
-        T Accept<T>(PEViewVisitor<T> visitor);
+        T Accept<T>(ViewVisitor<T> visitor);
 
-        void Accept(PEViewVisitor visitor);
+        void Accept(ViewVisitor visitor);
     }
 
     internal interface ISplittableView : IView
@@ -51,9 +51,9 @@ namespace PESpy.View
 
     public interface ISplitView
     {
-        public ISplitView Previous { get; }
+        public ISplitView? Previous { get; }
 
-        public ISplitView Next { get; }
+        public ISplitView? Next { get; }
     }
 
     public interface IViewDisassembler

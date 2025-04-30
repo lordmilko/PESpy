@@ -11,16 +11,33 @@ namespace PESpy
         public bool IndirectCall => ((flags >> 12) & 0x1) != 0;
         public int IATIndex => (int) (flags >> 13) & 0x7FFFF;
 
-        public int Offset { get; }
-
+#if PEFAST
+        private uint flags => chunk.PeekUInt32(0);
+#else
         private readonly uint flags;
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
+        public int Offset { get; }
+#endif
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageImportControlTransferDynamicRelocation(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal ImageImportControlTransferDynamicRelocation(IFileReader reader)
         {
             Offset = (int) reader.Position;
 
             flags = reader.ReadUInt32();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

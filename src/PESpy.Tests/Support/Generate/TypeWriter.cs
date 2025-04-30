@@ -105,10 +105,10 @@ namespace PESpy.Tests
                         return "AnsiNullTerminatedString";
 
                     case StringType.Utf8NullTerminated:
-                        return "Utf8NullTerminated";
+                        return "Utf8NullTerminatedString";
 
                     case StringType.Utf16NullTerminated:
-                        return "Utf16NullTerminated";
+                        return "Utf16NullTerminatedString";
 
                     case StringType.UnicodeFixedLength:
                         return "UnicodeFixedLength";
@@ -166,7 +166,9 @@ namespace PESpy.Tests
                 }
                 else
                 {
-                    if (peekName != null)
+                    if (field.LengthCondition != null)
+                        Write($"chunk.TryPeek{peekName}({GetOffset()}, {field.LengthCondition}");
+                    else if (peekName != null)
                         Write($"chunk.Peek{peekName}({GetOffset()}");
                     else
                         Write($"new {field.TypeName}(chunk.Slice({GetOffset()})");

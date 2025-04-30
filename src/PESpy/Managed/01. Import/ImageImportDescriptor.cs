@@ -30,10 +30,15 @@ namespace PESpy
             {
                 if (originalFirstThunk == null)
                 {
-                    //chunk.PeekInt32(0);
+                    var rva = chunk.PeekInt32(0);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                        originalFirstThunk = ParseThunks(rva, valueChunk, false);
+                    else
+                        originalFirstThunk = new RVA<ImageThunkData[]>(rva);
                 }
 
-                throw new NotImplementedException();
+                return originalFirstThunk.Value;
             }
         }
 #else
@@ -62,12 +67,26 @@ namespace PESpy
         /// The address of an ASCII string that contains the name of the DLL. This address is relative to the image base.
         /// </summary>
 #if PEFAST
+        private RVA<AnsiString>? name;
+
         public RVA<AnsiString> Name
         {
             get
             {
-                //chunk.PeekInt32(12);
-                throw new NotImplementedException();
+                if (name == null)
+                {
+                    var rva = chunk.PeekInt32(12);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        name = new RVA<AnsiString>(rva, valueChunk.AbsoluteOffset, str);
+                    }
+                    else
+                        name = new RVA<AnsiString>(rva);
+                }
+
+                return name.Value;
             }
         }
 #else
@@ -84,8 +103,17 @@ namespace PESpy
         {
             get
             {
-                //chunk.PeekInt32(16);
-                throw new NotImplementedException();
+                if (firstThunk == null)
+                {
+                    var rva = chunk.PeekInt32(16);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                        firstThunk = ParseThunks(rva, valueChunk, true);
+                    else
+                        firstThunk = new RVA<ImageThunkData[]>(rva);
+                }
+
+                return firstThunk.Value;
             }
         }
 #else
@@ -129,6 +157,12 @@ namespace PESpy
         internal ImageImportDescriptor(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+
+#if STRESS_TEST
+            _ = OriginalFirstThunk;
+            _ = Name;
+            _ = FirstThunk;
+#endif
         }
 #else
         internal ImageImportDescriptor(IFileReader reader, PEFile peFile, ImageThunkData[]? importAddressTable)
@@ -211,6 +245,27 @@ namespace PESpy
             }
 
             return new RVA<ImageThunkData[]>(rva, offset, results.ToArray());
+        }
+#endif
+#if PEFAST
+        private RVA<ImageThunkData[]> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
+        {
+            var results = new List<ImageThunkData>();
+
+            var size = valueChunk.PointerSize;
+
+            ImageThunkData thunk;
+
+            var read = 0;
+
+            do
+            {
+                thunk = new ImageThunkData(valueChunk.Slice(read), isIAT);
+                results.Add(thunk);
+                read += size;
+            } while (thunk.Value != 0);
+
+            return new RVA<ImageThunkData[]>(rva, valueChunk.AbsoluteOffset, results.ToArray());
         }
 #endif
 

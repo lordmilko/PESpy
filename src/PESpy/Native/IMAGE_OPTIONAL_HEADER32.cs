@@ -27,7 +27,7 @@ namespace PESpy.Native
         public int Win32VersionValue;
         public int SizeOfImage;
         public int SizeOfHeaders;
-        public int CheckSum;
+        public uint CheckSum;
         public ImageSubsystem Subsystem;
         public ImageDllCharacteristics DllCharacteristics;
         public int SizeOfStackReserve;

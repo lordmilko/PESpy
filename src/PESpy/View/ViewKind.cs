@@ -8,7 +8,7 @@ namespace PESpy.View
     public enum ViewKind
     {
         /// <summary>
-        /// A <see cref="PEFileView"/>.
+        /// A <see cref="FileView"/> encapsulating the views of a <see cref="PEFile"/>.
         /// </summary>
         PEFile = 1,
 
@@ -292,6 +292,7 @@ namespace PESpy.View
         RSDSI,
         FpoData,
         ImageDebugMisc,
+        ImageCoffSymbolsHeader,
         Omap,
         VCFeature,
         PogoData,
@@ -492,9 +493,12 @@ namespace PESpy.View
 
         //PDB
 
+        PDBFile,
+
         Page,
 
         //MSF
+        MsfHdr,
         BigMsfHdr,
         SI_PERSIST,
         StreamTable,
@@ -504,11 +508,20 @@ namespace PESpy.View
         PDBStream70,
         StreamNameTable,
 
+        //snTpi
+        Hdr,
+        Hdr_16t,
+        TpiHash,
+        OffCb,
+
         //snDbi
+        DbiHdr,
         NewDbiHdr,
+        Modi,
         Modi60Persist,
         ECInfo,
         SC,
+        SectionContribsV40,
         SectionContribsV60,
         OMFSegMap,
         OMFSegMapDesc,
@@ -516,5 +529,34 @@ namespace PESpy.View
         NameTable,
         VHdr,
         DbgDataHdr,
+        SymType,
+        TypType,
+
+        CvDebugSSubsectionHeader,
+        CvFileCheckSum,
+        RvaAndFrameData,
+        FrameData,
+        CvDebugSLinesHeader,
+        CvDebugSLinesFileBlockHeader,
+        CvLine,
+
+        //DBG
+
+        DBGFile,
+        ImageSeparateDebugHeader,
+
+        //OBJ
+
+        OBJFile,
+
+        //LIB
+
+        LIBFile,
+
+        ImageArchiveMemberHeader,
+        FirstLinkerMember,
+        LongImportLibraryMember,
+        ShortImportLibraryMember,
+        ImportObjectHeader
     }
 }

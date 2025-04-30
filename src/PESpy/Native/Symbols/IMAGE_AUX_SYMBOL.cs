@@ -66,7 +66,7 @@ namespace PESpy.Native
             public int Length;                         // section length
             public short NumberOfRelocations;            // number of relocation entries
             public short NumberOfLinenumbers;            // number of line numbers
-            public int CheckSum;                       // checksum for communal
+            public uint CheckSum;                       // checksum for communal
             public short Number;                         // section number to associate with
             public byte Selection;                      // communal selection type
             public byte bReserved;

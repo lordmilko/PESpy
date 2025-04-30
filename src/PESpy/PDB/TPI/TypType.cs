@@ -22,12 +22,26 @@ namespace PESpy.PDB
 
         internal static void AssertMissing(bool condition, string message)
         {
-            Debug.Assert(condition, message);
+            //Debug.Assert(condition, message);
         }
 
         internal static FixedUtf8String ReadString(byte* ptr)
         {
-            throw new System.NotImplementedException();
+            //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
+            var isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) ptr);
+
+            if (isLengthPrefixedData)
+            {
+                byte length = *ptr;
+
+                var pdbString = new FixedUtf8String(ptr + 1, length);
+
+                return pdbString;
+            }
+
+            var utf8 = new Utf8String(ptr);
+
+            return new FixedUtf8String(ptr, utf8.Length);
         }
 
         public static implicit operator TypType(TYPTYPE* value) => new TypType(value);

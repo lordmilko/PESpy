@@ -4,6 +4,8 @@ namespace PESpy.PDB
 {
     public readonly struct ECInfo : IValue, IViewable
     {
+        //These name indices point into the Edit and Continue Name Table info included in the DBI
+
         public int niSrcFile => chunk.PeekInt32(0);
 
         public int niPdbFile => chunk.PeekInt32(4);

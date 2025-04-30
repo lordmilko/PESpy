@@ -80,7 +80,7 @@ namespace PESpy.PDB
                 bitField.WriteField("fAbs", flags.fAbs, 1);
                 bitField.WriteField("res2", flags.res2, 2);
                 bitField.WriteField("fGroup", flags.fRead, 1);
-                bitField.WriteField("res3", flags.fRead, 3);
+                bitField.WriteField("res3", flags.res3, 3);
             }
 
             s.WriteField(nameof(ovl), ovl);

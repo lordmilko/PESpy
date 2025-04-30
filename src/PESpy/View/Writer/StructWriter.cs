@@ -113,6 +113,14 @@ namespace PESpy.View
                 WriteFieldInternal(name, value.ToArray(), value.Length * 2);
             }
 
+            public void WriteField(string name, Span<ushort> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value.ToArray(), value.Length * 2);
+            }
+
             public void WriteField(string name, ushort[] value)
             {
                 if (value.Length == 0)
@@ -255,12 +263,27 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
+            public void WriteAnsiFixedLengthField(string name, FixedAnsiString value)
+            {
+                WriteFieldInternal(name, value, value.Length);
+            }
+
             public void WriteUTF8NullTerminatedField(string name, string value)
             {
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
+            public void WriteUTF8NullTerminatedField(string name, Utf8String value)
+            {
+                WriteFieldInternal(name, value, value.Length + 1);
+            }
+
             public void WriteUTF16NullTerminatedField(string name, string value)
+            {
+                WriteFieldInternal(name, value, (value.Length + 1) * 2);
+            }
+
+            public void WriteUTF16NullTerminatedField(string name, Utf16String value)
             {
                 WriteFieldInternal(name, value, (value.Length + 1) * 2);
             }
@@ -411,8 +434,58 @@ namespace PESpy.View
             public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)
             {
                 var size = value.Value.Length + 1;
+                Debug.Assert(currentOffset == value.Offset);
                 fields.Add(new ValueView<AnsiString>(value.Offset, value.Value, size, ViewKind.Value));
                 currentOffset += size;
+            }
+
+            public void WriteInlineAnsiNullTerminated(AnsiString value)
+            {
+                var size = value.Length + 1;
+                fields.Add(new ValueView<AnsiString>(currentOffset, value, size, ViewKind.Value));
+                currentOffset += size;
+            }
+
+            public void WriteInlineFixedAnsiString(FixedAnsiString value)
+            {
+                var size = value.Length;
+                fields.Add(new ValueView<FixedAnsiString>(currentOffset, value, size, ViewKind.Value));
+                currentOffset += size;
+            }
+
+            //We're pretending we're UTF8 because a newer version uses UTF8 but we're actually ANSI
+            public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value)
+            {
+                Debug.Assert(currentOffset == value.Offset); //We only pass the inner string to WriteInlineFixedAnsiString, so our offset bookkeeping better line up!
+                WriteValue(value.Offset, (byte) value.Value.Length, 1, ViewKind.Value);
+                WriteInlineFixedAnsiString(new FixedAnsiString(value.Value.Value, value.Value.Length)); //+1 for the prefixed length
+            }
+
+            public void WriteInlineAnsiNullTerminated(RawValue<AnsiString>[] value)
+            {
+                foreach (var item in value)
+                    WriteInlineAnsiNullTerminated(item);
+            }
+
+            public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value)
+            {
+                var size = value.Value.Length + 1;
+                fields.Add(new ValueView<Utf8String>(value.Offset, value.Value, size, ViewKind.Value));
+                currentOffset += size;
+            }
+
+            //For when it's meant to be null terminated but we've had to convert it to fixed e.g. because older versions require fixed so we're pretending we're fixed too
+            public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value)
+            {
+                var size = value.Value.Length + 1;
+                fields.Add(new ValueView<Utf8String>(value.Offset, new Utf8String(value.Value.Value), size, ViewKind.Value));
+                currentOffset += size;
+            }
+
+            public void WriteInlineUtf8NullTerminated(RawValue<Utf8String>[] value)
+            {
+                foreach (var item in value)
+                    WriteInlineUtf8NullTerminated(item);
             }
 
             public BitFieldWriter WriteBitFields<TSize>()
@@ -449,6 +522,29 @@ namespace PESpy.View
 
                 fields.Add(new FieldView<T>(currentOffset, name, value, size));
                 currentOffset += size;
+            }
+
+            public void WriteValue<T>(int offset, in T value, int size, ViewKind kind)
+            {
+                fields.Add(new ValueView<T>(offset, value, size, kind));
+                currentOffset += size;
+            }
+
+            #endregion
+
+            //Should only be used for OBJ files
+            public void WriteValue(int offset, SymType[] value)
+            {
+                var written = 0;
+
+                foreach (var item in value)
+                {
+                    var totalLength = item.reclen + 2;
+                    fields.Add(new ValueView<SymType>(offset + written, item, totalLength, ViewKind.SymType));
+                    written += totalLength;
+                }
+
+                currentOffset += written;
             }
 
             public bool NeedAlignment(int target, out int required)

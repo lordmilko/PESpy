@@ -1,7 +1,9 @@
-﻿namespace PESpy.PDB
+﻿using PESpy.View;
+
+namespace PESpy.PDB
 {
     //TpiHash
-    public readonly struct TpiHash
+    public readonly struct TpiHash : IValue, IViewable
     {
         /// <summary>
         /// main hash stream
@@ -54,6 +56,19 @@
         internal TpiHash(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(TpiHash), this, ViewKind.TpiHash);
+
+            s.WriteField(nameof(sn), sn);
+            s.WriteField(nameof(snPad), snPad);
+            s.WriteField(nameof(cbHashKey), cbHashKey);
+            s.WriteField(nameof(cHashBuckets), cHashBuckets);
+            s.WriteStructField(nameof(offcbHashVals), offcbHashVals);
+            s.WriteStructField(nameof(offcbTiOff), offcbTiOff);
+            s.WriteStructField(nameof(offcbHashAdj), offcbHashAdj);
         }
     }
 }

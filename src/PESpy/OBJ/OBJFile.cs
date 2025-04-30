@@ -1,22 +1,40 @@
-﻿using System;
+﻿#if PEFAST
+using System;
 using System.IO;
 using ClrDebug;
-using PESpy.PDB;
+using PESpy.OBJ;
 using PESpy.View;
 
-namespace PESpy.OBJ
+namespace PESpy
 {
-    class OBJFile : IViewable, IDisposable
+    class OBJFile : IFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)
         {
             using var fs = File.OpenRead(path);
 
-            return new OBJFile(fs);
+            var mmf = new MemoryMappedFileHolder(fs);
+
+            try
+            {
+                return new OBJFile(fs.Name, mmf);
+            }
+            catch
+            {
+                mmf.Close();
+
+                throw;
+            }
         }
 
-        private MemoryMappedFileHolder mmf;
-        private GlobalMemoryBlock globalBlock;
+        /// <inheritdoc/>
+        public string? Name { get; private set; }
+
+        /// <inheritdoc/>
+        public string? FileName { get; private set; }
+
+        /// <inheritdoc/>
+        public FileKind Kind => FileKind.OBJ;
 
         /* When a program is compiled with /GL for link time code generation,
          * obj file begins with ANON_OBJECT_HEADER instead of IMAGE_FILE_HEADER.
@@ -31,7 +49,7 @@ namespace PESpy.OBJ
 
         private IValue[]? sectionData;
 
-        public unsafe IValue[] SectionData
+        public IValue[] SectionData
         {
             get
             {
@@ -40,6 +58,13 @@ namespace PESpy.OBJ
                     var sections = SectionHeaders;
 
                     var results = new IValue[sections.Length];
+
+                    /* https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
+                     *
+                     * .debug$S is also known as $$SYMBOLS, while .debug$T is also known as $$TYPES
+                     *
+                     * This document appears to be from the CV_SIGNATURE_C7 era because it says that a 1 goes before the symbols.
+                     * There may be multiple .debug$S sections. .debug$T does not say whether it permits having multiple sections */
 
                     for (var i = 0; i < results.Length; i++)
                     {
@@ -63,14 +88,15 @@ namespace PESpy.OBJ
                             results[i] = new RawValue<FixedUtf8String>(sectionChunk.AbsoluteOffset, str);
                         }
                         else if (section.Name == ".debug$S")
-                            results[i] = ReadSymbolsSection(sectionChunk, section.SizeOfRawData);
+                            results[i] = new OBJSymbolsTable(sectionChunk, section.SizeOfRawData);
                         else if (section.Name == ".debug$T" || section.Name == ".debug$P")
-                            results[i] = ReadTypesSection(sectionChunk, section.SizeOfRawData);
+                            results[i] = new OBJTypesTable(sectionChunk, section.SizeOfRawData);
                         else if (section.Name == ".text$mn")
                         {
                             //It's assembly code, but we can't read it ourselves
                             results[i] = new RawValue<byte[]>(sectionChunk.AbsoluteOffset, sectionChunk.PeekSpan<byte>(0, section.SizeOfRawData).ToArray());
                         }
+                        #region CxxIL
                         else if (section.Name == ".cil$db")
                         {
                             //debugDataFileReader -> phx!DebugDataReader
@@ -90,7 +116,8 @@ namespace PESpy.OBJ
                         {
                             //globalSymbolFileReader -> phx!GlobalSymbolReader.ReadHeaders
 
-                            var symbolType = (SSR) sectionChunk.PeekByte(0);
+                            AssertNotImplemented();
+                        }
                         else if (section.Name == ".cil$in")
                         {
                             //initializeFileReader -> phx!InitializerReader
@@ -106,6 +133,7 @@ namespace PESpy.OBJ
                             //localSymbolFileReader -> phx!LocalSymbolReader
                             AssertNotImplemented();
                         }
+                        #endregion
                         else
                         {
                             //Lookout for the .cil$ item that starts with "p" and add it above .cil$sy above
@@ -121,9 +149,23 @@ namespace PESpy.OBJ
             }
         }
 
-        private unsafe OBJFile(FileStream stream)
+        internal static IValue GetDataForSection()
         {
-            mmf = new MemoryMappedFileHolder(stream);
+            //Abstract the logic of getting data for a section out to this method so that OBJ files embedded in LIBs can use this logic too
+            throw new NotImplementedException();
+        }
+
+        private MemoryMappedFileHolder mmf;
+        private GlobalMemoryBlock globalBlock;
+
+        private bool disposed;
+
+        internal unsafe OBJFile(string fileName, in MemoryMappedFileHolder mmf)
+        {
+            this.mmf = mmf;
+
+            FileName = fileName;
+            Name = Path.GetFileName(fileName);
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length);
 
@@ -131,17 +173,16 @@ namespace PESpy.OBJ
             ReadObjHeaders();
         }
 
+        ~OBJFile()
+        {
+            Dispose(false);
+        }
+
         private void ReadObjHeaders()
         {
             var chunk = new MemoryChunk(globalBlock, 0);
 
             var anonHeader = new AnonObjectHeader(chunk);
-
-            int anonStructSize = 0;
-
-            if (anonHeader.Version >= 2)
-            else
-                anonStructSize = AnonObjectHeader.StructSize;
 
             /* I tried creating a test project that uses phx.dll to see how it reads the data. CxxILObjectFileReaderInterface.ProcessFile()
              * ProcessFile() enumerates all the sections it calls a C++/CLI function ProcessSection(). This function does strcmp()
@@ -165,6 +206,15 @@ namespace PESpy.OBJ
              */
             if (anonHeader.Sig1 == IMAGE_FILE_MACHINE.UNKNOWN && anonHeader.Sig2 == -1)
             {
+                int anonStructSize = 0;
+
+                if (anonHeader.Version >= 2)
+                {
+                    throw new NotImplementedException("Parsing Anon Header V2 is not implemented");
+                }
+                else
+                    anonStructSize = AnonObjectHeader.StructSize;
+
                 AnonObjectHeader = anonHeader;
                 chunk = chunk.Slice(anonStructSize);
                 FileHeader = new ImageFileHeader(chunk); //Machine type should be unknown kind 0xC13
@@ -182,21 +232,17 @@ namespace PESpy.OBJ
             SectionHeaders = sectionHeaders;
         }
 
-        private IValue ReadSymbolsSection(in MemoryChunk chunk, int length)
+        private void AssertNotImplemented()
         {
-            throw new NotImplementedException();
+            //todo
         }
 
-        private IValue ReadTypesSection(in MemoryChunk chunk, int length)
-        {
-            throw new NotImplementedException();
-        }
-        public unsafe OBJFileView GetView()
+        public unsafe FileView GetView()
         {
             var writer = new OBJViewWriter(this, new StreamFileReader(new MMFStream(mmf.Address, (int) mmf.Length), new object())); //todo: temp using reader+stream while we're still in transition
             ((IViewable) this).WriteView(writer);
 
-            return (OBJFileView) writer.Finalize();
+            return (FileView) writer.Finalize();
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -214,12 +260,30 @@ namespace PESpy.OBJ
                     writer.WriteGlobal(v);
                 else if (item is RawValue<FixedUtf8String> s)
                     writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, ViewKind.Value);
+                else if (item is RawValue<byte[]> b)
+                    continue;
                 else
+                    throw new NotImplementedException($"Don't know how to write a value of type {item.GetType().Name}");
             }
         }
 
         public void Dispose()
         {
+            Dispose(true);
+        }
+
+        protected void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+                GC.SuppressFinalize(this);
+
+            mmf.Close();
+
+            disposed = true;
         }
     }
 }
+#endif

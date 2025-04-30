@@ -217,7 +217,7 @@ namespace PESpy
                 return s;
 
             if (typeof(T).IsArray)
-                return "0x" + ListedOffset.ToString("X") + $" : (Length: {((Array) (object) Value).Length})" ;
+                return "0x" + ListedOffset.ToString("X") + $" : (Length: {((Array) (object) Value!).Length})" ;
 
             if (Value != null)
             {

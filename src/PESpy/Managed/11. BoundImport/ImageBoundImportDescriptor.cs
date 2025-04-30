@@ -11,20 +11,82 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_BOUND_IMPORT_DESCRIPTOR"/> structure.
     /// </summary>
-    public readonly struct ImageBoundImportDescriptor : IValue, IViewable
+    public struct ImageBoundImportDescriptor : IValue, IViewable
     {
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(0);
+        public ushort OffsetModuleName => chunk.PeekUInt16(4);
+        public ushort NumberOfModuleForwarderRefs => chunk.PeekUInt16(6);
+
+        private ImageBoundForwarderRef[]? refs;
+
+        public ImageBoundForwarderRef[] Refs
+        {
+            get
+            {
+                if (refs == null)
+                {
+                    //IMAGE_BOUND_FORWARDER_REF looks exactly the same as IMAGE_BOUND_IMPORT_DESCRIPTOR.
+                    //Each forwarder ref immediately follows the descriptor
+
+                    var numRefs = NumberOfModuleForwarderRefs;
+
+                    var results = new ImageBoundForwarderRef[numRefs];
+
+                    for (var i = 0; i < numRefs; i++)
+                        results[i] = new ImageBoundForwarderRef(chunk.Slice(8 + (i * ImageBoundForwarderRef.StructSize)));
+
+                    refs = results;
+                }
+
+                return refs;
+            }
+        }
+#else
         public uint TimeDateStamp { get; init; }
         public ushort OffsetModuleName { get; init; }
         public ushort NumberOfModuleForwarderRefs { get; init; }
 
         public ImageBoundForwarderRef[] Refs { get; init; }
+#endif
 
         /// <summary>
         /// Gets the name of the descriptor. This value is external to the normal <see cref="IMAGE_BOUND_IMPORT_DESCRIPTOR"/> type.
         /// </summary>
-        public RVA<string> Name { get; }
+#if PEFAST
+        private RVA<AnsiString> name;
 
+        public RVA<AnsiString> Name
+        {
+            get
+            {
+                if (name.ListedOffset == 0)
+                {
+                    var peFile = chunk.PEFile();
+
+                    var nameRVA = (RawOffset) peFile.OptionalHeader.BoundImportTableDirectory.VirtualAddress + OffsetModuleName;
+
+                    if (peFile.TryGetValueChunkFromPhysicalOffset(nameRVA, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        name = new RVA<AnsiString>((RVA) OffsetModuleName, nameRVA, str);
+                    }
+                    else
+                        name = new RVA<AnsiString>(nameRVA);
+                }
+
+                return name;
+            }
+        }
+#else
+        public RVA<string> Name { get; }
+#endif
+
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         //The number of refs is variable
         internal const int FixedStructSize =
@@ -32,6 +94,16 @@ namespace PESpy
             sizeof(ushort) + //OffsetModuleName
             sizeof(ushort); //NumberOfModuleForwarderRefs
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageBoundImportDescriptor(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            name = default;
+            refs = default;
+        }
+#else
         internal ImageBoundImportDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -67,6 +139,7 @@ namespace PESpy
 
             Refs = refs.ToArray();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

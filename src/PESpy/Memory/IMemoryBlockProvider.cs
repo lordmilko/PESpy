@@ -5,8 +5,8 @@
         MemoryBlock CreateBlock(int offsetOrRVA, int size);
     }
 
-    interface IFileMemoryBlockProvider<TFile> : IMemoryBlockProvider
+    interface IFileMemoryBlockProvider : IMemoryBlockProvider
     {
-        TFile File { get; }
+        IFile File { get; }
     }
 }

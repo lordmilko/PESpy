@@ -9,8 +9,76 @@ namespace PESpy
 {
     public partial class VsVersionInfo
     {
-        public readonly struct VarFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
+        public struct VarFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
         {
+#if PEFAST
+            public short Length => chunk.PeekInt16(0);
+
+            public short ValueLength => chunk.PeekInt16(2);
+
+            public short Type => chunk.PeekInt16(4);
+
+            public Utf16String Key => chunk.PeekUtf16NullTerminatedString(FixedStructSize);
+
+            public short Padding
+            {
+                get
+                {
+                    var currentLength = FixedStructSize + ((Key.Length + 1) * 2);
+
+                    var alignedLength = (currentLength + 3) & ~3;
+
+                    if (alignedLength == 0)
+                        return 0;
+
+                    return chunk.PeekInt16(currentLength);
+                }
+            }
+
+            private Var[]? children;
+
+            public Var[]? Children
+            {
+                get
+                {
+                    if (children == null)
+                    {
+                        var read = FixedStructSize + ((Key.Length + 1) * 2);
+
+                        var alignedRead = (read + 3) & ~3;
+
+                        var length = Length;
+
+                        if (alignedRead < length)
+                        {
+                            var results = new List<Var>();
+
+                            do
+                            {
+                                var item = new Var(chunk.Slice(alignedRead));
+                                results.Add(item);
+                                Debug.Assert(item.Length != 0);
+
+                                //On the basis that each String must be 32-bit aligned, I'm going to assume that each Var must be 32-bit aligned too
+                                alignedRead += (item.Length + 3) & ~3;
+                            } while (alignedRead < length);
+
+                            children = results.ToArray();
+                        }
+                    }
+
+                    return children;
+                }
+            }
+
+            public int Offset => chunk.AbsoluteOffset;
+
+            internal const int FixedStructSize =
+                sizeof(short) + //Length
+                sizeof(short) + //ValueLength
+                sizeof(short);  //Type
+
+#else
             public short Length { get; init; }
 
             public short ValueLength { get; init; }
@@ -24,7 +92,17 @@ namespace PESpy
             public Var[] Children { get; init; }
 
             public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+            private readonly MemoryChunk chunk;
+
+            internal VarFileInfo(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+                children = default;
+            }
+#else
             internal VarFileInfo(RawOffset offset, short length, short valueLength, short type, string key, IFileReader reader)
             {
                 Offset = offset;
@@ -60,6 +138,7 @@ namespace PESpy
 
                 Children = items.ToArray();
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {
@@ -76,13 +155,16 @@ namespace PESpy
                     s.WriteField(nameof(Padding), Padding);
                 }
 
-                for (var i = 0; i < Children.Length; i++)
+                if (Children != null)
                 {
-                    var item = Children[i];
-                    s.WriteInline(item);
+                    for (var i = 0; i < Children.Length; i++)
+                    {
+                        var item = Children[i];
+                        s.WriteInline(item);
 
-                    if (i < Children.Length - 1)
-                        s.Align(4); //todo: need to test that we'll fill in the gap with a byteblob?
+                        if (i < Children.Length - 1)
+                            s.Align(4);
+                    }
                 }
 
                 s.VerifyLength(Length);

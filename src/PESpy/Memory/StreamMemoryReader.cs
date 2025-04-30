@@ -5,16 +5,49 @@ namespace PESpy
 {
     class StreamMemoryReader : IMemoryReader
     {
+        private const int BufferSize = 4096;
+
         private Stream stream;
+        private byte[] buffer;
 
         public StreamMemoryReader(Stream stream)
         {
             this.stream = stream;
+            this.buffer = new byte[BufferSize];
         }
 
-        public void ReadVirtual(long address, IntPtr buffer, int size)
+        public unsafe void ReadVirtual(long address, IntPtr buffer, int size)
         {
-            throw new NotImplementedException();
+            stream.Seek(address, SeekOrigin.Begin);
+            
+            if (size <= this.buffer.Length)
+            {
+                //Easy: just read the data straight into the buffer
+                var read = stream.Read(this.buffer, 0, size);
+
+                var dest = new Span<byte>((byte*) buffer, read);
+                this.buffer.AsSpan(0, read).CopyTo(dest);
+            }
+            else
+            {
+                //Hard: read in chunks
+
+                var offset = 0;
+                var toRead = this.buffer.Length;
+
+                while (offset < size)
+                {
+                    var read = stream.Read(this.buffer, 0, BufferSize); //The stream position will increase as we read, so no need to pass offset
+
+                    if (read == 0)
+                        break;
+
+                    var dest = new Span<byte>((byte*) buffer + offset, read);
+                    this.buffer.AsSpan(0, read).CopyTo(dest);
+
+                    offset += read;
+                }
+            }
         }
     }
 }

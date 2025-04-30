@@ -17,22 +17,38 @@ namespace PESpy
         /// <summary>
         /// The offset of the first byte of the function code.
         /// </summary>
+#if PEFAST
+        public int OffStart => chunk.PeekInt32(0);
+#else
         public int OffStart { get; }
+#endif
 
         /// <summary>
         /// The number of bytes in the function.
         /// </summary>
+#if PEFAST
+        public int ProcSize => chunk.PeekInt32(4);
+#else
         public int ProcSize { get; }
+#endif
 
         /// <summary>
         /// The number of local variables.
         /// </summary>
+#if PEFAST
+        public int Locals => chunk.PeekInt32(8);
+#else
         public int Locals { get; }
+#endif
 
         /// <summary>
         /// The size of the parameters, in DWORDs.
         /// </summary>
+#if PEFAST
+        public short Params => chunk.PeekInt16(12);
+#else
         public short Params { get; }
+#endif
 
         /// <summary>
         /// The number of bytes in the function prolog code.
@@ -64,9 +80,17 @@ namespace PESpy
         /// </summary>
         public FrameType cbFrame => (FrameType) ((flags >> 14) & 0x3);
 
+#if PEFAST
+        private ushort flags => chunk.PeekUInt16(14);
+#else
         private readonly ushort flags;
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //OffStart
@@ -75,6 +99,14 @@ namespace PESpy
             sizeof(short) + //Params
             sizeof(short); //Flags
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal FpoData(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal FpoData(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -85,6 +117,7 @@ namespace PESpy
             Params = reader.ReadInt16();
             flags = reader.ReadUInt16();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

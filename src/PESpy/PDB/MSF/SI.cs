@@ -30,12 +30,30 @@ namespace PESpy.PDB
 
         public int Offset { get; } //This is just the location of the page list, but this type doesn't actually fully exist on disk
 
+        //Create an SI from v7 data
         internal SI(in MemoryChunk chunk, int byteCount, int pageSize)
         {
             Offset = chunk.AbsoluteOffset;
             ByteCount = byteCount;
             var numPages = DivideUp(byteCount, pageSize);
+
             PageList = chunk.PeekSpan<PN>(0, numPages).ToArray();
+        }
+
+        //Create an SI from v2 data
+        internal SI(in MemoryChunk chunk, in SI_PERSIST siPersist, int pageSize)
+        {
+            Offset = chunk.AbsoluteOffset;
+            ByteCount = siPersist.ByteCount;
+            var numPages = DivideUp(siPersist.ByteCount, pageSize);
+
+            var pageList = new PN[numPages];
+            var pagesSpan = chunk.PeekSpan<ushort>(0, numPages);
+
+            for (var i = 0; i < numPages; i++)
+                pageList[i] = pagesSpan[i];
+
+            PageList = pageList;
         }
 
         internal static int DivideUp(int value, int divisor)
@@ -49,9 +67,8 @@ namespace PESpy.PDB
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            using var r = writer.CreateRegion(Offset, "SI Pages", ViewKind.SI);
-
-            r.WriteValues(PageList);
+            for (var i = 0; i < PageList.Length; i++)
+                writer.WriteGlobal(Offset + (i * 4), PageList[i], sizeof(int), ViewKind.Value);
         }
     }
 }

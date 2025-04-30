@@ -20,6 +20,11 @@ namespace PESpy.PDB
         /// </summary>
         public CV_off32_t sourcLineNum => chunk.PeekInt32(8);
 
+        internal const int StructSize =
+            sizeof(int) + //inlinee
+            sizeof(int) + //fileId
+            sizeof(int);  //sourcLineNum
+
         private readonly MemoryChunk chunk;
 
         internal InlineeSourceLine(in MemoryChunk chunk)

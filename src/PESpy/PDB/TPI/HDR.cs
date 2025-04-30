@@ -1,4 +1,5 @@
 ﻿using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -7,7 +8,7 @@ namespace PESpy.PDB
     /// <summary>
     /// type database header
     /// </summary>
-    public readonly struct HDR
+    public class HDR : IHDR //Header could either be HDR or HDR_16
     {
         /// <summary>
         /// version which created this TypeServer
@@ -39,6 +40,8 @@ namespace PESpy.PDB
         /// </summary>
         public TpiHash tpihash => new TpiHash(chunk.Slice(20));
 
+        int IHDR.StructSize => StructSize;
+
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
@@ -54,6 +57,17 @@ namespace PESpy.PDB
         internal HDR(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(HDR), this, ViewKind.Hdr);
+
+            s.WriteField(nameof(vers), vers, sizeof(int));
+            s.WriteField(nameof(cbHdr), cbHdr);
+            s.WriteField(nameof(tiMin), tiMin);
+            s.WriteField(nameof(tiMac), tiMac);
+            s.WriteStructField(nameof(tpihash), tpihash);
         }
     }
 }

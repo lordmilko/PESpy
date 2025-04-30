@@ -14,7 +14,7 @@ namespace PESpy.View.Builder
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
 
-        internal Extension(IFileReader reader, IViewDisassembler viewDisassembler)
+        internal Extension(IFileReader reader, IViewDisassembler? viewDisassembler)
         {
             this.reader = reader;
             this.viewDisassembler = viewDisassembler;
@@ -22,7 +22,7 @@ namespace PESpy.View.Builder
 
         internal long GetInputLength() => ((StreamFileReader) reader).GetStreamUnsafe().Length;
 
-        internal IView[] ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int> getRealOffset, Func<int, int> getRVA, bool isOverlay)
+        internal IView[]? ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var offset = currentRVA;
 
@@ -49,7 +49,7 @@ namespace PESpy.View.Builder
                 bytes = reader.ReadBytes((int)bytesToRead);
             }
 
-            IView[] views;
+            IView[]? views;
 
             if (!TryParseRawBytes(currentRVA, kind, bytes, getRVA, out views))
             {

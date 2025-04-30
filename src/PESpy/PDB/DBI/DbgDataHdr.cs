@@ -15,31 +15,38 @@ namespace PESpy.PDB
          * as its own member. As such, we intentionally do not use Span<SN> rgSnDbg
          */
 
-        public SN FPO            => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeFPO * 2); //0
-        public SN Exception      => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeException * 2); //1
-        public SN Fixup          => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeFixup * 2); //2
-        public SN OmapToSrc      => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeOmapToSrc * 2); //3
-        public SN OmapFromSrc    => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeOmapFromSrc * 2); //4
-        public SN SectionHdr     => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeSectionHdr * 2); //5
-        public SN TokenRidMap    => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeTokenRidMap * 2); //6
-        public SN XData          => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeXdata * 2); //7
-        public SN PData          => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypePdata * 2); //8
-        public SN NewFPO         => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeNewFPO * 2); //9
-        public SN SectionHdrOrig => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeSectionHdrOrig * 2); //10
-        public SN Max => chunk.PeekUInt16((ushort) DBGTYPE.dbgtypeMax * 2); //12 - this is part of it, the total size is 24 bytes
+        public SN FPO            => GetSN((ushort) DBGTYPE.dbgtypeFPO); //0
+        public SN Exception      => GetSN((ushort) DBGTYPE.dbgtypeException); //1
+        public SN Fixup          => GetSN((ushort) DBGTYPE.dbgtypeFixup); //2
+        public SN OmapToSrc      => GetSN((ushort) DBGTYPE.dbgtypeOmapToSrc); //3
+        public SN OmapFromSrc    => GetSN((ushort) DBGTYPE.dbgtypeOmapFromSrc); //4
+        public SN SectionHdr     => GetSN((ushort) DBGTYPE.dbgtypeSectionHdr); //5
+        public SN TokenRidMap    => GetSN((ushort) DBGTYPE.dbgtypeTokenRidMap); //6
+        public SN XData          => GetSN((ushort) DBGTYPE.dbgtypeXdata); //7
+        public SN PData          => GetSN((ushort) DBGTYPE.dbgtypePdata); //8
+        public SN NewFPO         => GetSN((ushort) DBGTYPE.dbgtypeNewFPO); //9
+        public SN SectionHdrOrig => GetSN((ushort) DBGTYPE.dbgtypeSectionHdrOrig); //10
+        public SN Max            => GetSN((ushort) DBGTYPE.dbgtypeMax); //12 - this is part of it, the total size is 24 bytes
 
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
+        private int maxIndex;
 
         internal DbgDataHdr(in MemoryChunk chunk, int length)
         {
             this.chunk = chunk;
 
-            var numItems = length / sizeof(short);
+            //Older PDB versions may not have all fields
+            maxIndex = length / sizeof(short);
+        }
 
-            if (numItems < (short) DBGTYPE.dbgtypeMax)
-                throw new InvalidOperationException($"Expected {nameof(DbgDataHdr)} to have at least {(short) DBGTYPE.dbgtypeMax} items, however only {numItems} were present");
+        private SN GetSN(ushort type)
+        {
+            if (type < maxIndex)
+                return chunk.PeekUInt16(type * 2);
+
+            return SN.Nil;
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -47,18 +54,60 @@ namespace PESpy.PDB
             using var s = writer.CreateStruct(nameof(DbgDataHdr), this, ViewKind.DbgDataHdr);
 
             //This is supposed to be an array
-            s.WriteField(nameof(FPO), FPO);
-            s.WriteField(nameof(Exception), Exception);
-            s.WriteField(nameof(Fixup), Fixup);
-            s.WriteField(nameof(OmapToSrc), OmapToSrc);
-            s.WriteField(nameof(OmapFromSrc), OmapFromSrc);
-            s.WriteField(nameof(SectionHdr), SectionHdr);
-            s.WriteField(nameof(TokenRidMap), TokenRidMap);
-            s.WriteField(nameof(XData), XData);
-            s.WriteField(nameof(PData), PData);
-            s.WriteField(nameof(NewFPO), NewFPO);
-            s.WriteField(nameof(SectionHdrOrig), SectionHdrOrig);
-            s.WriteField(nameof(Max), Max); //This is part of it, the total size is 24 bytes
+
+            for (var i = 0; i < maxIndex; i++)
+            {
+                switch ((DBGTYPE) i)
+                {
+                    case DBGTYPE.dbgtypeFPO:
+                        s.WriteField(nameof(FPO), FPO);
+                        break;
+
+                    case DBGTYPE.dbgtypeException:
+                        s.WriteField(nameof(Exception), Exception);
+                        break;
+
+                    case DBGTYPE.dbgtypeFixup:
+                        s.WriteField(nameof(Fixup), Fixup);
+                        break;
+
+                    case DBGTYPE.dbgtypeOmapToSrc:
+                        s.WriteField(nameof(OmapToSrc), OmapToSrc);
+                        break;
+
+                    case DBGTYPE.dbgtypeOmapFromSrc:
+                        s.WriteField(nameof(OmapFromSrc), OmapFromSrc);
+                        break;
+
+                    case DBGTYPE.dbgtypeSectionHdr:
+                        s.WriteField(nameof(SectionHdr), SectionHdr);
+                        break;
+
+                    case DBGTYPE.dbgtypeTokenRidMap:
+                        s.WriteField(nameof(TokenRidMap), TokenRidMap);
+                        break;
+
+                    case DBGTYPE.dbgtypeXdata:
+                        s.WriteField(nameof(XData), XData);
+                        break;
+
+                    case DBGTYPE.dbgtypePdata:
+                        s.WriteField(nameof(PData), PData);
+                        break;
+
+                    case DBGTYPE.dbgtypeNewFPO:
+                        s.WriteField(nameof(NewFPO), NewFPO);
+                        break;
+
+                    case DBGTYPE.dbgtypeSectionHdrOrig:
+                        s.WriteField(nameof(SectionHdrOrig), SectionHdrOrig);
+                        break;
+
+                    case DBGTYPE.dbgtypeMax:
+                        s.WriteField(nameof(Max), Max); //This is part of it, the total size is 24 bytes
+                        break;
+                }
+            }
         }
     }
 }

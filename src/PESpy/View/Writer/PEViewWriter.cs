@@ -242,11 +242,12 @@ namespace PESpy.View
 
             var results = merger.Merge();
 
-            return new PEFileView(
-                results,
+            return new FileView(
                 mode == ViewMode.Default
                     ? (peFile.IsLoadedImage ? ViewMode.Virtual : ViewMode.Physical)
-                    : mode
+                    : mode,
+                results,
+                ViewKind.PEFile
             );
         }
     }

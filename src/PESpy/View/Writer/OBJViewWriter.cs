@@ -1,6 +1,6 @@
-﻿using System;
+﻿#if PEFAST
+using System;
 using ClrDebug;
-using PESpy.OBJ;
 using PESpy.View.Builder;
 
 namespace PESpy.View
@@ -34,7 +34,8 @@ namespace PESpy.View
 
             var results = merger.Merge();
 
-            return new OBJFileView(results);
+            return new FileView(ViewMode.Physical, results, ViewKind.OBJFile);
         }
     }
 }
+#endif

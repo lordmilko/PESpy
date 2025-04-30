@@ -8,7 +8,7 @@ using RawOffset = System.Int32;
 namespace PESpy.View
 {
     [DebuggerDisplay("{ViewDebuggerDisplay.ByteBlob(this),nq}")]
-    public class ByteBlobView : IView
+    public class ByteBlobView : IView, ISplittableView
     {
         /// <inheritdoc />
         public RawOffset Offset { get; }
@@ -17,7 +17,7 @@ namespace PESpy.View
         public byte[] Bytes { get; }
 
         /// <inheritdoc />
-        public int Size => Bytes.Length;
+        public int Size { get; private set; }
 
         ViewKind? kind;
 
@@ -41,11 +41,72 @@ namespace PESpy.View
         {
             Offset = offset;
             Bytes = bytes;
+            Size = bytes.Length;
             this.kind = kind;
         }
 
-        public T Accept<T>(PEViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
+        //For SplitByteBlobView only
+        protected ByteBlobView(RawOffset offset, byte[] bytes, int size, ViewKind? kind)
+        {
+            Offset = offset;
+            Bytes = bytes;
+            Size = size;
+            this.kind = kind;
+        }
 
-        public void Accept(PEViewVisitor visitor) => visitor.VisitByteBlob(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
+
+        public void Accept(ViewVisitor visitor) => visitor.VisitByteBlob(this);
+
+        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        {
+            var currentEnd = Offset + Size;
+            var diff = currentEnd - cutoff;
+            Debug.Assert(diff > 0);
+
+            SplitByteBlobView first;
+
+            if (this is SplitByteBlobView s)
+            {
+                //We're already a split view, so just shrink us further
+                first = s;
+                Size -= diff;
+            }
+            else
+            {
+                //Create a new split view
+                first = new SplitByteBlobView(Offset, Bytes, Size - diff, Kind);
+            }
+
+            var second = new SplitByteBlobView(newBaseOffset, Bytes, diff, Kind);
+            second.Previous = first;
+            first.Next = second;
+
+            return (first, second);
+        }
+
+        IView ISplittableView.WithOffset(int newOffset)
+        {
+            if (Offset == newOffset)
+                return this;
+
+            if (this is SplitByteBlobView sv)
+            {
+                throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
+            }
+
+            return new SplitByteBlobView(newOffset, Bytes, Size, Kind);
+        }
+    }
+
+    class SplitByteBlobView : ByteBlobView, ISplitView
+    {
+        public ISplitView? Previous { get; internal set; }
+
+        public ISplitView? Next { get; internal set; }
+
+        public SplitByteBlobView(RawOffset offset, byte[] bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
+        {
+        }
     }
 }

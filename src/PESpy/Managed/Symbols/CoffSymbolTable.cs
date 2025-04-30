@@ -11,18 +11,114 @@ namespace PESpy
     /// </summary>
     public class CoffSymbolTable : IValue, IViewable //Class so that it can be reused with IMAGE_DEBUG_TYPE_COFF
     {
+#if PEFAST
+        private ImageSymbol[]? symbols;
+
+        public ImageSymbol[] Symbols
+        {
+            get
+            {
+                if (symbols == null)
+                {
+                    /* Can't find any info on when IMAGE_SYMBOL_EX should be used instead of IMAGE_SYMBOL.
+                     * Only difference seems to be SHORT SectionNumber vs LONG SectionNumber. Maybe if you have
+                     * more than 32767 sections you're meant to use IMAGE_SYMBOL_EX?
+                     *
+                     * NumberOfSymbols gives us the total number of regular and AUX symbols. We don't
+                     * know how many AUX symbols we will have; all we can know is how much memory the symbols
+                     * will occupy (both IMAGE_SYMBOL and IMAGE_AUX_SYMBOL are 18 bytes) */
+                    var results = new List<ImageSymbol>();
+
+                    var read = 0;
+                    var end = numberOfSymbols * ImageSymbol.StructSize;
+
+                    while (read < end)
+                    {
+                        var symbol = new ImageSymbol(chunk.Slice(read));
+
+                        read += ImageSymbol.StructSize + (symbol.NumberOfAuxSymbols * ImageAuxSymbol.StructSize);
+
+                        results.Add(symbol);
+                    }
+
+                    symbols = results.ToArray();
+                }
+
+                return symbols;
+            }
+        }
+
+        //I believe that the StringTableSize describes the size of the string table, in bytes, _including the size of this value_
+        public int StringTableSize => chunk.PeekInt32(numberOfSymbols * ImageSymbol.StructSize);
+
+        private RawValue<AnsiString>[]? strings;
+
+        public RawValue<AnsiString>[] Strings
+        {
+            get
+            {
+                if (strings == null)
+                {
+                    //NumberOfSymbols includes AUX symbols as well
+                    var offset = numberOfSymbols * ImageSymbol.StructSize;
+
+                    var stringTableSize = chunk.PeekInt32(offset);
+
+                    //Note that the size of the string table itself seems to be included in its size
+                    var end = offset + stringTableSize;
+
+                    offset += 4;
+
+                    if (offset == end)
+                        strings = Array.Empty<RawValue<AnsiString>>();
+                    else
+                    {
+                        var results = new List<RawValue<AnsiString>>();
+
+                        while (offset < end)
+                        {
+                            var str = chunk.PeekAnsiNullTerminatedString(offset);
+                            results.Add(new RawValue<AnsiString>(chunk.AbsoluteOffset + offset, str));
+
+                            var length = str.Length + 1;
+
+                            offset += length;
+                        }
+
+                        strings = results.ToArray();
+                    }
+                }
+
+                return strings;
+            }
+        }
+#else
+        public int StringTableSize { get; }
+
         public ImageSymbol[] Symbols { get; }
 
         public RawValue<string>[] Strings { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
 #if PEFAST
         private readonly MemoryChunk chunk;
+        private readonly int numberOfSymbols;
 
         internal CoffSymbolTable(in MemoryChunk chunk, int numberOfSymbols)
         {
             this.chunk = chunk;
+            this.numberOfSymbols = numberOfSymbols;
+
+#if STRESS_TEST
+            _ = Symbols;
+            _ = Strings;
+#endif
         }
 #else
         internal CoffSymbolTable(IFileReader reader, int numberOfSymbols)
@@ -46,9 +142,9 @@ namespace PESpy
 
             var start = reader.Position;
 
-            var stringTableSize = reader.ReadInt32();
+            StringTableSize = reader.ReadInt32();
 
-            end = start + stringTableSize;
+            end = start + StringTableSize;
 
             var strings = new List<RawValue<string>>();
 
@@ -70,7 +166,7 @@ namespace PESpy
             using var s = writer.CreateStruct("Coff Symbol Table", this, ViewKind.CoffSymbolTable);
 
             s.WriteInline(Symbols);
-            s.WriteField("String Table Size", Strings.Length);
+            s.WriteField("String Table Size", StringTableSize);
             s.WriteInlineAnsiNullTerminated(Strings);
         }
     }

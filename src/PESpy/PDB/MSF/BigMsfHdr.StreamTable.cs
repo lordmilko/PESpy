@@ -1,0 +1,74 @@
+﻿using System;
+using PESpy.View;
+
+namespace PESpy.PDB
+{
+    public readonly partial struct BigMsfHdr
+    {
+        //The format of the Stream Table in PDB v2 is different, so I'm encapsulating this in BigMsfHdr to signify that it's unique to BigMsfHdr
+        public class StreamTable : IStreamTable, IValue, IViewable //Stream 0 (snST) has a copy of the previous stream table. Stream 0 may not be present, so this is a class
+        {
+            public int NumStreams => chunk.PeekInt32(0);
+
+            public Span<int> StreamSizes => chunk.PeekSpan<int>(4, NumStreams);
+
+            //After the stream sizes there is a PN[][]. However, we need to use each StreamSize[i]
+            //to get the number of elements in each sub-array, so we use the SI API to collect this
+            //information instead
+            public PN[][] StreamPages { get; }
+
+            //This is not part of the on-disk data
+            public SI[] StreamInfos { get; }
+
+            public int Offset => chunk.AbsoluteOffset;
+
+            private readonly MemoryChunk chunk;
+
+            internal StreamTable(in MemoryChunk chunk, int pageSize)
+            {
+                this.chunk = chunk;
+                StreamPages = default!;
+                StreamInfos = default!;
+
+                var numStreams = NumStreams;
+
+                var streamSizes = StreamSizes;
+
+                var streamInfos = new SI[numStreams];
+                var streamPages = new PN[numStreams][];
+
+                //Skip over NumStreams + StreamSizes
+                var pagesChunk = chunk.Slice(sizeof(int) + (NumStreams * sizeof(int)));
+
+                for (var i = 0; i < numStreams; i++)
+                {
+                    //SI stores the size of a stream (in bytes) and then reads all of the blocks that belong to it.
+                    //That's what we want to do here anyway, so may as well defer to SI to do the reading work for us
+                    var si = new SI(pagesChunk, streamSizes[i], pageSize);
+
+                    streamPages[i] = si.PageList;
+                    streamInfos[i] = si;
+
+                    pagesChunk = pagesChunk.Slice(si.PageList.Length * sizeof(int));
+                }
+
+                StreamPages = streamPages;
+                StreamInfos = streamInfos;
+            }
+
+            void IViewable.WriteView(ViewWriter writer)
+            {
+                using var s = writer.CreateStruct("Stream Table", this, ViewKind.StreamTable);
+
+                s.WriteField("NumStreams", NumStreams);
+                s.WriteField("StreamSizes", StreamSizes);
+
+                for (var i = 0; i < StreamPages.Length; i++)
+                {
+                    var item = StreamPages[i];
+                    s.WriteField($"PageList ({i})", item);
+                }
+            }
+        }
+    }
+}

@@ -8,7 +8,7 @@ namespace PESpy.Native
     {
         public ushort Machine; //IMAGE_FILE_MACHINE
         public ushort NumberOfSections;
-        public int TimeDateStamp;
+        public uint TimeDateStamp;
         public int PointerToSymbolTable;
         public int NumberOfSymbols;
         public ushort SizeOfOptionalHeader;
