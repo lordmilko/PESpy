@@ -20,6 +20,7 @@ namespace PESpy.View.Builder
             /* There's not much to DBG files. They're literally just
              * - IMAGE_SEPARATE_DEBUG_HEADER
              * - IMAGE_SECTION_HEADER
+             * - Exported Names
              * - IMAGE_DEBUG_DIRECTORY
              * - IMAGE_COFF_SYMBOLS_HEADER
              * - Coff Symbol Table

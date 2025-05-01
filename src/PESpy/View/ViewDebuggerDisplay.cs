@@ -146,7 +146,7 @@ namespace PESpy.View
             return builder.ToString();
         }
 
-        public static string PEFile(FileView view)
+        public static string File(FileView view)
         {
             if (view.Kind == ViewKind.PEFile)
                 return $"[{view.ViewMode}] Count = {view.Children.Length}";

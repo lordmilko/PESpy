@@ -10,6 +10,7 @@ namespace PESpy
     public enum CodeViewSig : uint
     {
         NB10 = 0x3031424E, //NB10
+        NB11 = 0x3131424E, //NB11
         RSDS = 0x53445352 //RSDS
     }
 

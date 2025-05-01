@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System.Diagnostics;
+using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy

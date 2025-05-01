@@ -1,0 +1,40 @@
+
+
+ Start  Stop   Length Name                   Class
+ 00000H 01379H 0137AH _TEXT                  CODE
+ 0137AH 0137AH 00000H C_ETEXT                ENDCODE
+ 01380H 013B5H 00036H NULL                   BEGDATA
+ 013B6H 015BFH 0020AH _DATA                  DATA
+ 015C0H 015CDH 0000EH CDATA                  DATA
+ 015CEH 015CEH 00000H XIB                    DATA
+ 015CEH 015CEH 00000H XI                     DATA
+ 015CEH 015CEH 00000H XIE                    DATA
+ 015CEH 015CEH 00000H XPB                    DATA
+ 015CEH 015CFH 00002H XP                     DATA
+ 015D0H 015D0H 00000H XPE                    DATA
+ 015D0H 015D0H 00000H XCB                    DATA
+ 015D0H 015D0H 00000H XC                     DATA
+ 015D0H 015D0H 00000H XCE                    DATA
+ 015D0H 015D0H 00000H CONST                  CONST
+ 015D0H 015D7H 00008H HDR                    MSG
+ 015D8H 016D4H 000FDH MSG                    MSG
+ 016D5H 016D6H 00002H PAD                    MSG
+ 016D7H 016D7H 00001H EPAD                   MSG
+ 016D8H 016FDH 00026H _BSS                   BSS
+ 016FEH 016FEH 00000H XOB                    BSS
+ 016FEH 016FEH 00000H XO                     BSS
+ 016FEH 016FEH 00000H XOE                    BSS
+ 01700H 01AFFH 00400H c_common               BSS
+ 01B00H 022FFH 00800H STACK                  STACK
+ 02300H 023EFH 000F0H $$TYPES                DEBTYP
+ 023F0H 02423H 00034H $$SYMBOLS              DEBSYM
+ 02430H 02430H 00000H  SRCLINES              DEBSRC
+
+ Origin   Group
+ 0138:0   DGROUP
+
+Line numbers for TESTAPP.OBJ(C:\TESTAPP.C) segment _TEXT
+
+     4 0000:0010     7 0000:0018     8 0000:0022     9 0000:0026
+
+Program entry point at 0000:0040

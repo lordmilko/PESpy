@@ -23,6 +23,8 @@ namespace PESpy
         {
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            SymbolMemoryTracker.ClearSymbolMemory(this);
         }
     }
 }

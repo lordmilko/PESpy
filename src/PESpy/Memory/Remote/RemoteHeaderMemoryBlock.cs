@@ -45,6 +45,8 @@ namespace PESpy
                 GC.SuppressFinalize(this);
             }
 
+            SymbolMemoryTracker.ClearSymbolMemory(this);
+
             if (LocalPointer != null)
             {
                 Marshal.FreeHGlobal((IntPtr) LocalPointer);

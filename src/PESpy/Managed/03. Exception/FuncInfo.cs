@@ -24,20 +24,12 @@ namespace PESpy
         /// <summary>
         /// Identifies version of compiler
         /// </summary>
-#if PEFAST
         public int MagicNumber => (int) magicNumberAndBBTFlags & ((1 << 29) - 1);
-#else
-        public int MagicNumber { get; }
-#endif
 
         /// <summary>
         /// Flags that may be set by BBT processing
         /// </summary>
-#if PEFAST
         public int BBTFlags => (magicNumberAndBBTFlags >> 29) & 0b111;
-#else
-        public int BBTFlags { get; }
-#endif
 
         /// <summary>
         /// Highest state number plus one (thus number of entries in unwind map)
