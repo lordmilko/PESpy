@@ -28,12 +28,14 @@ namespace PESpy.PDB
         /// </summary>
         public PN[] PageList { get; }
 
-        public int Offset { get; } //This is just the location of the page list, but this type doesn't actually fully exist on disk
+        public int Offset => chunk.AbsoluteOffset; //This is just the location of the page list, but this type doesn't actually fully exist on disk
+
+        private readonly MemoryChunk chunk;
 
         //Create an SI from v7 data
         internal SI(in MemoryChunk chunk, int byteCount, int pageSize)
         {
-            Offset = chunk.AbsoluteOffset;
+            this.chunk = chunk;
             ByteCount = byteCount;
             var numPages = DivideUp(byteCount, pageSize);
 
@@ -43,7 +45,7 @@ namespace PESpy.PDB
         //Create an SI from v2 data
         internal SI(in MemoryChunk chunk, in SI_PERSIST siPersist, int pageSize)
         {
-            Offset = chunk.AbsoluteOffset;
+            this.chunk = chunk;
             ByteCount = siPersist.ByteCount;
             var numPages = DivideUp(siPersist.ByteCount, pageSize);
 
@@ -67,8 +69,8 @@ namespace PESpy.PDB
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            for (var i = 0; i < PageList.Length; i++)
-                writer.WriteGlobal(Offset + (i * 4), PageList[i], sizeof(int), ViewKind.Value);
+            //PageList could cross page boundaries
+            writer.WritePagedGlobal(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, PageList);
         }
     }
 }

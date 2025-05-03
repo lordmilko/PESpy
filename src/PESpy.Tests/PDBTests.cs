@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using ClrDebug;
@@ -17,7 +18,6 @@ namespace PESpy.Tests
     [TestClass]
     public class PDBTests
     {
-        private const string VC40Pdb = "vc40\\DbgTest.pdb";
         #region MSF
 
         [TestMethod]
@@ -639,20 +639,119 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
+        #region Module C13
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_Symbols()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_Lines()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_StringTable()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_FileCheckSums()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_FrameData()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_InlineeLines()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_CrossScopeImports()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_CrossScopeExports()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_ILLines()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_FuncMDTokenMap()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_TypeMDTokenMap()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_MergedAssemblyInput()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PDB_DBIStream_ModuleInfo_C13_CoffSymbolRva()
+        {
+            Assert.Inconclusive();
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        [TestMethod]
         public void PDB_DBIStream_SectionContribsV60()
         {
+            Assert.Inconclusive();
             throw new NotImplementedException();
         }
 
         [TestMethod]
         public void PDB_DBIStream_SectionMap()
         {
+            Assert.Inconclusive();
             throw new NotImplementedException();
         }
 
         [TestMethod]
         public void PDB_DBIStream_FileInfo()
         {
+            Assert.Inconclusive();
             throw new NotImplementedException();
         }
 
@@ -665,6 +764,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void PDB_DBIStream_EditAndContinueInfo()
         {
+            Assert.Inconclusive();
             throw new NotImplementedException();
         }
 
@@ -1002,7 +1102,27 @@ namespace PESpy.Tests
         }
 
         #endregion
+        #region PDB2
 
+        [TestMethod]
+        public void PDB_V2_VC40()
+        {
+            TestPDBSample(
+                Sample.VC40_PDB,
+                null
+            );
+        }
+
+        [TestMethod]
+        public void PDB_V2_VC60()
+        {
+            TestPDBSample(
+                Sample.VC60_PDB,
+                null
+            );
+        }
+
+        #endregion
         #region Splitting
 
         [TestMethod]
@@ -1122,6 +1242,24 @@ namespace PESpy.Tests
                     verify[i](views[i]);
 
                 verifyExtra?.Invoke(views);
+            }
+        }
+
+        private void TestPDBSample(
+            string path,
+            Action<IView>[] verify)
+        {
+            if (!File.Exists(path))
+                throw new FileNotFoundException($"Could not find sample file '{path}'");
+
+            using (var pdb = PDBFile.FromFile(path))
+            {
+                var views = pdb.GetView().Children;
+
+                Assert.AreEqual(views.Length, verify.Length);
+
+                for (var i = 0; i < verify.Length; i++)
+                    verify[i](views[i]);
             }
         }
     }

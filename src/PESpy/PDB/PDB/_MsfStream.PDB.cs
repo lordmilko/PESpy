@@ -20,10 +20,14 @@ namespace PESpy.PDB
             //The first entry can be 0 and that's normal
             public PdbFeature[] Features { get; }
 
-            public int Offset => PDBHeader.Offset;
+            public int Offset => chunk.AbsoluteOffset;
+
+            private readonly MemoryChunk chunk;
 
             internal PDB(in MemoryChunk chunk)
             {
+                this.chunk = chunk;
+
                 //Check if the size of exactly PDBStream, and if so if its impvVC2
 
                 var impv = (PDBIMPV) chunk.PeekUInt32(0);
@@ -72,13 +76,12 @@ namespace PESpy.PDB
 
                 if (Features.Length > 0)
                 {
-                    var featuresStart = Offset + PDBStream70.StructSize + streamNameTable.StructSize;
+                    var featuresStart = chunk.RelativeOffset + PDBStream70.StructSize + streamNameTable.StructSize;
+
+                    using var p = writer.CreatePagedWriter(featuresStart, (PagedMemoryBlock) chunk.block, global: true);
 
                     foreach (var feature in Features)
-                    {
-                        writer.WriteGlobal(featuresStart, feature, 4, ViewKind.Value);
-                        featuresStart += 4;
-                    }
+                        p.WriteValue(feature, sizeof(int), ViewKind.Value);
                 }
             }
         }

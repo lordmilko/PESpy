@@ -96,6 +96,11 @@ namespace PESpy.View
                 if (value.IsValid)
                     viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
             }
+
+            public void WriteInlineAnsiNullTerminatedValue(RawValue<AnsiString> value)
+            {
+                WriteValueInternal(value.Value, value.Offset);
+            }
 #endif
 
             public void WriteUTF8NullTerminatedValue(RawOffset offset, string value, ViewKind kind)

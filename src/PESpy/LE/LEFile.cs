@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace PESpy.VXD
+namespace PESpy
 {
     //VXD files use the Linear Executable (LE) file format
     internal class LEFile : IFile

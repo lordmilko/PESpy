@@ -99,7 +99,9 @@ namespace PESpy.PDB
                         }
                         else if (version == DBISCImpv.DBISCImpv2)
                         {
-                            throw new NotImplementedException($"Don't know how to handle {nameof(DBISCImpv)} '{version}'");
+                            var size = DbiHdr.cbSC - 4; //Skip over the version field
+
+                            sectionContribs = new SectionContribs2(dataChunk.Slice(4), version, size);
                         }
                         else
                         {

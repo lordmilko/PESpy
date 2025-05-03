@@ -8,6 +8,7 @@ using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 using System.Text;
+using Stream = System.IO.Stream;
 
 #if !DEBUG_POSITION
 using RVA = System.Int32;
@@ -86,6 +87,7 @@ namespace PESpy
     public class PEFile : IFile, IViewable, IMetadataCallback, IDisposable
     {
         #region Static
+
 #if PEFAST
         /// <summary>
         /// Reads a <see cref="PEFile"/> from a file on disk.
@@ -151,6 +153,9 @@ namespace PESpy
 
         public static PEFile FromFile(string filePath, IFileServices? services) =>
             new PEFile(File.OpenRead(filePath), false, services);
+
+        public static PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase) => throw new NotImplementedException();
+
         public static PEFile FromStream(Stream stream, bool isLoadedImage) => FromStream(stream, isLoadedImage, null);
 
         public static PEFile FromStream(Stream stream, bool isLoadedImage, IFileServices? services) =>
@@ -201,7 +206,7 @@ namespace PESpy
                             {
                                 case ImageDebugType.CodeView:
                                     {
-                                        var data = (ICodeView?) debugDirectory.Data;
+                                        var data = (ICodeViewPDB?) debugDirectory.Data;
 
                                         if (data != null)
                                         {
@@ -238,6 +243,10 @@ namespace PESpy
                                             }
                                         }
                                     }
+                                    break;
+
+                                case ImageDebugType.Misc:
+                                    throw new NotImplementedException();
                                     break;
                             }
                         }
@@ -559,8 +568,8 @@ namespace PESpy
         private ImageExportDirectory? exportTable;
 
         /// <summary>
-        /// Gets the export table, containing all exports present in the image.<para/>
-        /// If the image does not have an exports table, this property returns <see langword="null"/>.
+        /// Gets the export table pointed to by <see cref="ImageOptionalHeader.ExportTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_EXPORT), containing all exports present in the image.<para/>
+        /// If the image does not have an export table, this property returns <see langword="null"/>.
         /// </summary>
 #if PEFAST
         public ImageExportDirectory? ExportTable
@@ -617,6 +626,10 @@ namespace PESpy
         private ImageImportDescriptor[]? importTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the import table pointed to by <see cref="ImageOptionalHeader.ImportTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_IMPORT), containing all imports present in the image.<para/>
+        /// If the image does not have an import table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageImportDescriptor[]? ImportTable
         {
             get
@@ -711,6 +724,10 @@ namespace PESpy
         private ImageResourceDirectory? resourceDirectory;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the resource directory pointed to by <see cref="ImageOptionalHeader.ResourceTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_RESOURCE), containing all resources present in the image.<para/>
+        /// If the image does not have a resource directory, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageResourceDirectory? ResourceDirectory
         {
             get
@@ -767,6 +784,10 @@ namespace PESpy
         private RuntimeFunction[]? exceptionTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the exception table pointed to by <see cref="ImageOptionalHeader.ExceptionTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_EXCEPTION) containing information used to unwind stack frames during exception handling.<para/>
+        /// If the image does not have an exception table, this property returns <see langword="null"/>.
+        /// </summary>
         public RuntimeFunction[]? ExceptionTable
         {
             get
@@ -942,6 +963,10 @@ namespace PESpy
         private ImageBaseRelocation[]? baseRelocationTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the base relocation table pointed to by <see cref="ImageOptionalHeader.BaseRelocationTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_BASERELOC).<para/>
+        /// If the image does not have a base relocation table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageBaseRelocation[]? BaseRelocationTable
         {
             get
@@ -1027,6 +1052,10 @@ namespace PESpy
         private ImageDebugDirectory[]? debugTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the debug table pointed to by <see cref="ImageOptionalHeader.DebugTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_DEBUG).<para/>
+        /// If the image does not have a debug table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageDebugDirectory[]? DebugTable
         {
             get
@@ -1100,6 +1129,10 @@ namespace PESpy
         private ImageTlsDirectory? tlsDirectory;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the thread local storage table pointed to by <see cref="ImageOptionalHeader.ThreadLocalStorageTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_TLS).<para/>
+        /// If the image does not have a thread local storage table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageTlsDirectory? TlsDirectory
         {
             get
@@ -1153,6 +1186,10 @@ namespace PESpy
         private ImageLoadConfigDirectory? loadConfigTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the load config table pointed to by <see cref="ImageOptionalHeader.LoadConfigTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG).<para/>
+        /// If the image does not have a load config table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageLoadConfigDirectory? LoadConfigTable
         {
             get
@@ -1206,6 +1243,10 @@ namespace PESpy
         private ImageBoundImportDescriptor[]? boundImportTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the bound import table pointed to by <see cref="ImageOptionalHeader.BoundImportTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).<para/>
+        /// If the image does not have a bound import table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageBoundImportDescriptor[]? BoundImportTable
         {
             get
@@ -1302,6 +1343,10 @@ namespace PESpy
         private ImageThunkData[]? importAddressTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the import address table pointed to by <see cref="ImageOptionalHeader.ImportAddressTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_IAT).<para/>
+        /// If the image does not have an import address table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageThunkData[]? ImportAddressTable => throw new NotImplementedException();
 #else
         public ImageThunkData[]? ImportAddressTable
@@ -1387,6 +1432,10 @@ namespace PESpy
         private ImageDelayLoadDescriptor[]? delayImportTable;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the delay import table pointed to by <see cref="ImageOptionalHeader.DelayImportTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT).<para/>
+        /// If the image does not have a delay import table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageDelayLoadDescriptor[]? DelayImportTable => throw new NotImplementedException();
 #else
         public ImageDelayLoadDescriptor[]? DelayImportTable
@@ -1435,6 +1484,10 @@ namespace PESpy
         private ImageCor20Header? cor20Header;
 
 #if PEFAST
+        /// <summary>
+        /// Gets the Cor20 Header pointed to by <see cref="ImageOptionalHeader.CorHeaderTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR).<para/>
+        /// If the image does not have a Cor20 Header, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageCor20Header? Cor20Header
         {
             get
@@ -1480,6 +1533,192 @@ namespace PESpy
                 return cor20Header;
             }
         }
+#endif
+
+        #region Cor20Resources
+
+        private object? cor20Resources;
+
+        public object Cor20Resources
+        {
+            get
+            {
+                if (cor20Resources == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.Resources;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return cor20Resources;
+            }
+        }
+
+        #endregion
+        #region Cor20StrongNameSignature
+
+        private object? cor20StrongNameSignature;
+
+        public object Cor20StrongNameSignature
+        {
+            get
+            {
+                if (cor20StrongNameSignature == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.StrongNameSignature;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return cor20StrongNameSignature;
+            }
+        }
+
+        #endregion
+        #region Cor20CodeManagerTable
+
+        private object? cor20CodeManagerTable;
+
+        public object Cor20CodeManagerTable
+        {
+            get
+            {
+                if (cor20CodeManagerTable == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.CodeManagerTable;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return cor20CodeManagerTable;
+            }
+        }
+
+        #endregion
+        #region Cor20VTableFixups
+
+        private object? cor20VTableFixups;
+
+        public object Cor20VTableFixups
+        {
+            get
+            {
+                if (cor20VTableFixups == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.VTableFixups;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return cor20VTableFixups;
+            }
+        }
+
+        #endregion
+        #region Cor20ExportAddressTableJumps
+
+        private object? cor20ExportAddressTableJumps;
+
+        public object Cor20ExportAddressTableJumps
+        {
+            get
+            {
+                if (cor20ExportAddressTableJumps == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.ExportAddressTableJumps;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return cor20ExportAddressTableJumps;
+            }
+        }
+
+        #endregion
+
+        //Managed Native Header is either an NGEN or ReadyToRun header, which are
+        //handled separately below
+
+        #region Cor20ManagedNativeHeader
+
+        private IValue? cor20ManagedNativeHeader;
+
+        public IValue? Cor20ManagedNativeHeader
+        {
+            get
+            {
+                if (cor20ManagedNativeHeader == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    //Files with a managed header should have COMIMAGE_FLAGS_IL_LIBRARY set. As per pedecoder.cpp,
+                    //this name is a misnomer
+                    if (cor20 != null && (cor20.Flags & COMIMAGE_FLAGS.IL_LIBRARY) != 0)
+                    {
+                        var table = cor20.ManagedNativeHeader;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            var sig = chunk.PeekUInt32(0);
+
+                            switch (sig)
+                            {
+                                case CorCompileHeader.NGESignature:
+                                    cor20ManagedNativeHeader = new CorCompileHeader(chunk);
+                                    break;
+
+                                case ReadyToRunHeader.R2RSignature:
+                                    throw new NotImplementedException();
+                            }
+                        }
+                    }
+                }
+
+                return cor20ManagedNativeHeader;
+            }
+        }
+
+        #endregion
 #endif
 
         private ImageCorILMethod[]? ilMethods;
@@ -1543,6 +1782,349 @@ namespace PESpy
 #endif
 
         #endregion
+        #endregion
+        #region NGEN
+#if PEFAST
+
+        private CorCompileHeader? NgenHeader => Cor20ManagedNativeHeader as CorCompileHeader;
+
+        #region NgenHelperTable
+
+        private object? ngenHelperTable;
+
+        public object NgenHelperTable
+        {
+            get
+            {
+                if (ngenHelperTable == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.HelperTable;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenHelperTable;
+            }
+        }
+
+        #endregion
+        #region NgenImportSections
+
+        private object? ngenImportSections;
+
+        public object NgenImportSections
+        {
+            get
+            {
+                if (ngenImportSections == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.ImportSections;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenImportSections;
+            }
+        }
+
+        #endregion
+        #region NgenStubsData
+
+        private object? ngenStubsData;
+
+        public object NgenStubsData
+        {
+            get
+            {
+                if (ngenStubsData == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.StubsData;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenStubsData;
+            }
+        }
+
+        #endregion
+        #region NgenVersionInfo
+
+        private object? ngenVersionInfo;
+
+        public object NgenVersionInfo
+        {
+            get
+            {
+                if (ngenVersionInfo == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.VersionInfo;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenVersionInfo;
+            }
+        }
+
+        #endregion
+        #region NgenDependencies
+
+        private object? ngenDependencies;
+
+        public object NgenDependencies
+        {
+            get
+            {
+                if (ngenDependencies == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.Dependencies;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenDependencies;
+            }
+        }
+
+        #endregion
+        #region NgenDebugMap
+
+        private object? ngenDebugMap;
+
+        public object NgenDebugMap
+        {
+            get
+            {
+                if (ngenDebugMap == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.DebugMap;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenDebugMap;
+            }
+        }
+
+        #endregion
+        #region NgenModuleImage
+
+        private object? ngenModuleImage;
+
+        public object NgenModuleImage
+        {
+            get
+            {
+                if (ngenModuleImage == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.ModuleImage;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenModuleImage;
+            }
+        }
+
+        #endregion
+        #region NgenCodeManagerTable
+
+        private object? ngenCodeManagerTable;
+
+        public object NgenCodeManagerTable
+        {
+            get
+            {
+                if (ngenCodeManagerTable == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.CodeManagerTable;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenCodeManagerTable;
+            }
+        }
+
+        #endregion
+        #region NgenProfileDataList
+
+        private object? ngenProfileDataList;
+
+        public object NgenProfileDataList
+        {
+            get
+            {
+                if (ngenProfileDataList == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.ProfileDataList;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenProfileDataList;
+            }
+        }
+
+        #endregion
+        #region NgenManifestMetaData
+
+        private object? ngenManifestMetaData;
+
+        public object NgenManifestMetaData
+        {
+            get
+            {
+                if (ngenManifestMetaData == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.ManifestMetaData;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenManifestMetaData;
+            }
+        }
+
+        #endregion
+        #region NgenVirtualSectionsTable
+
+        private object? ngenVirtualSectionsTable;
+
+        public object NgenVirtualSectionsTable
+        {
+            get
+            {
+                if (ngenVirtualSectionsTable == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.VirtualSectionsTable;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenVirtualSectionsTable;
+            }
+        }
+
+        #endregion
+        #region NgenEEInfoTable
+
+        private object? ngenEEInfoTable;
+
+        public object NgenEEInfoTable
+        {
+            get
+            {
+                if (ngenEEInfoTable == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.EEInfoTable;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return ngenEEInfoTable;
+            }
+        }
+
+        #endregion
+#endif
         #endregion
         #region ReadyToRun
 
@@ -1711,15 +2293,27 @@ namespace PESpy
         /// <param name="mode">Specifies the addressing mode that should be used in the returned view. If this value is <see cref="ViewMode.Default"/>,
         /// <see cref="ViewMode.Virtual"/> or <see cref="ViewMode.Physical"/> will automatically be selected based on the value of <see cref="IsLoadedImage"/>.</param>
         /// <returns>A <see cref="PEFileView"/> that provides a view over the structure of the PE File.</returns>
-        public PEFileView GetView(ViewMode mode = ViewMode.Default)
+        public FileView GetView(ViewMode mode = ViewMode.Default)
         {
             //View may use Stream to read bytes
             lock (readerLock)
             {
-                var writer = new PEViewWriter(this, reader, mode);
+                var writer = new PEViewWriter(this, reader, null, mode);
                 ((IViewable) this).WriteView(writer);
 
-                return (PEFileView) writer.Finalize();
+                return (FileView) writer.Finalize();
+            }
+        }
+
+        public FileView GetView(IViewDisassembler viewDisassembler, ViewMode mode = ViewMode.Default)
+        {
+            //View may use Stream to read bytes
+            lock (readerLock)
+            {
+                var writer = new PEViewWriter(this, reader, viewDisassembler, mode);
+                ((IViewable) this).WriteView(writer);
+
+                return (FileView) writer.Finalize();
             }
         }
 

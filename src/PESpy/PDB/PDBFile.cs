@@ -328,7 +328,6 @@ namespace PESpy
             //Any Free pages are automatically detected during merging
         }
 
-        public PdbFileView GetView()
         public FileView GetView()
         {
 #if NEW_PDB

@@ -115,6 +115,14 @@ namespace PESpy.View
             }
         }
 
+        public void WriteUniqueGlobal<T>(in T value) where T : IValue, IViewable
+        {
+            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
+
+            if (shouldAdd && trackedAddresses.Add(viewOffset))
+                WriteGlobal(value);
+        }
+
         public void WriteGlobal<T>(RawOffset offset, in T value, int size, ViewKind kind)
         {
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
@@ -129,64 +137,38 @@ namespace PESpy.View
             }
         }
 
-        internal void WritePagedGlobal(int relativeOffset, PagedMemoryBlock block, SymType[] value)
+        internal PageWriter CreatePagedWriter(int startRelativeOffset, PagedMemoryBlock block, bool global)
         {
-            var pageSize = block.pageSize;
+            if (global)
+                Push(globalList);
 
-            var pageIndex = relativeOffset / pageSize;
-            var pageStart = block.pageList[pageIndex] * pageSize;
+            var shouldAdd = tryGetViewOffset(block.RemoteStartOffset + startRelativeOffset, out var viewOffset);
 
-            Push(globalList);
-
-            foreach (var item in value)
-            {
-                //If we overflow the end of the page, merger will split us
-                var totalLength = item.reclen + 2;
-                AddView(new ValueView<SymType>(pageStart + relativeOffset, item, totalLength, ViewKind.SymType));
-                relativeOffset += totalLength;
-
-                if (relativeOffset >= pageSize)
-                {
-                    //Move onto the next page
-                    pageIndex++;
-                    pageStart = block.pageList[pageIndex] * pageSize;
-
-                    //Adjust for any overflow
-                    relativeOffset -= pageSize;
-                }
-            }
-
-            Pop();
+            return new PageWriter(viewOffset - block.RemoteStartOffset, block, this, global, shouldAdd);
         }
 
-        internal void WritePagedGlobal(int relativeOffset, PagedMemoryBlock block, TypType[] value)
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymType[] value)
         {
-            var pageSize = block.pageSize;
-
-            var pageIndex = relativeOffset / pageSize;
-            var pageStart = block.pageList[pageIndex] * pageSize;
-
-            Push(globalList);
+            using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-            {
-                //If we overflow the end of the page, merger will split us
-                var totalLength = item.len + 2;
-                AddView(new ValueView<TypType>(pageStart + relativeOffset, item, totalLength, ViewKind.TypType));
-                relativeOffset += totalLength;
+                p.WriteValue(item, item.reclen + 2, ViewKind.SymType);
+        }
 
-                if (relativeOffset >= pageSize)
-                {
-                    //Move onto the next page
-                    pageIndex++;
-                    pageStart = block.pageList[pageIndex] * pageSize;
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypType[] value)
+        {
+            using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
-                    //Adjust for any overflow
-                    relativeOffset -= pageSize;
-                }
-            }
+            foreach (var item in value)
+                p.WriteValue(item, item.len + 2, ViewKind.TypType);
+        }
 
-            Pop();
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, PN[] value)
+        {
+            using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
+
+            foreach (var item in value)
+                p.WriteValue(item, sizeof(int), ViewKind.Value);
         }
 
         public void WriteGlobal(RawOffset offset, TypType[] value)
@@ -364,7 +346,7 @@ namespace PESpy.View
             }
         }
 
-        private void AddViews(IView[] views)
+        private void AddViews(IList<IView> views)
         {
             //When StructWriter.Dispose runs, the stack might be empty
 

@@ -544,6 +544,7 @@ namespace PESpy.View
 
         DBGFile,
         ImageSeparateDebugHeader,
+        ExportedNames,
 
         //OBJ
 

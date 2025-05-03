@@ -7,7 +7,7 @@ namespace PESpy
     /// Represents a Portable PDB that has been embedded in a Portable Executable file.<para/>
     /// This type does not have a well-known native struct declaration.
     /// </summary>
-    public readonly struct EmbeddedPortablePdb : IValue, IViewable
+    public class EmbeddedPortablePdb : IValue, IViewable //It's going to be boxed anyway
     {
         public const int MPDBSignature = 0x4244504d; //MPDB (i.e. "eMbedded PDB")
 

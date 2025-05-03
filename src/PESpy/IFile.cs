@@ -4,13 +4,40 @@ namespace PESpy
 {
     public enum FileKind
     {
+        /// <summary>
+        /// A <see cref="PEFile"/> describing Portable Executable.
+        /// </summary>
         PE,
+
+        /// <summary>
+        /// A <see cref="NEFile"/> describing a New Executable.
+        /// </summary>
         NE,
+
+        /// <summary>
+        /// A <see cref="LEFile"/> describing a Linear Executable (used by VXDs).
+        /// </summary>
+        LE,
+
+        /// <summary>
+        /// A <see cref="DBGFile"/> describing a COFF based debug file.
+        /// </summary>
         DBG,
+
+        /// <summary>
+        /// A <see cref="PDBFile"/> describing a Program Database.
+        /// </summary>
         PDB,
+
+        /// <summary>
+        /// A <see cref="OBJFile"/> describing a COFF based object file.
+        /// </summary>
         OBJ,
-        LIB,
-        LE
+
+        /// <summary>
+        /// A <see cref="LIBFile"/> describing a COFF based object library.
+        /// </summary>
+        LIB
     }
 
     public interface IFile : IDisposable

@@ -4,11 +4,15 @@ using ClrDebug;
 using PESpy.Native;
 using PESpy.PDB;
 
+//Having out IFile? is confusing from an API standpoint because the caller has to keep doing file! whenever they use it when we returned true.
+//Attributes to say we have a value when we return true haven't worked for me in the past
+#nullable disable
+
 namespace PESpy
 {
     static class Detector
     {
-        public static unsafe bool TryOpenFile(string path, out IFile? file)
+        public static unsafe bool TryOpenFile(string path, out IFile file)
         {
             file = default;
 

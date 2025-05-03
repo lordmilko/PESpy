@@ -9,6 +9,6 @@ namespace PESpy.PDB
         impvVC140 = PDBIMPV.PDBImpvVC140,
 
         featNoTypeMerge = 0x4D544F4E,    // "NOTM"
-        featMinimalDbgInfo = 0x494E494D,    // "MINI"
+        featMinimalDbgInfo = 0x494E494D,    // "MINI". Indicates that the file was compiled with /DEBUG:FASTLINK
     }
 }

@@ -34,6 +34,8 @@ namespace PESpy.View
         public override IView Finalize()
         {
             if (viewStack.Count != 0)
+                throw new InvalidOperationException("Expected viewStack to be empty");
+
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
@@ -272,6 +274,11 @@ namespace PESpy.View
                         specialPageMap.Add(streamTablePageList[i], $"Stream Table Page ({i + 1}/{streamTablePageList.Length})");
                 }
             }
+
+            //Tag any pages listed by the FPM as free.
+            //Free pages may actually contain data (e.g. I've observed a page that contains an entire copy of the IPI stream)
+            //however it's assumed that this is "junk data" that was written during the PDB's construction
+
             if (pdbFile is PDB7File)
             {
                 //Additional FPM pages are scattered across the file at regular intervals

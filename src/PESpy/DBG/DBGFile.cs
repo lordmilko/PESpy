@@ -178,7 +178,20 @@ namespace PESpy
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            throw new NotImplementedException();
+            writer.WriteGlobal(DebugHeader);
+            writer.WriteGlobal(SectionHeaders);
+
+            var names = ExportedNames;
+
+            if (names != null && names.Length > 0)
+            {
+                using var r = writer.CreateRegion(names[0].Offset, "Exported Names", ViewKind.ExportedNames, true);
+
+                foreach (var item in names)
+                    r.WriteInlineAnsiNullTerminatedValue(item);
+            }
+
+            writer.WriteGlobal(DebugTable);
         }
 
         public void Dispose()

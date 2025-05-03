@@ -530,6 +530,20 @@ namespace PESpy.View
                 currentOffset += size;
             }
 
+            #region Paged
+
+            /* We have an array of something that is known to exist at a given offset and is not wrapped in an IValue. We want to list the individual values separately
+             * in the output, however the array itself may have spanned multiple pages. We will therefore do the math in figuring out which page each value starts in.
+             * In the case where a given value extends past the end of a given page, this is OK: during merging we will detect this and convert the value into a split value */
+
+            public void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymType[] value)
+            {
+                using var p = viewWriter.CreatePagedWriter(startRelativeOffset, block, false);
+
+                foreach (var item in value)
+                    p.WriteValue(item, item.reclen + 2, ViewKind.SymType);
+            }
+
             #endregion
 
             //Should only be used for OBJ files

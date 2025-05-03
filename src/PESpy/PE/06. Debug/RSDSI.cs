@@ -6,18 +6,11 @@ using RawOffset = System.Int32;
 
 namespace PESpy
 {
-    //Name is made up
-    public enum CodeViewSig : uint
-    {
-        NB10 = 0x3031424E, //NB10
-        NB11 = 0x3131424E, //NB11
-        RSDS = 0x53445352 //RSDS
-    }
 
     /// <summary>
     /// Represents the <see cref="Native.RSDSI"/> structure.
     /// </summary>
-    public class RSDSI : ICodeView, IViewable //It's going to be boxed
+    public class RSDSI : ICodeViewPDB, IViewable //It's going to be boxed
     {
 #if PEFAST
         public CodeViewSig Signature => (CodeViewSig) chunk.PeekUInt32(0);

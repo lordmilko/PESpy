@@ -26,3 +26,4 @@ This directory contains the following samples
 | CoffSymbolsOnly | Alt+F7 -> Link -> Category: Debug. Debug info: COFF format |
 | CoffAndPdbSymbols_PreSplit | Alt+F7 -> Link -> Category: Debug. Debug info: Both formats. Contains `TestApp.exe` prior to splitting it with `rebase.exe` |
 | CoffAndPdbSymbols_PostSplit | Alt+F7 -> Link -> Category: Debug. Debug info: Both formats. Contains `TestApp.exe`, `TestApp.pdb` and `TestApp.dbg` after splitting with `rebase.exe`. `TestApp.exe` is stripped, its debug info is copied to `TestApp.dbg` and a copy of the original `TestApp.pdb` is copied to the `rebase.exe` output folder |
+| NB11_Split | Alt+F7 -> Link -> Customize -> Untick Use program database, Link -> Debug. Debug info: Microsoft format. This causes NB11 to be created. We then split this out using `rebase`. We get an error *unable to split symbols (0)* but it does successfully split |

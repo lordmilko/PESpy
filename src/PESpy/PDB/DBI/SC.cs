@@ -4,9 +4,9 @@ namespace PESpy.PDB
 {
     public class SC : SC40
     {
-        public int dwDataCrc => chunk.PeekInt32(20);
+        public uint dwDataCrc => chunk.PeekUInt32(20);
 
-        public int dwRelocCrc => chunk.PeekInt32(24);
+        public uint dwRelocCrc => chunk.PeekUInt32(24);
 
         internal new const int StructSize =
             sizeof(ushort) + //isect

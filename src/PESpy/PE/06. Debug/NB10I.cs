@@ -9,7 +9,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="Native.NB10I"/> structure.
     /// </summary>
-    public class NB10I : ICodeView, IViewable //It's going to be boxed
+    public class NB10I : ICodeViewPDB, IViewable //It's going to be boxed
     {
 #if PEFAST
         public CodeViewSig Signature => (CodeViewSig) chunk.PeekUInt32(0);
