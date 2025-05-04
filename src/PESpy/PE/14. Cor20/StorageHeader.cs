@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using ClrDebug;
+﻿using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -14,6 +13,15 @@ namespace PESpy
     /// </summary>
     public readonly struct StorageHeader : IValue, IViewable
     {
+#if PEFAST
+        public STGHDR Flags => (STGHDR) chunk.PeekByte(0);
+
+        public byte Padding => chunk.PeekByte(1);
+
+        public short Streams => chunk.PeekInt16(2);
+
+        public StorageStream[] StreamHeaders { get; }
+#else
         public STGHDR Flags { get; init; }
 
         public byte Padding { get; init; }
@@ -21,9 +29,37 @@ namespace PESpy
         public short Streams { get; init; }
 
         public StorageStream[] StreamHeaders { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal StorageHeader(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+
+            StreamHeaders = null;
+
+            var streamHeaders = new StorageStream[Streams];
+
+            var read = 4;
+
+            for (var i = 0; i < Streams; i++)
+            {
+                var stream = new StorageStream(chunk.Slice(read));
+                streamHeaders[i] = stream;
+                read += (StorageStream.FixedStructSize + stream.Name.Length + 1 + 3) & ~3;
+            }
+
+            StreamHeaders = streamHeaders;
+        }
+#else
         internal StorageHeader(
             IFileReader reader,
             IMetadataCallback callback,
@@ -43,6 +79,7 @@ namespace PESpy
 
             StreamHeaders = streamHeaders;
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

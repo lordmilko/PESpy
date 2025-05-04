@@ -1,26 +1,26 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Event = {Event}")]
     public readonly struct EventPtrRow : IValue, IViewable
     {
-        public int Event { get; }
+        public EventPtrIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int Event => table.GetEvent(RowIndex);
 
-        internal static EventPtrRow New(MetadataReader metadataReader) => new EventPtrRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int);
+        private readonly EventPtrTable table;
 
-        internal EventPtrRow(MetadataReader metadataReader)
+        internal EventPtrRow(EventPtrIndex index, EventPtrTable table)
         {
-            Offset = (RawOffset) metadataReader.Position;
-
-            Event = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

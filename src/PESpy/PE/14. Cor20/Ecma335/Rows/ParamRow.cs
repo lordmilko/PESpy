@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,32 +7,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Flags = {Flags}, Sequence = {Sequence}, Name = {Name.ToString(),nq}")]
     public readonly struct ParamRow : IValue, IViewable
     {
-        public CorParamAttr Flags { get; init; }
+        public ParamIndex RowIndex { get; }
 
-        public short Sequence { get; init; }
+        public CorParamAttr Flags => table.GetFlags(RowIndex);
 
-        public int Name { get; init; }
+        public short Sequence => table.GetSequence(RowIndex);
 
-        public RawOffset Offset { get; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        internal static ParamRow New(MetadataReader metadataReader) => new ParamRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                 //Flags
-            sizeof(short) +                 //Sequence
-            metadataReader.StringIndexSize; //Name
+        private readonly ParamTable table;
 
-        internal ParamRow(MetadataReader metadataReader)
+        internal ParamRow(ParamIndex index, ParamTable table)
         {
             //II.22.33
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Flags = (CorParamAttr) metadataReader.ReadInt16();
-            Sequence = metadataReader.ReadInt16();
-            Name = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

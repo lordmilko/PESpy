@@ -112,6 +112,53 @@ namespace PESpy
             return value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int PeekEcmaIndex(int offset, bool isBig) =>
+            isBig ? PeekInt32(offset) : PeekUInt16(offset);
+
+        public int PeekCorCompressedInteger(int offset, out byte bytesRead)
+        {
+            var ptr = Pointer + offset;
+
+            var byte1 = *ptr;
+
+            //If the first one byte of the 'blob' is 0bbbbbbb2, then the rest of the 'blob' contains the bbbbbbb2 bytes of actual data
+            //That is to say, if the high bit is 0, the low 7 bits contain the number. Since the high bit is 0, there's no problem
+            if ((byte1 & 0x80) == 0) //10000000 
+            {
+                bytesRead = 1;
+                return byte1;
+            }
+
+            //If the first two bytes of the 'blob' are 10bbbbbb2 and x, then the rest of the 'blob' contains the(bbbbbb2 << 8 + x) bytes of actual data.
+            //Based on the check above, the high bit was not 0, so it's 1. If the second bit is not 1, then you can get the number from the bottom 6 bytes combined with the second byte
+            if ((byte1 & 0x40) == 0) //01000000
+            {
+                var byte2 = *(ptr + 1);
+
+                bytesRead = 2;
+
+                //0x3F: 00111111
+                //Get the bottom 6 bits (the second top being 1 from the first check failing should be ignored), left shift 8 and combine with the second bit
+                return ((byte1 & 0x3f) << 8) | byte2;
+            }
+
+            if ((byte1 & 0x20) == 0) //00100000
+            {
+                var byte2 = *(ptr + 1);
+                var byte3 = *(ptr + 2);
+                var byte4 = *(ptr + 3);
+
+                bytesRead = 4;
+
+                //0x1F: 00011111
+                //Get the bottom 5 bits (the second top bit being 1 from the second check failing should be ignored), and then shift each bit into position
+                return ((byte1 & 0x1f) << 24) | (byte2 << 16) | (byte3 << 8) | byte4;
+            }
+
+            throw new InvalidOperationException("Failed to read an ECMA 335 compressed integer");
+        }
+
         #region Try
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

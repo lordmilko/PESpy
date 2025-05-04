@@ -278,6 +278,11 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
+            public void WriteUtf8FixedLengthField(string name, FixedUtf8String value)
+            {
+                WriteFieldInternal(name, value, value.Length);
+            }
+
             public void WriteUTF16NullTerminatedField(string name, string value)
             {
                 WriteFieldInternal(name, value, (value.Length + 1) * 2);

@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("ResolutionScope = {ResolutionScope}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}")]
     public readonly struct TypeRefRow : IValue, IViewable
     {
-        public int ResolutionScope { get; init; }
+        public TypeRefIndex RowIndex { get; }
 
-        public int TypeName { get; init; }
+        public int ResolutionScope => table.GetResolutionScope(RowIndex);
 
-        public int TypeNamespace { get; init; }
+        public StringIndex TypeName => table.GetTypeName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        internal static TypeRefRow New(MetadataReader metadataReader) => new TypeRefRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.ResolutionScopeSize + //ResolutionScope
-            metadataReader.StringIndexSize +     //TypeName
-            metadataReader.StringIndexSize;      //TypeNamespace
+        private readonly TypeRefTable table;
 
-        internal TypeRefRow(MetadataReader metadataReader)
+        internal TypeRefRow(TypeRefIndex index, TypeRefTable table)
         {
             //II.22.38
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            ResolutionScope = metadataReader.ReadResolutionScopeIndex();
-            TypeName = metadataReader.ReadStringHeapIndex();
-            TypeNamespace = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

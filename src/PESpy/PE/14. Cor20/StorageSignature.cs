@@ -15,6 +15,22 @@ namespace PESpy
     {
         private const uint STORAGE_MAGIC_SIG = 0x424A5342; //BSJB
 
+#if PEFAST
+        /// <summary>
+        /// Magic signature for physical metadata : 0x424A5342.
+        /// </summary>
+        public uint Signature => chunk.PeekUInt32(0);
+
+        public short MajorVersion => chunk.PeekInt16(4);
+
+        public short MinorVersion => chunk.PeekInt16(6);
+
+        public int ExtraData => chunk.PeekInt32(8);
+
+        public int VersionStringLength => chunk.PeekInt32(12);
+
+        public FixedUtf8String Version => chunk.PeekUtf8FixedLength(16, VersionStringLength);
+#else
         /// <summary>
         /// Magic signature for physical metadata : 0x424A5342.
         /// </summary>
@@ -29,9 +45,29 @@ namespace PESpy
         public int VersionStringLength { get; init; }
 
         public string Version { get; init; }
+#endif
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
+        internal const int FixedStructSize =
+            sizeof(uint) + //Signature
+            sizeof(short) + //MajorVersion
+            sizeof(short) + //MinorVersion
+            sizeof(int) + //ExtraData
+            sizeof(int); //VersionStringLength
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal StorageSignature(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal StorageSignature(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;
@@ -54,6 +90,7 @@ namespace PESpy
             var alignmentTarget = (reader.Position + 3) & ~3;
             reader.Seek((reader.Position + 3) & ~3);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -64,7 +101,7 @@ namespace PESpy
             s.WriteField("iMinorVer", MinorVersion);
             s.WriteField("iExtraData", ExtraData);
             s.WriteField("iVersionString", VersionStringLength);
-            s.WriteNullPaddedUTF8Field("pVersion", Version, VersionStringLength);
+            s.WriteUtf8FixedLengthField("pVersion", Version);
 
             s.Align(4);
         }

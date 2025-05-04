@@ -1,26 +1,26 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Property = {Property}")]
     public readonly struct PropertyPtrRow : IValue, IViewable
     {
-        public int Property { get; }
+        public PropertyPtrIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int Property => table.GetProperty(RowIndex);
 
-        internal static PropertyPtrRow New(MetadataReader metadataReader) => new PropertyPtrRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int); //Property
+        private readonly PropertyPtrTable table;
 
-        internal PropertyPtrRow(MetadataReader metadataReader)
+        internal PropertyPtrRow(PropertyPtrIndex index, PropertyPtrTable table)
         {
-            Offset = (RawOffset) metadataReader.Position;
-
-            Property = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

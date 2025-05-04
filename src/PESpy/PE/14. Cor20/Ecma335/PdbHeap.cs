@@ -1,41 +1,55 @@
-﻿using ClrDebug;
+﻿using System;
+using ClrDebug;
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
     public class PdbHeap
     {
-        public byte[] Id { get; }
+        public Span<byte> Id => chunk.PeekSpan<byte>(0, 20);
 
-        public mdToken EntryPoint { get; }
+        public mdMethodDef EntryPoint { get; } //For some reason the Visual Studio debugger is getting upset trying to evaluate this from our chunk, so we eagerly evaluate
 
-        public ulong ReferencedTypeSystemTables { get; }
+        public ulong ReferencedTypeSystemTables => chunk.PeekUInt64(24);
 
         public int[] TypeSystemTableRows { get; }
 
         /// <summary>
         /// Gets the size of this heap in bytes.
         /// </summary>
-        private int Size { get; }
+        public int Size { get; }
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-        internal PdbHeap(IFileReader reader, int size)
+        internal const int FixedStructSize =
+            20 + //Id
+            sizeof(uint) + //EntryPoint
+            sizeof(ulong); //ReferencedTypeSystemTables
+
+        private readonly MemoryChunk chunk;
+
+        internal PdbHeap(in MemoryChunk chunk, int size)
         {
-            Offset = (int) reader.Position;
+            this.chunk = chunk;
             Size = size;
+            EntryPoint = chunk.PeekUInt32(20); //For some reason the Visual Studio debugger is getting upset trying to evaluate this from our chunk, so we eagerly evaluate
 
-            Id = reader.ReadBytes(20);
-            EntryPoint = reader.ReadInt32();
-            ReferencedTypeSystemTables = reader.ReadUInt64();
+            var referencedTypeSystemTables = ReferencedTypeSystemTables;
 
             var rows = new int[64];
 
             ulong bit = 1;
 
+            var read = FixedStructSize;
+
             for (var i = 0; i < rows.Length; i++)
             {
-                if ((ReferencedTypeSystemTables & bit) != 0)
-                    rows[i] = reader.ReadInt32();
+                if ((referencedTypeSystemTables & bit) != 0)
+                {
+                    var value = chunk.PeekInt32(read);
+                    read += sizeof(int);
+
+                    rows[i] = value;
+                }
 
                 bit <<= 1;
             }

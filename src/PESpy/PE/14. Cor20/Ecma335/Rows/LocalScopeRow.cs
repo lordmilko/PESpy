@@ -1,48 +1,38 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Method = {Method}, ImportScope = {ImportScope}, VariableList = {VariableList}, ConstantList = {ConstantList}, StartOffset = {StartOffset}, Length = {Length}")]
     public readonly struct LocalScopeRow : IValue, IViewable
     {
-        public int Method { get; init; }
+        public LocalScopeIndex RowIndex { get; }
 
-        public int ImportScope { get; init; }
+        public int Method => table.GetMethod(RowIndex);
 
-        public int VariableList { get; init; }
+        public int ImportScope => table.GetImportScope(RowIndex);
 
-        public int ConstantList { get; init; }
+        public int VariableList => table.GetVariableList(RowIndex);
 
-        public uint StartOffset { get; init; }
+        public int ConstantList => table.GetConstantList(RowIndex);
 
-        public uint Length { get; init; }
+        public uint StartOffset => table.GetStartOffset(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Length => table.GetLength(RowIndex);
 
-        internal static LocalScopeRow New(MetadataReader metadataReader) => new LocalScopeRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) + //Method
-            sizeof(int) + //ImportScope
-            sizeof(int) + //VariableList
-            sizeof(int) + //ConstantList
-            sizeof(int) + //StartOffset
-            sizeof(int);  //Length
+        private readonly LocalScopeTable table;
 
-        internal LocalScopeRow(MetadataReader metadataReader)
+        internal LocalScopeRow(LocalScopeIndex index, LocalScopeTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#localscope-table-0x32
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Method = metadataReader.ReadInt32();
-            ImportScope = metadataReader.ReadInt32();
-            VariableList = metadataReader.ReadInt32();
-            ConstantList = metadataReader.ReadInt32();
-            StartOffset = metadataReader.ReadUInt32();
-            Length = metadataReader.ReadUInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -52,26 +52,34 @@ namespace PESpy.View
 
             #region Heap
 
-            internal void WriteStringHeapIndex(string name, int index)
+            internal void WriteStringHeapIndex(string name, StringIndex index)
             {
                 if (viewWriter.MetadataReader.StringIndexSize == 4)
-                    WriteValue(name, index);
+                    WriteValue(name, (int) index);
                 else
                     WriteValue(name, (ushort) index);
             }
 
-            internal void WriteBlobHeapIndex(string name, int index)
+            internal void WriteBlobHeapIndex(string name, BlobIndex index)
             {
                 if (viewWriter.MetadataReader.BlobIndexSize == 4)
-                    WriteValue(name, index);
+                    WriteValue(name, (int) index);
                 else
                     WriteValue(name, (ushort) index);
             }
 
-            internal void WriteGuidHeapIndex(string name, int index)
+            internal void WriteBlobHeapIndex(string name, DocumentNameBlobIndex index)
+            {
+                if (viewWriter.MetadataReader.BlobIndexSize == 4)
+                    WriteValue(name, (int) index);
+                else
+                    WriteValue(name, (ushort) index);
+            }
+
+            internal void WriteGuidHeapIndex(string name, GuidIndex index)
             {
                 if (viewWriter.MetadataReader.GuidIndexSize == 4)
-                    WriteValue(name, index);
+                    WriteValue(name, (int) index);
                 else
                     WriteValue(name, (ushort) index);
             }

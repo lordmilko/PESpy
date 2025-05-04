@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,36 +7,29 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Number = {Number}, Flags = {Flags}, Owner = {Owner}, Name = {Name.ToString(),nq}")]
     public readonly struct GenericParamRow : IValue, IViewable
     {
-        public short Number { get; init; }
+        public GenericParamIndex RowIndex { get; }
 
-        public CorGenericParamAttr Flags { get; init; }
+        public short Number => table.GetNumber(RowIndex);
 
-        public int Owner { get; init; }
+        public CorGenericParamAttr Flags => table.GetFlags(RowIndex);
 
-        public int Name { get; init; }
+        public int Owner => table.GetOwner(RowIndex);
 
-        public RawOffset Offset { get; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        internal static GenericParamRow New(MetadataReader metadataReader) => new GenericParamRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                      //Number
-            sizeof(short) +                      //Flags
-            metadataReader.TypeOrMethodDefSize + //Owner
-            metadataReader.StringIndexSize;      //Name
+        private readonly GenericParamTable table;
 
-        internal GenericParamRow(MetadataReader metadataReader)
+        internal GenericParamRow(GenericParamIndex index, GenericParamTable table)
         {
             //II.22.20
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Number = metadataReader.ReadInt16();
-            Flags = (CorGenericParamAttr) metadataReader.ReadInt16();
-            Owner = metadataReader.ReadTypeOrMethodDefIndex();
-            Name = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

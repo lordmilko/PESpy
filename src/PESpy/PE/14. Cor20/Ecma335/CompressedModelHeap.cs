@@ -1,11 +1,10 @@
 ﻿using System;
-using PESpy.Ecma335;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
     /// <summary>
     /// Encapsulates all data in the compressed model heap (#~).<para/>
@@ -17,215 +16,939 @@ namespace PESpy
 
         #region ECMA-335
 
-        public Table<ModuleRow>? ModuleTable { get; }
+        public ModuleTable? ModuleTable { get; }
 
-        public Table<TypeRefRow>? TypeRefTable { get; }
+        public TypeRefTable? TypeRefTable { get; }
 
-        public Table<TypeDefRow>? TypeDefTable { get; }
+        public TypeDefTable? TypeDefTable { get; }
 
-        public Table<FieldPtrRow>? FieldPtrTable { get; }
+        public FieldPtrTable? FieldPtrTable { get; }
 
-        public Table<FieldRow>? FieldTable { get; }
+        public FieldTable? FieldTable { get; }
 
-        public Table<MethodPtrRow>? MethodPtrTable { get; }
+        public MethodPtrTable? MethodPtrTable { get; }
 
-        public Table<MethodDefRow>? MethodDefTable { get; }
+        public MethodDefTable? MethodDefTable { get; }
 
-        public Table<ParamPtrRow>? ParamPtrTable { get; }
+        public ParamPtrTable? ParamPtrTable { get; }
 
-        public Table<ParamRow>? ParamTable { get; }
+        public ParamTable? ParamTable { get; }
 
-        public Table<InterfaceImplRow>? InterfaceImplTable { get; }
+        public InterfaceImplTable? InterfaceImplTable { get; }
 
-        public Table<MemberRefRow>? MemberRefTable { get; }
+        public MemberRefTable? MemberRefTable { get; }
 
-        public Table<ConstantRow>? ConstantTable { get; }
+        public ConstantTable? ConstantTable { get; }
 
-        public Table<CustomAttributeRow>? CustomAttributeTable { get; }
+        public CustomAttributeTable? CustomAttributeTable { get; }
 
-        public Table<FieldMarshalRow>? FieldMarshalTable { get; }
+        public FieldMarshalTable? FieldMarshalTable { get; }
 
-        public Table<DeclSecurityRow>? DeclSecurityTable { get; }
+        public DeclSecurityTable? DeclSecurityTable { get; }
 
-        public Table<ClassLayoutRow>? ClassLayoutTable { get; }
+        public ClassLayoutTable? ClassLayoutTable { get; }
 
-        public Table<FieldLayoutRow>? FieldLayoutTable { get; }
+        public FieldLayoutTable? FieldLayoutTable { get; }
 
-        public Table<StandAloneSigRow>? StandAloneSigTable { get; }
+        public StandAloneSigTable? StandAloneSigTable { get; }
 
-        public Table<EventMapRow>? EventMapTable { get; }
+        public EventMapTable? EventMapTable { get; }
 
-        public Table<EventPtrRow>? EventPtrTable { get; }
+        public EventPtrTable? EventPtrTable { get; }
 
-        public Table<EventRow>? EventTable { get; }
+        public EventTable? EventTable { get; }
 
-        public Table<PropertyMapRow>? PropertyMapTable { get; }
+        public PropertyMapTable? PropertyMapTable { get; }
 
-        public Table<PropertyPtrRow>? PropertyPtrTable { get; }
+        public PropertyPtrTable? PropertyPtrTable { get; }
 
-        public Table<PropertyRow>? PropertyTable { get; }
+        public PropertyTable? PropertyTable { get; }
 
-        public Table<MethodSemanticsRow>? MethodSemanticsTable { get; }
+        public MethodSemanticsTable? MethodSemanticsTable { get; }
 
-        public Table<MethodImplRow>? MethodImplTable { get; }
+        public MethodImplTable? MethodImplTable { get; }
 
-        public Table<ModuleRefRow>? ModuleRefTable { get; }
+        public ModuleRefTable? ModuleRefTable { get; }
 
-        public Table<TypeSpecRow>? TypeSpecTable { get; }
+        public TypeSpecTable? TypeSpecTable { get; }
 
-        public Table<ImplMapRow>? ImplMapTable { get; }
+        public ImplMapTable? ImplMapTable { get; }
 
-        public Table<FieldRvaRow>? FieldRvaTable { get; }
+        public FieldRvaTable? FieldRvaTable { get; }
 
-        public Table<EncLogRow>? EncLogTable { get; }
+        public EncLogTable? EncLogTable { get; }
 
-        public Table<EncMapRow>? EncMapTable { get; }
+        public EncMapTable? EncMapTable { get; }
 
-        public Table<AssemblyRow>? AssemblyTable { get; }
+        public AssemblyTable? AssemblyTable { get; }
 
-        public Table<AssemblyProcessorRow>? AssemblyProcessorTable { get; }
+        public AssemblyProcessorTable? AssemblyProcessorTable { get; }
 
-        public Table<AssemblyOSRow>? AssemblyOSTable { get; }
+        public AssemblyOSTable? AssemblyOSTable { get; }
 
-        public Table<AssemblyRefRow>? AssemblyRefTable { get; }
+        public AssemblyRefTable? AssemblyRefTable { get; }
 
-        public Table<AssemblyRefProcessorRow>? AssemblyRefProcessorTable { get; }
+        public AssemblyRefProcessorTable? AssemblyRefProcessorTable { get; }
 
-        public Table<AssemblyRefOSRow>? AssemblyRefOSTable { get; }
+        public AssemblyRefOSTable? AssemblyRefOSTable { get; }
 
-        public Table<FileRow>? FileTable { get; }
+        public FileTable? FileTable { get; }
 
-        public Table<ExportedTypeRow>? ExportedTypeTable { get; }
+        public ExportedTypeTable? ExportedTypeTable { get; }
 
-        public Table<ManifestResourceRow>? ManifestResourceTable { get; }
+        public ManifestResourceTable? ManifestResourceTable { get; }
 
-        public Table<NestedClassRow>? NestedClassTable { get; }
+        public NestedClassTable? NestedClassTable { get; }
 
-        public Table<GenericParamRow>? GenericParamTable { get; }
+        public GenericParamTable? GenericParamTable { get; }
 
-        public Table<MethodSpecRow>? MethodSpecTable { get; }
+        public MethodSpecTable? MethodSpecTable { get; }
 
-        public Table<GenericParamConstraintRow>? GenericParamConstraintTable { get; }
+        public GenericParamConstraintTable? GenericParamConstraintTable { get; }
 
         #endregion
         #region Portable PDB
 
-        public Table<DocumentRow>? DocumentTable { get; }
+        public DocumentTable? DocumentTable { get; }
 
-        public Table<MethodDebugInformationRow>? MethodDebugInformationTable { get; }
+        public MethodDebugInformationTable? MethodDebugInformationTable { get; }
 
-        public Table<LocalScopeRow>? LocalScopeTable { get; }
+        public LocalScopeTable? LocalScopeTable { get; }
 
-        public Table<LocalVariableRow>? LocalVariableTable { get; }
+        public LocalVariableTable? LocalVariableTable { get; }
 
-        public Table<LocalConstantRow>? LocalConstantTable { get; }
+        public LocalConstantTable? LocalConstantTable { get; }
 
-        public Table<ImportScopeRow>? ImportScopeTable { get; }
+        public ImportScopeTable? ImportScopeTable { get; }
 
-        public Table<StateMachineMethodRow>? StateMachineMethodTable { get; }
+        public StateMachineMethodTable? StateMachineMethodTable { get; }
 
-        public Table<CustomDebugInformationRow>? CustomDebugInformationTable { get; }
+        public CustomDebugInformationTable? CustomDebugInformationTable { get; }
 
         #endregion
 
-        private int Size { get; }
+        public int Size { get; }
 
-        public RawOffset Offset { get; }
+        public RawOffset Offset => chunk.AbsoluteOffset;
 
-        internal MetadataReader MetadataReader { get; }
+        private readonly MetadataSizes sizes;
 
-        internal CompressedModelHeap(IFileReader reader, int size)
+        public ref readonly MetadataSizes Sizes => ref sizes;
+
+        private readonly MemoryChunk chunk;
+
+        internal CompressedModelHeap(in MemoryChunk chunk, int size)
         {
-            Offset = (RawOffset) reader.Position;
-
+            this.chunk = chunk;
             Size = size;
 
-            //Reader is filled by parent
+            Header = new CompressedModelHeader(chunk, out var rowCounts);
 
-            Header = new CompressedModelHeader(reader, out var rowCounts);
+            var offset = CompressedModelHeader.FixedStructSize + (Header.RowCounts.Length * 4);
 
-            var metadataReader = new MetadataReader(reader, Header.HeapSizes, rowCounts);
+            var peFile = chunk.PEFile();
+
+            EcmaMetadata ecmaMetadata;
+
+            if (peFile != null!)
+                ecmaMetadata = peFile.EcmaMetadata!;
+            else
+            {
+                //It's a Portable PDB
+                ecmaMetadata = chunk.PortablePDBFile().EcmaMetadata;
+            }
+
+            var isMinimalDelta = false;
+
+            var streamHeaders = ecmaMetadata.Header.StreamHeaders;
+
+            for (var i = 0; i < streamHeaders.Length; i++)
+            {
+                ref var header = ref streamHeaders[i];
+
+                //If we have a #JTD stream, metadata references are always 4 bytes
+                if (header.Name == "#JTD")
+                    isMinimalDelta = true;
+            }
+
+            //When constructing the CompressedModelHeap, the other heaps may not have been constructed yet, so these need to be lazily evaluated
+            Lazy<StringHeap?> stringHeap = new Lazy<StringHeap?>(() => ecmaMetadata.StringHeap);
+            Lazy<BlobHeap?> blobHeap = new Lazy<BlobHeap?>(() => ecmaMetadata.BlobHeap);
+            Lazy<GuidHeap?> guidHeap = new Lazy<GuidHeap?>(() => ecmaMetadata.GuidHeap);
+
+            var sizes = new MetadataSizes(Header.HeapSizes, isMinimalDelta, rowCounts);
+            this.sizes = sizes;
+            var stringIndexSize = sizes.StringIndexSize;
+
+            int numRows;
 
             #region ECMA-335
+            #region ModuleTable
 
-            var offset = (int) reader.Position;
-
-            ModuleTable                 = CreateTable(ref offset, metadataReader, TableKind.Module,                 ModuleRow.GetRowSize,                 ModuleRow.New);
-            TypeRefTable                = CreateTable(ref offset, metadataReader, TableKind.TypeRef,                TypeRefRow.GetRowSize,                TypeRefRow.New);
-            TypeDefTable                = CreateTable(ref offset, metadataReader, TableKind.TypeDef,                TypeDefRow.GetRowSize,                TypeDefRow.New);
-            FieldPtrTable               = CreateTable(ref offset, metadataReader, TableKind.FieldPtr,               FieldPtrRow.GetRowSize,               FieldPtrRow.New);
-            FieldTable                  = CreateTable(ref offset, metadataReader, TableKind.Field,                  FieldRow.GetRowSize,                  FieldRow.New);
-            MethodPtrTable              = CreateTable(ref offset, metadataReader, TableKind.MethodPtr,              MethodPtrRow.GetRowSize,              MethodPtrRow.New);
-            MethodDefTable              = CreateTable(ref offset, metadataReader, TableKind.MethodDef,              MethodDefRow.GetRowSize,              MethodDefRow.New);
-            ParamPtrTable               = CreateTable(ref offset, metadataReader, TableKind.ParamPtr,               ParamPtrRow.GetRowSize,               ParamPtrRow.New);
-            ParamTable                  = CreateTable(ref offset, metadataReader, TableKind.Param,                  ParamRow.GetRowSize,                  ParamRow.New);
-            InterfaceImplTable          = CreateTable(ref offset, metadataReader, TableKind.InterfaceImpl,          InterfaceImplRow.GetRowSize,          InterfaceImplRow.New);
-            MemberRefTable              = CreateTable(ref offset, metadataReader, TableKind.MemberRef,              MemberRefRow.GetRowSize,              MemberRefRow.New);
-            ConstantTable               = CreateTable(ref offset, metadataReader, TableKind.Constant,               ConstantRow.GetRowSize,               ConstantRow.New);
-            CustomAttributeTable        = CreateTable(ref offset, metadataReader, TableKind.CustomAttribute,        CustomAttributeRow.GetRowSize,        CustomAttributeRow.New);
-            FieldMarshalTable           = CreateTable(ref offset, metadataReader, TableKind.FieldMarshal,           FieldMarshalRow.GetRowSize,           FieldMarshalRow.New);
-            DeclSecurityTable           = CreateTable(ref offset, metadataReader, TableKind.DeclSecurity,           DeclSecurityRow.GetRowSize,           DeclSecurityRow.New);
-            ClassLayoutTable            = CreateTable(ref offset, metadataReader, TableKind.ClassLayout,            ClassLayoutRow.GetRowSize,            ClassLayoutRow.New);
-            FieldLayoutTable            = CreateTable(ref offset, metadataReader, TableKind.FieldLayout,            FieldLayoutRow.GetRowSize,            FieldLayoutRow.New);
-            StandAloneSigTable          = CreateTable(ref offset, metadataReader, TableKind.StandAloneSig,          StandAloneSigRow.GetRowSize,          StandAloneSigRow.New);
-            EventMapTable               = CreateTable(ref offset, metadataReader, TableKind.EventMap,               EventMapRow.GetRowSize,               EventMapRow.New);
-            EventPtrTable               = CreateTable(ref offset, metadataReader, TableKind.EventPtr,               EventPtrRow.GetRowSize,               EventPtrRow.New);
-            EventTable                  = CreateTable(ref offset, metadataReader, TableKind.Event,                  EventRow.GetRowSize,                  EventRow.New);
-            PropertyMapTable            = CreateTable(ref offset, metadataReader, TableKind.PropertyMap,            PropertyMapRow.GetRowSize,            PropertyMapRow.New);
-            PropertyPtrTable            = CreateTable(ref offset, metadataReader, TableKind.PropertyPtr,            PropertyPtrRow.GetRowSize,            PropertyPtrRow.New);
-            PropertyTable               = CreateTable(ref offset, metadataReader, TableKind.Property,               PropertyRow.GetRowSize,               PropertyRow.New);
-            MethodSemanticsTable        = CreateTable(ref offset, metadataReader, TableKind.MethodSemantics,        MethodSemanticsRow.GetRowSize,        MethodSemanticsRow.New);
-            MethodImplTable             = CreateTable(ref offset, metadataReader, TableKind.MethodImpl,             MethodImplRow.GetRowSize,             MethodImplRow.New);
-            ModuleRefTable              = CreateTable(ref offset, metadataReader, TableKind.ModuleRef,              ModuleRefRow.GetRowSize,              ModuleRefRow.New);
-            TypeSpecTable               = CreateTable(ref offset, metadataReader, TableKind.TypeSpec,               TypeSpecRow.GetRowSize,               TypeSpecRow.New);
-            ImplMapTable                = CreateTable(ref offset, metadataReader, TableKind.ImplMap,                ImplMapRow.GetRowSize,                ImplMapRow.New);
-            FieldRvaTable               = CreateTable(ref offset, metadataReader, TableKind.FieldRva,               FieldRvaRow.GetRowSize,               FieldRvaRow.New);
-            EncLogTable                 = CreateTable(ref offset, metadataReader, TableKind.EncLog,                 EncLogRow.GetRowSize,                 EncLogRow.New);
-            EncMapTable                 = CreateTable(ref offset, metadataReader, TableKind.EncMap,                 EncMapRow.GetRowSize,                 EncMapRow.New);
-            AssemblyTable               = CreateTable(ref offset, metadataReader, TableKind.Assembly,               AssemblyRow.GetRowSize,               AssemblyRow.New);
-            AssemblyProcessorTable      = CreateTable(ref offset, metadataReader, TableKind.AssemblyProcessor,      AssemblyProcessorRow.GetRowSize,      AssemblyProcessorRow.New);
-            AssemblyOSTable             = CreateTable(ref offset, metadataReader, TableKind.AssemblyOS,             AssemblyOSRow.GetRowSize,             AssemblyOSRow.New);
-            AssemblyRefTable            = CreateTable(ref offset, metadataReader, TableKind.AssemblyRef,            AssemblyRefRow.GetRowSize,            AssemblyRefRow.New);
-            AssemblyRefProcessorTable   = CreateTable(ref offset, metadataReader, TableKind.AssemblyRefProcessor,   AssemblyRefProcessorRow.GetRowSize,   AssemblyRefProcessorRow.New);
-            AssemblyRefOSTable          = CreateTable(ref offset, metadataReader, TableKind.AssemblyRefOS,          AssemblyRefOSRow.GetRowSize,          AssemblyRefOSRow.New);
-            FileTable                   = CreateTable(ref offset, metadataReader, TableKind.File,                   FileRow.GetRowSize,                   FileRow.New);
-            ExportedTypeTable           = CreateTable(ref offset, metadataReader, TableKind.ExportedType,           ExportedTypeRow.GetRowSize,           ExportedTypeRow.New);
-            ManifestResourceTable       = CreateTable(ref offset, metadataReader, TableKind.ManifestResource,       ManifestResourceRow.GetRowSize,       ManifestResourceRow.New);
-            NestedClassTable            = CreateTable(ref offset, metadataReader, TableKind.NestedClass,            NestedClassRow.GetRowSize,            NestedClassRow.New);
-            GenericParamTable           = CreateTable(ref offset, metadataReader, TableKind.GenericParam,           GenericParamRow.GetRowSize,           GenericParamRow.New);
-            MethodSpecTable             = CreateTable(ref offset, metadataReader, TableKind.MethodSpec,             MethodSpecRow.GetRowSize,             MethodSpecRow.New);
-            GenericParamConstraintTable = CreateTable(ref offset, metadataReader, TableKind.GenericParamConstraint, GenericParamConstraintRow.GetRowSize, GenericParamConstraintRow.New);
+            if ((numRows = rowCounts[(int) TableKind.Module]) > 0)
+            {
+                ModuleTable = new ModuleTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.GuidIndexSize,
+                    stringHeap,
+                    guidHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ModuleTable.RowSize;
+            }
 
             #endregion
+            #region TypeRefTable
 
-            //Portable PDB Tables
+            if ((numRows = rowCounts[(int) TableKind.TypeRef]) > 0)
+            {
+                TypeRefTable = new TypeRefTable(
+                    numRows,
+                    sizes.ResolutionScopeSize,
+                    stringIndexSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * TypeRefTable.RowSize;
+            }
+
+            #endregion
+            #region TypeDefTable
+
+            if ((numRows = rowCounts[(int) TableKind.TypeDef]) > 0)
+            {
+                TypeDefTable = new TypeDefTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.TypeDefOrRefSize,
+                    sizes.GetSimpleIndexSize(TableKind.Field),
+                    sizes.GetSimpleIndexSize(TableKind.MethodDef),
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * TypeDefTable.RowSize;
+            }
+
+            #endregion
+            #region FieldPtrTable
+
+            if ((numRows = rowCounts[(int) TableKind.FieldPtr]) > 0)
+            {
+                FieldPtrTable = new FieldPtrTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Field),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FieldPtrTable.RowSize;
+            }
+
+            #endregion
+            #region FieldTable
+
+            if ((numRows = rowCounts[(int) TableKind.Field]) > 0)
+            {
+                FieldTable = new FieldTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FieldTable.RowSize;
+            }
+
+            #endregion
+            #region MethodPtrTable
+
+            if ((numRows = rowCounts[(int) TableKind.MethodPtr]) > 0)
+            {
+                MethodPtrTable = new MethodPtrTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.MethodDef),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodPtrTable.RowSize;
+            }
+
+            #endregion
+            #region MethodDefTable
+
+            if ((numRows = rowCounts[(int) TableKind.MethodDef]) > 0)
+            {
+                MethodDefTable = new MethodDefTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    sizes.GetSimpleIndexSize(TableKind.Param),
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodDefTable.RowSize;
+            }
+
+            #endregion
+            #region ParamPtrTable
+
+            if ((numRows = rowCounts[(int) TableKind.ParamPtr]) > 0)
+            {
+                ParamPtrTable = new ParamPtrTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Param),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ParamPtrTable.RowSize;
+            }
+
+            #endregion
+            #region ParamTable
+
+            if ((numRows = rowCounts[(int) TableKind.Param]) > 0)
+            {
+                ParamTable = new ParamTable(
+                    numRows,
+                    stringIndexSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ParamTable.RowSize;
+            }
+
+            #endregion
+            #region InterfaceImplTable
+
+            if ((numRows = rowCounts[(int) TableKind.InterfaceImpl]) > 0)
+            {
+                InterfaceImplTable = new InterfaceImplTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    sizes.TypeDefOrRefSize,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * InterfaceImplTable.RowSize;
+            }
+
+            #endregion
+            #region MemberRefTable
+
+            if ((numRows = rowCounts[(int) TableKind.MemberRef]) > 0)
+            {
+                MemberRefTable = new MemberRefTable(
+                    numRows,
+                    sizes.MemberRefParentSize,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MemberRefTable.RowSize;
+            }
+
+            #endregion
+            #region ConstantTable
+
+            if ((numRows = rowCounts[(int) TableKind.Constant]) > 0)
+            {
+                ConstantTable = new ConstantTable(
+                    numRows,
+                    sizes.HasConstantSize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ConstantTable.RowSize;
+            }
+
+            #endregion
+            #region CustomAttributeTable
+
+            if ((numRows = rowCounts[(int) TableKind.CustomAttribute]) > 0)
+            {
+                CustomAttributeTable = new CustomAttributeTable(
+                    numRows,
+                    sizes.HasCustomAttributeSize,
+                    sizes.CustomAttributeTypeSize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * CustomAttributeTable.RowSize;
+            }
+
+            #endregion
+            #region FieldMarshalTable
+
+            if ((numRows = rowCounts[(int) TableKind.FieldMarshal]) > 0)
+            {
+                FieldMarshalTable = new FieldMarshalTable(
+                    numRows,
+                    sizes.HasFieldMarshalSize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FieldMarshalTable.RowSize;
+            }
+
+            #endregion
+            #region DeclSecurityTable
+
+            if ((numRows = rowCounts[(int) TableKind.DeclSecurity]) > 0)
+            {
+                DeclSecurityTable = new DeclSecurityTable(
+                    numRows,
+                    sizes.HasDeclSecuritySize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * DeclSecurityTable.RowSize;
+            }
+
+            #endregion
+            #region ClassLayoutTable
+
+            if ((numRows = rowCounts[(int) TableKind.ClassLayout]) > 0)
+            {
+                ClassLayoutTable = new ClassLayoutTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ClassLayoutTable.RowSize;
+            }
+
+            #endregion
+            #region FieldLayoutTable
+
+            if ((numRows = rowCounts[(int) TableKind.FieldLayout]) > 0)
+            {
+                FieldLayoutTable = new FieldLayoutTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Field),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FieldLayoutTable.RowSize;
+            }
+
+            #endregion
+            #region StandAloneSigTable
+
+            if ((numRows = rowCounts[(int) TableKind.StandAloneSig]) > 0)
+            {
+                StandAloneSigTable = new StandAloneSigTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * StandAloneSigTable.RowSize;
+            }
+
+            #endregion
+            #region EventMapTable
+
+            if ((numRows = rowCounts[(int) TableKind.EventMap]) > 0)
+            {
+                EventMapTable = new EventMapTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    sizes.GetSimpleIndexSize(TableKind.Event),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * EventMapTable.RowSize;
+            }
+
+            #endregion
+            #region EventPtrTable
+
+            if ((numRows = rowCounts[(int) TableKind.EventPtr]) > 0)
+            {
+                EventPtrTable = new EventPtrTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Event),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * EventPtrTable.RowSize;
+            }
+
+            #endregion
+            #region EventTable
+
+            if ((numRows = rowCounts[(int) TableKind.Event]) > 0)
+            {
+                EventTable = new EventTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.TypeDefOrRefSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * EventTable.RowSize;
+            }
+
+            #endregion
+            #region PropertyMapTable
+
+            if ((numRows = rowCounts[(int) TableKind.PropertyMap]) > 0)
+            {
+                PropertyMapTable = new PropertyMapTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    sizes.GetSimpleIndexSize(TableKind.Property),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * PropertyMapTable.RowSize;
+            }
+
+            #endregion
+            #region PropertyPtrTable
+
+            if ((numRows = rowCounts[(int) TableKind.PropertyPtr]) > 0)
+            {
+                PropertyPtrTable = new PropertyPtrTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Property),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * PropertyPtrTable.RowSize;
+            }
+
+            #endregion
+            #region PropertyTable
+
+            if ((numRows = rowCounts[(int) TableKind.Property]) > 0)
+            {
+                PropertyTable = new PropertyTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * PropertyTable.RowSize;
+            }
+
+            #endregion
+            #region MethodSemanticsTable
+
+            if ((numRows = rowCounts[(int) TableKind.MethodSemantics]) > 0)
+            {
+                MethodSemanticsTable = new MethodSemanticsTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.MethodDef),
+                    sizes.HasSemanticsSize,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodSemanticsTable.RowSize;
+            }
+
+            #endregion
+            #region MethodImplTable
+
+            if ((numRows = rowCounts[(int) TableKind.MethodImpl]) > 0)
+            {
+                MethodImplTable = new MethodImplTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    sizes.MethodDefOrRefSize,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodImplTable.RowSize;
+            }
+
+            #endregion
+            #region ModuleRefTable
+
+            if ((numRows = rowCounts[(int) TableKind.ModuleRef]) > 0)
+            {
+                ModuleRefTable = new ModuleRefTable(
+                    numRows,
+                    stringIndexSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ModuleRefTable.RowSize;
+            }
+
+            #endregion
+            #region TypeSpecTable
+
+            if ((numRows = rowCounts[(int) TableKind.TypeSpec]) > 0)
+            {
+                TypeSpecTable = new TypeSpecTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * TypeSpecTable.RowSize;
+            }
+
+            #endregion
+            #region ImplMapTable
+
+            if ((numRows = rowCounts[(int) TableKind.ImplMap]) > 0)
+            {
+                ImplMapTable = new ImplMapTable(
+                    numRows,
+                    sizes.MemberForwardedSize,
+                    stringIndexSize,
+                    sizes.GetSimpleIndexSize(TableKind.ModuleRef),
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ImplMapTable.RowSize;
+            }
+
+            #endregion
+            #region FieldRvaTable
+
+            if ((numRows = rowCounts[(int) TableKind.FieldRva]) > 0)
+            {
+                FieldRvaTable = new FieldRvaTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.Field),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FieldRvaTable.RowSize;
+            }
+
+            #endregion
+            #region EncLogTable
+
+            if ((numRows = rowCounts[(int) TableKind.EncLog]) > 0)
+            {
+                EncLogTable = new EncLogTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * EncLogTable.RowSize;
+            }
+
+            #endregion
+            #region EncMapTable
+
+            if ((numRows = rowCounts[(int) TableKind.EncMap]) > 0)
+            {
+                EncMapTable = new EncMapTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * EncMapTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyTable
+
+            if ((numRows = rowCounts[(int) TableKind.Assembly]) > 0)
+            {
+                AssemblyTable = new AssemblyTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    stringIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyProcessorTable
+
+            if ((numRows = rowCounts[(int) TableKind.AssemblyProcessor]) > 0)
+            {
+                AssemblyProcessorTable = new AssemblyProcessorTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyProcessorTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyOSTable
+
+            if ((numRows = rowCounts[(int) TableKind.AssemblyOS]) > 0)
+            {
+                AssemblyOSTable = new AssemblyOSTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyOSTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyRefTable
+
+            if ((numRows = rowCounts[(int) TableKind.AssemblyRef]) > 0)
+            {
+                AssemblyRefTable = new AssemblyRefTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    stringIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyRefTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyRefProcessorTable
+
+            if ((numRows = rowCounts[(int) TableKind.AssemblyRefProcessor]) > 0)
+            {
+                AssemblyRefProcessorTable = new AssemblyRefProcessorTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.AssemblyRef),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyRefProcessorTable.RowSize;
+            }
+
+            #endregion
+            #region AssemblyRefOSTable
+
+            if ((numRows = rowCounts[(int) TableKind.AssemblyRefOS]) > 0)
+            {
+                AssemblyRefOSTable = new AssemblyRefOSTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.AssemblyRef),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * AssemblyRefOSTable.RowSize;
+            }
+
+            #endregion
+            #region FileTable
+
+            if ((numRows = rowCounts[(int) TableKind.File]) > 0)
+            {
+                FileTable = new FileTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * FileTable.RowSize;
+            }
+
+            #endregion
+            #region ExportedTypeTable
+
+            if ((numRows = rowCounts[(int) TableKind.ExportedType]) > 0)
+            {
+                ExportedTypeTable = new ExportedTypeTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.ImplementationSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ExportedTypeTable.RowSize;
+            }
+
+            #endregion
+            #region ManifestResourceTable
+
+            if ((numRows = rowCounts[(int) TableKind.ManifestResource]) > 0)
+            {
+                ManifestResourceTable = new ManifestResourceTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.ImplementationSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ManifestResourceTable.RowSize;
+            }
+
+            #endregion
+            #region NestedClassTable
+
+            if ((numRows = rowCounts[(int) TableKind.NestedClass]) > 0)
+            {
+                NestedClassTable = new NestedClassTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    chunk.Slice(offset)
+                );
+                offset += numRows * NestedClassTable.RowSize;
+            }
+
+            #endregion
+            #region GenericParamTable
+
+            if ((numRows = rowCounts[(int) TableKind.GenericParam]) > 0)
+            {
+                GenericParamTable = new GenericParamTable(
+                    numRows,
+                    sizes.TypeOrMethodDefSize,
+                    stringIndexSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * GenericParamTable.RowSize;
+            }
+
+            #endregion
+            #region MethodSpecTable
+
+            if ((numRows = rowCounts[(int) TableKind.MethodSpec]) > 0)
+            {
+                MethodSpecTable = new MethodSpecTable(
+                    numRows,
+                    sizes.MethodDefOrRefSize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodSpecTable.RowSize;
+            }
+
+            #endregion
+            #region GenericParamConstraintTable
+
+            if ((numRows = rowCounts[(int) TableKind.GenericParamConstraint]) > 0)
+            {
+                GenericParamConstraintTable = new GenericParamConstraintTable(
+                    numRows,
+                    sizes.GetSimpleIndexSize(TableKind.GenericParam),
+                    sizes.TypeDefOrRefSize,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * GenericParamConstraintTable.RowSize;
+            }
+
+            #endregion
+            #endregion
+            #region Portable PDB
+
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md
-            DocumentTable               = CreateTable(ref offset, metadataReader, TableKind.Document,               DocumentRow.GetRowSize,               DocumentRow.New);
-            MethodDebugInformationTable = CreateTable(ref offset, metadataReader, TableKind.MethodDebugInformation, MethodDebugInformationRow.GetRowSize, MethodDebugInformationRow.New);
-            LocalScopeTable             = CreateTable(ref offset, metadataReader, TableKind.LocalScope,             LocalScopeRow.GetRowSize,             LocalScopeRow.New);
-            LocalVariableTable          = CreateTable(ref offset, metadataReader, TableKind.LocalVariable,          LocalVariableRow.GetRowSize,          LocalVariableRow.New);
-            LocalConstantTable          = CreateTable(ref offset, metadataReader, TableKind.LocalConstant,          LocalConstantRow.GetRowSize,          LocalConstantRow.New);
-            ImportScopeTable            = CreateTable(ref offset, metadataReader, TableKind.ImportScope,            ImportScopeRow.GetRowSize,            ImportScopeRow.New);
-            StateMachineMethodTable     = CreateTable(ref offset, metadataReader, TableKind.StateMachineMethod,     StateMachineMethodRow.GetRowSize,     StateMachineMethodRow.New);
-            CustomDebugInformationTable = CreateTable(ref offset, metadataReader, TableKind.CustomDebugInformation, CustomDebugInformationRow.GetRowSize, CustomDebugInformationRow.New);
 
-            MetadataReader = metadataReader;
-        }
+            #region DocumentTable
 
-        private static Table<T>? CreateTable<T>(ref int offset, MetadataReader metadataReader, TableKind tableKind, Func<MetadataReader, int> getRowSize, Func<MetadataReader, T> createRow)
-        {
-            var numRows = metadataReader.GetRowCount(tableKind);
+            if ((numRows = rowCounts[(int) TableKind.Document]) > 0)
+            {
+                DocumentTable = new DocumentTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    sizes.GuidIndexSize,
+                    blobHeap,
+                    guidHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * DocumentTable.RowSize;
+            }
 
-            if (numRows == 0)
-                return null;
+            #endregion
+            #region MethodDebugInformationTable
 
-            var rowSize = getRowSize(metadataReader);
+            if ((numRows = rowCounts[(int) TableKind.MethodDebugInformation]) > 0)
+            {
+                MethodDebugInformationTable = new MethodDebugInformationTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * MethodDebugInformationTable.RowSize;
+            }
 
-            var table = new Table<T>(offset, metadataReader, numRows, rowSize, createRow);
+            #endregion
+            #region LocalScopeTable
 
-            offset += numRows * rowSize;
+            if ((numRows = rowCounts[(int) TableKind.LocalScope]) > 0)
+            {
+                LocalScopeTable = new LocalScopeTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * LocalScopeTable.RowSize;
+            }
 
-            return table;
+            #endregion
+            #region LocalVariableTable
+
+            if ((numRows = rowCounts[(int) TableKind.LocalVariable]) > 0)
+            {
+                LocalVariableTable = new LocalVariableTable(
+                    numRows,
+                    stringIndexSize,
+                    stringHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * LocalVariableTable.RowSize;
+            }
+
+            #endregion
+            #region LocalConstantTable
+
+            if ((numRows = rowCounts[(int) TableKind.LocalConstant]) > 0)
+            {
+                LocalConstantTable = new LocalConstantTable(
+                    numRows,
+                    stringIndexSize,
+                    sizes.BlobIndexSize,
+                    stringHeap,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * LocalConstantTable.RowSize;
+            }
+
+            #endregion
+            #region ImportScopeTable
+
+            if ((numRows = rowCounts[(int) TableKind.ImportScope]) > 0)
+            {
+                ImportScopeTable = new ImportScopeTable(
+                    numRows,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * ImportScopeTable.RowSize;
+            }
+
+            #endregion
+            #region StateMachineMethodTable
+
+            if ((numRows = rowCounts[(int) TableKind.StateMachineMethod]) > 0)
+            {
+                StateMachineMethodTable = new StateMachineMethodTable(
+                    numRows,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * StateMachineMethodTable.RowSize;
+            }
+
+            #endregion
+            #region CustomDebugInformationTable
+
+            if ((numRows = rowCounts[(int) TableKind.CustomDebugInformation]) > 0)
+            {
+                CustomDebugInformationTable = new CustomDebugInformationTable(
+                    numRows,
+                    sizes.HasCustomDebugInformationSize,
+                    sizes.GuidIndexSize,
+                    sizes.BlobIndexSize,
+                    blobHeap,
+                    guidHeap,
+                    chunk.Slice(offset)
+                );
+                offset += numRows * CustomDebugInformationTable.RowSize;
+            }
+
+            #endregion
+            #endregion
         }
 
         void IViewable.WriteView(ViewWriter writer)

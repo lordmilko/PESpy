@@ -7,48 +7,33 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("RVA = 0x{RVA.ToString(\"X\"),nq}, ImplFlags = {ImplFlags}, Flags = {Flags}")]
+    [DebuggerDisplay("RVA = 0x{RVA.ToString(\"X\"),nq}, ImplFlags = {ImplFlags}, Flags = {Flags}, Name = {Name.ToString(),nq}, Signature = {Signature}, ParamList = {ParamList}")]
     public readonly struct MethodDefRow : IValue, IViewable
     {
-        public int RVA { get; init; }
+        public MethodDefIndex RowIndex { get; }
 
-        public CorMethodImpl ImplFlags { get; init; }
+        public int RVA => table.GetRVA(RowIndex);
 
-        public CorMethodAttr Flags { get; init; }
+        public CorMethodImpl ImplFlags => table.GetImplFlags(RowIndex);
 
-        public int Name { get; init; }
+        public CorMethodAttr Flags => table.GetFlags(RowIndex);
 
-        public int Signature { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public int ParamList { get; init; }
+        public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int ParamList => table.GetParamList(RowIndex);
 
-        internal static MethodDefRow New(MetadataReader metadataReader) => new MethodDefRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                                       //RVA
-            sizeof(short) +                                     //ImplFlags
-            sizeof(short) +                                     //Flags
-            metadataReader.StringIndexSize +                    //Name
-            metadataReader.BlobIndexSize +                      //Signature
-            metadataReader.GetSimpleIndexSize(TableKind.Param); //ParamList
+        private readonly MethodDefTable table;
 
-        internal MethodDefRow(MetadataReader metadataReader)
+        internal MethodDefRow(MethodDefIndex index, MethodDefTable table)
         {
             //II.22.26
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            RVA = metadataReader.ReadInt32();
-            ImplFlags = (CorMethodImpl) metadataReader.ReadInt16();
-            Flags = (CorMethodAttr) metadataReader.ReadInt16();
-            Name = metadataReader.ReadStringHeapIndex();
-            Signature = metadataReader.ReadBlobHeapIndex();
-            ParamList = metadataReader.ReadSimpleIndex(TableKind.Param);
-
-            //We don't store the ImageCorILMethodInfo on this object, as that will cause our FileReader cache to be invalidated.
-            //We store the IL methods directly on the PEFile instead
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

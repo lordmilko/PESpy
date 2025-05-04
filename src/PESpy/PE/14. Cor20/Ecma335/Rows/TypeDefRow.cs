@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,44 +7,33 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Flags = {Flags}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}, Extends = {Extends}, FieldList = {FieldList}, MethodList = {MethodList}")]
     public readonly struct TypeDefRow : IValue, IViewable
     {
-        public CorTypeAttr Flags { get; init; }
+        public TypeDefIndex RowIndex { get; }
 
-        public int TypeName { get; init; }
+        public CorTypeAttr Flags => table.GetFlags(RowIndex);
 
-        public int TypeNamespace { get; init; }
+        public StringIndex TypeName => table.GetTypeName(RowIndex);
 
-        public int Extends { get; init; }
+        public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        public int FieldList { get; init; }
+        public int Extends => table.GetExtends(RowIndex);
 
-        public int MethodList { get; init; }
+        public int FieldList => table.GetFieldList(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int MethodList => table.GetMethodList(RowIndex);
 
-        internal static TypeDefRow New(MetadataReader metadataReader) => new TypeDefRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) + //Flags
-            metadataReader.StringIndexSize +                        //TypeName
-            metadataReader.StringIndexSize +                        //TypeNamespace
-            metadataReader.TypeDefOrRefSize +                       //Extends
-            metadataReader.GetSimpleIndexSize(TableKind.Field) +    //FieldList
-            metadataReader.GetSimpleIndexSize(TableKind.MethodDef); //MethodList
+        private readonly TypeDefTable table;
 
-        internal TypeDefRow(MetadataReader metadataReader)
+        internal TypeDefRow(TypeDefIndex index, TypeDefTable table)
         {
             //II.22.37
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Flags = (CorTypeAttr) metadataReader.ReadInt32();
-            TypeName = metadataReader.ReadStringHeapIndex();
-            TypeNamespace = metadataReader.ReadStringHeapIndex();
-            Extends = metadataReader.ReadTypeDefOrRefIndex();
-            FieldList = metadataReader.ReadSimpleIndex(TableKind.Field);
-            MethodList = metadataReader.ReadSimpleIndex(TableKind.MethodDef);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

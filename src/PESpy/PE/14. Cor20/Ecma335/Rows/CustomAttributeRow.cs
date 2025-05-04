@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Parent = {Parent}, Type = {Type}, Value = {Value}")]
     public readonly struct CustomAttributeRow : IValue, IViewable
     {
-        public int Parent { get; init; }
+        public CustomAttributeIndex RowIndex { get; }
 
-        public int Type { get; init; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public int Value { get; init; }
+        public int Type => table.GetType(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Value => table.GetValue(RowIndex);
 
-        internal static CustomAttributeRow New(MetadataReader metadataReader) => new CustomAttributeRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.HasCustomAttributeSize +  //Parent
-            metadataReader.CustomAttributeTypeSize + //Type
-            metadataReader.BlobIndexSize;            //Value
+        private readonly CustomAttributeTable table;
 
-        internal CustomAttributeRow(MetadataReader metadataReader)
+        internal CustomAttributeRow(CustomAttributeIndex index, CustomAttributeTable table)
         {
             //II.22.10
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Parent = metadataReader.ReadHasCustomAttributeIndex();
-            Type = metadataReader.ReadCustomAttributeTypeIndex();
-            Value = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

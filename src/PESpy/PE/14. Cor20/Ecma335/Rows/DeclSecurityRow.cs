@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,33 +7,28 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Action = {Action}, Parent = {Parent}, PermissionSet = {PermissionSet}")]
     public readonly struct DeclSecurityRow : IValue, IViewable
     {
+        public DeclSecurityIndex RowIndex { get; }
+
         //SecurityAction does not have all of the values that CorDeclSecurity has
-        public CorDeclSecurity Action { get; init; }
+        public CorDeclSecurity Action => table.GetAction(RowIndex);
 
-        public int Parent { get; init; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public int PermissionSet { get; init; }
+        public BlobIndex PermissionSet => table.GetPermissionSet(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static DeclSecurityRow New(MetadataReader metadataReader) => new DeclSecurityRow(metadataReader);
+        private readonly DeclSecurityTable table;
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                      //Action
-            metadataReader.HasDeclSecuritySize + //Parent
-            metadataReader.BlobIndexSize;        //PermissionSet
-
-        internal DeclSecurityRow(MetadataReader metadataReader)
+        internal DeclSecurityRow(DeclSecurityIndex index, DeclSecurityTable table)
         {
             //II.22.11
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Action = (CorDeclSecurity) metadataReader.ReadInt16();
-            Parent = metadataReader.ReadHasDeclSecurityIndex();
-            PermissionSet = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

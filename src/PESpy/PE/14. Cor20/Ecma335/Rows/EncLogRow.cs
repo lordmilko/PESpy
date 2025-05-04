@@ -1,29 +1,28 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Token = {Token}, FuncCode = {FuncCode}")]
     public readonly struct EncLogRow : IValue, IViewable
     {
-        public int Token { get; }
-        public EditAndContinueOperation FuncCode { get; }
+        public EncLogIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int Token => table.GetToken(RowIndex);
 
-        internal static EncLogRow New(MetadataReader metadataReader) => new EncLogRow(metadataReader);
+        public EditAndContinueOperation FuncCode => table.GetFuncCode(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) + //Token
-            sizeof(int);  //FuncCode
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal EncLogRow(MetadataReader metadataReader)
+        private readonly EncLogTable table;
+
+        internal EncLogRow(EncLogIndex index, EncLogTable table)
         {
-            Offset = (RawOffset) metadataReader.Position;
-
-            Token = metadataReader.ReadInt32();
-            FuncCode = (EditAndContinueOperation) metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,32 +7,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Semantics = {Semantics}, Method = {Method}, Association = {Association}")]
     public readonly struct MethodSemanticsRow : IValue, IViewable
     {
-        public CorMethodSemanticsAttr Semantics { get; init; }
+        public MethodSemanticsIndex RowIndex { get; }
 
-        public int Method { get; init; }
+        public CorMethodSemanticsAttr Semantics => table.GetSemantics(RowIndex);
 
-        public int Association { get; init; }
+        public int Method => table.GetMethod(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Association => table.GetAssociation(RowIndex);
 
-        internal static MethodSemanticsRow New(MetadataReader metadataReader) => new MethodSemanticsRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                                          //Semantics
-            metadataReader.GetSimpleIndexSize(TableKind.MethodDef) + //Method
-            metadataReader.HasSemanticsSize;                         //Association
+        private readonly MethodSemanticsTable table;
 
-        internal MethodSemanticsRow(MetadataReader metadataReader)
+        internal MethodSemanticsRow(MethodSemanticsIndex index, MethodSemanticsTable table)
         {
             //II.22.28
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Semantics = (CorMethodSemanticsAttr) metadataReader.ReadInt16();
-            Method = metadataReader.ReadSimpleIndex(TableKind.MethodDef);
-            Association = metadataReader.ReadHasSemanticsIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

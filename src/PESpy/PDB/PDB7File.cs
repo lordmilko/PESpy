@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Linq;
+using PESpy.PDB;
 using PESpy.View;
 
-namespace PESpy.PDB
+namespace PESpy
 {
     /// <summary>
     /// Represents a CodeView Program Database v7 (PDB) file.

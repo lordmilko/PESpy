@@ -1,34 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("OSPlatformID = {OSPlatformID}, OSMajorVersion = {OSMajorVersion}, OSMinorVersion = {OSMinorVersion}")]
     public readonly struct AssemblyOSRow : IValue, IViewable
     {
-        public int OSPlatformID { get; init; }
-        public int OSMajorVersion { get; init; }
-        public int OSMinorVersion { get; init; }
+        public AssemblyOSIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int OSPlatformID => table.GetOSPlatformID(RowIndex);
 
-        internal static AssemblyOSRow New(MetadataReader metadataReader) => new AssemblyOSRow(metadataReader);
+        public int OSMajorVersion => table.GetOSMajorVersion(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) + //OSPlatformID
-            sizeof(int) + //OSMajorVersion
-            sizeof(int);  //OSMinorVersion
+        public int OSMinorVersion => table.GetOSMinorVersion(RowIndex);
 
-        internal AssemblyOSRow(MetadataReader metadataReader)
+        public int Offset => table.GetRowOffset(RowIndex);
+
+        private readonly AssemblyOSTable table;
+
+        internal AssemblyOSRow(AssemblyOSIndex index, AssemblyOSTable table)
         {
             //II.22.3
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            OSPlatformID = metadataReader.ReadInt32();
-            OSMajorVersion = metadataReader.ReadInt32();
-            OSMinorVersion = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

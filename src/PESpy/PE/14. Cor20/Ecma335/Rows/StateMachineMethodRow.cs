@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("MoveNextMethod = {MoveNextMethod}, KickoffMethod = {KickoffMethod}")]
     public readonly struct StateMachineMethodRow : IValue, IViewable
     {
-        public int MoveNextMethod { get; }
+        public StateMachineMethodIndex RowIndex { get; }
 
-        public int KickoffMethod { get; }
+        public int MoveNextMethod => table.GetMoveNextMethod(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int KickoffMethod => table.GetKickoffMethod(RowIndex);
 
-        internal static StateMachineMethodRow New(MetadataReader metadataReader) => new StateMachineMethodRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) + //MoveNextMethod
-            sizeof(int);  //KickoffMethod
+        private readonly StateMachineMethodTable table;
 
-        internal StateMachineMethodRow(MetadataReader metadataReader)
+        internal StateMachineMethodRow(StateMachineMethodIndex index, StateMachineMethodTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#statemachinemethod-table-0x36
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            MoveNextMethod = metadataReader.ReadInt32();
-            KickoffMethod = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("FieldOffset = {FieldOffset}, Field = {Field}")]
     public readonly struct FieldLayoutRow : IValue, IViewable
     {
-        public int FieldOffset { get; init; }
+        public FieldLayoutIndex RowIndex { get; }
 
-        public int Field { get; init; }
+        public int FieldOffset => table.GetFieldOffset(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Field => table.GetField(RowIndex);
 
-        internal static FieldLayoutRow New(MetadataReader metadataReader) => new FieldLayoutRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                                       //FieldOffset
-            metadataReader.GetSimpleIndexSize(TableKind.Field); //Field
+        private readonly FieldLayoutTable table;
 
-        internal FieldLayoutRow(MetadataReader metadataReader)
+        internal FieldLayoutRow(FieldLayoutIndex index, FieldLayoutTable table)
         {
             //II.22.16
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            FieldOffset = metadataReader.ReadInt32();
-            Field = metadataReader.ReadSimpleIndex(TableKind.Field);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

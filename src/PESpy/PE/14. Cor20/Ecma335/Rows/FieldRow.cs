@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,32 +7,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Flags = {Flags}, Name = {Name.ToString(),nq}, Signature = {Signature}")]
     public readonly struct FieldRow : IValue, IViewable
     {
-        public CorFieldAttr Flags { get; init; }
+        public FieldIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public CorFieldAttr Flags => table.GetFlags(RowIndex);
 
-        public int Signature { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        internal static FieldRow New(MetadataReader metadataReader) => new FieldRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                  //Flags
-            metadataReader.StringIndexSize + //Name
-            metadataReader.BlobIndexSize;    //Signature
+        private readonly FieldTable table;
 
-        internal FieldRow(MetadataReader metadataReader)
+        internal FieldRow(FieldIndex index, FieldTable table)
         {
             //II.22.15
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Flags = (CorFieldAttr) metadataReader.ReadInt16();
-            Name = metadataReader.ReadStringHeapIndex();
-            Signature = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

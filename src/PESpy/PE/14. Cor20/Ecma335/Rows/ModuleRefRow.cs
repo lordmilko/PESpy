@@ -1,28 +1,28 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Name = {Name.ToString(),nq}")]
     public readonly struct ModuleRefRow : IValue, IViewable
     {
-        public int Name { get; init; }
+        public ModuleRefIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        internal static ModuleRefRow New(MetadataReader metadataReader) => new ModuleRefRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.StringIndexSize; //Name
+        private readonly ModuleRefTable table;
 
-        internal ModuleRefRow(MetadataReader metadataReader)
+        internal ModuleRefRow(ModuleRefIndex index, ModuleRefTable table)
         {
             //II.22.31
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Name = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

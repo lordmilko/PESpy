@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,36 +7,29 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("MappingFlags = {MappingFlags}, MemberForwarded = {MemberForwarded}, ImportName = {ImportName.ToString(),nq}, ImportScope = {ImportScope}")]
     public readonly struct ImplMapRow : IValue, IViewable
     {
-        public CorPinvokeMap MappingFlags { get; init; }
+        public ImplMapIndex RowIndex { get; }
 
-        public int MemberForwarded { get; init; }
+        public CorPinvokeMap MappingFlags => table.GetMappingFlags(RowIndex);
 
-        public int ImportName { get; init; }
+        public int MemberForwarded => table.GetMemberForwarded(RowIndex);
 
-        public int ImportScope { get; init; }
+        public StringIndex ImportName => table.GetImportName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int ImportScope => table.GetImportScope(RowIndex);
 
-        internal static ImplMapRow New(MetadataReader metadataReader) => new ImplMapRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                                         //MappingFlags
-            metadataReader.MemberForwardedSize +                    //MemberForwarded
-            metadataReader.StringIndexSize +                        //ImportName
-            metadataReader.GetSimpleIndexSize(TableKind.ModuleRef); //ImportScope
+        private readonly ImplMapTable table;
 
-        internal ImplMapRow(MetadataReader metadataReader)
+        internal ImplMapRow(ImplMapIndex index, ImplMapTable table)
         {
             //II.22.22
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            MappingFlags = (CorPinvokeMap) metadataReader.ReadInt16();
-            MemberForwarded = metadataReader.ReadMemberForwardedIndex();
-            ImportName = metadataReader.ReadStringHeapIndex();
-            ImportScope = metadataReader.ReadSimpleIndex(TableKind.ModuleRef);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

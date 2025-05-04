@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,32 +7,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Flags = {Flags}, Name = {Name.ToString(),nq}, HashValue = {HashValue}")]
     public readonly struct FileRow : IValue, IViewable
     {
-        public CorFileFlags Flags { get; init; }
+        public FileIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public CorFileFlags Flags => table.GetFlags(RowIndex);
 
-        public int HashValue { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex HashValue => table.GetHashValue(RowIndex);
 
-        internal static FileRow New(MetadataReader metadataReader) => new FileRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                    //Flags
-            metadataReader.StringIndexSize + //Name
-            metadataReader.BlobIndexSize;    //HashValue
+        private readonly FileTable table;
 
-        internal FileRow(MetadataReader metadataReader)
+        internal FileRow(FileIndex index, FileTable table)
         {
             //II.22.19
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Flags = (CorFileFlags) metadataReader.ReadInt32();
-            Name = metadataReader.ReadStringHeapIndex();
-            HashValue = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

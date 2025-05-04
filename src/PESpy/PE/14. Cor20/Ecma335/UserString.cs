@@ -1,23 +1,29 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
-    public readonly struct UserString : IValue, IViewable
+    public readonly unsafe struct UserString : IValue, IViewable
     {
-        public byte[] CompressedSize { get; }
+        public Span<byte> CompressedSize => new Span<byte>(start, lengthSize);
 
-        public string Value { get; }
+        public FixedUtf16String Value { get; }
 
-        public byte UnicodeByte { get; }
+        public byte UnicodeByte => unicodeByte;
 
         public int Offset { get; }
 
-        public UserString(int offset, byte[] compressedSize, string value, byte unicodeByte)
+        private readonly byte* start;
+        private readonly byte unicodeByte;
+        private readonly byte lengthSize;
+
+        public UserString(int offset, byte* start, byte lengthSize, FixedUtf16String value, byte unicodeByte)
         {
             Offset = offset;
-            CompressedSize = compressedSize;
+            this.start = start;
+            this.lengthSize = lengthSize;
             Value = value;
-            UnicodeByte = unicodeByte;
+            this.unicodeByte = unicodeByte;
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -35,7 +41,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            return Value;
+            return Value.ToString();
         }
     }
 }

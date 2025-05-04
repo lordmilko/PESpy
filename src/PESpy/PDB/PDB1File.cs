@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using PESpy.PDB;
 using PESpy.View;
 
-namespace PESpy.PDB
+namespace PESpy
 {
     /// <summary>
     /// Represents a CodeView Program Database v1 (PDB) file.<para/>

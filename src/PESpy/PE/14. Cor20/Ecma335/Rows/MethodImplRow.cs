@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Class = {Class}, MethodBody = {MethodBody}, MethodDeclaration = {MethodDeclaration}")]
     public readonly struct MethodImplRow : IValue, IViewable
     {
-        public int Class { get; init; }
+        public MethodImplIndex RowIndex { get; }
 
-        public int MethodBody { get; init; }
+        public int Class => table.GetClass(RowIndex);
 
-        public int MethodDeclaration { get; init; }
+        public int MethodBody => table.GetMethodBody(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int MethodDeclaration => table.GetMethodDeclaration(RowIndex);
 
-        internal static MethodImplRow New(MetadataReader metadataReader) => new MethodImplRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.GetSimpleIndexSize(TableKind.TypeDef) + //Class
-            metadataReader.MethodDefOrRefSize +                    //MethodBody
-            metadataReader.MethodDefOrRefSize;                     //MethodDeclaration
+        private readonly MethodImplTable table;
 
-        internal MethodImplRow(MetadataReader metadataReader)
+        internal MethodImplRow(MethodImplIndex index, MethodImplTable table)
         {
             //II.22.27
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Class = metadataReader.ReadSimpleIndex(TableKind.TypeDef);
-            MethodBody = metadataReader.ReadMethodDefOrRefIndex();
-            MethodDeclaration = metadataReader.ReadMethodDefOrRefIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

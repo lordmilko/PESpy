@@ -1,4 +1,5 @@
 ﻿using System.Configuration.Assemblies;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -7,53 +8,36 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("HashAlgId = {HashAlgId}, Version = {MajorVersion.ToString(),nq}.{MinorVersion.ToString(),nq}.{BuildNumber.ToString(),nq}.{RevisionNumber.ToString(),nq}, Flags = {Flags}, PublicKey = {PublicKey}, Name = {Name.ToString(),nq}, Culture = {Culture.ToString(),nq}")]
     public readonly struct AssemblyRow : IValue, IViewable
     {
-        public AssemblyHashAlgorithm HashAlgId { get; init; }
+        public AssemblyIndex RowIndex { get; }
 
-        public short MajorVersion { get; init; }
-        public short MinorVersion { get; init; }
-        public short BuildNumber { get; init; }
-        public short RevisionNumber { get; init; }
+        public AssemblyHashAlgorithm HashAlgId => table.GetHashAlgId(RowIndex);
 
-        public AssemblyFlags Flags { get; init; }
+        public short MajorVersion => table.GetMajorVersion(RowIndex);
+        public short MinorVersion => table.GetMinorVersion(RowIndex);
+        public short BuildNumber => table.GetBuildNumber(RowIndex);
+        public short RevisionNumber => table.GetRevisionNumber(RowIndex);
 
-        public int PublicKey { get; init; }
+        public AssemblyFlags Flags => table.GetFlags(RowIndex);
 
-        public int Name { get; init; }
+        public BlobIndex PublicKey => table.GetPublicKey(RowIndex);
 
-        public int Culture { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public StringIndex Culture => table.GetCulture(RowIndex);
 
-        internal static AssemblyRow New(MetadataReader metadataReader) => new AssemblyRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                    //HashAlgId
-            sizeof(short) +                  //MajorVersion
-            sizeof(short) +                  //MinorVersion
-            sizeof(short) +                  //BuildNumber
-            sizeof(short) +                  //RevisionNumber
-            sizeof(int) +                    //Flags
-            metadataReader.BlobIndexSize +   //PublicKey
-            metadataReader.StringIndexSize + //Name
-            metadataReader.StringIndexSize;  //Culture
+        private readonly AssemblyTable table;
 
-        internal AssemblyRow(MetadataReader metadataReader)
+        internal AssemblyRow(AssemblyIndex index, AssemblyTable table)
         {
             //II.22.2
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            HashAlgId = (AssemblyHashAlgorithm) metadataReader.ReadInt32();
-            MajorVersion = metadataReader.ReadInt16();
-            MinorVersion = metadataReader.ReadInt16();
-            BuildNumber = metadataReader.ReadInt16();
-            RevisionNumber = metadataReader.ReadInt16();
-            Flags = (AssemblyFlags) metadataReader.ReadInt32();
-            PublicKey = metadataReader.ReadBlobHeapIndex();
-            Name = metadataReader.ReadStringHeapIndex();
-            Culture = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -1,20 +1,26 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
-    public readonly struct BlobEntry : IValue, IViewable
+    public readonly unsafe struct BlobEntry : IValue, IViewable
     {
-        public byte[] CompressedSize { get; }
+        public Span<byte> CompressedSize => new Span<byte>(start, lengthSize);
 
-        public byte[] Bytes { get; }
+        public Span<byte> Value => new Span<byte>(start + lengthSize, length);
 
         public int Offset { get; }
 
-        public BlobEntry(int offset, byte[] compressedSize, byte[] bytes)
+        private readonly byte* start;
+        private readonly int length;
+        private readonly byte lengthSize;
+
+        public BlobEntry(int offset, byte* start, byte lengthSize, int length)
         {
             Offset = offset;
-            CompressedSize = compressedSize;
-            Bytes = bytes;
+            this.start = start;
+            this.lengthSize = lengthSize;
+            this.length = length;
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -22,7 +28,7 @@ namespace PESpy
             using var s = writer.CreateStruct("BlobEntry", this, ViewKind.Metadata_Guid);
 
             s.WriteField("Size", CompressedSize);
-            s.WriteField("Bytes", Bytes);
+            s.WriteField("Value", Value);
         }
     }
 }

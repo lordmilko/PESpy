@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,36 +7,29 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Type = {Type}, Parent = {Parent}, Value = {Value}")]
     public readonly struct ConstantRow : IValue, IViewable
     {
-        public CorElementType Type { get; init; }
+        public ConstantIndex RowIndex { get; }
 
-        public byte Padding { get; init; }
+        public CorElementType Type => table.GetType(RowIndex);
 
-        public int Parent { get; init; }
+        public byte Padding => table.GetPadding(RowIndex);
 
-        public int Value { get; init; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Value => table.GetValue(RowIndex);
 
-        internal static ConstantRow New(MetadataReader metadataReader) => new ConstantRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(byte) +                   //Type
-            sizeof(byte) +                   //Padding
-            metadataReader.HasConstantSize + //Parent
-            metadataReader.BlobIndexSize;    //Value
+        private readonly ConstantTable table;
 
-        internal ConstantRow(MetadataReader metadataReader)
+        internal ConstantRow(ConstantIndex index, ConstantTable table)
         {
             //II.22.9
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Type = (CorElementType) metadataReader.ReadByte();
-            Padding = metadataReader.ReadByte();
-            Parent = metadataReader.ReadHasConstantIndex();
-            Value = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

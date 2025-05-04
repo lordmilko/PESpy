@@ -21,7 +21,34 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="PE\14. Cor20\Ecma335\Index\Index.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Index.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="PE\14. Cor20\Ecma335\Index\Index.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Index.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="PE\14. Cor20\Ecma335\Index\Index.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Index.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

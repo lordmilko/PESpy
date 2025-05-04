@@ -1,28 +1,28 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Signature = {Signature}")]
     public readonly struct TypeSpecRow : IValue, IViewable
     {
-        public int Signature { get; }
+        public TypeSpecIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        internal static TypeSpecRow New(MetadataReader metadataReader) => new TypeSpecRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.BlobIndexSize; //Signature
+        private readonly TypeSpecTable table;
 
-        internal TypeSpecRow(MetadataReader metadataReader)
+        internal TypeSpecRow(TypeSpecIndex index, TypeSpecTable table)
         {
             //II.22.39
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Signature = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

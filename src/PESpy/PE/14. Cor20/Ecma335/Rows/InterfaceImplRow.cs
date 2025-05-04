@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Class = {Class}, Interface = {Interface}")]
     public readonly struct InterfaceImplRow : IValue, IViewable
     {
-        public int Class { get; init; }
+        public InterfaceImplIndex RowIndex { get; }
 
-        public int Interface { get; init; }
+        public int Class => table.GetClass(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Interface => table.GetInterface(RowIndex);
 
-        internal static InterfaceImplRow New(MetadataReader metadataReader) => new InterfaceImplRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.GetSimpleIndexSize(TableKind.TypeDef) + //Class
-            metadataReader.TypeDefOrRefSize;                       //Interface
+        private readonly InterfaceImplTable table;
 
-        internal InterfaceImplRow(MetadataReader metadataReader)
+        internal InterfaceImplRow(InterfaceImplIndex index, InterfaceImplTable table)
         {
             //II.22.23
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Class = metadataReader.ReadSimpleIndex(TableKind.TypeDef);
-            Interface = metadataReader.ReadTypeDefOrRefIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

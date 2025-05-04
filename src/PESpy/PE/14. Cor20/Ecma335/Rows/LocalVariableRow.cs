@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Attributes = {Attributes}, Index = {Index}, Name = {Name.ToString(),nq}")]
     public readonly struct LocalVariableRow : IValue, IViewable
     {
-        public LocalVariableAttributes Attributes { get; }
+        public LocalVariableIndex RowIndex { get; }
 
-        public uint Index { get; }
+        public LocalVariableAttributes Attributes => table.GetAttributes(RowIndex);
 
-        public int Name { get; }
+        public uint Index => table.GetIndex(RowIndex);
 
-        public RawOffset Offset { get; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        internal static LocalVariableRow New(MetadataReader metadataReader) => new LocalVariableRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                   //Attributes
-            sizeof(int) +                   //Index
-            metadataReader.StringIndexSize; //Name
+        private readonly LocalVariableTable table;
 
-        internal LocalVariableRow(MetadataReader metadataReader)
+        internal LocalVariableRow(LocalVariableIndex index, LocalVariableTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#localvariable-table-0x33
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Attributes = (LocalVariableAttributes) metadataReader.ReadInt32();
-            Index = metadataReader.ReadUInt32();
-            Name = metadataReader.ReadStringHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)
@@ -38,7 +34,7 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("LocalVariable Row", this, ViewKind.PortablePdb_LocalVariableRow);
 
             s.WriteValue(nameof(Attributes), Attributes, sizeof(int));
-            s.WriteValue(nameof(Index), Index);
+            s.WriteValue(nameof(RowIndex), Index);
             s.WriteStringHeapIndex(nameof(Name), Name);
         }
     }

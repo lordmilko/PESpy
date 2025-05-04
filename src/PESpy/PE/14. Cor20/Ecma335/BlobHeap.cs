@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
     public class BlobHeap : IEnumerable<BlobEntry> //Massively reduces memory usage
     {
@@ -12,88 +11,73 @@ namespace PESpy
         /// </summary>
         private int Size { get; }
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-        private IFileReader reader;
+        private readonly MemoryChunk chunk;
 
-        internal BlobHeap(IFileReader reader, int size)
+        internal BlobHeap(in MemoryChunk chunk, int size)
         {
-            Offset = (int) reader.Position;
+            this.chunk = chunk;
             Size = size;
-            this.reader = reader;
         }
 
-        public BlobEntry ReadBlob(int offset)
+        public BlobEntry GetBlob(BlobIndex index) => GetBlob(index.Offset);
+
+        internal unsafe BlobEntry GetBlob(int offset)
         {
-            reader.Enter();
+            var byteCount = chunk.PeekCorCompressedInteger(offset, out var bytesRead);
 
-            try
-            {
-                reader.Seek(Offset + offset);
-
-                var byteCount = reader.ReadCorCompressedInteger(out var compressedSize);
-
-                var bytes = reader.ReadBytes(byteCount);
-
-                return new BlobEntry(offset, compressedSize, bytes);
-            }
-            finally
-            {
-                reader.Exit();
-            }
+            return new BlobEntry(chunk.AbsoluteOffset + offset, chunk.Pointer + offset, bytesRead, byteCount);
         }
 
-        public string ReadDocumentName(int offset)
+        public string GetDocumentName(DocumentNameBlobIndex index) => GetDocumentName(index.Offset);
+
+        internal string GetDocumentName(int offset)
         {
-            reader.Enter();
+            var byteCount = chunk.PeekCorCompressedInteger(offset, out var bytesRead);
+            var end = offset + byteCount + bytesRead; //byteCount is the number of bytes to read from the primary stream. i.e. the number of bytes that the separator and all partOffsets take up
 
-            try
+            var read = offset + bytesRead;
+
+            var separator = chunk.PeekByte(read);
+            read++;
+
+            var builder = new StringBuilder();
+
+            var isFirst = true;
+
+            /* If you have a string C:\foo\bar\baz.cs, each component ("foo", "bar") is stored separately, so that when you have multiple paths under a given path you only need to store "foo" and "bar" once
+             *
+             * e.g. suppose we have C:\TestApp\Program.cs, and the start offset is 23
+             *
+             * 23: the byteCount (which is 4, which encompasses 1 byte). Therefore bytes 24-27 (inclusive) contain the data that byteCount refers to
+             * 24: the separator \
+             * 25: the offset of C:
+             * 26: the offset of TestApp
+             * 27: the offset of Program.cs
+             */
+
+            //If you have a string C:\foo\bar\baz.cs, each component ("foo", "bar") is stored separately, so that when you have multiple paths under a given path you only need to store "foo" and "bar" once
+            //e.g. suppose offset is 
+            while (read < end)
             {
-                reader.Seek(Offset + offset);
+                var partOffset = chunk.PeekCorCompressedInteger(read, out var partOffsetBytesRead);
+                read += partOffsetBytesRead;
 
-                var byteCount = reader.ReadCorCompressedInteger(out var compressedSize);
+                var partByteCount = chunk.PeekCorCompressedInteger(partOffset, out var partByteCountBytesRead);
 
-                var end = reader.Position + byteCount;
+                var str = chunk.PeekUtf8FixedLength(partOffset + partByteCountBytesRead, partByteCount);
 
-                if (reader.Position >= end)
-                    throw new NotImplementedException("Not sure how to handle size of document name going beyond the end of the file reader");
+                if (!isFirst)
+                    builder.Append((char) separator);
+                else
+                    isFirst = false;
 
-                var separator = reader.ReadByte();
+                builder.Append(str.ToString());
 
-                var builder = new StringBuilder();
-
-                var isFirst = true;
-
-                while (reader.Position < end)
-                {
-                    var partOffset = reader.ReadCorCompressedInteger(out var partCompressedSize);
-
-                    var oldPosition = reader.Position;
-
-                    reader.Seek(Offset + partOffset);
-
-                    var partByteCount = reader.ReadCorCompressedInteger(out _);
-
-                    var str = reader.ReadNullPaddedUTF8(partByteCount);
-
-                    reader.Seek(oldPosition);
-
-                    if (!isFirst)
-                    {
-                        builder.Append((char) separator);
-                    }
-                    else
-                        isFirst = false;
-
-                    builder.Append(str);
-                }
-
-                return builder.ToString();
             }
-            finally
-            {
-                reader.Exit();
-            }
+
+            return builder.ToString();
         }
 
         public IEnumerator<BlobEntry> GetEnumerator() => new Enumerator(this);
@@ -106,9 +90,9 @@ namespace PESpy
 
             object IEnumerator.Current => Current;
 
-            private BlobHeap blobHeap;
+            private readonly BlobHeap blobHeap;
             private int currentOffset;
-            private int endOffset;
+            private readonly int endOffset;
 
             internal Enumerator(BlobHeap blobHeap)
             {
@@ -123,8 +107,8 @@ namespace PESpy
                 if (currentOffset >= endOffset)
                     return false;
 
-                Current = blobHeap.ReadBlob(currentOffset);
-                currentOffset += Current.CompressedSize.Length + Current.Bytes.Length;
+                Current = blobHeap.GetBlob(currentOffset);
+                currentOffset += Current.CompressedSize.Length + Current.Value.Length;
                 return true;
             }
 

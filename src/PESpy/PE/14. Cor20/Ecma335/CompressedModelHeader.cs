@@ -13,6 +13,21 @@ namespace PESpy.Ecma335
 
     public readonly struct CompressedModelHeader : IValue, IViewable
     {
+#if PEFAST
+        public int Reserved1 => chunk.PeekInt32(0);
+
+        public byte MajorVersion => chunk.PeekByte(4);
+
+        public byte MinorVersion => chunk.PeekByte(5);
+
+        public HeapSizes HeapSizes => (HeapSizes) chunk.PeekByte(6);
+
+        public byte Reserved2 => chunk.PeekByte(7);
+
+        public TableMask Valid => (TableMask) chunk.PeekUInt64(8);
+
+        public TableMask Sorted => (TableMask) chunk.PeekUInt64(16);
+#else
         public int Reserved1 { get; init; }
 
         public byte MajorVersion { get; init; }
@@ -26,6 +41,7 @@ namespace PESpy.Ecma335
         public TableMask Valid { get; init; }
 
         public TableMask Sorted { get; init; }
+#endif
 
         /// <summary>
         /// Gets the row counts as listed in the header. Note that this will only contain as many valid entries as there are <see cref="Valid"/>
@@ -34,7 +50,11 @@ namespace PESpy.Ecma335
         /// </summary>
         public int[] RowCounts { get; init; }
 
+#if PEFAST
+        public RawOffset Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int FixedStructSize =
             sizeof(int) + //Reserved1
@@ -45,6 +65,50 @@ namespace PESpy.Ecma335
             sizeof(long) + //Valid
             sizeof(long);  //Sorted
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal CompressedModelHeader(in MemoryChunk chunk, out int[] rowCounts)
+        {
+            this.chunk = chunk;
+
+            //Valid is a bit vector that lists every single table that is valid in the module. As Valid is a 64-bit value, this implicitly means that the maximum
+            //number of metadata tables a given PE can possibly have is 64
+
+            rowCounts = new int[64];
+
+            ulong bit = 1;
+
+            var compressedRowCounts = new List<int>();
+
+            RowCounts = default!;
+            var valid = Valid;
+
+            var read = FixedStructSize;
+
+            for (var i = 0; i < rowCounts.Length; i++)
+            {
+                if (((ulong) valid & bit) != 0)
+                {
+                    var value = chunk.PeekInt32(read);
+                    read += sizeof(int);
+
+                    //There are 64 possible tables. If the table is not set here, by default it's count is 0
+                    rowCounts[i] = value;
+                    compressedRowCounts.Add(value);
+                }
+
+                bit <<= 1;
+            }
+
+            RowCounts = compressedRowCounts.ToArray();
+
+#if DEBUG
+            if (HeapSizes.HasFlag(HeapSizes.EXTRA_DATA))
+                throw new NotImplementedException("Don't know how to handle having extra data");
+#endif
+        }
+#else
         internal CompressedModelHeader(IFileReader reader, out int[] rowCounts)
         {
             //ECMA-335 II.24.2.6
@@ -91,6 +155,7 @@ namespace PESpy.Ecma335
                 throw new NotImplementedException("Don't know how to handle having extra data");
 #endif
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

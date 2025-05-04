@@ -48,7 +48,7 @@ namespace PESpy
             FileName = fileName;
             Name = Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
             //Read the DBG Headers
             ReadDbgHeaders();

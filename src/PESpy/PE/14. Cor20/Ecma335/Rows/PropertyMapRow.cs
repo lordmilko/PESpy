@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Parent = {Parent}, PropertyList = {PropertyList}")]
     public readonly struct PropertyMapRow : IValue, IViewable
     {
-        public int Parent { get; init; }
+        public PropertyMapIndex RowIndex { get; }
 
-        public int PropertyList { get; init; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int PropertyList => table.GetPropertyList(RowIndex);
 
-        internal static PropertyMapRow New(MetadataReader metadataReader) => new PropertyMapRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.GetSimpleIndexSize(TableKind.TypeDef) + //Parent
-            metadataReader.GetSimpleIndexSize(TableKind.Property); //PropertyList
+        private readonly PropertyMapTable table;
 
-        internal PropertyMapRow(MetadataReader metadataReader)
+        internal PropertyMapRow(PropertyMapIndex index, PropertyMapTable table)
         {
             //II.22.35
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Parent = metadataReader.ReadSimpleIndex(TableKind.TypeDef);
-            PropertyList = metadataReader.ReadSimpleIndex(TableKind.Property);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

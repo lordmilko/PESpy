@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Class = {Class}, Name = {Name.ToString(),nq}, Signature = {Signature}")]
     public readonly struct MemberRefRow : IValue, IViewable
     {
-        public int Class { get; init; }
+        public MemberRefIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public int Class => table.GetClass(RowIndex);
 
-        public int Signature { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        internal static MemberRefRow New(MetadataReader metadataReader) => new MemberRefRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.MemberRefParentSize + //Class
-            metadataReader.StringIndexSize +     //Name
-            metadataReader.BlobIndexSize;        //Signature
+        private readonly MemberRefTable table;
 
-        internal MemberRefRow(MetadataReader metadataReader)
+        internal MemberRefRow(MemberRefIndex index, MemberRefTable table)
         {
             //II.22.25
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Class = metadataReader.ReadMemberRefParentIndex();
-            Name = metadataReader.ReadStringHeapIndex();
-            Signature = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Name = {Name.ToString(),nq}, Signature = {Signature}")]
     public readonly struct LocalConstantRow : IValue, IViewable
     {
-        public int Name { get; }
+        public LocalConstantIndex RowIndex { get; }
 
-        public int Signature { get; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        internal static LocalConstantRow New(MetadataReader metadataReader) => new LocalConstantRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.StringIndexSize + //Name
-            metadataReader.BlobIndexSize;    //Signature
+        private readonly LocalConstantTable table;
 
-        internal LocalConstantRow(MetadataReader metadataReader)
+        internal LocalConstantRow(LocalConstantIndex index, LocalConstantTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#localconstant-table-0x34
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Name = metadataReader.ReadStringHeapIndex();
-            Signature = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Parent = {Parent}, NativeType = {NativeType}")]
     public readonly struct FieldMarshalRow : IValue, IViewable
     {
-        public int Parent { get; init; }
+        public FieldMarshalIndex RowIndex { get; }
 
-        public int NativeType { get; init; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex NativeType => table.GetNativeType(RowIndex);
 
-        internal static FieldMarshalRow New(MetadataReader metadataReader) => new FieldMarshalRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.HasFieldMarshalSize + //Parent
-            metadataReader.BlobIndexSize;
+        private readonly FieldMarshalTable table;
 
-        internal FieldMarshalRow(MetadataReader metadataReader)
+        internal FieldMarshalRow(FieldMarshalIndex index, FieldMarshalTable table)
         {
             //II.22.17
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Parent = metadataReader.ReadHasFieldMarshalIndex();
-            NativeType = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

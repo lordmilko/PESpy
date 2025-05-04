@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Owner = {Owner}, Constraint = {Constraint}")]
     public readonly struct GenericParamConstraintRow : IValue, IViewable
     {
-        public int Owner { get; init; }
+        public GenericParamConstraintIndex RowIndex { get; }
 
-        public int Constraint { get; init; }
+        public int Owner => table.GetOwner(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Constraint => table.GetConstraint(RowIndex);
 
-        internal static GenericParamConstraintRow New(MetadataReader metadataReader) => new GenericParamConstraintRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.GetSimpleIndexSize(TableKind.GenericParam) + //Owner
-            metadataReader.TypeDefOrRefSize;                            //Constraint
+        private readonly GenericParamConstraintTable table;
 
-        internal GenericParamConstraintRow(MetadataReader metadataReader)
+        internal GenericParamConstraintRow(GenericParamConstraintIndex index, GenericParamConstraintTable table)
         {
             //II.22.21
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Owner = metadataReader.ReadSimpleIndex(TableKind.GenericParam);
-            Constraint = metadataReader.ReadTypeDefOrRefIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

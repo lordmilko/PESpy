@@ -1,34 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Parent = {Parent}, Kind = {Kind}, Value = {Value}")]
     public readonly struct CustomDebugInformationRow : IValue, IViewable
     {
-        public int Parent { get; }
+        public CustomDebugInformationIndex RowIndex { get; }
 
-        public int Kind { get; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public int Value { get; }
+        public GuidIndex Kind => table.GetKind(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Value => table.GetValue(RowIndex);
 
-        internal static CustomDebugInformationRow New(MetadataReader metadataReader) => new CustomDebugInformationRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.HasCustomDebugInformationSize + //Parent
-            metadataReader.GuidIndexSize +                 //Kind
-            metadataReader.BlobIndexSize;                  //Value
+        private readonly CustomDebugInformationTable table;
 
-        internal CustomDebugInformationRow(MetadataReader metadataReader)
+        internal CustomDebugInformationRow(CustomDebugInformationIndex index, CustomDebugInformationTable table)
         {
-            Offset = (RawOffset) metadataReader.Position;
-
-            Parent = metadataReader.ReadHasCustomDebugInformationIndex();
-            Kind = metadataReader.ReadGuidHeapIndex();
-            Value = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

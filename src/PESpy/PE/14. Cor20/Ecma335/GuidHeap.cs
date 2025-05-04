@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace PESpy
+namespace PESpy.Ecma335
 {
     public class GuidHeap : IEnumerable<RawValue<Guid>> //Massively reduces memory usage
     {
@@ -16,46 +16,38 @@ namespace PESpy
         /// </summary>
         private int Size { get; }
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-        private IFileReader reader;
+        private readonly MemoryChunk chunk;
 
-        internal GuidHeap(IFileReader reader, int size)
+        internal GuidHeap(in MemoryChunk chunk, int size)
         {
-            Offset = (int) reader.Position;
+            this.chunk = chunk;
+
             Size = size;
             Count = size / 16;
-            this.reader = reader;
         }
 
-        public RawValue<Guid> this[int entryNo]
+        public RawValue<Guid> this[GuidIndex index] => this[(int) index];
+
+        internal RawValue<Guid> this[int index]
         {
             get
             {
                 //Per ECMA-335 II.22, indexes are 1 based. If an index of 0 is specified, it means
                 //that the value is essentially a "null reference"
 
-                if (entryNo == 0)
+                if (index == 0)
                     return default;
 
-                if (entryNo > Count)
-                    throw new ArgumentOutOfRangeException(nameof(entryNo));
+                if (index > Count)
+                    throw new ArgumentOutOfRangeException(nameof(index));
 
-                reader.Enter();
+                var offset = 16 * (index - 1);
 
-                try
-                {
-                    var offset = Offset + 16 * (entryNo - 1);
-                    reader.Seek(offset);
+                var value = chunk.PeekGuid(offset);
 
-                    var value = reader.ReadGuid();
-
-                    return new RawValue<Guid>(offset, value);
-                }
-                finally
-                {
-                    reader.Exit();
-                }
+                return new RawValue<Guid>(chunk.AbsoluteOffset + offset, value);
             }
         }
 
@@ -69,7 +61,7 @@ namespace PESpy
 
             object IEnumerator.Current => Current;
 
-            private GuidHeap guidHeap;
+            private readonly GuidHeap guidHeap;
             private int index;
 
             internal Enumerator(GuidHeap guidHeap)

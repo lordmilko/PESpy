@@ -1,44 +1,36 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Generation = {Generation}, Name = {Name.ToString(),nq}, Mvid = {Mvid}, EncId = {EncId}, EncBaseId = {EncBaseId}")]
     public readonly struct ModuleRow : IValue, IViewable
     {
-        public short Generation { get; init; }
+        public ModuleIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public short Generation => table.GetGeneration(RowIndex);
 
-        public int Mvid { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public int EncId { get; init; }
+        public GuidIndex Mvid => table.GetMvid(RowIndex);
 
-        public int EncBaseId { get; init; }
+        public GuidIndex EncId => table.GetEncId(RowIndex);
 
-        public RawOffset Offset { get; }
+        public GuidIndex EncBaseId => table.GetEncBaseId(RowIndex);
 
-        internal static ModuleRow New(MetadataReader metadataReader) => new ModuleRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                  //Generation
-            metadataReader.StringIndexSize + //Name
-            metadataReader.GuidIndexSize +   //Mvid
-            metadataReader.GuidIndexSize +   //EncId
-            metadataReader.GuidIndexSize;    //EncBaseId
+        private readonly ModuleTable table;
 
-        internal ModuleRow(MetadataReader metadataReader)
+        internal ModuleRow(ModuleIndex index, ModuleTable table)
         {
             //II.22.30
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Generation = metadataReader.ReadInt16();
-            Name = metadataReader.ReadStringHeapIndex();
-            Mvid = metadataReader.ReadGuidHeapIndex();
-            EncId = metadataReader.ReadGuidHeapIndex();
-            EncBaseId = metadataReader.ReadGuidHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

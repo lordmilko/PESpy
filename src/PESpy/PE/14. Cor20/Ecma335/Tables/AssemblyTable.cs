@@ -1,0 +1,109 @@
+﻿using System;
+using System.Configuration.Assemblies;
+using ClrDebug;
+
+namespace PESpy.Ecma335
+{
+    public sealed class AssemblyTable : Table<AssemblyRow>
+    {
+        internal readonly int RowSize;
+
+        private readonly int HashAlgIdOffset;
+        private readonly int MajorVersionOffset;
+        private readonly int MinorVersionOffset;
+        private readonly int BuildNumberOffset;
+        private readonly int RevisionNumberOffset;
+        private readonly int FlagsOffset;
+        private readonly int PublicKeyOffset;
+        private readonly int NameOffset;
+        private readonly int CultureOffset;
+
+        private readonly bool isBigBlobIndex;
+        private readonly bool isBigStringIndex;
+
+        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly MemoryChunk tableChunk;
+
+        internal AssemblyTable(int numRows, int blobIndexSize, int stringIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        {
+            this.tableChunk = tableChunk;
+            this.stringHeap = stringHeap;
+            this.blobHeap = blobHeap;
+
+            isBigBlobIndex = blobIndexSize == 4;
+            isBigStringIndex = stringIndexSize == 4;
+
+            HashAlgIdOffset = 0;
+            MajorVersionOffset = HashAlgIdOffset + sizeof(int);
+            MinorVersionOffset = MajorVersionOffset + sizeof(ushort);
+            BuildNumberOffset = MinorVersionOffset + sizeof(ushort);
+            RevisionNumberOffset = BuildNumberOffset + sizeof(ushort);
+            FlagsOffset = RevisionNumberOffset + sizeof(ushort);
+            PublicKeyOffset = FlagsOffset + sizeof(int);
+            NameOffset = PublicKeyOffset + blobIndexSize;
+            CultureOffset = NameOffset + stringIndexSize;
+            RowSize = CultureOffset + stringIndexSize;
+        }
+
+        public AssemblyHashAlgorithm GetHashAlgId(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return (AssemblyHashAlgorithm) tableChunk.PeekUInt32(rowOffset + HashAlgIdOffset);
+        }
+
+        public short GetMajorVersion(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return tableChunk.PeekInt16(rowOffset + MajorVersionOffset);
+        }
+
+        public short GetMinorVersion(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return tableChunk.PeekInt16(rowOffset + MinorVersionOffset);
+        }
+
+        public short GetBuildNumber(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return tableChunk.PeekInt16(rowOffset + BuildNumberOffset);
+        }
+
+        public short GetRevisionNumber(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return tableChunk.PeekInt16(rowOffset + RevisionNumberOffset);
+        }
+
+        public AssemblyFlags GetFlags(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return (AssemblyFlags) tableChunk.PeekUInt32(rowOffset + FlagsOffset);
+        }
+
+        public BlobIndex GetPublicKey(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PublicKeyOffset, isBigBlobIndex), blobHeap.Value);
+        }
+
+        public StringIndex GetName(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+        }
+
+        public StringIndex GetCulture(AssemblyIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + CultureOffset, isBigStringIndex), stringHeap.Value);
+        }
+
+        public int GetRowOffset(AssemblyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+
+        public AssemblyRow this[AssemblyIndex index] => this[(int) index];
+
+        protected override AssemblyRow GetRow(int index) => new AssemblyRow((AssemblyIndex) index, this);
+    }
+}

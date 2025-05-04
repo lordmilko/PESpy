@@ -1,7 +1,7 @@
-﻿using System;
+﻿using PESpy.PDB;
 using PESpy.View;
 
-namespace PESpy.PDB
+namespace PESpy
 {
     /// <summary>
     /// Represents a CodeView Program Database v2 (PDB) file.

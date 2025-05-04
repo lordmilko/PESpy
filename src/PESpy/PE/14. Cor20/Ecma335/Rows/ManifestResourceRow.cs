@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,36 +7,29 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("ResourceOffset = {ResourceOffset}, Flags = {Flags}, Name = {Name.ToString(),nq}, Implementation = {Implementation}")]
     public readonly struct ManifestResourceRow : IValue, IViewable
     {
-        public int ResourceOffset { get; init; }
+        public ManifestResourceIndex RowIndex { get; }
 
-        public CorManifestResourceFlags Flags { get; init; }
+        public int ResourceOffset => table.GetResourceOffset(RowIndex);
 
-        public int Name { get; init; }
+        public CorManifestResourceFlags Flags => table.GetFlags(RowIndex);
 
-        public int Implementation { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Implementation => table.GetImplementation(RowIndex);
 
-        internal static ManifestResourceRow New(MetadataReader metadataReader) => new ManifestResourceRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                      //ResourceOffset
-            sizeof(int) +                      //Flags
-            metadataReader.StringIndexSize +   //Name
-            metadataReader.ImplementationSize; //Implementation
+        private readonly ManifestResourceTable table;
 
-        internal ManifestResourceRow(MetadataReader metadataReader)
+        internal ManifestResourceRow(ManifestResourceIndex index, ManifestResourceTable table)
         {
             //II.22.24
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            ResourceOffset = metadataReader.ReadInt32();
-            Flags = (CorManifestResourceFlags) metadataReader.ReadInt32();
-            Name = metadataReader.ReadStringHeapIndex();
-            Implementation = metadataReader.ReadImplementationIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

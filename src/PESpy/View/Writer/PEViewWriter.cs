@@ -22,20 +22,26 @@ namespace PESpy.View
 
         public IMAGE_FILE_MACHINE Machine => peFile.FileHeader.Machine;
 
-        private MetadataReader metadataReader;
+        private MetadataSizes metadataSizes;
+        private bool hasMetadataSizes;
 
-        internal MetadataReader MetadataReader
+        internal ref readonly MetadataSizes MetadataReader
         {
             get
             {
-#if PEFAST
-                throw new NotImplementedException();
-#else
-                if (metadataReader == null)
-                    metadataReader = ((CompressedModelHeap) peFile.Cor20Header!.Metadata.Data.Header.StreamHeaders.First(f => f.Name == StorageStream.CompressedModelStream).Data).MetadataReader;
+                //This property is only accessed when we actually have metadata
+                //(or when the debugger is inspecting the PEViewWriter)
+                if (!hasMetadataSizes)
+                {
+                    var heap = peFile.EcmaMetadata?.CompressedModelHeap;
 
-                return metadataReader;
-#endif
+                    if (heap != null)
+                        metadataSizes = heap.Sizes;
+
+                    hasMetadataSizes = true;
+                }
+
+                return ref metadataSizes;
             }
         }
 

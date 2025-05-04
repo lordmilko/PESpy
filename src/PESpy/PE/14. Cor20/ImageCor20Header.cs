@@ -131,38 +131,8 @@ namespace PESpy
             //it's also possible for the r2r header to be listed in exports
             //https://github.com/dotnet/runtime/blob/a38ab4c0bc3780754259be600db1501cc2907a84/docs/design/coreclr/botr/readytorun-format.md#pe-headers-and-cli-headers
         }
-#endif
 
-        #region Metadata
-
-        //This type does not have a well-known native struct declaration
-        //EMCA-335 II.24.2
-        public class ClrMetadata : IValue, IViewable
-        {
-            public RawOffset Offset { get; }
-
-            public StorageSignature Signature { get; }
-
-            public StorageHeader Header { get; }
-
-            internal ClrMetadata(IFileReader reader, IMetadataCallback callback)
-            {
-                Offset = (RawOffset) reader.Position;
-
-                Signature = new StorageSignature(reader);
-                Header = new StorageHeader(reader, callback, Signature.Offset);
-            }
-
-            void IViewable.WriteView(ViewWriter writer)
-            {
-                //A region will be created around everything during merging
-
-                writer.WriteGlobal(Signature);
-                writer.WriteGlobal(Header);
-            }
-        }
-
-        #endregion
+        #endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

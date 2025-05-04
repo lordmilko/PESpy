@@ -1,40 +1,38 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("NestedClass = {NestedClass}, EnclosingClass = {EnclosingClass}")]
     public readonly struct NestedClassRow : IValue, IViewable
     {
-        public int NestedClass { get; init; }
+        public NestedClassIndex RowIndex { get; }
 
-        public int EnclosingClass { get; init; }
+        public int NestedClass => table.GetNestedClass(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int EnclosingClass => table.GetEnclosingClass(RowIndex);
 
-        internal static NestedClassRow New(MetadataReader metadataReader) => new NestedClassRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.GetSimpleIndexSize(TableKind.NestedClass) + //NestedClass
-            metadataReader.GetSimpleIndexSize(TableKind.NestedClass);  //EnclosingClass
+        private readonly NestedClassTable table;
 
-        internal NestedClassRow(MetadataReader metadataReader)
+        internal NestedClassRow(NestedClassIndex index, NestedClassTable table)
         {
             //II.22.32
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            NestedClass = metadataReader.ReadSimpleIndex(TableKind.NestedClass);
-            EnclosingClass = metadataReader.ReadSimpleIndex(TableKind.NestedClass);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateMetadataRow("NestedClass Row", this, ViewKind.Metadata_NestedClassRow);
 
-            s.WriteSimpleIndex(nameof(NestedClass), NestedClass, TableKind.NestedClass);
-            s.WriteSimpleIndex(nameof(EnclosingClass), EnclosingClass, TableKind.NestedClass);
+            s.WriteSimpleIndex(nameof(NestedClass), NestedClass, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(EnclosingClass), EnclosingClass, TableKind.TypeDef);
         }
     }
 }

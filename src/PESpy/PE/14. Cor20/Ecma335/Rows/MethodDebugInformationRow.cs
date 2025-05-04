@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Document = {Document}, SequencePoints = {SequencePoints}")]
     public readonly struct MethodDebugInformationRow : IValue, IViewable
     {
-        public int Document { get; init; }
+        public MethodDebugInformationIndex RowIndex { get; }
 
-        public int SequencePoints { get; init; }
+        public int Document => table.GetDocument(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex SequencePoints => table.GetSequencePoints(RowIndex);
 
-        internal static MethodDebugInformationRow New(MetadataReader metadataReader) => new MethodDebugInformationRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                 //Document
-            metadataReader.BlobIndexSize; //SequencePoints
+        private readonly MethodDebugInformationTable table;
 
-        internal MethodDebugInformationRow(MetadataReader metadataReader)
+        internal MethodDebugInformationRow(MethodDebugInformationIndex index, MethodDebugInformationTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#methoddebuginformation-table-0x31
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Document = metadataReader.ReadInt32();
-            SequencePoints = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -25,9 +25,14 @@ namespace PESpy
         DBG,
 
         /// <summary>
-        /// A <see cref="PDBFile"/> describing a Program Database.
+        /// A <see cref="PDBFile"/> describing a (Classic) Windows Program Database.
         /// </summary>
         PDB,
+
+        /// <summary>
+        /// A <see cref="PortablePDBFile"/> describing a Portable Program Database.
+        /// </summary>
+        PortablePDB,
 
         /// <summary>
         /// A <see cref="OBJFile"/> describing a COFF based object file.

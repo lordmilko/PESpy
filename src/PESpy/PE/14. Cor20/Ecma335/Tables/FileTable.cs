@@ -1,0 +1,60 @@
+﻿using System;
+using ClrDebug;
+
+namespace PESpy.Ecma335
+{
+    public sealed class FileTable : Table<FileRow>
+    {
+        internal readonly int RowSize;
+
+        private readonly int FlagsOffset;
+        private readonly int NameOffset;
+        private readonly int HashValueOffset;
+
+        private readonly bool isBigStringIndex;
+        private readonly bool isBigBlobIndex;
+
+        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly MemoryChunk tableChunk;
+
+        internal FileTable(int numRows, int stringIndexSize, int blobIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        {
+            this.tableChunk = tableChunk;
+            this.stringHeap = stringHeap;
+            this.blobHeap = blobHeap;
+
+            isBigStringIndex = stringIndexSize == 4;
+            isBigBlobIndex = blobIndexSize == 4;
+
+            FlagsOffset = 0;
+            NameOffset = FlagsOffset + sizeof(int);
+            HashValueOffset = NameOffset + stringIndexSize;
+            RowSize = HashValueOffset + blobIndexSize;
+        }
+
+        public CorFileFlags GetFlags(FileIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return (CorFileFlags) tableChunk.PeekUInt32(rowOffset + FlagsOffset);
+        }
+
+        public StringIndex GetName(FileIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+        }
+
+        public BlobIndex GetHashValue(FileIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashValueOffset, isBigBlobIndex), blobHeap.Value);
+        }
+
+        public int GetRowOffset(FileIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+
+        public FileRow this[FileIndex index] => this[(int) index];
+
+        protected override FileRow GetRow(int index) => new FileRow((FileIndex) index, this);
+    }
+}

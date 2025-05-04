@@ -1,40 +1,34 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Name = {Name.ToString(),nq}, HashAlgorithm = {HashAlgorithm}, Hash = {Hash}, Language = {Language}")]
     public readonly struct DocumentRow : IValue, IViewable
     {
-        public RawOffset Offset { get; }
+        public DocumentIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public DocumentNameBlobIndex Name => table.GetName(RowIndex);
 
-        public int HashAlgorithm { get; init; }
+        public GuidIndex HashAlgorithm => table.GetHashAlgorithm(RowIndex);
 
-        public int Hash { get; init; }
+        public BlobIndex Hash => table.GetHash(RowIndex);
 
-        public int Language { get; init; }
+        public GuidIndex Language => table.GetLanguage(RowIndex);
 
-        internal static DocumentRow New(MetadataReader metadataReader) => new DocumentRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            metadataReader.BlobIndexSize + //Name
-            metadataReader.GuidIndexSize + //HashAlgorithm
-            metadataReader.BlobIndexSize + //Hash
-            metadataReader.GuidIndexSize;  //Language
+        private readonly DocumentTable table;
 
-        internal DocumentRow(MetadataReader metadataReader)
+        internal DocumentRow(DocumentIndex index, DocumentTable table)
         {
             //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#document-table-0x30
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Name = metadataReader.ReadBlobHeapIndex();
-            HashAlgorithm = metadataReader.ReadGuidHeapIndex();
-            Hash = metadataReader.ReadBlobHeapIndex();
-            Language = metadataReader.ReadGuidHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

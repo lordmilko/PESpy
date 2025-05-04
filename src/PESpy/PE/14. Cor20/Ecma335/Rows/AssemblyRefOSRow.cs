@@ -1,39 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("OSPlatformID = {OSPlatformID}, OSMajorVersion = {OSMajorVersion}, OSMinorVersion = {OSMinorVersion}, AssemblyRef = {AssemblyRef}")]
     public readonly struct AssemblyRefOSRow : IValue, IViewable
     {
-        public int OSPlatformID { get; init; }
-        public int OSMajorVersion { get; init; }
-        public int OSMinorVersion { get; init; }
+        public AssemblyRefOSIndex RowIndex { get; }
 
-        public int AssemblyRef { get; init; }
+        public int OSPlatformID => table.GetOSPlatformID(RowIndex);
+        public int OSMajorVersion => table.GetOSMajorVersion(RowIndex);
+        public int OSMinorVersion => table.GetOSMinorVersion(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int AssemblyRef => table.GetAssemblyRef(RowIndex);
 
-        internal static AssemblyRefOSRow New(MetadataReader metadataReader) => new AssemblyRefOSRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) + //OSPlatformID
-            sizeof(short) + //OSMajorVersion
-            sizeof(short) + //OSMinorVersion
-            metadataReader.GetSimpleIndexSize(TableKind.AssemblyRef);
+        private readonly AssemblyRefOSTable table;
 
-        internal AssemblyRefOSRow(MetadataReader metadataReader)
+        internal AssemblyRefOSRow(AssemblyRefOSIndex index, AssemblyRefOSTable table)
         {
             //II.22.6
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            OSPlatformID = metadataReader.ReadInt16();
-            OSMajorVersion = metadataReader.ReadInt16();
-            OSMinorVersion = metadataReader.ReadInt16();
-
-            AssemblyRef = metadataReader.ReadSimpleIndex(TableKind.AssemblyRef);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

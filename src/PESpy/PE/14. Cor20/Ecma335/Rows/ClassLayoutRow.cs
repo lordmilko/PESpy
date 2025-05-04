@@ -1,36 +1,32 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("PackingSize = {PackingSize}, ClassSize = {ClassSize}, Parent = {Parent}")]
     public readonly struct ClassLayoutRow : IValue, IViewable
     {
-        public short PackingSize { get; init; }
+        public ClassLayoutIndex RowIndex { get; }
 
-        public int ClassSize { get; init; }
+        public short PackingSize => table.GetPackingSize(RowIndex);
 
-        public int Parent { get; init; }
+        public int ClassSize => table.GetClassSize(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int Parent => table.GetParent(RowIndex);
 
-        internal static ClassLayoutRow New(MetadataReader metadataReader) => new ClassLayoutRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                                       //PackingSize
-            sizeof(int) +                                         //ClassSize
-            metadataReader.GetSimpleIndexSize(TableKind.TypeDef); //Parent
+        private readonly ClassLayoutTable table;
 
-        internal ClassLayoutRow(MetadataReader metadataReader)
+        internal ClassLayoutRow(ClassLayoutIndex index, ClassLayoutTable table)
         {
             //II.22.8
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            PackingSize = metadataReader.ReadInt16();
-            ClassSize = metadataReader.ReadInt32();
-            Parent = metadataReader.ReadSimpleIndex(TableKind.TypeDef);
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

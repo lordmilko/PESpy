@@ -1,32 +1,30 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Parent = {Parent}, Imports = {Imports}")]
     public readonly struct ImportScopeRow : IValue, IViewable
     {
-        public int Parent { get; }
+        public ImportScopeIndex RowIndex { get; }
 
-        public int Imports { get; }
+        public int Parent => table.GetParent(RowIndex);
 
-        public RawOffset Offset { get; }
+        public BlobIndex Imports => table.GetImports(RowIndex);
 
-        internal static ImportScopeRow New(MetadataReader metadataReader) => new ImportScopeRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int) +                 //Parent
-            metadataReader.BlobIndexSize; //Imports
+        private readonly ImportScopeTable table;
 
-        internal ImportScopeRow(MetadataReader metadataReader)
+        internal ImportScopeRow(ImportScopeIndex index, ImportScopeTable table)
         {
-            https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#importscope-table-0x35
+            //https://github.com/dotnet/runtime/blob/main/docs/design/specs/PortablePdb-Metadata.md#importscope-table-0x35
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Parent = metadataReader.ReadInt32();
-            Imports = metadataReader.ReadBlobHeapIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

@@ -7,14 +7,17 @@ namespace PESpy
     {
         public override int Length { get; }
 
+        public IFile File { get; }
+
         private HashSet<long>? symbolMemory;
 
         HashSet<long> ISymbolMemoryBlock.SymbolMemory => symbolMemory ??= new HashSet<long>();
 
-        public unsafe GlobalMemoryBlock(byte* mmf, int length) : base(null)
+        public unsafe GlobalMemoryBlock(byte* mmf, int length, IFile file) : base(null)
         {
             LocalPointer = mmf;
             Length = length;
+            File = file;
         }
 
         public override bool Contains(int offset)

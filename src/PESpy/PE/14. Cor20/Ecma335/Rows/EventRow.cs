@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -6,32 +7,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("EventFlags = {EventFlags}, Name = {Name.ToString(),nq}, EventType = {EventType}")]
     public readonly struct EventRow : IValue, IViewable
     {
-        public CorEventAttr EventFlags { get; init; }
+        public EventIndex RowIndex { get; }
 
-        public int Name { get; init; }
+        public CorEventAttr EventFlags => table.GetEventFlags(RowIndex);
 
-        public int EventType { get; init; }
+        public StringIndex Name => table.GetName(RowIndex);
 
-        public RawOffset Offset { get; }
+        public int EventType => table.GetEventType(RowIndex);
 
-        internal static EventRow New(MetadataReader metadataReader) => new EventRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(short) +                  //EventFlags
-            metadataReader.StringIndexSize + //Name
-            metadataReader.TypeDefOrRefSize; //EventType
+        private readonly EventTable table;
 
-        internal EventRow(MetadataReader metadataReader)
+        internal EventRow(EventIndex index, EventTable table)
         {
             //II.22.13
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            EventFlags = (CorEventAttr) metadataReader.ReadInt16();
-            Name = metadataReader.ReadStringHeapIndex();
-            EventType = metadataReader.ReadTypeDefOrRefIndex();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

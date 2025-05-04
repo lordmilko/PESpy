@@ -1,28 +1,28 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Processor = {Processor}")]
     public readonly struct AssemblyProcessorRow : IValue, IViewable
     {
-        public int Processor { get; init; }
+        public AssemblyProcessorIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int Processor => table.GetProcessor(RowIndex);
 
-        internal static AssemblyProcessorRow New(MetadataReader metadataReader) => new AssemblyProcessorRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int); //Processor
+        private readonly AssemblyProcessorTable table;
 
-        internal AssemblyProcessorRow(MetadataReader metadataReader)
+        internal AssemblyProcessorRow(AssemblyProcessorIndex index, AssemblyProcessorTable table)
         {
             //II.22.4
 
-            Offset = (RawOffset) metadataReader.Position;
-
-            Processor = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)

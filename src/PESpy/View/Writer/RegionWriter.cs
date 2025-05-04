@@ -110,6 +110,13 @@ namespace PESpy.View
                 WriteValueInternal(value, value.Length + 1, kind);
             }
 
+            public void WriteUTF8NullTerminatedValue(RawOffset offset, Utf8String value, ViewKind kind)
+            {
+                Debug.Assert(currentOffset == offset);
+
+                WriteValueInternal(value, value.Length + 1, kind);
+            }
+
             public void WriteValues(ushort[] value)
             {
                 for (var i = 0; i < value.Length; i++)

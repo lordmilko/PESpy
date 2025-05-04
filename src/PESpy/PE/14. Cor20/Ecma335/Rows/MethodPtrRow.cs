@@ -1,26 +1,26 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.Ecma335
 {
+    [DebuggerDisplay("Method = {Method}")]
     public readonly struct MethodPtrRow : IValue, IViewable
     {
-        public int Method { get; }
+        public MethodPtrIndex RowIndex { get; }
 
-        public RawOffset Offset { get; }
+        public int Method => table.GetMethod(RowIndex);
 
-        internal static MethodPtrRow New(MetadataReader metadataReader) => new MethodPtrRow(metadataReader);
+        public int Offset => table.GetRowOffset(RowIndex);
 
-        internal static int GetRowSize(MetadataReader metadataReader) =>
-            sizeof(int); //Method
+        private readonly MethodPtrTable table;
 
-        internal MethodPtrRow(MetadataReader metadataReader)
+        internal MethodPtrRow(MethodPtrIndex index, MethodPtrTable table)
         {
-            Offset = (RawOffset) metadataReader.Position;
-
-            Method = metadataReader.ReadInt32();
+            RowIndex = index;
+            this.table = table;
         }
 
         void IViewable.WriteView(ViewWriter writer)
