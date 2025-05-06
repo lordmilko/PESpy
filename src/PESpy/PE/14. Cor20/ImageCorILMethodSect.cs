@@ -13,6 +13,26 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if PEFAST
+        internal ImageCorILMethodSect(CorILMethodSect kind, in MemoryChunk chunk, out int read)
+        {
+            Offset = chunk.AbsoluteOffset;
+
+            Kind = kind;
+
+            if (kind.HasFlag(CorILMethodSect.FatFormat))
+            {
+                //The data pointed to by the section is in fat format, and its length is encoded in 3 bytes
+                throw new NotImplementedException();
+            }
+            else
+            {
+                //The data pointed to by the section is in small format, and its length is a single byte
+                DataSize = chunk.PeekByte(1);
+                read = 2;
+            }
+        }
+#else
         internal ImageCorILMethodSect(CorILMethodSect kind, IFileReader reader)
         {
             //Already read kind byte
@@ -31,6 +51,7 @@ namespace PESpy
                 DataSize = reader.ReadByte();
             }
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

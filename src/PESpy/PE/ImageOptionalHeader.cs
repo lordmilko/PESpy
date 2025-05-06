@@ -309,7 +309,7 @@ namespace PESpy
         /// Gets information about the size and location of the export directory (IMAGE_DIRECTORY_ENTRY_EXPORT).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ExportTableDirectory => new ImageDataDirectory(chunk.Slice(80 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ExportTableDirectory => NumberOfRvaAndSizes >= 1 ? new ImageDataDirectory(chunk.Slice(80 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ExportTableDirectory { get; init; }
 #endif
@@ -318,7 +318,7 @@ namespace PESpy
         /// Gets information about the size and location of the import directory (IMAGE_DIRECTORY_ENTRY_IMPORT).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ImportTableDirectory => new ImageDataDirectory(chunk.Slice(88 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ImportTableDirectory => NumberOfRvaAndSizes >= 2 ? new ImageDataDirectory(chunk.Slice(88 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ImportTableDirectory { get; init; }
 #endif
@@ -327,7 +327,7 @@ namespace PESpy
         /// Gets information about the size and location of the resource directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ResourceTableDirectory => new ImageDataDirectory(chunk.Slice(96 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ResourceTableDirectory => NumberOfRvaAndSizes >= 3 ? new ImageDataDirectory(chunk.Slice(96 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ResourceTableDirectory { get; init; }
 #endif
@@ -336,7 +336,7 @@ namespace PESpy
         /// Gets information about the size and location of the exception directory (IMAGE_DIRECTORY_ENTRY_EXCEPTION).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ExceptionTableDirectory => new ImageDataDirectory(chunk.Slice(104 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ExceptionTableDirectory => NumberOfRvaAndSizes >= 4 ? new ImageDataDirectory(chunk.Slice(104 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ExceptionTableDirectory { get; init; }
 #endif
@@ -350,7 +350,7 @@ namespace PESpy
         /// As such, the first field of this entry, which is normally an RVA, is a file pointer instead.
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory SecurityTableDirectory => new ImageDataDirectory(chunk.Slice(112 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory SecurityTableDirectory => NumberOfRvaAndSizes >= 5 ? new ImageDataDirectory(chunk.Slice(112 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory SecurityTableDirectory { get; init; }
 #endif
@@ -359,7 +359,7 @@ namespace PESpy
         /// Gets information about the size and location of the base relocation table (IMAGE_DIRECTORY_ENTRY_BASERELOC).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory BaseRelocationTableDirectory => new ImageDataDirectory(chunk.Slice(120 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory BaseRelocationTableDirectory => NumberOfRvaAndSizes >= 6 ? new ImageDataDirectory(chunk.Slice(120 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory BaseRelocationTableDirectory { get; init; }
 #endif
@@ -368,7 +368,7 @@ namespace PESpy
         /// Gets information about the size and location of the debug directory (IMAGE_DIRECTORY_ENTRY_DEBUG).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory DebugTableDirectory => new ImageDataDirectory(chunk.Slice(128 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory DebugTableDirectory => NumberOfRvaAndSizes >= 7 ? new ImageDataDirectory(chunk.Slice(128 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory DebugTableDirectory { get; init; }
 #endif
@@ -377,7 +377,7 @@ namespace PESpy
         /// Gets information about the size and location of the architecture-specific data (IMAGE_DIRECTORY_ENTRY_COPYRIGHT or IMAGE_DIRECTORY_ENTRY_ARCHITECTURE).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory CopyrightTableDirectory => new ImageDataDirectory(chunk.Slice(136 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory CopyrightTableDirectory => NumberOfRvaAndSizes >= 8 ? new ImageDataDirectory(chunk.Slice(136 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory CopyrightTableDirectory { get; init; }
 #endif
@@ -386,7 +386,7 @@ namespace PESpy
         /// Gets information about the size and location of the the relative virtual address of the global pointer (IMAGE_DIRECTORY_ENTRY_GLOBALPTR).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory GlobalPointerTableDirectory => new ImageDataDirectory(chunk.Slice(144 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory GlobalPointerTableDirectory => NumberOfRvaAndSizes >= 9 ? new ImageDataDirectory(chunk.Slice(144 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory GlobalPointerTableDirectory { get; init; }
 #endif
@@ -395,7 +395,7 @@ namespace PESpy
         /// Gets information about the size and location of the thread local storage directory (IMAGE_DIRECTORY_ENTRY_TLS).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ThreadLocalStorageTableDirectory => new ImageDataDirectory(chunk.Slice(152 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ThreadLocalStorageTableDirectory => NumberOfRvaAndSizes >= 10 ? new ImageDataDirectory(chunk.Slice(152 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ThreadLocalStorageTableDirectory { get; init; }
 #endif
@@ -404,7 +404,7 @@ namespace PESpy
         /// Gets information about the size and location of the load configuration directory (IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory LoadConfigTableDirectory => new ImageDataDirectory(chunk.Slice(160 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory LoadConfigTableDirectory => NumberOfRvaAndSizes >= 11 ? new ImageDataDirectory(chunk.Slice(160 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory LoadConfigTableDirectory { get; init; }
 #endif
@@ -413,7 +413,7 @@ namespace PESpy
         /// Gets information about the size and location of the bound import directory (IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory BoundImportTableDirectory => new ImageDataDirectory(chunk.Slice(168 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory BoundImportTableDirectory => NumberOfRvaAndSizes >= 12 ? new ImageDataDirectory(chunk.Slice(168 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory BoundImportTableDirectory { get; init; }
 #endif
@@ -422,7 +422,7 @@ namespace PESpy
         /// Gets information about the size and location of the import address table (IMAGE_DIRECTORY_ENTRY_IAT).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory ImportAddressTableDirectory => new ImageDataDirectory(chunk.Slice(176 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory ImportAddressTableDirectory => NumberOfRvaAndSizes >= 13 ? new ImageDataDirectory(chunk.Slice(176 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory ImportAddressTableDirectory { get; init; }
 #endif
@@ -431,7 +431,7 @@ namespace PESpy
         /// Gets information about the size and location of the delay import table (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory DelayImportTableDirectory => new ImageDataDirectory(chunk.Slice(184 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory DelayImportTableDirectory => NumberOfRvaAndSizes >= 14 ? new ImageDataDirectory(chunk.Slice(184 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory DelayImportTableDirectory { get; init; }
 #endif
@@ -440,13 +440,13 @@ namespace PESpy
         /// Gets information about the size and location of the COM descriptor table (IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR).
         /// </remarks>
 #if PEFAST
-        public ImageDataDirectory CorHeaderTableDirectory => new ImageDataDirectory(chunk.Slice(192 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory CorHeaderTableDirectory => NumberOfRvaAndSizes >= 15 ? new ImageDataDirectory(chunk.Slice(192 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory CorHeaderTableDirectory { get; init; }
 #endif
 
 #if PEFAST
-        public ImageDataDirectory NullDirectory => new ImageDataDirectory(chunk.Slice(200 + (4 * chunk.PointerSize)));
+        public ImageDataDirectory NullDirectory => NumberOfRvaAndSizes >= 16 ? new ImageDataDirectory(chunk.Slice(200 + (4 * chunk.PointerSize))) : default;
 #else
         public ImageDataDirectory NullDirectory { get; init; } //Not sure what the name is
 #endif
@@ -650,24 +650,55 @@ namespace PESpy
             #endregion
             #region Directory Entries
 
-            Debug.Assert(NumberOfRvaAndSizes == 16);
+            var numberOfRvaAndSizes = NumberOfRvaAndSizes;
 
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT (0)]", ExportTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT (1)]", ImportTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE (2)]", ResourceTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)]", ExceptionTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY (4)]", SecurityTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC (5)]", BaseRelocationTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG (6)]", DebugTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_COPYRIGHT / IMAGE_DIRECTORY_ENTRY_ARCHITECTURE (7)]", CopyrightTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)]", GlobalPointerTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS (9)]", ThreadLocalStorageTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)]", LoadConfigTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)]", BoundImportTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT (12)]", ImportAddressTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)]", DelayImportTableDirectory);
-            s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)]", CorHeaderTableDirectory);
-            s.WriteStructField(nameof(NullDirectory), NullDirectory);
+            if (numberOfRvaAndSizes >= 1)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT (0)]", ExportTableDirectory);
+
+            if (numberOfRvaAndSizes >= 2)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT (1)]", ImportTableDirectory);
+
+            if (numberOfRvaAndSizes >= 3)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE (2)]", ResourceTableDirectory);
+
+            if (numberOfRvaAndSizes >= 4)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)]", ExceptionTableDirectory);
+
+            if (numberOfRvaAndSizes >= 5)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY (4)]", SecurityTableDirectory);
+
+            if (numberOfRvaAndSizes >= 6)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC (5)]", BaseRelocationTableDirectory);
+
+            if (numberOfRvaAndSizes >= 7)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG (6)]", DebugTableDirectory);
+
+            if (numberOfRvaAndSizes >= 8)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_COPYRIGHT / IMAGE_DIRECTORY_ENTRY_ARCHITECTURE (7)]", CopyrightTableDirectory);
+
+            if (numberOfRvaAndSizes >= 9)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)]", GlobalPointerTableDirectory);
+
+            if (numberOfRvaAndSizes >= 10)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS (9)]", ThreadLocalStorageTableDirectory);
+
+            if (numberOfRvaAndSizes >= 11)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)]", LoadConfigTableDirectory);
+
+            if (numberOfRvaAndSizes >= 12)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)]", BoundImportTableDirectory);
+
+            if (numberOfRvaAndSizes >= 13)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT (12)]", ImportAddressTableDirectory);
+
+            if (numberOfRvaAndSizes >= 14)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)]", DelayImportTableDirectory);
+
+            if (numberOfRvaAndSizes >= 15)
+                s.WriteStructField("DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)]", CorHeaderTableDirectory);
+
+            if (numberOfRvaAndSizes >= 16)
+                s.WriteStructField(nameof(NullDirectory), NullDirectory);
 
             #endregion
         }

@@ -16,6 +16,7 @@ namespace PESpy
 
         public FixedAnsiString Mode => chunk.PeekAnsiFixedLength(40, 8); //Should be octal
 
+        //The size of the data following this ImageArchiveMemberHeader. The total size of the member is Size + sizeof(IMAGE_ARCHIVE_MEMBER_HEADER)
         public int Size => chunk.PeekSpacePaddedInt32(48, 10);
 
         public FixedAnsiString EndHeader => chunk.PeekAnsiFixedLength(58, 2);

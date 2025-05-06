@@ -71,7 +71,7 @@ namespace PESpy
             Dispose(false);
         }
 
-        private void ReadLibHeaders()
+        private unsafe void ReadLibHeaders()
         {
             /* LIB files are encoded using the Archive file format described in https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#archive-file-signature
              *
@@ -105,7 +105,7 @@ namespace PESpy
             //Read all "members" located in the library
             while (read < mmf.Length)
             {
-                //Peek the first member of the ImageArchiveMemberHeader
+                //Peek ImageArchiveMemberHeader.Name
                 var memberName = chunk.PeekAnsiFixedLength(read, 16);
 
                 if (memberName == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_LINKER_MEMBER)
@@ -189,7 +189,9 @@ namespace PESpy
                     }
                     else
                     {
-                        //Long format
+                        //Long format. This is essentially an embedded OBJ file. References within it are relative to the beginning of its
+                        //area. To facilitate this, LongImportLibraryMember will create a sub-block around its area.
+
                         var obj = new LongImportLibraryMember(chunk.Slice(read));
                         read += obj.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
                         imports.Add(obj);

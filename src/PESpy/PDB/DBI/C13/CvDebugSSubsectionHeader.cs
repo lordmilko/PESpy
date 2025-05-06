@@ -8,8 +8,11 @@ namespace PESpy.PDB
     //CV_DebugSSubsectionHeader_t
     public class CvDebugSSubsectionHeader : IValue, IViewable //May not be present
     {
-        public DEBUG_S_SUBSECTION_TYPE type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(0);
-        public CV_off32_t cbLen => chunk.PeekInt32(4);
+        //type
+        public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(0);
+        
+        //cbLen
+        public CV_off32_t Length => chunk.PeekInt32(4);
 
         private object? data;
 
@@ -21,7 +24,7 @@ namespace PESpy.PDB
                 {
                     var dataChunk = chunk.Slice(8);
 
-                    switch (type)
+                    switch (Type)
                     {
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
 
@@ -32,14 +35,14 @@ namespace PESpy.PDB
                             else
                             {
                                 //OBJ or LIB. We're C13, which means UTF8
-                                SymbolMemoryTracker.RegisterOBJSymbolMemory(CV_SIGNATURE.C13, dataChunk); //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
+                                SymbolMemoryTracker.RegisterCVSymbolMemory(CV_SIGNATURE.C13, dataChunk); //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
                             }
 
-                            data = MsfStream.DBI.ReadSymbols(dataChunk.Pointer, cbLen);
+                            data = MsfStream.DBI.ReadSymbols(dataChunk.Pointer, Length);
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
-                            data = new CvDebugSLinesHeader(dataChunk, cbLen);
+                            data = new CvDebugSLinesHeader(dataChunk, Length);
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE:
@@ -51,7 +54,7 @@ namespace PESpy.PDB
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:
-                            data = new RvaAndFrameData(dataChunk.Slice(8), cbLen);
+                            data = new RvaAndFrameData(dataChunk.Slice(8), Length);
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES:
@@ -96,7 +99,7 @@ namespace PESpy.PDB
         {
             this.chunk = chunk;
 
-            if (type.HasFlag(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IGNORE))
+            if (Type.HasFlag(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IGNORE))
                 throw new System.NotImplementedException(); //you're meant to ignore the contents when this bit is set, but is the data actually valid?
 
 #if STRESS_TEST
@@ -113,7 +116,7 @@ namespace PESpy.PDB
         {
             var read = 0;
 
-            var end = cbLen;
+            var end = Length;
 
             var results = new List<RawValue<Utf8String>>();
 
@@ -131,10 +134,10 @@ namespace PESpy.PDB
         {
             using var s = writer.CreateStruct("CV_DebugSSubsectionHeader_t", this, ViewKind.CvDebugSSubsectionHeader);
 
-            s.WriteField(nameof(type), type, sizeof(int));
-            s.WriteField(nameof(cbLen), cbLen);
+            s.WriteField("type", Type, sizeof(int));
+            s.WriteField("cbLen", Length);
 
-            switch (type)
+            switch (Type)
             {
                 case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
                     if (chunk.block is PagedMemoryBlock p)
@@ -190,7 +193,7 @@ namespace PESpy.PDB
 
         public override string ToString()
         {
-            return type.ToString();
+            return Type.ToString();
         }
     }
 }

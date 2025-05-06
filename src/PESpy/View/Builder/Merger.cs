@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography;
 using PESpy.PDB;
 
 #if !DEBUG_POSITION
@@ -13,12 +12,12 @@ namespace PESpy.View.Builder
 {
     abstract class Merger
     {
-        private List<IView> sortedStructs;
+        protected List<IView> sortedStructs;
         private HashSet<IView>? delayNameViews;
-        private List<DirectoryInfo> discoveredDataDirectories;
+        protected List<DirectoryInfo> discoveredDataDirectories;
 
-        private int nextStructIndex;
-        private int nextDataDirectoryIndex;
+        protected int nextStructIndex;
+        protected int nextDataDirectoryIndex;
         private IView? nextValue;
         private DirectoryInfo? directory;
         protected Extension extension;
@@ -42,7 +41,7 @@ namespace PESpy.View.Builder
 
         internal abstract IView[] Merge();
 
-        protected IView[] BuildSection(
+        internal IView[] BuildSection(
             RawOffset startRva,
             RawOffset endRva,
             Func<int, int>? getRealOffset,

@@ -3,12 +3,52 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct GlobalValueEntry : IValue, IViewable
+    public struct GlobalValueEntry : IValue, IViewable
     {
-        public int Offset { get; }
+#if PEFAST
+        private VA<AnsiString> name;
 
+        public VA<AnsiString> Name
+        {
+            get
+            {
+                if (name.ListedAddress == 0)
+                {
+                    var ptr = (long) chunk.PeekPointer(0);
+
+                    var peFile = chunk.PEFile();
+
+                    var rva = (int) (ptr - peFile.OptionalHeader.ImageBase);
+
+                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        name = new VA<AnsiString>(ptr, rva, str);
+                    }
+                    else
+                        name = new VA<AnsiString>(ptr);
+                }
+
+                return name;
+            }
+        }
+
+        public ulong Address => chunk.PeekPointer(chunk.PointerSize);
+
+        public int Offset => chunk.AbsoluteOffset;
+
+        private readonly MemoryChunk chunk;
+
+        internal GlobalValueEntry(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            name = default;
+        }
+#else
         public VA<string> Name { get; }
         public long Address { get; }
+
+        public int Offset { get; }
 
         internal GlobalValueEntry(IFileReader reader, PEFile peFile, bool is32Bit)
         {
@@ -32,6 +72,7 @@ namespace PESpy
 
             reader.Seek(oldPosition);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

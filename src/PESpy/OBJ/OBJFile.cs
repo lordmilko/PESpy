@@ -47,9 +47,9 @@ namespace PESpy
 
         public ImageSectionHeader[] SectionHeaders { get; private set; }
 
-        private IValue[]? sectionData;
+        private IValue?[]? sectionData;
 
-        public IValue[] SectionData
+        public IValue?[] SectionData
         {
             get
             {
@@ -57,7 +57,7 @@ namespace PESpy
                 {
                     var sections = SectionHeaders;
 
-                    var results = new IValue[sections.Length];
+                    var results = new IValue?[sections.Length];
 
                     /* https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
                      *
@@ -80,66 +80,7 @@ namespace PESpy
                         else
                             sectionChunk = new MemoryChunk(globalBlock, section.PointerToRawData);
 
-                        //Can't switch as section name is a Utf8String and we don't want to allocate
-                        if (section.Name == ".drectve")
-                        {
-                            //I don't know if it's ANSI or UTF-8, however treating it as UTF-8 seems like the safest thing to do
-                            var str = sectionChunk.PeekUtf8FixedLength(0, section.SizeOfRawData);
-                            results[i] = new RawValue<FixedUtf8String>(sectionChunk.AbsoluteOffset, str);
-                        }
-                        else if (section.Name == ".debug$S")
-                            results[i] = new OBJSymbolsTable(sectionChunk, section.SizeOfRawData);
-                        else if (section.Name == ".debug$T" || section.Name == ".debug$P")
-                            results[i] = new OBJTypesTable(sectionChunk, section.SizeOfRawData);
-                        else if (section.Name == ".text$mn")
-                        {
-                            //It's assembly code, but we can't read it ourselves
-                            results[i] = new RawValue<byte[]>(sectionChunk.AbsoluteOffset, sectionChunk.PeekSpan<byte>(0, section.SizeOfRawData).ToArray());
-                        }
-                        #region CxxIL
-                        else if (section.Name == ".cil$db")
-                        {
-                            //debugDataFileReader -> phx!DebugDataReader
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$ex")
-                        {
-                            //expressionFileReader -> phx!ExpressionReader
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$fg")
-                        {
-                            //phx.dll flagsFileReader is not used, so I don't know what the format of this is. PEAnatomist doesn't seem to know either
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$gl")
-                        {
-                            //globalSymbolFileReader -> phx!GlobalSymbolReader.ReadHeaders
-
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$in")
-                        {
-                            //initializeFileReader -> phx!InitializerReader
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$md")
-                        {
-                            //metadataFileReader -> phx!MetadataReader
-                            AssertNotImplemented();
-                        }
-                        else if (section.Name == ".cil$sy")
-                        {
-                            //localSymbolFileReader -> phx!LocalSymbolReader
-                            AssertNotImplemented();
-                        }
-                        #endregion
-                        else
-                        {
-                            //Lookout for the .cil$ item that starts with "p" and add it above .cil$sy above
-
-                            AssertNotImplemented();
-                        }
+                        results[i] = GetDataForSection(sectionChunk, section.Name, section.SizeOfRawData);
                     }
 
                     sectionData = results;
@@ -149,10 +90,68 @@ namespace PESpy
             }
         }
 
-        internal static IValue GetDataForSection()
+        internal static IValue? GetDataForSection(in MemoryChunk sectionChunk, FixedUtf8String sectionName, int sizeOfRawData)
         {
-            //Abstract the logic of getting data for a section out to this method so that OBJ files embedded in LIBs can use this logic too
-            throw new NotImplementedException();
+            //Can't switch as section name is a Utf8String and we don't want to allocate
+            if (sectionName == ".drectve")
+            {
+                //I don't know if it's ANSI or UTF-8, however treating it as UTF-8 seems like the safest thing to do
+                var str = sectionChunk.PeekUtf8FixedLength(0, sizeOfRawData);
+                return new RawValue<FixedUtf8String>(sectionChunk.AbsoluteOffset, str);
+            }
+            else if (sectionName == ".debug$S")
+                return new OBJSymbolsTable(sectionChunk, sizeOfRawData);
+            else if (sectionName == ".debug$T" || sectionName == ".debug$P")
+                return new OBJTypesTable(sectionChunk, sizeOfRawData);
+            else if (sectionName == ".text$mn")
+            {
+                //It's assembly code, but we can't read it ourselves
+                return new RawValue<byte[]>(sectionChunk.AbsoluteOffset, sectionChunk.PeekSpan<byte>(0, sizeOfRawData).ToArray());
+            }
+            #region CxxIL
+            else if (sectionName == ".cil$db")
+            {
+                //debugDataFileReader -> phx!DebugDataReader
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$ex")
+            {
+                //expressionFileReader -> phx!ExpressionReader
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$fg")
+            {
+                //phx.dll flagsFileReader is not used, so I don't know what the format of this is. PEAnatomist doesn't seem to know either
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$gl")
+            {
+                //globalSymbolFileReader -> phx!GlobalSymbolReader.ReadHeaders
+
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$in")
+            {
+                //initializeFileReader -> phx!InitializerReader
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$md")
+            {
+                //metadataFileReader -> phx!MetadataReader
+                return AssertNotImplemented();
+            }
+            else if (sectionName == ".cil$sy")
+            {
+                //localSymbolFileReader -> phx!LocalSymbolReader
+                return AssertNotImplemented();
+            }
+            #endregion
+            else
+            {
+                //Lookout for the .cil$ item that starts with "p" and add it above .cil$sy above
+
+                return AssertNotImplemented();
+            }
         }
 
         private MemoryMappedFileHolder mmf;
@@ -232,9 +231,10 @@ namespace PESpy
             SectionHeaders = sectionHeaders;
         }
 
-        private void AssertNotImplemented()
+        private static IValue? AssertNotImplemented()
         {
             //todo
+            return null;
         }
 
         public unsafe FileView GetView()

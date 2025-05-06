@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
+using PESpy.LIB;
+
 #if !DEBUG_POSITION
 using RVA = System.Int32;
 using RawOffset = System.Int32;
@@ -17,7 +19,7 @@ namespace PESpy
         /// The name of the section.
         /// </summary>
 #if PEFAST
-        public Utf8String Name => chunk.PeekNullPaddedUtf8(0, 8);
+        public FixedUtf8String Name => chunk.PeekNullPaddedUtf8(0, 8);
 #else
         public string Name { get; init; }
 #endif
@@ -76,13 +78,13 @@ namespace PESpy
         /// This is set to zero for PE images or if there are no relocations.
         /// </summary>
 #if PEFAST
-        private VA<ImageRelocation[]>? pointerToRelocations;
+        private VA<ImageRelocation[]> pointerToRelocations;
 
         public VA<ImageRelocation[]> PointerToRelocations
         {
             get
             {
-                if (pointerToRelocations == null)
+                if (pointerToRelocations.ListedAddress == 0)
                 {
                     var offset = chunk.PeekInt32(24);
 
@@ -92,36 +94,25 @@ namespace PESpy
                     }
                     else
                     {
-                        MemoryChunk symbolTableChunk;
+                        MemoryChunk valueChunk;
 
-                        if (chunk.block is GlobalMemoryBlock b)
+                        if (TryGetHeaderChunk(chunk, offset, out valueChunk))
                         {
-                            //If we have an Anon Header, I think we need to adjust for it. And if we've been embedded inside of a LIB file,
-                            //I think we need to further adjust for that too
+                            var relocations = new ImageRelocation[NumberOfRelocations];
 
-                            Debug.Assert(false, "Implement support for Anon Header and embedded in LIB file");
-                            
-                            symbolTableChunk = new MemoryChunk(b, offset);
+                            for (var i = 0; i < NumberOfRelocations; i++)
+                                relocations[i] = new ImageRelocation(valueChunk.Slice(i * ImageRelocation.StructSize));
+
+                            pointerToRelocations = new VA<ImageRelocation[]>(offset, offset, relocations);
                         }
                         else
                         {
-                            if (!chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out symbolTableChunk))
-                            {
-                                pointerToRelocations = new VA<ImageRelocation[]>(offset);
-                                return pointerToRelocations.Value;
-                            }
-                        }
-
-                        var relocations = new ImageRelocation[NumberOfRelocations];
-
-                        for (var i = 0; i < NumberOfRelocations; i++)
-                            relocations[i] = new ImageRelocation(symbolTableChunk.Slice(i * ImageRelocation.StructSize));
-
-                        pointerToRelocations = new VA<ImageRelocation[]>(offset, offset, relocations);
+                            pointerToRelocations = new VA<ImageRelocation[]>(offset);
+                        }                        
                     }
                 }
 
-                return pointerToRelocations.Value;
+                return pointerToRelocations;
             }
         }
 #else
@@ -134,13 +125,13 @@ namespace PESpy
         /// This value should be zero for an image because COFF debugging information is deprecated.
         /// </summary>
 #if PEFAST
-        private VA<ImageLineNumber[]>? pointerToLineNumbers;
+        private VA<ImageLineNumber[]> pointerToLineNumbers;
 
         public VA<ImageLineNumber[]> PointerToLineNumbers
         {
             get
             {
-                if (pointerToLineNumbers == null)
+                if (pointerToLineNumbers.ListedAddress == 0)
                 {
                     var offset = chunk.PeekInt32(28);
 
@@ -150,36 +141,23 @@ namespace PESpy
                     }
                     else
                     {
-                        MemoryChunk symbolTableChunk;
-
-                        if (chunk.block is GlobalMemoryBlock b)
+                        if (TryGetHeaderChunk(chunk, offset, out var valueChunk))
                         {
-                            //If we have an Anon Header, I think we need to adjust for it. And if we've been embedded inside of a LIB file,
-                            //I think we need to further adjust for that too
+                            var lineNumbers = new ImageLineNumber[NumberOfRelocations];
 
-                            Debug.Assert(false, "Implement support for Anon Header and embedded in LIB file");
+                            for (var i = 0; i < NumberOfRelocations; i++)
+                                lineNumbers[i] = new ImageLineNumber(valueChunk.Slice(i * ImageLineNumber.StructSize));
 
-                            symbolTableChunk = new MemoryChunk(b, offset);
+                            pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
                         }
                         else
                         {
-                            if (!chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out symbolTableChunk))
-                            {
-                                pointerToLineNumbers = new VA<ImageLineNumber[]>(offset);
-                                return pointerToLineNumbers.Value;
-                            }
+                            pointerToLineNumbers = new VA<ImageLineNumber[]>(offset);
                         }
-
-                        var lineNumbers = new ImageLineNumber[NumberOfRelocations];
-
-                        for (var i = 0; i < NumberOfRelocations; i++)
-                            lineNumbers[i] = new ImageLineNumber(symbolTableChunk.Slice(i * ImageLineNumber.StructSize));
-
-                        pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
                     }
                 }
 
-                return pointerToLineNumbers.Value;
+                return pointerToLineNumbers;
             }
         }
 #else
@@ -245,6 +223,36 @@ namespace PESpy
 
             //Note: we can't do any section lookups in the ctor for stuff like NumberOfLineNumbers,
             //as these require that our sections have already been created!
+        }
+
+        internal static bool TryGetHeaderChunk(in MemoryChunk chunk, int offset, out MemoryChunk headerChunk)
+        {
+            if (chunk.block is GlobalMemoryBlock b)
+            {
+                //It should be an OBJ file. If we have an Anon Header, I think we need to adjust for it
+                var objFile = (OBJFile) b.File;
+
+                var effectiveOffset = objFile.FileHeader.Offset + offset;
+
+                headerChunk = new MemoryChunk(b, effectiveOffset);
+                return true;
+            }
+            else if (chunk.block is GlobalSubMemoryBlock s)
+            {
+                //It should be an OBJ file inside a LIB. There is no Anon Header., but there _is_ an archive header. The sub-block automatically handles
+                //relative addresses for us, but we need to know our relative offset relative to the start of the ImageFileHeader
+                Debug.Assert(s.Owner is LongImportLibraryMember);
+                headerChunk = new MemoryChunk(s, offset + ImageArchiveMemberHeader.StructSize); //Offset for LongImportLibraryMember will be the ImageArchiveMemberHeader
+                return true;
+            }
+            else
+            {
+                //It should be a PE File
+                if (chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out headerChunk))
+                    return true;
+
+                return false;
+            }
         }
 #else
         internal ImageSectionHeader(IFileReader reader)

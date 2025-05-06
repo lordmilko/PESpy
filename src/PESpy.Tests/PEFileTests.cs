@@ -25,13 +25,234 @@ namespace PESpy.Tests
     {
         private static readonly object IgnoreValue = new object();
 
+        #region ImageFileHeader: PointerToSymbolTable
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageFileHeader_PointerToSymbolTable()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageFileHeader_PointerToSymbolTable()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region ImageSectionHeader: PointerToRelocations
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageSectionHeader_PointerToRelocations()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageSectionHeader_PointerToRelocations()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region ImageSectionHeader: PointerToLineNumbers
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageSectionHeader_PointerToLineNumbers()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageSectionHeader_PointerToLineNumbers()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region ImageDebugDirectory: DataWithinSection
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageDebugDirectory_DataWithinSection()
+        {
+            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
+
+            var debugTable = peFile.DebugTable;
+
+            Assert.IsNotNull(debugTable);
+            Assert.IsTrue(debugTable.Length > 0);
+            Assert.AreEqual(ImageDebugType.CodeView, debugTable[0].Type);
+            Assert.IsNotNull(debugTable[0].Data);
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageDebugDirectory_DataWithinSection()
+        {
+            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
+
+            var debugTable = peFile.DebugTable;
+
+            Assert.IsNotNull(debugTable);
+            Assert.IsTrue(debugTable.Length > 0);
+            Assert.AreEqual(ImageDebugType.CodeView, debugTable[0].Type);
+            Assert.IsNotNull(debugTable[0].Data);
+        }
+
+        #endregion
+        #region ImageDebugDirectory: DataOutsideSection
+
+        /* In crtdll the NB10I is outside the bounds of any known section, thereby making this data in the overlay.
+         * Visual Studio fails to locate symbols for this module, but DbgEng succeeds, even when reading a dump.
+         * This is because it calls dbghelp!DoSymbolCallback with CBA_DEFERRED_SYMBOL_LOAD_PARTIAL which causes
+         * dbgeng!SymbolCallbackFunction to call dbgeng!FindImageFile -> dbghelp!SymFindFileInPath, which downloads
+         * the file from symsrv */
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageDebugDirectory_DataOutsideSection()
+        {
+            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.crtdll));
+
+            var debugTable = peFile.DebugTable;
+
+            Assert.IsNotNull(debugTable);
+            Assert.AreEqual(1, debugTable.Length);
+            Assert.IsNotNull(debugTable[0].Data);
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageDebugDirectory_DataOutsideSection()
+        {
+            if (IntPtr.Size != 4)
+                Assert.Inconclusive("Test requires x86");
+
+            var hModule = Kernel32.LoadLibraryW(WellKnownTestModule.GetStoreFile(WellKnownTestModule.crtdll));
+
+            try
+            {
+                using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), hModule);
+
+                var debugTable = peFile.DebugTable;
+
+                Assert.IsNotNull(debugTable);
+                Assert.AreEqual(1, debugTable.Length);
+                Assert.IsNull(debugTable[0].Data);
+            }
+            finally
+            {
+                Kernel32.FreeLibrary(hModule);
+            }
+        }
+
+        #endregion
+        #region ImageResourceDirectoryEntry: UnionNameOrId.Name
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_ImageResourceDirectoryEntry_UnionNameOrId_Name()
+        {
+            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
+
+            var resourceDirectory = peFile.ResourceDirectory;
+
+            var name = resourceDirectory.Entries[0].NameOrId.NameOffset.Value.ToString();
+
+            Assert.AreEqual("MUI", name);
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_ImageResourceDirectoryEntry_UnionNameOrId_Name()
+        {
+            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
+
+            var resourceDirectory = peFile.ResourceDirectory;
+
+            var name = resourceDirectory.Entries[0].NameOrId.NameOffset.Value.ToString();
+
+            Assert.AreEqual("MUI", name);
+        }
+
+        #endregion
+        #region SecurityTable
+
+        //Certificates are stored in the overlay; as such they should not be loaded into memory
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_SecurityTable()
+        {
+            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
+
+            var securityTable = peFile.SecurityTable;
+
+            Assert.IsNotNull(securityTable);
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_SecurityTable()
+        {
+            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
+
+            var securityTable = peFile.SecurityTable;
+
+            Assert.IsNull(securityTable);
+        }
+
+        #endregion
+        #region BoundImportTable
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_UnloadedImage_BoundImportTable()
+        {
+            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.mfc40u));
+
+            var boundImportTable = peFile.BoundImportTable;
+
+            Assert.AreEqual("MSVCRT40.dll", boundImportTable[0].Name.ToString());
+            Assert.AreEqual("msvcrt.DLL", boundImportTable[0].Refs[0].Name.ToString());
+        }
+
+        [TestMethod]
+        public void PEFile_PhysicalOffset_LoadedImage_BoundImportTable()
+        {
+            if (IntPtr.Size != 4)
+                Assert.Inconclusive("Test requires x86");
+
+            var hModule = Kernel32.LoadLibraryW(WellKnownTestModule.GetStoreFile(WellKnownTestModule.mfc40));
+
+            try
+            {
+                using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), hModule);
+
+                var boundImportTable = peFile.BoundImportTable;
+
+                //Curiously, the BoundImportTableDirectory is listed as empty when this module is loaded
+                Assert.AreEqual(0, peFile.OptionalHeader.BoundImportTableDirectory.VirtualAddress);
+                Assert.IsNull(boundImportTable);
+            }
+            finally
+            {
+                Kernel32.FreeLibrary(hModule);
+            }
+        }
+
+        #endregion
         #region DOS Header
 
         [TestMethod]
         public void ImageDosHeader_Test()
         {
             TestStruct<ImageDosHeader>(
-                v => v.Magic == ImageDosHeader.DosSignature,
+                v => v.Magic == ImageDosHeader.IMAGE_DOS_SIGNATURE,
                 v => v.BytesOnLastPageOfFile == 144,
                 v => v.PagesInFile == 3,
                 v => v.Relocations == 0,
@@ -55,7 +276,7 @@ namespace PESpy.Tests
             TestView<ImageDosHeader>(
                 v => v.VerifyStruct(
                     name: "IMAGE_DOS_HEADER", offset: 0, size: 64,
-                    c => c.VerifyField(name: "e_magic", value: (short) 23117),
+                    c => c.VerifyField(name: "e_magic", value: (ushort) 23117),
                     c => c.VerifyField(name: "e_cblp", value: (short) 144),
                     c => c.VerifyField(name: "e_cp", value: (short) 3),
                     c => c.VerifyField(name: "e_crlc", value: (short) 0),
@@ -347,6 +568,24 @@ namespace PESpy.Tests
                     c => c.VerifyFieldIgnoreValue(name: "NullDirectory")
                 )
             );
+        }
+
+        [TestMethod]
+        public void ImageOptionalHeader_x32_And_x64()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageOptionalHeader_LessThan16Directories()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
         [TestMethod]
         public void ImageDataDirectory_Test()
         {
@@ -376,8 +615,8 @@ namespace PESpy.Tests
                 v => v.VirtualAddress == 4096,
                 v => v.SizeOfRawData == 1236992,
                 v => v.PointerToRawData == 4096,
-                v => v.PointerToRelocations == 0,
-                v => v.PointerToLineNumbers == 0,
+                v => v.PointerToRelocations.ListedAddress == 0,
+                v => v.PointerToLineNumbers.ListedAddress == 0,
                 v => v.NumberOfRelocations == 0,
                 v => v.NumberOfLineNumbers == 0,
                 v => v.Characteristics == (IMAGE_SCN.CNT_CODE | IMAGE_SCN.MEM_EXECUTE | IMAGE_SCN.MEM_READ)
@@ -669,8 +908,7 @@ namespace PESpy.Tests
                 v => v.Type == 0,
                 v => v.Key == "VS_VERSION_INFO",
                 v => v.Padding1 == 0,
-                v => v.Value == IgnoreValue,
-                v => v.Padding2 == 0
+                v => v.Value == IgnoreValue
             );
 
             TestView<VsVersionInfo>(
@@ -852,7 +1090,7 @@ namespace PESpy.Tests
                 v => v.Type == 0,
                 v => v.Key == "Translation",
                 v => v.Padding == 0,
-                v => v.Value == new int[] { 78644233 }
+                v => GetSpan<int>(v, "Value") == new int[] { 78644233 }
             );
 
             TestView<VsVersionInfo.Var>(
@@ -1080,6 +1318,21 @@ namespace PESpy.Tests
             );
         }
         }
+
+        [TestMethod]
+        public void TryBlockMapEntry_Test()
+        {
+            var str = GenerateTest<TryBlockMapEntry>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void HandlerType_Test()
+        {
+            var str = GenerateTest<HandlerType>();
+
+            throw new NotImplementedException();
         }
 
         [TestMethod]
@@ -1154,7 +1407,6 @@ namespace PESpy.Tests
         public void SignedData_Test()
         {
             TestStruct<SignedData>(
-                v => v.Bytes == IgnoreValue,
                 v => v.Certificate.ToString() == @"[Subject]
   CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
 
@@ -1190,8 +1442,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageBaseRelocation>(
                 v => v.VirtualAddress == 1699840,
-                v => v.SizeOfBlock == 16,
-                v => v.Entries == IgnoreValue
+                v => v.SizeOfBlock == 16
             );
 
             TestView<ImageBaseRelocation>(
@@ -1282,7 +1533,7 @@ namespace PESpy.Tests
         public void ImageDebugDirectory_CodeView_RSDSI_Test()
         {
             TestStruct<RSDSI>(
-                v => v.Signature == 1396986706,
+                v => v.Signature == CodeViewSig.RSDS,
                 v => v.Guid == new Guid("58a282c2-4aee-7e03-a8cf-8cb0a782ce0c"),
                 v => v.Age == 1,
                 v => v.Path == "ntdll.pdb"
@@ -1303,7 +1554,7 @@ namespace PESpy.Tests
         public void ImageDebugDirectory_CodeView_NB10I_Test()
         {
             TestStruct<NB10I>(
-                v => v.Signature == 808534606,
+                v => v.Signature == CodeViewSig.NB10,
                 v => v.dwOffset == 0,
                 v => v.PdbSignature == 988769516,
                 v => v.Age == 1,
@@ -1368,7 +1619,7 @@ namespace PESpy.Tests
                 v => v.DataType == ImageDebugMiscType.ExeName,
                 v => v.Length == 272,
                 v => v.Unicode == false,
-                v => v.Reserved == new byte[] { 0, 0, 0 },
+                v => GetSpan<byte>(v, "Reserved") == new byte[] { 0, 0, 0 },
                 v => v.Data == "mfc40_opt.DBG"
             );
 
@@ -1484,7 +1735,7 @@ namespace PESpy.Tests
         {
             TestStruct<Reproducible>(
                 v => v.Size == 32,
-                v => v.Hash == new byte[] { 194, 130, 162, 88, 238, 74, 3, 126, 168, 207, 140, 176, 167, 130, 206, 12, 133, 209, 145, 14, 91, 214, 192, 89, 70, 53, 121, 182, 130, 75, 237, 188 }
+                v => GetSpan<byte>(v, "Hash") == new byte[] { 194, 130, 162, 88, 238, 74, 3, 126, 168, 207, 140, 176, 167, 130, 206, 12, 133, 209, 145, 14, 91, 214, 192, 89, 70, 53, 121, 182, 130, 75, 237, 188 }
             );
 
             TestView<Reproducible>(
@@ -1495,8 +1746,39 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        #endregion
+        #region EmbeddedPortablePdb (17)
+
+        [TestMethod]
+        public void ImageDebugDirectory_EmbeddedPortablePdb_Test()
+        {
+            var str = GenerateTest<EmbeddedPortablePdb>();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region SPGO (18)
+
+        [TestMethod]
+        public void ImageDebugDirectory_SPGO_Test()
+        {
             Assert.Inconclusive();
         }
+
+        #endregion
+        #region PdbChecksum (19)
+
+        [TestMethod]
+        public void ImageDebugDirectory_PdbChecksum_Test()
+        {
+            var str = GenerateTest<PdbChecksum>();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
         #region ExDllCharacteristics (20)
 
         [TestMethod]
@@ -1557,10 +1839,10 @@ namespace PESpy.Tests
             TestView<ImageTlsDirectory>(
                 v => v.VerifyStruct(
                     name: "IMAGE_TLS_DIRECTORY", offset: 196072, size: 40,
-                    c => c.VerifyField(name: "StartAddressOfRawData", value: (long) 6442675092),
-                    c => c.VerifyField(name: "EndAddressOfRawData", value: (long) 6442675100),
-                    c => c.VerifyField(name: "AddressOfIndex", value: (long) 6442697760),
-                    c => c.VerifyField(name: "AddressOfCallBacks", value: (long) 6442651784),
+                    c => c.VerifyField(name: "StartAddressOfRawData", value: (ulong) 6442675092),
+                    c => c.VerifyField(name: "EndAddressOfRawData", value: (ulong) 6442675100),
+                    c => c.VerifyField(name: "AddressOfIndex", value: (ulong) 6442697760),
+                    c => c.VerifyField(name: "AddressOfCallBacks", value: (ulong) 6442651784),
                     c => c.VerifyField(name: "SizeOfZeroFill", value: 0),
                     c => c.VerifyField(name: "Characteristics", value: IMAGE_SCN_ALIGN.ALIGN_4BYTES)
                 )
@@ -1717,8 +1999,8 @@ namespace PESpy.Tests
                 v => v.NumberOfImports == 4,
                 v => v.ImportList.ListedOffset == 222852,
                 v => v.ImportEntrySize == 80,
-                v => v.FamilyID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => v.ImageID == new byte[] { 80, 65, 198, 45, 179, 131, 66, 49, 170, 226, 169, 74, 131, 219, 200, 22 },
+                v => GetSpan<byte>(v, "FamilyID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => GetSpan<byte>(v, "ImageID") == new byte[] { 80, 65, 198, 45, 179, 131, 66, 49, 170, 226, 169, 74, 131, 219, 200, 22 },
                 v => v.ImageVersion == 0,
                 v => v.SecurityVersion == 0,
                 v => v.EnclaveSize == 0,
@@ -1755,9 +2037,9 @@ namespace PESpy.Tests
             TestStruct<ImageEnclaveImport>(
                 v => v.MatchType == IMAGE_ENCLAVE_IMPORT_MATCH.NONE,
                 v => v.MinimumSecurityVersion == 0,
-                v => v.UniqueOrAuthorID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => v.FamilyID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => v.ImageID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => GetSpan<byte>(v, "UniqueOrAuthorID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => GetSpan<byte>(v, "FamilyID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => GetSpan<byte>(v, "ImageID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                 v => v.ImportName.ListedOffset == 65535,
                 v => v.Reserved == 0
             );
@@ -2015,8 +2297,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageFunctionOverrideHeader>(
                 v => v.FuncOverrideSize == 48,
-                v => v.FuncOverrides == IgnoreValue,
-                v => (object) v.BDDInfo == IgnoreValue
+                v => v.FuncOverrides == IgnoreValue
             );
 
             TestView<ImageFunctionOverrideHeader>(
@@ -2037,7 +2318,7 @@ namespace PESpy.Tests
                 v => v.BDDOffset == 0,
                 v => v.RvaSize == 20,
                 v => v.BaseRelocSize == 12,
-                v => v.RVAs == new int[] { 681088, 681600, 681984, 682432, 682752 },
+                v => GetSpan<int>(v, "RVAs") == new int[] { 681088, 681600, 681984, 682432, 682752 },
                 v => v.BaseRelocs == IgnoreValue
             );
 
@@ -2137,6 +2418,13 @@ namespace PESpy.Tests
                 v => v.VerifyValue(offset: 685, value: "msvcrt.DLL")
             );
         }
+
+        [TestMethod]
+        public void ImageBoundForwarderRef_Test()
+        {
+            var str = GenerateTest<ImageBoundForwarderRef>();
+
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -2260,6 +2548,30 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void ImageCorVTableFixup_Test()
+        {
+            var str = GenerateTest<ImageCorVTableFixup>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        [TestMethod]
+        public void ECMA335_BlobEntry_Test()
+        {
+            var str = GenerateTest<BlobEntry>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ECMA335_CompressedModelHeader_Test()
+        {
+            var str = GenerateTest<CompressedModelHeader>();
+
+            throw new NotImplementedException();
         }
 
         [TestMethod]
@@ -2284,19 +2596,16 @@ namespace PESpy.Tests
                 v => v.CodeSize == 7,
                 v => v.Size == 1,
                 v => v.MaxStack == 8,
-                v => v.ILBytes == new byte[] { 2, 123, 63, 0, 0, 10, 42 },
+                v => GetSpan<byte>(v, "ILBytes") == new byte[] { 2, 123, 63, 0, 0, 10, 42 },
                 v => v.LocalVarSigTok == 0x0
             );
 
             TestView<ImageCorILMethod>(
                 v => v.VerifyStruct(
-                    name: "IMAGE_COR_ILMETHOD", offset: 592, size: 0,
-                    c => c.VerifyField(name: "Flags", value: (CorILMethodFlags.TinyFormat1 | CorILMethodFlags.MoreSects | CorILMethodFlags.InitLocals)),
-                    c => c.VerifyField(name: "CodeSize", value: 7),
-                    c => c.VerifyField(name: "Size", value: (byte) 1),
-                    c => c.VerifyField(name: "MaxStack", value: (short) 8),
-                    c => c.VerifyField(name: "ILBytes", value: new byte[] { 2, 123, 63, 0, 0, 10, 42 }),
-                    c => c.VerifyField(name: "LocalVarSigTok", value: 0x0)
+                    name: "IMAGE_COR_ILMETHOD_TINY", offset: 592, size: 8,
+                    c => c.VerifyBitField(name: "Flags", value: (CorILMethodFlags.TinyFormat1 | CorILMethodFlags.MoreSects | CorILMethodFlags.InitLocals), bits: 2),
+                    c => c.VerifyBitField(name: "CodeSize", value: 7, bits: 6),
+                    c => c.VerifyField(name: "ILBytes", value: new byte[] { 2, 123, 63, 0, 0, 10, 42 })
                 )
             );
         }
@@ -2376,15 +2685,19 @@ namespace PESpy.Tests
             );
 
             TestView<DotNetRuntimeDebugHeader>(
-                v => v.VerifyStruct(
-                    name: "DotNetRuntimeDebugHeader", offset: 1012640, size: 0,
-                    c => c.VerifyField(name: "Cookie", value: 1212436036),
-                    c => c.VerifyField(name: "MajorVersion", value: (short) 4),
-                    c => c.VerifyField(name: "MinorVersion", value: (short) 0),
-                    c => c.VerifyField(name: "Flags", value: 1),
-                    c => c.VerifyField(name: "ReservedPadding1", value: 0),
-                    c => c.VerifyField(name: "DebugTypeEntries", value: 140701570544704),
-                    c => c.VerifyField(name: "GlobalValueEntries", value: 140701570547104)
+                WithIgnores(
+                    before: 190,
+                    v => v.VerifyStruct(
+                        name: "DotNetRuntimeDebugHeader", offset: 1444048, size: 32,
+                        c => c.VerifyField(name: "Cookie", value: 1212436036),
+                        c => c.VerifyField(name: "MajorVersion", value: (short) 4),
+                        c => c.VerifyField(name: "MinorVersion", value: (short) 0),
+                        c => c.VerifyField(name: "Flags", value: 1),
+                        c => c.VerifyField(name: "ReservedPadding1", value: 0),
+                        c => c.VerifyFieldIgnoreValue(name: "DebugTypeEntries"),
+                        c => c.VerifyFieldIgnoreValue(name: "GlobalValueEntries")
+                    ),
+                    after: 2
                 )
             );
         }
@@ -2594,8 +2907,17 @@ namespace PESpy.Tests
                     }
                     else if (c.Method.Name == "GetStringSpan")
                     {
+                        var inner = rawValue;
+
+                        if (c.Arguments[0] is MemberExpression)
+                        {
+                            //The first operand may have multiple levels of properties that need evaluating in order to call GetProperty below
+                            var property = (PropertyInfo) GetPropertyInfo(c.Arguments[0], ref inner);
+                            inner = property.GetValue(inner);
+                        }
+
                         var propertyName = ((ConstantExpression) c.Arguments[1]).Value.ToString();
-                        memberInfo = rawValue.GetType().GetProperty(propertyName);
+                        memberInfo = inner.GetType().GetProperty(propertyName);
                         memberType = ((PropertyInfo) memberInfo).PropertyType;
 
                         var lambda = Expression.Lambda(c, assert.Parameters).Compile();
@@ -2667,7 +2989,7 @@ namespace PESpy.Tests
                 var peFile = PEFile.FromStream(fs, false);
                 var reader = new StreamFileReader(fs, false);
 
-                var viewWriter = new PEViewWriter(peFile, reader, ViewMode.Default);
+                var viewWriter = new PEViewWriter(peFile, reader, null, ViewMode.Default);
                 ((IViewable) rawValue).WriteView(viewWriter);
                 var current = viewWriter.Current.OrderBy(v => v.Offset).ToArray();
 
@@ -2742,9 +3064,7 @@ namespace PESpy.Tests
 
                     string GetTypeName(TypeCode typeCode)
                     {
-#pragma warning disable CS8509
                         return typeCode switch
-#pragma warning restore CS8509
                         {
                             TypeCode.SByte => "sbyte",
                             TypeCode.Byte => "byte",
@@ -2991,8 +3311,8 @@ namespace PESpy.Tests
                 #region Debug Table (6)
 
                 nameof(ImageDebugDirectory)       => GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?[0],
-                nameof(RSDSI)                     => (RSDSI?)                     GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
-                nameof(NB10I)                     => (NB10I?)                     GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
+                nameof(RSDSI)                     => (RSDSI)                     GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
+                nameof(NB10I)                     => (NB10I)                     GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
                 nameof(FpoData)                   => ((FpoData[])                 GetFile(WellKnownTestModule.ctl3d32, out fs).DebugTable?.First(t => t.Type == ImageDebugType.FPO).Data)?[0],
                 nameof(ImageDebugMisc)            => (ImageDebugMisc)             GetFile(WellKnownTestModule.mfc40, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Misc).Data,
                 //nameof(VCFeature)                 => (VCFeature)                  GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.VCFeature).Data,
@@ -3079,12 +3399,10 @@ namespace PESpy.Tests
                 #region Cor Header (14)
 
                 nameof(ImageCor20Header) => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header,
-#if !PEFAST
-                nameof(StorageSignature) => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Signature,
-                nameof(StorageHeader)    => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Header,
-                //nameof(ImageCorILMethod) => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
-                nameof(StorageStream)    => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header!.Metadata.Data.Header.StreamHeaders[0],
-#endif
+                nameof(StorageSignature) => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Signature,
+                nameof(StorageHeader)    => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header,
+                nameof(ImageCorILMethod) => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
+                nameof(StorageStream)    => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header.StreamHeaders[0],
                 nameof(RuntimeInfo)              => GetLocalFile(TestProcessKind.SingleFile, out fs).RuntimeInfo,
 
                 nameof(DotNetRuntimeDebugHeader) => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader,
@@ -3152,7 +3470,7 @@ namespace PESpy.Tests
             try
             {
                 var expectedStr = string.Join(", ", expected.Select(v => "0x" + v.ToString("X2")));
-                var actualStr = string.Join(", ", rawValue.Bytes.Select(v => "0x" + v.ToString("X2")));
+                var actualStr = string.Join(", ", rawValue.Bytes.ToArray().Select(v => "0x" + v.ToString("X2")));
 
                 Assert.AreEqual(expectedStr, actualStr);
             }
@@ -3272,8 +3590,53 @@ namespace PESpy.Tests
                     "ReservedWords2" => Unsafe.As<T[]>(a.ReservedWords2.ToArray())
                 };
             }
+            if (value is ImageEnclaveConfig b)
+            {
+                return field switch
+                {
+                    "FamilyID" => Unsafe.As<T[]>(b.FamilyID.ToArray()),
+                    "ImageID" => Unsafe.As<T[]>(b.ImageID.ToArray()),
+                };
+            }
+            if (value is ImageEnclaveImport c)
+            {
+                return field switch
+                {
+                    "UniqueOrAuthorID" => Unsafe.As<T[]>(c.UniqueOrAuthorID.ToArray()),
+                    "FamilyID" => Unsafe.As<T[]>(c.FamilyID.ToArray()),
+                    "ImageID" => Unsafe.As<T[]>(c.ImageID.ToArray()),
+                };
+            }
+            if (value is ImageDebugMisc d)
+            {
+                return field switch
+                {
+                    "Reserved" => Unsafe.As<T[]>(d.Reserved.ToArray())
+                };
+            }
+            if (value is Reproducible e)
+            {
+                return field switch
+                {
+                    "Hash" => Unsafe.As<T[]>(e.Hash.ToArray())
+                };
+            }
+            if (value is ImageFunctionOverrideDynamicRelocation f)
+            {
+                return field switch
+                {
+                    "RVAs" => Unsafe.As<T[]>(f.RVAs.ToArray())
+                };
+            }
+            if (value is ImageCorILMethod g)
+            {
+                return field switch
+                {
+                    "ILBytes" => Unsafe.As<T[]>(g.ILBytes.ToArray())
+                };
+            }
 
-            throw new NotImplementedException();
+            throw new NotImplementedException($"Retrieving a span from {value.GetType().Name}.{field} is not implemented");
         }
 
         private string GetStringSpan(object value, string field)
@@ -3282,22 +3645,22 @@ namespace PESpy.Tests
             {
                 return field switch
                 {
-                    "NameString" => r.NameString
+                    "NameString" => r.NameString.ToString()
                 };
             }
 
             throw new NotImplementedException();
         }
 
-        private Action<IView>[] WithIgnores(Action<IView> action, int after) => WithIgnores(0, action, after);
+        internal static Action<IView>[] WithIgnores(Action<IView> action, int after) => WithIgnores(0, action, after);
 
-        private Action<IView>[] WithIgnores(Action<IView>[] action, int after) =>
+        internal static Action<IView>[] WithIgnores(Action<IView>[] action, int after) =>
             WithIgnores(0, action, after);
 
-        private Action<IView>[] WithIgnores(int before, Action<IView> action, int after = 0) =>
+        internal static Action<IView>[] WithIgnores(int before, Action<IView> action, int after = 0) =>
             WithIgnores(before, new[] { action }, after);
 
-        private Action<IView>[] WithIgnores(int before, Action<IView>[] action, int after = 0)
+        internal static Action<IView>[] WithIgnores(int before, Action<IView>[] action, int after = 0)
         {
             var list = new List<Action<IView>>();
 

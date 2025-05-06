@@ -38,7 +38,7 @@ namespace PESpy
             }
         }
 
-        internal static unsafe void RegisterOBJSymbolMemory(CV_SIGNATURE signature, in MemoryChunk chunk)
+        internal static unsafe void RegisterCVSymbolMemory(CV_SIGNATURE signature, in MemoryChunk chunk)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;

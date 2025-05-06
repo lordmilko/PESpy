@@ -9,23 +9,23 @@ namespace PESpy.OBJ
     {
         public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
 
-        public SymType[]? c11Symbols;
+        public SymType[]? c7Symbols;
 
         //C7 or C11
-        public unsafe SymType[]? C11Symbols
+        public unsafe SymType[]? C7Symbols
         {
             get
             {
                 var sig = Signature;
 
-                if (c11Symbols == null && sig is CV_SIGNATURE.C7 or CV_SIGNATURE.C11)
+                if (c7Symbols == null && sig is CV_SIGNATURE.C7 or CV_SIGNATURE.C11)
                 {
                     //C7 and C11 use ST strings
-                    SymbolMemoryTracker.RegisterOBJSymbolMemory(sig, chunk);
-                    c11Symbols = MsfStream.DBI.ReadSymbols(chunk.Pointer + 4, length - 4);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(sig, chunk);
+                    c7Symbols = MsfStream.DBI.ReadSymbols(chunk.Pointer + 4, length - 4);
                 }
 
-                return c11Symbols;
+                return c7Symbols;
             }
         }
 
@@ -56,7 +56,7 @@ namespace PESpy.OBJ
 
                         results.Add(header);
 
-                        totalOffset += header.cbLen + 8; //sizeof(type) = sizeof(cbLen)
+                        totalOffset += header.Length + 8; //sizeof(type) = sizeof(cbLen)
                     }
 
                     c13SubSections = results.ToArray();
@@ -76,7 +76,7 @@ namespace PESpy.OBJ
             this.chunk = chunk;
             this.length = length;
 
-            _ = C11Symbols;
+            _ = C7Symbols;
 #if STRESS_TEST
             _ = C13SubSections;
 #endif
@@ -85,7 +85,13 @@ namespace PESpy.OBJ
         void IViewable.WriteView(ViewWriter writer)
         {
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
-            writer.WriteGlobal(C13SubSections);
+
+            var c7 = C7Symbols;
+
+            if (c7 != null)
+                writer.WriteGlobal(Offset + 4, c7);
+            else
+                writer.WriteGlobal(C13SubSections);
         }
     }
 }

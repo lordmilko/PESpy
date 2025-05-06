@@ -1,12 +1,19 @@
 ﻿#if PEFAST
 using System;
+using System.Collections.Generic;
+using ClrDebug;
+using PESpy.LIB;
 using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    public class LIBViewWriter : ViewWriter
+    public class LIBViewWriter : ViewWriter, IMachineWriter
     {
         private LIBFile libFile;
+
+        internal IMAGE_FILE_MACHINE? Machine { get; set; }
+
+        IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine.Value;
 
         internal LIBViewWriter(LIBFile libFile, IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
         {
@@ -27,7 +34,38 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var merger = new LIBMerger(libFile, structs, extension);
+            /* We should have the following top level structure:
+             * - Signature
+             * - FirstLinkerMember
+             * - SecondLinkerMember
+             * - LongNamesMember
+             * - ImportLibrary */
+
+            var dataDirectories = new List<DirectoryInfo>();
+
+            var firstLinkerMember = libFile.FirstLinkerMember;
+
+            if (firstLinkerMember != null)
+                dataDirectories.Add(new DirectoryInfo("First Linker Member", firstLinkerMember.Offset, firstLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+
+            var secondLinkerMember = libFile.SecondLinkerMember;
+
+            if (secondLinkerMember != null)
+                dataDirectories.Add(new DirectoryInfo("Second Linker Member", secondLinkerMember.Offset, secondLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+
+            //LongNamesMember not yet implemented
+
+            var importLibrary = libFile.ImportLibrary;
+
+            foreach (var item in importLibrary)
+            {
+                if (item is LongImportLibraryMember l)
+                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Long): {item.ArchiveHeader.Name.ToString().TrimEnd(' ', '/')}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                else
+                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+            }
+
+            var merger = new LIBMerger(libFile, structs, dataDirectories, extension);
 
             var results = merger.Merge();
 

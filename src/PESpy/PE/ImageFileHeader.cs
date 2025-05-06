@@ -44,30 +44,28 @@ namespace PESpy
         /// This value should be zero for a PE image.
         /// </summary>
 #if PEFAST
+        private VA<CoffSymbolTable> pointerToSymbolTable;
+
         public VA<CoffSymbolTable> PointerToSymbolTable
         {
             get
             {
-                var offset = chunk.PeekInt32(8);
-
-                if (offset != 0)
+                if (pointerToSymbolTable.ListedAddress == 0)
                 {
-                    if (chunk.block is GlobalMemoryBlock b)
-                    {
-                        //If ImageFileHeader is at the start of the file, the offset is used as is. Otherwise, we ne need to skip over the anon header.
-                        //The pointer we're given seems to assume we're relative to the very start of the file
-                        var actualOffset = Offset + offset;
+                    var offset = chunk.PeekInt32(8);
 
-                        return new VA<CoffSymbolTable>(offset, actualOffset, new CoffSymbolTable(new MemoryChunk(b, actualOffset), NumberOfSymbols));
+                    if (offset != 0)
+                    {
+                        if (ImageSectionHeader.TryGetHeaderChunk(chunk, offset, out var headerChunk))
+                        {
+                            pointerToSymbolTable = new VA<CoffSymbolTable>(offset, headerChunk.AbsoluteOffset, new CoffSymbolTable(headerChunk, NumberOfSymbols));
+                        }
                     }
                     else
-                    {
-                        if (chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out var symbolTableChunk))
-                            return new VA<CoffSymbolTable>(offset, offset, new CoffSymbolTable(symbolTableChunk, NumberOfSymbols));
-                    }
+                        pointerToSymbolTable = new VA<CoffSymbolTable>(offset);
                 }
 
-                return new VA<CoffSymbolTable>(offset);
+                return pointerToSymbolTable;
             }
         }
 #else

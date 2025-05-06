@@ -87,7 +87,7 @@ namespace PESpy.PDB
                             var header = new CvDebugSSubsectionHeader(moduleChunk);
 
                             headers.Add(header);
-                            moduleChunk = moduleChunk.Slice(header.cbLen + 8); //cbLen just covers the data, not the header
+                            moduleChunk = moduleChunk.Slice(header.Length + 8); //cbLen just covers the data, not the header
                         }
 
                         c13Lines = headers.ToArray();

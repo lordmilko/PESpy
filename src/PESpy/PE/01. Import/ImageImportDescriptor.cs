@@ -248,7 +248,7 @@ namespace PESpy
         }
 #endif
 #if PEFAST
-        private RVA<ImageThunkData[]> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
+        internal static RVA<ImageThunkData[]> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
         {
             var results = new List<ImageThunkData>();
 

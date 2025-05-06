@@ -1,0 +1,53 @@
+
+ EBIOS
+
+ Start         Length     Name                   Class
+ 0001:00000000 0000000A5H _LTEXT                 CODE 32-bit
+ 0001:000000A8 0000000E7H _LDATA                 CODE 32-bit
+ 0002:00000000 000000184H _ITEXT                 ICODE 32-bit
+ 0002:00000184 000000000H _IDATA                 ICODE 32-bit
+ 0003:00000000 000000000H _TEXT                  PCODE 32-bit
+ 0003:00000000 000000000H _DATA                  PCODE 32-bit
+ 0003:00000000 0000000B9H _RCODE                 RCODE 16-bit
+
+ Origin   Group
+ 0002:0   _IGROUP
+ 0001:0   _LGROUP
+ 0003:0   _PGROUP
+ 0000:0   FLAT
+
+ Address       Export                  Alias
+
+ 0001:000000B0 EBIOS_DDB               EBIOS_DDB
+
+  Address         Publics by Name
+
+ 0001:000000AC       $EBIOS_Get_Unused_Mem
+ 0001:000000A8       $EBIOS_Get_Version
+ 0001:00000056       @EBIOS_Get_Unused_Mem
+ 0001:00000026       @EBIOS_Get_Version
+ 0001:00000000       EBIOS_Control
+ 0001:000000B0       EBIOS_DDB
+ 0002:00000000       EBIOS_Device_Init
+ 0001:00000078       EBIOS_Map_pages
+ 0001:000000F4       EB_NoMap
+ 0001:000000F0       EB_Num_Pages
+ 0001:000000EC       EB_Unused_Size
+ 0001:000000E8       EB_Unused_Start
+
+  Address         Publics by Value
+
+ 0001:00000000       EBIOS_Control
+ 0001:00000026       @EBIOS_Get_Version
+ 0001:00000056       @EBIOS_Get_Unused_Mem
+ 0001:00000078       EBIOS_Map_pages
+ 0001:000000A8       $EBIOS_Get_Version
+ 0001:000000AC       $EBIOS_Get_Unused_Mem
+ 0001:000000B0       EBIOS_DDB
+ 0001:000000E8       EB_Unused_Start
+ 0001:000000EC       EB_Unused_Size
+ 0001:000000F0       EB_Num_Pages
+ 0001:000000F4       EB_NoMap
+ 0002:00000000       EBIOS_Device_Init
+
+Program entry point at 0003:0000

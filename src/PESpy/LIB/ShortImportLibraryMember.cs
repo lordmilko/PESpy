@@ -24,11 +24,16 @@ namespace PESpy.LIB
 
         void IViewable.WriteView(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Import Library Member (Short)", this, ViewKind.ShortImportLibraryMember);
+            writer.WriteGlobal(ArchiveHeader);
+            writer.WriteGlobal(ImportHeader);
 
-            s.WriteInline(ArchiveHeader);
-            s.WriteInline(ImportHeader);
-            s.WriteInlineAnsiNullTerminated(ImportName);
+            var importNameOffset = Offset + ImageArchiveMemberHeader.StructSize + ImportObjectHeader.StructSize;
+            var importName = ImportName;
+            var importNameLength = importName.Length + 1;
+            writer.WriteGlobal(importNameOffset, importName, importNameLength, ViewKind.Value);
+
+            var dllName = DllName;
+            writer.WriteGlobal(importNameOffset + importNameLength, dllName, dllName.Length + 1, ViewKind.Value);
         }
 
         public override string ToString()

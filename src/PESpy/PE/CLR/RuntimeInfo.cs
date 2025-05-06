@@ -10,20 +10,76 @@ namespace PESpy
     /// </summary>
     public class RuntimeInfo : IValue, IViewable
     {
+#if PEFAST
+        public Utf8String Signature => chunk.PeekUtf8NullTerminatedString(0); //Should be DotNetRuntimeInfo\0
+#else
         public string Signature { get; }
+#endif
 
+#if PEFAST
+        public int Version => chunk.PeekInt32(18);
+#else
         public int Version { get; }
+#endif
 
+#if PEFAST
+        public ModuleIndex RuntimeModuleIndex => new ModuleIndex(chunk.Slice(22));
+#else
         public ModuleIndex RuntimeModuleIndex { get; }
+#endif
 
+#if PEFAST
+        public ModuleIndex DacModuleIndex => new ModuleIndex(chunk.Slice(22 + ModuleIndex.StructSize));
+#else
         public ModuleIndex DacModuleIndex { get; }
+#endif
 
+#if PEFAST
+        public ModuleIndex DbiModuleIndex => new ModuleIndex(chunk.Slice(22 + (2 * ModuleIndex.StructSize)));
+#else
         public ModuleIndex DbiModuleIndex { get; }
+#endif
 
+#if PEFAST
+        private Version? runtimeVersion;
+
+        public Version? RuntimeVersion
+        {
+            get
+            {
+                if (runtimeVersion == null && Version >= 2)
+                {
+                    var start = 22 + (3 * ModuleIndex.StructSize);
+
+                    runtimeVersion = new Version(
+                        chunk.PeekInt32(start),
+                        chunk.PeekInt32(start + 4),
+                        chunk.PeekInt32(start + 8),
+                        chunk.PeekInt32(start + 12)
+                    );
+                }
+
+                return runtimeVersion;
+            }
+        }
+#else
         public Version? RuntimeVersion { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal RuntimeInfo(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal RuntimeInfo(IFileReader reader)
         {
             Offset = (int) reader.Position;
@@ -58,6 +114,7 @@ namespace PESpy
                 RuntimeVersion = null;
             }
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -73,7 +130,7 @@ namespace PESpy
 
             if (Version >= 2)
             {
-                s.WriteField(nameof(RuntimeVersion), new int[] { RuntimeVersion.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
+                s.WriteField(nameof(RuntimeVersion), new int[] { RuntimeVersion!.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
             }
         }
 
@@ -83,16 +140,50 @@ namespace PESpy
         {
             //https://github.com/dotnet/runtime/blob/511d26611c051c56e546404ea616c220cc78817c/eng/native/genmoduleindex.cmd#L4
 
-            public int Offset { get; }
-
+#if PEFAST
+            public byte Size => chunk.PeekByte(0);
+#else
             public byte Size { get; }
+#endif
 
+#if PEFAST
+            public uint TimeStamp => chunk.PeekUInt32(1);
+#else
             public uint TimeStamp { get; }
+#endif
 
+#if PEFAST
+            public int ImageSize => chunk.PeekInt32(5);
+#else
             public int ImageSize { get; }
+#endif
 
+#if PEFAST
+            public Span<byte> Extra => chunk.PeekSpan<byte>(9, 15);
+#else
             public byte[] Extra { get; }
+#endif
 
+#if PEFAST
+            public int Offset => chunk.AbsoluteOffset;
+#else
+            public int Offset { get; }
+#endif
+
+            internal const int StructSize =
+                sizeof(byte) + //Size
+                sizeof(uint) + //TimeStamp
+                sizeof(int) + //ImageSize
+                15; //Module index is 24 bytes. Remaining bytes are currently unused
+
+#if PEFAST
+            private readonly MemoryChunk chunk;
+
+            internal ModuleIndex(in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+            }
+#else
             internal ModuleIndex(IFileReader reader)
             {
                 Offset = (int) reader.Position;
@@ -104,6 +195,7 @@ namespace PESpy
                 //The module index is 24 bytes. Read the remaining bytes (currently unused)
                 Extra = reader.ReadBytes(15);
             }
+#endif
 
             void IViewable.WriteView(ViewWriter writer)
             {

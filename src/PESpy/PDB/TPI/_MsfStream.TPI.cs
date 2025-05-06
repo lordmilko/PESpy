@@ -37,6 +37,8 @@ namespace PESpy.PDB
 
                 var ptr = chunk.Pointer + headerSize;
 
+                SymbolMemoryTracker.RegisterPDBSymbolMemory(chunk);
+
                 Types = ReadTypes(ptr, Hdr.cbGprec);
             }
 

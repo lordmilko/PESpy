@@ -1,5 +1,6 @@
 ﻿#if PEFAST
 using System;
+using System.Linq;
 using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
@@ -23,7 +24,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Machine", IMAGE_FILE_MACHINE.I386),
                         c1 => c1.VerifyField("NumberOfSections", (short) 5),
                         c1 => c1.VerifyFieldIgnoreValue("TimeDateStamp"),
-                        c1 => c1.VerifyField("PointerToSymbolTable", 0x438),
+                        c1 => c1.VerifyField("PointerToSymbolTable", 1108),
                         c1 => c1.VerifyField("NumberOfSymbols", 14),
                         c1 => c1.VerifyField("SizeOfOptionalHeader", (short) 0),
                         c1 => c1.VerifyField("Characteristics", (ImageFile) 0)
@@ -578,6 +579,69 @@ namespace PESpy.Tests
             );
         }
 
+        [TestMethod]
+        public void OBJ_C13_SymType_Strings()
+        {
+            //C13 strings should be UTF8
+            using var objFile = OBJFile.FromFile(Sample.OBJ_C13);
+
+            var symbolTable = objFile.SectionData.OfType<OBJSymbolsTable>().First();
+
+            Assert.AreEqual(CV_SIGNATURE.C13, symbolTable.Signature);
+
+            var subSection = symbolTable.C13SubSections.First();
+            Assert.AreEqual(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS, subSection.Type);
+
+            var symbols = (SymType[]) subSection.Data;
+
+            Assert.AreEqual("C:\\TestApp\\TestApp.obj", symbols[0].ToString());
+        }
+
+        [TestMethod]
+        public void OBJ_C13_TypType_Strings()
+        {
+            //C13 strings should be UTF8 on TypType as well
+            using var objFile = OBJFile.FromFile(Sample.OBJ_C13);
+
+            var typeTable = objFile.SectionData.OfType<OBJTypesTable>().First();
+
+            Assert.AreEqual(CV_SIGNATURE.C13, typeTable.Signature);
+
+            var types = typeTable.Types;
+
+            Assert.AreEqual("C:\\TestApp\\vc140.pdb", types[0].ToString());
+        }
+
+        [TestMethod]
+        public void OBJ_C7_SymType_Strings()
+        {
+            //C7 strings should be ST
+            using var objFile = OBJFile.FromFile(Sample.OBJ_C11);
+
+            var symbolTable = objFile.SectionData.OfType<OBJSymbolsTable>().First();
+
+            Assert.AreEqual(CV_SIGNATURE.C11, symbolTable.Signature);
+
+            var symbols = symbolTable.C7Symbols;
+
+            Assert.AreEqual("Debug/main.obj", symbols[0].ToString());
+        }
+
+        [TestMethod]
+        public void OBJ_C7_TypType_Strings()
+        {
+            //C7 strings should be ST on TypType as well
+            using var objFile = OBJFile.FromFile(Sample.OBJ_C11);
+
+            var typeTable = objFile.SectionData.OfType<OBJTypesTable>().First();
+
+            Assert.AreEqual(CV_SIGNATURE.C11, typeTable.Signature);
+
+            var types = typeTable.Types;
+
+            Assert.AreEqual("c:\\program files (x86)\\devstudio\\myprojects\\testapp\\debug\\vc50.pdb", types[0].ToString());
+        }
+
         private void TestObj(
             string testName,
             bool ltcg,
@@ -588,9 +652,8 @@ int main(int a)
 {
     return 0;
 }";
-
-            var msvc = new MSVC(testName, str);
-            var objFile = msvc.Compile(ltcg: ltcg);
+            var msvc = new MSVC(testName, str, ltcg);
+            var objFile = msvc.Compile();
 
             using var obj = OBJFile.FromFile(objFile);
 

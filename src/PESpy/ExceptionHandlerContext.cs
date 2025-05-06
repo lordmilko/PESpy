@@ -92,7 +92,7 @@ namespace PESpy
                 }
             }
 #else
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
 #endif
 
             kind = default;

@@ -384,6 +384,8 @@ namespace PESpy.View
         /// </summary>
         DelayImportAddressTable,
 
+        DelayUnloadInformationTable,
+
         /// <summary>
         /// A <see cref="LogicalRegionView"/> that encapsulates the <see cref="ImageImportByName"/> structures (and the padding between them)
         /// pointed to by the <see cref="ImageThunkData"/> structures of the <see cref="DelayImportLookupTable"/> in <see cref="ImageDelayLoadDescriptor.ImportNameTableRVA"/>.

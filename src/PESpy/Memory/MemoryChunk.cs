@@ -64,7 +64,21 @@ namespace PESpy
         public Guid PeekGuid(int offset) => *(Guid*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Utf8String PeekNullPaddedUtf8(int offset, int numChars) => new Utf8String(Pointer + offset);
+        public FixedUtf8String PeekNullPaddedUtf8(int offset, int numChars)
+        {
+            //The string is at most numChars long
+            var ptr = Pointer + offset;
+
+            int i = 0;
+
+            for (; i < numChars; i++)
+            {
+                if (*(ptr + i) == 0)
+                    break;
+            }
+
+            return new FixedUtf8String(ptr, i);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AnsiString PeekAnsiNullTerminatedString(int offset) => new AnsiString(Pointer + offset);

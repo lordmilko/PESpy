@@ -1,10 +1,10 @@
-﻿using ClrDebug.PDB;
+﻿using ClrDebug.OMF;
 
 namespace PESpy
 {
     public readonly struct OMFDirEntry
     {
-        public NB05Subsection SubSection => (NB05Subsection) chunk.PeekUInt16(0);
+        public SST SubSection => (SST) chunk.PeekUInt16(0);
 
         public ushort iMod => chunk.PeekUInt16(2);
 

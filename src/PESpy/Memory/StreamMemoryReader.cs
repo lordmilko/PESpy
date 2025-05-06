@@ -33,11 +33,12 @@ namespace PESpy
                 //Hard: read in chunks
 
                 var offset = 0;
-                var toRead = this.buffer.Length;
 
                 while (offset < size)
                 {
-                    var read = stream.Read(this.buffer, 0, BufferSize); //The stream position will increase as we read, so no need to pass offset
+                    var toRead = Math.Min(size - offset, BufferSize);
+
+                    var read = stream.Read(this.buffer, 0, toRead); //The stream position will increase as we read, so no need to pass offset
 
                     if (read == 0)
                         break;

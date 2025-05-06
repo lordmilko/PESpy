@@ -70,21 +70,11 @@ namespace PESpy
         public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
     }
 
-    public interface IMetadataCallback
-    {
-        void NotifyCompressedModel(CompressedModelHeap data);
-        void NotifyStringPool(StringHeap data);
-        void NotifyUserStringPool(UserStringHeap data);
-        void NotifyBlobPool(BlobHeap data);
-        void NotifyGuidPool(GuidHeap data);
-        void NotifyPdb(PdbHeap data);
-    }
-
     /// <summary>
     /// Represents a Portable Executable (PE) file.
     /// </summary>
     [DebuggerTypeProxy(typeof(PEFileDebugView))]
-    public class PEFile : IFile, IViewable, IMetadataCallback, IDisposable
+    public class PEFile : IFile, IViewable, IDisposable
     {
         #region Static
 
@@ -1436,7 +1426,42 @@ namespace PESpy
         /// Gets the delay import table pointed to by <see cref="ImageOptionalHeader.DelayImportTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT).<para/>
         /// If the image does not have a delay import table, this property returns <see langword="null"/>.
         /// </summary>
-        public ImageDelayLoadDescriptor[]? DelayImportTable => throw new NotImplementedException();
+        public ImageDelayLoadDescriptor[]? DelayImportTable
+        {
+            get
+            {
+                if (delayImportTable == null)
+                {
+                    var delayImportTableDirectory = OptionalHeader.DelayImportTableDirectory;
+
+                    if (delayImportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(delayImportTableDirectory, out var chunk))
+                    {
+                        chunk.Demand(delayImportTableDirectory.VirtualAddress, delayImportTableDirectory.Size);
+
+                        var results = new List<ImageDelayLoadDescriptor>();
+
+                        var read = 0;
+
+                        while (true)
+                        {
+                            var item = new ImageDelayLoadDescriptor(chunk.Slice(read));
+
+                            results.Add(item);
+
+                            if (item.DllNameRVA.ListedOffset == 0)
+                                break;
+
+                            read += ImageDelayLoadDescriptor.StructSize;
+                        }
+
+                        //Since this property returns a reference, we should always return the same object
+                        Interlocked.CompareExchange(ref delayImportTable, results.ToArray(), null);
+                    }
+                }
+
+                return delayImportTable;
+            }
+        }
 #else
         public ImageDelayLoadDescriptor[]? DelayImportTable
         {
@@ -1534,7 +1559,39 @@ namespace PESpy
             }
         }
 #endif
+#if PEFAST
+        #region EcmaMetadata
 
+        private EcmaMetadata? ecmaMetadata;
+
+        /// <summary>
+        /// Gets the metadata table pointed to by <see cref="ImageCor20Header.Metadata"/>.<para/>
+        /// If the image does not have a Cor20 Header, or does not contain CLR Metadata, this property returns <see langword="null"/>.
+        /// </summary>
+        public EcmaMetadata? EcmaMetadata
+        {
+            get
+            {
+                if (ecmaMetadata == null)
+                {
+                    var cor20 = Cor20Header;
+
+                    if (cor20 != null)
+                    {
+                        var table = cor20.Metadata;
+
+                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            ecmaMetadata = new EcmaMetadata(chunk);
+                        }
+                    }
+                }
+
+                return ecmaMetadata;
+            }
+        }
+
+        #endregion
         #region Cor20Resources
 
         private object? cor20Resources;
@@ -1708,7 +1765,8 @@ namespace PESpy
                                     break;
 
                                 case ReadyToRunHeader.R2RSignature:
-                                    throw new NotImplementedException();
+                                    cor20ManagedNativeHeader = new ReadyToRunHeader(chunk);
+                                    break;
                             }
                         }
                     }
@@ -1724,7 +1782,76 @@ namespace PESpy
         private ImageCorILMethod[]? ilMethods;
 
 #if PEFAST
-        public ImageCorILMethod[]? ILMethods => throw new NotImplementedException();
+        public ImageCorILMethod[]? ILMethods
+        {
+            get
+            {
+                if (ilMethods == null)
+                {
+                    var methodDefs = EcmaMetadata?.CompressedModelHeap?.MethodDefTable;
+
+                    if (methodDefs == null)
+                        return null;
+
+                    var results = new List<ImageCorILMethod>();
+
+                    foreach (var methodDef in methodDefs)
+                    {
+                        //Certain methods (such as interface methods) have an RVA of 0, and so do not
+                        //have an IL method
+
+                        var rva = methodDef.RVA;
+
+                        if (rva == 0 || !TryGetValueChunkFromSection(rva, out var valueChunk))
+                            continue;
+
+                        var ilMethod = new ImageCorILMethod(valueChunk, out var isValid);
+
+                        //You can have P/Invokes that say they have RVAs but these don't point to valid data
+                        if (isValid)
+                            results.Add(ilMethod);
+                    }
+
+                    ilMethods = results.ToArray();
+                }
+
+                return ilMethods;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ImageCorILMethod"/> that is associated with a given method token.
+        /// </summary>
+        /// <param name="methodDef">The <see cref="mdMethodDef"/> token of the method whose data should be retrieved.</param>
+        /// <param name="ilMethod">The <see cref="ImageCorILMethod"/> that is associated with the specified method token.</param>
+        /// <returns><see langword="true"/> if the RVA of the metadata row pointed to by <paramref name="methodDef"/> could be resolved to an <see cref="ImageCorILMethod"/>. Otherwise, <see langword="false"/>.</returns>
+        public bool TryGetILMethod(mdMethodDef methodDef, out ImageCorILMethod ilMethod)
+        {
+            var methodDefs = EcmaMetadata?.CompressedModelHeap?.MethodDefTable;
+            ilMethod = default;
+
+            if (methodDefs == null)
+                return false;
+
+            if (methodDef.Rid > methodDefs.Count)
+                return false;
+
+            var row = methodDefs[methodDef.Rid];
+
+            var rva = row.RVA;
+
+            if (rva == 0 || !TryGetValueChunkFromSection(rva, out var valueChunk))
+                return false;
+
+            ilMethod = new ImageCorILMethod(valueChunk, out var isValid);
+
+            if (isValid)
+                return true;
+
+            //You can have P/Invokes that say they have RVAs but these don't point to valid data
+            ilMethod = default;
+            return false;
+        }
 #else
         public ImageCorILMethod[]? ILMethods
         {
@@ -1768,6 +1895,7 @@ namespace PESpy
                 return ilMethods;
             }
         }
+
         private CompressedModelHeap? clrMetadata;
 
         public CompressedModelHeap? GetCLRMetadata()
@@ -2132,7 +2260,9 @@ namespace PESpy
         private ReadyToRunHeader? readyToRunHeader;
 
 #if PEFAST
-        public ReadyToRunHeader? ReadyToRunHeader => throw new NotImplementedException();
+        //Apparently it's possible that the R2R header might also be pointed to by exports. I don't know if it's possible
+        //for it to _only_ be pointed to by exports
+        public ReadyToRunHeader? ReadyToRunHeader => Cor20ManagedNativeHeader as ReadyToRunHeader;
 #else
         public ReadyToRunHeader? ReadyToRunHeader
         {
@@ -2170,9 +2300,33 @@ namespace PESpy
         #region ClrEngineMetrics
 
         private ClrEngineMetrics? clrEngineMetrics;
+        private bool hasTriedClrEngineMetrics;
 
 #if PEFAST
-        public ClrEngineMetrics? ClrEngineMetrics => throw new NotImplementedException();
+        public ClrEngineMetrics? ClrEngineMetrics
+        {
+            get
+            {
+                if (clrEngineMetrics == null && !hasTriedClrEngineMetrics)
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    //Doesn't seem like the base matters; if the base is 2, g_CLREngineMetrics is still at ordinal 2
+                    //after factoring in ordinal + base (which is what export.Ordinal shows)
+                    if (ExportTable?.TryGetExport("g_CLREngineMetrics", out export) == true && !export.ForwardOrAddress.IsForward && export.Ordinal == 2)
+                    {
+                        var rva = export.ForwardOrAddress.Address;
+
+                        if (TryGetValueChunkFromSection(rva, out var valueChunk))
+                            clrEngineMetrics = new ClrEngineMetrics(valueChunk);
+                    }
+
+                    hasTriedClrEngineMetrics = true;
+                }
+
+                return clrEngineMetrics;
+            }
+        }
 #else
         public ClrEngineMetrics? ClrEngineMetrics
         {
@@ -2214,9 +2368,31 @@ namespace PESpy
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private RuntimeInfo? runtimeInfo;
+        private bool hasTriedRuntimeInfo;
 
 #if PEFAST
-        public RuntimeInfo? RuntimeInfo => throw new NotImplementedException();
+        public RuntimeInfo? RuntimeInfo
+        {
+            get
+            {
+                if (runtimeInfo == null && !hasTriedRuntimeInfo)
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    if (ExportTable?.TryGetExport("DotNetRuntimeInfo", out export) == true && !export.ForwardOrAddress.IsForward)
+                    {
+                        var rva = export.ForwardOrAddress.Address;
+
+                        if (TryGetValueChunkFromSection(rva, out var valueChunk))
+                            runtimeInfo = new RuntimeInfo(valueChunk);
+                    }
+
+                    hasTriedRuntimeInfo = true;
+                }
+
+                return runtimeInfo;
+            }
+        }
 #else
         public RuntimeInfo? RuntimeInfo
         {
@@ -2252,9 +2428,29 @@ namespace PESpy
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private DotNetRuntimeDebugHeader? dotNetRuntimeDebugHeader;
+        private bool hasTriedDotnetRuntimeDebugHeader;
 
 #if PEFAST
-        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => throw new NotImplementedException();
+        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
+        {
+            get
+            {
+                if (dotNetRuntimeDebugHeader == null && !hasTriedDotnetRuntimeDebugHeader)
+                {
+                    ImageExportDirectory.Export export = default;
+
+                    if (ExportTable?.TryGetExport("DotNetRuntimeDebugHeader", out export) == true && !export.ForwardOrAddress.IsForward)
+                    {
+                        if (TryGetValueChunkFromSection(export.ForwardOrAddress.Address, out var chunk))
+                            dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(chunk);
+                    }
+
+                    hasTriedDotnetRuntimeDebugHeader = true;
+                }
+
+                return dotNetRuntimeDebugHeader;
+            }
+        }
 #else
         public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
         {
@@ -2287,6 +2483,7 @@ namespace PESpy
 
         #endregion
 
+#if !PEFAST
         /// <summary>
         /// Gets a <see cref="PEFileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
         /// </summary>

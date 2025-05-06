@@ -1,16 +1,85 @@
-﻿using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct DebugTypeEntry : IValue, IViewable
+    public struct DebugTypeEntry : IValue, IViewable
     {
-        public int Offset { get; }
+#if PEFAST
+        private VA<AnsiString> typeName;
 
+        public VA<AnsiString> TypeName
+        {
+            get
+            {
+                if (typeName.ListedAddress == 0)
+                {
+                    var value = (long) chunk.PeekPointer(0);
+
+                    var peFile = chunk.PEFile();
+
+                    var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        typeName = new VA<AnsiString>(value, rva, str);
+                    }
+                    else
+                        typeName = new VA<AnsiString>(value);
+                }
+
+                return typeName;
+            }
+        }
+
+        private VA<AnsiString> fieldName;
+
+        public VA<AnsiString> FieldName
+        {
+            get
+            {
+                if (fieldName.ListedAddress == 0)
+                {
+                    var value = (long) chunk.PeekPointer(chunk.PointerSize);
+
+                    var peFile = chunk.PEFile();
+
+                    var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+
+                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        fieldName = new VA<AnsiString>(value, rva, str);
+                    }
+                    else
+                        fieldName = new VA<AnsiString>(value);
+                }
+
+                return fieldName;
+            }
+        }
+
+        public int FieldOffset => chunk.PeekInt32(chunk.PointerSize * 2);
+
+        public int ReservedPadding => chunk.PeekInt32(4 + (chunk.PointerSize * 2));
+
+        public int Offset => chunk.AbsoluteOffset;
+
+        private readonly MemoryChunk chunk;
+
+        internal DebugTypeEntry(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            typeName = default;
+            fieldName = default;
+        }
+#else
         public VA<string> TypeName { get; }
         public VA<string> FieldName { get; }
         public int FieldOffset { get; }
         public int ReservedPadding { get; }
+
+        public int Offset { get; }
 
         internal DebugTypeEntry(IFileReader reader, PEFile peFile, bool is32Bit)
         {
@@ -46,6 +115,7 @@ namespace PESpy
 
             reader.Seek(oldPosition);
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

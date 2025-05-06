@@ -11,22 +11,151 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_DELAYLOAD_DESCRIPTOR"/> structure.
     /// </summary>
-    public readonly struct ImageDelayLoadDescriptor : IValue, IViewable
+    public struct ImageDelayLoadDescriptor : IValue, IViewable
     {
+#if PEFAST
+        public int Attributes => chunk.PeekInt32(0);
+#else
         public int Attributes { get; init; }
+#endif
 
+#if PEFAST
+        private RVA<AnsiString> dllNameRVA;
+
+        public RVA<AnsiString> DllNameRVA
+        {
+            get
+            {
+                if (dllNameRVA.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(4);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var str = valueChunk.PeekAnsiNullTerminatedString(0);
+                        dllNameRVA = new RVA<AnsiString>(rva, valueChunk.AbsoluteOffset, str);
+                    }
+                }
+
+                return dllNameRVA;
+            }
+        }
+#else
         public RVA<string> DllNameRVA { get; init; }
+#endif
 
+#if PEFAST
+        private RVA<long> moduleHandleRVA;
+
+        public RVA<long> ModuleHandleRVA
+        {
+            get
+            {
+                if (moduleHandleRVA.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(8);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        var value = (long) chunk.PeekPointer(0);
+                        moduleHandleRVA = new RVA<long>(rva, valueChunk.AbsoluteOffset, value);
+                    }
+                }
+
+                return moduleHandleRVA;
+            }
+        }
+#else
         public RVA<long> ModuleHandleRVA { get; init; }
+#endif
 
+#if PEFAST
+        private RVA<ImageThunkData[]> importAddressTableRVA;
+
+        public RVA<ImageThunkData[]> ImportAddressTableRVA
+        {
+            get
+            {
+                if (importAddressTableRVA.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(12);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                        importAddressTableRVA = ImageImportDescriptor.ParseThunks(rva, valueChunk, true);
+                }
+
+                return importAddressTableRVA;
+            }
+        }
+#else
         public RVA<ImageThunkData[]> ImportAddressTableRVA { get; init; }
+#endif
 
+#if PEFAST
+        private RVA<ImageThunkData[]> importNameTableRVA;
+
+        public RVA<ImageThunkData[]> ImportNameTableRVA
+        {
+            get
+            {
+                if (importNameTableRVA.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(16);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                        importNameTableRVA = ImageImportDescriptor.ParseThunks(rva, valueChunk, false);
+                }
+
+                return importNameTableRVA;
+            }
+        }
+#else
         public RVA<ImageThunkData[]> ImportNameTableRVA { get; init; }
-        public int BoundImportAddressTableRVA { get; init; }
-        public RVA<ulong[]> UnloadInformationTableRVA { get; init; }
-        public uint TimeDateStamp { get; init; }
+#endif
 
+#if PEFAST
+        public int BoundImportAddressTableRVA => chunk.PeekInt32(20);
+#else
+        public int BoundImportAddressTableRVA { get; init; }
+#endif
+
+#if PEFAST
+        private RVA<ImageThunkData[]> unloadInformationTable;
+
+        public RVA<ImageThunkData[]> UnloadInformationTable
+        {
+            get
+            {
+                if (unloadInformationTable.ListedOffset == 0)
+                {
+                    var rva = chunk.PeekInt32(24);
+
+                    if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
+                    {
+                        //When present, consists of all of the functions that were listed in the IAT
+
+                        unloadInformationTable = ImageImportDescriptor.ParseThunks(rva, valueChunk, true);
+                    }
+                }
+
+                return unloadInformationTable;
+            }
+        }
+#else
+        public RVA<ulong[]> UnloadInformationTableRVA { get; init; }
+#endif
+
+#if PEFAST
+        public uint TimeDateStamp => chunk.PeekUInt32(28);
+#else
+        public uint TimeDateStamp { get; init; }
+#endif
+
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public RawOffset Offset { get; }
+#endif
 
         internal const int StructSize =
             sizeof(int) + //Attributes
@@ -38,7 +167,19 @@ namespace PESpy
             sizeof(int) + //UnloadInformationTableRVA
             sizeof(int);  //TimeDateStamp
 
-#if !PEFAST
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal ImageDelayLoadDescriptor(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+            dllNameRVA = default;
+            importAddressTableRVA = default;
+            importNameTableRVA = default;
+            moduleHandleRVA = default;
+            unloadInformationTable = default;
+        }
+#else
         internal ImageDelayLoadDescriptor(IFileReader reader, PEFile peFile)
         {
             Offset = (RawOffset) reader.Position;
@@ -183,7 +324,7 @@ namespace PESpy
             s.WriteField(nameof(ImportAddressTableRVA), (int) ImportAddressTableRVA.ListedOffset);
             s.WriteField(nameof(ImportNameTableRVA), (int) ImportNameTableRVA.ListedOffset);
             s.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVA);
-            s.WriteRVAField(nameof(UnloadInformationTableRVA), UnloadInformationTableRVA);
+            s.WriteField(nameof(UnloadInformationTable), (int) UnloadInformationTable.ListedOffset);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
 
             if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
@@ -198,6 +339,13 @@ namespace PESpy
                 using var r = writer.CreateScopedRegion(ImportNameTableRVA.ActualOffset, $"[DelayImportLookupTable] {DllNameRVA}", ViewKind.DelayImportLookupTable, ViewKind.ImageThunkData);
 
                 r.WriteValues(ImportNameTableRVA.Value);
+            }
+
+            if (UnloadInformationTable.IsValid && UnloadInformationTable.ListedOffset != 0)
+            {
+                using var r = writer.CreateScopedRegion(UnloadInformationTable.ActualOffset, $"[DelayUnloadInformationTable] {DllNameRVA}", ViewKind.DelayUnloadInformationTable, ViewKind.ImageThunkData);
+
+                r.WriteValues(UnloadInformationTable.Value);
             }
         }
 

@@ -15,7 +15,10 @@ namespace PESpy.OBJ
             get
             {
                 if (types == null)
+                {
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(Signature, chunk);
                     types = MsfStream.TPI.ReadTypes(chunk.Pointer + 4, length - 4);
+                }
 
                 return types;
             }

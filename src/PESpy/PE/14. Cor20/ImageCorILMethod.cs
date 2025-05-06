@@ -23,14 +23,109 @@ namespace PESpy
 
         public short MaxStack { get; }
 
+#if PEFAST
+        public Span<byte> ILBytes
+        {
+            get
+            {
+                var kind = (CorILMethodFlags) ((ushort) Flags & Extensions.CorILMethod_FormatMask);
+
+                switch (kind)
+                {
+                    case CorILMethodFlags.TinyFormat:
+                    case CorILMethodFlags.TinyFormat1:
+                        return chunk.PeekSpan<byte>(1, CodeSize);
+
+                    case CorILMethodFlags.FatFormat:
+                        return chunk.PeekSpan<byte>(12, CodeSize);
+
+                    default:
+                        return default;
+                }
+            }
+        }
+#else
         public byte[]? ILBytes { get; }
+#endif
 
         public mdSignature LocalVarSigTok { get; }
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
         public int Offset { get; }
+#endif
 
         public ImageCorILMethodSectEH[] EHSections { get; }
 
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        //It's a bit of a complicated structure due to the fact we're trying to represent a unioned type, so we eagerly read everything
+
+        internal ImageCorILMethod(in MemoryChunk chunk, out bool isValid)
+        {
+            this.chunk = chunk;
+
+            //Is it an IMAGE_COR_ILMETHOD_FAT or an IMAGE_COR_ILMETHOD_TINY?
+            //Read the kind part of IMAGE_COR_ILMETHOD_FAT.FlagsAndSize or IMAGE_COR_ILMETHOD_TINY.Flags_CodeSize
+            var byte1 = chunk.PeekByte(0);
+
+            var kind = (CorILMethodFlags) (byte1 & Extensions.CorILMethod_FormatMask);
+
+            //In tiny format, 2 will always be set (TinyFormat (2)), and if 4 is set that means its odd (TinyFormat1 (6))
+            switch (kind)
+            {
+                case CorILMethodFlags.TinyFormat:
+                case CorILMethodFlags.TinyFormat1:
+                    Flags = (CorILMethodFlags) byte1;
+                    CodeSize = (byte) (byte1 >> (Extensions.CorILMethod_FormatShift - 1));
+                    Size = 1;
+                    MaxStack = 8;
+
+                    LocalVarSigTok = default;
+                    isValid = true;
+
+                    //Note that you can potentially have a byte like 0x1e which would indicate that there are MoreSects and InitLocals, however
+                    //in the case of TinyFormat, these bits should be ignored (this is also how dnlib handles things)
+                    EHSections = Array.Empty<ImageCorILMethodSectEH>();
+
+                    break;
+
+                case CorILMethodFlags.FatFormat:
+                    var byte2 = chunk.PeekByte(1);
+                    Flags = (CorILMethodFlags) (((byte2 & 0x0F) << 8) | (byte1)); //Flags: 12 bits
+                    Size = (byte) (byte2 >> 4);
+                    MaxStack = chunk.PeekInt16(2);
+                    CodeSize = chunk.PeekInt32(4);
+                    LocalVarSigTok = chunk.PeekUInt32(8);
+                    isValid = true;
+
+                    if (Flags.HasFlag(CorILMethodFlags.MoreSects))
+                    {
+                        //Skip over the IL bytes, and then align to a 32-bit boundary
+                        var read = (12 + CodeSize + 3) & ~3;
+
+                        EHSections = ReadExtraSections(chunk.Slice(read));
+                    }
+                    else
+                        EHSections = Array.Empty<ImageCorILMethodSectEH>();
+
+                    break;
+
+                default:
+                    //You can have PInvokes that say they have RVAs but these don't point to valid data
+                    Flags = default;
+                    CodeSize = default;
+                    Size = default;
+                    MaxStack = default;
+                    LocalVarSigTok = default;
+                    isValid = false;
+                    EHSections = Array.Empty<ImageCorILMethodSectEH>();
+                    break;
+            }
+        }
+#else
         internal ImageCorILMethod(IFileReader reader, out bool isValid)
         {
             Offset = (int) reader.Position;
@@ -96,7 +191,37 @@ namespace PESpy
                     break;
             }
         }
+#endif
 
+#if PEFAST
+        private static ImageCorILMethodSectEH[] ReadExtraSections(in MemoryChunk chunk)
+        {
+            var sections = new List<ImageCorILMethodSectEH>();
+
+            var sectFlags = (CorILMethodSect) chunk.PeekByte(0);
+
+            var kind = sectFlags & CorILMethodSect.KindMask;
+
+            switch (kind)
+            {
+                case CorILMethodSect.EHTable:
+                    sections.Add(new ImageCorILMethodSectEH(kind, chunk));
+                    break;
+
+                case CorILMethodSect.OptILTable:
+                case CorILMethodSect.Reserved:
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
+            }
+
+            if (sectFlags.HasFlag(CorILMethodSect.MoreSects))
+                throw new NotImplementedException("Don't know how to handle having more sections. Do we need to align first? And then jump back to the start (after initializing our list)?");
+
+            return sections.ToArray();
+        }
+#else
         private static ImageCorILMethodSectEH[] ReadExtraSections(IFileReader reader)
         {
             var sections = new List<ImageCorILMethodSectEH>();
@@ -124,6 +249,7 @@ namespace PESpy
 
             return sections.ToArray();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
@@ -136,9 +262,13 @@ namespace PESpy
                 {
                     using var s = writer.CreateStruct(nameof(IMAGE_COR_ILMETHOD_TINY), this, ViewKind.ImageCorILMethodTiny);
 
-                    var value = (byte) (((byte) Flags & Extensions.CorILMethod_FormatMask) | (CodeSize << (Extensions.CorILMethod_FormatShift - 1)));
+                    //The bit shifts make it very confusing, but per ECMA 335 II.25.4.2 the format is as follows
+                    using (var b = s.WriteBitFields<byte>())
+                    {
+                        b.WriteField("Flags", Flags, 2);
+                        b.WriteField("CodeSize", CodeSize, 6);
+                    }
 
-                    s.WriteField("Flags_CodeSize", value);
                     s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
                     break;
                 }

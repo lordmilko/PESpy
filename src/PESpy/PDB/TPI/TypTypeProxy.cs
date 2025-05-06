@@ -48,7 +48,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_PRECOMP_16t:    return (LfPreComp16t) typType;
                 case LEAF_ENUM_e.LF_ENDPRECOMP:     return (LfEndPreComp) typType;
                 case LEAF_ENUM_e.LF_OEM_16t:        return (LfOEM16t) typType;
-                case LEAF_ENUM_e.LF_TYPESERVER_ST:  throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_TYPESERVER_ST:  return (LfTypeServer) typType;
                 case LEAF_ENUM_e.LF_SKIP_16t:       return (LfSkip16t) typType;
                 case LEAF_ENUM_e.LF_ARGLIST_16t:    return (LfArgList16t) typType;
                 case LEAF_ENUM_e.LF_DEFARG_16t:     return (LfDefArg16t) typType;

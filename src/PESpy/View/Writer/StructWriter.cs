@@ -296,7 +296,7 @@ namespace PESpy.View
             public void WriteNullPaddedUTF8Field(string name, string value, int length) => WriteFieldInternal(name, value, length);
 
 #if PEFAST
-            public void WriteNullPaddedUTF8Field(string name, Utf8String value, int length) => WriteFieldInternal(name, value, length);
+            public void WriteNullPaddedUTF8Field(string name, FixedUtf8String value, int length) => WriteFieldInternal(name, value, length);
 #endif
 
             public void WriteUTF16Field(string name, string value, int numChars)
@@ -342,6 +342,14 @@ namespace PESpy.View
             }
 
             public void WriteVAAnsiNullTerminatedField(string name, VA<string> value)
+            {
+                WriteField(name, value.ListedAddress);
+
+                if (value.IsValid && value.ListedAddress != 0)
+                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+            }
+
+            public void WriteVAAnsiNullTerminatedField(string name, VA<AnsiString> value)
             {
                 WriteField(name, value.ListedAddress);
 

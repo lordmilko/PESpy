@@ -38,6 +38,9 @@ namespace PESpy
 
                     var fileAddressOfNewExeHeader = *(int*) (mmf.Address + 60);
 
+                    if (fileAddressOfNewExeHeader >= length)
+                        return false; //Probably a DOS file
+
                     var sig = *(uint*) (mmf.Address + fileAddressOfNewExeHeader);
 
                     if (sig == ImageNtHeaders.IMAGE_NT_SIGNATURE)

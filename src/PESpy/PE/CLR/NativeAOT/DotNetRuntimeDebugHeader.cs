@@ -14,8 +14,136 @@ namespace PESpy
     {
         public int AotSignature = 0x48444E44; //DNDH
 
-        public int Offset { get; }
+#if PEFAST
+        public int Cookie => chunk.PeekInt32(0);
 
+        public short MajorVersion => chunk.PeekInt16(4);
+
+        public short MinorVersion => chunk.PeekInt16(6);
+
+        public int Flags => chunk.PeekInt32(8);
+
+        public int ReservedPadding1 => chunk.PeekInt32(12);
+
+        //This information seems to be populated at runtime by PopulateDebugHeaders()
+
+        #region DebugTypeEntries
+
+        private VA<DebugTypeEntry[]> debugTypeEntries;
+
+        public VA<DebugTypeEntry[]> DebugTypeEntries
+        {
+            get
+            {
+                if (debugTypeEntries.ListedAddress == 0)
+                {
+                    var peFile = chunk.PEFile();
+
+                    var debugTypeEntriesAddress = (long) chunk.PeekPointer(16);
+
+                    if (peFile.IsLoadedImage)
+                    {
+                        if (debugTypeEntriesAddress != 0)
+                        {
+                            var actualOffset = (int) (debugTypeEntriesAddress - peFile.OptionalHeader.ImageBase);
+
+                            if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
+                            {
+                                var results = new List<DebugTypeEntry>();
+
+                                var read = 0;
+                                var ptrSize = chunk.PointerSize;
+
+                                while (true)
+                                {
+                                    //The last entry is null
+
+                                    var entry = new DebugTypeEntry(valueChunk.Slice(read));
+
+                                    results.Add(entry);
+
+                                    if (entry.TypeName.ListedAddress == 0)
+                                        break;
+
+                                    read += (2 * ptrSize) + 8;
+                                }
+
+                                debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress, actualOffset, results.ToArray());
+                            }
+                            else
+                                debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress);
+                        }
+                        else
+                            debugTypeEntries = default;
+                    }
+                    else
+                        debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress);
+                }
+
+                return debugTypeEntries;
+            }
+        }
+
+        #endregion
+        #region GlobalValueEntries
+
+        private VA<GlobalValueEntry[]> globalValueEntries;
+
+        public VA<GlobalValueEntry[]> GlobalValueEntries
+        {
+            get
+            {
+                if (globalValueEntries.ListedAddress == 0)
+                {
+                    var peFile = chunk.PEFile();
+
+                    var globalEntriesAddress = (long) chunk.PeekPointer(16 + chunk.PointerSize);
+
+                    if (peFile.IsLoadedImage)
+                    {
+                        if (globalEntriesAddress != 0)
+                        {
+                            var actualOffset = (int) (globalEntriesAddress - peFile.OptionalHeader.ImageBase);
+
+                            if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
+                            {
+                                var results = new List<GlobalValueEntry>();
+
+                                var read = 0;
+                                var ptrSize = chunk.PointerSize;
+
+                                while (true)
+                                {
+                                    //The last entry is null
+
+                                    var entry = new GlobalValueEntry(valueChunk.Slice(read));
+
+                                    results.Add(entry);
+
+                                    if (entry.Name.ListedAddress == 0)
+                                        break;
+
+                                    read += (2 * ptrSize);
+                                }
+
+                                globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress, actualOffset, results.ToArray());
+                            }
+                            else
+                                globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);
+                        }
+                        else
+                            globalValueEntries = default;
+                    }
+                    else
+                        globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);
+                }
+
+                return globalValueEntries;
+            }
+        }
+
+        #endregion
+#else
         public int Cookie { get; }
         public short MajorVersion { get; }
         public short MinorVersion { get; }
@@ -25,7 +153,22 @@ namespace PESpy
         public VA<DebugTypeEntry[]> DebugTypeEntries { get; }
 
         public VA<GlobalValueEntry[]> GlobalValueEntries { get; }
+#endif
 
+#if PEFAST
+        public int Offset => chunk.AbsoluteOffset;
+#else
+        public int Offset { get; }
+#endif
+
+#if PEFAST
+        private readonly MemoryChunk chunk;
+
+        internal DotNetRuntimeDebugHeader(in MemoryChunk chunk)
+        {
+            this.chunk = chunk;
+        }
+#else
         internal DotNetRuntimeDebugHeader(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -106,6 +249,7 @@ namespace PESpy
                 GlobalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);
             }
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

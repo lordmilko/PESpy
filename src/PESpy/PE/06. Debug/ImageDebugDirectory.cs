@@ -499,14 +499,18 @@ namespace PESpy
         {
             switch ((CodeViewSig) chunk.PeekUInt32(0))
             {
-                case CodeViewSig.RSDS:
-                    return new RSDSI(chunk);
-
-                case CodeViewSig.NB10:
+                case CodeViewSig.NB10: //PDB v2.0
                     return new NB10I(chunk);
 
+                case CodeViewSig.NB09: //OMF
+                case CodeViewSig.NB11:
+                    return OMFReader.ReadNB05(chunk, sizeOfData);
+
+                case CodeViewSig.RSDS: //PDB v7.0
+                    return new RSDSI(chunk);
+
                 default:
-                    Debug.Assert(false, $"Don't know how to read CodeView signature '{chunk.PeekInt32(0):X}'");
+                    Debug.Assert(false, $"Don't know how to read CodeView signature '{chunk.PeekAnsiFixedLength(0, 4)}' (0x{chunk.PeekUInt32(0):X})");
 
                     //Unsupported value; read as a byte blob
                     return new ByteBlob(chunk, sizeOfData);

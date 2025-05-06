@@ -137,6 +137,16 @@ namespace PESpy.View
             }
         }
 
+        public void WriteGlobal(int offset, SymType[] value)
+        {
+            foreach (var item in value)
+            {
+                var size = item.reclen + 2;
+                WriteGlobal(offset, item, size, ViewKind.SymType);
+                offset += size;
+            }
+        }
+
         internal PageWriter CreatePagedWriter(int startRelativeOffset, PagedMemoryBlock block, bool global)
         {
             if (global)

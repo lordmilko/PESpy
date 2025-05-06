@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 #if !DEBUG_POSITION
 using RVA = System.Int32;
 #endif
@@ -45,6 +46,62 @@ namespace PESpy
             tree = ByteSequenceTreeNode.BuildTree(sequences.Keys.ToArray());
         }
 
+#if PEFAST
+        internal static bool TryMatch(PEFile peFile, RVA virtualOffset, out ByteMatchKind kind)
+        {
+            var context = peFile.ExceptionHandlerContext;
+
+            //Fast path: we already know what function this is
+            if (context.TryGetKind(virtualOffset, out var rawKind))
+            {
+                if (rawKind == null)
+                {
+                    kind = default;
+                    return false;
+                }
+
+                kind = rawKind.Value;
+                return true;
+            }
+
+            if (peFile.TryGetValueChunkFromSection(virtualOffset, out var valueChunk))
+            {
+                var match = tree.GetMatches(valueChunk, true).FirstOrDefault();
+
+                if (match.Sequence != null)
+                {
+                    kind = sequences[match.Sequence];
+
+                    switch (kind)
+                    {
+                        case ByteMatchKind.Jmp:
+                            //__C_specific_handler contains a jmp to an import that contains the actual implementation
+                            var relativeAddress = valueChunk.PeekUInt32(2); //Skip over FF 25 (jump indirect)
+                            var ripRelativeAddress = (int) (virtualOffset + relativeAddress + 6); //The instruction is 6 bytes long
+
+                            //Cache discovered addresses for fast lookup
+                            if (context.TryGetImport(ripRelativeAddress, out kind))
+                                return true;
+
+                            break;
+
+                        default:
+                            context.AddMatch(virtualOffset, kind);
+
+                            return true;
+                    }
+                }
+            }
+
+            if (context.TryGetSymbol(virtualOffset, out kind))
+                return true;
+
+            context.AddMatch(virtualOffset, null);
+
+            kind = default;
+            return false;
+        }
+#else
         internal static bool TryMatch(IFileReader reader, PEFile peFile, RVA virtualOffset, ExceptionHandlerContext context, out ByteMatchKind kind)
         {
             if (context.TryGetKind(virtualOffset, out var rawKind))
@@ -100,5 +157,6 @@ namespace PESpy
             kind = default;
             return false;
         }
+#endif
     }
 }
