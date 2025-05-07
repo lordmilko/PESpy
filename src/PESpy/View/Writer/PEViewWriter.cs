@@ -45,7 +45,23 @@ namespace PESpy.View
             }
         }
 
-        internal PEViewWriter(PEFile peFile, IFileReader reader, IViewDisassembler? viewDisassembler, ViewMode mode) : base(reader, viewDisassembler, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
+        internal unsafe PEViewWriter(
+            PEFile peFile,
+#if PEFAST
+            byte* mmf,
+            int length,
+#else
+            IFileReader reader,
+#endif
+            IViewDisassembler? viewDisassembler,
+            ViewMode mode) : base(
+#if PEFAST
+            mmf,
+            length,
+#else
+            reader,
+#endif
+            viewDisassembler, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
         {
             this.peFile = peFile;
         }

@@ -8,19 +8,24 @@ namespace PESpy.View
 {
     public class PDBViewWriter : ViewWriter
     {
-#if NEW_PDB
         internal PDBFile pdbFile;
-#else
-        internal PdbFile pdbFile;
-#endif
 
-        internal PDBViewWriter(
-#if NEW_PDB
+        internal unsafe PDBViewWriter(
             PDBFile pdbFile,
+#if PEFAST
+            byte* mmf,
+            int length
 #else
-            PdbFile pdbFile,
+            IFileReader reader,
 #endif
-        IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
+            ) : base(
+#if PEFAST
+            mmf,
+            length,
+#else
+            reader,
+#endif
+            null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.pdbFile = pdbFile;
         }
@@ -43,34 +48,16 @@ namespace PESpy.View
 
             var streamIndexToNameMap = new Dictionary<int, string>();
 
-#if !NEW_PDB
-            if (pdbFile.PDB != null)
-            {
-                for (int i = 0; i < pdbFile.PDB.Value.StreamNameTable.NameOffsetToStreamIndexMap.Entries.Length; i++)
-                {
-                    var entry = pdbFile.PDB.Value.StreamNameTable.NameOffsetToStreamIndexMap.Entries[i];
-
-                    //Note that you can have named streams that don't actually have any pages!
-                    streamIndexToNameMap.Add(entry.Value, pdbFile.PDB.Value.StreamNameTable.Names[i].Value);
-                }
-            }
-#else
             if (pdbFile.PDB != null)
             {
                 foreach (var kv in pdbFile.PDB.StreamNameTable.NameToStreamNumberMap)
                 {
+                    //Note that you can have named streams that don't actually have any pages!
                     streamIndexToNameMap.Add(kv.Value, kv.Key);
                 }
             }
-#endif
 
-            var pageToSIMap = new Dictionary<PN, (
-#if NEW_PDB
-                SI
-#else
-                SI_old
-#endif
-                si, int siIndex, int pageIndex, string name)>();
+            var pageToSIMap = new Dictionary<PN, (SI si, int siIndex, int pageIndex, string name)>();
 
             //Add in global symbol streams
             //todo: not sure how you detect that the stream isnt present
@@ -82,25 +69,19 @@ namespace PESpy.View
                 streamIndexToNameMap.Add(pdbFile.DBI.DbiHdr.snPSSyms, $"Publics");
             }
 
-#if !NEW_PDB
             if (pdbFile.TPI != null)
             {
-                var tpihash = pdbFile.TPI.Header.tpihash;
-                streamIndexToNameMap.Add(tpihash.sn, "TPI Hash");
+                var hdr = pdbFile.TPI.Hdr;
 
-                if (tpihash.snPad != SN.Nil)
-                    streamIndexToNameMap.Add(tpihash.sn, "TPI Hash (Aux)");
+                if (hdr is HDR h)
+                {
+                    var tpihash = h.tpihash;
+                    streamIndexToNameMap.Add(tpihash.sn, "TPI Hash");
+
+                    if (tpihash.snPad != SN.Nil)
+                        streamIndexToNameMap.Add(tpihash.sn, "TPI Hash (Aux)");
+                }
             }
-
-            if (pdbFile.IPI != null)
-            {
-                var ipihash = pdbFile.IPI.Header.tpihash;
-                streamIndexToNameMap.Add(ipihash.sn, "IPI Hash");
-
-                if (ipihash.snPad != SN.Nil)
-                    streamIndexToNameMap.Add(ipihash.sn, "IPI Hash (Aux)");
-            }
-#endif
 
             if (pdbFile.DBI != null)
             {
@@ -201,17 +182,14 @@ namespace PESpy.View
 
             specialPageMap.Add(0, "Master Index");
 
-#if NEW_PDB
             ref readonly var activeFPM = ref pdbFile.ActiveFPM;
 
             var fpm0 = pdbFile.FPM0;
 
-            string fpmStatus;
-
             //In Big MSF the first FPM is always page 1 and the second FPM is page 2.
             //In Small MSF the first FPM is also always page 1, and the second FPM depends on the page size
 
-            fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
+            var fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
 
             for (var i = 0; i < fpm0.FpmPages.Length; i++)
                 specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
@@ -240,23 +218,6 @@ namespace PESpy.View
                     specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
             }
 
-#else
-            var activeFPM = pdbFile.ActiveFPM;
-
-            if (pdbFile.MsfHeader.FpmPageNo == 1)
-                specialPageMap.Add(1, $"FPM 0 (1/{activeFPM.FpmPages.Length}) (Active)");
-            else
-                specialPageMap.Add(1, "FPM 0 (Inactive)");
-
-            if (pdbFile.MsfHeader.FpmPageNo == 2)
-                specialPageMap.Add(2, $"FPM 1 (1/{activeFPM.FpmPages.Length}) (Active)");
-            else
-                specialPageMap.Add(2, "FPM 1 (Inactive)");
-
-            //If we have more than 1 FPM page, write those too
-            for (var i = 1; i < activeFPM.FpmPages.Length; i++)
-                specialPageMap.Add(activeFPM.FpmPages[i], $"FPM ({i+1}/{activeFPM.FpmPages.Length})");
-#endif
             //Scope v7 variable
             {
                 if (pdbFile is PDB7File v7)

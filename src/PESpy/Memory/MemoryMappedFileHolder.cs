@@ -52,8 +52,8 @@ namespace PESpy
                 }
             }
 
-            mma!.Dispose();
-            mmf!.Dispose();
+            mma?.Dispose();
+            mmf?.Dispose();
 
             mma = null;
             mmf = null;

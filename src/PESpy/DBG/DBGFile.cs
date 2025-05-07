@@ -170,7 +170,7 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new DBGViewWriter(this, new StreamFileReader(new MMFStream(mmf.Address, (int) mmf.Length), new object())); //todo: temp using reader+stream while we're still in transition
+            var writer = new DBGViewWriter(this, mmf.Address, (int) mmf.Length);
             ((IViewable) this).WriteView(writer);
 
             return (FileView) writer.Finalize();

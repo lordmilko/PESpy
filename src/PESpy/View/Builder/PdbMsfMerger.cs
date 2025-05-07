@@ -8,19 +8,12 @@ namespace PESpy.View.Builder
     //Merges PDBs that use MSF. PDB v1 does not use MSF
     internal class PdbMsfMerger : Merger
     {
-#if NEW_PDB
         internal PDBFile pdbFile;
-#else
-        internal PdbFile pdbFile;
-#endif
+
         internal Dictionary<PN, int> pageNumberToSIIndex;
 
         internal PdbMsfMerger(
-#if NEW_PDB
             PDBFile pdbFile,
-#else
-            PdbFile pdbFile,
-#endif
             List<IView> sortedStructs,
             List<DirectoryInfo> pages,
             Extension extension) : base(sortedStructs, null, pages, extension)

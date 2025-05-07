@@ -15,7 +15,22 @@ namespace PESpy.View
 
         IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine!.Value;
 
-        internal LIBViewWriter(LIBFile libFile, IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe LIBViewWriter(
+            LIBFile libFile,
+#if PEFAST
+            byte* mmf,
+            int length
+#else
+            IFileReader reader,
+#endif
+            ) : base(
+#if PEFAST
+            mmf,
+            length,
+#else
+            reader,
+#endif
+            null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.libFile = libFile;
         }

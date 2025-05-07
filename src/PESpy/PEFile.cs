@@ -2577,13 +2577,13 @@ namespace PESpy
                 throw new NotImplementedException();
             }
 
-            var writer = new PEViewWriter(this, new StreamFileReader(new MMFStream(pointer, length), new object()), null, mode);
+            var writer = new PEViewWriter(this, pointer, length, null, mode);
 
             return writer;
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile
-        private IMemoryBlockProvider blockProvider;
+        private readonly IMemoryBlockProvider blockProvider;
 
         //A special MemoryBlock containing the PE File header. We bypass the IMemoryBlockProvider
         //and create this directly since we need a special MemoryBlock implementation with special behaviors

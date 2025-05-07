@@ -64,7 +64,7 @@ namespace PESpy.View
             return results.ToArray();
         }
 
-        public static ExtractedString[] GetStrings(byte[] bytes)
+        public static ExtractedString[] GetStrings(Span<byte> bytes)
         {
             var results = new List<ExtractedString>();
 
@@ -94,7 +94,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetAnsiWorker(ref int i, byte[] bytes, List<ExtractedString> results)
+        private static void GetAnsiWorker(ref int i, Span<byte> bytes, List<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -139,7 +139,7 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength) //4 characters + \0
                 {
-                    var str = Encoding.ASCII.GetString(bytes, i, j - i);
+                    var str = Encoding.ASCII.GetString(bytes.ToArray(), i, j - i);
 
                     results.Add(new ExtractedString
                     {
@@ -154,7 +154,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetUnicodeWorker(ref int i, byte[] bytes, bool nullTerminated, List<ExtractedString> results)
+        private static void GetUnicodeWorker(ref int i, Span<byte> bytes, bool nullTerminated, List<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -200,7 +200,7 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength * 2) //4 characters + \0
                 {
-                    var str = Encoding.Unicode.GetString(bytes, i, (j - i));
+                    var str = Encoding.Unicode.GetString(bytes.ToArray(), i, (j - i));
 
                     results.Add(new ExtractedString
                     {

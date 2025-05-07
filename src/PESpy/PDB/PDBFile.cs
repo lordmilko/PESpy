@@ -432,7 +432,7 @@ namespace PESpy
         public FileView GetView()
         {
 #if NEW_PDB
-            var writer = new PDBViewWriter(this, new StreamFileReader(new MMFStream(mmf.Address, (int) mmf.Length), new object()));
+            var writer = new PDBViewWriter(this, mmf.Address, (int) mmf.Length);
             ((IViewable) this).WriteView(writer);
 
             return (FileView) writer.Finalize();

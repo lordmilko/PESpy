@@ -8,12 +8,27 @@ using RawOffset = System.Int32;
 
 namespace PESpy.View.Builder
 {
-    class Extension
+    unsafe class Extension
     {
+#if PEFAST
+        private byte* mmf;
+        private int length;
+#else
         private IFileReader reader;
+#endif
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
 
+#if PEFAST
+        internal Extension(byte* mmf, int length, IViewDisassembler? viewDisassembler)
+        {
+            this.mmf = mmf;
+            this.length = length;
+            this.viewDisassembler = viewDisassembler;
+        }
+
+        internal long GetInputLength() => length;
+#else
         internal Extension(IFileReader reader, IViewDisassembler? viewDisassembler)
         {
             this.reader = reader;
@@ -21,6 +36,7 @@ namespace PESpy.View.Builder
         }
 
         internal long GetInputLength() => ((StreamFileReader) reader).GetStreamUnsafe().Length;
+#endif
 
         internal IView[]? ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
@@ -30,30 +46,48 @@ namespace PESpy.View.Builder
             if (getRealOffset != null)
                 offset = getRealOffset(offset);
 
+#if PEFAST
+            var span = new Span<byte>(mmf, length);
+#else
             reader.Seek(offset);
+#endif
 
             Debug.Assert(endRVA > currentRVA);
             var bytesToRead = endRVA - currentRVA;
 
-            byte[] bytes;
+            Span<byte> bytes;
 
             if (isOverlay)
             {
                 //When reading the overlay from disk, nothing is certain. We can have some level of confidence about the security section,
                 //but there could even be data listed after that as well
+
+#if PEFAST
+                if (offset >= length)
+                    return null;
+
+                bytesToRead = Math.Min(bytesToRead, length - offset);
+
+                bytes = span.Slice(offset, bytesToRead);
+#else
                 if (!reader.TryReadBytes((int) bytesToRead, out bytes!))
                     return null;
+#endif
             }
             else
             {
+#if PEFAST
+                bytes = span.Slice(offset, bytesToRead);
+#else
                 bytes = reader.ReadBytes((int)bytesToRead);
+#endif
             }
 
             IView[]? views;
 
             if (!TryParseRawBytes(currentRVA, kind, bytes, getRVA, out views))
             {
-                var result = new ByteBlobView(currentRVA, bytes, kind);
+                var result = new ByteBlobView(currentRVA, bytes.ToArray(), kind);
                 views = new IView[] { result };
             }
 
@@ -62,7 +96,7 @@ namespace PESpy.View.Builder
             return views;
         }
 
-        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, byte[] bytes, Func<int, int>? getRVA, out IView[]? views)
+        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, Span<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
         {
             //Try get code first, then strings
 
@@ -104,7 +138,7 @@ namespace PESpy.View.Builder
             return false;
         }
 
-        private void SplitBytes(RawOffset offset, byte[] bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
+        private void SplitBytes(RawOffset offset, Span<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
         {
             var strIndex = 0;
 
@@ -134,11 +168,11 @@ namespace PESpy.View.Builder
             }
         }
 
-        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, byte[] bytes)
+        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, Span<byte> bytes)
         {
             var length = end - i;
             var arr = new byte[length];
-            Array.Copy(bytes, i, arr, 0, length);
+            bytes.Slice(i, length).CopyTo(arr);
 
             //If we have a name, but all of the bytes in this section are 0, it's now padding (e.g. after the DOS Stub)
             if (localKind != null && arr.All(b => b == 0))

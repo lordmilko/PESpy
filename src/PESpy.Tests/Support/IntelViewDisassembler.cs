@@ -7,14 +7,14 @@ namespace PESpy.Tests
 {
     class IntelViewDisassembler : IViewDisassembler
     {
-        public bool TryParseBytes(ref int offset, int rva, ref byte[] bytes, List<IView> results)
+        public bool TryParseBytes(ref int offset, int rva, ref Span<byte> bytes, List<IView> results)
         {
             throw new NotImplementedException();
         }
 
-        public bool TryParseDosStub(ref int offset, ref byte[] bytes, List<IView> results)
+        public bool TryParseDosStub(ref int offset, ref Span<byte> bytes, List<IView> results)
         {
-            var decoder = Decoder.Create(16, bytes);
+            var decoder = Decoder.Create(16, bytes.ToArray());
 
             ushort ip = 0;
 
@@ -58,8 +58,8 @@ namespace PESpy.Tests
                 results.Add(new AsmView<Instruction>(offset, "DosStub", length, 16, instrs.ToArray(), ViewKind.DosStub));
 
                 var newArr = new byte[bytes.Length - length];
+                bytes.Slice(length, bytes.Length).CopyTo(newArr);
 
-                Array.Copy(bytes, length, newArr, 0, newArr.Length);
                 offset += length;
                 bytes = newArr;
 

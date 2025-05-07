@@ -8,7 +8,22 @@ namespace PESpy.View
     {
         private DBGFile dbgFile;
 
-        internal DBGViewWriter(DBGFile dbgFile, IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe DBGViewWriter(
+            DBGFile dbgFile,
+#if PEFAST
+            byte* mmf,
+            int length
+#else
+            IFileReader reader,
+#endif
+            ) : base(
+#if PEFAST
+            mmf,
+            length,
+#else
+            reader,
+#endif
+            null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.dbgFile = dbgFile;
         }

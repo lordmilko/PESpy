@@ -11,7 +11,22 @@ namespace PESpy.View
 
         public IMAGE_FILE_MACHINE Machine => objFile.FileHeader.Machine;
 
-        internal OBJViewWriter(OBJFile objFile, IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe OBJViewWriter(
+            OBJFile objFile,
+#if PEFAST
+            byte* mmf,
+            int length
+#else
+            IFileReader reader,
+#endif
+            ) : base(
+#if PEFAST
+            mmf,
+            length,
+#else
+            reader,
+#endif
+            null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.objFile = objFile;
         }
