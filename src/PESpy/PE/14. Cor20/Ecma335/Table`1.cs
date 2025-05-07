@@ -42,7 +42,7 @@ namespace PESpy.Ecma335
                 //that the value is essentially a "null reference"
 
                 if (index == 0)
-                    return default;
+                    return default!;
 
                 if (index > Count)
                     throw new ArgumentOutOfRangeException(nameof(index));
@@ -59,7 +59,7 @@ namespace PESpy.Ecma335
 
         private struct Enumerator : IEnumerator<T>
         {
-            public T? Current { get; private set; }
+            public T Current { get; private set; }
 
             object? IEnumerator.Current => Current;
 
@@ -70,13 +70,16 @@ namespace PESpy.Ecma335
             {
                 this.table = table;
                 index = 1;
-                Current = default;
+                Current = default!;
             }
 
             public bool MoveNext()
             {
                 if (index > table.Count)
+                {
+                    Current = default!;
                     return false;
+                }
 
                 Current = table[index];
                 index++;

@@ -27,6 +27,12 @@ namespace PESpy.PDB
         public CV_COBOL_e subtype => value->subtype;
         public short flag => value->flag;
 
+        #region PESpy
+
+        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        #endregion
+
         internal CExMSym16(CEXMSYM16* value)
         {
             this.value = value;

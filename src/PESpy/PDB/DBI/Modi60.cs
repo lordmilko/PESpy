@@ -124,11 +124,11 @@ namespace PESpy.PDB
             symbols = default;
             c13Lines = default;
 
+            if (cbLines > 0)
+                Debug.Assert(false, "Reading C11 lines is not implemented"); //microsoft-pdb calls these C11 lines, they're not called C7 lines
+
 #if STRESS_TEST
             _ = Symbols;
-
-            if (cbLines > 0)
-                Debug.Assert(false, "Reading C11 lines is not implemented");
 
             _ = C13Lines;
 #endif

@@ -245,6 +245,13 @@ namespace PESpy
                 headerChunk = new MemoryChunk(s, offset + ImageArchiveMemberHeader.StructSize); //Offset for LongImportLibraryMember will be the ImageArchiveMemberHeader
                 return true;
             }
+            else if (chunk.block is PagedMemoryBlock p)
+            {
+                //I don't know if the original header gets literally written into the PDB file, or if references to things are removed. Regardless,
+                //the safe thing to do is not allow resolving references to things
+                headerChunk = default;
+                return false;
+            }
             else
             {
                 //It should be a PE File

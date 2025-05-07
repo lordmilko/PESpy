@@ -23,6 +23,18 @@ namespace PESpy.PDB
 
         public FixedUtf8String name => SymType.ReadString(value, value->name);
 
+        #region PESpy
+
+        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        /* There is no way to get the "underlying" symbol of a PubSym32. The public symbol specifies a section
+         * and offset, which can be used to calculate its RVA. It does _not_ behave similarly to a RefSym.
+         * You cannot use the section or offset to lookup the "underlying" symbol from a module. You _can_
+         * get the module that is associated with a given section and offset (based on the section contribs),
+         * but that's as far as you can get */
+
+        #endregion
+
         internal PubSym32(PUBSYM32* value)
         {
             this.value = value;

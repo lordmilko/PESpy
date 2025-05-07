@@ -27,9 +27,9 @@ namespace PESpy
         //Due to the fact we've read 3 shorts and then 16 bits, we should always align here
         public short Padding1 => chunk.PeekInt16(38); //6 + (16 * 2)
 
-        private VsFixedFileInfo value;
+        private VsFixedFileInfo? value;
 
-        public VsFixedFileInfo Value
+        public VsFixedFileInfo? Value
         {
             get
             {
@@ -43,10 +43,10 @@ namespace PESpy
 #if !PEFAST
         public short Padding2 { get; init; }
 #endif
-        private IValue[] children;
+        private IValue[]? children;
 
 
-        public IValue[] Children
+        public IValue[]? Children
         {
             get
             {
@@ -259,7 +259,11 @@ namespace PESpy
             s.WriteField("wType", Type);
             s.WriteUTF16Field("szKey", Key, 16);
             s.WriteField(nameof(Padding1), Padding1);
-            s.WriteInline(Value);
+
+            var value = Value;
+
+            if (value != null)
+                s.WriteInline(value);
 
 #if !PEFAST
             if (s.NeedAlignment(4, out var required))
@@ -268,14 +272,18 @@ namespace PESpy
                 s.WriteField(nameof(Padding2), Padding2);
             }
 #endif
+            var children = Children;
 
-            for (var i = 0; i < Children.Length; i++)
+            if (children != null)
             {
-                var child = Children[i];
-                s.WriteInline((IViewable) child);
+                for (var i = 0; i < children.Length; i++)
+                {
+                    var child = children[i];
+                    s.WriteInline((IViewable) child);
 
-                if (i < Children.Length - 1)
-                    s.Align(4);
+                    if (i < children.Length - 1)
+                        s.Align(4);
+                }
             }
 
             s.VerifyLength(Length);

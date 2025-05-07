@@ -209,7 +209,7 @@ namespace PESpy
             {
                 case CompressedModelStream:
                 {
-                    var data = (CompressedModelHeap) Data;
+                    var data = (CompressedModelHeap) Data!;
 
                     using var r = writer.CreateRegion(data.Offset + CompressedModelHeader.FixedStructSize + (data.Header.RowCounts.Length * 4), Name, ViewKind.CompressedModelHeap, global: true);
 
@@ -219,7 +219,7 @@ namespace PESpy
 
                 case StringPoolStream:
                 {
-                    var data = (StringHeap) Data;
+                    var data = (StringHeap) Data!;
 
                     using var r = writer.CreateRegion(data.Offset, Name, ViewKind.StringPoolHeap, global: true);
 
@@ -230,7 +230,7 @@ namespace PESpy
 
                 case USBlobPoolStream:
                 {
-                    var data = (UserStringHeap) Data;
+                    var data = (UserStringHeap) Data!;
 
                     using var r = writer.CreateRegion(data.Offset, Name, ViewKind.USBlobPoolHeap, global: true);
 
@@ -242,7 +242,7 @@ namespace PESpy
 
                 case BlobPoolStream:
                 {
-                    var data = (BlobHeap) Data;
+                    var data = (BlobHeap) Data!;
 
                     using var r = writer.CreateRegion(data.Offset, Name, ViewKind.BlobPoolHeap, global: true);
 
@@ -253,7 +253,7 @@ namespace PESpy
 
                 case GuidPoolStream:
                 {
-                    var data = (GuidHeap) Data;
+                    var data = (GuidHeap) Data!;
 
                     using var r = writer.CreateRegion(data.Offset, Name, ViewKind.GuidPoolHeap, global: true);
 
@@ -265,7 +265,7 @@ namespace PESpy
 
                 case "#!":
                 {
-                    var data = (ByteBlob) Data;
+                    var data = (ByteBlob) Data!;
 
                     throw new NotImplementedException($"Serializing stream '{Name}' is not implemented");
                 }

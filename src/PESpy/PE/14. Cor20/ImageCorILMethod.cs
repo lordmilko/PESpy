@@ -289,7 +289,6 @@ namespace PESpy
                     s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
 
                     throw new NotImplementedException("Need to align and then write the sections");
-                    break;
                 }
             }
         }

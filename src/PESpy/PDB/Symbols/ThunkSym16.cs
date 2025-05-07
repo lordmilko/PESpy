@@ -30,6 +30,12 @@ namespace PESpy.PDB
 
         public THUNK_ORDINAL ord => (THUNK_ORDINAL) value->ord;
 
+        #region PESpy
+
+        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        #endregion
+
         internal ThunkSym16(THUNKSYM16* value)
         {
             this.value = value;

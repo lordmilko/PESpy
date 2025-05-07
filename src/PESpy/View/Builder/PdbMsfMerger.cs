@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using PESpy.PDB;
 
+#nullable disable
+
 namespace PESpy.View.Builder
 {
     //Merges PDBs that use MSF. PDB v1 does not use MSF

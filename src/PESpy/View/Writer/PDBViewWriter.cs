@@ -222,7 +222,9 @@ namespace PESpy.View
                     fpmStatus = v7.MsfHeader.FpmPageNo == 2 ? "Active" : "Inactive";
                 else
                 {
+#pragma warning disable CS8509
                     var secondFPM = pdbFile.PageSize switch
+#pragma warning restore CS8509
                     {
                         1024 => 9,
                         2048 => 5,

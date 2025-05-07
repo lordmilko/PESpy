@@ -12,6 +12,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly struct NMTNI : IValue, IViewable
     {
+        /* The PDB stream contains a name table that maps named streams to the stream info (SI) index that they begin at
+         * (an "NI" - name index in PDB1 terms). PDB1 represents the name table using the NMTNI type, wherein PDB1::loadPdbStream()
+         * calls nmt.reload() to load the name table from the file. This causes the on-disk hashtable to be loaded. Ostensibly,
+         * the key of the name table is an The key is an offset into the stream names region (which was skipped over prior to reading
+         * the name table). PDB1 uses pointer tricks to cast the raw offset into an SZO type, which is then combined with the current
+         * offset of a given buffer that is passed in to its getsz method, resulting in a char* being returned. */
+
         public readonly int NameBufferSize;
         public readonly Map NameOffsetToStreamIndexMap;
         public readonly RawValue<string>[] Names;

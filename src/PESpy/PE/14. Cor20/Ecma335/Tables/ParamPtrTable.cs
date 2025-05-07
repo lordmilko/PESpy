@@ -14,6 +14,8 @@
         {
             this.tableChunk = tableChunk;
 
+            isBigParamIndex = paramIndexSize == 4;
+
             ParamOffset = 0;
             RowSize = ParamOffset + paramIndexSize;
         }

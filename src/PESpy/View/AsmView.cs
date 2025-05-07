@@ -39,7 +39,7 @@ namespace PESpy.View
             Instructions = instructions;
         }
 
-        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitAsm(this);
+        public TResult Accept<TResult>(ViewVisitor<TResult> visitor) => visitor.VisitAsm(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitAsm(this);
     }

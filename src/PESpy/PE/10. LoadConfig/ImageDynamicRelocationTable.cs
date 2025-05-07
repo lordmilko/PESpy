@@ -54,7 +54,7 @@ namespace PESpy
                 //Haven't found an assembly that uses version 2 yet
                 Debug.Assert(false, $"Don't know how to handle a {nameof(ImageDynamicRelocationTable)} with version {Version}");
                 Size = default;
-                DynamicRelocations = default;
+                DynamicRelocations = default!;
             }
         }
 #else

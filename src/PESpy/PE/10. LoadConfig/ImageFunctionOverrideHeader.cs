@@ -13,7 +13,7 @@ namespace PESpy
         //IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
         //IMAGE_BDD_INFO BDDInfo; // BDD region, size in bytes: DVRTEntrySize - sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) - FuncOverrideSize
 
-        private ImageFunctionOverrideDynamicRelocation[] funcOverrides;
+        private ImageFunctionOverrideDynamicRelocation[]? funcOverrides;
 
         public ImageFunctionOverrideDynamicRelocation[] FuncOverrides
         {

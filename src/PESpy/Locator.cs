@@ -76,6 +76,11 @@ namespace PESpy
      * in the normal _NT_SYMBOL_PATH. (Also note that while there is a method LOCATOR::FLocateDbgServer, this method is now empty. All of the symsrv handling logic is carried out in steps 2-5)
      */
 
+    public interface ISymbolClient //Temporary interface until we add native symstore support
+    {
+        bool TryGetStoreFile(string key, out string result);
+    }
+
     public static class Locator
     {
         private static string[] environmentNames =
@@ -86,13 +91,13 @@ namespace PESpy
         };
 
         //Locate all artifacts associated with a given *.exe or *.dbg file
-        public static bool TryLocate(string exeOrDbgPath, out Artifacts result, string? searchPath = null) =>
-            LocateInternal(exeOrDbgPath, SearchFlags.All, searchPath, out result);
+        public static bool TryLocate(string exeOrDbgPath, out Artifacts result, string? searchPath = null, ISymbolClient? symbolClient = null) =>
+            LocateInternal(exeOrDbgPath, SearchFlags.All, searchPath, symbolClient, out result);
 
         //Locate the *.dbg file associated with a given *.exe, or returns the *.dbg file itself
-        public static bool TryLocateDBG(string exeOrDbgPath, out string? result, string? searchPath = null)
+        public static bool TryLocateDBG(string exeOrDbgPath, out string? result, string? searchPath = null, ISymbolClient? symbolClient = null)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.DBG, searchPath, out var rawResult))
+            if (LocateInternal(exeOrDbgPath, SearchFlags.DBG, searchPath, symbolClient, out var rawResult))
             {
                 result = rawResult.DBGPath;
                 return result != null;
@@ -103,9 +108,9 @@ namespace PESpy
         }
 
         //Locate the *.pdb associated with a given *.exe or *.dbg file
-        public static bool TryLocatePDB(string exeOrDbgPath, out string? result, string? searchPath = null)
+        public static bool TryLocatePDB(string exeOrDbgPath, out string? result, string? searchPath = null, ISymbolClient? symbolClient = null)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.PDB, searchPath, out var rawResult))
+            if (LocateInternal(exeOrDbgPath, SearchFlags.PDB, searchPath, symbolClient, out var rawResult))
             {
                 result = rawResult.PDBPath;
                 return result != null;
@@ -117,9 +122,9 @@ namespace PESpy
 
         //Locate the embedded portable PDB associated with a given *.exe or *.dbg file. Realistically,
         //it should not be possible to have an Embedded Portable PDB inside a *.dbg file (since *.dbg files predate MPDB's)
-        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out EmbeddedPortablePdb? result, string? searchPath = null)
+        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out EmbeddedPortablePdb? result, string? searchPath = null, ISymbolClient? symbolClient = null)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.MPDB, searchPath, out var rawResult))
+            if (LocateInternal(exeOrDbgPath, SearchFlags.MPDB, searchPath, symbolClient, out var rawResult))
             {
                 result = rawResult.EmbeddedPortablePdb;
                 return result != null;
@@ -129,20 +134,32 @@ namespace PESpy
             return false;
         }
 
-        private static bool LocateInternal(string exeOrDbgPath, SearchFlags flags, string? searchPath, out Artifacts result)
+        struct LocatorContext
+        {
+            public ImageDebugDirectory[]? DebugTable;
+            public SearchFlags Flags;
+            public IFile File;
+            public string? SearchPath;
+            public string? PEFileExt;
+            public bool Stripped;
+
+            public uint PETimeDateStamp;
+            public int PESizeOfImage;
+
+            public string? DBGFilePath;
+            public string? PDBFilePath;
+            public EmbeddedPortablePdb? MPDB;
+        }
+
+        private static bool LocateInternal(string exeOrDbgPath, SearchFlags flags, string? searchPath, ISymbolClient? symbolClient, out Artifacts result)
         {
             var state = State.None;
 
-            IFile? file = null;
-
-            var stripped = false;
-            ImageDebugDirectory[]? debugTable = null;
-
-            string? dbgFilePath = default;
-            string? pdbFilePath = default;
-            EmbeddedPortablePdb? mPDB = null;
-
-            string? peFileExt = default;
+            var ctx = new LocatorContext
+            {
+                Flags = flags,
+                SearchPath = searchPath
+            };
 
             result = default;
 
@@ -155,20 +172,23 @@ namespace PESpy
                     switch (state)
                     {
                         case State.None:
-                            if (Detector.TryOpenFile(exeOrDbgPath, out file))
+                            if (Detector.TryOpenFile(exeOrDbgPath, out ctx.File))
                             {
-                                switch (file.Kind)
+                                switch (ctx.File.Kind)
                                 {
                                     case FileKind.PE:
-                                        debugTable = ((PEFile) file).DebugTable;
+                                        var peFile = (PEFile) ctx.File;
+                                        ctx.DebugTable = peFile.DebugTable;
                                         state = State.ReadDebugTable;
-                                        peFileExt = Path.GetExtension(exeOrDbgPath).TrimStart('.');
-                                        stripped = (((PEFile) file).FileHeader.Characteristics & ImageFile.DebugStripped) != 0;
+                                        ctx.PEFileExt = Path.GetExtension(exeOrDbgPath).TrimStart('.');
+                                        ctx.Stripped = (peFile.FileHeader.Characteristics & ImageFile.DebugStripped) != 0;
+                                        ctx.PETimeDateStamp = peFile.FileHeader.TimeDateStamp;
+                                        ctx.PESizeOfImage = peFile.OptionalHeader.SizeOfImage;
                                         break;
 
                                     case FileKind.DBG:
-                                        dbgFilePath = exeOrDbgPath;
-                                        debugTable = ((DBGFile) file).DebugTable;
+                                        ctx.DBGFilePath = exeOrDbgPath;
+                                        ctx.DebugTable = ((DBGFile) ctx.File).DebugTable;
                                         state = State.ReadDebugTable;
                                         break;
 
@@ -180,29 +200,22 @@ namespace PESpy
 
                         case State.ReadDebugTable:
                             if (!ReadDebugTable(
-                                    debugTable,
-                                    flags,
-                                    file.FileName,
-                                    searchPath,
-                                    peFileExt,
-                                    stripped,
-                                    out state,
-                                    ref dbgFilePath,
-                                    out pdbFilePath,
-                                    out mPDB))
+                                    ref ctx,
+                                    symbolClient,
+                                    out state))
                                 run = false;
                             break;
 
                         case State.ReadMiscDebugTable: //An *.exe file pointed to a *.dbg file. Read the debug table of that *.dbg file
-                            Debug.Assert(dbgFilePath != null);
+                            Debug.Assert(ctx.DBGFilePath != null);
 
-                            if (Detector.TryOpenFile(dbgFilePath, out var dbgFile) && dbgFile is DBGFile d)
+                            if (Detector.TryOpenFile(ctx.DBGFilePath, out var dbgFile) && dbgFile is DBGFile d)
                             {
-                                file!.Dispose();
-                                file = d;
+                                ctx.File!.Dispose();
+                                ctx.File = d;
 
-                                stripped = false;
-                                debugTable = d.DebugTable;
+                                ctx.Stripped = false;
+                                ctx.DebugTable = d.DebugTable;
 
                                 //Now read the debug table like normal
                                 goto case State.ReadDebugTable;
@@ -223,66 +236,59 @@ namespace PESpy
                 }
 
                 //Success is dictated by whether we found anything
-                if (dbgFilePath == null && pdbFilePath == null && mPDB == null)
+                if (ctx.DBGFilePath == null && ctx.PDBFilePath == null && ctx.MPDB == null)
                     return false;
 
                 ArtifactKind bestKind;
 
-                if (pdbFilePath != null)
+                if (ctx.PDBFilePath != null)
                     bestKind = ArtifactKind.PDB;
-                else if (mPDB != null)
+                else if (ctx.MPDB != null)
                     bestKind = ArtifactKind.EmbeddedPortablePdb;
                 else
                 {
-                    Debug.Assert(dbgFilePath != null);
+                    Debug.Assert(ctx.DBGFilePath != null);
                     bestKind = ArtifactKind.DBG;
                 }
 
-                result = new Artifacts(bestKind, dbgFilePath, pdbFilePath, mPDB);
+                result = new Artifacts(bestKind, ctx.DBGFilePath, ctx.PDBFilePath, ctx.MPDB);
                 return true;
             }
             finally
             {
-                file?.Dispose();
+                ctx.File?.Dispose();
             }
         }
 
         private static bool ReadDebugTable(
-            ImageDebugDirectory[]? debugTable,
-            SearchFlags flags,
-            string parentFullName,
-            string? searchPath,
-            string? peFileExt,
-            bool stripped,
-            out State state,
-            ref string? dbgFilePath, //If the original file we were asked to locate from was a *.dbg file, this will be the name of that file
-            out string? pdbFilePath,
-            out EmbeddedPortablePdb? mPDB)
+            ref LocatorContext ctx,
+            ISymbolClient? symbolClient,
+            out State state)
         {
             state = State.None;
-            pdbFilePath = default;
-            mPDB = default;
 
-            if (debugTable == null)
+            if (ctx.DebugTable == null)
                 return false;
 
             var success = false;
 
-            foreach (var debugDir in debugTable)
+            foreach (var debugDir in ctx.DebugTable)
             {
                 switch (debugDir.Type)
                 {
                     case ImageDebugType.Misc:
                         //It's possible for a *.dbg file to have a misc entry pointing back to the *.exe file. We only process misc entries when we're stripped,
                         //meaning we're processing the original PE file
-                        if (stripped && (flags & SearchFlags.DBG) != 0 && debugDir.Data is ImageDebugMisc m)
+                        if (ctx.Stripped && (ctx.Flags & SearchFlags.DBG) != 0 && debugDir.Data is ImageDebugMisc m)
                         {
-                            var path = LocateDBGFile(parentFullName, m.Data, searchPath, peFileExt);
+                            var symSrvIndex = SymStoreKey.FromMisc(m.Data, ctx.PETimeDateStamp, ctx.PESizeOfImage).Value;
+
+                            var path = LocateDBGFile(ctx.File.FileName!, m.Data, ctx.SearchPath, ctx.PEFileExt, symbolClient, symSrvIndex);
 
                             //If we've already found a file in another record, don't blow it away because we didn't find one in this one
                             if (path != null)
                             {
-                                dbgFilePath = path;
+                                ctx.DBGFilePath = path;
                                 state = State.ReadMiscDebugTable;
                                 success = true;
                             }
@@ -290,14 +296,21 @@ namespace PESpy
                         break;
 
                     case ImageDebugType.CodeView:
-                        if ((flags & SearchFlags.PDB) != 0 && debugDir.Data is ICodeViewPDB c)
+                        if ((ctx.Flags & SearchFlags.PDB) != 0 && debugDir.Data is ICodeViewPDB c)
                         {
-                            var path = LocatePDBFile(parentFullName, c.Path.ToString(), searchPath, peFileExt);
+                            string symSrvIndex;
+
+                            if (c is RSDSI r)
+                                symSrvIndex = SymStoreKey.FromRSDSI(r).Value;
+                            else
+                                symSrvIndex = SymStoreKey.FromNB10((NB10I) c).Value;
+
+                            var path = LocatePDBFile(ctx.File.FileName!, c.Path.ToString(), ctx.SearchPath, ctx.PEFileExt, symbolClient, symSrvIndex);
 
                             //If we've already found a file in another record, don't blow it away because we didn't find one in this one
                             if (path != null)
                             {
-                                pdbFilePath = path;
+                                ctx.PDBFilePath = path;
                                 state = State.End;
                                 success = true;
                             }
@@ -305,9 +318,9 @@ namespace PESpy
                         break;
 
                     case ImageDebugType.EmbeddedPortablePdb:
-                        if ((flags & SearchFlags.MPDB) != 0 && debugDir.Data is EmbeddedPortablePdb e)
+                        if ((ctx.Flags & SearchFlags.MPDB) != 0 && debugDir.Data is EmbeddedPortablePdb e)
                         {
-                            mPDB = e;
+                            ctx.MPDB = e;
                             state = State.End;
                             success = true;
                         }
@@ -319,7 +332,7 @@ namespace PESpy
         }
 
         //This method is only called when we have an IMAGE_DEBUG_MISC entry, and a *.dbg file should not have an IMAGE_DEBUG_MISC pointing to another file
-        private static string? LocateDBGFile(string parentFullName, string rawDbgName, string? searchPath, string? peFileExt)
+        private static string? LocateDBGFile(string parentFullName, string rawDbgName, string? searchPath, string? peFileExt, ISymbolClient? symbolClient, string symSrvIndex)
         {
             //First, check for a file with the PE file name + ".dbg" in the same directory as the parent *.exe file
             var peBaseName = Path.GetFileNameWithoutExtension(parentFullName);
@@ -362,14 +375,14 @@ namespace PESpy
              * D:\MySymbols;srv*c:\symbols*http://msdl.microsoft.com/download/symbols
              */
 
-            if (LocateFileInPath(nameToLocate, searchPath, extToUse, out var fileInPath))
+            if (LocateFileInPath(nameToLocate, searchPath, extToUse, symbolClient, symSrvIndex, out var fileInPath))
                 return fileInPath;
 
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                if (LocateFileInPath(nameToLocate, environmentPath, extToUse, out fileInPath))
+                if (LocateFileInPath(nameToLocate, environmentPath, extToUse, symbolClient, symSrvIndex, out fileInPath))
                     return fileInPath;
             }
 
@@ -384,8 +397,10 @@ namespace PESpy
         /// <param name="rawPdbName">The raw PDB name listed in the IMAGE_DEBUG_TYPE_CODEVIEW record. This may simply be a file name + extension or an absolute path to a file.</param>
         /// <param name="searchPath">A semicolon delimited list of search paths to search for the PDB in.</param>
         /// <param name="peFileExt">If the original file we were asked to locate was a PE file, the file extension of that file.</param>
+        /// <param name="symbolClient">The symbol client to use to locate symbols from a symbol server</param>
+        /// <param name="symSrvIndex">The index of the PDB file on the symbol server.</param>
         /// <returns>The path to the PDB file on the search path, or <see langword="null"/> if a PDB was not found.</returns>
-        private static string? LocatePDBFile(string parentFullName, string rawPdbName, string? searchPath, string? peFileExt)
+        private static string? LocatePDBFile(string parentFullName, string rawPdbName, string? searchPath, string? peFileExt, ISymbolClient? symbolClient, string symSrvIndex)
         {
             //First, check for a file with the base name + extension of the file listed in the IMAGE_DEBUG_TYPE_CODEVIEW record
             //in the same directory as the parent *.exe or *.dbg file
@@ -414,14 +429,14 @@ namespace PESpy
              * D:\MySymbols;srv*c:\symbols*http://msdl.microsoft.com/download/symbols
              */
 
-            if (LocateFileInPath(pdbNameWithoutDir, searchPath, peFileExt, out var fileInPath))
+            if (LocateFileInPath(pdbNameWithoutDir, searchPath, peFileExt, symbolClient, symSrvIndex, out var fileInPath))
                 return fileInPath;
 
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                if (LocateFileInPath(pdbNameWithoutDir, environmentPath, peFileExt, out fileInPath))
+                if (LocateFileInPath(pdbNameWithoutDir, environmentPath, peFileExt, symbolClient, symSrvIndex, out fileInPath))
                     return fileInPath;
             }
 
@@ -429,7 +444,7 @@ namespace PESpy
             return null;
         }
 
-        private static bool LocateFileInPath(string nameAndExt, string? searchPath, string? peFileExt, out string? fileInPath)
+        private static bool LocateFileInPath(string nameAndExt, string? searchPath, string? peFileExt, ISymbolClient? symbolClient, string symSrvIndex, out string? fileInPath)
         {
             fileInPath = default;
 
@@ -447,7 +462,10 @@ namespace PESpy
 
                 if (symSrv || cache)
                 {
-                    throw new NotImplementedException();
+                    if (symbolClient == null)
+                        return false;
+
+                    return symbolClient.TryGetStoreFile(symSrvIndex, out fileInPath);
                 }
                 else
                 {

@@ -77,7 +77,7 @@ namespace PESpy
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
                         var type = Type;
-                        IValue value;
+                        IValue? value;
 
                         if (type is ResourceType t)
                         {
@@ -131,7 +131,7 @@ namespace PESpy
                             value = new ByteBlob(valueChunk, Size);
                         }
 
-                        offsetToData = new RVA<IValue>(rva, valueChunk.AbsoluteOffset, value);
+                        offsetToData = new RVA<IValue>(rva, valueChunk.AbsoluteOffset, value!);
                     }
                     else
                         offsetToData = new RVA<IValue>(rva);
@@ -295,7 +295,7 @@ namespace PESpy
         }
 #endif
 #if PEFAST
-        private bool TryParseRCData(in MemoryChunk chunk, out IValue value)
+        private bool TryParseRCData(in MemoryChunk valueChunk, out IValue? value)
         {
             value = null;
 
@@ -305,17 +305,17 @@ namespace PESpy
                     return false;
 
                 //https://github.com/dotnet/runtime/blob/511d26611c051c56e546404ea616c220cc78817c/src/coreclr/dlls/mscoree/coreclr/GenClrDebugResource.ps1#L4
-                var version = chunk.PeekInt32(0);
+                var version = valueChunk.PeekInt32(0);
 
                 if (version != 0)
                     throw new NotImplementedException("Don't know how to handle version being 0. Rewind our IFileReader?");
 
-                var signature = chunk.PeekGuid(4);
+                var signature = valueChunk.PeekGuid(4);
 
                 if (signature != ClrDebugResource.CLR_ID_ONECORE_CLR)
                     throw new NotImplementedException("Don't know how to handle Guid not being CLR_ID_ONECORE_CLR. Rewind our IFileReader?");
 
-                value = new ClrDebugResource(chunk);
+                value = new ClrDebugResource(valueChunk);
                 return true;
             }
 

@@ -23,6 +23,12 @@ namespace PESpy.PDB
 
         public short usFill => value->usFill;
 
+        #region PESpy
+
+        public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+
+        #endregion
+
         internal RefSym(REFSYM* value)
         {
             this.value = value;

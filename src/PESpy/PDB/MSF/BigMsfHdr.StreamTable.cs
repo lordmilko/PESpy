@@ -6,6 +6,13 @@ namespace PESpy.PDB
     public readonly partial struct BigMsfHdr
     {
         //The format of the Stream Table in PDB v2 is different, so I'm encapsulating this in BigMsfHdr to signify that it's unique to BigMsfHdr
+
+        /// <summary>
+        /// Describes the on-disk representation of the PDB Stream Table, which describes the number, size and locations
+        /// of each of the streams contained in the PDB file.<para/>
+        /// This type does not have a well-known native struct declaration. Note that the PDB1 StrmTbl type represents
+        /// the in-memory stream table only, after merging these values together.
+        /// </summary>
         public class StreamTable : IStreamTable, IValue, IViewable //Stream 0 (snST) has a copy of the previous stream table. Stream 0 may not be present, so this is a class
         {
             public int NumStreams => chunk.PeekInt32(0);

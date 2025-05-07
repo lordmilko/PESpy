@@ -297,7 +297,7 @@ namespace PESpy.View
                         break;
                 }
 
-                value = view.Value.ToString();
+                value = view.Value!.ToString();
             }
 
             if (view.Value is string)

@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using PESpy.Native;
+
+namespace PESpy
 {
     /// <summary>
     /// Represents the IMAGE_SYM_CLASS_* enumeration that defines the storage classes of an <see cref="IMAGE_SYMBOL"/>.

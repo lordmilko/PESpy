@@ -39,6 +39,12 @@ namespace PESpy.PDB
 
         public FixedUtf8String name => SymType.ReadString(value, value->name);
 
+        #region PESpy
+
+        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        #endregion
+
         internal ProcSymIA64(PROCSYMIA64* value)
         {
             this.value = value;

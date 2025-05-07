@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using ClrDebug;
 using PESpy.Native;
 
+#nullable disable
+
 namespace PESpy
 {
     /// <summary>
@@ -346,7 +348,7 @@ namespace PESpy
             (byte)'e', (byte)'I', (byte)'n', (byte)'f', (byte)'o'
         };
 
-        public bool TryGetRuntimeInfo(out Version? runtimeVersion)
+        public bool TryGetRuntimeInfo(out Version runtimeVersion)
         {
             runtimeVersion = default;
 

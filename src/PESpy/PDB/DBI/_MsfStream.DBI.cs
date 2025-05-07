@@ -170,6 +170,7 @@ namespace PESpy.PDB
                          * "a long time ago". It would be good to be able to show the data that
                          * existed here none-the-less, but for now we will just skip it */
                         var dataChunk = chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap + DbiHdr.cbFileInfo);
+                        typeServerMap = null;
                     }
 
                     return typeServerMap;
@@ -208,6 +209,89 @@ namespace PESpy.PDB
                     return dbgHdr;
                 }
             }
+
+            //FPO
+            //Exception
+            //Fixup
+            //OmapToSrc
+            //OmapFromSrc
+
+            #region SectionHdr
+
+            private ImageSectionHeader[]? sectionHdr;
+
+            public ImageSectionHeader[]? SectionHdr
+            {
+                get
+                {
+                    if (sectionHdr == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.SectionHdr, out var valueChunk))
+                            {
+                                var numItems = valueChunk.Remaining / ImageSectionHeader.StructSize;
+
+                                var items = new ImageSectionHeader[numItems];
+
+                                for (var i = 0; i < numItems; i++)
+                                    items[i] = new ImageSectionHeader(valueChunk.Slice(i * ImageSectionHeader.StructSize));
+
+                                sectionHdr = items;
+                            }
+                        }
+                    }
+
+                    return sectionHdr;
+                }
+            }
+
+            #endregion
+
+            //TokenRidMap
+            //XData
+            //PData
+            //NewFPO
+
+            #region SectionHdrOrig
+
+            private ImageSectionHeader[]? sectionHdrOrig;
+
+            public ImageSectionHeader[]? SectionHdrOrig
+            {
+                get
+                {
+                    if (sectionHdrOrig == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.SectionHdrOrig, out var valueChunk))
+                            {
+                                var numItems = valueChunk.Remaining / ImageSectionHeader.StructSize;
+
+                                var items = new ImageSectionHeader[numItems];
+
+                                for (var i = 0; i < numItems; i++)
+                                    items[i] = new ImageSectionHeader(valueChunk.Slice(i * ImageSectionHeader.StructSize));
+
+                                sectionHdrOrig = items;
+                            }
+                        }
+                    }
+
+                    return sectionHdrOrig;
+                }
+            }
+
+            #endregion
 
             #endregion
             #region Symbols
@@ -331,6 +415,18 @@ namespace PESpy.PDB
                         writer.WritePagedGlobal(symRecChunk.RelativeOffset, (PagedMemoryBlock) symRecChunk.block, symbols);
                     }
                 }
+
+                //FPO
+                //Exception
+                //Fixup
+                //OmapToSrc
+                //OmapFromSrc
+                writer.WriteGlobal(SectionHdr);
+                //TokenRidMap
+                //XData
+                //PData
+                //NewFPO
+                writer.WriteGlobal(SectionHdrOrig);
             }
         }
     }

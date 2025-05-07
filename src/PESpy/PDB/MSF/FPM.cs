@@ -78,7 +78,7 @@ namespace PESpy.PDB
             }
 
             //Now read the actual bits of the FPM
-            var fpmNumBytes = SI_old.DivideUp(numPages, 8); //How many bytes does it take to represent all of the pages? e.g. if there's 25 pages, read 4 bytes (32-bits)
+            var fpmNumBytes = SI.DivideUp(numPages, 8); //How many bytes does it take to represent all of the pages? e.g. if there's 25 pages, read 4 bytes (32-bits)
             var fpmReader = globalBlock.SlicePaged(FpmPages, fpmNumBytes);
             //var fpmReader = new MemoryChunk(new PdbPageStream(reader.GetStreamUnsafe(), fpmPages, fpmNumBytes, pageSize), false);
 

@@ -32,6 +32,8 @@ namespace PESpy.PDB
 
         public SC40 this[int index] => Entries[index];
 
+        public bool TryGetSection(int seg, int off, out SC40 sc) => SectionContribsV40.TryGetSection(Entries, seg, off, out sc);
+
         void IViewable.WriteView(ViewWriter writer)
         {
             using var s = writer.CreateStruct("Section Contribs", this, ViewKind.SectionContribsV60);

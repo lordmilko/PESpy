@@ -41,7 +41,7 @@ namespace PESpy.View.Builder
             {
                 //When reading the overlay from disk, nothing is certain. We can have some level of confidence about the security section,
                 //but there could even be data listed after that as well
-                if (!reader.TryReadBytes((int) bytesToRead, out bytes))
+                if (!reader.TryReadBytes((int) bytesToRead, out bytes!))
                     return null;
             }
             else

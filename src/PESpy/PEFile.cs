@@ -171,17 +171,11 @@ namespace PESpy
             {
                 if (symStoreKeys == null)
                 {
-                    var builder = new StringBuilder();
-
                     var results = new List<SymStoreKey>();
 
                     if (Name != null)
                     {
-                        var lowerName = Name.ToLowerInvariant();
-
-                        var key = $"{lowerName}/{FileHeader.TimeDateStamp:X8}{OptionalHeader.SizeOfImage:x}/{lowerName}";
-
-                        results.Add(new SymStoreKey(key, SymStoreKeyKind.PE));
+                        results.Add(SymStoreKey.FromPE(Name, FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage));
                     }
 
                     var debugTable = DebugTable;
@@ -195,49 +189,35 @@ namespace PESpy
                             switch (debugDirectory.Type)
                             {
                                 case ImageDebugType.CodeView:
+                                {
+                                    var data = (ICodeViewPDB?) debugDirectory.Data;
+
+                                    if (data != null)
                                     {
-                                        var data = (ICodeViewPDB?) debugDirectory.Data;
-
-                                        if (data != null)
+                                        switch (data.Signature)
                                         {
-                                            switch (data.Signature)
-                                            {
-                                                case CodeViewSig.RSDS:
-                                                {
-                                                    var r = (RSDSI) data;
+                                            case CodeViewSig.RSDS:
+                                                results.Add(SymStoreKey.FromRSDSI((RSDSI) data));
+                                                break;
 
-                                                    //symsrv doesn't seem to modify the case
-                                                    var name = data.Path.ToString();
-
-                                                    //SymSrv seems to use uppercase GUIDs, and apparently certain symbol servers only support uppercase
-                                                    var key = $"{name}/{r.Guid.ToString("N").ToUpperInvariant()}{data.Age:X}/{name}";
-
-                                                    results.Add(new SymStoreKey(key, SymStoreKeyKind.PDB));
-
-                                                    break;
-                                                }
-                                                    
-
-                                                case CodeViewSig.NB10:
-                                                {
-                                                    var n = (NB10I) data;
-
-                                                    var name = data.Path.ToString();
-
-                                                    var key = $"{name}/{n.PdbSignature:X}{data.Age:X}/{name}";
-
-                                                    results.Add(new SymStoreKey(key, SymStoreKeyKind.PDB));
-
-                                                    break;
-                                                }
-                                            }
+                                            case CodeViewSig.NB10:
+                                                results.Add(SymStoreKey.FromNB10((NB10I) data));
+                                                break;
                                         }
                                     }
+
                                     break;
+                                }
 
                                 case ImageDebugType.Misc:
-                                    throw new NotImplementedException();
+                                {
+                                    var data = (ImageDebugMisc?) debugDirectory.Data;
+
+                                    if (data != null)
+                                        results.Add(SymStoreKey.FromMisc(data.Data, FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage));
+
                                     break;
+                                }
                             }
                         }
                     }
@@ -1337,7 +1317,14 @@ namespace PESpy
         /// Gets the import address table pointed to by <see cref="ImageOptionalHeader.ImportAddressTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_IAT).<para/>
         /// If the image does not have an import address table, this property returns <see langword="null"/>.
         /// </summary>
-        public ImageThunkData[]? ImportAddressTable => throw new NotImplementedException();
+        public ImageThunkData[]? ImportAddressTable
+        {
+            get
+            {
+                importAddressTable = null;
+                throw new NotImplementedException();
+            }
+        }
 #else
         public ImageThunkData[]? ImportAddressTable
         {
@@ -1596,7 +1583,7 @@ namespace PESpy
 
         private object? cor20Resources;
 
-        public object Cor20Resources
+        public object? Cor20Resources
         {
             get
             {
@@ -1610,6 +1597,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            cor20Resources = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1624,7 +1612,7 @@ namespace PESpy
 
         private object? cor20StrongNameSignature;
 
-        public object Cor20StrongNameSignature
+        public object? Cor20StrongNameSignature
         {
             get
             {
@@ -1638,6 +1626,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            cor20StrongNameSignature = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1652,7 +1641,7 @@ namespace PESpy
 
         private object? cor20CodeManagerTable;
 
-        public object Cor20CodeManagerTable
+        public object? Cor20CodeManagerTable
         {
             get
             {
@@ -1666,6 +1655,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            cor20CodeManagerTable = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1680,7 +1670,7 @@ namespace PESpy
 
         private object? cor20VTableFixups;
 
-        public object Cor20VTableFixups
+        public object? Cor20VTableFixups
         {
             get
             {
@@ -1694,6 +1684,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            cor20VTableFixups = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1708,7 +1699,7 @@ namespace PESpy
 
         private object? cor20ExportAddressTableJumps;
 
-        public object Cor20ExportAddressTableJumps
+        public object? Cor20ExportAddressTableJumps
         {
             get
             {
@@ -1722,6 +1713,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            cor20ExportAddressTableJumps = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1920,7 +1912,7 @@ namespace PESpy
 
         private object? ngenHelperTable;
 
-        public object NgenHelperTable
+        public object? NgenHelperTable
         {
             get
             {
@@ -1934,6 +1926,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenHelperTable = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1948,7 +1941,7 @@ namespace PESpy
 
         private object? ngenImportSections;
 
-        public object NgenImportSections
+        public object? NgenImportSections
         {
             get
             {
@@ -1962,6 +1955,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenImportSections = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -1976,7 +1970,7 @@ namespace PESpy
 
         private object? ngenStubsData;
 
-        public object NgenStubsData
+        public object? NgenStubsData
         {
             get
             {
@@ -1990,6 +1984,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenStubsData = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2004,7 +1999,7 @@ namespace PESpy
 
         private object? ngenVersionInfo;
 
-        public object NgenVersionInfo
+        public object? NgenVersionInfo
         {
             get
             {
@@ -2018,6 +2013,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenVersionInfo = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2032,7 +2028,7 @@ namespace PESpy
 
         private object? ngenDependencies;
 
-        public object NgenDependencies
+        public object? NgenDependencies
         {
             get
             {
@@ -2046,6 +2042,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenDependencies = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2060,7 +2057,7 @@ namespace PESpy
 
         private object? ngenDebugMap;
 
-        public object NgenDebugMap
+        public object? NgenDebugMap
         {
             get
             {
@@ -2074,6 +2071,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenDebugMap = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2088,7 +2086,7 @@ namespace PESpy
 
         private object? ngenModuleImage;
 
-        public object NgenModuleImage
+        public object? NgenModuleImage
         {
             get
             {
@@ -2102,6 +2100,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenModuleImage = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2116,7 +2115,7 @@ namespace PESpy
 
         private object? ngenCodeManagerTable;
 
-        public object NgenCodeManagerTable
+        public object? NgenCodeManagerTable
         {
             get
             {
@@ -2130,6 +2129,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenCodeManagerTable = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2144,7 +2144,7 @@ namespace PESpy
 
         private object? ngenProfileDataList;
 
-        public object NgenProfileDataList
+        public object? NgenProfileDataList
         {
             get
             {
@@ -2158,6 +2158,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenProfileDataList = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2172,7 +2173,7 @@ namespace PESpy
 
         private object? ngenManifestMetaData;
 
-        public object NgenManifestMetaData
+        public object? NgenManifestMetaData
         {
             get
             {
@@ -2186,6 +2187,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenManifestMetaData = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2200,7 +2202,7 @@ namespace PESpy
 
         private object? ngenVirtualSectionsTable;
 
-        public object NgenVirtualSectionsTable
+        public object? NgenVirtualSectionsTable
         {
             get
             {
@@ -2214,6 +2216,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenVirtualSectionsTable = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2228,7 +2231,7 @@ namespace PESpy
 
         private object? ngenEEInfoTable;
 
-        public object NgenEEInfoTable
+        public object? NgenEEInfoTable
         {
             get
             {
@@ -2242,6 +2245,7 @@ namespace PESpy
 
                         if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            ngenEEInfoTable = null;
                             throw new NotImplementedException();
                         }
                     }
@@ -2256,9 +2260,6 @@ namespace PESpy
         #endregion
         #region ReadyToRun
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private ReadyToRunHeader? readyToRunHeader;
-
 #if PEFAST
         //Apparently it's possible that the R2R header might also be pointed to by exports. I don't know if it's possible
         //for it to _only_ be pointed to by exports
@@ -2272,7 +2273,14 @@ namespace PESpy
         private AppHostSignature? appHostSignature;
 
 #if PEFAST
-        public AppHostSignature? AppHostSignature => throw new NotImplementedException();
+        public AppHostSignature? AppHostSignature
+        {
+            get
+            {
+                appHostSignature = null;
+                throw new NotImplementedException();
+            }
+        }
 #else
         public AppHostSignature? AppHostSignature
         {
@@ -2485,13 +2493,19 @@ namespace PESpy
 
 #if !PEFAST
         /// <summary>
-        /// Gets a <see cref="PEFileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
+        /// Gets a <see cref="FileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
         /// </summary>
         /// <param name="mode">Specifies the addressing mode that should be used in the returned view. If this value is <see cref="ViewMode.Default"/>,
         /// <see cref="ViewMode.Virtual"/> or <see cref="ViewMode.Physical"/> will automatically be selected based on the value of <see cref="IsLoadedImage"/>.</param>
-        /// <returns>A <see cref="PEFileView"/> that provides a view over the structure of the PE File.</returns>
+        /// <returns>A <see cref="FileView"/> that provides a view over the structure of the PE File.</returns>
         public FileView GetView(ViewMode mode = ViewMode.Default)
         {
+#if PEFAST
+            var writer = GetViewWriter(mode, null);
+            ((IViewable) this).WriteView(writer);
+
+            return (FileView) writer.Finalize();
+#else
             //View may use Stream to read bytes
             lock (readerLock)
             {
@@ -2500,10 +2514,18 @@ namespace PESpy
 
                 return (FileView) writer.Finalize();
             }
+#endif
         }
 
         public FileView GetView(IViewDisassembler viewDisassembler, ViewMode mode = ViewMode.Default)
         {
+#if PEFAST
+            var writer = GetViewWriter(mode, viewDisassembler);
+
+            ((IViewable) this).WriteView(writer);
+
+            return (FileView) writer.Finalize();
+#else
             //View may use Stream to read bytes
             lock (readerLock)
             {
@@ -2512,10 +2534,20 @@ namespace PESpy
 
                 return (FileView) writer.Finalize();
             }
+#endif
         }
 
-        public IView GetView(IViewable viewable, ViewMode mode = ViewMode.Default)
+        public unsafe IView GetView(IViewable viewable, ViewMode mode = ViewMode.Default)
         {
+#if PEFAST
+            var writer = GetViewWriter(mode, null);
+            viewable.WriteView(writer);
+
+            if (writer.Current.Count != 1)
+                throw new NotImplementedException();
+
+            return writer.Current[0];
+#else
             lock (readerLock)
             {
                 var writer = new PEViewWriter(this, reader, null, mode);
@@ -2526,9 +2558,30 @@ namespace PESpy
 
                 return writer.Current[0];
             }
-        }
 #endif
+        }
+
 #if PEFAST
+        private unsafe PEViewWriter GetViewWriter(ViewMode mode, IViewDisassembler? viewDisassembler)
+        {
+            byte* pointer;
+            int length;
+
+            if (blockProvider is LocalMemoryBlockProvider l)
+            {
+                pointer = l.Pointer;
+                length = (int) l.Length;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            var writer = new PEViewWriter(this, new StreamFileReader(new MMFStream(pointer, length), new object()), null, mode);
+
+            return writer;
+        }
+
         //Provides MemoryBlock objects which encompass an area of a PEFile
         private IMemoryBlockProvider blockProvider;
 
@@ -3102,9 +3155,6 @@ namespace PESpy
 
         void IViewable.WriteView(ViewWriter writer)
         {
-#if PEFAST
-            throw new NotImplementedException();
-#else
             writer.WriteGlobal(DosHeader);
             writer.WriteDosStub(DosStub);
             writer.WriteGlobal(RichHeader);
@@ -3112,7 +3162,10 @@ namespace PESpy
             writer.WriteGlobal(SectionHeaders);
 
             writer.WriteGlobal(ExportTable);
+
+#if !PEFAST
             writer.WriteUniqueGlobal(ImportAddressTable); //Write this before the Import Table as we want IAT entries to be in a data directory, not a logical region
+#endif
             writer.WriteGlobal(ImportTable);
             writer.WriteGlobal(ResourceDirectory);
             writer.WriteGlobal(ExceptionTable);
@@ -3126,7 +3179,14 @@ namespace PESpy
             writer.WriteGlobal(BoundImportTable);
             writer.WriteGlobal(DelayImportTable);
             writer.WriteGlobal(Cor20Header);
+
+            writer.WriteGlobal(ILMethods);
+#if !PEFAST
             writer.WriteGlobal(AppHostSignature);
+#endif
+            writer.WriteGlobal(ClrEngineMetrics);
+            writer.WriteGlobal(RuntimeInfo);
+            writer.WriteGlobal(DotNetRuntimeDebugHeader);
         }
 
         public void Dispose()
@@ -3148,6 +3208,8 @@ namespace PESpy
                 //Which means if you're generating a lot of objects, the finalizer thread might not be able to keep up
                 GC.SuppressFinalize(this);
             }
+
+            disposed = true;
         }
 #else
         protected virtual void Dispose(bool disposing)

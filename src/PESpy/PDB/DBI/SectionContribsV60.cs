@@ -4,6 +4,12 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //This type is made up, and merely encapsulates the version and SC entries which form a logical region
+
+    /// <summary>
+    /// Encapsulates the data found in the DBI Section Contributions substream.<para/>
+    /// This type merely encapsulates the section contribution version and the associated section
+    /// contribution records, and does not have a native type definition.
+    /// </summary>
     public class SectionContribsV60 : ISectionContribs, IValue, IViewable //Class as it may not be present
     {
         public DBISCImpv Version { get; }
@@ -32,6 +38,8 @@ namespace PESpy.PDB
         }
 
         public SC40 this[int index] => Entries[index];
+
+        public bool TryGetSection(int seg, int off, out SC40 sc) => SectionContribsV40.TryGetSection(Entries, seg, off, out sc);
 
         void IViewable.WriteView(ViewWriter writer)
         {

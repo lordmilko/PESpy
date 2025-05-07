@@ -66,7 +66,7 @@ namespace PESpy
                 if (!IsValid)
                     throw new InvalidOperationException($"Cannot get value from RVA 0x{ListedOffset:X}: address is not valid");
 
-                return value;
+                return value!;
             }
         }
 

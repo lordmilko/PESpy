@@ -10,7 +10,12 @@
 
             public FileEntry[] Files { get; }
 
-#if !PEFAST
+#if PEFAST
+            internal Manifest(in MemoryChunk chunk)
+            {
+                throw new System.NotImplementedException();
+            }
+#else
             internal Manifest(IFileReader reader)
             {
                 Header = new HeaderFixed(reader);

@@ -86,7 +86,12 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
-#if !PEFAST
+#if PEFAST
+        internal AppHostSignature(in MemoryChunk chunk)
+        {
+            throw new NotImplementedException();
+        }
+#else
         internal AppHostSignature(IFileReader reader)
         {
             Offset = (RawOffset) reader.Position;

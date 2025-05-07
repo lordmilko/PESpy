@@ -275,7 +275,9 @@ namespace PESpy
             if (Value == 0)
                 return "<null>";
 
+#pragma warning disable CS8524
             return Kind switch
+#pragma warning restore CS8524
             {
                 DataKind.Forwarder => throw new NotImplementedException($"Don't know how to handle {nameof(DataKind)} '{Kind}'"),
                 DataKind.Function => "0x" + Function.ToString("X"),

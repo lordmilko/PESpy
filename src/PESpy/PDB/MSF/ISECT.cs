@@ -16,6 +16,7 @@
 
         public static implicit operator ushort(ISECT value) => value.value;
         public static implicit operator ISECT(ushort value) => new ISECT(value);
+        public static implicit operator ISECT(short value) => new ISECT((ushort) value);
 
         public override string ToString()
         {

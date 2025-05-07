@@ -155,7 +155,7 @@ namespace PESpy
         }
 
         private MemoryMappedFileHolder mmf;
-        private GlobalMemoryBlock globalBlock;
+        private readonly GlobalMemoryBlock globalBlock;
 
         private bool disposed;
 
@@ -165,6 +165,9 @@ namespace PESpy
 
             FileName = fileName;
             Name = Path.GetFileName(fileName);
+
+            FileHeader = null!;
+            SectionHeaders = null!;
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 

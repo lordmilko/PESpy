@@ -44,7 +44,7 @@ namespace PESpy
         {
             this.chunk = chunk;
 
-            StreamHeaders = null;
+            StreamHeaders = null!;
 
             var streamHeaders = new StorageStream[Streams];
 

@@ -1,8 +1,10 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
+    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, imod = {imod}")]
     public class SC40 : IValue, IViewable
     {
         public ISECT isect => chunk.PeekUInt16(0);
@@ -15,6 +17,7 @@ namespace PESpy.PDB
 
         public IMAGE_SCN dwCharacteristics => (IMAGE_SCN) chunk.PeekUInt32(12);
 
+        //I believe this value is 0 based
         public IMOD imod => chunk.PeekUInt16(16);
 
         public ushort padding2 => chunk.PeekUInt16(18);

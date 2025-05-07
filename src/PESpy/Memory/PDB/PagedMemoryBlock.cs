@@ -10,7 +10,6 @@ namespace PESpy
         internal PN[] pageList;
         private int byteCount;
         internal int pageSize;
-        private int byteOffset; //The relative offset between 0 and length that we're at within the stream
 
         private byte* mmf;
         private bool ownsMemory;

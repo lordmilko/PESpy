@@ -33,7 +33,7 @@ namespace PESpy
         //The actual frame offset is this 16 * FrameOffset
         public byte FrameOffset => (byte) ((frameRegisterAndOffset & 0xF0) >> 4);
 
-        private UnwindCode[] unwindCode;
+        private UnwindCode[]? unwindCode;
 
         public UnwindCode[] UnwindCode
         {
@@ -50,8 +50,6 @@ namespace PESpy
                     //that either contains an UNWIND_CODE, or some additional data relating to the previous
                     //UNWIND_CODE. Thus, we don't know how many top level "codes" we'll actually have
                     var unwindCodes = new List<UnwindCode>();
-
-                    var valueChunk = chunk.Slice(4);
 
                     for (var i = 0; i < CountOfCodes; i++)
                     {
@@ -218,7 +216,7 @@ namespace PESpy
                         case ByteMatchKind.__GSHandlerCheck_SEH: //Apparently it's a ScopeTable and the Int32 GS Data from GSHandlerCheck
                             //GSHandlerCheck_SEH_noexcept too?
 
-                            http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf
+                            //http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf
                             ExceptionData = new ScopeTable(dataChunk);
                             break;
 

@@ -4,14 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ChaosLib;
 
 namespace PESpy.Tests.SymStore
 {
     /// <summary>
     /// Retrieves PDBs from an online or local symbol store.
     /// </summary>
-    internal class SymbolClient
+    internal class SymbolClient : ISymbolClient
     {
         private ISymStoreLogger logger;
 
@@ -32,7 +31,7 @@ namespace PESpy.Tests.SymStore
         {
             this.logger = logger;
 
-            StoreChain = BuildSymbolStore(ntSymbolPath ?? Environment.GetEnvironmentVariable(WellKnownEnvironmentVariable.NT_SYMBOL_PATH));
+            StoreChain = BuildSymbolStore(ntSymbolPath ?? Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH"));
             CacheStore = GetCacheStore();
         }
 
@@ -55,6 +54,13 @@ namespace PESpy.Tests.SymStore
                 throw new InvalidOperationException($"Couldn't find a symbol for key '{key}'");
 
             return result;
+        }
+
+        bool ISymbolClient.TryGetStoreFile(string key, out string result)
+        {
+            var value = new SymbolStoreKey(key, string.Empty);
+
+            return TryGetStoreFile(value, default, out result);
         }
 
         public bool TryGetStoreFile(SymbolStoreKey key, CancellationToken cancellationToken, out string result)

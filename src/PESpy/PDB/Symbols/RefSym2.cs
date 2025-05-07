@@ -23,6 +23,12 @@ namespace PESpy.PDB
 
         public FixedUtf8String name => SymType.ReadString(value, value->name);
 
+        #region PESpy
+
+        public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+
+        #endregion
+
         internal RefSym2(REFSYM2* value)
         {
             this.value = value;

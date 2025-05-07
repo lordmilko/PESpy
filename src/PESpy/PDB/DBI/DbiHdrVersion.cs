@@ -38,7 +38,9 @@ namespace PESpy.PDB
             public byte usVerPdbDllMin => (byte) ((value >> 8) & 0xFF);
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+#pragma warning disable CS0649
             private ushort value;
+#pragma warning restore CS0649
         }
 
         public struct Old
@@ -50,7 +52,9 @@ namespace PESpy.PDB
             public byte usVerPdbDllMaj => (byte) ((value >> 11) & 0x001F);
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+#pragma warning disable CS0649
             private ushort value;
+#pragma warning restore CS0649
         }
 
         public static implicit operator DbiHdrVersion(ushort value) => new DbiHdrVersion {vernew = value};

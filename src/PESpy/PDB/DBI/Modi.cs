@@ -76,18 +76,18 @@ namespace PESpy.PDB
                 var pdbFile = chunk.PDBFile();
 
                 //Note that sn could potentially be snNil
-                if (pdbFile.TryGetStreamChunk(modi.sn, out var moduleChunk))
+                if (pdbFile.TryGetStreamChunk(modi.sn, out var symbolsChunk))
                 {
-                    SymbolMemoryTracker.RegisterPDBSymbolMemory(moduleChunk);
+                    SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolsChunk);
 
-                    var signature = (CV_SIGNATURE) moduleChunk.PeekInt32(0);
+                    var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
 
-                    var ptr = moduleChunk.Pointer;
-                    Debug.Assert(moduleChunk.RelativeOffset == 0);
+                    var ptr = symbolsChunk.Pointer;
+                    Debug.Assert(symbolsChunk.RelativeOffset == 0);
 
                     var results = MsfStream.DBI.ReadSymbols(ptr + 4, modi.cbSyms - 4);
 
-                    field = new PDBModuleSymbols(moduleChunk, signature, results);
+                    field = new PDBModuleSymbols(symbolsChunk, signature, results);
                 }
             }
 

@@ -583,11 +583,6 @@ namespace PESpy
 
         internal Stream GetStreamUnsafe() => stream;
 
-        SectionReader IFileReader.CreateSectionReader(int length)
-        {
-            return new SectionReader(stream, readerLock, start, length, valueBuffer);
-        }
-
         internal (StreamFileReader, object) CreateSubReader()
         {
             return (new StreamFileReader(stream, readerLock, Position, valueBuffer), readerLock);

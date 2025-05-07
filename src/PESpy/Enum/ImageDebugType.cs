@@ -177,7 +177,7 @@ namespace PESpy
         /// <summary>
         /// IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS<para/>
         /// Extended DLL characteristics bits.<para/>
-        /// Data is a <see cref="ImageDllCharacteristicsEx"/> (which PESpy wraps in a <see cref="RawValue"/>).
+        /// Data is a <see cref="ImageDllCharacteristicsEx"/> (which PESpy wraps in a <see cref="RawValue{T}"/>).
         /// </summary>
         ExDllCharacteristics = 20,
 

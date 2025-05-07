@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -14,6 +15,8 @@ namespace PESpy.PDB
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
+
+        public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*)(chunk.Pointer + offset);
 
         internal PDBModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymType[] symbols)
         {

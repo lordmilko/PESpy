@@ -48,10 +48,8 @@ namespace PESpy
         string ReadAsciiString(int charCount);
         string ReadUTF8String(int charCount);
         byte[] ReadBytes(int count);
-        bool TryReadBytes(int count, out byte[] bytes);
+        bool TryReadBytes(int count, out byte[]? bytes);
 
         int ReadCorCompressedInteger(out byte[] bytes);
-
-        SectionReader CreateSectionReader(int length);
     }
 }

@@ -30,6 +30,12 @@ namespace PESpy.PDB
         public CV_uoff32_t calltableOff => value->calltableOff;
         public short calltableSeg => value->calltableSeg;
 
+        #region PESpy
+
+        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        #endregion
+
         internal CExMSym32(CEXMSYM32* value)
         {
             this.value = value;

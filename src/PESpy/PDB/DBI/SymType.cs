@@ -4,6 +4,168 @@ using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
+    public static class SymTypeExtensions
+    {
+        public static bool TryGetRVA(in this SymType symType, out int rva)
+        {
+            //The following symbol kinds have a "seg" member which indicates they may store an RVA
+
+            switch (symType.rectyp)
+            {
+                case SYM_ENUM_e.S_ANNOTATION:
+                    rva = ((AnnotationSym) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_BLOCK16:
+                case SYM_ENUM_e.S_WITH16:
+                    rva = ((BlockSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_BLOCK32_ST:
+                case SYM_ENUM_e.S_WITH32_ST:
+                case SYM_ENUM_e.S_BLOCK32:
+                case SYM_ENUM_e.S_WITH32:
+                    rva = ((BlockSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_CEXMODEL16:
+                    rva = ((CExMSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_CEXMODEL32:
+                    rva = ((CExMSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_COFFGROUP:
+                    rva = ((CoffGroupSym) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LDATA16:
+                case SYM_ENUM_e.S_GDATA16:
+                case SYM_ENUM_e.S_PUB16:
+                    rva = ((DataSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LDATA32_ST:
+                case SYM_ENUM_e.S_GDATA32_ST:
+                case SYM_ENUM_e.S_LTHREAD32_ST:
+                case SYM_ENUM_e.S_GTHREAD32_ST:
+                case SYM_ENUM_e.S_LMANDATA_ST:
+                case SYM_ENUM_e.S_GMANDATA_ST:
+                case SYM_ENUM_e.S_LDATA32:
+                case SYM_ENUM_e.S_GDATA32:
+                case SYM_ENUM_e.S_LTHREAD32:
+                case SYM_ENUM_e.S_GTHREAD32:
+                case SYM_ENUM_e.S_LMANDATA:
+                case SYM_ENUM_e.S_GMANDATA:
+                    rva = ((DataSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LDATA32_16t:
+                case SYM_ENUM_e.S_GDATA32_16t:
+                case SYM_ENUM_e.S_PUB32_16t:
+                case SYM_ENUM_e.S_LTHREAD32_16t:
+                case SYM_ENUM_e.S_GTHREAD32_16t:
+                    rva = ((DataSym3216t) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LABEL16:
+                    rva = ((LabelSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LABEL32_ST:
+                case SYM_ENUM_e.S_LABEL32:
+                    rva = ((LabelSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_GMANPROC_ST:
+                case SYM_ENUM_e.S_LMANPROC_ST:
+                case SYM_ENUM_e.S_GMANPROC:
+                case SYM_ENUM_e.S_LMANPROC:
+                    rva = ((ManProcSym) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROC16:
+                case SYM_ENUM_e.S_GPROC16:
+                    rva = ((ProcSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROC32_ST:
+                case SYM_ENUM_e.S_GPROC32_ST:
+                case SYM_ENUM_e.S_LPROC32:
+                case SYM_ENUM_e.S_GPROC32:
+                case SYM_ENUM_e.S_LPROC32_ID:
+                case SYM_ENUM_e.S_GPROC32_ID:
+                case SYM_ENUM_e.S_LPROC32_DPC:
+                case SYM_ENUM_e.S_LPROC32_DPC_ID:
+                    rva = ((ProcSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROC32_16t:
+                case SYM_ENUM_e.S_GPROC32_16t:
+                    rva = ((ProcSym3216t) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROCIA64_ST:
+                case SYM_ENUM_e.S_GPROCIA64_ST:
+                case SYM_ENUM_e.S_LPROCIA64:
+                case SYM_ENUM_e.S_GPROCIA64:
+                case SYM_ENUM_e.S_LPROCIA64_ID:
+                case SYM_ENUM_e.S_GPROCIA64_ID:
+                    rva = ((ProcSymIA64) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROCMIPS_ST:
+                case SYM_ENUM_e.S_GPROCMIPS_ST:
+                case SYM_ENUM_e.S_LPROCMIPS:
+                case SYM_ENUM_e.S_GPROCMIPS:
+                case SYM_ENUM_e.S_LPROCMIPS_ID:
+                case SYM_ENUM_e.S_GPROCMIPS_ID:
+                    rva = ((ProcSymMips) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_LPROCMIPS_16t:
+                case SYM_ENUM_e.S_GPROCMIPS_16t:
+                    rva = ((ProcSymMips16t) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_PUB32_ST:
+                case SYM_ENUM_e.S_PUB32:
+                    rva = ((PubSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                //case SYM_ENUM_e.S_SSEARCH: //SSEARCH has a seg but no off
+
+                case SYM_ENUM_e.S_THUNK16:
+                    rva = ((ThunkSym16) symType).RelativeVirtualAddress;
+                    return true;
+
+                case SYM_ENUM_e.S_THUNK32_ST:
+                case SYM_ENUM_e.S_THUNK32:
+                    rva = ((ThunkSym32) symType).RelativeVirtualAddress;
+                    return true;
+
+                //ref symbols don't have a seg, but they may point to something that does!
+
+                case SYM_ENUM_e.S_PROCREF_ST:
+                case SYM_ENUM_e.S_DATAREF_ST:
+                case SYM_ENUM_e.S_LPROCREF_ST:
+                    return ((RefSym) symType).Symbol.TryGetRVA(out rva);
+
+                case SYM_ENUM_e.S_PROCREF:
+                case SYM_ENUM_e.S_DATAREF:
+                case SYM_ENUM_e.S_LPROCREF:
+                case SYM_ENUM_e.S_ANNOTATIONREF:
+                case SYM_ENUM_e.S_TOKENREF:
+                    return ((RefSym2) symType).Symbol.TryGetRVA(out rva);
+
+                default:
+                    rva = default;
+                    return false;
+            }
+        }
+    }
+
     [DebuggerTypeProxy(typeof(SymTypeProxy))]
     [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")]
     public readonly unsafe struct SymType
@@ -19,7 +181,13 @@ namespace PESpy.PDB
             this.value = value;
         }
 
-        public override string ToString() => SymTypeProxy.GetString(this);
+        public override string ToString()
+        {
+            if (value == default)
+                return "<null>";
+            
+            return SymTypeProxy.GetString(this);
+        }
 
         internal static FixedUtf8String ReadString<T>(T* symType, byte* start) where T : unmanaged
         {
@@ -57,6 +225,82 @@ namespace PESpy.PDB
 
                 return new FixedUtf8String(start, utf8.Length);
             }
+        }
+
+        internal static int GetRelativeVirtualAddress<T>(T* symType, short seg, int off) where T : unmanaged
+        {
+            var sectionHeaders = SymbolMemoryTracker.GetSectionHeaders((long) symType);
+
+            //The section number we're given is 1 based
+            if (sectionHeaders == null || seg > sectionHeaders.Length)
+                return 0;
+
+            ref var sectionHeader = ref sectionHeaders[seg - 1];
+
+            return sectionHeader.VirtualAddress + off;
+        }
+
+        internal static SymType GetSymbol<T>(T* symType, short imod, int ibSym) where T : unmanaged
+        {
+            //To get the symbol that this ref points to, lookup the module indicated by imod (which is 1 based) and then get the symbol at ibSym bytes into the module's address space
+
+            var modules = SymbolMemoryTracker.GetModules((long) symType);
+
+            //Module indices are 1 based. So the last module is == modules.Length
+
+            if (modules == null || imod > modules.Length)
+                return default;
+
+            var module = modules[imod - 1];
+
+            var symbols = module.Symbols;
+
+            if (symbols == null)
+                return default;
+
+            //This isn't super ideal (because it will force load _all_ symbols for the module) but I'm not sure what the best way of
+            //storing a reference to the module's MemoryChunk is without needing to constantly try and lookup the symbol stream
+
+            return symbols.GetSymbolFromOffset(ibSym);
+        }
+
+        internal static IModi? GetModuleFromSectionAddress<T>(T* symType, short seg, int off) where T : unmanaged
+        {
+            //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
+
+            var dbi = SymbolMemoryTracker.GetDBI((long) symType);
+
+            if (dbi == null)
+                return default;
+
+            var sectionContribs = dbi.SectionContribs;
+
+            if (sectionContribs == null)
+                return default;
+
+            var modules = dbi.Modules;
+
+            if (modules == null)
+                return default;
+
+            var sectionHeaders = dbi.SectionHdr;
+
+            if (sectionHeaders == null || seg > sectionHeaders.Length)
+                return default;
+
+            //Getting the section is easy; the hard part is identifying the module
+            if (!sectionContribs.TryGetSection(seg, off, out var sc))
+                return default;
+
+            //Module numbers are 1 based
+            if (sc.imod > modules.Length)
+                return default;
+
+            //microsoft-pdb calls ximodForIMod which does +1 to this value. an ximod is an "external" imod,
+            //which is 1 based, which means that the actual module indices on the raw SC items are 0 based
+            var module = modules[sc.imod];
+
+            return module;
         }
 
         public static implicit operator SymType(SYMTYPE* value) => new SymType(value);

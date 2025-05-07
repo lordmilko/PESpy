@@ -35,7 +35,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        private IValue certificate;
+        private IValue? certificate;
 
         public IValue Certificate
         {

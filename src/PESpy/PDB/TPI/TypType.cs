@@ -18,7 +18,13 @@ namespace PESpy.PDB
             this.value = value;
         }
 
-        public override string ToString() => TypTypeProxy.GetString(this);
+        public override string ToString()
+        {
+            if (value == default)
+                return "<null>";
+            
+            return TypTypeProxy.GetString(this);
+        }
 
         internal static void AssertMissing(bool condition, string message)
         {

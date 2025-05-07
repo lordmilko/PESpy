@@ -8,7 +8,6 @@ namespace PESpy.View
         string Name { get; }
         object Value { get; }
         int Bits { get; }
-        int Size { get; }
     }
 
     [DebuggerDisplay("{ViewDebuggerDisplay.BitField(this),nq}")]

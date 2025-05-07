@@ -13,7 +13,7 @@ namespace PESpy.View
 
         internal IMAGE_FILE_MACHINE? Machine { get; set; }
 
-        IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine.Value;
+        IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine!.Value;
 
         internal LIBViewWriter(LIBFile libFile, IFileReader reader) : base(reader, null, ViewMode.Default, TryGetViewOffset, null)
         {

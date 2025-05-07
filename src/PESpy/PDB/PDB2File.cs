@@ -47,7 +47,9 @@ namespace PESpy
             fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock, isBig: false);
 
             //The page of the second FPM depends on our page size
+#pragma warning disable CS8509
             var secondFPM = PageSize switch
+#pragma warning restore CS8509
             {
                 1024 => 9,
                 2048 => 5,

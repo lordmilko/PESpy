@@ -16,8 +16,9 @@ namespace PESpy
          * As such, these pointers cannot contain any state, which presents a problem when they want to display strings (which may or may not
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
-        private static List<(long start, long end, bool isLengthPrefixedString)> globalMemoryRanges = new();
-        private static object globalMemoryRangesLock = new object();
+        private static readonly List<(long start, long end, bool isLengthPrefixedString)> globalMemoryRanges = new();
+        private static readonly List<(long start, long end, MsfStream.DBI? dbi)> globalDbiRanges = new();
+        private static readonly object globalMemoryRangesLock = new object();
 
         internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
         {
@@ -31,9 +32,10 @@ namespace PESpy
                     //Its a PDB. We use ST strings if our version <= vc98
                     var pdb = ((PagedMemoryBlock) block).PDBFile;
 
-                    var isLengthPrefixedString = pdb.PDB.PDBHeader.ImplementationVersion <= PDBIMPV.PDBImpvVC98;
+                    var isLengthPrefixedString = pdb.PDB!.PDBHeader.ImplementationVersion <= PDBIMPV.PDBImpvVC98;
 
-                    InsertEntry(block, isLengthPrefixedString);
+                    InsertEntry(block, globalMemoryRanges, isLengthPrefixedString);
+                    InsertEntry(block, globalDbiRanges, pdb.DBI);
                 }
             }
         }
@@ -50,51 +52,69 @@ namespace PESpy
                     //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
                     var isLengthPrefixedString = signature != CV_SIGNATURE.C13;
 
-                    InsertEntry(block, isLengthPrefixedString);
+                    InsertEntry(block, globalMemoryRanges, isLengthPrefixedString);
                 }
             }
         }
 
-        private static unsafe void InsertEntry(MemoryBlock block, bool isLengthPrefixedString)
+        private static unsafe void InsertEntry<T>(MemoryBlock block, List<(long start, long end, T value)> list, T value)
         {
             var start = (long) block.LocalPointer;
 
             var didInsert = false;
 
-            for (var i = 0; i < globalMemoryRanges.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
-                if (globalMemoryRanges[i].start > start)
+                if (list[i].start > start)
                 {
-                    globalMemoryRanges.Insert(i, (start, (long) (block.LocalPointer + block.Length), isLengthPrefixedString));
+                    list.Insert(i, (start, (long) (block.LocalPointer + block.Length), value));
                     didInsert = true;
                     break;
                 }
             }
 
             if (!didInsert)
-                globalMemoryRanges.Add(((long) block.LocalPointer, (long) (block.LocalPointer + block.Length), isLengthPrefixedString));
+                list.Add(((long) block.LocalPointer, (long) (block.LocalPointer + block.Length), value));
         }
 
-        internal static bool IsLengthPrefixedData(long address)
+        internal static ImageSectionHeader[]? GetSectionHeaders(long address)
+        {
+            var dbi = FindItem(address, globalDbiRanges);
+
+            return dbi?.SectionHdr;
+        }
+
+        internal static IModi[]? GetModules(long address)
+        {
+            var dbi = FindItem(address, globalDbiRanges);
+
+            return dbi?.Modules;
+        }
+
+        internal static MsfStream.DBI? GetDBI(long address) => FindItem(address, globalDbiRanges);
+
+        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalMemoryRanges);
+
+        private static T? FindItem<T>(long address, List<(long start, long end, T value)> list)
         {
             lock (globalMemoryRangesLock)
             {
                 //We ensure our ranges are sorted; we should be able to binary search
 
                 var low = 0;
-                var high = globalMemoryRanges.Count - 1;
+                var high = list.Count - 1;
 
                 while (low <= high)
                 {
                     var mid = low + (high - low) / 2;
-                    var item = globalMemoryRanges[mid];
+                    var item = list[mid];
 
                     if (address >= item.start)
                     {
                         if (address <= item.end)
                         {
                             //It's a match
-                            return item.isLengthPrefixedString;
+                            return item.value;
                         }
                         else
                         {
@@ -108,8 +128,8 @@ namespace PESpy
                 }
             }
 
-            Debug.Assert(false, "Attempted to query whether data is length prefixed for an unregistered memory address");
-            return false; //Assume it's a modern file with non-length prefixed strings
+            Debug.Assert(false, "Attempted to query whether data ian unregistered memory address");
+            return default; //Assume it's a modern file with non-length prefixed strings
         }
 
         internal static void ClearSymbolMemory(ISymbolMemoryBlock block)
@@ -117,6 +137,7 @@ namespace PESpy
             lock (globalMemoryRangesLock)
             {
                 globalMemoryRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
+                globalDbiRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
                 block.SymbolMemory.Clear();
             }
         }

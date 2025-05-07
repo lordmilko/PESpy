@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using PESpy.PDB;
 using PESpy.View;
@@ -242,6 +243,54 @@ namespace PESpy
         }
 
         #endregion
+        #region Globals
+
+        private MsfStream.GSI? gsi;
+
+        public MsfStream.GSI? GSI
+        {
+            get
+            {
+                if (gsi == null)
+                {
+                    var dbi = DBI;
+
+                    if (dbi != null)
+                    {
+                        if (TryGetStreamChunk(dbi.DbiHdr.snGSSyms, out var chunk))
+                            gsi = new MsfStream.GSI(chunk);
+                    }
+                }
+
+                return gsi;
+            }
+        }
+
+        #endregion
+        #region Publics
+
+        private MsfStream.PSGSI? psgsi;
+
+        public MsfStream.PSGSI? PSGSI
+        {
+            get
+            {
+                if (psgsi == null)
+                {
+                    var dbi = DBI;
+
+                    if (dbi != null)
+                    {
+                        if (TryGetStreamChunk(dbi.DbiHdr.snPSSyms, out var chunk))
+                            psgsi = new MsfStream.PSGSI(chunk);
+                    }
+                }
+
+                return psgsi;
+            }
+        }
+
+        #endregion
         #endregion
         #endregion
 
@@ -310,6 +359,55 @@ namespace PESpy
             return false;
         }
 
+        //Enumerates symbols from all symbol sources
+        public IEnumerable<SymType> EnumerateSymbols()
+        {
+            var dbi = DBI;
+
+            if (dbi == null)
+                yield break;
+
+            var symbols = dbi.Symbols;
+
+            if (symbols != null)
+            {
+                foreach (var item in symbols)
+                    yield return item;
+            }
+
+            var modules = dbi.Modules;
+
+            if (modules != null)
+            {
+                foreach (var module in modules)
+                {
+                    var moduleSymbols = module.Symbols;
+
+                    if (moduleSymbols != null)
+                    {
+                        foreach (var item in moduleSymbols.Symbols)
+                            yield return item;
+                    }
+                }
+            }
+
+            var globals = GSI;
+
+            if (globals != null)
+            {
+                foreach (var item in globals.Symbols)
+                    yield return item;
+            }
+
+            var publics = PSGSI;
+
+            if (publics != null)
+            {
+                foreach (var item in publics.Symbols)
+                    yield return item;
+            }
+        }
+
         void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
 
         protected abstract void WriteView(ViewWriter writer);
@@ -322,6 +420,9 @@ namespace PESpy
             writer.WriteGlobal(PDB); //snPDB
             writer.WriteGlobal(TPI); //snTpi
             writer.WriteGlobal(DBI); //snDbi
+
+            writer.WriteGlobal(GSI);
+            writer.WriteGlobal(PSGSI);
 
             writer.WriteGlobal(NameMap);
 

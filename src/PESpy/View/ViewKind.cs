@@ -541,6 +541,12 @@ namespace PESpy.View
         CvDebugSLinesHeader,
         CvDebugSLinesFileBlockHeader,
         CvLine,
+        
+        //Globals
+        GSIHashHdr,
+        
+        //Publics
+        PSGSIHDR,
 
         //DBG
 
