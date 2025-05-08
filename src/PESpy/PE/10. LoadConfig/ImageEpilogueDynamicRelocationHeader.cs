@@ -11,6 +11,7 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if !PEFAST
         internal ImageEpilogueDynamicRelocationHeader(IFileReader reader)
         {
             Offset = (int) reader.Position;
@@ -22,5 +23,6 @@ namespace PESpy
 
             throw new NotImplementedException();
         }
+#endif
     }
 }

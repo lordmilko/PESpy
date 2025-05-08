@@ -208,6 +208,7 @@ namespace PESpy
         }
 #endif
 
+#if !PEFAST
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static short Align32(IFileReader reader, out bool didAlign, int end)
         {
@@ -249,6 +250,7 @@ namespace PESpy
                 }
             }
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {

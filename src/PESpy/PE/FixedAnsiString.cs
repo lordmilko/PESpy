@@ -16,7 +16,7 @@
         public bool Equals(string? other)
         {
             if (other == null)
-                return false;
+                return Value == default;
 
             var length = Length;
 

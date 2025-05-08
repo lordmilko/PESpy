@@ -92,10 +92,14 @@ namespace PESpy
 
             public ushort Value { get; init; }
 
+            //No need to pass a MemoryChunk; we read these directly through a span. The only physical
+            //value is the Value field (2 bytes)
+#if !PEFAST
             internal Entry(IFileReader reader)
             {
                 Value = reader.ReadUInt16();
             }
+#endif
         }
     }
 }

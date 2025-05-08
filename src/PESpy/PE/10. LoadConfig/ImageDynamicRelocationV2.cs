@@ -17,6 +17,7 @@ namespace PESpy
 
         public int Offset { get; }
 
+#if !PEFAST
         internal ImageDynamicRelocationV2(IFileReader reader, PEFile peFile)
         {
             Offset = (int) reader.Position;
@@ -31,5 +32,6 @@ namespace PESpy
             // BYTE    FixupInfo[FixupInfoSize]
             throw new NotImplementedException();
         }
+#endif
     }
 }

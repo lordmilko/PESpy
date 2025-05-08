@@ -1,4 +1,4 @@
-﻿
+﻿#if !PEFAST
 using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -14,7 +14,6 @@ namespace PESpy
 
         public int Size { get; }
 
-#if !PEFAST
         private T data;
 
         public T Data
@@ -32,22 +31,15 @@ namespace PESpy
                 return data;
             }
         }
-#else
-        public T Data => throw new System.NotImplementedException();
-#endif
 
         public RawOffset Offset { get; }
 
         private PEFile peFile;
         private PERegionKind kind;
 
-#if !PEFAST
         private PEFile.WithReaderCallback<T> createData;
 
         internal ImageDataDirectory(IFileReader reader, PEFile peFile, PERegionKind kind, PEFile.WithReaderCallback<T> createData)
-#else
-        internal ImageDataDirectory(IFileReader reader, PEFile peFile, PERegionKind kind)
-#endif
         {
             Offset = (RawOffset) reader.Position;
 
@@ -57,9 +49,7 @@ namespace PESpy
             this.peFile = peFile;
             this.kind = kind;
 
-#if !PEFAST
             this.createData = createData;
-#endif
 
 #if STRESS_TEST
             var oldOffset = reader.Position;
@@ -82,3 +72,4 @@ namespace PESpy
         }
     }
 }
+#endif

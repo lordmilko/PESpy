@@ -16,7 +16,7 @@
         public bool Equals(string? other)
         {
             if (other == null)
-                return false;
+                return Value == default;
 
             var length = Length;
 
@@ -35,11 +35,11 @@
             return true;
         }
 
-        public static bool operator ==(FixedUtf8String left, string right) => left.Equals(right);
-        public static bool operator !=(FixedUtf8String left, string right) => left.Equals(right);
+        public static bool operator ==(FixedUtf8String left, string? right) => left.Equals(right);
+        public static bool operator !=(FixedUtf8String left, string? right) => left.Equals(right);
 
-        public static bool operator ==(string left, FixedUtf8String right) => right.Equals(left);
-        public static bool operator !=(string left, FixedUtf8String right) => right.Equals(left);
+        public static bool operator ==(string? left, FixedUtf8String right) => right.Equals(left);
+        public static bool operator !=(string? left, FixedUtf8String right) => right.Equals(left);
 
         public override bool Equals(object obj)
         {

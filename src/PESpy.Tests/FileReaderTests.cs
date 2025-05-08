@@ -1,3 +1,4 @@
+#if !PEFAST
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -30,3 +31,4 @@ namespace PESpy.Tests
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !PEFAST
+using System;
 
 namespace PESpy
 {
@@ -53,3 +54,4 @@ namespace PESpy
         int ReadCorCompressedInteger(out byte[] bytes);
     }
 }
+#endif

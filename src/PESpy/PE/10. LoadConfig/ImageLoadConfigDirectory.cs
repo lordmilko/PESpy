@@ -1359,6 +1359,7 @@ namespace PESpy
         }
 #endif
 
+#if !PEFAST
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ReadPointer(IFileReader reader, bool is32Bit)
         {
@@ -1367,6 +1368,7 @@ namespace PESpy
 
             return reader.ReadInt64();
         }
+#endif
 
 #if PEFAST
         private VA<long> GetFunctionPointer(ref VA<long> field, long value)

@@ -90,6 +90,7 @@ namespace PESpy
         }
 #endif
 
+#if !PEFAST
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong ReadPointer(IFileReader reader, bool is32Bit)
         {
@@ -98,6 +99,7 @@ namespace PESpy
 
             return reader.ReadUInt64();
         }
+#endif
 
         void IViewable.WriteView(ViewWriter writer)
         {
