@@ -226,6 +226,34 @@ namespace PESpy
                 offset += DirEntry.StructSize;
             }
         }
+
+        private static object ReadNB02Symbols(in MemoryChunk symbolsChunk, int size)
+        {
+            var read = 0;
+
+            while (read < size)
+            {
+                //The length is only 1 byte
+                var cbRec = symbolsChunk.PeekByte(read);
+                var rawType = symbolsChunk.PeekUInt16(read + 1);
+
+                if ((rawType & 0x80) != 0)
+                {
+                    //It's a 32-bit symbol
+
+                    rawType = (ushort) (rawType & ~0x80);
+                    throw new NotImplementedException();
+                }
+
+                var type = (OLDSYM) rawType;
+
+                read += cbRec + 1;
+            }
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
         #region NB05+
 
         internal static IValue ReadNB05(in MemoryChunk chunk, int sizeOfData)
@@ -281,6 +309,8 @@ namespace PESpy
                     case SST.sstAlignSym:
                     {
                         var symbolsChunk = chunk.Slice(entry.lfo);
+
+                        throw new NotImplementedException("Need to register symbol memory with symbol tracker. Needs to work for global, local and remote memory blocks");
 
                         var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
 

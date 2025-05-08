@@ -7,13 +7,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using ChaosLib;
 using ClrDebug;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
 using PESpy.Tests.SymStore;
 using PESpy.View;
-using SymHelp;
+using PInvoke;
 using static PESpy.ScopeTable;
 using static PESpy.UnwindCode;
 
@@ -24,6 +23,10 @@ namespace PESpy.Tests
     public class PEFileTests
     {
         private static readonly object IgnoreValue = new object();
+
+        #region PhysicalOffset
+
+        //Tests relating to resolving values indicated by fixed offsets in the PE File that may or may not lie within the bounds of an area pointed to by a IMAGE_SECTION_HEADER
 
         #region ImageFileHeader: PointerToSymbolTable
 
@@ -246,6 +249,26 @@ namespace PESpy.Tests
         }
 
         #endregion
+
+        #endregion
+
+        [TestMethod]
+        public void PEFile_OffsetFromRVA_SurpassesPhysicalThreshold()
+        {
+            /* The ImageDelayLoadDescriptor.ModuleHandleRVA points to address 0x00035248.
+             * This RVA lies within the bounds of the data section (0x34000 - 366C0). However, the catch
+             * is that the data section has a greater size at runtime than it does on disk (i.e. the SizeOfRawData
+             * is much smaller than the VirtualSize). This causes us to erroneously calculate that our physical address
+             * really is 0x00035248 when it isn't, which causes us to read a value from the pdata section (whose _physical_
+             * address begins at 0x35000) */
+
+            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.notepad));
+
+            var moduleHandleRva = peFile.DelayImportTable[0].ModuleHandleRVA;
+            Assert.IsFalse(moduleHandleRva.IsValid);
+            Assert.AreEqual(0x35248, moduleHandleRva.ListedOffset);
+        }
+
         #region DOS Header
 
         [TestMethod]
@@ -1202,6 +1225,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_PushNonVolatile_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<PushNonVolatile>();
             throw new NotImplementedException();
         }
@@ -1209,6 +1233,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_AllocLarge_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<AllocLarge>();
             throw new NotImplementedException();
         }
@@ -1216,6 +1241,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_AllocSmall_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<AllocSmall>();
             throw new NotImplementedException();
         }
@@ -1223,6 +1249,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_SetFpReg_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<SetFpReg>();
             throw new NotImplementedException();
         }
@@ -1230,6 +1257,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_SaveNonVolatile_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<SaveNonVolatile>();
             throw new NotImplementedException();
         }
@@ -1237,6 +1265,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_SaveNonVolatileFar_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<SaveNonVolatileFar>();
             throw new NotImplementedException();
         }
@@ -1244,6 +1273,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_Epilog_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<Epilog>();
             throw new NotImplementedException();
         }
@@ -1251,6 +1281,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_SaveXmm128_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<SaveXmm128>();
             throw new NotImplementedException();
         }
@@ -1258,6 +1289,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_SaveXmm128Far_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<SaveXmm128Far>();
             throw new NotImplementedException();
         }
@@ -1265,6 +1297,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_PushMachFrame_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<PushMachFrame>();
             throw new NotImplementedException();
         }
@@ -1272,6 +1305,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindCode_NullUnwindCode_Test()
         {
+            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
             var str = GenerateTest<NullUnwindCode>();
             throw new NotImplementedException();
         }
@@ -1317,6 +1351,50 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void FuncInfo_Test_x86()
+        {
+            //Need to assert that it's a 32-bit PE file
+            Assert.Inconclusive();
+        }
+
+        [TestMethod]
+        public void FuncInfo_Test_x64()
+        {
+            TestStruct<FuncInfo>(
+                v => v.MagicNumber == 429065506,
+                v => v.BBTFlags == 0,
+                v => v.MaxState == 2,
+                v => v.UnwindMap.ListedOffset == 67060,
+                v => v.nTryBlocks == 1,
+                v => v.TryBlockMap.ListedOffset == 67076,
+                v => v.nIPMapEntries == 1,
+                v => v.IPToStateMap.ListedOffset == 67120,
+                v => v.DispUnwindHelp == 32,
+                v => v.DispESTypeList == 0,
+                v => v.EHFlags == 5
+            );
+
+            TestView<FuncInfo>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "FuncInfo", offset: 60816, size: 40,
+                        c => c.VerifyBitField(name: "magicNumber", value: 429065506, bits: 29),
+                        c => c.VerifyBitField(name: "bbtFlags", value: 0, bits: 3),
+                        c => c.VerifyField(name: "maxState", value: 2),
+                        c => c.VerifyField(name: "dispUnwindMap", value: 67060),
+                        c => c.VerifyField(name: "nTryBlocks", value: 1),
+                        c => c.VerifyField(name: "dispTryBlockMap", value: 67076),
+                        c => c.VerifyField(name: "nIPMapEntries", value: 1),
+                        c => c.VerifyField(name: "dispIPtoStateMap", value: 67120),
+                        c => c.VerifyField(name: "dispUnwindHelp", value: 32),
+                        c => c.VerifyField(name: "dispESTypeList", value: 0),
+                        c => c.VerifyField(name: "EHFlags", value: 5)
+                    ),
+                    after: 5
+                )
+            );
         }
 
         [TestMethod]
@@ -1354,11 +1432,28 @@ namespace PESpy.Tests
         [TestMethod]
         public void UnwindMapEntry_Test()
         {
-            var str = GenerateTest<HandlerType>();
+            var str = GenerateTest<UnwindMapEntry>();
 
             throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void FuncInfoV1_Test()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void FuncInfo4_Test()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
         #region Security Table (4)
 
         [TestMethod]
@@ -1542,7 +1637,7 @@ namespace PESpy.Tests
             TestView<RSDSI>(
                 v => v.VerifyStruct(
                     name: "RSDSI", offset: 1423344, size: 34,
-                    c => c.VerifyField(name: "dwSig", value: 1396986706),
+                    c => c.VerifyField(name: "dwSig", value: CodeViewSig.RSDS),
                     c => c.VerifyField(name: "guidSig", value: new Guid("58a282c2-4aee-7e03-a8cf-8cb0a782ce0c")),
                     c => c.VerifyField(name: "age", value: 1),
                     c => c.VerifyField(name: "szPdb", value: "ntdll.pdb")
@@ -1705,6 +1800,25 @@ namespace PESpy.Tests
         public void ImageDebugDirectory_VCFeature_Test()
         {
             var str = GenerateTest<VCFeature>();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region Pogo (13)
+
+        [TestMethod]
+        public void ImageDebugDirectory_PogoData_Test()
+        {
+            var str = GenerateTest<PogoData>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_PogoItem_Test()
+        {
+            var str = GenerateTest<PogoItem>();
 
             throw new NotImplementedException();
         }
@@ -2177,6 +2291,20 @@ namespace PESpy.Tests
                 )
             );
         }
+
+        [TestMethod]
+        public void ImageDynamicRelocation_ntoskrnl()
+        {
+            //ntoskrnl has some strange entries in it, apparently relating to PTE (PTE_BASE, etc).
+            //Test that we can correctly parse it
+
+            var path = WellKnownTestModule.GetStoreFile(WellKnownTestModule.ntoskrnl);
+
+            //We need to test that have some regular old imagebaserelocation addresses with FFFF symbol kinds
+            Assert.Inconclusive();
+        }
+
+        [TestMethod]
         public void ImageDynamicRelocationTable_Test()
         {
             TestStruct<ImageDynamicRelocationTable>(
@@ -2428,6 +2556,33 @@ namespace PESpy.Tests
         }
 
         #endregion
+        #region Import Address Table (12)
+
+        [TestMethod]
+        public void ImportAddressTable_ImageThunkData_Test()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region Delay Import Table (13)
+
+        [TestMethod]
+        public void ImageDelayLoadDescriptor_Test()
+        {
+            var str = GenerateTest<ImageDelayLoadDescriptor>();
+
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void ImageDelayLoadDescriptor_ImageThunkData_Test()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -2558,6 +2713,13 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
+        public void ECMA335_Metadata_Test()
+        {
+            Assert.Inconclusive();
+
+            throw new NotImplementedException();
+        }
+
         [TestMethod]
         public void ECMA335_BlobEntry_Test()
         {
@@ -2666,6 +2828,13 @@ namespace PESpy.Tests
         #region CLR
 
         [TestMethod]
+        public void AppHostSignature_Test()
+        {
+            var str = GenerateTest<AppHostSignature>();
+
+            throw new NotImplementedException();
+        }
+
         [TestMethod]
         public void ClrEngineMetrics_Test()
         {
@@ -2812,6 +2981,44 @@ namespace PESpy.Tests
             var str = GenerateTest<ImageAuxSymbol>();
             throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void ImageSymbol_Test()
+        {
+            var str = GenerateTest<ImageSymbol>();
+
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        [TestMethod]
+        public void AssertAllStructuresAreTested()
+        {
+            var kinds = typeof(PEFile).Assembly.GetTypes()
+                .Where(t => !t.IsInterface && !t.IsGenericType && t.Namespace?.Contains("PDB") == false)
+                .Where(t => typeof(IValue).IsAssignableFrom(t))
+                .Select(v => v.Name)
+                .Where(v => !v.EndsWith("Row")) //temp
+                .ToArray();
+
+            var actual = GetType()
+                .GetMethods()
+                .Where(m => m.GetCustomAttribute<TestMethodAttribute>() != null && m.Name.Contains("_"))
+                .Select(m => m.Name)
+                .ToArray();
+
+            var missing = kinds.Where(k => !actual.Any(a => a.Contains(k))).ToArray();
+
+            var gen = string.Join(Environment.NewLine + Environment.NewLine, missing.Select(v => $"[TestMethod]\r\npublic void {v}_Test()\r\n{{\r\n    var str = GenerateTest<{v}>();\r\n    throw new NotImplementedException();\r\n}}").ToArray());
+
+            //Get all IViewable items and check that we have a method here that starts with their name
+            throw new NotImplementedException();
+        }
+
+        private void TestStruct<T>(params Expression<Func<T, bool>>[] asserts) =>
+            TestStruct<T, T>(asserts);
+
         private void TestStruct<TSelector, TVerifier>(params Expression<Func<TVerifier, bool>>[] asserts)
         {
             Stream fs = null;
@@ -2934,6 +3141,10 @@ namespace PESpy.Tests
                         actual = lambda.DynamicInvoke(rawValue);
                     }
                     else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
                 else
                 {
                     memberInfo = GetPropertyInfo(body.Left, ref local);
@@ -2966,6 +3177,25 @@ namespace PESpy.Tests
                 var underlying = Nullable.GetUnderlyingType(memberType);
 
                 if (underlying != null)
+                    memberType = underlying;
+
+                var expectedValue = GetConstantValue(body.Right, memberType);
+
+                if (!IsEqual(expectedValue, actual))
+                    results.Add($"[{body.Left.ToString().Substring(2)}] Expected: {expectedValue} ({expectedValue?.GetType().Name ?? "null"}), Actual: {actual} ({actual?.GetType().Name ?? "null"})");
+
+                propertiesAndFieldsTouched.Add(memberInfo);
+            }
+
+            if (results.Count > 0)
+                Assert.Fail(string.Join(Environment.NewLine + Environment.NewLine, results));
+
+            var actualPropertiesAndFields = typeof(TVerifier).GetProperties(BindingFlags.Instance | BindingFlags.Public).Cast<MemberInfo>().Concat(typeof(TVerifier).GetFields(BindingFlags.Instance | BindingFlags.Public));
+            var missingPropertiesandFields = actualPropertiesAndFields.Except(propertiesAndFieldsTouched).ToArray();
+
+            //todo: assert that we tested all properties
+        }
+
         private void TestView<T>(params Action<IView>[] verify) => TestView<T>(verify, true);
 
         private void TestView<TSelector, TVerifier>(params Action<IView>[] verify) =>
@@ -2974,22 +3204,44 @@ namespace PESpy.Tests
         private void TestView<T>(Action<IView>[] verify, bool assertChildCount) =>
             TestView<T, T>(verify, assertChildCount);
 
-        private void TestView<TSelector, TVerifier>(Action<IView>[] verify, bool assertChildCount)
+        private unsafe void TestView<TSelector, TVerifier>(Action<IView>[] verify, bool assertChildCount)
         {
             if (verify == null)
                 throw new ArgumentNullException(nameof(verify));
 
-            Stream fs = null;
+            Stream stream = null;
+            MemoryMappedFileHolder mmf = default;
 
             try
             {
-                var rawValue = GetStruct<TSelector, TVerifier>(out fs);
+                var rawValue = GetStruct<TSelector, TVerifier>(out stream);
 
-                fs.Seek(0, SeekOrigin.Begin);
-                var peFile = PEFile.FromStream(fs, false);
-                var reader = new StreamFileReader(fs, false);
+                stream.Seek(0, SeekOrigin.Begin);
+                var peFile = PEFile.FromStream(stream, false);
+
+#if PEFAST
+                byte* pData;
+                int length;
+
+                if (stream is FileStream fs)
+                {
+                    mmf = new MemoryMappedFileHolder(fs);
+                    pData = mmf.Address;
+                    length = (int) mmf.Length;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+#endif
+
+#if PEFAST
+                var viewWriter = new PEViewWriter(peFile, pData, length, null, ViewMode.Default);
+#else
+                var reader = new StreamFileReader(stream, false);
 
                 var viewWriter = new PEViewWriter(peFile, reader, null, ViewMode.Default);
+#endif
                 ((IViewable) rawValue).WriteView(viewWriter);
                 var current = viewWriter.Current.OrderBy(v => v.Offset).ToArray();
 
@@ -3010,7 +3262,10 @@ namespace PESpy.Tests
             }
             finally
             {
-                fs?.Dispose();
+                if (stream is FileStream f)
+                    mmf.Close();
+
+                stream?.Dispose();
             }
         }
 
@@ -3315,11 +3570,11 @@ namespace PESpy.Tests
                 nameof(NB10I)                     => (NB10I)                     GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
                 nameof(FpoData)                   => ((FpoData[])                 GetFile(WellKnownTestModule.ctl3d32, out fs).DebugTable?.First(t => t.Type == ImageDebugType.FPO).Data)?[0],
                 nameof(ImageDebugMisc)            => (ImageDebugMisc)             GetFile(WellKnownTestModule.mfc40, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Misc).Data,
-                //nameof(VCFeature)                 => (VCFeature)                  GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.VCFeature).Data,
+                //nameof(VCFeature)                 => (VCFeature)                  GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.VCFeature).Data, //todo: need a test module that has a vcfeature
                 //POGO
                 nameof(Reproducible)              => (Reproducible?)              GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Reproducible).Data,
-                //nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.EmbeddedPortablePdb).Data,
-                //nameof(PdbChecksum)               => (PdbChecksum?)               GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.PdbChecksum).Data,
+                //nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.EmbeddedPortablePdb).Data, //todo: need a test module that has an embedded portable pdb
+                //nameof(PdbChecksum)               => (PdbChecksum?)               GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.PdbChecksum).Data, //todo: need a test module that has a pdb checksum
                 nameof(ImageDllCharacteristicsEx) => (GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.ExDllCharacteristics)),
 
                 #endregion
@@ -3398,11 +3653,14 @@ namespace PESpy.Tests
                 #endregion
                 #region Cor Header (14)
 
-                nameof(ImageCor20Header) => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header,
-                nameof(StorageSignature) => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Signature,
-                nameof(StorageHeader)    => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header,
-                nameof(ImageCorILMethod) => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
-                nameof(StorageStream)    => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header.StreamHeaders[0],
+                nameof(ImageCor20Header)         => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header,
+                nameof(StorageSignature)         => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Signature,
+                nameof(StorageHeader)            => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header,
+                nameof(ImageCorILMethod)         => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
+                nameof(StorageStream)            => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header.StreamHeaders[0],
+
+                nameof(ReadyToRunHeader)         => GetSampleFile(Sample.R2R_DLL, out fs).ReadyToRunHeader,
+
                 nameof(RuntimeInfo)              => GetLocalFile(TestProcessKind.SingleFile, out fs).RuntimeInfo,
 
                 nameof(DotNetRuntimeDebugHeader) => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader,
@@ -3414,6 +3672,9 @@ namespace PESpy.Tests
                 _ => throw new AssertInconclusiveException($"Don't know how to handle type '{typeof(TSelector).Name}'")
             };
 
+            if (rawValue == null)
+                throw new NotImplementedException();
+
             return (TVerifier) rawValue;
         }
 
@@ -3421,6 +3682,15 @@ namespace PESpy.Tests
         {
             var path = WellKnownTestModule.GetStoreFile(key);
 
+            fs = File.OpenRead(path);
+
+            var peFile = PEFile.FromStream(fs, false);
+
+            return peFile;
+        }
+
+        private static PEFile GetSampleFile(string path, out Stream fs)
+        {
             fs = File.OpenRead(path);
 
             var peFile = PEFile.FromStream(fs, false);
@@ -3443,7 +3713,7 @@ namespace PESpy.Tests
             return peFile;
         }
 
-        private static PEFile GetTestProcess(TestProcessKind kind, out Stream fs)
+        private static PEFile GetTestProcess(TestProcessKind kind, out Stream stream)
         {
             var path = kind switch
             {
@@ -3451,9 +3721,9 @@ namespace PESpy.Tests
                 TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
             };
 
-            fs = ProcessHolderStream.New(path);
+            stream = ProcessHolderStream.New(path);
 
-            var peFile = PEFile.FromStream(fs, true);
+            var peFile = PEFile.FromStream(stream, true);
 
             return peFile;
         }
@@ -3675,7 +3945,7 @@ namespace PESpy.Tests
             return list.ToArray();
         }
 
-        private Action<IView>[] IgnoreValues(int count)
+        internal static Action<IView>[] IgnoreValues(int count)
         {
             var result = new Action<IView>[count];
 
@@ -3684,5 +3954,7 @@ namespace PESpy.Tests
 
             return result;
         }
+    }
+
 #pragma warning restore HAA0101 // Array allocation for params parameter
 }

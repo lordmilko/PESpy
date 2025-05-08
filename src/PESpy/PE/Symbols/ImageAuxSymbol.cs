@@ -1,9 +1,50 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
 {
+    /* IMAGE_AUX_SYMBOL is a very complicated union of symbol types. The key to understanding
+     * which union is being used is to look at the type of IMAGE_SYMBOL that the IMAGE_AUX_SYMBOL is associated with
+     * https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#auxiliary-symbol-records
+     *
+     * IMAGE_AUX_SYMBOLS_EX seems to be 20 bytes not 18, and contains additional unions that may exist. I don't know how you're meant to know
+     * when IMAGE_AUX_SYMBOLS_EX is in use (being 20 bytes not 18)
+     *
+     * The following categories of AUX symbols exist
+     *
+     * | Type                 | Criteria |
+     * |----------------------|----------|-------------------------
+     * | Function Definition  | StorageClass EXTERNAL, Type Function, Section Number > 0              | Sym (TagIndex / TotalSize / PointerToLinenumber / PointerToNextFunction / Unused)
+     * | .bf / .ef            | StorageClass FUNCTION. Name .bf or .ef. .lf does not have aux records | Sym (Unused, Linenumber, Unused, PointerToNextFunction (.bf only) / Unused
+     * | Weak Externals       | StorageClass EXTERNAL, UNDEF section number, value of 0               | I think this is IMAGE_AUX_SYMBOLS_EX.Sym (MSDN says unused is 10 bytes but the header says 12?)
+     * | Files                | StorageClass FILE                                                     | File
+     * | Section Definitions  | StorageCLass STATIC, Symbol name names a section                      | Section
+     * | COMDAT Sections      | I think we need a symbol that names a section, value of 0, Type Null, CLass Static, and section has IMAGE_SCN_LNK_COMDAT
+     * | CLR Token Definition | Class IMAGE_SYM_CLASS_CLR_TOKEN                                       | TokenDef
+     *
+     * IMAGE_AUX_SYMBOL contains the following top level structures
+     *
+     * Sym
+     * File
+     * Section
+     * TokenDef
+     * CRC
+     * */
+
+    public enum AuxSymbolKind
+    {
+        Unknown = 0,
+        Function,
+        BFOrEF,
+        WeakExternal,
+        File,
+        SectionDef,
+        ComdatSection,
+        CLRToken
+    }
+
     public readonly struct ImageAuxSymbol : IValue, IViewable
     {
 #if PEFAST
@@ -198,7 +239,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        //IMAGE_AUX_SYMBOL has a number of unioned fields; don't know how to detect which one is in use
+        //IMAGE_AUX_SYMBOL has a number of unioned fields. The data that is in effect depends on the data in the parent IMAGE_SYMBOL
         public Span<byte> Bytes => chunk.PeekSpan<byte>(0, StructSize);
 
         public int Offset => chunk.AbsoluteOffset;
@@ -211,11 +252,14 @@ namespace PESpy
         internal const int StructSize = 18;
 
 #if PEFAST
+        public AuxSymbolKind Kind { get; }
+
         private readonly MemoryChunk chunk;
 
-        internal ImageAuxSymbol(in MemoryChunk chunk)
+        internal ImageAuxSymbol(in MemoryChunk chunk, AuxSymbolKind kind = AuxSymbolKind.Unknown)
         {
             this.chunk = chunk;
+            Kind = kind;
         }
 #else
         internal ImageAuxSymbol(IFileReader reader)
@@ -232,7 +276,9 @@ namespace PESpy
             using var s = writer.CreateStruct(nameof(IMAGE_AUX_SYMBOL), this, ViewKind.ImageAuxSymbol);
 
 #if PEFAST
-            throw new NotImplementedException();
+            //We don't currently calculate our Kind
+            Debug.Assert(Kind == AuxSymbolKind.Unknown);
+            s.WriteField("Bytes", Bytes);
 #else
             s.WriteField("Bytes", Bytes);
 #endif

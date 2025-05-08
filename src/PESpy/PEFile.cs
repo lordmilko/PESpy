@@ -2265,8 +2265,42 @@ namespace PESpy
         //for it to _only_ be pointed to by exports
         public ReadyToRunHeader? ReadyToRunHeader => Cor20ManagedNativeHeader as ReadyToRunHeader;
 #else
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ReadyToRunHeader? readyToRunHeader;
+
         public ReadyToRunHeader? ReadyToRunHeader
         {
+            get
+            {
+                if (!HasRegionFlag(PERegionKind.ReadyToRunHeader))
+                {
+                    var cor20Header = Cor20Header;
+
+                    if (cor20Header != null && cor20Header.Flags.HasFlag(COMIMAGE_FLAGS.IL_LIBRARY))
+                    {
+                        if (TryGetOffset(cor20Header.ManagedNativeHeader.VirtualAddress, out var offset))
+                        {
+                            lock (readerLock)
+                            {
+                                reader.Seek(offset);
+
+                                var signature = reader.ReadInt32();
+
+                                if (signature == ReadyToRunHeader.R2RSignature)
+                                    readyToRunHeader = new ReadyToRunHeader(reader, this, signature);
+                            }
+                        }
+                    }
+
+                    SetRegionFlag(PERegionKind.ReadyToRunHeader);
+                }
+
+                return readyToRunHeader;
+            }
+        }
+#endif
+
+        #endregion
         #region AppHost
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2491,7 +2525,6 @@ namespace PESpy
 
         #endregion
 
-#if !PEFAST
         /// <summary>
         /// Gets a <see cref="FileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
         /// </summary>
@@ -2922,11 +2955,25 @@ namespace PESpy
         {
             if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
             {
+                //We don't know what memory they want, so I guess we need to demand all of it?
+                block!.Demand();
+
                 chunk = new MemoryChunk(block!, relativeOffset);
                 return true;
             }
 
             chunk = default;
+            return false;
+        }
+
+        internal bool TryGetRVARelativeValueChunk(int rva, int offset, out MemoryChunk chunk)
+        {
+            if (TryGetValueChunkFromSection(rva, out chunk))
+            {
+                chunk = chunk.Slice(offset);
+                return true;
+            }
+
             return false;
         }
 
@@ -3181,6 +3228,9 @@ namespace PESpy
             writer.WriteGlobal(Cor20Header);
 
             writer.WriteGlobal(ILMethods);
+
+            //writer.WriteGlobal(ReadyToRunHeader);
+
 #if !PEFAST
             writer.WriteGlobal(AppHostSignature);
 #endif
@@ -3202,6 +3252,19 @@ namespace PESpy
 
             if (disposing)
             {
+                headerBlock.Dispose();
+
+                if (sectionBlocks != null)
+                {
+                    foreach (var block in sectionBlocks)
+                    {
+                        if (block != null)
+                            block.Dispose();
+                    }
+
+                    sectionBlocks = null;
+                }
+
                 (blockProvider as IDisposable)?.Dispose();
 
                 //This is a bit of a gotcha! If you declare a finalizer, it won't be GC'd until the finalizer thread processes it.

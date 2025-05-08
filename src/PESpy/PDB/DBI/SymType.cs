@@ -168,7 +168,7 @@ namespace PESpy.PDB
 
     [DebuggerTypeProxy(typeof(SymTypeProxy))]
     [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")]
-    public readonly unsafe struct SymType
+    public readonly unsafe struct SymType : IEquatable<SymType>
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SYMTYPE* value;
@@ -180,6 +180,24 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        public override int GetHashCode()
+        {
+            return ((IntPtr) value).GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj == null)
+                return value == default;
+
+            if (obj is SymType s)
+                return value == s.value;
+
+            return false;
+        }
+
+        public bool Equals(SymType other) => value == other.value;
 
         public override string ToString()
         {

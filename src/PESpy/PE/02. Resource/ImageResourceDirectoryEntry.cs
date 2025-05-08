@@ -204,10 +204,8 @@ namespace PESpy
 
                 if (nameIsString)
                 {
-                    var offset = rootRVA + (int) nameOffset;
-
-                    //Tested and confirmed this works for both loaded and unloaded modules
-                    if (chunk.PEFile().TryGetValueChunkFromSection(offset, out var valueChunk))
+                    //rootRVA is the ResourceTableDirectory.VirtualAddress
+                    if (chunk.PEFile().TryGetRVARelativeValueChunk(rootRVA, nameOffset, out var valueChunk))
                     {
                         var name = new ImageResourceDirStringU(valueChunk);
                         NameOffset = new RVA<ImageResourceDirStringU>(nameOffset, valueChunk.AbsoluteOffset, name);

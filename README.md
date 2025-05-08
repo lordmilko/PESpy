@@ -1,15 +1,22 @@
 # PESpy
 
-PESpy is a Portable Executable parser for .NET
+PESpy is a .NET library, and standalone application, for visualizing Microsoft binary formats.
 
-*All I want is a parser that lets me visualize an entire Portable Executable file, as it truly is*
+PESpy supports the following file types
+* Portable Executable
+* OBJ (COFF Based)
+* DBG
+* LIB (COFF Based)
+* PDB (v1, v2, v7)
+* Portable PDB
+* New Executable
+* Linear Executable
 
-Every boy and his dog has written their own PE File parser
+Every boy and his dog has written their own PE File parser. I don't just want a PE File parser however, I want a *visualizer*
 
-* Most PE File parsers just cover the "most common" data structures the use cases they're interested in
-* Some will *leave out* certain structures like `IMAGE_DOS_HEADER` because they say "they're not important, you don't need that"
-* You might get a few here or there that cover some more advanced use cases, but they almost never go all the way; I can count on one hand the number of parsers I've seen that even bother to include .NET/ECMA 335 metadata
-* And invariably, almost *everyone* will attempt to introduce their own fancy abstractions over the native data types. I know what an `IMAGE_DYNAMIC_RELOCATION_TABLE` is. I don't know what "DVRT" is, nor which data structure it's supposed to correspond to.
+* I want to see *everything* - all known data structures, no matter how obscure
+* I want to know how they physically relate to one another. If I point at a random byte in the file, I want to know exactly what it is, what it's part of, and what's above and below it
+* I don't want to have to figure out what all your crazy abstractions mean. I know what an `IMAGE_DYNAMIC_RELOCATION_TABLE` is; I don't know what "DVRT" is, and don't want to have to jump through hoops to figure out how *your* data model maps to the native data model at every turn
 
 PESpy's struct definitions exact follow the names of their native counterparts everywhere that this is possible. `ImageDosHeader == IMAGE_DOS_HEADER`, `VsVersionInfo == VS_VERSIONINFO`, etc. In scenarios where this information is unavailable (such as the the `Reproducible` debug directory type), PESpy has chosen a name that hopefully should not be too controversial. On every type definition, PESpy makes clear which native type this structure corresponds to, or whether the name of this structure was synthesized due to no native structure being available.
 

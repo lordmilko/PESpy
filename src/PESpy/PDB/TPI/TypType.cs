@@ -1,11 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
     [DebuggerTypeProxy(typeof(TypTypeProxy))]
     [DebuggerDisplay("{TypTypeProxy.DebuggerDisplay(this),nq}")]
-    public readonly unsafe struct TypType
+    public readonly unsafe struct TypType : IEquatable<TypType>
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly TYPTYPE* value;
@@ -17,6 +18,24 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        public override int GetHashCode()
+        {
+            return ((IntPtr) value).GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj == null)
+                return value == default;
+
+            if (obj is TypType s)
+                return value == s.value;
+
+            return false;
+        }
+
+        public bool Equals(TypType other) => value == other.value;
 
         public override string ToString()
         {

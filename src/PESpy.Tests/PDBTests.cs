@@ -638,7 +638,6 @@ namespace PESpy.Tests
             );
         }
 
-        [TestMethod]
         #region Module C13
 
         [TestMethod]
