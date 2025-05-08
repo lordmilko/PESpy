@@ -25,7 +25,8 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+        //If seg is 0, there's no RVA
+        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         #endregion
 

@@ -6,45 +6,48 @@ namespace PESpy.PDB
 {
     public static class SymTypeExtensions
     {
+        //This method _does_ traverse ref symbols
         public static bool TryGetRVA(in this SymType symType, out int rva)
         {
             //The following symbol kinds have a "seg" member which indicates they may store an RVA
 
+            int? rawRva;
+
             switch (symType.rectyp)
             {
                 case SYM_ENUM_e.S_ANNOTATION:
-                    rva = ((AnnotationSym) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((AnnotationSym) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_BLOCK16:
                 case SYM_ENUM_e.S_WITH16:
-                    rva = ((BlockSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((BlockSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_BLOCK32_ST:
                 case SYM_ENUM_e.S_WITH32_ST:
                 case SYM_ENUM_e.S_BLOCK32:
                 case SYM_ENUM_e.S_WITH32:
-                    rva = ((BlockSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((BlockSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_CEXMODEL16:
-                    rva = ((CExMSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((CExMSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_CEXMODEL32:
-                    rva = ((CExMSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((CExMSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_COFFGROUP:
-                    rva = ((CoffGroupSym) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((CoffGroupSym) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LDATA16:
                 case SYM_ENUM_e.S_GDATA16:
                 case SYM_ENUM_e.S_PUB16:
-                    rva = ((DataSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((DataSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LDATA32_ST:
                 case SYM_ENUM_e.S_GDATA32_ST:
@@ -58,37 +61,37 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GTHREAD32:
                 case SYM_ENUM_e.S_LMANDATA:
                 case SYM_ENUM_e.S_GMANDATA:
-                    rva = ((DataSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((DataSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LDATA32_16t:
                 case SYM_ENUM_e.S_GDATA32_16t:
                 case SYM_ENUM_e.S_PUB32_16t:
                 case SYM_ENUM_e.S_LTHREAD32_16t:
                 case SYM_ENUM_e.S_GTHREAD32_16t:
-                    rva = ((DataSym3216t) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((DataSym3216t) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LABEL16:
-                    rva = ((LabelSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((LabelSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LABEL32_ST:
                 case SYM_ENUM_e.S_LABEL32:
-                    rva = ((LabelSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((LabelSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_GMANPROC_ST:
                 case SYM_ENUM_e.S_LMANPROC_ST:
                 case SYM_ENUM_e.S_GMANPROC:
                 case SYM_ENUM_e.S_LMANPROC:
-                    rva = ((ManProcSym) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ManProcSym) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROC16:
                 case SYM_ENUM_e.S_GPROC16:
-                    rva = ((ProcSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROC32_ST:
                 case SYM_ENUM_e.S_GPROC32_ST:
@@ -98,13 +101,13 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROC32_ID:
                 case SYM_ENUM_e.S_LPROC32_DPC:
                 case SYM_ENUM_e.S_LPROC32_DPC_ID:
-                    rva = ((ProcSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROC32_16t:
                 case SYM_ENUM_e.S_GPROC32_16t:
-                    rva = ((ProcSym3216t) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSym3216t) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROCIA64_ST:
                 case SYM_ENUM_e.S_GPROCIA64_ST:
@@ -112,8 +115,8 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROCIA64:
                 case SYM_ENUM_e.S_LPROCIA64_ID:
                 case SYM_ENUM_e.S_GPROCIA64_ID:
-                    rva = ((ProcSymIA64) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSymIA64) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROCMIPS_ST:
                 case SYM_ENUM_e.S_GPROCMIPS_ST:
@@ -121,29 +124,29 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROCMIPS:
                 case SYM_ENUM_e.S_LPROCMIPS_ID:
                 case SYM_ENUM_e.S_GPROCMIPS_ID:
-                    rva = ((ProcSymMips) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSymMips) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_LPROCMIPS_16t:
                 case SYM_ENUM_e.S_GPROCMIPS_16t:
-                    rva = ((ProcSymMips16t) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ProcSymMips16t) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_PUB32_ST:
                 case SYM_ENUM_e.S_PUB32:
-                    rva = ((PubSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((PubSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 //case SYM_ENUM_e.S_SSEARCH: //SSEARCH has a seg but no off
 
                 case SYM_ENUM_e.S_THUNK16:
-                    rva = ((ThunkSym16) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ThunkSym16) symType).RelativeVirtualAddress;
+                    break;
 
                 case SYM_ENUM_e.S_THUNK32_ST:
                 case SYM_ENUM_e.S_THUNK32:
-                    rva = ((ThunkSym32) symType).RelativeVirtualAddress;
-                    return true;
+                    rawRva = ((ThunkSym32) symType).RelativeVirtualAddress;
+                    break;
 
                 //ref symbols don't have a seg, but they may point to something that does!
 
@@ -161,6 +164,199 @@ namespace PESpy.PDB
 
                 default:
                     rva = default;
+                    return false;
+            }
+
+            //Data symbols can have a section index of 0, indicating they don't physically exist
+            if (rawRva != null)
+            {
+                rva = rawRva.Value;
+                return true;
+            }
+
+            rva = default;
+            return false;
+        }
+
+        public static unsafe bool IsCode(in this SymType symType)
+        {
+            /* From mapping DIA symbols to PDB symbols by RVA, the following symbol kinds have been observed to have code or be functions:
+             *
+             * S_PUB32
+             * S_GPROC32
+             * S_LPROC32
+             * S_THUNK32
+             * S_GDATA32 (at the same address there was also a S_PUB32. It wasn't code or function, but the S_GDATA32 item was in .text which had CNT_CODE)
+             * S_LABEL32 (at the same address there was also a S_PUB32)
+             * S_COFFGROUP (at the same address there was also an S_PUB32 and an S_THUNK32)
+             *
+             * So I would say that anything that is a PROC or THUNK could be code
+             *
+             * In the case of publics, if they report that they're code, it's all good. Otherwise, msdia140!setPubSymFlags calls
+             * SymCache::iModFromAddr which calls DBI1::QueryModFromAddr2. This method returns the IMAGE_SCN characteristics of the
+             * section contrib that contained the section + offset. DIA then right shifts this 5 to check if IMAGE_SCN_CNT_CODE is set (0x20) */
+
+            if (symType.IsProc() || symType.IsThunk())
+                return true;
+
+            short seg;
+            int off;
+
+            switch (symType.rectyp)
+            {
+                case SYM_ENUM_e.S_PUB16:
+                {
+                    var value = (DataSym16) symType;
+                    seg = value.seg;
+                    off = value.off;
+                    break;
+                }
+
+                case SYM_ENUM_e.S_PUB32:
+                case SYM_ENUM_e.S_PUB32_ST:
+                {
+                    var value = (PubSym32) symType;
+
+                    //todo: i dont know which flags should be used for saying "its code". e.g. could you have function but not code?
+                    //similarly, what if its managed/msil?
+                    if (value.pubsymflags.fCode || value.pubsymflags.fFunction)
+                        return true;
+
+                    seg = value.seg;
+                    off = value.off;
+                    break;
+                }
+
+                case SYM_ENUM_e.S_PUB32_16t:
+                {
+                    var value = (DataSym3216t) symType;
+                    seg = value.seg;
+                    off = value.off;
+                    break;
+                }
+
+                default:
+                    return false;
+            }
+
+            if (SymType.TryGetSectionContrib(symType, seg, off, out var sc))
+            {
+                if ((sc.dwCharacteristics & ClrDebug.IMAGE_SCN.CNT_CODE) != 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets whether a <see cref="SymType"/> contains a "proc" symbol, representing a procedure.<para/>
+        /// This method does not traverse ref symbols.
+        /// </summary>
+        /// <param name="symType">The symbol to inspect.</param>
+        /// <returns>True if the symbol is some type of procedure. Otherwise, false.</returns>
+        public static bool IsProc(in this SymType symType)
+        {
+            switch (symType.rectyp)
+            {
+                //ProcSym16
+                case SYM_ENUM_e.S_LPROC16:
+                case SYM_ENUM_e.S_GPROC16:
+
+                //ProcSym3216t
+                case SYM_ENUM_e.S_LPROC32_16t:
+                case SYM_ENUM_e.S_GPROC32_16t:
+
+                //ProcSymMips16t
+                case SYM_ENUM_e.S_LPROCMIPS_16t:
+                case SYM_ENUM_e.S_GPROCMIPS_16t:
+
+                //ProcSym32
+                case SYM_ENUM_e.S_LPROC32_ST:
+                case SYM_ENUM_e.S_GPROC32_ST:
+                case SYM_ENUM_e.S_LPROC32:
+                case SYM_ENUM_e.S_GPROC32:
+                case SYM_ENUM_e.S_LPROC32_ID:
+                case SYM_ENUM_e.S_GPROC32_ID:
+                case SYM_ENUM_e.S_LPROC32_DPC:
+                case SYM_ENUM_e.S_LPROC32_DPC_ID:
+
+                //ProcSymMips
+                case SYM_ENUM_e.S_LPROCMIPS_ST:
+                case SYM_ENUM_e.S_GPROCMIPS_ST:
+                case SYM_ENUM_e.S_LPROCMIPS:
+                case SYM_ENUM_e.S_GPROCMIPS:
+                case SYM_ENUM_e.S_LPROCMIPS_ID:
+                case SYM_ENUM_e.S_GPROCMIPS_ID:
+
+                //Not sure if FRAMEPROC should be included
+
+                //ProcSymIA64
+                case SYM_ENUM_e.S_LPROCIA64_ST:
+                case SYM_ENUM_e.S_GPROCIA64_ST:
+                case SYM_ENUM_e.S_LPROCIA64:
+                case SYM_ENUM_e.S_GPROCIA64:
+                case SYM_ENUM_e.S_LPROCIA64_ID:
+                case SYM_ENUM_e.S_GPROCIA64_ID:
+
+                //ManProcSym
+                case SYM_ENUM_e.S_GMANPROC_ST:
+                case SYM_ENUM_e.S_LMANPROC_ST:
+                case SYM_ENUM_e.S_GMANPROC:
+                case SYM_ENUM_e.S_LMANPROC:
+
+                //Unsupported
+                case SYM_ENUM_e.S_GPROC32EX:
+                case SYM_ENUM_e.S_LPROC32EX:
+                case SYM_ENUM_e.S_GPROC32EX_ID:
+                case SYM_ENUM_e.S_LPROC32EX_ID:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether a <see cref="SymType"/> contains a "thunk" symbol.<para/>
+        /// This method does not traverse ref symbols.
+        /// </summary>
+        /// <param name="symType">The symbol to inspect.</param>
+        /// <returns>True if the symbol is some type of thunk. Otherwise, false.</returns>
+        public static bool IsThunk(in this SymType symType)
+        {
+            switch (symType.rectyp)
+            {
+                //ThunkSym16
+                case SYM_ENUM_e.S_THUNK16:
+
+                //ThunkSym32
+                case SYM_ENUM_e.S_THUNK32_ST:
+                case SYM_ENUM_e.S_THUNK32:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsRef(in this SymType symType)
+        {
+            switch (symType.rectyp)
+            {
+                //RefSym
+                case SYM_ENUM_e.S_PROCREF_ST:
+                case SYM_ENUM_e.S_DATAREF_ST:
+                case SYM_ENUM_e.S_LPROCREF_ST:
+
+                //RefSym2
+                case SYM_ENUM_e.S_PROCREF:
+                case SYM_ENUM_e.S_DATAREF:
+                case SYM_ENUM_e.S_LPROCREF:
+                case SYM_ENUM_e.S_ANNOTATIONREF:
+                case SYM_ENUM_e.S_TOKENREF:
+                    return true;
+
+                default:
                     return false;
             }
         }
@@ -245,8 +441,13 @@ namespace PESpy.PDB
             }
         }
 
-        internal static int GetRelativeVirtualAddress<T>(T* symType, short seg, int off) where T : unmanaged
+        internal static int? GetRelativeVirtualAddress<T>(T* symType, short seg, int off) where T : unmanaged
         {
+            //DataSym32 items may have a section number of 0, e.g. IID_IClassFactory in mscordbi. These also don't have an offset,
+            //and so therefore don't have an RVA
+            if (seg == 0)
+                return null;
+
             var sectionHeaders = SymbolMemoryTracker.GetSectionHeaders((long) symType);
 
             //The section number we're given is 1 based
@@ -321,7 +522,29 @@ namespace PESpy.PDB
             return module;
         }
 
+        internal static bool TryGetSectionContrib(SYMTYPE* symType, short seg, int off, out SC40 sc)
+        {
+            var dbi = SymbolMemoryTracker.GetDBI((long) symType);
+
+            sc = default!;
+
+            if (dbi == null)
+                return false;
+
+            var sectionContribs = dbi.SectionContribs;
+
+            if (sectionContribs == null)
+                return false;
+
+            //Getting the section is easy; the hard part is identifying the module
+            if (!sectionContribs.TryGetSection(seg, off, out sc))
+                return false;
+
+            return true;
+        }
+
         public static implicit operator SymType(SYMTYPE* value) => new SymType(value);
+        public static implicit operator SYMTYPE*(SymType value) => value.value;
 
         public static implicit operator AlignSym(SymType symType) => new AlignSym((ALIGNSYM*) symType.value);
         public static implicit operator AnnotationSym(SymType symType) => new AnnotationSym((ANNOTATIONSYM*) symType.value);

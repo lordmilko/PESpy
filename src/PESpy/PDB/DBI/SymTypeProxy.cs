@@ -417,6 +417,9 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_REGREL32_ENCTMP:
                 case SYM_ENUM_e.S_BPREL32_INDIR_ENCTMP:
                 case SYM_ENUM_e.S_REGREL32_INDIR_ENCTMP:
+                case SYM_ENUM_e.S_ASSOCIATION:
+                case SYM_ENUM_e.S_DEFRANGE_CONSTVAL_ON_ENTRY:
+                case SYM_ENUM_e.S_DEFRANGE_GLOBALSYM_ON_ENTRY:
                     return (SymType) symType;
 
                 default:

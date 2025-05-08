@@ -26,7 +26,7 @@ namespace PESpy.PDB
         internal InlineSiteSym2(INLINESITESYM2* value)
         {
             this.value = value;
-            Debug.Assert(false, "binaryAnnotations. See InlineSiteSym for more info");
+            //Debug.Assert(false, "binaryAnnotations. See InlineSiteSym for more info");
         }
     }
 }

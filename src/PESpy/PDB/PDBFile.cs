@@ -371,6 +371,7 @@ namespace PESpy
 
             if (symbols != null)
             {
+                //It seems that publics can be located in symrecs as well
                 foreach (var item in symbols)
                     yield return item;
             }
