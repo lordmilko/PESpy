@@ -45,7 +45,7 @@ namespace PESpy.Tests
         {
             var symbolClient = new SymbolClient(new NullSymStoreLogger());
 
-            var path = symbolClient.GetStoreFile(new SymbolStoreKey(key.Value, Path.GetFileName(key.Value)), CancellationToken.None);
+            var path = symbolClient.GetStoreFile(new SymbolStoreKey(key.Index, Path.GetFileName(key.Index)), CancellationToken.None);
 
             return path;
         }

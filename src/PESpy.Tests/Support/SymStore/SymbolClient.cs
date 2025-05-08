@@ -10,7 +10,7 @@ namespace PESpy.Tests.SymStore
     /// <summary>
     /// Retrieves PDBs from an online or local symbol store.
     /// </summary>
-    internal class SymbolClient : ISymbolClient
+    internal class SymbolClient
     {
         private ISymStoreLogger logger;
 
@@ -54,13 +54,6 @@ namespace PESpy.Tests.SymStore
                 throw new InvalidOperationException($"Couldn't find a symbol for key '{key}'");
 
             return result;
-        }
-
-        bool ISymbolClient.TryGetStoreFile(string key, out string result)
-        {
-            var value = new SymbolStoreKey(key, string.Empty);
-
-            return TryGetStoreFile(value, default, out result);
         }
 
         public bool TryGetStoreFile(SymbolStoreKey key, CancellationToken cancellationToken, out string result)

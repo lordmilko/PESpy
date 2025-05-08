@@ -3319,7 +3319,9 @@ namespace PESpy.Tests
 
                     string GetTypeName(TypeCode typeCode)
                     {
+#pragma warning disable CS8509
                         return typeCode switch
+#pragma warning restore CS8509
                         {
                             TypeCode.SByte => "sbyte",
                             TypeCode.Byte => "byte",
@@ -3700,7 +3702,9 @@ namespace PESpy.Tests
 
         private static PEFile GetLocalFile(TestProcessKind kind, out Stream fs)
         {
+#pragma warning disable CS8524
             var path = kind switch
+#pragma warning restore CS8524
             {
                 TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
                 TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
@@ -3715,7 +3719,9 @@ namespace PESpy.Tests
 
         private static PEFile GetTestProcess(TestProcessKind kind, out Stream stream)
         {
+#pragma warning disable CS8524
             var path = kind switch
+#pragma warning restore CS8524
             {
                 TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
                 TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
@@ -3732,7 +3738,9 @@ namespace PESpy.Tests
         {
             Stream fs;
 
+#pragma warning disable CS8509
             ByteBlob rawValue = fieldName switch
+#pragma warning restore CS8509
             {
                 nameof(PEFile.DosStub) => GetFile(WellKnownTestModule.Ntdll, out fs).DosStub
             };
@@ -3852,6 +3860,7 @@ namespace PESpy.Tests
             //I tried using reflection; the trick where you try and create a delegate out of the PropertyInfo
             //Getter (thereby preventing the Span from being boxed) did not work for me
 
+#pragma warning disable CS8509
             if (value is ImageDosHeader a)
             {
                 return field switch
@@ -3905,6 +3914,7 @@ namespace PESpy.Tests
                     "ILBytes" => Unsafe.As<T[]>(g.ILBytes.ToArray())
                 };
             }
+#pragma warning restore CS8509
 
             throw new NotImplementedException($"Retrieving a span from {value.GetType().Name}.{field} is not implemented");
         }
@@ -3913,7 +3923,9 @@ namespace PESpy.Tests
         {
             if (value is ImageResourceDirStringU r)
             {
+#pragma warning disable CS8509
                 return field switch
+#pragma warning restore CS8509
                 {
                     "NameString" => r.NameString.ToString()
                 };

@@ -10,7 +10,7 @@ namespace PESpy
         DBG
     }
 
-    [DebuggerDisplay("[{Kind}] {Value.ToString(),nq}")]
+    [DebuggerDisplay("[{Kind}] {Index.ToString(),nq}")]
     public readonly struct SymStoreKey
     {
         //todo: refactor our locator and symstorekeys property to call these methods
@@ -67,13 +67,13 @@ namespace PESpy
             return new SymStoreKey(index, SymStoreKeyKind.PE);
         }
 
-        public string Value { get; }
+        public string Index { get; }
 
         public SymStoreKeyKind Kind { get; }
 
-        public SymStoreKey(string value, SymStoreKeyKind kind)
+        public SymStoreKey(string index, SymStoreKeyKind kind)
         {
-            Value = value;
+            Index = index;
             Kind = kind;
         }
     }
