@@ -64,6 +64,7 @@ namespace PESpy.View
             viewDisassembler, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
         {
             this.peFile = peFile;
+            viewDisassembler?.Initialize(peFile);
         }
 
         private static TryGetOffsetDelegate GetViewOffsetResolver(PEFile peFile, ViewMode mode)

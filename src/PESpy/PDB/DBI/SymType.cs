@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -178,6 +179,16 @@ namespace PESpy.PDB
             return false;
         }
 
+        /// <summary>
+        /// Gets whether this symbol represents code.<para/>
+        /// A symbol is code if any of the following is true:<para/>
+        /// - The symbol is a PROC<para/>
+        /// - The symbol is a THUNK
+        /// - The symbol is a public with flags set to indicate it is code<para/>
+        /// - The symbolic is a public in a section with <see cref="IMAGE_SCN.CNT_CODE"/> set
+        /// </summary>
+        /// <param name="symType">The symbol to inspect</param>
+        /// <returns>True if the specified symbol is code. Otherwise, false</returns>
         public static unsafe bool IsCode(in this SymType symType)
         {
             /* From mapping DIA symbols to PDB symbols by RVA, the following symbol kinds have been observed to have code or be functions:

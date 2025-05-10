@@ -115,7 +115,23 @@ namespace PESpy.View.Builder
             else
             {
                 if (getRVA != null) //Known padding does not provide a getRVA
-                    viewDisassembler?.TryParseBytes(ref offset, getRVA(offset), ref bytes, rawBytesResults);
+                {
+                    //If all bytes are padding, don't ask to parse bytes
+
+                    var isPadding = true;
+
+                    for (var i = 0; i < bytes.Length; i++)
+                    {
+                        if (bytes[i] != 0)
+                        {
+                            isPadding = false;
+                            break;
+                        }
+                    }
+
+                    if (!isPadding)
+                        viewDisassembler?.TryParseBytes(ref offset, getRVA(offset), ref bytes, rawBytesResults);
+                }
             }
 
             if (bytes.Length >= StringParser.MinimumStringLength || rawBytesResults.Count > 0) //If we've already read some assembly code, force processing

@@ -19,24 +19,25 @@ namespace PESpy.View
     {
         public RawOffset Offset { get; }
         public string Name { get; }
-        public int Size { get; }
+        public int Size => range.Length;
         public ViewKind Kind { get; }
 
         public byte Bitness { get; }
 
         public int Count => Instructions.Length;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public T[] Instructions { get; }
+        private AsmRange<T> range;
 
-        public AsmView(RawOffset offset, string name, int size, byte bitness, T[] instructions, ViewKind kind = ViewKind.Assembly)
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Instructions => range.Instructions;
+
+        public AsmView(RawOffset offset, string name, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;
             Name = name;
-            Size = size;
             Kind = kind;
             Bitness = bitness;
-            Instructions = instructions;
+            this.range = range;
         }
 
         public TResult Accept<TResult>(ViewVisitor<TResult> visitor) => visitor.VisitAsm(this);

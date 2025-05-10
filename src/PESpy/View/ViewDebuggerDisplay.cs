@@ -15,7 +15,7 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(view.Name).Append(" (").Append(view.Count).Append(")");
+            builder.Append(view.Name ?? "Asm").Append(" (").Append(view.Count).Append(")");
 
             return builder.ToString();
         }
@@ -125,7 +125,7 @@ namespace PESpy.View
                 }
                 else if (view.Kind == ViewKind.Strings || view.Kind == ViewKind.StringPoolHeap)
                 {
-                    if (view.Children.All(v => v is IValueView || v is ByteBlobView { Kind: ViewKind.Padding} ))
+                    if (view.Children.All(v => v is IValueView || v is ByteBlobView { Kind: ViewKind.Padding } || v is ByteBlobView { Kind: ViewKind.CC }))
                         builder.Append(" (").Append(view.Children.OfType<IValueView>().Count()).Append(")");
                 }
                 else if (view.Kind == ViewKind.CompressedModelHeap || view.Kind == ViewKind.GuidPoolHeap)

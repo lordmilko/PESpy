@@ -2610,13 +2610,13 @@ namespace PESpy
                 throw new NotImplementedException();
             }
 
-            var writer = new PEViewWriter(this, pointer, length, null, mode);
+            var writer = new PEViewWriter(this, pointer, length, viewDisassembler, mode);
 
             return writer;
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile
-        private readonly IMemoryBlockProvider blockProvider;
+        internal readonly IMemoryBlockProvider blockProvider;
 
         //A special MemoryBlock containing the PE File header. We bypass the IMemoryBlockProvider
         //and create this directly since we need a special MemoryBlock implementation with special behaviors
@@ -2772,7 +2772,7 @@ namespace PESpy
         }
 
         //We do not lock on this field; if we match, we match
-        private ImageSectionHeader lastUsedSection;
+        private ImageSectionHeader? lastUsedSection;
 
         /// <summary>
         /// Tries to get the physical offset within the image of a specified relative virtual address.
@@ -2784,9 +2784,9 @@ namespace PESpy
         {
             //When we're reading data, we'll typically be seeking between data contained within the same section. As such, as an optimization
             //we can cache the last section we seeked to, and check whether that section contains our RVA
-            if (lastUsedSection.VirtualAddress != 0)
+            if (lastUsedSection != null && lastUsedSection.Value.VirtualAddress != 0)
             {
-                var local = lastUsedSection;
+                var local = lastUsedSection.Value;
 
                 var start = local.VirtualAddress;
                 var end = local.VirtualAddress + local.VirtualSize;

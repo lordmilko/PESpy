@@ -60,7 +60,7 @@ namespace PESpy.View
 
     public interface IViewDisassembler
     {
-        bool TryParseDosStub(ref int offset, ref Span<byte> bytes, List<IView> results);
+        void Initialize(PEFile peFile);
 
         bool TryParseDosStub(ref int offset, ref NativeSpan<byte> bytes, List<IView> results);
 
@@ -70,5 +70,7 @@ namespace PESpy.View
         //what the result value should then be reported as. e.g. if offset is 0x1000 and RVA is 0x2000, lookup
         //the function at 0x2000 and report that it existed at 0x1000
         bool TryParseBytes(ref int offset, int rva, ref NativeSpan<byte> bytes, List<IView> results);
+
+        T[] Disassemble<T>(in AsmRange<T> range, int instructionCount);
     }
 }

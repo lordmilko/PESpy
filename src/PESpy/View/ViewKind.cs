@@ -42,6 +42,12 @@ namespace PESpy.View
         Padding,
 
         /// <summary>
+        /// A <see cref="ByteBlob"/> whose bytes are all <see langword="0xCC" />, indicating
+        /// that the bytes are merely used for padding.
+        /// </summary>
+        CC,
+
+        /// <summary>
         /// A named <see cref="IFieldView"/> contained in a <see cref="StructView"/>.
         /// </summary>
         Field,

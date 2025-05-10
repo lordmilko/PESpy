@@ -148,6 +148,9 @@ namespace PESpy
 
         private static bool LocateInternal(string exeOrDbgPath, SearchFlags flags, string? searchPath, out Artifacts result)
         {
+            if (exeOrDbgPath == null)
+                throw new ArgumentNullException(nameof(exeOrDbgPath));
+
             var state = State.None;
 
             var ctx = new LocatorContext
@@ -191,6 +194,8 @@ namespace PESpy
                                         return false;
                                 }
                             }
+                            else
+                                run = false;
                             break;
 
                         case State.ReadDebugTable:
