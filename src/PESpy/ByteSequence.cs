@@ -202,7 +202,7 @@ namespace PESpy
         /// <param name="index">The index of the byte to compare against.</param>
         /// <param name="value">The value to be compared against (after applying the relevant mask for the specified <paramref name="index"/>).</param>
         /// <returns>True if there is a match, otherwise false.</returns>
-        public bool HasByte(int index, int value)
+        public bool HasByte(int index, byte value)
         {
             if (index >= Bytes.Length)
                 return false;
@@ -217,7 +217,7 @@ namespace PESpy
             return theirValue == ourValue;
         }
 
-        public bool IsMatch(byte[] bytes)
+        public bool IsMatch(Span<byte> bytes)
         {
             if (bytes.Length != Bytes.Length)
                 return false;

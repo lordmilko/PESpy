@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if FALSE //This allocates way too much memory, regardless of whether we use a dictionary or an array at each level. Furthermore, we allocate 17,000 node objects just for the 8 patterns we want to match against
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -34,7 +35,9 @@ namespace PESpy
         /// </summary>
         public List<ByteSequence> Complete { get; } = new List<ByteSequence>();
 
-        public ByteSequenceTreeNode?[] ChildNodes { get; } = new ByteSequenceTreeNode[LevelWidth];
+        //Using array with all 256 bytes at each level results in an explosion of memory (40mb). Using a dictionary instead is still pretty bad: 13mb.
+        //The crux of the issue is we have a combinatoric explosion and possibilities, and get a tree with over 17,000 nodes in it
+        public Dictionary<byte, ByteSequenceTreeNode?>? ChildNodes { get; private set; }
 
         public int Depth { get; }
 
@@ -49,7 +52,15 @@ namespace PESpy
             MatchedByte = matchedByte;
         }
 
-        public ByteSequenceTreeNode? this[byte index] => ChildNodes[index];
+        public ByteSequenceTreeNode? this[byte index]
+        {
+            get
+            {
+                ByteSequenceTreeNode? value = null;
+                ChildNodes?.TryGetValue(index, out value);
+                return value;
+            }
+        }
 
         public static ByteSequenceTreeNode BuildTree(params ByteSequence[] patterns)
         {
@@ -89,7 +100,7 @@ namespace PESpy
 
                         foreach (var candidate in item.Candidates)
                         {
-                            if (candidate.HasByte(byteDepth, i))
+                            if (candidate.HasByte(byteDepth, (byte) i))
                             {
                                 //We need to be considered on this level!
 
@@ -100,7 +111,10 @@ namespace PESpy
                             }
                         }
 
-                        item.ChildNodes[i] = nextLevel;
+                        if (item.ChildNodes == null)
+                            item.ChildNodes = new Dictionary<byte, ByteSequenceTreeNode?>();
+
+                        item.ChildNodes[(byte) i] = nextLevel;
 
                         if (nextLevel != null)
                             nextLevels.Add(nextLevel);
@@ -230,3 +244,4 @@ namespace PESpy
         }
     }
 }
+#endif
