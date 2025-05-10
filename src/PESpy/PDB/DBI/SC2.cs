@@ -22,7 +22,7 @@ namespace PESpy.PDB
         //SC2
         public int isectCoff;
 
-        internal new const int StructSize =
+        internal const int StructSize =
             sizeof(ushort) + //isect
             sizeof(ushort) + //padding1
             sizeof(int) + //off

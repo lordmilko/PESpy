@@ -24,6 +24,7 @@ namespace PESpy
             RemoteStartOffset = rva;
             endRva = rva + size;
             this.reader = reader;
+            hasReadAllPages = false;
 
             //Ceiling division
             var numPages = (size + PageSize - 1) / PageSize;

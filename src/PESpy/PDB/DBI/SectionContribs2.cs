@@ -11,14 +11,14 @@ namespace PESpy.PDB
 
         public int Length => Entries.Length;
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private readonly int numElems;
 
         internal SectionContribs2(in MemoryChunk chunk, int size)
         {
-            Offset = chunk.AbsoluteOffset;
+            this.chunk = chunk;
             numElems = size / SC2.StructSize;
         }
 

@@ -27,8 +27,6 @@ namespace PESpy.PDB
 
                 if (GsiHdr.verSignature == GSIHashHdr.hdrSignature && GsiHdr.verHdr == GSIHashSCImpv.GSIHashSCImpvV70)
                 {
-                    var read = GSIHashHdr.StructSize;
-
                     //microsoft-pdb does does some dodgy stuff loading the HRFile records into an array of HR records,
                     //and then I think it fixes things up, since the layout of HR is not the same as HRFile
 

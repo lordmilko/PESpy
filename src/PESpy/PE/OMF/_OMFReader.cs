@@ -312,22 +312,22 @@ namespace PESpy
 
                         throw new NotImplementedException("Need to register symbol memory with symbol tracker. Needs to work for global, local and remote memory blocks");
 
-                        var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
+                        //var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
 
-                        switch (signature)
-                        {
-                            case CV_SIGNATURE.C7:
-                            case CV_SIGNATURE.C11:
-                                SymbolMemoryTracker.RegisterCVSymbolMemory(signature, symbolsChunk);
-                                tableData[i] = new PDBModuleSymbols(symbolsChunk, signature, new SymTypeList(symbolsChunk.Pointer + 4, entry.cb - 4));
-                                break;
+                        //switch (signature)
+                        //{
+                        //    case CV_SIGNATURE.C7:
+                        //    case CV_SIGNATURE.C11:
+                        //        SymbolMemoryTracker.RegisterCVSymbolMemory(signature, symbolsChunk);
+                        //        tableData[i] = new PDBModuleSymbols(symbolsChunk, signature, new SymTypeList(symbolsChunk.Pointer + 4, entry.cb - 4));
+                        //        break;
 
-                            case CV_SIGNATURE.C13:
-                            default:
-                                throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
-                        }
+                        //    case CV_SIGNATURE.C13:
+                        //    default:
+                        //        throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
+                        //}
 
-                        break;
+                        //break;
                     }
 
                     case SST.sstSrcLnSeg:

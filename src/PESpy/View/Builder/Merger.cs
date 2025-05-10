@@ -118,7 +118,6 @@ namespace PESpy.View.Builder
         {
             if (nextStructIndex < sortedStructs.Count && (nextValue = sortedStructs[nextStructIndex]).Offset < currentEnd)
             {
-#if DEBUG
                 if (rva > nextValue.Offset)
                 {
                     //Multiple RuntimeFunction entries may point to the same UnwindCode
@@ -135,7 +134,6 @@ namespace PESpy.View.Builder
 
                     Debug.Assert(rva <= nextValue.Offset);
                 }
-#endif
 
                 if (nextValue.Offset == rva)
                 {

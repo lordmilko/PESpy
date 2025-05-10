@@ -18,7 +18,7 @@ namespace PESpy.PDB
         public uint dwDataCrc;
         public uint dwRelocCrc;
 
-        internal new const int StructSize =
+        internal const int StructSize =
             sizeof(ushort) + //isect
             sizeof(ushort) + //padding1
             sizeof(int) + //off

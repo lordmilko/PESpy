@@ -5,6 +5,9 @@
     <!--<BaseOutputPath>$(MSBuildThisFileDirectory)..\artifacts\$(MSBuildProjectName)\bin\</BaseOutputPath>-->
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\artifacts\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
 
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+
     <DefineConstants>$(DefineConstants);PEFAST</DefineConstants>
     <DefineConstants>$(DefineConstants);NEW_PDB</DefineConstants>
   </PropertyGroup>

@@ -11,8 +11,6 @@ namespace PESpy.PDB
         /// </summary>
         public uint pmod => chunk.PeekUInt32(0);
 
-        private SC40? scField;
-
         /// <summary>
         /// this module's first section contribution
         /// </summary>

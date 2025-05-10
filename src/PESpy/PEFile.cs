@@ -1322,6 +1322,7 @@ namespace PESpy
             get
             {
                 importAddressTable = null;
+                Debug.Assert(importAddressTable == null); //Dummy use
                 throw new NotImplementedException();
             }
         }
@@ -2314,6 +2315,7 @@ namespace PESpy
             get
             {
                 appHostSignature = null;
+                Debug.Assert(appHostSignature == null); //Dummy use
                 throw new NotImplementedException();
             }
         }
