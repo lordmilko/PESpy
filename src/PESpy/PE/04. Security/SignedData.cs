@@ -32,7 +32,7 @@ namespace PESpy
 
 #if PEFAST
                 if (certificate == null)
-                    certificate = new X509Certificate2(Bytes.ToArray());
+                    certificate = new X509Certificate2(Bytes.ToArray()); //There is a ctor that takes a span but it's only available in .NET 5+
 #else
                 if (certificate == null)
                     certificate = new X509Certificate2(Bytes);

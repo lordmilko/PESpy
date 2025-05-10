@@ -8,16 +8,16 @@ namespace PESpy.OBJ
     {
         public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
 
-        private TypType[]? types;
+        private TypTypeList? types;
 
-        public unsafe TypType[] Types
+        public unsafe TypTypeList Types
         {
             get
             {
                 if (types == null)
                 {
                     SymbolMemoryTracker.RegisterCVSymbolMemory(Signature, chunk);
-                    types = MsfStream.TPI.ReadTypes(chunk.Pointer + 4, length - 4);
+                    types = new TypTypeList(chunk.Pointer + 4, length - 4);
                 }
 
                 return types;

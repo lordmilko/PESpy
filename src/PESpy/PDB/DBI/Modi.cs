@@ -85,7 +85,7 @@ namespace PESpy.PDB
                     var ptr = symbolsChunk.Pointer;
                     Debug.Assert(symbolsChunk.RelativeOffset == 0);
 
-                    var results = MsfStream.DBI.ReadSymbols(ptr + 4, modi.cbSyms - 4);
+                    var results = new SymTypeList(ptr + 4, modi.cbSyms - 4);
 
                     field = new PDBModuleSymbols(symbolsChunk, signature, results);
                 }

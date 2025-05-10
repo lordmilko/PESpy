@@ -1,5 +1,4 @@
 ﻿using System;
-using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -12,9 +11,9 @@ namespace PESpy.PDB
 
             public ref readonly GSIHashHdr GsiHdr => ref gsiHdr;
 
-            public HRFile[] HashRecords { get; }
+            public NativeSpan<HRFile> HashRecords => chunk.PeekNativeSpan<HRFile>(GSIHashHdr.StructSize, gsiHdr.cbHr / HRFile.StructSize);
 
-            public SymType[] Symbols { get; }
+            public GlobalSymTypeList Symbols { get; }
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -45,18 +44,7 @@ namespace PESpy.PDB
 
                     var symbolsStart = symbolChunk.Pointer;
 
-                    for (var i = 0; i < numItems; i++)
-                    {
-                        var hrFile = new HRFile(chunk.Slice(read));
-                        hashRecords[i] = hrFile;
-                        read += HRFile.StructSize;
-
-                        //The target of the symbol can be retrieved by adding the HRFile.off - 1 to the snSymRecs stream
-                        symbols[i] = (SYMTYPE*)(symbolsStart + hrFile.off - 1);
-                    }
-
-                    HashRecords = hashRecords;
-                    Symbols = symbols;
+                    Symbols = new GlobalSymTypeList(HashRecords, symbolsStart);
 
                     if (gsiHdr.cbBuckets > 0)
                     {

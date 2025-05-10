@@ -10,7 +10,7 @@ namespace PESpy.PDB
         {
             public IHDR Hdr { get; } //We have to use interfaces because there's just way too much variability as to when different structures may appear
 
-            public TypType[] Types { get; }
+            public TypTypeList Types { get; }
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -39,29 +39,7 @@ namespace PESpy.PDB
 
                 SymbolMemoryTracker.RegisterPDBSymbolMemory(chunk);
 
-                Types = ReadTypes(ptr, Hdr.cbGprec);
-            }
-
-            internal static unsafe TypType[] ReadTypes(byte* ptr, int length)
-            {
-                var end = ptr + length;
-                var results = new List<TypType>();
-
-                while (ptr < end)
-                {
-                    TypType typType = (TYPTYPE*) ptr;
-
-#if DEBUG
-                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                    TypTypeProxy.GetValue(typType);
-#endif
-
-                    results.Add(typType);
-
-                    ptr += typType.len + 2;
-                }
-
-                return results.ToArray();
+                Types = new TypTypeList(ptr, Hdr.cbGprec);
             }
 
             void IViewable.WriteView(ViewWriter writer)

@@ -151,7 +151,7 @@ namespace PESpy.View
             }
         }
 
-        public void WriteGlobal(int offset, SymType[] value)
+        public void WriteGlobal(int offset, SymTypeList value)
         {
             foreach (var item in value)
             {
@@ -171,7 +171,7 @@ namespace PESpy.View
             return new PageWriter(viewOffset - block.RemoteStartOffset, block, this, global, shouldAdd);
         }
 
-        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymType[] value)
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
@@ -179,7 +179,7 @@ namespace PESpy.View
                 p.WriteValue(item, item.reclen + 2, ViewKind.SymType);
         }
 
-        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypType[] value)
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypTypeList value)
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
@@ -195,7 +195,7 @@ namespace PESpy.View
                 p.WriteValue(item, sizeof(int), ViewKind.Value);
         }
 
-        public void WriteGlobal(RawOffset offset, TypType[] value)
+        public void WriteGlobal(RawOffset offset, TypTypeList value)
         {
             var written = 0;
 

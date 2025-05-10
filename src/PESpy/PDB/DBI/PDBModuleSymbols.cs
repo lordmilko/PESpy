@@ -10,7 +10,7 @@ namespace PESpy.PDB
         public CV_SIGNATURE Signature { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public SymType[] Symbols { get; }
+        public SymTypeList Symbols { get; }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -18,7 +18,7 @@ namespace PESpy.PDB
 
         public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*)(chunk.Pointer + offset);
 
-        internal PDBModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymType[] symbols)
+        internal PDBModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymTypeList symbols)
         {
             this.chunk = chunk;
             Signature = signature;

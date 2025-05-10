@@ -76,7 +76,7 @@ namespace PESpy
              */
 
             StreamTable = new MsfHdr.StreamTable(
-                globalBlock.SlicePaged(msfHeader.StreamTablePageList, msfHeader.StreamTableSizeInfo.ByteCount),
+                globalBlock.SlicePaged(msfHeader.StreamTablePageList.ToArray(), msfHeader.StreamTableSizeInfo.ByteCount), //Need to ToArray, because the 16-bit header gets upsized to 32-bit PN values, which must be stored in an array
                 msfHeader.PageSize
             );
         }

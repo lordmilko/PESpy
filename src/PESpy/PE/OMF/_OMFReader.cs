@@ -319,7 +319,7 @@ namespace PESpy
                             case CV_SIGNATURE.C7:
                             case CV_SIGNATURE.C11:
                                 SymbolMemoryTracker.RegisterCVSymbolMemory(signature, symbolsChunk);
-                                tableData[i] = new PDBModuleSymbols(symbolsChunk, signature, MsfStream.DBI.ReadSymbols(symbolsChunk.Pointer + 4, entry.cb - 4));
+                                tableData[i] = new PDBModuleSymbols(symbolsChunk, signature, new SymTypeList(symbolsChunk.Pointer + 4, entry.cb - 4));
                                 break;
 
                             case CV_SIGNATURE.C13:
@@ -372,7 +372,7 @@ namespace PESpy
                         //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11 
                         SymbolMemoryTracker.RegisterCVSymbolMemory(CV_SIGNATURE.C11, valueChunk);
 
-                        var symbols = MsfStream.DBI.ReadSymbols(valueChunk.Pointer + OMFSymHash.StructSize, hash.cbSymbol);
+                        var symbols = new SymTypeList(valueChunk.Pointer + OMFSymHash.StructSize, hash.cbSymbol);
 
                         //Following this, are the symbol hash and address hash tables. These seem kind of complicated (see cvdump.cpp) so for now we don't include these
                         break;

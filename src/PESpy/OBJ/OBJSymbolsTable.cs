@@ -9,10 +9,10 @@ namespace PESpy.OBJ
     {
         public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
 
-        public SymType[]? c7Symbols;
+        public SymTypeList? c7Symbols;
 
         //C7 or C11
-        public unsafe SymType[]? C7Symbols
+        public unsafe SymTypeList? C7Symbols
         {
             get
             {
@@ -22,7 +22,7 @@ namespace PESpy.OBJ
                 {
                     //C7 and C11 use ST strings
                     SymbolMemoryTracker.RegisterCVSymbolMemory(sig, chunk);
-                    c7Symbols = MsfStream.DBI.ReadSymbols(chunk.Pointer + 4, length - 4);
+                    c7Symbols = new SymTypeList(chunk.Pointer + 4, length - 4);
                 }
 
                 return c7Symbols;

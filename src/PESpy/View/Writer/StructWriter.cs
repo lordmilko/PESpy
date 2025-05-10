@@ -557,7 +557,7 @@ namespace PESpy.View
              * in the output, however the array itself may have spanned multiple pages. We will therefore do the math in figuring out which page each value starts in.
              * In the case where a given value extends past the end of a given page, this is OK: during merging we will detect this and convert the value into a split value */
 
-            public void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymType[] value)
+            public void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
             {
                 using var p = viewWriter.CreatePagedWriter(startRelativeOffset, block, false);
 
@@ -568,7 +568,7 @@ namespace PESpy.View
             #endregion
 
             //Should only be used for OBJ files
-            public void WriteValue(int offset, SymType[] value)
+            public void WriteValue(int offset, SymTypeList value)
             {
                 var written = 0;
 

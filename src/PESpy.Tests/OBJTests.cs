@@ -609,7 +609,7 @@ namespace PESpy.Tests
 
             var types = typeTable.Types;
 
-            Assert.AreEqual("C:\\TestApp\\vc140.pdb", types[0].ToString());
+            Assert.AreEqual("C:\\TestApp\\vc140.pdb", types.First().ToString());
         }
 
         [TestMethod]
@@ -624,7 +624,7 @@ namespace PESpy.Tests
 
             var symbols = symbolTable.C7Symbols;
 
-            Assert.AreEqual("Debug/main.obj", symbols[0].ToString());
+            Assert.AreEqual("Debug/main.obj", symbols.First().ToString());
         }
 
         [TestMethod]
@@ -639,7 +639,7 @@ namespace PESpy.Tests
 
             var types = typeTable.Types;
 
-            Assert.AreEqual("c:\\program files (x86)\\devstudio\\myprojects\\testapp\\debug\\vc50.pdb", types[0].ToString());
+            Assert.AreEqual("c:\\program files (x86)\\devstudio\\myprojects\\testapp\\debug\\vc50.pdb", types.First().ToString());
         }
 
         private void TestObj(

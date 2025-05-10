@@ -296,9 +296,9 @@ namespace PESpy.PDB
             #endregion
             #region Symbols
 
-            private SymType[]? symbols;
+            private SymTypeList? symbols;
 
-            public unsafe SymType[]? Symbols
+            public unsafe SymTypeList? Symbols
             {
                 get
                 {
@@ -310,7 +310,7 @@ namespace PESpy.PDB
                         {
                             SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk);
                             Debug.Assert(symRecChunk.RelativeOffset == 0);
-                            symbols = ReadSymbols(symRecChunk.Pointer, symRecChunk.Remaining);
+                            symbols = new SymTypeList(symRecChunk.Pointer, symRecChunk.Remaining);
                         }
                     }
 
@@ -367,31 +367,6 @@ namespace PESpy.PDB
                 _ = DbgHdr;
                 _ = Symbols;
 #endif
-            }
-
-            internal static unsafe SymType[] ReadSymbols(byte* ptr, int length)
-            {
-                var end = ptr + length;
-
-                var results = new List<SymType>();
-
-                while (ptr < end)
-                {
-                    SymType symType = (SYMTYPE*) ptr;
-
-#if DEBUG
-                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                    SymTypeProxy.GetValue(symType);
-#endif
-
-                    results.Add(symType);
-
-                    ptr += symType.reclen + 2;
-                }
-
-                Debug.Assert(ptr == end);
-
-                return results.ToArray();
             }
 
             void IViewable.WriteView(ViewWriter writer)

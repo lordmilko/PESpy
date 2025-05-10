@@ -38,7 +38,7 @@ namespace PESpy.PDB
                                 SymbolMemoryTracker.RegisterCVSymbolMemory(CV_SIGNATURE.C13, dataChunk); //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
                             }
 
-                            data = MsfStream.DBI.ReadSymbols(dataChunk.Pointer, Length);
+                            data = new SymTypeList(dataChunk.Pointer, Length);
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
@@ -141,9 +141,9 @@ namespace PESpy.PDB
             {
                 case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
                     if (chunk.block is PagedMemoryBlock p)
-                        s.WritePagedValue(chunk.RelativeOffset + 8, p, (SymType[]) Data);
+                        s.WritePagedValue(chunk.RelativeOffset + 8, p, (SymTypeList) Data);
                     else
-                        s.WriteValue(Offset + 8, (SymType[]) Data);
+                        s.WriteValue(Offset + 8, (SymTypeList) Data);
                     break;
 
                 case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
