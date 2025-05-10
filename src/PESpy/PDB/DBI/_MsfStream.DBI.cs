@@ -95,13 +95,13 @@ namespace PESpy.PDB
                         {
                             var size = DbiHdr.cbSC - 4; //Skip over the version field
 
-                            sectionContribs = new SectionContribsV60(dataChunk.Slice(4), version, size);
+                            sectionContribs = new SectionContribsV60(dataChunk, size);
                         }
                         else if (version == DBISCImpv.DBISCImpv2)
                         {
                             var size = DbiHdr.cbSC - 4; //Skip over the version field
 
-                            sectionContribs = new SectionContribs2(dataChunk.Slice(4), version, size);
+                            sectionContribs = new SectionContribs2(dataChunk, size);
                         }
                         else
                         {

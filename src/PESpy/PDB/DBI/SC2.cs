@@ -1,9 +1,26 @@
-﻿namespace PESpy.PDB
+﻿using ClrDebug;
+using PESpy.View;
+
+namespace PESpy.PDB
 {
     //DBISCImpv2 seems to be used when we have a Mini PDB (/DEBUG:FASTLINK)
-    public class SC2 : SC
+    public struct SC2 : ISC40, IViewable
     {
-        public int isectCoff => chunk.PeekInt32(28);
+        //SC40
+        public ISECT isect;
+        public ushort padding1;
+        public int off;
+        public int cb;
+        public IMAGE_SCN dwCharacteristics;
+        public IMOD imod; //I believe this value is 0 based
+        public ushort padding2;
+
+        //SC
+        public uint dwDataCrc;
+        public uint dwRelocCrc;
+
+        //SC2
+        public int isectCoff;
 
         internal new const int StructSize =
             sizeof(ushort) + //isect
@@ -17,8 +34,42 @@
             sizeof(int) + //dwRelocCrc
             sizeof(int); //isectCoff
 
-        internal SC2(in MemoryChunk chunk) : base(chunk)
+        public static unsafe implicit operator SC40(SC2 value) => *(SC40*) &value;
+        public static unsafe implicit operator SC(SC2 value) => *(SC*) &value;
+
+        void IViewable.WriteView(ViewWriter writer)
         {
+            using var s = writer.CreateUnmanagedStruct(nameof(SC2), ViewKind.SC2);
+
+            //SC40
+            s.WriteField(nameof(isect), isect);
+            s.WriteField(nameof(padding1), padding1);
+            s.WriteField(nameof(off), off);
+            s.WriteField(nameof(cb), cb);
+            s.WriteField(nameof(dwCharacteristics), dwCharacteristics, sizeof(int));
+            s.WriteField(nameof(imod), imod);
+            s.WriteField(nameof(padding2), padding2);
+
+            //SC
+            s.WriteField(nameof(dwDataCrc), dwDataCrc);
+            s.WriteField(nameof(dwRelocCrc), dwRelocCrc);
+
+            //SC2
+            s.WriteField(nameof(isectCoff), isectCoff);
         }
+
+        #region ISC40
+
+        ISECT ISC40.isect => isect;
+
+        int ISC40.off => off;
+
+        int ISC40.cb => cb;
+
+        IMAGE_SCN ISC40.dwCharacteristics => dwCharacteristics;
+
+        IMOD ISC40.imod => imod;
+
+        #endregion
     }
 }

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using PESpy.PDB;
 using PESpy.View.Builder;
+using DirectoryInfo = PESpy.View.Builder.DirectoryInfo;
 
 namespace PESpy.View
 {
@@ -90,7 +92,7 @@ namespace PESpy.View
                     foreach (var module in pdbFile.DBI.Modules)
                     {
                         if (module.sn != SN.Nil)
-                            streamIndexToNameMap.Add(module.sn, "Module Symbol Records"); //todo: should we include the module (filename) in the name?
+                            streamIndexToNameMap.Add(module.sn, $"Symbols $ {Path.GetFileName(module.ToString())}"); 
                     }
                 }
 

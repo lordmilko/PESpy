@@ -38,6 +38,8 @@ namespace PESpy.View
         private TryGetOffsetDelegate tryGetViewOffset;
         private Func<int, int>? getRealOffset;
 
+        internal int UnmanagedOffset;
+
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
 
         internal ViewTag CurrentTag => currentTag;
@@ -282,6 +284,14 @@ namespace PESpy.View
         {
             var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
             
+            return new StructWriter(name, viewOffset, kind, this, shouldAdd);
+        }
+
+        internal StructWriter CreateUnmanagedStruct(string name, ViewKind kind)
+        {
+            Debug.Assert(UnmanagedOffset != 0);
+            var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
+
             return new StructWriter(name, viewOffset, kind, this, shouldAdd);
         }
 

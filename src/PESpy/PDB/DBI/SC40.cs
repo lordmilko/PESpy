@@ -4,25 +4,18 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
+    //There's quite a lot of section contribs in each PDB, so this is a raw struct so that we can just peek it with NativeSpan
     [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, imod = {imod}")]
-    public class SC40 : IValue, IViewable
+    public struct SC40 : ISC40, IViewable
     {
-        public ISECT isect => chunk.PeekUInt16(0);
-
-        public ushort padding1 => chunk.PeekUInt16(2);
-
-        public int off => chunk.PeekInt32(4);
-
-        public int cb => chunk.PeekInt32(8);
-
-        public IMAGE_SCN dwCharacteristics => (IMAGE_SCN) chunk.PeekUInt32(12);
-
-        //I believe this value is 0 based
-        public IMOD imod => chunk.PeekUInt16(16);
-
-        public ushort padding2 => chunk.PeekUInt16(18);
-
-        public int Offset => chunk.AbsoluteOffset;
+        //SC40
+        public ISECT isect;
+        public ushort padding1;
+        public int off;
+        public int cb;
+        public IMAGE_SCN dwCharacteristics;
+        public IMOD imod; //I believe this value is 0 based
+        public ushort padding2;
 
         internal const int StructSize =
             sizeof(ushort) + //isect
@@ -33,18 +26,9 @@ namespace PESpy.PDB
             sizeof(ushort) + //imod
             sizeof(ushort); //padding2
 
-        internal readonly MemoryChunk chunk;
-
-        internal SC40(in MemoryChunk chunk)
+        void IViewable.WriteView(ViewWriter writer)
         {
-            this.chunk = chunk;
-        }
-
-        void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
-
-        protected virtual void WriteView(ViewWriter writer)
-        {
-            using var s = writer.CreateStruct(nameof(SC40), this, ViewKind.SC);
+            using var s = writer.CreateUnmanagedStruct(nameof(SC40), ViewKind.SC40);
 
             s.WriteField(nameof(isect), isect);
             s.WriteField(nameof(padding1), padding1);
@@ -54,5 +38,19 @@ namespace PESpy.PDB
             s.WriteField(nameof(imod), imod);
             s.WriteField(nameof(padding2), padding2);
         }
+
+        #region ISC40
+
+        ISECT ISC40.isect => isect;
+
+        int ISC40.off => off;
+
+        int ISC40.cb => cb;
+
+        IMAGE_SCN ISC40.dwCharacteristics => dwCharacteristics;
+
+        IMOD ISC40.imod => imod;
+
+        #endregion
     }
 }

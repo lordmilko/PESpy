@@ -5,30 +5,29 @@ namespace PESpy.PDB
     //This type is made up and merely encapsulates the SC40 entries
     public class SectionContribsV40 : ISectionContribs, IValue, IViewable
     {
-        public SC40[] Entries { get; }
+        public NativeSpan<SC40> Entries => chunk.PeekNativeSpan<SC40>(0, numElems);
 
         public int Length => Entries.Length;
 
         public int Offset { get; }
 
+        private readonly MemoryChunk chunk;
+        private readonly int numElems;
+
         internal SectionContribsV40(in MemoryChunk chunk, int size)
         {
-            Offset = chunk.AbsoluteOffset;
-
-            var entries = new SC40[size / SC40.StructSize];
-
-            for (var i = 0; i < entries.Length; i++)
-                entries[i] = new SC40(chunk.Slice(i * SC40.StructSize));
-
-            Entries = entries;
+            this.chunk = chunk;
+            numElems = size / SC40.StructSize;
         }
 
         public SC40 this[int index] => Entries[index];
 
         public bool TryGetSection(int seg, int off, out SC40 sc) => TryGetSection(Entries, seg, off, out sc);
 
-        internal static bool TryGetSection<T>(T[] entries, int seg, int off, out SC40 match) where T : SC40
+        internal static bool TryGetSection<T>(NativeSpan<T> entries, int seg, int off, out T match) where T : unmanaged, ISC40
         {
+            //Binary search section contribs to find a contrib that matches the given section index and contains the given offset
+
             int low = 0;
             int high = entries.Length - 1;
 

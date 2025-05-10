@@ -22,7 +22,7 @@ namespace PESpy.PDB
         /// <summary>
         /// this module's first section contribution
         /// </summary>
-        public SC sc => new SC(chunk.Slice(4));
+        public SC sc => chunk.PeekUnmanaged<SC>(4);
 
         public Modi60Flags flags => chunk.PeekUInt16(4 + SC.StructSize);
 

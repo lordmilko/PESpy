@@ -416,7 +416,11 @@ namespace PESpy.View
                 var startIndex = fields.Count;
 
                 viewWriter.Push(fields);
+
+                var oldOffset = viewWriter.UnmanagedOffset;
+                viewWriter.UnmanagedOffset = currentOffset;
                 value.WriteView(viewWriter);
+                viewWriter.UnmanagedOffset = oldOffset;
 
                 for (var i = startIndex; i < fields.Count; i++)
                     currentOffset += fields[i].Size;
@@ -430,11 +434,36 @@ namespace PESpy.View
 
                 viewWriter.Push(fields);
 
-                for (var i = 0; i < value.Length; i++)
-                    value[i].WriteView(viewWriter);
+                var oldOffset = viewWriter.UnmanagedOffset;
 
-                for (var i = startIndex; i < fields.Count; i++)
-                    currentOffset += fields[i].Size;
+                for (var i = 0; i < value.Length; i++)
+                {
+                    viewWriter.UnmanagedOffset = currentOffset;
+                    value[i].WriteView(viewWriter);
+                    currentOffset += fields[startIndex + i].Size;
+                }
+
+                viewWriter.UnmanagedOffset = oldOffset;
+
+                viewWriter.Pop();
+            }
+
+            public void WriteInline<T>(NativeSpan<T> value) where T : unmanaged, IViewable
+            {
+                var startIndex = fields.Count;
+
+                viewWriter.Push(fields);
+
+                var oldOffset = viewWriter.UnmanagedOffset;
+
+                for (var i = 0; i < value.Length; i++)
+                {
+                    viewWriter.UnmanagedOffset = currentOffset;
+                    value[i].WriteView(viewWriter);
+                    currentOffset += fields[startIndex + i].Size;
+                }
+
+                viewWriter.UnmanagedOffset = oldOffset;
 
                 viewWriter.Pop();
             }

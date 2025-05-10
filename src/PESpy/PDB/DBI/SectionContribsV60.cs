@@ -12,34 +12,36 @@ namespace PESpy.PDB
     /// </summary>
     public class SectionContribsV60 : ISectionContribs, IValue, IViewable //Class as it may not be present
     {
-        public DBISCImpv Version { get; }
+        public DBISCImpv Version => (DBISCImpv) chunk.PeekUInt32(0);
 
-        public SC[] Entries { get; }
+        public NativeSpan<SC> Entries => chunk.PeekNativeSpan<SC>(4, numElems);
 
         public int Length => Entries.Length;
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-        internal SectionContribsV60(in MemoryChunk chunk, DBISCImpv version, int size)
+        private readonly MemoryChunk chunk;
+        private readonly int numElems;
+
+        internal SectionContribsV60(in MemoryChunk chunk, int size)
         {
-            Offset = chunk.AbsoluteOffset - 4;
-            Version = version;
-
-            var entries = new SC[size / SC.StructSize];
-
-            var scChunk = chunk;
-
-            for (var i = 0; i < entries.Length; i++)
-            {
-                entries[i] = new SC(scChunk.Slice(i * SC.StructSize));
-            }
-
-            Entries = entries;
+            this.chunk = chunk;
+            numElems = size / SC.StructSize;
         }
 
         public SC40 this[int index] => Entries[index];
 
-        public bool TryGetSection(int seg, int off, out SC40 sc) => SectionContribsV40.TryGetSection(Entries, seg, off, out sc);
+        public bool TryGetSection(int seg, int off, out SC40 sc)
+        {
+            if (SectionContribsV40.TryGetSection(Entries, seg, off, out var raw))
+            {
+                sc = raw;
+                return true;
+            }
+
+            sc = default;
+            return false;
+        }
 
         void IViewable.WriteView(ViewWriter writer)
         {

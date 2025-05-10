@@ -16,16 +16,7 @@ namespace PESpy.PDB
         /// <summary>
         /// this module's first section contribution
         /// </summary>
-        public SC40 sc
-        {
-            get
-            {
-                if (scField == null)
-                    scField = new SC40(chunk.Slice(4));
-
-                return scField;
-            }
-        }
+        public SC40 sc => chunk.PeekUnmanaged<SC40>(4);
 
         public ModiFlags flags => chunk.PeekUInt16(4 + SC40.StructSize);
 

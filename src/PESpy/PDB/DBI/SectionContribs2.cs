@@ -5,34 +5,36 @@ namespace PESpy.PDB
 {
     public class SectionContribs2 : ISectionContribs
     {
-        public DBISCImpv Version { get; }
+        public DBISCImpv Version => (DBISCImpv) chunk.PeekUInt32(0);
 
-        public SC2[] Entries { get; }
+        public NativeSpan<SC2> Entries => chunk.PeekNativeSpan<SC2>(4, numElems);
 
         public int Length => Entries.Length;
 
         public int Offset { get; }
 
-        internal SectionContribs2(in MemoryChunk chunk, DBISCImpv version, int size)
+        private readonly MemoryChunk chunk;
+        private readonly int numElems;
+
+        internal SectionContribs2(in MemoryChunk chunk, int size)
         {
-            Offset = chunk.AbsoluteOffset - 4;
-            Version = version;
-
-            var entries = new SC2[size / SC2.StructSize];
-
-            var scChunk = chunk;
-
-            for (var i = 0; i < entries.Length; i++)
-            {
-                entries[i] = new SC2(scChunk.Slice(i * SC2.StructSize));
-            }
-
-            Entries = entries;
+            Offset = chunk.AbsoluteOffset;
+            numElems = size / SC2.StructSize;
         }
 
         public SC40 this[int index] => Entries[index];
 
-        public bool TryGetSection(int seg, int off, out SC40 sc) => SectionContribsV40.TryGetSection(Entries, seg, off, out sc);
+        public bool TryGetSection(int seg, int off, out SC40 sc)
+        {
+            if (SectionContribsV40.TryGetSection(Entries, seg, off, out var raw))
+            {
+                sc = raw;
+                return true;
+            }
+
+            sc = default;
+            return false;
+        }
 
         void IViewable.WriteView(ViewWriter writer)
         {
