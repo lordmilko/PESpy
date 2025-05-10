@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Text;
 
 namespace PESpy.View
@@ -25,12 +26,15 @@ namespace PESpy.View
 
         public bool HasInstructions => instructionCount != 0;
 
+        //Gets the RVA of the start of the function that owns this range
+        public readonly int FunctionRVA;
+
         public readonly int StartRVA;
         public int EndRVA => StartRVA + Length;
 
         public readonly int StartOffset;
         public int EndOffset;
-        public string? Name;
+        public string Name;
 
         public int Length => EndOffset - StartOffset;
 
@@ -67,10 +71,14 @@ namespace PESpy.View
         private readonly ViewDisassembler<T> viewDisassembler;
         internal int instructionCount;
 
-        public AsmRange(int startOffset, int startRVA, ViewDisassembler<T> viewDisassembler, string? name)
+        public AsmRange(int startOffset, int startRVA, int functionRVA, ViewDisassembler<T> viewDisassembler, string name)
         {
+            if (name == null)
+                throw new ArgumentNullException(nameof(name));
+
             StartOffset = startOffset;
             StartRVA = startRVA;
+            FunctionRVA = functionRVA;
             EndOffset = startOffset;
             this.viewDisassembler = viewDisassembler;
             instructionCount = 0;

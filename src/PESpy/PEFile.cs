@@ -1780,6 +1780,8 @@ namespace PESpy
             {
                 if (ilMethods == null)
                 {
+                    //For some reason referencing MethodDefTable causes a type load exception to occur in the JIT. I think it's because ClassLoader::LoadTypeHandlerForTypeKey_Body
+                    //gets upset that we're doing a recursive type load, because the row and table types reference each other
                     var methodDefs = EcmaMetadata?.CompressedModelHeap?.MethodDefTable;
 
                     if (methodDefs == null)

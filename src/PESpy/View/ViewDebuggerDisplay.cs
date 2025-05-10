@@ -15,7 +15,9 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(view.Name ?? "Asm").Append(" (").Append(view.Count).Append(")");
+            builder.Append(view.Name);
+
+            builder.Append(" (").Append(view.Count).Append(")");
 
             return builder.ToString();
         }

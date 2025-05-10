@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
@@ -7,7 +8,7 @@ namespace PESpy.View
 {
     public interface IAsmView : IView
     {
-        string? Name { get; }
+        string Name { get; }
 
         byte Bitness { get; }
 
@@ -18,7 +19,29 @@ namespace PESpy.View
     public class AsmView<T> : IAsmView
     {
         public RawOffset Offset { get; }
-        public string? Name => range.Name;
+
+        private string? name;
+
+        public string Name
+        {
+            get
+            {
+                if (name == null)
+                {
+                    var diff = range.StartRVA - range.FunctionRVA;
+
+                    if (diff == 0)
+                        name = range.Name;
+                    else if (diff > 0)
+                        name = $"{range.Name}+0x{diff:X}";
+                    else
+                        name = $"{range.Name}-0x{Math.Abs(diff):X}";
+                }
+
+                return name;
+            }
+        }
+
         public int Size => range.Length;
         public ViewKind Kind { get; }
 

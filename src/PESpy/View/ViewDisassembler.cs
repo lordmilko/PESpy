@@ -52,7 +52,7 @@ namespace PESpy.View
                         // | Bytes |
                         // |  Asm     |
 
-                        ReadAndTruncateRightRange(ref offset, ref rva, end, ref range, ref bytes, results);
+                        ReadAndTruncateRightRange(ref offset, ref rva, ref range, out bytes, results);
                         break;
                     }
                     else //end > range.EndOffset
@@ -125,7 +125,7 @@ namespace PESpy.View
                         //The bytes we've been given are completely left shifted with respect to our range
                         ReadLeftBytes(ref offset, ref rva, ref range, ref bytes, results);
 
-                        ReadAndTruncateRightRange(ref offset, ref rva, end, ref range, ref bytes, results);
+                        ReadAndTruncateRightRange(ref offset, ref rva, ref range, out bytes, results);
                         break;
                     }
                     else //end > range.EndOffset
@@ -160,14 +160,14 @@ namespace PESpy.View
             bytes = bytes.Slice(numBytes);
         }
 
-        private void ReadAndTruncateRightRange(ref int offset, ref int rva, int end, ref AsmRange<T> range, ref NativeSpan<byte> bytes, List<IView> results)
+        private void ReadAndTruncateRightRange(ref int offset, ref int rva, ref AsmRange<T> range, out NativeSpan<byte> bytes, List<IView> results)
         {
             //Our range is bigger than the number of bytes we've been provided. This indicates we may have made a mistake
             //in our disassembly, treating something as disasm that isn't really
 
             //Re-disassemble the range until we hit the known end position
 
-            var newRange = new AsmRange<T>(range.StartOffset, range.StartRVA, this, null);
+            var newRange = new AsmRange<T>(range.StartOffset, range.StartRVA, range.FunctionRVA, this, range.Name);
 
             //Note that we don't actually update the AsmRange in our ranges array. If another caller comes along and wants another chunk of it,
             //they can resize it themselves to suit their needs. Unrelated fun fact: if you do "range = newRange", the assignment travels through

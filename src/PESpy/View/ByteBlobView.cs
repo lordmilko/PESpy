@@ -1,19 +1,36 @@
 ﻿using System.Diagnostics;
-using System.Linq;
-using System.Text;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
 #endif
 
 namespace PESpy.View
 {
+    class ByteBlobViewDebugView
+    {
+        private readonly ByteBlobView view;
+
+        public ByteBlobViewDebugView(ByteBlobView view)
+        {
+            this.view = view;
+        }
+
+        public RawOffset Offset => view.Offset;
+
+        public int Size => view.Size;
+
+        public ViewKind Kind => view.Kind;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public byte[] Items => view.Bytes.ToArray();
+    }
+
+    [DebuggerTypeProxy(typeof(ByteBlobViewDebugView))]
     [DebuggerDisplay("{ViewDebuggerDisplay.ByteBlob(this),nq}")]
     public class ByteBlobView : IView, ISplittableView
     {
         /// <inheritdoc />
         public RawOffset Offset { get; }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public NativeSpan<byte> Bytes { get; }
 
         /// <inheritdoc />
