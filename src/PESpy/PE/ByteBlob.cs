@@ -12,7 +12,7 @@ namespace PESpy
     public readonly struct ByteBlob : IValue, IViewable  //Small enough that returning a copy from properties is OK
     {
 #if PEFAST
-        public Span<byte> Bytes => chunk.PeekSpan<byte>(0, length);
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
 #else
         public byte[] Bytes { get; }
 #endif

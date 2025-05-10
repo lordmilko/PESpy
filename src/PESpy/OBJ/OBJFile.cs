@@ -106,7 +106,7 @@ namespace PESpy
             else if (sectionName == ".text$mn")
             {
                 //It's assembly code, but we can't read it ourselves
-                return new RawValue<byte[]>(sectionChunk.AbsoluteOffset, sectionChunk.PeekSpan<byte>(0, sizeOfRawData).ToArray());
+                return new RawValue<NativeSpan<byte>>(sectionChunk.AbsoluteOffset, sectionChunk.PeekNativeSpan<byte>(0, sizeOfRawData));
             }
             #region CxxIL
             else if (sectionName == ".cil$db")

@@ -18,7 +18,7 @@ namespace PESpy.PDB
             public ref readonly NMTNI StreamNameTable => ref streamNameTable;
 
             //The first entry can be 0 and that's normal
-            public PdbFeature[] Features { get; }
+            public NativeSpan<PdbFeature> Features { get; }
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -64,9 +64,9 @@ namespace PESpy.PDB
                  */
 
                 if (remainingChunk.Remaining >= 4)
-                    Features = remainingChunk.PeekSpan<PdbFeature>(0, remainingChunk.Remaining / 4).ToArray();
+                    Features = remainingChunk.PeekNativeSpan<PdbFeature>(0, remainingChunk.Remaining / 4);
                 else
-                    Features = Array.Empty<PdbFeature>();
+                    Features = default;
             }
 
             void IViewable.WriteView(ViewWriter writer)

@@ -5,7 +5,7 @@ namespace PESpy.Ecma335
 {
     public class PdbHeap
     {
-        public Span<byte> Id => chunk.PeekSpan<byte>(0, 20);
+        public NativeSpan<byte> Id => chunk.PeekNativeSpan<byte>(0, 20);
 
         public mdMethodDef EntryPoint { get; } //For some reason the Visual Studio debugger is getting upset trying to evaluate this from our chunk, so we eagerly evaluate
 

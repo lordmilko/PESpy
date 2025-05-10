@@ -16,7 +16,7 @@ namespace PESpy.PDB
 
         public int NumOffsets => chunk.PeekInt32(VHdr.StructSize + 4 + NameBufferSize);
 
-        public Span<int> Offsets => chunk.PeekSpan<int>(VHdr.StructSize + 4 + NameBufferSize + 4, NumOffsets);
+        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(VHdr.StructSize + 4 + NameBufferSize + 4, NumOffsets);
 
         //Not sure exactly what NumStrings is; an empty DBI has 1 offset, a null string
         public int NumStrings => chunk.PeekInt32(VHdr.StructSize + 4 + NameBufferSize + 4 + (NumOffsets * 4));

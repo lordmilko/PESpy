@@ -31,12 +31,12 @@ namespace PESpy
             }
         }
 
-        public Span<RANGE> ranges //Name is made up
+        public NativeSpan<RANGE> ranges //Name is made up
         {
             get
             {
                 var count = cSeg;
-                return chunk.PeekSpan<RANGE>(4 + (count * sizeof(int)), count);
+                return chunk.PeekNativeSpan<RANGE>(4 + (count * sizeof(int)), count);
             }
         }
 

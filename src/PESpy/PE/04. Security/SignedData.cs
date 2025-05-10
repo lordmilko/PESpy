@@ -10,7 +10,7 @@ namespace PESpy
     public class SignedData : IValue, IViewable
     {
 #if PEFAST
-        public Span<byte> Bytes => chunk.PeekSpan<byte>(0, length);
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
 #else
         public byte[] Bytes { get; }
 #endif

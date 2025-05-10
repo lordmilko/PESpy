@@ -39,7 +39,7 @@ namespace PESpy.PDB
             ByteCount = byteCount;
             var numPages = DivideUp(byteCount, pageSize);
 
-            PageList = chunk.PeekSpan<PN>(0, numPages).ToArray();
+            PageList = chunk.PeekNativeSpan<PN>(0, numPages).ToArray();
         }
 
         //Create an SI from v2 data
@@ -50,7 +50,7 @@ namespace PESpy.PDB
             var numPages = DivideUp(siPersist.ByteCount, pageSize);
 
             var pageList = new PN[numPages];
-            var pagesSpan = chunk.PeekSpan<ushort>(0, numPages);
+            var pagesSpan = chunk.PeekNativeSpan<ushort>(0, numPages);
 
             for (var i = 0; i < numPages; i++)
                 pageList[i] = pagesSpan[i];

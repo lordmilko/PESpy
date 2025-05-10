@@ -13,11 +13,11 @@ namespace PESpy.PDB
         //cRefs
         public short NumSourceFiles => chunk.PeekInt16(2);
 
-        public Span<short> ModuleIndices => chunk.PeekSpan<short>(4, NumModules);
+        public NativeSpan<short> ModuleIndices => chunk.PeekNativeSpan<short>(4, NumModules);
 
-        public Span<short> ModuleFileCounts => chunk.PeekSpan<short>(4 + (NumModules * 2), NumModules);
+        public NativeSpan<short> ModuleFileCounts => chunk.PeekNativeSpan<short>(4 + (NumModules * 2), NumModules);
 
-        public Span<int> FileNameOffsets
+        public NativeSpan<int> FileNameOffsets
         {
             get
             {
@@ -27,7 +27,7 @@ namespace PESpy.PDB
                 foreach (var item in ModuleFileCounts)
                     numSourceFiles += item;
 
-                return chunk.PeekSpan<int>(4 + (NumModules * 4), numSourceFiles);
+                return chunk.PeekNativeSpan<int>(4 + (NumModules * 4), numSourceFiles);
             }
         }
 

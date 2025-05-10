@@ -213,7 +213,7 @@ namespace PESpy
 
         public readonly struct ArrayData
         {
-            public Span<short> Dimension => chunk.PeekSpan<short>(0, 4);
+            public NativeSpan<short> Dimension => chunk.PeekNativeSpan<short>(0, 4);
 
             private readonly MemoryChunk chunk;
 
@@ -227,7 +227,7 @@ namespace PESpy
         {
             public int crc => chunk.PeekInt32(0);
 
-            public Span<byte> rgbReserved => chunk.PeekSpan<byte>(4, 14);
+            public NativeSpan<byte> rgbReserved => chunk.PeekNativeSpan<byte>(4, 14);
 
             private readonly MemoryChunk chunk;
 
@@ -240,7 +240,7 @@ namespace PESpy
 
 #if PEFAST
         //IMAGE_AUX_SYMBOL has a number of unioned fields. The data that is in effect depends on the data in the parent IMAGE_SYMBOL
-        public Span<byte> Bytes => chunk.PeekSpan<byte>(0, StructSize);
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, StructSize);
 
         public int Offset => chunk.AbsoluteOffset;
 #else

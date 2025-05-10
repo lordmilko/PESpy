@@ -233,7 +233,7 @@ namespace PESpy.Tests
 
                     //FPM 1
                     Assert.AreEqual(0x18, fpm1[0].Bytes[0]);
-                    Assert.IsTrue(fpm1[0].Bytes.Skip(1).Take(127).All(v => v == 0));
+                    Assert.IsTrue(fpm1[0].Bytes.Slice(1, 127).All(v => v == 0));
                     Assert.AreEqual(0xE0, fpm1[0].Bytes[129]);
                     Assert.IsTrue(fpm1[0].Bytes.Skip(130).All(v => v == 0xFF));
 

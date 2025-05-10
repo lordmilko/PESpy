@@ -20,7 +20,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> Hash => chunk.PeekSpan<byte>(4, Size);
+        public NativeSpan<byte> Hash => chunk.PeekNativeSpan<byte>(4, Size);
 #else
         public byte[] Hash { get; }
 #endif

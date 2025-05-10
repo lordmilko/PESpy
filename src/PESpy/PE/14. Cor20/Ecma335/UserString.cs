@@ -5,7 +5,7 @@ namespace PESpy.Ecma335
 {
     public readonly unsafe struct UserString : IValue, IViewable
     {
-        public Span<byte> CompressedSize => new Span<byte>(start, lengthSize);
+        public NativeSpan<byte> CompressedSize => new NativeSpan<byte>(start, lengthSize);
 
         public FixedUtf16String Value { get; }
 

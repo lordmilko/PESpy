@@ -17,7 +17,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> Checksum => chunk.PeekSpan<byte>((AlgorithmName.Length + 1), sizeOfData - (AlgorithmName.Length + 1));
+        public NativeSpan<byte> Checksum => chunk.PeekNativeSpan<byte>((AlgorithmName.Length + 1), sizeOfData - (AlgorithmName.Length + 1));
 #else
         public byte[] Checksum { get; init; }
 #endif

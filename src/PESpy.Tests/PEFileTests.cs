@@ -289,10 +289,10 @@ namespace PESpy.Tests
                 v => v.InitialRelativeCSValue == 0,
                 v => v.FileAddressOfRelocationTable == 64,
                 v => v.OverlayNumber == 0,
-                v => GetSpan<short>(v, "ReservedWords") == new short[] { 0, 0, 0, 0 },
+                v => v.ReservedWords == new short[] { 0, 0, 0, 0 },
                 v => v.OEMIdentifier == 0,
                 v => v.OEMInformation == 0,
-                v => GetSpan<short>(v, "ReservedWords2") == new short[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => v.ReservedWords2 == new short[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                 v => v.FileAddressOfNewExeHeader == 224
             );
 
@@ -1113,7 +1113,7 @@ namespace PESpy.Tests
                 v => v.Type == 0,
                 v => v.Key == "Translation",
                 v => v.Padding == 0,
-                v => GetSpan<int>(v, "Value") == new int[] { 78644233 }
+                v => v.Value == new int[] { 78644233 }
             );
 
             TestView<VsVersionInfo.Var>(
@@ -1714,7 +1714,7 @@ namespace PESpy.Tests
                 v => v.DataType == ImageDebugMiscType.ExeName,
                 v => v.Length == 272,
                 v => v.Unicode == false,
-                v => GetSpan<byte>(v, "Reserved") == new byte[] { 0, 0, 0 },
+                v => v.Reserved == new byte[] { 0, 0, 0 },
                 v => v.Data == "mfc40_opt.DBG"
             );
 
@@ -1849,7 +1849,7 @@ namespace PESpy.Tests
         {
             TestStruct<Reproducible>(
                 v => v.Size == 32,
-                v => GetSpan<byte>(v, "Hash") == new byte[] { 194, 130, 162, 88, 238, 74, 3, 126, 168, 207, 140, 176, 167, 130, 206, 12, 133, 209, 145, 14, 91, 214, 192, 89, 70, 53, 121, 182, 130, 75, 237, 188 }
+                v => v.Hash == new byte[] { 194, 130, 162, 88, 238, 74, 3, 126, 168, 207, 140, 176, 167, 130, 206, 12, 133, 209, 145, 14, 91, 214, 192, 89, 70, 53, 121, 182, 130, 75, 237, 188 }
             );
 
             TestView<Reproducible>(
@@ -2018,8 +2018,7 @@ namespace PESpy.Tests
                 v => v.GuardXFGDispatchFunctionPointer.ListedAddress == (long) 6444150800,
                 v => v.GuardXFGTableDispatchFunctionPointer.ListedAddress == (long) 6444150808,
                 v => v.CastGuardOsDeterminedFailureMode == 6444150816,
-                v => v.GuardMemcpyFunctionPointer.ListedAddress == (long) 0,
-                v => v.UnknownBytes == null
+                v => v.GuardMemcpyFunctionPointer.ListedAddress == (long) 0
             );
 
             TestView<ImageLoadConfigDirectory>(
@@ -2113,8 +2112,8 @@ namespace PESpy.Tests
                 v => v.NumberOfImports == 4,
                 v => v.ImportList.ListedOffset == 222852,
                 v => v.ImportEntrySize == 80,
-                v => GetSpan<byte>(v, "FamilyID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => GetSpan<byte>(v, "ImageID") == new byte[] { 80, 65, 198, 45, 179, 131, 66, 49, 170, 226, 169, 74, 131, 219, 200, 22 },
+                v => v.FamilyID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => v.ImageID == new byte[] { 80, 65, 198, 45, 179, 131, 66, 49, 170, 226, 169, 74, 131, 219, 200, 22 },
                 v => v.ImageVersion == 0,
                 v => v.SecurityVersion == 0,
                 v => v.EnclaveSize == 0,
@@ -2151,9 +2150,9 @@ namespace PESpy.Tests
             TestStruct<ImageEnclaveImport>(
                 v => v.MatchType == IMAGE_ENCLAVE_IMPORT_MATCH.NONE,
                 v => v.MinimumSecurityVersion == 0,
-                v => GetSpan<byte>(v, "UniqueOrAuthorID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => GetSpan<byte>(v, "FamilyID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                v => GetSpan<byte>(v, "ImageID") == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => v.UniqueOrAuthorID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => v.FamilyID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                v => v.ImageID == new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                 v => v.ImportName.ListedOffset == 65535,
                 v => v.Reserved == 0
             );
@@ -2446,7 +2445,7 @@ namespace PESpy.Tests
                 v => v.BDDOffset == 0,
                 v => v.RvaSize == 20,
                 v => v.BaseRelocSize == 12,
-                v => GetSpan<int>(v, "RVAs") == new int[] { 681088, 681600, 681984, 682432, 682752 },
+                v => v.RVAs == new int[] { 681088, 681600, 681984, 682432, 682752 },
                 v => v.BaseRelocs == IgnoreValue
             );
 
@@ -2758,7 +2757,7 @@ namespace PESpy.Tests
                 v => v.CodeSize == 7,
                 v => v.Size == 1,
                 v => v.MaxStack == 8,
-                v => GetSpan<byte>(v, "ILBytes") == new byte[] { 2, 123, 63, 0, 0, 10, 42 },
+                v => v.ILBytes == new byte[] { 2, 123, 63, 0, 0, 10, 42 },
                 v => v.LocalVarSigTok == 0x0
             );
 
@@ -3748,7 +3747,7 @@ namespace PESpy.Tests
             try
             {
                 var expectedStr = string.Join(", ", expected.Select(v => "0x" + v.ToString("X2")));
-                var actualStr = string.Join(", ", rawValue.Bytes.ToArray().Select(v => "0x" + v.ToString("X2")));
+                var actualStr = string.Join(", ", rawValue.Bytes.Select(v => "0x" + v.ToString("X2")));
 
                 Assert.AreEqual(expectedStr, actualStr);
             }
@@ -3853,70 +3852,6 @@ namespace PESpy.Tests
                 if (result)
                     yield return file;
             }
-        }
-
-        private T[] GetSpan<T>(object value, string field)
-        {
-            //I tried using reflection; the trick where you try and create a delegate out of the PropertyInfo
-            //Getter (thereby preventing the Span from being boxed) did not work for me
-
-#pragma warning disable CS8509
-            if (value is ImageDosHeader a)
-            {
-                return field switch
-                {
-                    "ReservedWords" => Unsafe.As<T[]>(a.ReservedWords.ToArray()),
-                    "ReservedWords2" => Unsafe.As<T[]>(a.ReservedWords2.ToArray())
-                };
-            }
-            if (value is ImageEnclaveConfig b)
-            {
-                return field switch
-                {
-                    "FamilyID" => Unsafe.As<T[]>(b.FamilyID.ToArray()),
-                    "ImageID" => Unsafe.As<T[]>(b.ImageID.ToArray()),
-                };
-            }
-            if (value is ImageEnclaveImport c)
-            {
-                return field switch
-                {
-                    "UniqueOrAuthorID" => Unsafe.As<T[]>(c.UniqueOrAuthorID.ToArray()),
-                    "FamilyID" => Unsafe.As<T[]>(c.FamilyID.ToArray()),
-                    "ImageID" => Unsafe.As<T[]>(c.ImageID.ToArray()),
-                };
-            }
-            if (value is ImageDebugMisc d)
-            {
-                return field switch
-                {
-                    "Reserved" => Unsafe.As<T[]>(d.Reserved.ToArray())
-                };
-            }
-            if (value is Reproducible e)
-            {
-                return field switch
-                {
-                    "Hash" => Unsafe.As<T[]>(e.Hash.ToArray())
-                };
-            }
-            if (value is ImageFunctionOverrideDynamicRelocation f)
-            {
-                return field switch
-                {
-                    "RVAs" => Unsafe.As<T[]>(f.RVAs.ToArray())
-                };
-            }
-            if (value is ImageCorILMethod g)
-            {
-                return field switch
-                {
-                    "ILBytes" => Unsafe.As<T[]>(g.ILBytes.ToArray())
-                };
-            }
-#pragma warning restore CS8509
-
-            throw new NotImplementedException($"Retrieving a span from {value.GetType().Name}.{field} is not implemented");
         }
 
         private string GetStringSpan(object value, string field)

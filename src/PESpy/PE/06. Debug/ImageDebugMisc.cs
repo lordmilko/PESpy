@@ -31,7 +31,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> Reserved => chunk.PeekSpan<byte>(9, 3);
+        public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(9, 3);
 #else
         public byte[] Reserved { get; }
 #endif

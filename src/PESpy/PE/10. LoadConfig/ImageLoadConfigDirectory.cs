@@ -801,7 +801,9 @@ namespace PESpy
 
         #endregion
 
+#if !PEFAST
         public byte[]? UnknownBytes { get; init; }
+#endif
 
 #if PEFAST
         public RawOffset Offset => chunk.AbsoluteOffset;
@@ -1648,9 +1650,11 @@ namespace PESpy
 
                     #endregion
 
+#if !PEFAST
                     default:
                         s.WriteField("<UnknownBytes>", UnknownBytes);
                         break;
+#endif
                 }
             }
         }

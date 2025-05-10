@@ -33,7 +33,7 @@ namespace PESpy
 
         public int SectionAlignment => chunk.PeekInt32(36);
 
-        public Span<int> Reserved => chunk.PeekSpan<int>(40, 2);
+        public NativeSpan<int> Reserved => chunk.PeekNativeSpan<int>(40, 2);
 
         public int Offset => chunk.AbsoluteOffset;
 

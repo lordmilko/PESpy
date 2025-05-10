@@ -221,7 +221,7 @@ namespace PESpy.View
                     viewOffset,
                     ViewKind.DosStub,
 #if PEFAST
-                    byteBlob.Bytes.ToArray(),
+                    byteBlob.Bytes,
 #else
                     byteBlob.Bytes,
 #endif
@@ -232,7 +232,7 @@ namespace PESpy.View
                     AddView(new ByteBlobView(
                         viewOffset,
 #if PEFAST
-                        byteBlob.Bytes.ToArray(),
+                        byteBlob.Bytes,
 #else
                         byteBlob.Bytes,
 #endif
@@ -250,7 +250,7 @@ namespace PESpy.View
                 AddView(new ByteBlobView(
                     viewOffset,
 #if PEFAST
-                    byteBlob.Bytes.ToArray(),
+                    byteBlob.Bytes,
 #else
                     byteBlob.Bytes,
 #endif

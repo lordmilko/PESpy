@@ -14,7 +14,7 @@ namespace PESpy.View
         public RawOffset Offset { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public byte[] Bytes { get; }
+        public NativeSpan<byte> Bytes { get; }
 
         /// <inheritdoc />
         public int Size { get; private set; }
@@ -29,6 +29,8 @@ namespace PESpy.View
                 {
                     if (Bytes.All(b => b == 0))
                         kind = ViewKind.Padding;
+                    else if (Bytes.All(b => b == 0xCC))
+                        kind = ViewKind.CC;
                     else
                         kind = ViewKind.Data;
                 }
@@ -37,7 +39,7 @@ namespace PESpy.View
             }
         }
 
-        public ByteBlobView(RawOffset offset, byte[] bytes, ViewKind? kind)
+        public ByteBlobView(RawOffset offset, NativeSpan<byte> bytes, ViewKind? kind)
         {
             Offset = offset;
             Bytes = bytes;
@@ -46,7 +48,7 @@ namespace PESpy.View
         }
 
         //For SplitByteBlobView only
-        protected ByteBlobView(RawOffset offset, byte[] bytes, int size, ViewKind? kind)
+        protected ByteBlobView(RawOffset offset, NativeSpan<byte> bytes, int size, ViewKind? kind)
         {
             Offset = offset;
             Bytes = bytes;
@@ -105,7 +107,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitByteBlobView(RawOffset offset, byte[] bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
+        public SplitByteBlobView(RawOffset offset, NativeSpan<byte> bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
         {
         }
     }

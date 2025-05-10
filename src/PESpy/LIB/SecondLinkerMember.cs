@@ -12,11 +12,11 @@ namespace PESpy.LIB
 
         public int NumberOfMembers => chunk.PeekInt32(ImageArchiveMemberHeader.StructSize);
 
-        public Span<int> Offsets => chunk.PeekSpan<int>(ImageArchiveMemberHeader.StructSize + 4, NumberOfMembers);
+        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(ImageArchiveMemberHeader.StructSize + 4, NumberOfMembers);
 
         public int NumberOfSymbols => chunk.PeekInt32(ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4));
 
-        public Span<short> Indices => chunk.PeekSpan<short>(ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4) + 4, NumberOfSymbols);
+        public NativeSpan<short> Indices => chunk.PeekNativeSpan<short>(ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4) + 4, NumberOfSymbols);
 
         public RawValue<AnsiString>[] StringTable { get; }
 

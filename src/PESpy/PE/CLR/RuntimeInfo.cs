@@ -159,7 +159,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-            public Span<byte> Extra => chunk.PeekSpan<byte>(9, 15);
+            public NativeSpan<byte> Extra => chunk.PeekNativeSpan<byte>(9, 15);
 #else
             public byte[] Extra { get; }
 #endif

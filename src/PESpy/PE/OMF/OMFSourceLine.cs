@@ -8,14 +8,14 @@ namespace PESpy
 
         public ushort cLnOff => chunk.PeekUInt16(2);
 
-        public Span<int> offset => chunk.PeekSpan<int>(4, cLnOff);
+        public NativeSpan<int> offset => chunk.PeekNativeSpan<int>(4, cLnOff);
 
-        public Span<ushort> lineNbr
+        public NativeSpan<ushort> lineNbr
         {
             get
             {
                 var count = cLnOff;
-                return chunk.PeekSpan<ushort>(4 + (count * 4), count);
+                return chunk.PeekNativeSpan<ushort>(4 + (count * 4), count);
             }
         }
 

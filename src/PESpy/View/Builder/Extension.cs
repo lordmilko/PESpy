@@ -47,7 +47,7 @@ namespace PESpy.View.Builder
                 offset = getRealOffset(offset);
 
 #if PEFAST
-            var span = new Span<byte>(mmf, length);
+            var span = new NativeSpan<byte>(mmf, length);
 #else
             reader.Seek(offset);
 #endif
@@ -55,7 +55,7 @@ namespace PESpy.View.Builder
             Debug.Assert(endRVA > currentRVA);
             var bytesToRead = endRVA - currentRVA;
 
-            Span<byte> bytes;
+            NativeSpan<byte> bytes;
 
             if (isOverlay)
             {
@@ -87,7 +87,7 @@ namespace PESpy.View.Builder
 
             if (!TryParseRawBytes(currentRVA, kind, bytes, getRVA, out views))
             {
-                var result = new ByteBlobView(currentRVA, bytes.ToArray(), kind);
+                var result = new ByteBlobView(currentRVA, bytes, kind);
                 views = new IView[] { result };
             }
 
@@ -96,7 +96,7 @@ namespace PESpy.View.Builder
             return views;
         }
 
-        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, Span<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
+        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, NativeSpan<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
         {
             //Try get code first, then strings
 
@@ -138,7 +138,7 @@ namespace PESpy.View.Builder
             return false;
         }
 
-        private void SplitBytes(RawOffset offset, Span<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
+        private void SplitBytes(RawOffset offset, NativeSpan<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
         {
             var strIndex = 0;
 
@@ -150,7 +150,11 @@ namespace PESpy.View.Builder
 
                     if (nextValue.Start == i)
                     {
-                        results.Add(new ValueView<string>(offset + nextValue.Start, nextValue.String, nextValue.Length, ViewKind.String));
+                        if (nextValue.IsUnicode)
+                            results.Add(new ValueView<Utf16String>(offset + nextValue.Start, nextValue.Unicode, nextValue.Length, ViewKind.String));
+                        else
+                            results.Add(new ValueView<AnsiString>(offset + nextValue.Start, nextValue.Ansi, nextValue.Length, ViewKind.String));
+
                         i += nextValue.Length - 1;
                         strIndex++;
                     }
@@ -168,11 +172,9 @@ namespace PESpy.View.Builder
             }
         }
 
-        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, Span<byte> bytes)
+        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, NativeSpan<byte> bytes)
         {
-            var length = end - i;
-            var arr = new byte[length];
-            bytes.Slice(i, length).CopyTo(arr);
+            var arr = bytes.Slice(i, end - i);
 
             //If we have a name, but all of the bytes in this section are 0, it's now padding (e.g. after the DOS Stub)
             if (localKind != null && arr.All(b => b == 0))

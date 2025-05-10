@@ -62,11 +62,13 @@ namespace PESpy.View
     {
         bool TryParseDosStub(ref int offset, ref Span<byte> bytes, List<IView> results);
 
+        bool TryParseDosStub(ref int offset, ref NativeSpan<byte> bytes, List<IView> results);
+
         //offset is the address that should be listed in the resulting IView. It represents a value
         //in the address space we're trying to represent in the output view; i.e. a physical or virtual
         //offset (regardless of what we actually are). RVA is the "real" RVA of the bytes. "offset" is
         //what the result value should then be reported as. e.g. if offset is 0x1000 and RVA is 0x2000, lookup
         //the function at 0x2000 and report that it existed at 0x1000
-        bool TryParseBytes(ref int offset, int rva, ref Span<byte> bytes, List<IView> results);
+        bool TryParseBytes(ref int offset, int rva, ref NativeSpan<byte> bytes, List<IView> results);
     }
 }

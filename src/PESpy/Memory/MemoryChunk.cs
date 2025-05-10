@@ -60,6 +60,8 @@ namespace PESpy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> PeekSpan<T>(int offset, int numElems) => new Span<T>(Pointer + offset, numElems);
 
+        public NativeSpan<T> PeekNativeSpan<T>(int offset, int numElems) where T : unmanaged => new NativeSpan<T>(Pointer + offset, numElems);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Guid PeekGuid(int offset) => *(Guid*) (Pointer + offset);
 

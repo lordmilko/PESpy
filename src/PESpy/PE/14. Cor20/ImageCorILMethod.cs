@@ -24,7 +24,7 @@ namespace PESpy
         public short MaxStack { get; }
 
 #if PEFAST
-        public Span<byte> ILBytes
+        public NativeSpan<byte> ILBytes
         {
             get
             {
@@ -34,10 +34,10 @@ namespace PESpy
                 {
                     case CorILMethodFlags.TinyFormat:
                     case CorILMethodFlags.TinyFormat1:
-                        return chunk.PeekSpan<byte>(1, CodeSize);
+                        return chunk.PeekNativeSpan<byte>(1, CodeSize);
 
                     case CorILMethodFlags.FatFormat:
-                        return chunk.PeekSpan<byte>(12, CodeSize);
+                        return chunk.PeekNativeSpan<byte>(12, CodeSize);
 
                     default:
                         return default;

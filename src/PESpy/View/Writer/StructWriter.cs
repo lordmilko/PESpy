@@ -95,30 +95,30 @@ namespace PESpy.View
             #region Array
 
             /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, Span<byte> value)
+            public void WriteField(string name, NativeSpan<byte> value)
             {
                 //A field with a length of 0 will calculate itself as having a negative size (since if it starts at 0 and is 2 large it ends at 1)
                 if (value.Length == 0)
                     return;
 
-                WriteFieldInternal(name, value.ToArray(), value.Length);
+                WriteFieldInternal(name, value, value.Length);
             }
 
             /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, Span<short> value)
+            public void WriteField(string name, NativeSpan<short> value)
             {
                 if (value.Length == 0)
                     return;
 
-                WriteFieldInternal(name, value.ToArray(), value.Length * 2);
+                WriteFieldInternal(name, value, value.Length * 2);
             }
 
-            public void WriteField(string name, Span<ushort> value)
+            public void WriteField(string name, NativeSpan<ushort> value)
             {
                 if (value.Length == 0)
                     return;
 
-                WriteFieldInternal(name, value.ToArray(), value.Length * 2);
+                WriteFieldInternal(name, value, value.Length * 2);
             }
 
             public void WriteField(string name, ushort[] value)
@@ -129,12 +129,20 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length * 2);
             }
 
-            public void WriteField(string name, Span<int> value)
+            public void WriteField(string name, NativeSpan<PN> value)
             {
                 if (value.Length == 0)
                     return;
 
-                WriteFieldInternal(name, value.ToArray(), value.Length * 4);
+                WriteFieldInternal(name, value, value.Length * 2);
+            }
+
+            public void WriteField(string name, NativeSpan<int> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * 4);
             }
 
             /// <inheritdoc cref="WriteField(string, short)"/>

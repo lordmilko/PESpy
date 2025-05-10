@@ -28,7 +28,7 @@ namespace PESpy.PDB
 
         //Unlike BIGMSF_HDR where mpspnpnSt lists the location of the stream table pages, in MSF_HDR mpspnpnSt lists
         //the stream table pages immediately; there is no indirection
-        public Span<ushort> StreamTablePageList => chunk.PeekSpan<ushort>(60, SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize));
+        public NativeSpan<ushort> StreamTablePageList => chunk.PeekNativeSpan<ushort>(60, SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize));
 
         private readonly MemoryChunk chunk;
 

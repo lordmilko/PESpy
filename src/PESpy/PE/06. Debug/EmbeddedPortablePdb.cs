@@ -24,7 +24,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> PortablePdbImage => chunk.PeekSpan<byte>(8, sizeOfData - 8);
+        public NativeSpan<byte> PortablePdbImage => chunk.PeekNativeSpan<byte>(8, sizeOfData - 8);
 #else
         public byte[] PortablePdbImage { get; }
 #endif

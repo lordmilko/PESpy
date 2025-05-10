@@ -11,7 +11,7 @@ namespace PESpy
 
         public int SymbolTableIndex => chunk.PeekInt32(2);
 
-        public Span<byte> rgbReserved => chunk.PeekSpan<byte>(6, 14);
+        public NativeSpan<byte> rgbReserved => chunk.PeekNativeSpan<byte>(6, 14);
 
         public int Offset => chunk.AbsoluteOffset;
 

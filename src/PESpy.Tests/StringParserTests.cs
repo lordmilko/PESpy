@@ -8,7 +8,7 @@ namespace PESpy.Tests
     public class StringParserTests
     {
         [TestMethod]
-        public void StringParser_Ansi_NullTerminated()
+        public unsafe void StringParser_Ansi_NullTerminated()
         {
             var bytes = new byte[]
             {
@@ -17,12 +17,15 @@ namespace PESpy.Tests
                 0x50, 0x75, 0x73, 0x68, 0x4C, 0x69, 0x73, 0x74, 0x53, 0x4C, 0x69, 0x73, 0x74, 0x00
             };
 
-            var strs = StringParser.GetStrings(bytes);
+            fixed (byte* p = bytes)
+            {
+                var strs = StringParser.GetStrings(new NativeSpan<byte>(p, bytes.Length));
 
-            Assert.AreEqual(3, strs.Length);
-            Assert.AreEqual("KERNEL32.dll", strs[0].ToString());
-            Assert.AreEqual("BaseThreadInitThunk", strs[1].ToString());
-            Assert.AreEqual("InterlockedPushListSList", strs[2].ToString());
+                Assert.AreEqual(3, strs.Length);
+                Assert.AreEqual("KERNEL32.dll", strs[0].ToString());
+                Assert.AreEqual("BaseThreadInitThunk", strs[1].ToString());
+                Assert.AreEqual("InterlockedPushListSList", strs[2].ToString());
+            }
         }
 
         [TestMethod]
@@ -32,7 +35,7 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void StringParser_GarbageAnsi_Then_UTF16_NullTerminated()
+        public unsafe void StringParser_GarbageAnsi_Then_UTF16_NullTerminated()
         {
             /* Consider a sequence with the following bytes
              *     D <- garbage
@@ -52,11 +55,14 @@ namespace PESpy.Tests
                 0x82, 0x6B, 0x53, 0x00, 0x58, 0x00, 0x53, 0x00, 0x4D, 0x00, 0x61, 0x00, 0x6E, 0x00, 0x69, 0x00, 0x66, 0x00, 0x65, 0x00, 0x73, 0x00, 0x74, 0x00, 0x00, 0x00
             };
 
-            var str = StringParser.GetStrings(bytes);
+            fixed (byte* p = bytes)
+            {
+                var str = StringParser.GetStrings(new NativeSpan<byte>(p, bytes.Length));
 
-            Assert.AreEqual(1, str.Length);
-            Assert.AreEqual("SXSManifest", str[0].ToString());
-            Assert.AreEqual(24, str[0].Length);
+                Assert.AreEqual(1, str.Length);
+                Assert.AreEqual("SXSManifest", str[0].ToString());
+                Assert.AreEqual(24, str[0].Length);
+            }
         }
     }
 }

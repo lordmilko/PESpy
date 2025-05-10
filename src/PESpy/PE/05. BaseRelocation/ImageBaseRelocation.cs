@@ -23,7 +23,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<Entry> Entries => chunk.PeekSpan<Entry>(8, (SizeOfBlock - 8) / 2);
+        public NativeSpan<Entry> Entries => chunk.PeekNativeSpan<Entry>(8, (SizeOfBlock - 8) / 2);
 #else
         public Entry[] Entries { get; }
 #endif

@@ -23,19 +23,19 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> UniqueOrAuthorID => chunk.PeekSpan<byte>(8, IMAGE_ENCLAVE_LONG_ID_LENGTH);
+        public NativeSpan<byte> UniqueOrAuthorID => chunk.PeekNativeSpan<byte>(8, IMAGE_ENCLAVE_LONG_ID_LENGTH);
 #else
         public byte[] UniqueOrAuthorID { get; }
 #endif
 
 #if PEFAST
-        public Span<byte> FamilyID => chunk.PeekSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public NativeSpan<byte> FamilyID => chunk.PeekNativeSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
 #else
         public byte[] FamilyID { get; }
 #endif
 
 #if PEFAST
-        public Span<byte> ImageID => chunk.PeekSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public NativeSpan<byte> ImageID => chunk.PeekNativeSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
 #else
         public byte[] ImageID { get; }
 #endif

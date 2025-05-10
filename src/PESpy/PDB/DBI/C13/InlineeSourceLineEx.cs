@@ -10,7 +10,7 @@ namespace PESpy.PDB
         public CV_off32_t sourceLineNum => chunk.PeekInt32(8); // definition start line number
         public int countOfExtraFiles => chunk.PeekInt32(12);
 
-        public Span<CV_off32_t> extraFileId => chunk.PeekSpan<CV_off32_t>(16, countOfExtraFiles);
+        public NativeSpan<CV_off32_t> extraFileId => chunk.PeekNativeSpan<CV_off32_t>(16, countOfExtraFiles);
 
         private readonly MemoryChunk chunk;
 

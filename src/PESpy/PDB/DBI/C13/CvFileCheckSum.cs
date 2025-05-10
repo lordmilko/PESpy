@@ -13,7 +13,7 @@ namespace PESpy.PDB
 
         public CV_SourceChksum_t type => (CV_SourceChksum_t) chunk.PeekByte(5);
 
-        public Span<byte> hash => chunk.PeekSpan<byte>(6, len);
+        public NativeSpan<byte> hash => chunk.PeekNativeSpan<byte>(6, len);
 
         public int Offset => chunk.AbsoluteOffset;
 

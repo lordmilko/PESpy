@@ -17,7 +17,7 @@ namespace PESpy.PDB
         {
             public int NumStreams => chunk.PeekInt32(0);
 
-            public Span<int> StreamSizes => chunk.PeekSpan<int>(4, NumStreams);
+            public NativeSpan<int> StreamSizes => chunk.PeekNativeSpan<int>(4, NumStreams);
 
             //After the stream sizes there is a PN[][]. However, we need to use each StreamSize[i]
             //to get the number of elements in each sub-array, so we use the SI API to collect this

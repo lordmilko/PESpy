@@ -12,11 +12,11 @@ namespace PESpy.PDB
 
         public int PresentWordCount => chunk.PeekInt32(8);
 
-        public Span<int> PresentWords => chunk.PeekSpan<int>(12, PresentWordCount);
+        public NativeSpan<int> PresentWords => chunk.PeekNativeSpan<int>(12, PresentWordCount);
 
         public int DeletedWordCount => chunk.PeekInt32(12 + (PresentWordCount * 4));
 
-        public Span<int> DeletedWords => chunk.PeekSpan<int>(16 + (PresentWordCount * 4), DeletedWordCount);
+        public NativeSpan<int> DeletedWords => chunk.PeekNativeSpan<int>(16 + (PresentWordCount * 4), DeletedWordCount);
 
         public Entry[] Entries { get; }
 

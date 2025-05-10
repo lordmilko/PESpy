@@ -48,7 +48,7 @@ namespace PESpy
         /// Array containing overriding func RVAs.
         /// </summary>
 #if PEFAST
-        public Span<int> RVAs => chunk.PeekSpan<int>(16, RvaSize / sizeof(int));
+        public NativeSpan<int> RVAs => chunk.PeekNativeSpan<int>(16, RvaSize / sizeof(int));
 #else
         public int[] RVAs { get; }
 #endif

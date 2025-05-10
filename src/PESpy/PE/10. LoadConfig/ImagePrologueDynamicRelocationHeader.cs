@@ -13,7 +13,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public Span<byte> PrologueBytes => chunk.PeekSpan<byte>(1, PrologueByteCount);
+        public NativeSpan<byte> PrologueBytes => chunk.PeekNativeSpan<byte>(1, PrologueByteCount);
 #else
         public byte[] PrologueBytes { get; }
 #endif

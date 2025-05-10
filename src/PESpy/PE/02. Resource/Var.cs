@@ -57,7 +57,7 @@ namespace PESpy
 #endif
 
 #if PEFAST
-            public Span<int> Value
+            public NativeSpan<int> Value
             {
                 get
                 {
@@ -65,7 +65,7 @@ namespace PESpy
 
                     var numItems = ValueLength / 4;
 
-                    return chunk.PeekSpan<int>(offset, numItems);
+                    return chunk.PeekNativeSpan<int>(offset, numItems);
                 }
             }
 #else

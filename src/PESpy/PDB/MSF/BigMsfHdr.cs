@@ -45,7 +45,7 @@ namespace PESpy.PDB
         /// A single PN is 4 bytes, so merely recording the existance of these 512 pages requires 2048 bytes. Which means that
         /// the list of PNs will itself span two pages
         /// </remarks>
-        public Span<PN> PagesOfStreamTablePageList => chunk.PeekSpan<PN>(52, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize)); //Normally there will be a single page that lists the location of the stream table. However, suppose we have 1024 byte pages. We can store 256 32-bit page numbers in 1 page. , and the stream table is so large that
+        public NativeSpan<PN> PagesOfStreamTablePageList => chunk.PeekNativeSpan<PN>(52, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize)); //Normally there will be a single page that lists the location of the stream table. However, suppose we have 1024 byte pages. We can store 256 32-bit page numbers in 1 page. , and the stream table is so large that
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -66,7 +66,7 @@ namespace PESpy.PDB
             s.WriteField("pnFpm", FpmPageNo);
             s.WriteField("pnMac", NumPages);
             s.WriteStructField("siSt", StreamTableSizeInfo);
-            s.WriteField("mpspnpnSt", PagesOfStreamTablePageList.ToArray()); 
+            s.WriteField("mpspnpnSt", PagesOfStreamTablePageList);
         }
     }
 }

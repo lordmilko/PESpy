@@ -144,7 +144,7 @@ namespace PESpy
         /// Reserved words
         /// </summary>
 #if PEFAST
-        public Span<short> ReservedWords => chunk.PeekSpan<short>(28, 4);
+        public NativeSpan<short> ReservedWords => chunk.PeekNativeSpan<short>(28, 4);
 #else
         public short[] ReservedWords { get; init; }
 #endif
@@ -171,7 +171,7 @@ namespace PESpy
         /// Reserved words
         /// </summary>
 #if PEFAST
-        public Span<short> ReservedWords2 => chunk.PeekSpan<short>(40, 10);
+        public NativeSpan<short> ReservedWords2 => chunk.PeekNativeSpan<short>(40, 10);
 #else
         public short[] ReservedWords2 { get; init; }
 #endif

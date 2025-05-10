@@ -9,11 +9,13 @@ namespace PESpy.View
     {
         public int Start;
         public int Length;
-        public string String;
+        public AnsiString Ansi;
+        public Utf16String Unicode;
+        public bool IsUnicode;
 
         public override string ToString()
         {
-            return String;
+            return IsUnicode ? Unicode.ToString() : Ansi.ToString();
         }
     }
 
@@ -45,7 +47,7 @@ namespace PESpy.View
 
         internal const int MinimumStringLength = 5; //4 + \0
 
-        internal static ExtractedString[] GetAnsiNullTerminated(byte[] bytes)
+        internal static ExtractedString[] GetAnsiNullTerminated(NativeSpan<byte> bytes)
         {
             var results = new List<ExtractedString>();
 
@@ -64,7 +66,7 @@ namespace PESpy.View
             return results.ToArray();
         }
 
-        public static ExtractedString[] GetStrings(Span<byte> bytes)
+        public static ExtractedString[] GetStrings(NativeSpan<byte> bytes)
         {
             var results = new List<ExtractedString>();
 
@@ -94,7 +96,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetAnsiWorker(ref int i, Span<byte> bytes, List<ExtractedString> results)
+        private static unsafe void GetAnsiWorker(ref int i, NativeSpan<byte> bytes, List<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -139,13 +141,13 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength) //4 characters + \0
                 {
-                    var str = Encoding.ASCII.GetString(bytes.ToArray(), i, j - i);
+                    var str = new AnsiString(bytes.Slice(i));
 
                     results.Add(new ExtractedString
                     {
                         Start = i,
                         Length = length,
-                        String = str
+                        Ansi = str
                     });
                 }
             }
@@ -154,7 +156,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetUnicodeWorker(ref int i, Span<byte> bytes, bool nullTerminated, List<ExtractedString> results)
+        private static unsafe void GetUnicodeWorker(ref int i, NativeSpan<byte> bytes, bool nullTerminated, List<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -200,13 +202,14 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength * 2) //4 characters + \0
                 {
-                    var str = Encoding.Unicode.GetString(bytes.ToArray(), i, (j - i));
+                    var str = new Utf16String((char*) (byte*) bytes.Slice(i));
 
                     results.Add(new ExtractedString
                     {
                         Start = i,
                         Length = length,
-                        String = str
+                        Unicode = str,
+                        IsUnicode = true
                     });
                 }
 

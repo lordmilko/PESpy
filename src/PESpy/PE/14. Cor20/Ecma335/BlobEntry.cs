@@ -5,9 +5,9 @@ namespace PESpy.Ecma335
 {
     public readonly unsafe struct BlobEntry : IValue, IViewable
     {
-        public Span<byte> CompressedSize => new Span<byte>(start, lengthSize);
+        public NativeSpan<byte> CompressedSize => new NativeSpan<byte>(start, lengthSize);
 
-        public Span<byte> Value => new Span<byte>(start + lengthSize, length);
+        public NativeSpan<byte> Value => new NativeSpan<byte>(start + lengthSize, length);
 
         public int Offset { get; }
 
