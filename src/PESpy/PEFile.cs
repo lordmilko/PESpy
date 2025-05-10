@@ -2550,7 +2550,7 @@ namespace PESpy
 #endif
         }
 
-        public FileView GetView(IViewDisassembler viewDisassembler, ViewMode mode = ViewMode.Default)
+        public FileView GetView<T>(ViewDisassembler<T> viewDisassembler, ViewMode mode = ViewMode.Default)
         {
 #if PEFAST
             var writer = GetViewWriter(mode, viewDisassembler);

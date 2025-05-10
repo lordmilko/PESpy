@@ -1,10 +1,28 @@
 ﻿using System.Diagnostics;
+using System.Text;
 
 namespace PESpy.View
 {
-    [DebuggerDisplay("0x{StartOffset.ToString(\"X\"),nq} - 0x{EndOffset.ToString(\"X\"),nq}")]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public struct AsmRange<T>
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string DebuggerDisplay
+        {
+            get
+            {
+                var builder = new StringBuilder();
+                builder.Append(StartOffset.ToString("X"));
+                builder.Append(" - ");
+                builder.Append(EndOffset.ToString("X"));
+
+                if (Name != null)
+                    builder.Append(" ").Append(Name);
+
+                return builder.ToString();
+            }
+        }
+
         public bool HasInstructions => instructionCount != 0;
 
         public readonly int StartRVA;
@@ -12,6 +30,7 @@ namespace PESpy.View
 
         public readonly int StartOffset;
         public int EndOffset;
+        public string? Name;
 
         public int Length => EndOffset - StartOffset;
 
@@ -45,16 +64,17 @@ namespace PESpy.View
 
         public T[] Instructions => viewDisassembler.Disassemble(this, instructionCount);
 
-        private readonly IViewDisassembler viewDisassembler;
+        private readonly ViewDisassembler<T> viewDisassembler;
         internal int instructionCount;
 
-        public AsmRange(int startOffset, int startRVA, IViewDisassembler viewDisassembler)
+        public AsmRange(int startOffset, int startRVA, ViewDisassembler<T> viewDisassembler, string? name)
         {
             StartOffset = startOffset;
             StartRVA = startRVA;
             EndOffset = startOffset;
             this.viewDisassembler = viewDisassembler;
             instructionCount = 0;
+            Name = name;
         }
 
         public void AddInstruction(int length)
