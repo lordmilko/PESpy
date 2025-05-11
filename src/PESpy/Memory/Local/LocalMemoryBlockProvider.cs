@@ -17,12 +17,14 @@ namespace PESpy
         internal long Length => mmf.Length;
 
         private bool disposed;
+        private bool is32Bit;
 
         internal LocalMemoryBlockProvider(FileStream stream, PEFile peFile)
         {
             File = peFile;
 
             mmf = new MemoryMappedFileHolder(stream);
+            is32Bit = File.OptionalHeader.Magic == PEMagic.PE32;
         }
 
         internal LocalMemoryBlockProvider(in MemoryMappedFileHolder mmf, PEFile peFile)
@@ -38,7 +40,7 @@ namespace PESpy
         }
 
         public MemoryBlock CreateBlock(int offsetOrRVA, int size) =>
-            new LocalMemoryBlock(this, offsetOrRVA, size);
+            new LocalMemoryBlock(this, offsetOrRVA, size, is32Bit);
 
         public void Dispose() => Dispose(true);
 

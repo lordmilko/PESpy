@@ -53,6 +53,10 @@ namespace PESpy.View.Builder
 #endif
 
             Debug.Assert(endRVA > currentRVA);
+
+            if (endRVA <= currentRVA)
+                throw new InvalidOperationException("Expected endRVA to be after currentRVA");
+
             var bytesToRead = endRVA - currentRVA;
 
             NativeSpan<byte> bytes;

@@ -497,6 +497,8 @@ namespace PESpy
 #if PEFAST
         private static IValue? ReadCodeView(in MemoryChunk chunk, int sizeOfData)
         {
+            var sig = (CodeViewSig) chunk.PeekUInt32(0);
+
             switch ((CodeViewSig) chunk.PeekUInt32(0))
             {
                 case CodeViewSig.NB10: //PDB v2.0
@@ -504,7 +506,7 @@ namespace PESpy
 
                 case CodeViewSig.NB09: //OMF
                 case CodeViewSig.NB11:
-                    return OMFReader.ReadNB05(chunk, sizeOfData);
+                    return OMFReader.ReadNB05(chunk, sig, chunk.PeekInt32(sizeOfData - 4), sizeOfData); //The last 4 bytes of the data should be lfoBase, which should be the same value as sizeOfData as well
 
                 case CodeViewSig.RSDS: //PDB v7.0
                     return new RSDSI(chunk);
@@ -605,6 +607,8 @@ namespace PESpy
                     writer.WriteGlobal(v);
                 else if (Data is RawValue<ImageDllCharacteristicsEx> r)
                     writer.WriteGlobal(r.Offset, r.Value, sizeof(int), ViewKind.ExDllCharacteristics);
+                else if (Data is FpoData[] f)
+                    writer.WriteGlobal(f);
                 else
                     throw new NotImplementedException($"Don't know how to write a value of type {Data.GetType().Name}");
             }

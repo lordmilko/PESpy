@@ -28,7 +28,7 @@ namespace PESpy.Tests
 
             var sectionView = (SectionView) view;
 
-            Assert.AreEqual(name, sectionView.Header.Name.ToString());
+            Assert.AreEqual(name, sectionView.Name.ToString());
             Assert.AreEqual(offset, sectionView.Offset, $"Offset of {name} was incorrect. Also size is {sectionView.Size}");
             Assert.AreEqual(size, sectionView.Size, $"Size of {name} was incorrect");
 
@@ -44,7 +44,7 @@ namespace PESpy.Tests
 
             var sectionView = (SectionView) view;
 
-            Assert.AreEqual(name, sectionView.Header.Name.ToString());
+            Assert.AreEqual(name, sectionView.Name.ToString());
             Assert.AreEqual(offset, sectionView.Offset, $"Offset of {name} was incorrect. Also size is {sectionView.Size}");
             Assert.AreEqual(size, sectionView.Size, $"Size of {name} was incorrect");
         }

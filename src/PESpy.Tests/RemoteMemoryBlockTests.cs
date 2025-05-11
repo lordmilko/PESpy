@@ -248,7 +248,8 @@ namespace PESpy.Tests
                 rva: start,
                 size: size,
                 reader: reader,
-                provider: null
+                provider: null,
+                IntPtr.Size == 4
             );
 
             demand(start, block);

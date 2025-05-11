@@ -149,6 +149,9 @@ namespace PESpy.View.Builder
                 var lastResult = results.Last();
                 var overlayStart = lastResult.Offset + lastResult.Size;
                 var fileEnd = (Int32) peFile.OptionalHeader.SizeOfImage;
+
+                TryCreateOMFRegion(results);
+
                 var overlayData = BuildSection(overlayStart, fileEnd, v => v, v => v, true);
 
                 if (overlayData.Length > 0)
@@ -159,6 +162,67 @@ namespace PESpy.View.Builder
             }
 
             return results.ToArray();
+        }
+
+        private void TryCreateOMFRegion(List<IView> results)
+        {
+            /* If we have OMF data, we want to read that separately. We would expect that if we have OMF data,
+             * even if it's pointed to by a debug directory, that the typical OMF pattern is followed and that the
+             * file ends with OMF data. We still want this (and any other data, like ImageDebugMisc entries)
+             * in the overlay to be wrapped up in an "OverlayView" item. However, since we don't support building
+             * nested logical views, we need to fake it like we do with LIBMerger: mess with our current position,
+             * read the OMF data, insert it into the list of sorted structs, and then revert the offsets back to
+             * how they were so that BuildSection doesn't suspect a thing */
+
+            var debugTable = peFile.DebugTable;
+
+            if (debugTable == null)
+                return;
+
+            NB05Data? data = null;
+
+            for (var i = 0; i < debugTable.Length; i++)
+            {
+                ref var debugDir = ref debugTable[i];
+
+                if (debugDir.Data is NB05Data d)
+                {
+                    data = d;
+                    break;
+                }
+            }
+
+            if (data == null)
+                return;
+
+            var sizeOfData = data.LfoBase;
+            var start = data.Offset;
+            var end = start + sizeOfData; //We would expect that this should take us to the end of the file. We don't have to +4 to cover the area that lfoBase is in
+
+            var originalNextStructIndex = nextStructIndex;
+
+            //Skip ahead to find the first struct that pertains to the OMF area
+            for (; nextStructIndex < sortedStructs.Count; nextStructIndex++)
+            {
+                if (sortedStructs[nextStructIndex].Offset >= start)
+                    break;
+            }
+
+            var nextStructIndexToInsertAt = nextStructIndex;
+
+            var region = new LogicalRegionView(start, $"{data.Sig} OMF Data", BuildSection(start, end), ViewKind.NB05Data, sizeOfData);
+
+            //Remove all the items we read into the region from the global struct list
+            var endNextStructIndex = nextStructIndex;
+
+            var numStructsInserted = endNextStructIndex - nextStructIndexToInsertAt;
+
+            sortedStructs.RemoveRange(nextStructIndexToInsertAt, numStructsInserted);
+
+            sortedStructs.Insert(nextStructIndexToInsertAt, region);
+
+            //Pretend we were never here!
+            nextStructIndex = originalNextStructIndex;
         }
     }
 }

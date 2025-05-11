@@ -3233,6 +3233,8 @@ namespace PESpy
 
             writer.WriteGlobal(ILMethods);
 
+            writer.WriteGlobal(EcmaMetadata);
+
             //writer.WriteGlobal(ReadyToRunHeader);
 
 #if !PEFAST

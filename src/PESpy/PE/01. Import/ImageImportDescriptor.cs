@@ -263,7 +263,7 @@ namespace PESpy
                 thunk = new ImageThunkData(valueChunk.Slice(read), isIAT);
                 results.Add(thunk);
                 read += size;
-            } while (thunk.Value != 0);
+            } while (thunk.Name.ListedOffset != 0);
 
             return new RVA<ImageThunkData[]>(rva, valueChunk.AbsoluteOffset, results.ToArray());
         }

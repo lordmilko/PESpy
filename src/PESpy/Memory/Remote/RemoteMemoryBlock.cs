@@ -18,7 +18,7 @@ namespace PESpy
         private IMemoryReader reader;
 
         //baseAddress: the base address of the module in the remote process. All RVAs will be read relative to this VA
-        internal RemoteMemoryBlock(long baseAddress, int rva, int size, IMemoryReader reader, IMemoryBlockProvider provider) : base(provider)
+        internal RemoteMemoryBlock(long baseAddress, int rva, int size, IMemoryReader reader, IMemoryBlockProvider provider, bool is32Bit) : base(provider)
         {
             this.baseAddress = baseAddress;
             RemoteStartOffset = rva;
@@ -33,6 +33,8 @@ namespace PESpy
 
             LocalPointer = (byte*) Marshal.AllocHGlobal(size);
             RemoteEndOffset = endRva;
+
+            Is32Bit = is32Bit;
         }
 
         //Load all pages that the specified range touches into memory

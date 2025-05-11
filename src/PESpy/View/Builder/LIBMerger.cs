@@ -57,17 +57,17 @@ namespace PESpy.View.Builder
                             }
                         }
 
-                        var originalNextStructIndex = nextStructIndex;
+                        var nextStructIndexToInsertAt = nextStructIndex;
 
                         OBJMerger.ProcessSectionHeader(section, start, size, lastSectionEnd, this, nestedObjRegions);
 
                         var endNextStructIndex = nextStructIndex;
 
-                        var numStructsInserted = endNextStructIndex - originalNextStructIndex;
+                        var numStructsInserted = endNextStructIndex - nextStructIndexToInsertAt;
 
-                        sortedStructs.RemoveRange(originalNextStructIndex, numStructsInserted);
+                        sortedStructs.RemoveRange(nextStructIndexToInsertAt, numStructsInserted);
 
-                        sortedStructs.InsertRange(originalNextStructIndex, nestedObjRegions);
+                        sortedStructs.InsertRange(nextStructIndexToInsertAt, nestedObjRegions);
 
                         //Decrement the nextStructIndex by the total number of items we removed. We don't reset nextStructIndex to 0 each time,
                         //as the next struct we're going to be looking for is going to be after the previous long members + sections we've already processed

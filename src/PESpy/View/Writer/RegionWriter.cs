@@ -170,14 +170,14 @@ namespace PESpy.View
 
             public void Dispose()
             {
-                if (views.Count == 0)
-                    return;
-
-                if (shouldAdd)
+                if (views.Count > 0)
                 {
-                    var regionView = new LogicalRegionView(startOffset, regionName, views.ToArray(), regionKind, (int) (currentOffset - startOffset));
+                    if (shouldAdd)
+                    {
+                        var regionView = new LogicalRegionView(startOffset, regionName, views.ToArray(), regionKind, (int) (currentOffset - startOffset));
 
-                    viewWriter.AddView(regionView);    
+                        viewWriter.AddView(regionView);
+                    }
                 }
                 
                 viewWriter.ReturnList(views);

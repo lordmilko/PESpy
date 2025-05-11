@@ -118,6 +118,7 @@ namespace PESpy
 
                     var resourcesChunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.OffsetOfResourceTable);
 
+                    resourceTable = default;
                     throw new NotImplementedException();
                 }
 

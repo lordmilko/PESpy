@@ -93,7 +93,13 @@ namespace PESpy.View.Builder
                 if (nextDataDirectoryIndex > 0 && discoveredDataDirectories[nextDataDirectoryIndex].Start < discoveredDataDirectories[nextDataDirectoryIndex - 1].End)
                     nextDataDirectoryIndex++;
                 else
+                {
+                    //If you have a value that is incorrectly longer than it's supposed to be, and the result of that is the next directory is inside
+                    //of that value's region, you will hit this assert. The value should be checked if it's really supposed to be as long as it is.
+                    //Perhaps a sentinel that indicates you're meant to stop reading was missed
                     Debug.Assert(false, "Should not have read past the start of the next data directory");
+                    throw new InvalidOperationException("Should not have read past the start of the next data directory");
+                }
             }
 
             if (nextDataDirectoryIndex < discoveredDataDirectories.Count)

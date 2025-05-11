@@ -5,12 +5,14 @@ namespace PESpy
 {
     class LocalMemoryBlock : MemoryBlock
     {
-        public unsafe LocalMemoryBlock(LocalMemoryBlockProvider provider, int offsetOrRVA, int size) : base(provider)
+        public unsafe LocalMemoryBlock(LocalMemoryBlockProvider provider, int offsetOrRVA, int size, bool is32Bit) : base(provider)
         {
             RemoteStartOffset = offsetOrRVA;
             RemoteEndOffset = offsetOrRVA + size;
 
             LocalPointer = provider.Pointer + offsetOrRVA;
+
+            Is32Bit = is32Bit;
         }
 
         public override void Dispose(bool disposing)
