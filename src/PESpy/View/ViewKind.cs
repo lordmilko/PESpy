@@ -500,8 +500,13 @@ namespace PESpy.View
         #endregion
 
         //NE
+        NEFile,
         ImageOS2Header,
         NewSeg,
+
+        //LE
+        LEFile,
+        ImageVXDHeader,
 
         //PDB
 

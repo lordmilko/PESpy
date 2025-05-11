@@ -1,5 +1,6 @@
 ﻿namespace PESpy.Native
 {
+    //Also called new_exe
     public struct IMAGE_OS2_HEADER
     {
         public ushort ne_magic;                    // Magic number

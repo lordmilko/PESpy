@@ -27,8 +27,7 @@ namespace PESpy.View.Builder
 
             var sizeOfHeaders = neFile.DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
 
-            var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders));
-            results.Add(headerMetadata);
+            results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
 
             var lastSectionEnd = sizeOfHeaders;
 
@@ -66,7 +65,7 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            ReadInterSectionData(lastSectionEnd, start, results);
+            ReadInterSectionData(lastSectionEnd, start, this, results);
 
             results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
 
@@ -83,7 +82,7 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            ReadInterSectionData(lastSectionEnd, start, results);
+            ReadInterSectionData(lastSectionEnd, start, this, results);
 
             results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), ViewKind.Value, length));
 
@@ -99,7 +98,7 @@ namespace PESpy.View.Builder
                 var segmentLength = segment.ns_cbseg;
                 var end = segmentStart + segmentLength;
 
-                ReadInterSectionData(lastSectionEnd, segmentStart, results);
+                ReadInterSectionData(lastSectionEnd, segmentStart, this, results);
 
                 var data = BuildSection(segmentStart, end);
 
@@ -144,13 +143,13 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ReadInterSectionData(int lastSectionEnd, int start, List<IView> results)
+        internal static void ReadInterSectionData(int lastSectionEnd, int start, Merger merger, List<IView> results)
         {
             //You can have data in between segments
             if (lastSectionEnd != -1 && start > lastSectionEnd)
             {
                 var interSectionLength = start - lastSectionEnd;
-                var children = BuildSection(lastSectionEnd, lastSectionEnd + interSectionLength, v => v, v => v);
+                var children = merger.BuildSection(lastSectionEnd, lastSectionEnd + interSectionLength, v => v, v => v);
 
                 if (children.Length == 1)
                     results.Add(children[0]);

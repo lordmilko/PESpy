@@ -4,17 +4,17 @@ using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    public class NEViewWriter : ViewWriter
+    public class LEViewWriter : ViewWriter
     {
-        private readonly NEFile neFile;
+        private readonly LEFile leFile;
 
-        internal unsafe NEViewWriter(
-            NEFile neFile,
+        internal unsafe LEViewWriter(
+            LEFile leFile,
             byte* mmf,
             int length,
             IViewDisassembler? viewDisassembler) : base(mmf, length, viewDisassembler, ViewMode.Default, TryGetViewOffset, null)
         {
-            this.neFile = neFile;
+            this.leFile = leFile;
         }
 
         private static bool TryGetViewOffset(int offset, out int viewoffset)
@@ -31,11 +31,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var merger = new NEMerger(neFile, structs, extension);
+            var merger = new LEMerger(leFile, structs, extension);
 
             var results = merger.Merge();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.NEFile);
+            return new FileView(ViewMode.Physical, results, ViewKind.LEFile);
         }
     }
 }

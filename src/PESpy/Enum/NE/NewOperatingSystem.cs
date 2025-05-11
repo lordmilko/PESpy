@@ -1,7 +1,7 @@
 ﻿namespace PESpy.NE
 {
     //Name is made up
-    public enum NewOperatingSystem : byte
+    public enum NewOperatingSystem : ushort //It's a byte when used in NE, ushort when used in LE
     {
         /// <summary>
         /// Unknown (any "new-format" OS)

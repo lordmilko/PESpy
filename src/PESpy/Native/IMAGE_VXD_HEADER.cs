@@ -1,5 +1,7 @@
 ﻿namespace PESpy.Native
 {
+    //Also called e32_exe. Note that there seem to be multiple definitions of e32_exe.
+    //This is the one that has e32_debuginfo in it
     public unsafe struct IMAGE_VXD_HEADER
     {
         public ushort e32_magic;                   // Magic number

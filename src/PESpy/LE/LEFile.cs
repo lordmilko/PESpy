@@ -2,11 +2,18 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using PESpy.View;
 
 namespace PESpy
 {
+    //http://www.textfiles.com/programming/FORMATS/lxexe.txt
+
     //VXD files use the Linear Executable (LE) file format
-    internal class LEFile : IFile
+
+    /// <summary>
+    /// Represents a Linear Executable (LE) file.
+    /// </summary>
+    internal class LEFile : IFile, IViewable, IDisposable
     {
         public static LEFile FromFile(string path)
         {
@@ -34,6 +41,37 @@ namespace PESpy
         public ref readonly ImageDosHeader DosHeader => ref dosHeader;
 
         #endregion
+        #region DosStub
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ByteBlob dosStub;
+
+        public ref readonly ByteBlob DosStub
+        {
+            get
+            {
+                if (dosStub.Offset == 0)
+                {
+                    var start = ImageDosHeader.StructSize;
+                    var end = DosHeader.FileAddressOfNewExeHeader;
+
+                    var length = (int) (end - start);
+
+                    dosStub = new ByteBlob(new MemoryChunk(globalBlock, start), length);
+                }
+
+                return ref dosStub;
+            }
+        }
+
+        #endregion
+        #region VXDHeader
+
+        private ImageVXDHeader vxdHeader;
+
+        public ref readonly ImageVXDHeader VXDHeader => ref vxdHeader;
+
+        #endregion
 
         /// <inheritdoc/>
         public string? Name { get; private set; }
@@ -45,7 +83,7 @@ namespace PESpy
         public FileKind Kind => FileKind.LE;
 
         private MemoryMappedFileHolder mmf;
-        private GlobalMemoryBlock globalBlock;
+        private readonly GlobalMemoryBlock globalBlock;
 
         private bool disposed;
 
@@ -70,7 +108,22 @@ namespace PESpy
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
 
-            //IMAGE_VXD_HEADER follows
+            vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
+        }
+
+        public unsafe FileView GetView()
+        {
+            var writer = new LEViewWriter(this, mmf.Address, (int) mmf.Length, null);
+            ((IViewable) this).WriteView(writer);
+
+            return (FileView) writer.Finalize();
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            writer.WriteGlobal(DosHeader);
+            writer.WriteDosStub(DosStub);
+            writer.WriteGlobal(VXDHeader);
         }
 
         public void Dispose()
