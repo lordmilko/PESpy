@@ -28,8 +28,14 @@
         public ushort ne_cres;                     // Count of resource segments
         public byte ne_exetyp;                   // Target Operating system
         public byte ne_flagsothers;              // Other .EXE flags
+
+        //It seems like the next two fields could either be ne_gangstart and ne_ganglength or ne_pretthunks
+        //and ne_psegrefbytes. It seems like the gang load fields are defined as pointers / aliases for these two fields.
+        //So depending on the scenario they may be interpreted as containing gang load data
+
         public ushort ne_pretthunks;               // offset to return thunks
         public ushort ne_psegrefbytes;             // offset to segment ref. bytes
+
         public ushort ne_swaparea;                 // Minimum code swap area size
         public ushort ne_expver;                   // Expected Windows version number
     }

@@ -499,6 +499,10 @@ namespace PESpy.View
 
         #endregion
 
+        //NE
+        ImageOS2Header,
+        NewSeg,
+
         //PDB
 
         PDBFile,
@@ -574,6 +578,11 @@ namespace PESpy.View
         FirstLinkerMember,
         LongImportLibraryMember,
         ShortImportLibraryMember,
-        ImportObjectHeader
+        ImportObjectHeader,
+
+        //OMF
+        NB05Data,
+        OMFDirHeader,
+        OMFDirEntry
     }
 }

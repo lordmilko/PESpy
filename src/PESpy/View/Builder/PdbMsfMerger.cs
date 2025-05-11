@@ -64,7 +64,7 @@ namespace PESpy.View.Builder
 
             pageNumberToSIIndex = dict;
 
-            var results = BuildSection(0, pdbFile.NumPages * pdbFile.PageSize, null, null);
+            var results = BuildSection(0, pdbFile.NumPages * pdbFile.PageSize);
 
             return results;
         }

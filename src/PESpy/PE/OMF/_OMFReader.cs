@@ -27,7 +27,7 @@ namespace PESpy
         //startAddress should be the start address of the file
         //length should be the total length of the file
         //globalBlock should be a block that is capable of accessing the entire file
-        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock)
+        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out IValue? omfData)
         {
             var endOfFile = startAddress + length;
 
@@ -36,6 +36,8 @@ namespace PESpy
             var endSig = (OMFSignature*) (endOfFile - 8);
 
             var oldStyle = false;
+
+            omfData = default;
 
             switch ((CodeViewSig) endSig->Signature)
             {
@@ -108,7 +110,7 @@ namespace PESpy
             if (oldStyle)
                 ReadNB02(chunk, omfLength);
             else
-                ReadNB05(chunk, omfLength);
+                omfData = ReadNB05(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength);
 
             return true;
         }
@@ -256,7 +258,7 @@ namespace PESpy
         #endregion
         #region NB05+
 
-        internal static IValue ReadNB05(in MemoryChunk chunk, int sizeOfData)
+        internal static NB05Data ReadNB05(in MemoryChunk chunk, CodeViewSig sig, int lfoBaseOff, int sizeOfData)
         {
             /* NB05-NB11 have the same format. The individual versions seem to just indicate which linker was used and whether the file was packed or not.
              * The only substantive difference seems to be when dumping globals, if it's NB09 or NB11 there's no OMFSymHash offset to consider (see dympsym7.cpp!DumpGlobal)
@@ -310,6 +312,8 @@ namespace PESpy
                     {
                         var symbolsChunk = chunk.Slice(entry.lfo);
 
+#if FALSE
+
                         throw new NotImplementedException("Need to register symbol memory with symbol tracker. Needs to work for global, local and remote memory blocks");
 
                         //var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
@@ -326,8 +330,9 @@ namespace PESpy
                         //    default:
                         //        throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
                         //}
+#endif
 
-                        //break;
+                        break;
                     }
 
                     case SST.sstSrcLnSeg:
@@ -379,23 +384,27 @@ namespace PESpy
                     }
 
                     case SST.sstGlobalTypes:
-                        throw new NotImplementedException();
+                        AssertNotImplemented();
+                        break;
 
                     case SST.sstMPC:
                         throw new NotImplementedException();
 
                     case SST.sstSegMap:
-                        throw new NotImplementedException();
+                        AssertNotImplemented();
+                        break;
 
                     case SST.sstSegName:
                     case SST.sstPreComp:
                     case SST.sstPreCompMap:
                     case SST.sstOffsetMap16:
                     case SST.sstOffsetMap32:
-                        throw new NotImplementedException();
+                        AssertNotImplemented();
+                        break;
 
                     case SST.sstFileIndex:
-                        throw new NotImplementedException();
+                        AssertNotImplemented();
+                        break;
 
                     default:
                         throw new NotImplementedException($"Don't know how to handle {nameof(SST)} '{entry.SubSection}'");
@@ -404,6 +413,19 @@ namespace PESpy
                 offset += OMFDirEntry.StructSize;
             }
 
+            return new NB05Data(
+                chunk.AbsoluteOffset,
+                sig,
+                lfoBaseOff,
+                lfoDir,
+                dirHeader,
+                entries,
+                tableData
+            );
+        }
+
+        private static void AssertNotImplemented()
+        {
             throw new NotImplementedException();
         }
 

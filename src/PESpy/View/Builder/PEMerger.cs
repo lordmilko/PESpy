@@ -137,7 +137,7 @@ namespace PESpy.View.Builder
 
                 var data = BuildSection(start, start + size, getRealOffset, getRVA);
 
-                results.Add(new SectionView(start, section, data, size));
+                results.Add(new SectionView(start, section.Name.ToString(), data, size));
             }
 
             //Overlay data is not loaded in virtual modules, and perhaps more importantly: it uses physical addressing, which could overlap with any virtual addresses we might be using!

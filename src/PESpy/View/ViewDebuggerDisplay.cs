@@ -160,7 +160,7 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(view.Header.Name);
+            builder.Append(view.Name);
 
             builder.Append(" (").Append(FormatBytes(view.Size)).Append(")");
 
@@ -237,6 +237,11 @@ namespace PESpy.View
 
                 if (needName)
                     builder.Append(" (").Append(field.Name).Append(")");
+            }
+            else if (view.Name == "OMFDirEntry")
+            {
+                var subSection = fields.First(f => f.Name == "SubSection");
+                builder.Append(" ").Append(subSection.Value);
             }
             else
             {

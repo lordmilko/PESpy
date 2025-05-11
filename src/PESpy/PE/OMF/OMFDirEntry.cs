@@ -1,8 +1,9 @@
 ﻿using ClrDebug.OMF;
+using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct OMFDirEntry
+    public readonly struct OMFDirEntry : IValue, IViewable
     {
         public SST SubSection => (SST) chunk.PeekUInt16(0);
 
@@ -25,6 +26,16 @@ namespace PESpy
         internal OMFDirEntry(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(ClrDebug.OMF.OMFDirEntry), this, ViewKind.OMFDirEntry);
+
+            s.WriteField(nameof(SubSection), SubSection, sizeof(ushort));
+            s.WriteField(nameof(iMod), iMod);
+            s.WriteField(nameof(lfo), lfo);
+            s.WriteField(nameof(cb), cb);
         }
 
         public override string ToString()

@@ -1,34 +1,20 @@
 ﻿#if PEFAST
 using System;
-using ClrDebug;
 using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    public class OBJViewWriter : ViewWriter, IMachineWriter
+    public class NEViewWriter : ViewWriter
     {
-        private readonly OBJFile objFile;
+        private readonly NEFile neFile;
 
-        public IMAGE_FILE_MACHINE Machine => objFile.FileHeader.Machine;
-
-        internal unsafe OBJViewWriter(
-            OBJFile objFile,
-#if PEFAST
+        internal unsafe NEViewWriter(
+            NEFile neFile,
             byte* mmf,
-            int length
-#else
-            IFileReader reader,
-#endif
-            ) : base(
-#if PEFAST
-            mmf,
-            length,
-#else
-            reader,
-#endif
-            null, ViewMode.Default, TryGetViewOffset, null)
+            int length,
+            IViewDisassembler? viewDisassembler) : base(mmf, length, viewDisassembler, ViewMode.Default, TryGetViewOffset, null)
         {
-            this.objFile = objFile;
+            this.neFile = neFile;
         }
 
         private static bool TryGetViewOffset(int offset, out int viewoffset)
@@ -45,7 +31,7 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var merger = new OBJMerger(objFile, structs, extension);
+            var merger = new NEMerger(neFile, structs, extension);
 
             var results = merger.Merge();
 

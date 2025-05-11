@@ -163,6 +163,23 @@ namespace PESpy.View
             }
         }
 
+        public void WriteGlobalField<T>(int offset, string name, in T value, int size)
+        {
+            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+
+            if (shouldAdd)
+            {
+                if (shouldAdd)
+                {
+                    Push(globalList);
+
+                    AddView(new FieldView<T>(offset, name, value, size));
+
+                    Pop();
+                }
+            }
+        }
+
         internal PageWriter CreatePagedWriter(int startRelativeOffset, PagedMemoryBlock block, bool global)
         {
             if (global)

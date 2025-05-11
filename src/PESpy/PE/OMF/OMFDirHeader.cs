@@ -1,6 +1,8 @@
-﻿namespace PESpy
+﻿using PESpy.View;
+
+namespace PESpy
 {
-    public readonly struct OMFDirHeader : IValue
+    public readonly struct OMFDirHeader : IValue, IViewable
     {
         public ushort cbDirHeader => chunk.PeekUInt16(0);
 
@@ -26,6 +28,17 @@
         internal OMFDirHeader(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteView(ViewWriter writer)
+        {
+            using var s = writer.CreateStruct(nameof(ClrDebug.OMF.OMFDirHeader), this, ViewKind.OMFDirHeader);
+
+            s.WriteField(nameof(cbDirHeader), cbDirHeader);
+            s.WriteField(nameof(cbDirEntry), cbDirEntry);
+            s.WriteField(nameof(cDir), cDir);
+            s.WriteField(nameof(lfoNextDir), lfoNextDir);
+            s.WriteField(nameof(flags), flags);
         }
     }
 }

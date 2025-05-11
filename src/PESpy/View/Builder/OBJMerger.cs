@@ -7,7 +7,7 @@ namespace PESpy.View.Builder
 {
     internal class OBJMerger : Merger
     {
-        private OBJFile objFile;
+        private readonly OBJFile objFile;
 
         public OBJMerger(
             OBJFile objFile,
@@ -73,9 +73,9 @@ namespace PESpy.View.Builder
                 results.Add(interRegion);
             }
 
-            var data = merger.BuildSection(start, start + size, null, null);
+            var data = merger.BuildSection(start, start + size);
 
-            results.Add(new SectionView(start, section, data, size));
+            results.Add(new SectionView(start, section.Name.ToString(), data, size));
         }
 
         internal static void ProcessOverlay(int lastSectionEnd, int length, Merger merger, List<IView> results)

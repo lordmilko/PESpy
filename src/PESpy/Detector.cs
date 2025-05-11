@@ -2,6 +2,7 @@
 using System.IO;
 using ClrDebug;
 using PESpy.Native;
+using PESpy.NE;
 using PESpy.PDB;
 
 //Having out IFile? is confusing from an API standpoint because the caller has to keep doing file! whenever they use it when we returned true.
@@ -51,7 +52,7 @@ namespace PESpy
 
                     sig &= 0xFFFF; //NE header is 2 bytes not 4. First two bytes will be junk due to little endian read
 
-                    if (sig == ImageNtHeaders.IMAGE_OS2_SIGNATURE)
+                    if (sig == ImageOS2Header.IMAGE_OS2_SIGNATURE)
                     {
                         file = new NEFile(fs.Name, mmf);
                         return true;

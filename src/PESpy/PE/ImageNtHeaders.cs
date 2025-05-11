@@ -1,5 +1,6 @@
 ﻿using System;
 using PESpy.Native;
+using PESpy.NE;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -13,7 +14,6 @@ namespace PESpy
     public readonly struct ImageNtHeaders : IViewable, IValue
     {
         public const uint IMAGE_NT_SIGNATURE = 0x00004550; //PE00
-        public const ushort IMAGE_OS2_SIGNATURE = 0x454E;    //NE
 
         /// <summary>
         /// A 4-byte signature identifying the file as a PE image. The bytes are "PE\0\0".
@@ -66,7 +66,7 @@ namespace PESpy
             {
                 var ne = sig & 0xFFFF; //NE header is 2 bytes not 4
 
-                if (ne == IMAGE_OS2_SIGNATURE) //NE
+                if (ne == ImageOS2Header.IMAGE_OS2_SIGNATURE) //NE
                     throw new BadImageFormatException("'New Executable' files are not supported");
 
                 throw new BadImageFormatException("Invalid PE signature.");

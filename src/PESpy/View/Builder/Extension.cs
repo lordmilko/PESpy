@@ -197,7 +197,7 @@ namespace PESpy.View.Builder
                 localKind = null;
 
             var blob = new ByteBlobView(offset + i, arr, localKind);
-            i += length - 1;
+            i += arr.Length - 1;
             return blob;
         }
     }

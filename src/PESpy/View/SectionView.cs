@@ -11,7 +11,7 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.Section(this),nq}")]
     public class SectionView : IContainerView
     {
-        public ImageSectionHeader Header { get; }
+        public string Name { get; }
 
         public RawOffset Offset { get; }
         public int Size { get; }
@@ -20,10 +20,10 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public SectionView(RawOffset offset, in ImageSectionHeader header, IView[] children, int size)
+        public SectionView(RawOffset offset, string name, IView[] children, int size)
         {
             Offset = offset;
-            Header = header;
+            Name = name;
             Children = children;
             Size = size;
         }

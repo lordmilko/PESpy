@@ -44,8 +44,8 @@ namespace PESpy.View.Builder
         internal IView[] BuildSection(
             RawOffset startRva,
             RawOffset endRva,
-            Func<int, int>? getRealOffset,
-            Func<int, int>? getRVA,
+            Func<int, int>? getRealOffset = null,
+            Func<int, int>? getRVA = null,
             bool isOverlay = false)
         {
             masterList.Clear();
@@ -130,6 +130,8 @@ namespace PESpy.View.Builder
 
                         if (nextStructIndex < sortedStructs.Count)
                             nextValue = sortedStructs[nextStructIndex];
+                        else
+                            break; //Something has gone seriously wrong and we've run out of structs
                     }
 
                     Debug.Assert(rva <= nextValue.Offset);
