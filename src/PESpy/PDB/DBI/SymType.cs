@@ -498,7 +498,7 @@ namespace PESpy.PDB
         {
             //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
 
-            var dbi = SymbolMemoryTracker.GetDBI((long) symType);
+            var dbi = SymbolMemoryTracker.GetPDB((long) symType)?.DBI;
 
             if (dbi == null)
                 return default;
@@ -535,7 +535,7 @@ namespace PESpy.PDB
 
         internal static bool TryGetSectionContrib(SYMTYPE* symType, short seg, int off, out SC40 sc)
         {
-            var dbi = SymbolMemoryTracker.GetDBI((long) symType);
+            var dbi = SymbolMemoryTracker.GetPDB((long) symType)?.DBI;
 
             sc = default!;
 

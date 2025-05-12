@@ -24,6 +24,8 @@ namespace PESpy.PDB
 
                 var headerSize = 0;
 
+                //We are 16-bit (generally) if we are <= impvv41. This also affects
+                //the TPI TI to Off map
                 if (impv <= TPIImpv.impv41)
                 {
                     Hdr = new HDR_16t(chunk);

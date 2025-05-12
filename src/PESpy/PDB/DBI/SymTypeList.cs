@@ -21,7 +21,7 @@ namespace PESpy.PDB
 
     //PERF: don't allocate a massive array of SymType
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(TypTypeListDebugView))]
+    [DebuggerTypeProxy(typeof(SymTypeListDebugView))]
     public unsafe class SymTypeList : IEnumerable<SymType>
     {
         private readonly byte* ptr;
@@ -42,7 +42,7 @@ namespace PESpy.PDB
 
                     while (p < e)
                     {
-                        var s = (SYMTYPE*) ptr;
+                        var s = (SYMTYPE*) p;
 
                         c++;
                         p += s->reclen + 2;

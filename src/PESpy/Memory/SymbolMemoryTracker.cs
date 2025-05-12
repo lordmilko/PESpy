@@ -17,7 +17,7 @@ namespace PESpy
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
         private static readonly List<(long start, long end, bool isLengthPrefixedString)> globalMemoryRanges = new();
-        private static readonly List<(long start, long end, MsfStream.DBI? dbi)> globalDbiRanges = new();
+        private static readonly List<(long start, long end, PDBFile? pdb)> globalPdbRanges = new();
         private static readonly object globalMemoryRangesLock = new object();
 
         internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
@@ -35,7 +35,7 @@ namespace PESpy
                     var isLengthPrefixedString = pdb.PDB!.PDBHeader.ImplementationVersion <= PDBIMPV.PDBImpvVC98;
 
                     InsertEntry(block, globalMemoryRanges, isLengthPrefixedString);
-                    InsertEntry(block, globalDbiRanges, pdb.DBI);
+                    InsertEntry(block, globalPdbRanges, pdb);
                 }
             }
         }
@@ -79,19 +79,19 @@ namespace PESpy
 
         internal static ImageSectionHeader[]? GetSectionHeaders(long address)
         {
-            var dbi = FindItem(address, globalDbiRanges);
+            var dbi = FindItem(address, globalPdbRanges)?.DBI;
 
             return dbi?.SectionHdr;
         }
 
         internal static IModi[]? GetModules(long address)
         {
-            var dbi = FindItem(address, globalDbiRanges);
+            var dbi = FindItem(address, globalPdbRanges)?.DBI;
 
             return dbi?.Modules;
         }
 
-        internal static MsfStream.DBI? GetDBI(long address) => FindItem(address, globalDbiRanges);
+        internal static PDBFile? GetPDB(long address) => FindItem(address, globalPdbRanges);
 
         internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalMemoryRanges);
 
@@ -137,7 +137,7 @@ namespace PESpy
             lock (globalMemoryRangesLock)
             {
                 globalMemoryRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
-                globalDbiRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
+                globalPdbRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
                 block.SymbolMemory.Clear();
             }
         }

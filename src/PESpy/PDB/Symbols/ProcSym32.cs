@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public int len => value->len;
         public int DbgStart => value->DbgStart;
         public int DbgEnd => value->DbgEnd;
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
         public CV_uoff32_t off => value->off;
         public short seg => value->seg;
         public CV_PROCFLAGS flags => value->flags;

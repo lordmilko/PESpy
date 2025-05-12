@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -42,7 +43,7 @@ namespace PESpy.PDB
 
                     while (p < e)
                     {
-                        var t = (TYPTYPE*) ptr;
+                        var t = (TYPTYPE*) p;
 
                         c++;
                         p += t->len + 2;
@@ -59,6 +60,16 @@ namespace PESpy.PDB
         {
             this.ptr = ptr;
             this.end = ptr + length;
+        }
+
+        public TypType GetTypeFromOffset(int offset)
+        {
+            var p = ptr + offset;
+
+            if (p > end)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+
+            return (TYPTYPE*) p;
         }
 
         public IEnumerator<TypType> GetEnumerator() => new Enumerator(ptr, end);

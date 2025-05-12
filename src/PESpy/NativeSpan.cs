@@ -1,13 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
+    class NativeSpanDebugView<T> where T : unmanaged
+    {
+        private readonly NativeSpan<T> span;
+
+        public NativeSpanDebugView(NativeSpan<T> span)
+        {
+            this.span = span;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => span.ToArray();
+    }
+
     /// <summary>
     /// Represents an a <see cref="Span{T}"/> around native memory, capable of being stored on the heap.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of element contained in the span.</typeparam>
+    [DebuggerTypeProxy(typeof(NativeSpanDebugView<>))]
     public readonly unsafe struct NativeSpan<T> where T : unmanaged
     {
         private readonly T* pointer;
@@ -133,7 +148,14 @@ namespace PESpy
 
         public T[] ToArray() => ((Span<T>) this).ToArray();
 
-        public override string ToString() => ((Span<T>) this).ToString();
+        public override string ToString()
+        {
+            if (typeof(T) == typeof(char))
+            {
+                return new string((char*) pointer, 0, length);
+            }
+            return $"NativeSpan<{typeof(T).Name}>[{length}]";
+        }
 
         public struct Enumerator
         {

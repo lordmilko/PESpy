@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;
 using SN = PESpy.PDB.SN;
@@ -217,6 +218,104 @@ namespace PESpy
         }
 
         #endregion
+        #region snIpi (4)
+
+        private MsfStream.TPI? ipi;
+
+        /// <summary>
+        /// Provides access to the contents of the snIpi (4) stream which contains records for ID types used in the PDB.<para/>
+        /// This value is not valid if this is a <see cref="PDB1File"/>.
+        /// </summary>
+        public MsfStream.TPI? IPI //dumppdb.cpp uses the header "IDs" for IPI, which tells us what the I stands for
+        {
+            get
+            {
+                if (ipi == null)
+                {
+                    if (TryGetStreamChunk(SN.IPI, out var chunk))
+                        ipi = new MsfStream.TPI(chunk);
+                }
+
+                return ipi;
+            }
+        }
+
+        #endregion
+
+        public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+        {
+            if (typeIndex.CV_IS_PRIMITIVE())
+                throw new ArgumentException($"Cannot resolve TypType for {nameof(CV_typ_t)} {typeIndex}: type is a primitive type");
+
+            var tpi = TPI;
+
+            if (tpi == null)
+                throw new InvalidOperationException("Attempted to resolve a type index when no TPI stream was present");
+
+            //In impv70+ there is a table in tpihash that we can use to do a binary search on to get the offset of the type index
+
+            if (TryGetOffsetFromTpiHash(typeIndex, out var offset))
+                return tpi.Types.GetTypeFromOffset(offset);
+
+            throw new NotImplementedException("Retrieving a TypType when the type index is not in the TI to Offset list is not implemented");
+        }
+
+        private NativeSpan<TI_OFF> tiToOffList;
+        private bool hasTriedTiToOffList;
+
+        private bool TryGetOffsetFromTpiHash(CV_typ_t typeIndex, out int offset)
+        {
+            //It seems that not all type indices in a PDB may be in this list
+            offset = default;
+
+            if (tiToOffList.Length == 0)
+            {
+                if (hasTriedTiToOffList)
+                    return false;
+
+                //Caller should have validated we have a TPI
+                if (TPI!.Hdr is HDR h)
+                {
+                    var tpiHash = h.tpihash;
+
+                    if (TryGetStreamChunk(tpiHash.sn, out var chunk))
+                    {
+                        var val = chunk.Slice(tpiHash.offcbTiOff.off);
+
+                        hasTriedTiToOffList = true;
+                        tiToOffList = val.PeekNativeSpan<TI_OFF>(0, tpiHash.offcbTiOff.cb / 8);
+                    }
+                }
+
+                hasTriedTiToOffList = true;
+            }
+
+            var localList = tiToOffList;
+
+            //Binary search for offset
+            int low = 0;
+            int high = localList.Length - 1;
+
+            while (low <= high)
+            {
+                int mid = low + (high - low) / 2;
+
+                var item = localList[mid];
+
+                if (item.ti == typeIndex)
+                {
+                    offset = item.off;
+                    return true;
+                }
+                else if (item.ti < typeIndex)
+                    low = mid + 1;
+                else
+                    high = mid - 1;
+            }
+
+            return false;
+        }
+
         #region /names
 
         private NMT? nameMap;
@@ -421,6 +520,7 @@ namespace PESpy
             writer.WriteGlobal(PDB); //snPDB
             writer.WriteGlobal(TPI); //snTpi
             writer.WriteGlobal(DBI); //snDbi
+            writer.WriteGlobal(IPI); //snIpi
 
             writer.WriteGlobal(GSI);
             writer.WriteGlobal(PSGSI);

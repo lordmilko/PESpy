@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -15,15 +16,15 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_typ_t rvtype => value->rvtype;
+        public TypOrEnumType rvtype => new TypOrEnumType((byte*) value, value->rvtype);
 
-        public byte calltype => value->calltype;
+        public CV_call_e calltype => (CV_call_e) value->calltype;
 
         public CV_funcattr_t funcattr => value->funcattr;
 
         public short parmcount => value->parmcount;
 
-        public CV_typ_t arglist => value->arglist;
+        public TypOrEnumType arglist => new TypOrEnumType((byte*) value, value->arglist);
 
         internal LfProc(lfProc* value)
         {
