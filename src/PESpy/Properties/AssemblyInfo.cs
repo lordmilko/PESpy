@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("PESpy.Benchmarks")]
 [assembly: InternalsVisibleTo("PESpy.Tests")]
 [assembly: InternalsVisibleTo("App")]
 

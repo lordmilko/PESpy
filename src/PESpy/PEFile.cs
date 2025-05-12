@@ -78,6 +78,9 @@ namespace PESpy
     {
         #region Static
 
+        //Note: when it comes to building PE files, we can't have an API for creating an "Empty" PDB, because we don't have a way to denote that stuff like the DOS Header
+        //might not exist. Also, I think we do need a PEFileBuilder, because when we add/remove items we may have to shift things around, so we probably need to rewrite the whole PE
+
 #if PEFAST
         /// <summary>
         /// Reads a <see cref="PEFile"/> from a file on disk.
@@ -86,6 +89,7 @@ namespace PESpy
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified file.</returns>
         public static PEFile FromFile(string path)
         {
+            //Opening the file and creating the MMF, without doing anything else, allocates 1.07KB
             using var fs = File.OpenRead(path);
 
             var mmf = new MemoryMappedFileHolder(fs);
@@ -2654,9 +2658,7 @@ namespace PESpy
             Name = Path.GetFileName(fileName);
             var localProvider = new LocalMemoryBlockProvider(mmf, this);
             blockProvider = localProvider;
-
             headerBlock = new LocalHeaderMemoryBlock(localProvider);
-
             InitializeHeaders();
         }
 

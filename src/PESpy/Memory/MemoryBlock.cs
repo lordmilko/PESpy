@@ -59,6 +59,20 @@ namespace PESpy
             return true;
         }
 
+        public void PreparePoke(int blockOffset, int size)
+        {
+            /* When it comes to poking data, we can potentially just modify the memory mapped file directly. However, when it comes to adding data
+             * there doesn't seem to be a way to grow your memory mapped file. You need to unmap the file, and then remap it with a new size. This is no good.
+             * So Plan B: do everything in memory
+             * - When creating a brand new file, it's all in memory anyway, so we can do whatever we like to its memory
+             * - When opening an existing file, we use copy-on-write. Instead of our normal block provider, we have a paged block provider
+             * - When modifying remote memory, we need to read the pages our write will touch in, and then write to them
+             *
+             * There needs to be some way of applying our changes, which should write them back to the remote process or save them to disk. */
+
+            throw new NotImplementedException();
+        }
+
         public virtual int GetAbsoluteOffset(int blockOffset) => RemoteStartOffset + blockOffset;
 
         public void Dispose() => Dispose(true);

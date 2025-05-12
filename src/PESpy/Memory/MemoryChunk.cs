@@ -33,6 +33,8 @@ namespace PESpy
         public bool Is32Bit => block.Is32Bit;
         public int PointerSize => block.Is32Bit ? 4 : 8;
 
+        #region Peek
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte PeekByte(int offset) => *(byte*) (Pointer + offset);
 
@@ -191,6 +193,107 @@ namespace PESpy
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long TryPeekPointer(int offset, int ownerLength) => offset < ownerLength ? (long) PeekPointer(offset) : 0;
+
+        #endregion
+        #endregion
+        #region Poke
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeByte(int offset, byte value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(byte));
+            *(block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeInt16(int offset, short value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(short));
+            *(short*)(block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeUInt16(int offset, ushort value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(ushort));
+            *(ushort*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeInt32(int offset, int value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(int));
+            *(int*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeUInt32(int offset, uint value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(uint));
+            *(uint*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeInt64(int offset, long value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(long));
+            *(long*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeUInt64(int offset, ulong value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, sizeof(ulong));
+            *(ulong*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokePointer(int offset, ulong value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, PointerSize);
+
+            if (Is32Bit)
+                *(uint*) (block.LocalPointer + blockOffset) = (uint) value;
+            else
+                *(ulong*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeSpan<T>(int offset, int numElems, Span<T> value)
+        {
+            //Not sure how to get the length of each T
+            throw new NotImplementedException();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeNativeSpan<T>(int offset, int numElems, NativeSpan<T> value) where T : unmanaged
+        {
+            //Not sure how to get the length of each T
+            throw new NotImplementedException();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeUnmanaged<T>(int offset, T value)
+        {
+            //Not sure how to get the length of each T
+            throw new NotImplementedException();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PokeGuid(int offset, Guid value)
+        {
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, 16);
+            *(Guid*) (block.LocalPointer + blockOffset) = value;
+        }
 
         #endregion
 

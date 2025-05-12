@@ -134,7 +134,7 @@ namespace PESpy.View
                 if (value.Length == 0)
                     return;
 
-                WriteFieldInternal(name, value, value.Length * 2);
+                WriteFieldInternal(name, value, value.Length * 4);
             }
 
             public void WriteField(string name, NativeSpan<int> value)

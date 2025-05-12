@@ -94,14 +94,26 @@ namespace PESpy.Tests
             Assert.AreEqual(name, fieldView.Name);
 
             var expectedType = value.GetType();
-            var actualType = fieldView.Value.GetType();
+
+            var fieldValue = fieldView.Value;
+            var actualType = fieldValue.GetType();
+
+            if (actualType.Name.Contains("NativeSpan"))
+            {
+                if (fieldValue is NativeSpan<PN> a)
+                    fieldValue = a.ToArray();
+                else
+                    throw new NotImplementedException();
+
+                actualType = fieldValue.GetType();
+            }
 
             Assert.AreEqual(expectedType.IsArray, actualType.IsArray);
 
             if (expectedType.IsArray)
             {
                 var expectedArray = (Array) value;
-                var actualArray = (Array) fieldView.Value;
+                var actualArray = (Array) fieldValue;
 
                 Assert.AreEqual(expectedArray.Length, actualArray.Length);
 
@@ -110,7 +122,7 @@ namespace PESpy.Tests
             }
             else
             {
-                var fieldValue = fieldView.Value;
+                fieldValue = fieldView.Value;
 
                 if (value is string s) //Could be PCSTR
                     fieldValue = fieldValue.ToString();
