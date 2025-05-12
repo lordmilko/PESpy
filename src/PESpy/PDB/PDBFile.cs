@@ -230,7 +230,8 @@ namespace PESpy
         {
             get
             {
-                if (ipi == null)
+                //IPI is only present when we're impv110+
+                if (ipi == null && PDB?.PDBHeader.ImplementationVersion >= PDBIMPV.PDBImpvVC110)
                 {
                     if (TryGetStreamChunk(SN.IPI, out var chunk))
                         ipi = new MsfStream.TPI(chunk);
@@ -520,6 +521,8 @@ namespace PESpy
             writer.WriteGlobal(PDB); //snPDB
             writer.WriteGlobal(TPI); //snTpi
             writer.WriteGlobal(DBI); //snDbi
+
+            //IPI will return null if we're not impv110
             writer.WriteGlobal(IPI); //snIpi
 
             writer.WriteGlobal(GSI);

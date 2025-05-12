@@ -45,7 +45,7 @@ namespace PESpy.PDB
                         var s = (SYMTYPE*) p;
 
                         c++;
-                        p += s->reclen + 2;
+                        p += SymType.GetSymbolLength(s);
                     }
 
                     count = c;
@@ -88,7 +88,7 @@ namespace PESpy.PDB
                     SymTypeProxy.GetValue(Current);
 #endif
 
-                    ptr += Current.reclen + 2;
+                    ptr += SymType.GetSymbolLength(Current);
 
                     return true;
                 }

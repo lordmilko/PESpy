@@ -406,7 +406,10 @@ namespace PESpy.View
             /// <param name="value">The structure to encapsulate in the field.</param>
             public void WriteStructField<T>(string name, T value) where T : IViewable
             {
+                var oldOffset = viewWriter.UnmanagedOffset;
+                viewWriter.UnmanagedOffset = currentOffset;
                 var view = (StructView) viewWriter.WriteIntercepted(value);
+                viewWriter.UnmanagedOffset = oldOffset;
 
                 WriteFieldInternal(name, view, view.Size);
             }
@@ -586,24 +589,24 @@ namespace PESpy.View
              * in the output, however the array itself may have spanned multiple pages. We will therefore do the math in figuring out which page each value starts in.
              * In the case where a given value extends past the end of a given page, this is OK: during merging we will detect this and convert the value into a split value */
 
-            public void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
+            public unsafe void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
             {
                 using var p = viewWriter.CreatePagedWriter(startRelativeOffset, block, false);
 
                 foreach (var item in value)
-                    p.WriteValue(item, item.reclen + 2, ViewKind.SymType);
+                    p.WriteValue(item, SymType.GetSymbolLength(item), ViewKind.SymType);
             }
 
             #endregion
 
             //Should only be used for OBJ files
-            public void WriteValue(int offset, SymTypeList value)
+            public unsafe void WriteValue(int offset, SymTypeList value)
             {
                 var written = 0;
 
                 foreach (var item in value)
                 {
-                    var totalLength = item.reclen + 2;
+                    var totalLength = SymType.GetSymbolLength(item);
                     fields.Add(new ValueView<SymType>(offset + written, item, totalLength, ViewKind.SymType));
                     written += totalLength;
                 }

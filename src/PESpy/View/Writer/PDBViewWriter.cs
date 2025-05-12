@@ -92,7 +92,7 @@ namespace PESpy.View
                     foreach (var module in pdbFile.DBI.Modules)
                     {
                         if (module.sn != SN.Nil)
-                            streamIndexToNameMap.Add(module.sn, $"Symbols $ {Path.GetFileName(module.ToString())}"); 
+                            streamIndexToNameMap.Add(module.sn, $"Symbols: {Path.GetFileName(module.ToString())}"); 
                     }
                 }
 
@@ -163,7 +163,12 @@ namespace PESpy.View
                         break;
 
                     case 4:
-                        name = "IPI";
+                        //IPI is only present in impv110+
+
+                        if (pdbFile.PDB?.PDBHeader.ImplementationVersion >= ClrDebug.PDB.PDBIMPV.PDBImpvVC110)
+                            name = "IPI";
+                        else
+                            streamIndexToNameMap.TryGetValue(i, out name);
                         break;
 
                     default:

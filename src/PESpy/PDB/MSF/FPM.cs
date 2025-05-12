@@ -73,8 +73,18 @@ namespace PESpy.PDB
             }
             else
             {
-                //In small MSFs there's a single FPM page
-                FpmPages = new[] { fpmPageNo };
+                //In small MSFs a great big FPM is allocated up front capable of storing all 65536 page bits. The number of pages
+                //required to represent the FPM will depend on how big each page is (e.g. if we have 1024 byte pages, we can represent
+                //8192 bits per page which means we need 8 pages to represent all 65536 page bits)
+
+                var numFpmPages = 65536 / (pageSize * 8);
+
+                var fpmPages = new PN[numFpmPages];
+
+                for (var i = 0; i < numFpmPages; i++)
+                    fpmPages[i] = fpmPageNo + i;
+
+                FpmPages = fpmPages;
             }
 
             //Now read the actual bits of the FPM

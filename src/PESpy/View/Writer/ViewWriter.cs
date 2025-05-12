@@ -153,11 +153,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteGlobal(int offset, SymTypeList value)
+        public unsafe void WriteGlobal(int offset, SymTypeList value)
         {
             foreach (var item in value)
             {
-                var size = item.reclen + 2;
+                var size = SymType.GetSymbolLength(item);
                 WriteGlobal(offset, item, size, ViewKind.SymType);
                 offset += size;
             }
@@ -190,12 +190,12 @@ namespace PESpy.View
             return new PageWriter(viewOffset - block.RemoteStartOffset, block, this, global, shouldAdd);
         }
 
-        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
+        internal unsafe void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-                p.WriteValue(item, item.reclen + 2, ViewKind.SymType);
+                p.WriteValue(item, SymType.GetSymbolLength(item), ViewKind.SymType);
         }
 
         internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypTypeList value)

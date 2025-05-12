@@ -30,6 +30,7 @@ namespace PESpy.PDB
                  * take up 8 bytes already, leaving 4 bytes for the trailing data. A CV_typ_t takes up 4 bytes, and now we're out of data.
                  * The invocation count for that item goes beyond the end of the structure, and so it is implicitly 0 */
 
+                //No need to do SymType.GetSymbolLength; we know we're not one of the 3 dodgy ST ref symbols
                 var remainingBytes = ((reclen + 2) - 8) - (count * 4);
 
                 if (remainingBytes == 0)

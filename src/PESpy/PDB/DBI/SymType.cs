@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ClrDebug;
 using ClrDebug.PDB;
 
@@ -412,6 +413,32 @@ namespace PESpy.PDB
                 return "<null>";
             
             return SymTypeProxy.GetString(this);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int GetSymbolLength(SYMTYPE* symType)
+        {
+            //Huge gotcha incoming: certain legacy symbols (S_DATAREF_ST, S_PROCREF_ST and S_LPROCREF_ST) may have a hidden
+            //name after them, not included in their lengths. You need to account for this when calculating how big the symbol is!
+            //See DBI1::fReadSymRec for details (note that the comments in this function were written before these enum values were
+            //renamed to be ST)
+            switch (symType->rectyp)
+            {
+                case SYM_ENUM_e.S_DATAREF_ST:
+                case SYM_ENUM_e.S_PROCREF_ST:
+                case SYM_ENUM_e.S_LPROCREF_ST:
+                    var baseLength = symType->reclen + sizeof(ushort);
+                    var strLen = *(((byte*) symType) + baseLength);
+
+                    //The length occupies 1 byte, and then the actual bytes after it occupy even more bytes.
+                    //We must align this total length to 32-bits
+                    var alignedStringArea = ((strLen + 1) + 3) & ~3;
+
+                    return baseLength + alignedStringArea;
+
+                default:
+                    return symType->reclen + sizeof(ushort);
+            }
         }
 
         internal static FixedUtf8String ReadString<T>(T* symType, byte* start) where T : unmanaged

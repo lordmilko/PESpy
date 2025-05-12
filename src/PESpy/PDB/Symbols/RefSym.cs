@@ -23,6 +23,9 @@ namespace PESpy.PDB
 
         public short usFill => value->usFill;
 
+        //RefSym is the symbol type used by old ST symbols. These symbols have a hidden name after them not accounted for in their lengths
+        public FixedUtf8String name => SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort));
+
         #region PESpy
 
         public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
@@ -32,6 +35,11 @@ namespace PESpy.PDB
         internal RefSym(REFSYM* value)
         {
             this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return name.ToString();
         }
     }
 }
