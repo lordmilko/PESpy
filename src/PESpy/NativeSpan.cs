@@ -148,6 +148,16 @@ namespace PESpy
 
         public T[] ToArray() => ((Span<T>) this).ToArray();
 
+        public List<T> ToList()
+        {
+            var list = new List<T>(Length);
+
+            for (var i = 0; i < Length; i++)
+                list.Add(this[i]);
+
+            return list;
+        }
+
         public override string ToString()
         {
             if (typeof(T) == typeof(char))

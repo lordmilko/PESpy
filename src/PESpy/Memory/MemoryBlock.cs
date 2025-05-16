@@ -26,11 +26,14 @@ namespace PESpy
         //We don't need to know the pointer size? when we're reading a pointer, we still either do ReadInt32 or ReadInt64
         internal bool Is32Bit { get; set; }
 
+        internal bool writable;
+        internal bool hasChanges;
         protected bool disposed;
 
-        protected MemoryBlock(IMemoryBlockProvider? provider)
+        protected MemoryBlock(IMemoryBlockProvider? provider, bool writable = false)
         {
             Provider = provider;
+            this.writable = writable;
         }
 
         ~MemoryBlock()
@@ -70,7 +73,16 @@ namespace PESpy
              *
              * There needs to be some way of applying our changes, which should write them back to the remote process or save them to disk. */
 
-            throw new NotImplementedException();
+            if (!writable)
+                throw new InvalidOperationException("Cannot make changes: file was not opened as writable");
+
+            //Check that the poke is within bounds
+            if (blockOffset + size > Length)
+                throw new InvalidOperationException("Write exceeded the bounds of the buffer");
+
+            //When we're writable, the MMF is mapped with MemoryMappedFileAccess.CopyOnWrite so we get that for free.
+            //Note that any PagedMemoryBlock needs to be manually flushed back to its original location in the MMF
+            hasChanges = true;
         }
 
         public virtual int GetAbsoluteOffset(int blockOffset) => RemoteStartOffset + blockOffset;

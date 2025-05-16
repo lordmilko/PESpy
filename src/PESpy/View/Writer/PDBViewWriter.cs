@@ -138,7 +138,7 @@ namespace PESpy.View
             }
 
             //Build up a list of pages and which streams reside in each page
-            for (var i = 0; i < pdbFile.StreamTable!.StreamInfos.Length; i++)
+            for (var i = 0; i < pdbFile.StreamTable.StreamInfos.Count; i++)
             {
                 var item = pdbFile.StreamTable.StreamInfos[i];
 
@@ -147,7 +147,11 @@ namespace PESpy.View
                 switch (i)
                 {
                     case 0:
-                        name = "Previous Stream Table";
+                        //When we're writing, the in-memory snSt will match the in-memory stream table. Only the on-disk snSt contains the previous stream table
+                        if (pdbFile.globalBlock.writable)
+                            continue;
+                        else
+                            name = "Previous Stream Table";
                         break;
 
                     case 1:
@@ -163,9 +167,7 @@ namespace PESpy.View
                         break;
 
                     case 4:
-                        //IPI is only present in impv110+
-
-                        if (pdbFile.PDB?.PDBHeader.ImplementationVersion >= ClrDebug.PDB.PDBIMPV.PDBImpvVC110)
+                        if (pdbFile.PDB?.HasIPI == true)
                             name = "IPI";
                         else
                             streamIndexToNameMap.TryGetValue(i, out name);
@@ -176,7 +178,7 @@ namespace PESpy.View
                         break;
                 }
 
-                for (var j = 0; j < item.PageList.Length; j++)
+                for (var j = 0; j < item.PageList.Count; j++)
                 {
                     var page = item.PageList[j];
                     pageToSIMap.Add(page, (item, i, j, name));
@@ -198,8 +200,8 @@ namespace PESpy.View
 
             var fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
 
-            for (var i = 0; i < fpm0.FpmPages.Length; i++)
-                specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
+            for (var i = 0; i < fpm0.FpmPages.Count; i++)
+                specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Count}) ({fpmStatus})");
 
             //Scope v7 variable
             {
@@ -207,22 +209,15 @@ namespace PESpy.View
                     fpmStatus = v7.MsfHeader.FpmPageNo == 2 ? "Active" : "Inactive";
                 else
                 {
-#pragma warning disable CS8509
-                    var secondFPM = pdbFile.PageSize switch
-#pragma warning restore CS8509
-                    {
-                        1024 => 9,
-                        2048 => 5,
-                        4096 => 2
-                    };
+                    var secondFPM = MSFParms.FromPageSize(pdbFile.PageSize).Fpm1PageNo;
 
                     fpmStatus = pdbFile.ActiveFpmPageNo == secondFPM ? "Active" : "Inactive";
                 }
 
                 var fpm1 = pdbFile.FPM1;
 
-                for (var i = 0; i < fpm1.FpmPages.Length; i++)
-                    specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
+                for (var i = 0; i < fpm1.FpmPages.Count; i++)
+                    specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Count}) ({fpmStatus})");
             }
 
             //Scope v7 variable
@@ -283,9 +278,9 @@ namespace PESpy.View
             {
                 if (pdbFile is PDB7File v7)
                 {
-                    for (var i = 0; i < v7.StreamTableLocation.PageList.Length; i++)
+                    for (var i = 0; i < v7.StreamTableLocation.PageList.Count; i++)
                     {
-                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], $"Stream Table ({i + 1}/{v7.StreamTableLocation.PageList.Length})");
+                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], $"Stream Table ({i + 1}/{v7.StreamTableLocation.PageList.Count})");
                     }
                 }
             }
@@ -305,18 +300,30 @@ namespace PESpy.View
                     else
                         name = $"Stream{match.siIndex}";
 
-                    //snST (the Stream Table stream) doesn't have its page listed in the FPM. As a result, the page is listed as free when it isn't
+                    /* When microsoft-pdb serializes the stream table, it performs the following actions in order:
+                     * 1. Frees any pages that were previously associated with the stream table, adding them to a secondary fpmFreed FPM
+                     * 2. Serializes the current state of the stream table to disk, allocating new page numbers as we go
+                     * 3. Adds a SI for snSt (i.e. the stream table) to the stream table
+                     * 4. Merges fpmFreed into the main FPM
+                     * 5. Serializes the FPM
+                     *
+                     * This sequence of actions has several consequences:
+                     * - Firstly, it means that the description of snSt persisted to disk will always be one revision behind the current status,
+                     *   by virtue of the fact a SI for snSt is added to the stream table _after_ it was already written to disk
+                     * - Secondly, any pages that were freed in the current transaction that were originally committed in a previous transaction
+                     *   cannot immediately be reused; we must wait for a commit before we're allowed to reuse those pages. Note that any page
+                     *   that was allocated _and_ freed in the current transaction _can_ immediately be reused. These are the purpose of
+                     *   the fpmCommitted and fpmFreed members of MSF_HB */
 
-                    //I've seen cases where a page can be listed as free in the FPM _and_ also listed as a page in a given stream. This seems like a bug in mspdbcore to me, but never-the-less we need to report it
                     if (specialPageMap.TryGetValue(i, out var specialName))
                     {
                         if (match.siIndex == 0 && specialName == "Free")
-                            name = $"Fake Free / {name}";
+                            name = $"Delayed Free / {name}";
                         else
                             name = $"{specialName} / {name}";
                     }
 
-                    nameBuilder.Append(" | " + name).Append(" (").Append(match.pageIndex + 1).Append("/").Append(match.si.PageList.Length).Append(")");
+                    nameBuilder.Append(" | " + name).Append(" (").Append(match.pageIndex + 1).Append("/").Append(match.si.PageList.Count).Append(")");
                 }
                 else if (specialPageMap.TryGetValue(i, out var name))
                 {

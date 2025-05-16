@@ -1,5 +1,9 @@
 ﻿namespace PESpy.PDB
 {
+    //What size should SN be? It's 16-bit, however there's also UNSN which is the 32-bit version.
+    //However, MSF::ReplaceStream takes the 16-bit SN, so it's not clear to me what would actually
+    //happen if you tried to work with more than 65536 streams in both PESpy and microsoft-pdb
+
     /// <summary>
     /// Represents a 16-bit stream number.
     /// </summary>

@@ -216,13 +216,13 @@ namespace PESpy.Tests
             File.WriteAllText(file, finalStr, Encoding.UTF8);
         }
 
-        private string[] GetFilesOfInterest()
+        internal static string[] GetFilesOfInterest()
         {
             //Get all files under the Managed folder, excluding certain files
 
-            var solutionDir = Path.GetFullPath(Path.Combine(GetType().Assembly.Location, "..\\..\\..\\..\\..\\"));
+            var solutionDir = Path.GetFullPath(Path.Combine(typeof(FastRewriter).Assembly.Location, "..\\..\\..\\..\\..\\"));
 
-            var files = Directory.EnumerateFiles(Path.Combine(solutionDir, "PESpy\\Managed"), "*.cs", SearchOption.AllDirectories);
+            var files = Directory.EnumerateFiles(Path.Combine(solutionDir, "PESpy\\PDB"), "*.cs", SearchOption.AllDirectories);
 
             return files.ToArray();
         }

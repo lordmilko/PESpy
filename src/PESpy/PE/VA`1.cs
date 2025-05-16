@@ -110,7 +110,7 @@ namespace PESpy
 
             if (left.Value == null)
             {
-                if (right == null)
+                if (right.Value == null)
                     return true;
 
                 return false;

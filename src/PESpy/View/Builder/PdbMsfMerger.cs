@@ -32,13 +32,13 @@ namespace PESpy.View.Builder
             if (pdbFile is PDB1File)
                 throw new System.NotImplementedException();
 
-            var streamInfos = pdbFile.StreamTable!.StreamInfos;
+            var streamInfos = pdbFile.StreamTable.StreamInfos;
 
             var dict = new Dictionary<PN, int>();
 
-            for (var i = 0; i < streamInfos.Length; i++)
+            for (var i = 0; i < streamInfos.Count; i++)
             {
-                ref var si = ref streamInfos[i];
+                var si = streamInfos[i];
 
                 foreach (var pn in si.PageList)
                     dict[pn] = i;

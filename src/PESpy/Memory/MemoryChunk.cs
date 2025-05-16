@@ -267,17 +267,28 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PokeSpan<T>(int offset, int numElems, Span<T> value)
+        public void PokeSpan<T>(int offset, int numElems, Span<T> value) where T : unmanaged
         {
-            //Not sure how to get the length of each T
-            throw new NotImplementedException();
+            if (numElems == 0)
+                return;
+
+            var size = numElems * sizeof(T);
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, size);
+
+            var dest = new Span<T>(block.LocalPointer + blockOffset, numElems);
+            value.CopyTo(dest);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PokeNativeSpan<T>(int offset, int numElems, NativeSpan<T> value) where T : unmanaged
         {
-            //Not sure how to get the length of each T
-            throw new NotImplementedException();
+            var size = numElems * sizeof(T);
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, size);
+
+            var dest = new Span<T>(block.LocalPointer + blockOffset, numElems);
+            value.CopyTo(dest);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -293,6 +304,29 @@ namespace PESpy
             var blockOffset = RelativeOffset + offset;
             block.PreparePoke(blockOffset, 16);
             *(Guid*) (block.LocalPointer + blockOffset) = value;
+        }
+
+        public void PokeAnsiFixedLength(int offset, int maxLength, FixedAnsiString value)
+        {
+            if (value.Length > maxLength)
+                throw new ArgumentException($"Cannot set string '{value}' (length {value.Length}). Maximum allowed length is {maxLength}");
+
+            var blockOffset = RelativeOffset + offset;
+            block.PreparePoke(blockOffset, maxLength);
+
+            var ptr = block.LocalPointer + blockOffset;
+
+            var source = (Span<byte>) value;
+            var dest = new Span<byte>(ptr, value.Length);
+            source.CopyTo(dest);
+
+            var diff = maxLength - value.Length;
+
+            //If we're less than the required length, pad with 0
+            if (diff > 0)
+            {
+                Unsafe.InitBlockUnaligned(ptr + (maxLength - diff), 0, (uint) diff);
+            }
         }
 
         #endregion

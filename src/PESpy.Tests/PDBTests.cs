@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using ClrDebug;
@@ -124,7 +123,7 @@ namespace PESpy.Tests
                 //- the previous Stream Table is now stored in Page 3
                 //- page 4 is now free
 
-                v => v.VerifyLogicalRegion(name: "3 | Fake Free / 'Previous Stream Table (0)' (1/1)", offset: 0xC00, size: 0x400,
+                v => v.VerifyLogicalRegion(name: "3 | Delayed Free / 'Previous Stream Table (0)' (1/1)", offset: 0xC00, size: 0x400,
                     c => c.VerifyStruct(name: "Stream Table", offset: 0xC00, size: 4,
                         c1 => c1.VerifyField(name: "NumStreams", value: 0)
 
@@ -163,41 +162,6 @@ namespace PESpy.Tests
         {
             //The FPM allocates 8x as many pages as its supposed to. Stress test creating a large PDB and reading which pages are associated with the FPM
 
-            void ConfigureMsf(MSF msf)
-            {
-                //Don't use snPDB; we force load streams in Debug mode for testing purposes,
-                //and what we're essentially doing here is creating a stream full of garbage
-
-                //StrmTbl's ctor dets the size of mpsnsi to 5 (which I guess would cover streams 0-4). GetFreeSn allocates the next available SN
-
-                //A stream that doesn't exist should return cbNil (-1). We're just doing this check to demonstrate how interacting with MSF works
-                Assert.AreEqual(-1, msf.GetCbStream(5));
-
-                var sn = msf.GetFreeSn();
-                Assert.AreEqual(5, sn);
-
-                //The stream should now be in the stream table
-                Assert.AreEqual(0, msf.GetCbStream(sn));
-
-                //mspdbcore seems to have a strange algorithm for determining PDB growth. 8135 gives 8187 pages while 8136 gives 8195.
-                //As soon as there's more than 8x pageSize pages (which is 8x pageSize x pageSize bytes) (i.e. 8192) there will be two FPM pages
-                //1024 pages gives 1043.
-                var cbBuf = 1024 * 1024;
-
-                var pvBuf = Marshal.AllocHGlobal(cbBuf);
-
-                for (var i = 0; i < cbBuf; i++)
-                    *(byte*) (pvBuf + i) = 0xCD;
-
-                //Add a bunch of junk to the stream. This should cause the FPM to add another page
-                msf.AppendStream(sn, pvBuf, cbBuf);
-
-                Marshal.FreeHGlobal(pvBuf);
-
-                //Save the changes
-                msf.Commit();
-            }
-
             var actions = new Action<IView>[1043];
 
             for (var i = 0; i < actions.Length; i++)
@@ -211,7 +175,7 @@ namespace PESpy.Tests
             actions[1026] = v => v.VerifyLogicalRegionIgnoreChildren(name: "1026 | FPM 1 (2/2) (Active)", offset: 0x100800, size: 0x400);
 
             TestMsfView(
-                ConfigureMsf,
+                ConfigureFPMStressTest,
                 actions,
                 views =>
                 {
@@ -242,42 +206,53 @@ namespace PESpy.Tests
             );
         }
 
+        internal unsafe static void ConfigureFPMStressTest(MSF msf)
+        {
+            //Don't use snPDB; we force load streams in Debug mode for testing purposes,
+            //and what we're essentially doing here is creating a stream full of garbage
+
+            //StrmTbl's ctor dets the size of mpsnsi to 5 (which I guess would cover streams 0-4). GetFreeSn allocates the next available SN
+
+            //A stream that doesn't exist should return cbNil (-1). We're just doing this check to demonstrate how interacting with MSF works
+            Assert.AreEqual(-1, msf.GetCbStream(5));
+
+            var sn = msf.GetFreeSn();
+            Assert.AreEqual(5, sn);
+
+            //The stream should now be in the stream table. However, when I've tested with microsoft-pdb, you need to call ReplaceStream to set the length of the stream to 0.
+            //Bizarrely, with VS22's mspdbcore.dll sometimes you do need to call ReplaceStream, and sometimes you don't!
+            //I don't understand why
+            msf.ReplaceStream(sn, default, 0);
+
+            Assert.AreEqual(0, msf.GetCbStream(sn));
+
+            //mspdbcore seems to have a strange algorithm for determining PDB growth. 8135 gives 8187 pages while 8136 gives 8195.
+            //As soon as there's more than 8x pageSize pages (which is 8x pageSize x pageSize bytes) (i.e. 8192) there will be two FPM pages
+            //1024 pages gives 1043.
+            var cbBuf = 1024 * 1024;
+
+            var pvBuf = Marshal.AllocHGlobal(cbBuf);
+
+            for (var i = 0; i < cbBuf; i++)
+                *(byte*) (pvBuf + i) = 0xCD;
+
+            //Add a bunch of junk to the stream. This should cause the FPM to add another page
+            msf.AppendStream(sn, pvBuf, cbBuf);
+
+            Marshal.FreeHGlobal(pvBuf);
+
+            //Save the changes
+            msf.Commit();
+        }
+
         [TestMethod]
         public unsafe void PDB_StreamNumber_StressTest()
         {
             //Creating 75 streams with (1024 * 1024) byte pages should cause us to require 1204 bytes to store the 301
             //pages that the stream table itself spans, thus causing mpspnpnSt to contain more than one value
 
-            void ConfigureMsf(MSF msf)
-            {
-                //For some reason, even though we're starting from Stream 5, data is still getting written into Stream 1,
-                //so we need to explicitly create and zero it out
-                msf.ReplaceStream(SN.PDB, IntPtr.Zero, 0);
-                msf.ReplaceStream(SN.TPI, IntPtr.Zero, 0);
-                msf.ReplaceStream(SN.DBI, IntPtr.Zero, 0);
-                msf.ReplaceStream(SN.IPI, IntPtr.Zero, 0);
-
-                var cbBuf = 1024 * 1024;
-
-                var pvBuf = Marshal.AllocHGlobal(cbBuf);
-
-                for (var i = 0; i < cbBuf; i++)
-                    *(byte*) (pvBuf + i) = 0xCD;
-
-                for (var i = 0; i < 75; i++)
-                {
-                    var sn = msf.GetFreeSn();
-
-                    msf.AppendStream(sn, pvBuf, cbBuf);
-                }
-
-                Marshal.FreeHGlobal(pvBuf);
-
-                msf.Commit();
-            }
-
             TestMsfView(
-                ConfigureMsf,
+                ConfigureStreamNumberStressTest,
                 WithIgnores(
                     v => v.VerifyLogicalRegion(name: "0 | Master Index", offset: 0, size: 1024,
                         c => c.VerifyStruct(name: "BIGMSF_HDR", offset: 0, size: 60,
@@ -296,6 +271,36 @@ namespace PESpy.Tests
                     after: 77258
                 )
             );
+        }
+
+        internal static unsafe void ConfigureStreamNumberStressTest(MSF msf)
+        {
+            //For some reason, even though we're starting from Stream 5, data is still getting written into Stream 1,
+            //so we need to explicitly create and zero it out
+            msf.ReplaceStream(SN.PDB, IntPtr.Zero, 0);
+            msf.ReplaceStream(SN.TPI, IntPtr.Zero, 0);
+            msf.ReplaceStream(SN.DBI, IntPtr.Zero, 0);
+            msf.ReplaceStream(SN.IPI, IntPtr.Zero, 0);
+
+            var cbBuf = 1024 * 1024;
+
+            var pvBuf = Marshal.AllocHGlobal(cbBuf);
+
+            for (var i = 0; i < cbBuf; i++)
+                *(byte*) (pvBuf + i) = 0xCD;
+
+            for (var i = 0; i < 75; i++)
+            {
+                var sn = msf.GetFreeSn();
+
+                msf.ReplaceStream(sn, default, 0); //Ensure the count is changed from -1 to 0
+
+                msf.AppendStream(sn, pvBuf, cbBuf);
+            }
+
+            Marshal.FreeHGlobal(pvBuf);
+
+            msf.Commit();
         }
 
         private void TestMsfView(Action<MSF> configureMsf, params Action<IView>[] verify) =>

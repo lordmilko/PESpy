@@ -6,13 +6,21 @@ namespace PESpy.PDB
     public readonly struct SI_PERSIST : IValue, IViewable
     {
         //cb
-        public int ByteCount => chunk.PeekInt32(0);
+        public int ByteCount //st.mpsnsi[snSt].cb
+        {
+            get => chunk.PeekInt32(0);
+            set => chunk.PokeInt32(0, value);
+        }
 
         //"mpspnpn" = Map of Stream Page Numbers -> Page Numbers. A SPN is simply an index into a PN[], so this is essentially a really
         //complicated way of saying "it's just an array of PN[]". In theory this should be a PN[], but in practice it's a null
         //pointer (0). The actual PN[] for the location of the Stream Table is stored in BIGMSF_HDR.mpspnpnSt. See the PDB README.md in this directory
-        //for a full rundown of the way this works.
-        public int PageList => chunk.PeekInt32(4);
+        //for a full rundown of the way this works. MSF_HB::Commit explicitly sets this to 0. mpspnpnSt comes from siPnList
+        public int PageList
+        {
+            get => chunk.PeekInt32(4);
+            set => chunk.PokeInt32(4, value);
+        }
 
         public int Offset => chunk.AbsoluteOffset;
 

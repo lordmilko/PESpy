@@ -22,6 +22,7 @@ namespace PESpy.PDB
         public readonly int NameBufferSize;
         public readonly Map NameOffsetToStreamIndexMap;
         public readonly RawValue<string>[] Names;
+        public readonly int LargestNameIndex; //The highest NI that's been allocated
 
         public readonly Dictionary<string, SN> NameToStreamNumberMap;
 
@@ -34,6 +35,8 @@ namespace PESpy.PDB
                 foreach (var name in Names)
                     size += name.Value.Length + 1;
 
+                size += 4; //niMac
+
                 return size;
             }
         }
@@ -45,9 +48,10 @@ namespace PESpy.PDB
             Offset = chunk.AbsoluteOffset;
 
             /* The layout of the Stream Name Table is as follows
-             * - Name Buffer Size
-             * - Name Buffer
-             * - NameOffsetToStreamIndexMap
+             * - Name Buffer Size - part of NMTNI::buf
+             * - Name Buffer      - part of NMTNI::buf
+             * - NameOffsetToStreamIndexMap - NMTNI::mapSzoNi
+             * - LargestNameIndex - NMTNI::niMac
              *
              * The process for reading the Stream Name Table is
              * 1. Read the Name Buffer Size
@@ -61,6 +65,7 @@ namespace PESpy.PDB
 
             var mapChunk = nameBufferChunk.Slice(NameBufferSize);
             NameOffsetToStreamIndexMap = new Map(mapChunk);
+            LargestNameIndex = chunk.PeekInt32(4 + NameBufferSize + NameOffsetToStreamIndexMap.StructSize);
 
             var nameToStreamNumberMap = new Dictionary<string, SN>();
 
@@ -91,6 +96,8 @@ namespace PESpy.PDB
                 s.WriteInlineAnsiNullTerminated(name);
 
             s.WriteInline(NameOffsetToStreamIndexMap);
+
+            s.WriteField("niMac", LargestNameIndex);
         }
     }
 }

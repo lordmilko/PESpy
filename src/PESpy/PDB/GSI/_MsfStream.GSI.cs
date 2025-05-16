@@ -35,18 +35,21 @@ namespace PESpy.PDB
                     var hashRecords = new HRFile[numItems];
                     var symbols = new SymType[numItems];
 
-                    var pdbFile = chunk.PDBFile();
-
-                    if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
-                        throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
-
-                    var symbolsStart = symbolChunk.Pointer;
-
-                    Symbols = new GlobalSymTypeList(HashRecords, symbolsStart);
-
-                    if (gsiHdr.cbBuckets > 0)
+                    if (hashRecords.Length > 0)
                     {
-                        //Reading the buckets is not yet implemented
+                        var pdbFile = chunk.PDBFile();
+
+                        if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
+                            throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
+
+                        var symbolsStart = symbolChunk.Pointer;
+
+                        Symbols = new GlobalSymTypeList(HashRecords, symbolsStart);
+
+                        if (gsiHdr.cbBuckets > 0)
+                        {
+                            //Reading the buckets is not yet implemented
+                        }
                     }
                 }
                 else

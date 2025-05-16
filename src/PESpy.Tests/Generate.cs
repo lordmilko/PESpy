@@ -936,94 +936,100 @@ public long ImageBase => chunk.Is32Bit ? chunk.PeekPointer(4) : chunk.PeekPointe
              * add it to the failure list if it does not already have a manually implemented setter, and throw an exception
              * at the end about all properties requiring manually implemented setters */
 
-            string file = null;
+            var files = FastRewriter.GetFilesOfInterest();
 
-            var text = File.ReadAllText(file);
-            var syntaxTree = CSharpSyntaxTree.ParseText(text, CSharpParseOptions.Default.WithPreprocessorSymbols("PEFAST"));
-
-            var root = syntaxTree.GetRoot();
-
-            var properties = root.DescendantNodesAndSelf().OfType<PropertyDeclarationSyntax>().ToArray();
-
-            var replacements = new Dictionary<PropertyDeclarationSyntax, PropertyDeclarationSyntax>();
-
-            foreach (var property in properties)
+            foreach (var file in files)
             {
-                if (property.ExpressionBody != null)
+                if (!file.Contains("BigMsfHdr"))
+                    continue;
+
+                var text = File.ReadAllText(file);
+                var syntaxTree = CSharpSyntaxTree.ParseText(text, CSharpParseOptions.Default.WithPreprocessorSymbols("PEFAST"));
+
+                var root = syntaxTree.GetRoot();
+
+                var properties = root.DescendantNodesAndSelf().OfType<PropertyDeclarationSyntax>().ToArray();
+
+                var replacements = new Dictionary<PropertyDeclarationSyntax, PropertyDeclarationSyntax>();
+
+                foreach (var property in properties)
                 {
-                    //It has an expression body, so there's no setter. Is it a "chunk" getter?
-                    var identifiers = property.ExpressionBody.DescendantNodes().OfType<NameSyntax>().ToArray();
-
-                    if (identifiers.Any(a => a.ToString().Contains("chunk", StringComparison.OrdinalIgnoreCase)))
+                    if (property.ExpressionBody != null)
                     {
-                        //Need to rewrite this property. There should be a singular peek method
+                        //It has an expression body, so there's no setter. Is it a "chunk" getter?
+                        var identifiers = property.ExpressionBody.DescendantNodes().OfType<NameSyntax>().ToArray();
 
-                        var peeks = identifiers.Where(v => v.ToString().StartsWith("Peek")).ToArray();
-
-                        if (peeks.Length == 0)
-                            continue;
-
-                        if (peeks.Length != 1)
-                            throw new NotImplementedException("Don't know how to handle having multiple peeks");
-
-                        var peek = peeks[0];
-
-                        var invocation = property.ExpressionBody.DescendantNodes().OfType<InvocationExpressionSyntax>().First(v => ((MemberAccessExpressionSyntax) v.Expression).Name == peeks[0]);
-
-                        var memberExpr = (MemberAccessExpressionSyntax) invocation.Expression;
-                        var invocationArgs = invocation.ArgumentList.Arguments;
-
-                        var setInvocation = invocation
-                            .WithExpression(memberExpr.WithName(IdentifierName(peek.ToString().Replace("Peek", "Poke"))))
-                            .WithArgumentList(ArgumentList(invocationArgs.Add(Argument(IdentifierName("value").WithLeadingTrivia(Whitespace(" "))))));
-
-                        static AccessorDeclarationSyntax MakeAccessor(SyntaxKind kind, InvocationExpressionSyntax invocation)
+                        if (identifiers.Any(a => a.ToString().Contains("chunk", StringComparison.OrdinalIgnoreCase)))
                         {
-                            return AccessorDeclaration(kind)
-                                .WithExpressionBody(
-                                    ArrowExpressionClause(
-                                        Token(SyntaxKind.EqualsGreaterThanToken)
-                                            .WithLeadingTrivia(Whitespace(" "))
-                                            .WithTrailingTrivia(Whitespace(" ")),
-                                        invocation
-                                    )
-                                ).WithSemicolonToken(Token(SyntaxKind.SemicolonToken)).WithLeadingTrivia(Whitespace("            ")).WithTrailingTrivia(Whitespace(Environment.NewLine));
-                        }
+                            //Need to rewrite this property. There should be a singular peek method
 
-                        var accessors = AccessorList(
-                            Token(SyntaxKind.OpenBraceToken).WithLeadingTrivia(Whitespace(Environment.NewLine + "        ")).WithTrailingTrivia(Whitespace(Environment.NewLine)),
-                            List(new[]
+                            var peeks = identifiers.Where(v => v.ToString().StartsWith("Peek")).ToArray();
+
+                            if (peeks.Length == 0)
+                                continue;
+
+                            if (peeks.Length != 1)
+                                throw new NotImplementedException("Don't know how to handle having multiple peeks");
+
+                            var peek = peeks[0];
+
+                            var invocation = property.ExpressionBody.DescendantNodes().OfType<InvocationExpressionSyntax>().First(v => ((MemberAccessExpressionSyntax) v.Expression).Name == peeks[0]);
+
+                            var memberExpr = (MemberAccessExpressionSyntax) invocation.Expression;
+                            var invocationArgs = invocation.ArgumentList.Arguments;
+
+                            var setInvocation = invocation
+                                .WithExpression(memberExpr.WithName(IdentifierName(peek.ToString().Replace("Peek", "Poke"))))
+                                .WithArgumentList(ArgumentList(invocationArgs.Add(Argument(IdentifierName("value").WithLeadingTrivia(Whitespace(" "))))));
+
+                            static AccessorDeclarationSyntax MakeAccessor(SyntaxKind kind, InvocationExpressionSyntax invocation)
                             {
+                                return AccessorDeclaration(kind)
+                                    .WithExpressionBody(
+                                        ArrowExpressionClause(
+                                            Token(SyntaxKind.EqualsGreaterThanToken)
+                                                .WithLeadingTrivia(Whitespace(" "))
+                                                .WithTrailingTrivia(Whitespace(" ")),
+                                            invocation
+                                        )
+                                    ).WithSemicolonToken(Token(SyntaxKind.SemicolonToken)).WithLeadingTrivia(Whitespace("            ")).WithTrailingTrivia(Whitespace(Environment.NewLine));
+                            }
+
+                            var accessors = AccessorList(
+                                Token(SyntaxKind.OpenBraceToken).WithLeadingTrivia(Whitespace(Environment.NewLine + "        ")).WithTrailingTrivia(Whitespace(Environment.NewLine)),
+                                List(new[]
+                                {
                                 MakeAccessor(SyntaxKind.GetAccessorDeclaration, invocation),
                                 MakeAccessor(SyntaxKind.SetAccessorDeclaration, setInvocation)
-                            }),
-                            Token(SyntaxKind.CloseBraceToken).WithLeadingTrivia(Whitespace("        ")).WithTrailingTrivia(Whitespace(Environment.NewLine))
-                        );
+                                }),
+                                Token(SyntaxKind.CloseBraceToken).WithLeadingTrivia(Whitespace("        ")).WithTrailingTrivia(Whitespace(Environment.NewLine))
+                            );
 
-                        accessors = accessors.WithTrailingTrivia(property.ExpressionBody.GetTrailingTrivia());
-                        var newProperty = property
-                            .WithIdentifier(property.Identifier.WithTrailingTrivia(TriviaList()))
-                            .WithExpressionBody(null)
-                            .WithAccessorList(accessors)
-                            .WithSemicolonToken(Token(SyntaxKind.None)).WithTrailingTrivia(property.SemicolonToken.TrailingTrivia);
+                            accessors = accessors.WithTrailingTrivia(property.ExpressionBody.GetTrailingTrivia());
+                            var newProperty = property
+                                .WithIdentifier(property.Identifier.WithTrailingTrivia(TriviaList()))
+                                .WithExpressionBody(null)
+                                .WithAccessorList(accessors)
+                                .WithSemicolonToken(Token(SyntaxKind.None)).WithTrailingTrivia(property.SemicolonToken.TrailingTrivia);
 
-                        replacements[property] = newProperty;
+                            replacements[property] = newProperty;
+                        }
+                    }
+                    else
+                    {
+                        Debug.Assert(property.AccessorList != null);
+
+                        //Check if its got a setter. If yes, ignore. Otherwise, check the getter to see if theres the word "chunk" or not
+                        throw new NotImplementedException();
                     }
                 }
-                else
-                {
-                    Debug.Assert(property.AccessorList != null);
 
-                    //Check if its got a setter. If yes, ignore. Otherwise, check the getter to see if theres the word "chunk" or not
-                    throw new NotImplementedException();
-                }
+                var val = root.ReplaceNodes(replacements.Keys, (a, b) => replacements[a]);
+
+                var str = val.ToFullString();
+
+                File.WriteAllText(file, str, Encoding.UTF8);
             }
-
-            var val = root.ReplaceNodes(replacements.Keys, (a, b) => replacements[a]);
-
-            var str = val.ToFullString();
-
-            File.WriteAllText(file, str, Encoding.UTF8);
         }
 
         private TypeDeclarationSyntax[] WriteTypes(GenerationContext ctx)

@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+#if NET5_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 using PESpy.PDB;
 
 #if !DEBUG_POSITION
@@ -239,88 +243,119 @@ namespace PESpy.View.Builder
 
                         Span<PN> siPageList;
 
-                        if (siIndex == -1)
+#if !NET5_0_OR_GREATER
+                        PN[]? rentedArray = null;
+                        try
+#endif
                         {
-                            //For the pages of the stream table itself, we list these as belonging to "index -1"
-                            if (pdbMerger.pdbFile is PDB7File v7)
-                                siPageList = v7.StreamTableLocation.PageList;
+                            if (siIndex == -1)
+                            {
+                                //For the pages of the stream table itself, we list these as belonging to "index -1"
+                                if (pdbMerger.pdbFile is PDB7File v7)
+                                {
+#if NET5_0_OR_GREATER
+                                    siPageList = CollectionsMarshal.AsSpan<PN>(v7.StreamTableLocation.PageList);
+#else
+                                    //Rent an array rather than allocate a new one just to store the page list
+                                    var list = v7.StreamTableLocation.PageList;
+                                    rentedArray = ArrayPool<PN>.Shared.Rent(list.Count);
+                                    list.CopyTo(rentedArray);
+                                    siPageList = new Span<PN>(rentedArray, 0, list.Count);
+#endif
+                                }
+                                else
+                                {
+                                    //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
+                                    var rawPages = ((PDB2File) pdbMerger.pdbFile).MsfHeader.StreamTablePageList;
+
+                                    var arr = new PN[rawPages.Length];
+
+                                    for (var i = 0; i < rawPages.Length; i++)
+                                        arr[i] = rawPages[i];
+
+                                    siPageList = arr;
+                                }
+                            }
+                            else if (siIndex == -2)
+                            {
+                                //It's a page describing the location of the stream table's pages
+                                siPageList = ((PDB7File) pdbMerger.pdbFile).MsfHeader.PagesOfStreamTablePageList;
+                            }
                             else
                             {
-                                //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
-                                var rawPages = ((PDB2File) pdbMerger.pdbFile).MsfHeader.StreamTablePageList;
+                                var si = pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
 
-                                var arr = new PN[rawPages.Length];
-
-                                for (var i = 0; i < rawPages.Length; i++)
-                                    arr[i] = rawPages[i];
-
-                                siPageList = arr;
+#if NET5_0_OR_GREATER
+                                siPageList = CollectionsMarshal.AsSpan<PN>(si.PageList);
+#else
+                                var list = si.PageList;
+                                rentedArray = ArrayPool<PN>.Shared.Rent(list.Count);
+                                list.CopyTo(rentedArray);
+                                siPageList = new Span<PN>(rentedArray, 0, list.Count);
+#endif
                             }
-                        }
-                        else if (siIndex == -2)
-                        {
-                            //It's a page describing the location of the stream table's pages
-                            siPageList = ((PDB7File) pdbMerger.pdbFile).MsfHeader.PagesOfStreamTablePageList;
-                        }
-                        else
-                        {
-                            ref var si = ref pdbMerger.pdbFile.StreamTable!.StreamInfos[siIndex];
-                            siPageList = si.PageList;
-                        }
 
-                        var nextPageFound = false;
+                            var nextPageFound = false;
 
-                        var secondStartOffset = 0;
+                            var secondStartOffset = 0;
 
-                        for (var i = 0; i < siPageList.Length; i++)
-                        {
-                            if (siPageList[i] == currentPage)
+                            for (var i = 0; i < siPageList.Length; i++)
                             {
-                                //The next page in the list is the one that our split value begins from
-                                var nextPage = siPageList[i + 1];
-                                secondStartOffset = nextPage * pdbMerger.pdbFile.PageSize;
-                                nextPageFound = true;
-                                break;
-                            }
-                        }
-
-                        if (!nextPageFound)
-                            throw new NotImplementedException();
-
-                        var (first, second) = ((ISplittableView) nextValue).Split(secondStartOffset, currentDirectory.End);
-                        sortedStructs[nextStructIndex] = first;
-
-                        /* While it is true that "most of the time" page numbers run in ascending order, due to the crazy way in which PDBs are constructed,
-                         * you can have a very high page number at the front of the PageList, and then smaller page numbers following it. So, with the value
-                         * we just split out, ideally we want it to belong to an offset that we haven't attempted to process yet. If so, we can just
-                         * find the relevant insertion point and insert it into the sortedStructs array. If we've already gone past the offset where
-                         * that struct should have belonged, we've now got a big mess and are going to need to backtrack and somehow patch up the views
-                         * we've already constructed */
-                        if (second.Offset >= currentDirectory.End)
-                        {
-                            //Good news! Just insert it into the list
-                            for (var i = nextStructIndex + 1; i < sortedStructs.Count; i++)
-                            {
-                                if (second.Offset < sortedStructs[i].Offset)
+                                if (siPageList[i] == currentPage)
                                 {
-                                    //This is the insertion point
-                                    sortedStructs.Insert(i, second);
+                                    //The next page in the list is the one that our split value begins from
+                                    var nextPage = siPageList[i + 1];
+                                    secondStartOffset = nextPage * pdbMerger.pdbFile.PageSize;
+                                    nextPageFound = true;
                                     break;
                                 }
                             }
+
+                            if (!nextPageFound)
+                                throw new NotImplementedException();
+
+                            var (first, second) = ((ISplittableView) nextValue).Split(secondStartOffset, currentDirectory.End);
+                            sortedStructs[nextStructIndex] = first;
+
+                            /* While it is true that "most of the time" page numbers run in ascending order, due to the crazy way in which PDBs are constructed,
+                             * you can have a very high page number at the front of the PageList, and then smaller page numbers following it. So, with the value
+                             * we just split out, ideally we want it to belong to an offset that we haven't attempted to process yet. If so, we can just
+                             * find the relevant insertion point and insert it into the sortedStructs array. If we've already gone past the offset where
+                             * that struct should have belonged, we've now got a big mess and are going to need to backtrack and somehow patch up the views
+                             * we've already constructed */
+                            if (second.Offset >= currentDirectory.End)
+                            {
+                                //Good news! Just insert it into the list
+                                for (var i = nextStructIndex + 1; i < sortedStructs.Count; i++)
+                                {
+                                    if (second.Offset < sortedStructs[i].Offset)
+                                    {
+                                        //This is the insertion point
+                                        sortedStructs.Insert(i, second);
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                //Oh boy. We're going to need to patch up data in the masterList, potentially removing junk we defaulted to reading
+                                //and inserting this proper structure instead (and then re-reading junk to fill in any gaps)
+
+                                //Find the item in the masterList that contains this address. Then drill into its children until we find the overlapping items.
+                                //We expect they should be junk: ByteBlobView and ValueView<string> or a LogicalRegionView with any of these items in them.
+                                //There may also be padding.
+                                ReplaceGarbage(second, getRVA);
+                            }
+
+                            nextValue = first;
                         }
-                        else
+#if !NET5_0_OR_GREATER
+                        finally
                         {
-                            //Oh boy. We're going to need to patch up data in the masterList, potentially removing junk we defaulted to reading
-                            //and inserting this proper structure instead (and then re-reading junk to fill in any gaps)
-
-                            //Find the item in the masterList that contains this address. Then drill into its children until we find the overlapping items.
-                            //We expect they should be junk: ByteBlobView and ValueView<string> or a LogicalRegionView with any of these items in them.
-                            //There may also be padding.
-                            ReplaceGarbage(second, getRVA);
+                            if (rentedArray != null)
+                                ArrayPool<PN>.Shared.Return(rentedArray);
                         }
-
-                        nextValue = first;
+#endif
                     }
                 }
 

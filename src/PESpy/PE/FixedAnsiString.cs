@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using System;
+
+namespace PESpy
 {
     public readonly unsafe struct FixedAnsiString
     {
@@ -34,6 +36,8 @@
 
             return true;
         }
+
+        public static implicit operator Span<byte>(FixedAnsiString value) => new Span<byte>(value.Value, value.Length);
 
         public static bool operator ==(FixedAnsiString left, string right) => left.Equals(right);
         public static bool operator !=(FixedAnsiString left, string right) => left.Equals(right);

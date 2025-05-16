@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -8,7 +11,7 @@ namespace PESpy.PDB
     /// This structure only exists in memory, and is not persisted to disk.
     /// </summary>
     [DebuggerDisplay("ByteCount = {ByteCount}, PageList = [{string.Join(\",\", PageList),nq}]")]
-    public readonly struct SI : IValue, IViewable
+    public struct SI : IValue, IViewable
     {
         /* The Stream Info type aggregates two pieces of information together:
          * the size of a stream, and the pages that it spans across. These two pieces
@@ -20,13 +23,14 @@ namespace PESpy.PDB
         /// <summary>
         /// Gets the total number of bytes that exist in this stream. This value is provided from a location external to this structure.
         /// </summary>
-        public int ByteCount { get; }
+        public int ByteCount { get; set; }
 
         /// <summary>
         /// Gets the list of pages contained in this stream.<para/>
-        /// This value must be passed to <see cref="PagedMemoryBlock"/> as an array and so is eagerly read.
+        /// This value must be passed to <see cref="PagedMemoryBlock"/> as an array and so is eagerly read.<para/>
+        /// Do not directly add/remove items from this list. Use the appropriate APIs on StreamTable instead
         /// </summary>
-        public PN[] PageList { get; }
+        public List<PN> PageList { get; }
 
         public int Offset => chunk.AbsoluteOffset; //This is just the location of the page list, but this type doesn't actually fully exist on disk
 
@@ -39,7 +43,7 @@ namespace PESpy.PDB
             ByteCount = byteCount;
             var numPages = DivideUp(byteCount, pageSize);
 
-            PageList = chunk.PeekNativeSpan<PN>(0, numPages).ToArray();
+            PageList = chunk.PeekNativeSpan<PN>(0, numPages).ToList();
         }
 
         //Create an SI from v2 data
@@ -49,12 +53,20 @@ namespace PESpy.PDB
             ByteCount = siPersist.ByteCount;
             var numPages = DivideUp(siPersist.ByteCount, pageSize);
 
-            var pageList = new PN[numPages];
+            var pageList = new List<PN>(numPages);
             var pagesSpan = chunk.PeekNativeSpan<ushort>(0, numPages);
 
             for (var i = 0; i < numPages; i++)
-                pageList[i] = pagesSpan[i];
+                pageList.Add(pagesSpan[i]);
 
+            PageList = pageList;
+        }
+
+        //Create an SI from a known set of pages. Used when bootstrapping a new PDB
+        internal SI(in MemoryChunk chunk, int byteCount, List<PN> pageList)
+        {
+            this.chunk = chunk;
+            ByteCount = byteCount;
             PageList = pageList;
         }
 
@@ -65,6 +77,29 @@ namespace PESpy.PDB
             //If we do (5000+4096-1)/4096 however, this gives us 2. The -1 is required because if your size is
             //exactly 4096 bytes, (4096+4096)/4096 = 2, when we wanted 1. (4096+4096-1)/4096 gives 1 as expected
             return (value + divisor - 1) / divisor;
+        }
+
+        //This method should only be used for serializing the location of the stream table itself. For any streams contained inside the stream table,
+        //call StreamTable.Serialize()
+        internal void Serialize()
+        {
+#if NET5_0_OR_GREATER
+            Span<PN> span = CollectionsMarshal.AsSpan(PageList);
+            chunk.PokeSpan(off, span.Length, span);
+#else
+            var rentedArray = ArrayPool<PN>.Shared.Rent(PageList.Count);
+
+            try
+            {
+                PageList.CopyTo(rentedArray);
+                var span = new Span<PN>(rentedArray, 0, PageList.Count);
+                chunk.PokeSpan(0, span.Length, span);
+            }
+            finally
+            {
+                ArrayPool<PN>.Shared.Return(rentedArray);
+            }
+#endif
         }
 
         void IViewable.WriteView(ViewWriter writer)

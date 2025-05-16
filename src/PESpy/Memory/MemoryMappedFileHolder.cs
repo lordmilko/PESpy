@@ -10,11 +10,16 @@ namespace PESpy
         private MemoryMappedViewAccessor? mma;
         public byte* Address;
         public long Length;
+        public bool Writable;
 
         public MemoryMappedFileHolder(FileStream fs)
         {
-            mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
-            mma = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            Writable = fs.CanWrite;
+
+            var access = Writable ? MemoryMappedFileAccess.CopyOnWrite : MemoryMappedFileAccess.Read;
+
+            mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, access, HandleInheritability.None, false);
+            mma = mmf.CreateViewAccessor(0, 0, access);
 
             RuntimeHelpers.PrepareConstrainedRegions();
 

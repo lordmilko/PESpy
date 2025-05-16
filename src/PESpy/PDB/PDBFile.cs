@@ -13,18 +13,19 @@ namespace PESpy
     /// </summary>
     public abstract unsafe class PDBFile : IFile, IViewable, IDisposable
     {
-        public static unsafe PDBFile FromFile(string path)
+        public static PDBFile FromFile(string path, bool writable = false)
         {
-            using var fs = File.OpenRead(path);
+            //File.OpenWrite opens with FileMode.OpenOrCreate. The file _must_ already exist if we are opening it with an MMF
+            using var fs = writable ? File.Open(path, FileMode.Open, FileAccess.ReadWrite) : File.OpenRead(path);
+
+            //V2 magic is 44 bytes and a BIGMSF_HDR is close to 60
+            if (fs.Length < 44)
+                throw new BadImageFormatException("File is not large enough to contain a PDB header");
 
             var mmf = new MemoryMappedFileHolder(fs);
 
             try
             {
-                //V2 magic is 44 bytes and a BIGMSF_HDR is close to 60
-                if (fs.Length < 44)
-                    throw new BadImageFormatException("File is not large enough to contain a PDB header");
-
                 var magic = new FixedAnsiString(mmf.Address, 32);
 
                 if (magic == BigMsfHdr.BigHdrMagic)
@@ -47,6 +48,8 @@ namespace PESpy
                 throw;
             }
         }
+
+        public static PDBFile Create(string fileName, int pageSize = 1024) => new PDB7File(fileName, pageSize);
 
         private bool disposed;
 
@@ -122,7 +125,7 @@ namespace PESpy
         /// Gets the stream table that describes which pages belong to which streams in the PDB.<para/>
         /// This value is not valid if this is a <see cref="PDB1File"/>.
         /// </summary>
-        public IStreamTable? StreamTable { get; protected set; }
+        public IStreamTable StreamTable { get; protected set; }
 
         #region Streams
         #region snSt (0)
@@ -130,11 +133,14 @@ namespace PESpy
         //Whenever the PDB is committed, a copy of the previous stream table pointed to by the BIGMSF_HDR is copied into Stream 0 (snSt)
         private IStreamTable? previousStreamTable;
 
+        //This value is not available when writing, as snSt will return the in-memory version of the stream table,
+        //which will match the current version of the stream table (which will upset the view since they haev the same offset).
+        //Only the on-disk snSt will be the previous stream table
         public IStreamTable? PreviousStreamTable
         {
             get
             {
-                if (previousStreamTable == null)
+                if (previousStreamTable == null && !globalBlock.writable)
                 {
                     if (TryGetStreamChunk(SN.ST, out var chunk))
                         previousStreamTable = CreateStreamTable(chunk, PageSize);
@@ -230,8 +236,7 @@ namespace PESpy
         {
             get
             {
-                //IPI is only present when we're impv110+
-                if (ipi == null && PDB?.PDBHeader.ImplementationVersion >= PDBIMPV.PDBImpvVC110)
+                if (ipi == null && PDB?.HasIPI == true)
                 {
                     if (TryGetStreamChunk(SN.IPI, out var chunk))
                         ipi = new MsfStream.TPI(chunk);
@@ -397,18 +402,31 @@ namespace PESpy
         private MemoryMappedFileHolder mmf;
         internal PDBGlobalMemoryBlock globalBlock;
 
-        internal unsafe PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
+        //Open an existing file
+        internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
         {
             this.mmf = mmf;
             PDBKind = pdbKind;
+            StreamTable = null!;
 
             FileName = fileName;
             Name = Path.GetFileName(fileName);
 
-            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, ownsMemory: false, this);
 
             //In PDB2 and PDB7 this will read the MSF Headers. In PDB1 it will read the whole file (which just contains type information)
             ReadHeaders();
+        }
+
+        //Create a new file
+        internal PDBFile(string fileName, PDBFileKind kind)
+        {
+            FileName = fileName;
+            Name = Path.GetFileName(fileName);
+
+            PDBKind = kind;
+            globalBlock = null!;
+            StreamTable = null!;
         }
 
         ~PDBFile()
@@ -426,11 +444,11 @@ namespace PESpy
                 return false;
             }
 
-            if (StreamTable.StreamPages.Length > sn)
+            if (StreamTable.StreamPages.Count > sn)
             {
-                ref var si = ref StreamTable.StreamInfos[sn]; //temp
+                var si = StreamTable.StreamInfos[sn];
 
-                if (si.PageList.Length > 0)
+                if (si.PageList.Count > 0)
                 {
                     chunk = globalBlock.SlicePaged(si);
                     return true;
@@ -522,7 +540,7 @@ namespace PESpy
             writer.WriteGlobal(TPI); //snTpi
             writer.WriteGlobal(DBI); //snDbi
 
-            //IPI will return null if we're not impv110
+            //IPI will return null if its not supported
             writer.WriteGlobal(IPI); //snIpi
 
             writer.WriteGlobal(GSI);
@@ -535,14 +553,27 @@ namespace PESpy
 
         public FileView GetView()
         {
-#if NEW_PDB
-            var writer = new PDBViewWriter(this, mmf.Address, (int) mmf.Length);
+            byte* address;
+            int length;
+
+            if (globalBlock.writable)
+            {
+                //Resize the global block and consolidate all pages into it
+                globalBlock.ConsolidatePages();
+
+                address = globalBlock.LocalPointer;
+                length = globalBlock.Length;
+            }
+            else
+            {
+                address = mmf.Address;
+                length = (int) mmf.Length;
+            }
+
+            var writer = new PDBViewWriter(this, address, length);
             ((IViewable) this).WriteView(writer);
 
             return (FileView) writer.Finalize();
-#else
-            throw new NotImplementedException();
-#endif
         }
 
         public void Dispose()
