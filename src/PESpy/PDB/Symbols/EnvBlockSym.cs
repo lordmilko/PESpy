@@ -12,14 +12,19 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ENVBLOCKSYM* value;
 
+        /// <inheritdoc cref="ENVBLOCKSYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="ENVBLOCKSYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="ENVBLOCKSYM.rev"/>
         public bool rev => value->rev;
 
+        /// <inheritdoc cref="ENVBLOCKSYM.pad"/>
         public byte pad => value->pad;
 
+        /// <inheritdoc cref="ENVBLOCKSYM.rgsz"/>
         public AnsiString[] rgsz
         {
             get
@@ -44,6 +49,11 @@ namespace PESpy.PDB
                 return results.ToArray();
             }
         }
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(byte);    //flags
 
         internal EnvBlockSym(ENVBLOCKSYM* value)
         {

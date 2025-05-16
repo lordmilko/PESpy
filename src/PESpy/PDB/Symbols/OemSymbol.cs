@@ -12,13 +12,23 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly OEMSYMBOL* value;
 
+        /// <inheritdoc cref="OEMSYMBOL.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="OEMSYMBOL.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="OEMSYMBOL.idOem"/>
         public Guid idOem => value->idOem;
 
+        /// <inheritdoc cref="OEMSYMBOL.typind"/>
         public CV_typ_t typind => value->typind;
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            16             + //idOem
+            sizeof(int);     //typind
 
         internal OemSymbol(OEMSYMBOL* value)
         {

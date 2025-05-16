@@ -468,6 +468,9 @@ namespace PESpy.Tests
         {
             //A minimal PDB that has a DBI Stream
 
+            //DBI1::fInit calls OpenGlobals, OpenPublics, GetTpi and GetIpi, thereby initializing all 4 streams. TPI, DBI and IPI are all present when the PDB is first created,
+            //but there's nothing in them until they're actually opened, and hence won't appear in the view of a minimal PDB Stream test
+
             var actions = IgnoreValues(19);
 
             actions[3] = v => v.VerifyLogicalRegion(name: "3 | 'IPI (4)' (1/1)", offset: 0xC00, 0x400,

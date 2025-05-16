@@ -11,29 +11,49 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CFLAGSYM* value;
 
+        /// <inheritdoc cref="CFLAGSYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="CFLAGSYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="CFLAGSYM.machine"/>
         public byte machine => value->machine;
 
+        /// <inheritdoc cref="CFLAGSYM.language"/>
         public byte language => value->language;
 
+        /// <inheritdoc cref="CFLAGSYM.pcode"/>
         public bool pcode => value->pcode;
 
+        /// <inheritdoc cref="CFLAGSYM.floatprec"/>
         public byte floatprec => value->floatprec;
 
+        /// <inheritdoc cref="CFLAGSYM.floatpkg"/>
         public byte floatpkg => value->floatpkg;
 
+        /// <inheritdoc cref="CFLAGSYM.ambdata"/>
         public byte ambdata => value->ambdata;
 
+        /// <inheritdoc cref="CFLAGSYM.ambcode"/>
         public byte ambcode => value->ambcode;
 
+        /// <inheritdoc cref="CFLAGSYM.mode32"/>
         public bool mode32 => value->mode32;
 
+        /// <inheritdoc cref="CFLAGSYM.pad"/>
         public byte pad => value->pad;
 
+        /// <inheritdoc cref="CFLAGSYM.ver"/>
         public FixedUtf8String ver => SymType.ReadString(value, value->ver);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(byte)   + //machine
+            sizeof(byte)   + //language
+            sizeof(byte)   + //flags1
+            sizeof(byte);    //flags2
 
         internal CFlagSym(CFLAGSYM* value)
         {

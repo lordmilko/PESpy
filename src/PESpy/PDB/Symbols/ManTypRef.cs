@@ -11,11 +11,19 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MANTYPREF* value;
 
+        /// <inheritdoc cref="MANTYPREF.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="MANTYPREF.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="MANTYPREF.typind"/>
         public CV_typ_t typind => value->typind;
+
+        internal const int StructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int);     //typind
 
         internal ManTypRef(MANTYPREF* value)
         {

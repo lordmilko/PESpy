@@ -11,16 +11,22 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ANNOTATIONSYM* value;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.off"/>
         public CV_uoff32_t off => value->off;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.seg"/>
         public short seg => value->seg;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.csz"/>
         public short csz => value->csz;
 
+        /// <inheritdoc cref="ANNOTATIONSYM.rgsz"/>
         public AnsiString[] rgsz
         {
             get
@@ -49,6 +55,13 @@ namespace PESpy.PDB
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         #endregion
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(uint)   + //off
+            sizeof(short)  + //seg
+            sizeof(short);   //csz
 
         internal AnnotationSym(ANNOTATIONSYM* value)
         {

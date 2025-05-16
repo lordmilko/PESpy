@@ -11,15 +11,26 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly REGSYM* value;
 
+        /// <inheritdoc cref="REGSYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="REGSYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="REGSYM.typind"/>
         public CV_typ_t typind => value->typind;
 
+        /// <inheritdoc cref="REGSYM.reg"/>
         public short reg => value->reg;
 
+        /// <inheritdoc cref="REGSYM.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //typind
+            sizeof(short);   //reg
 
         internal RegSym(REGSYM* value)
         {

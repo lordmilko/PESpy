@@ -11,17 +11,30 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ATTRSLOTSYM* value;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.iSlot"/>
         public int iSlot => value->iSlot;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.typind"/>
         public CV_typ_t typind => value->typind;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.attr"/>
         public CV_lvar_attr attr => value->attr;
 
+        /// <inheritdoc cref="ATTRSLOTSYM.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //iSlot
+            sizeof(int)    + //typind
+            8;               //attr
 
         internal AttrSlotSym(ATTRSLOTSYM* value)
         {

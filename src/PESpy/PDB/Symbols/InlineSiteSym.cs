@@ -11,15 +11,27 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly INLINESITESYM* value;
 
+        /// <inheritdoc cref="INLINESITESYM.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="INLINESITESYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="INLINESITESYM.pParent"/>
         public int pParent => value->pParent;
 
+        /// <inheritdoc cref="INLINESITESYM.pEnd"/>
         public int pEnd => value->pEnd;
 
+        /// <inheritdoc cref="INLINESITESYM.inlinee"/>
         public CV_ItemId inlinee => value->inlinee;
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //pParent
+            sizeof(int)    + //pEnd
+            sizeof(int);     //inlinee
 
         internal InlineSiteSym(INLINESITESYM* value)
         {

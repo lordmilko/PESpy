@@ -11,13 +11,23 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MANYREGSYM_16t* value;
 
+        /// <inheritdoc cref="MANYREGSYM_16t.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="MANYREGSYM_16t.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="MANYREGSYM_16t.typind"/>
         public CV_typ16_t typind => value->typind;
 
+        /// <inheritdoc cref="MANYREGSYM_16t.count"/>
         public byte count => value->count;
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(short)  + //typind
+            sizeof(byte);    //count
 
         internal ManyRegSym16t(MANYREGSYM_16t* value)
         {

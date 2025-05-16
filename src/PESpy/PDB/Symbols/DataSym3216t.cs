@@ -11,16 +11,22 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DATASYM32_16t* value;
 
+        /// <inheritdoc cref="DATASYM32_16t.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="DATASYM32_16t.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="DATASYM32_16t.off"/>
         public CV_uoff32_t off => value->off;
 
+        /// <inheritdoc cref="DATASYM32_16t.seg"/>
         public short seg => value->seg;
 
+        /// <inheritdoc cref="DATASYM32_16t.typind"/>
         public CV_typ16_t typind => value->typind;
 
+        /// <inheritdoc cref="DATASYM32_16t.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
 
         #region PESpy
@@ -28,6 +34,13 @@ namespace PESpy.PDB
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         #endregion
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(uint)   + //off
+            sizeof(short)  + //seg
+            sizeof(short);   //typind
 
         internal DataSym3216t(DATASYM32_16t* value)
         {

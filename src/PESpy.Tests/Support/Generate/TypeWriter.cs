@@ -238,7 +238,7 @@ namespace PESpy.Tests
             Dedent();
         }
 
-        private void Write(string str)
+        public void Write(string str)
         {
             EnsureIndentation();
             builder.Append(str);
@@ -258,8 +258,8 @@ namespace PESpy.Tests
             isNewLine = true;
         }
 
-        private void Indent() => indent++;
-        private void Dedent() => indent--;
+        internal void Indent() => indent++;
+        internal void Dedent() => indent--;
 
         private void EnsureIndentation()
         {

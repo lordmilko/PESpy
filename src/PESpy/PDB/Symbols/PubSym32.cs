@@ -11,16 +11,22 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PUBSYM32* value;
 
+        /// <inheritdoc cref="PUBSYM32.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="PUBSYM32.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="PUBSYM32.pubsymflags"/>
         public CV_PUBSYMFLAGS pubsymflags => value->pubsymflags;
 
+        /// <inheritdoc cref="PUBSYM32.off"/>
         public CV_uoff32_t off => value->off;
 
+        /// <inheritdoc cref="PUBSYM32.seg"/>
         public short seg => value->seg;
 
+        /// <inheritdoc cref="PUBSYM32.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
 
         #region PESpy
@@ -34,6 +40,13 @@ namespace PESpy.PDB
          * but that's as far as you can get */
 
         #endregion
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            4              + //pubsymflags
+            sizeof(uint)   + //off
+            sizeof(short);   //seg
 
         internal PubSym32(PUBSYM32* value)
         {

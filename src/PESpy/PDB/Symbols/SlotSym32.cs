@@ -11,15 +11,26 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SLOTSYM32* value;
 
+        /// <inheritdoc cref="SLOTSYM32.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="SLOTSYM32.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="SLOTSYM32.iSlot"/>
         public int iSlot => value->iSlot;
 
+        /// <inheritdoc cref="SLOTSYM32.typind"/>
         public CV_typ_t typind => value->typind;
 
+        /// <inheritdoc cref="SLOTSYM32.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //iSlot
+            sizeof(int);     //typind
 
         internal SlotSym32(SLOTSYM32* value)
         {

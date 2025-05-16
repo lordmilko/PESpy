@@ -11,16 +11,28 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CONSTSYM* raw;
 
+        /// <inheritdoc cref="CONSTSYM.reclen"/>
         public ushort reclen => raw->reclen;
 
+        /// <inheritdoc cref="CONSTSYM.rectyp"/>
         public SYM_ENUM_e rectyp => raw->rectyp;
 
+        /// <inheritdoc cref="CONSTSYM.typind"/>
         public CV_typ_t typind => raw->typind;
 
+        /// <inheritdoc cref="CONSTSYM.value"/>
         public short value => raw->value;
 
         //Note: according to dumpsym7.cpp!C7ConSym, name does not actually contain name; you have to skip over a type encoded value indicated by "value"
+
+        /// <inheritdoc cref="CONSTSYM.name"/>
         public FixedUtf8String name => SymType.ReadString(raw, raw->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //typind
+            sizeof(short);   //value
 
         internal ConstSym(CONSTSYM* value)
         {

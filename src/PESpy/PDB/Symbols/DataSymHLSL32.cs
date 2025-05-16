@@ -11,25 +11,46 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DATASYMHLSL32* value;
 
+        /// <inheritdoc cref="DATASYMHLSL32.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="DATASYMHLSL32.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="DATASYMHLSL32.typind"/>
         public CV_typ_t typind => value->typind;
 
+        /// <inheritdoc cref="DATASYMHLSL32.dataslot"/>
         public int dataslot => value->dataslot;
 
+        /// <inheritdoc cref="DATASYMHLSL32.dataoff"/>
         public int dataoff => value->dataoff;
 
+        /// <inheritdoc cref="DATASYMHLSL32.texslot"/>
         public int texslot => value->texslot;
 
+        /// <inheritdoc cref="DATASYMHLSL32.sampslot"/>
         public int sampslot => value->sampslot;
 
+        /// <inheritdoc cref="DATASYMHLSL32.uavslot"/>
         public int uavslot => value->uavslot;
 
+        /// <inheritdoc cref="DATASYMHLSL32.regType"/>
         public short regType => value->regType;
 
+        /// <inheritdoc cref="DATASYMHLSL32.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //typind
+            sizeof(int)    + //dataslot
+            sizeof(int)    + //dataoff
+            sizeof(int)    + //texslot
+            sizeof(int)    + //sampslot
+            sizeof(int)    + //uavslot
+            sizeof(short);   //regType
 
         internal DataSymHLSL32(DATASYMHLSL32* value)
         {

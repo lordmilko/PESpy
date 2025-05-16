@@ -12,12 +12,16 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FUNCTIONLIST* value;
 
+        /// <inheritdoc cref="FUNCTIONLIST.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="FUNCTIONLIST.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="FUNCTIONLIST.count"/>
         public int count => value->count;
 
+        /// <inheritdoc cref="FUNCTIONLIST.funcs"/>
         public Span<CV_typ_t> funcs => new Span<CV_typ_t>(value->funcs, count);
 
         public Span<int> invocations
@@ -40,6 +44,11 @@ namespace PESpy.PDB
                 return new Span<int>(start, remainingBytes / 4);
             }
         }
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int);     //count
 
         internal FunctionList(FUNCTIONLIST* value)
         {

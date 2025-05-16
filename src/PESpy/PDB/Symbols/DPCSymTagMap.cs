@@ -11,9 +11,15 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DPCSYMTAGMAP* value;
 
+        /// <inheritdoc cref="DPCSYMTAGMAP.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="DPCSYMTAGMAP.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort);  //rectyp
 
         internal DPCSymTagMap(DPCSYMTAGMAP* value)
         {

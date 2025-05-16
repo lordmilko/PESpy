@@ -11,14 +11,26 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly BPRELSYM32_16t* value;
 
+        /// <inheritdoc cref="BPRELSYM32_16t.reclen"/>
         public ushort reclen => value->reclen;
 
+        /// <inheritdoc cref="BPRELSYM32_16t.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        /// <inheritdoc cref="BPRELSYM32_16t.off"/>
         public CV_off32_t off => value->off;
+
+        /// <inheritdoc cref="BPRELSYM32_16t.typind"/>
         public CV_typ16_t typind => value->typind;
 
+        /// <inheritdoc cref="BPRELSYM32_16t.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);
+
+        internal const int FixedStructSize =
+            sizeof(ushort) + //reclen
+            sizeof(ushort) + //rectyp
+            sizeof(int)    + //off
+            sizeof(short);   //typind
 
         internal BPRelSym3216t(BPRELSYM32_16t* value)
         {
