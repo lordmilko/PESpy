@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -21,7 +22,7 @@ namespace PESpy.PDB
         public CV_uoff16_t off => value->off;
 
         /// <inheritdoc cref="REGREL16.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="REGREL16.typind"/>
         public CV_typ16_t typind => value->typind;

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -24,7 +25,7 @@ namespace PESpy.PDB
         public CV_lvar_attr attr => value->attr;
 
         /// <inheritdoc cref="ATTRREGSYM.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="ATTRREGSYM.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

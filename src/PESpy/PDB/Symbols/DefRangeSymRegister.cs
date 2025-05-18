@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -19,7 +20,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="DEFRANGESYMREGISTER.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="DEFRANGESYMREGISTER.attr"/>
         public CV_RANGEATTR attr => value->attr;

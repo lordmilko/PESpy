@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -18,7 +19,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="COMPILESYM3.iLanguage"/>
-        public int iLanguage => value->iLanguage;
+        public CV_CFL_LANG iLanguage => value->iLanguage;
 
         /// <inheritdoc cref="COMPILESYM3.fEC"/>
         public bool fEC => value->fEC;
@@ -60,7 +61,7 @@ namespace PESpy.PDB
         public int pad => value->pad;
 
         /// <inheritdoc cref="COMPILESYM3.machine"/>
-        public short machine => value->machine;
+        public CV_CPU_TYPE_e machine => (CV_CPU_TYPE_e) value->machine;
 
         /// <inheritdoc cref="COMPILESYM3.verFEMajor"/>
         public short verFEMajor => value->verFEMajor;

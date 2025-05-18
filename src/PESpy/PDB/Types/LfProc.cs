@@ -30,5 +30,10 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        public override string ToString()
+        {
+            return $"{rvtype} <fn>{arglist}";
+        }
     }
 }

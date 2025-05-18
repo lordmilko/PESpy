@@ -11,18 +11,49 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMember* value;
 
-        public ushort typlen => *(ushort*) ((byte*) value - 2);
+        //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
         public LEAF_ENUM_e leaf => value->leaf;
 
         public CV_fldattr_t attr => value->attr;
 
-        public CV_typ_t index => value->index;
+        public TypOrEnumType index => new TypOrEnumType((byte*) value, value->index);
+
+        #region offset
+
+        // variable length offset of field followed by length prefixed name of field
+
+        public int offset
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->offset, out var offset, out _);
+
+                return (int) offset;
+            }
+        }
+
+        public FixedUtf8String name
+        {
+            get
+            {
+                //I am assuming I need to use normal ST/UTF parsing logic
+                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+
+                return TypType.ReadString(value->offset + bytesRead);
+            }
+        }
+
+        #endregion
 
         internal LfMember(lfMember* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read offset");
+        }
+
+        public override string ToString()
+        {
+            return name.ToString();
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -24,7 +25,7 @@ namespace PESpy.PDB
         public CV_typ_t typind => value->typind;
 
         /// <inheritdoc cref="REGREL32.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="REGREL32.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

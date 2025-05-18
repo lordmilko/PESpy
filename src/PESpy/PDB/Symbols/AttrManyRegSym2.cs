@@ -36,7 +36,7 @@ namespace PESpy.PDB
         internal AttrManyRegSym2(ATTRMANYREGSYM2* value)
         {
             this.value = value;
-            Debug.Assert(false, "Implement reg and name, which are both variable length arrays");
+            Debug.Assert(false, "Implement reg and name, which are both variable length arrays"); //CV_HREG_e?
         }
     }
 }

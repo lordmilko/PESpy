@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -24,7 +25,7 @@ namespace PESpy.PDB
         public CV_off32_t off => value->off;
 
         /// <inheritdoc cref="SLINK32.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

@@ -32,7 +32,7 @@ namespace PESpy.PDB
         internal ManyRegSym2(MANYREGSYM2* value)
         {
             this.value = value;
-            Debug.Assert(false, "Read reg");
+            Debug.Assert(false, "Read reg"); //CV_HREG_e?
         }
     }
 }

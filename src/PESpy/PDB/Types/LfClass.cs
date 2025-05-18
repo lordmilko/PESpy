@@ -25,11 +25,62 @@ namespace PESpy.PDB
 
         public CV_typ_t vshape => value->vshape;
 
+        #region data
+
+        //"data" describes the length of the structure in bytes, and name. In addition, if property.hasuniquename is set,
+        //there is a decorated name following the name
+
+        public int length
+        {
+            get
+            {
+                //Length may be 0, this is normal
+                TypType.ExtractNumericData(value->data, out var length, out var bytesRead);
+
+                return (int) length;
+            }
+        }
+
+        public FixedUtf8String name
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                //I am assuming I need to use normal ST/UTF parsing logic
+                return TypType.ReadString(value->data + bytesRead);
+            }
+        }
+
+        public FixedUtf8String uniquename
+        {
+            get
+            {
+                if (property.hasuniquename)
+                {
+                    TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                    //I am assuming I need to use normal ST/UTF parsing logic
+                    var name = TypType.ReadString(value->data + bytesRead);
+
+                    //I am assuming I need to use normal ST/UTF parsing logic
+                    return TypType.ReadString(value->data + bytesRead + name.Length + 1); //+1 because it's either null terminated or length prefixed
+                }
+
+                return default;
+            }
+        }
+
+        #endregion
+
         internal LfClass(lfClass* value)
         {
             this.value = value;
+        }
 
-            TypType.AssertMissing(false, "Read data");
+        public override string ToString()
+        {
+            return name.ToString();
         }
     }
 }

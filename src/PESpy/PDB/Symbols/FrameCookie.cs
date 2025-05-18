@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -21,7 +22,7 @@ namespace PESpy.PDB
         public CV_off32_t off => value->off;
 
         /// <inheritdoc cref="FRAMECOOKIE.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="FRAMECOOKIE.cookietype"/>
         public CV_cookietype_e cookietype => value->cookietype;

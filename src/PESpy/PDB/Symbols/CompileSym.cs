@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -17,10 +18,45 @@ namespace PESpy.PDB
         /// <inheritdoc cref="COMPILESYM.rectyp"/>
         public SYM_ENUM_e rectyp => value->rectyp;
 
-        //todo: bitfields
+        #region BitField
+
+        /// <inheritdoc cref="COMPILESYM.iLanguage"/>
+        public CV_CFL_LANG iLanguage => value->iLanguage;
+
+        /// <inheritdoc cref="COMPILESYM.fEC"/>
+        public bool fEC => value->fEC;
+
+        /// <inheritdoc cref="COMPILESYM.fNoDbgInfo"/>
+        public bool fNoDbgInfo => value->fNoDbgInfo;
+
+        /// <inheritdoc cref="COMPILESYM.fLTCG"/>
+        public bool fLTCG => value->fLTCG;
+
+        /// <inheritdoc cref="COMPILESYM.fNoDataAlign"/>
+        public bool fNoDataAlign => value->fNoDataAlign;
+
+        /// <inheritdoc cref="COMPILESYM.fManagedPresent"/>
+        public bool fManagedPresent => value->fManagedPresent;
+
+        /// <inheritdoc cref="COMPILESYM.fSecurityChecks"/>
+        public bool fSecurityChecks => value->fSecurityChecks;
+
+        /// <inheritdoc cref="COMPILESYM.fHotPatch"/>
+        public bool fHotPatch => value->fHotPatch;
+
+        /// <inheritdoc cref="COMPILESYM.fCVTCIL"/>
+        public bool fCVTCIL => value->fCVTCIL;
+
+        /// <inheritdoc cref="COMPILESYM.fMSILModule"/>
+        public bool fMSILModule => value->fMSILModule;
+
+        /// <inheritdoc cref="COMPILESYM.pad"/>
+        public int pad => value->pad;
+
+        #endregion
 
         /// <inheritdoc cref="COMPILESYM.machine"/>
-        public short machine => value->machine;
+        public CV_CPU_TYPE_e machine => (CV_CPU_TYPE_e) value->machine;
 
         /// <inheritdoc cref="COMPILESYM.verFEMajor"/>
         public short verFEMajor => value->verFEMajor;
