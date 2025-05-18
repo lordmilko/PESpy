@@ -13,80 +13,160 @@ namespace PESpy.PDB
         public const int hdrSignature = -1;
 
         //verSignature. Value is always hdrSignature (-1)
-        public int verSignature => chunk.PeekInt32(0);
+        public int verSignature
+        {
+            get => chunk.PeekInt32(0);
+            set => chunk.PokeInt32(0, value);
+        }
 
         //verHdr
-        public DBIImpv verHdr => (DBIImpv) chunk.PeekUInt32(4);
+        public DBIImpv verHdr
+        {
+            get => (DBIImpv) chunk.PeekUInt32(4);
+            set => chunk.PokeUInt32(4, (uint) value);
+        }
 
         //age
-        public int age => chunk.PeekInt32(8);
+        public int age
+        {
+            get => chunk.PeekInt32(8);
+            set => chunk.PokeInt32(8, value);
+        }
 
         //snGSSyms
-        public SN snGSSyms => (SN) chunk.PeekUInt16(12);
+        public SN snGSSyms
+        {
+            get => chunk.PeekUInt16(12);
+            set => chunk.PokeUInt16(12, value);
+        }
 
         //usVerAll
-        public DbiHdrVersion usVerAll => chunk.PeekUInt16(14);
+        public DbiHdrVersion usVerAll
+        {
+            get => chunk.PeekUInt16(14);
+            set => chunk.PokeUInt16(14, value);
+        }
 
         //snPSSyms
-        public SN snPSSyms => (SN) chunk.PeekUInt16(16);
+        public SN snPSSyms
+        {
+            get => chunk.PeekUInt16(16);
+            set => chunk.PokeUInt16(16, value);
+        }
 
         /// <summary>
         /// build version of the pdb dll that built this pdb last.
         /// </summary>
-        public ushort usVerPdbDllBuild => chunk.PeekUInt16(18);
+        public ushort usVerPdbDllBuild
+        {
+            get => chunk.PeekUInt16(18);
+            set => chunk.PokeUInt16(18, value);
+        }
 
-        public SN snSymRecs => (SN) chunk.PeekUInt16(20);
+        public SN snSymRecs
+        {
+            get => chunk.PeekUInt16(20);
+            set => chunk.PokeUInt16(20, value);
+        }
 
         /// <summary>
         /// rbld version of the pdb dll that built this pdb last.
         /// </summary>
-        public ushort usVerPdbDllRBld => chunk.PeekUInt16(22);
+        public ushort usVerPdbDllRBld
+        {
+            get => chunk.PeekUInt16(22);
+            set => chunk.PokeUInt16(22, value);
+        }
 
         /// <summary>
         /// size of rgmodi substream
         /// </summary>
-        public int cbGpModi => chunk.PeekInt32(24);
+        public int cbGpModi
+        {
+            get => chunk.PeekInt32(24);
+            set => chunk.PokeInt32(24, value);
+        }
 
         /// <summary>
         /// size of Section Contribution substream
         /// </summary>
-        public int cbSC => chunk.PeekInt32(28);
+        public int cbSC
+        {
+            get => chunk.PeekInt32(28);
+            set => chunk.PokeInt32(28, value);
+        }
 
-        public int cbSecMap => chunk.PeekInt32(32);
+        public int cbSecMap
+        {
+            get => chunk.PeekInt32(32);
+            set => chunk.PokeInt32(32, value);
+        }
 
-        public int cbFileInfo => chunk.PeekInt32(36);
+        public int cbFileInfo
+        {
+            get => chunk.PeekInt32(36);
+            set => chunk.PokeInt32(36, value);
+        }
 
         /// <summary>
         /// size of the Type Server Map substream
         /// </summary>
-        public int cbTSMap => chunk.PeekInt32(40);
+        public int cbTSMap
+        {
+            get => chunk.PeekInt32(40);
+            set => chunk.PokeInt32(40, value);
+        }
 
         /// <summary>
         /// index of MFC type server
         /// </summary>
-        public int iMFC => chunk.PeekInt32(44);
+        public int iMFC
+        {
+            get => chunk.PeekInt32(44);
+            set => chunk.PokeInt32(44, value);
+        }
 
         /// <summary>
         /// size of optional DbgHdr info appended to the end of the stream
         /// </summary>
-        public int cbDbgHdr => chunk.PeekInt32(48);
+        public int cbDbgHdr
+        {
+            get => chunk.PeekInt32(48);
+            set => chunk.PokeInt32(48, value);
+        }
 
         /// <summary>
         /// number of bytes in EC substream, or 0 if EC no EC enabled Mods
         /// </summary>
-        public int cbECInfo => chunk.PeekInt32(52);
+        public int cbECInfo
+        {
+            get => chunk.PeekInt32(52);
+            set => chunk.PokeInt32(52, value);
+        }
 
-        public DbiHdrFlags flags => chunk.PeekUInt16(56);
+        public DbiHdrFlags flags
+        {
+            get => chunk.PeekUInt16(56);
+            set => chunk.PokeUInt16(56, value);
+        }
 
         /// <summary>
         /// machine type
         /// </summary>
-        public IMAGE_FILE_MACHINE wMachine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(58);
+        public IMAGE_FILE_MACHINE wMachine
+        {
+            get => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(58);
+            set => chunk.PokeUInt16(58, (ushort) value);
+        }
 
         /// <summary>
         /// pad out to 64 bytes for future growth.
         /// </summary>
-        public int rgulReserved => chunk.PeekInt32(60);
+        public int rgulReserved
+        {
+            get => chunk.PeekInt32(60);
+            set => chunk.PokeInt32(60, value);
+        }
 
         int IDBIHdr.StructSize => StructSize;
 

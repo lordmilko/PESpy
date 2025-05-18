@@ -22,6 +22,9 @@ namespace PESpy.View.Builder
 #if PEFAST
         internal Extension(byte* mmf, int length, IViewDisassembler? viewDisassembler)
         {
+            if (mmf == default || length == 0)
+                throw new ArgumentException("Empty MMF specified");
+            
             this.mmf = mmf;
             this.length = length;
             this.viewDisassembler = viewDisassembler;

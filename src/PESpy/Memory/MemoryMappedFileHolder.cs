@@ -1,10 +1,11 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
-    internal unsafe struct MemoryMappedFileHolder
+    internal unsafe struct MemoryMappedFileHolder : IDisposable
     {
         private MemoryMappedFile? mmf;
         private MemoryMappedViewAccessor? mma;
@@ -12,14 +13,19 @@ namespace PESpy
         public long Length;
         public bool Writable;
 
-        public MemoryMappedFileHolder(FileStream fs)
+        public MemoryMappedFileHolder(FileStream fs, MemoryMappedFileAccess? access = null)
         {
-            Writable = fs.CanWrite;
+            if (access == null)
+            {
+                Writable = fs.CanWrite;
 
-            var access = Writable ? MemoryMappedFileAccess.CopyOnWrite : MemoryMappedFileAccess.Read;
+                access = Writable ? MemoryMappedFileAccess.CopyOnWrite : MemoryMappedFileAccess.Read;
+            }
+            else
+                Writable = false;
 
-            mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, access, HandleInheritability.None, false);
-            mma = mmf.CreateViewAccessor(0, 0, access);
+            mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, access.Value, HandleInheritability.None, false);
+            mma = mmf.CreateViewAccessor(0, 0, access.Value);
 
             RuntimeHelpers.PrepareConstrainedRegions();
 
@@ -38,7 +44,7 @@ namespace PESpy
             }
         }
 
-        public void Close()
+        public void Dispose()
         {
             RuntimeHelpers.PrepareConstrainedRegions();
 

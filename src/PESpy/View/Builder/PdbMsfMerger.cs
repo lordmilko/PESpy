@@ -36,7 +36,7 @@ namespace PESpy.View.Builder
 
             var dict = new Dictionary<PN, int>();
 
-            for (var i = 0; i < streamInfos.Count; i++)
+            for (var i = 0; i < streamInfos.Length; i++)
             {
                 var si = streamInfos[i];
 

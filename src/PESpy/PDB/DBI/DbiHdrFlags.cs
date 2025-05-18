@@ -31,5 +31,6 @@ namespace PESpy.PDB
         }
 
         public static implicit operator DbiHdrFlags(ushort value) => new DbiHdrFlags(value);
+        public static implicit operator ushort(DbiHdrFlags value) => value.flags;
     }
 }

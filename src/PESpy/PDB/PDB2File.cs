@@ -40,6 +40,7 @@ namespace PESpy
 
             //The PDB begins with the MSF Header
             msfHeader = new MsfHdr(globalChunk);
+            globalBlock.pageSize = msfHeader.PageSize;
 
             //PDBs have two Free Page Maps. In V2 PDBs, their locations are determined based on the page size
 

@@ -12,14 +12,13 @@ namespace PESpy
 
         IFile IFileMemoryBlockProvider.File => File;
 
-        private bool is32Bit;
+        internal bool is32Bit;
 
         public RemoteMemoryBlockProvider(IMemoryReader reader, long baseAddress, PEFile peFile)
         {
             this.reader = reader;
             this.baseAddress = baseAddress;
             File = peFile;
-            is32Bit = File.OptionalHeader.Magic == PEMagic.PE32;
         }
 
         public MemoryBlock CreateBlock(int rva, int size) =>

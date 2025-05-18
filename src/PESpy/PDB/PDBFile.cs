@@ -43,13 +43,11 @@ namespace PESpy
             }
             catch
             {
-                mmf.Close();
+                mmf.Dispose();
 
                 throw;
             }
         }
-
-        public static PDBFile Create(string fileName, int pageSize = 1024) => new PDB7File(fileName, pageSize);
 
         private bool disposed;
 
@@ -412,7 +410,7 @@ namespace PESpy
             FileName = fileName;
             Name = Path.GetFileName(fileName);
 
-            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, ownsMemory: false, this);
+            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, 0, this);
 
             //In PDB2 and PDB7 this will read the MSF Headers. In PDB1 it will read the whole file (which just contains type information)
             ReadHeaders();
@@ -444,11 +442,11 @@ namespace PESpy
                 return false;
             }
 
-            if (StreamTable.StreamPages.Count > sn)
+            if (StreamTable.StreamPages.Length > sn)
             {
                 var si = StreamTable.StreamInfos[sn];
 
-                if (si.PageList.Count > 0)
+                if (si.PageList.Length > 0)
                 {
                     chunk = globalBlock.SlicePaged(si);
                     return true;
@@ -553,24 +551,7 @@ namespace PESpy
 
         public FileView GetView()
         {
-            byte* address;
-            int length;
-
-            if (globalBlock.writable)
-            {
-                //Resize the global block and consolidate all pages into it
-                globalBlock.ConsolidatePages();
-
-                address = globalBlock.LocalPointer;
-                length = globalBlock.Length;
-            }
-            else
-            {
-                address = mmf.Address;
-                length = (int) mmf.Length;
-            }
-
-            var writer = new PDBViewWriter(this, address, length);
+            var writer = new PDBViewWriter(this, mmf.Address, (int) mmf.Length);
             ((IViewable) this).WriteView(writer);
 
             return (FileView) writer.Finalize();
@@ -590,7 +571,7 @@ namespace PESpy
                 GC.SuppressFinalize(this);
 
             globalBlock.Dispose();
-            mmf.Close();
+            mmf.Dispose();
 
             disposed = true;
         }

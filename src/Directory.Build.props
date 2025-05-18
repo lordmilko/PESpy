@@ -9,6 +9,5 @@
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
 
     <DefineConstants>$(DefineConstants);PEFAST</DefineConstants>
-    <DefineConstants>$(DefineConstants);NEW_PDB</DefineConstants>
   </PropertyGroup>
 </Project>

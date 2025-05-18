@@ -66,9 +66,16 @@ namespace PESpy.View
 
             if (pdbFile.DBI != null)
             {
-                streamIndexToNameMap.Add(pdbFile.DBI.DbiHdr.snSymRecs, $"Symbol Records");
-                streamIndexToNameMap.Add(pdbFile.DBI.DbiHdr.snGSSyms, $"Globals");
-                streamIndexToNameMap.Add(pdbFile.DBI.DbiHdr.snPSSyms, $"Publics");
+                var dbiHdr = pdbFile.DBI.DbiHdr;
+
+                if (dbiHdr.snSymRecs != SN.Nil)
+                    streamIndexToNameMap.Add(dbiHdr.snSymRecs, $"Symbol Records");
+
+                if (dbiHdr.snGSSyms != SN.Nil)
+                    streamIndexToNameMap.Add(dbiHdr.snGSSyms, $"Globals");
+
+                if (dbiHdr.snPSSyms != SN.Nil)
+                    streamIndexToNameMap.Add(dbiHdr.snPSSyms, $"Publics");
             }
 
             if (pdbFile.TPI != null)
@@ -138,7 +145,7 @@ namespace PESpy.View
             }
 
             //Build up a list of pages and which streams reside in each page
-            for (var i = 0; i < pdbFile.StreamTable.StreamInfos.Count; i++)
+            for (var i = 0; i < pdbFile.StreamTable.StreamInfos.Length; i++)
             {
                 var item = pdbFile.StreamTable.StreamInfos[i];
 
@@ -178,7 +185,7 @@ namespace PESpy.View
                         break;
                 }
 
-                for (var j = 0; j < item.PageList.Count; j++)
+                for (var j = 0; j < item.PageList.Length; j++)
                 {
                     var page = item.PageList[j];
                     pageToSIMap.Add(page, (item, i, j, name));
@@ -200,8 +207,8 @@ namespace PESpy.View
 
             var fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
 
-            for (var i = 0; i < fpm0.FpmPages.Count; i++)
-                specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Count}) ({fpmStatus})");
+            for (var i = 0; i < fpm0.FpmPages.Length; i++)
+                specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
 
             //Scope v7 variable
             {
@@ -216,8 +223,8 @@ namespace PESpy.View
 
                 var fpm1 = pdbFile.FPM1;
 
-                for (var i = 0; i < fpm1.FpmPages.Count; i++)
-                    specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Count}) ({fpmStatus})");
+                for (var i = 0; i < fpm1.FpmPages.Length; i++)
+                    specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
             }
 
             //Scope v7 variable
@@ -278,9 +285,9 @@ namespace PESpy.View
             {
                 if (pdbFile is PDB7File v7)
                 {
-                    for (var i = 0; i < v7.StreamTableLocation.PageList.Count; i++)
+                    for (var i = 0; i < v7.StreamTableLocation.PageList.Length; i++)
                     {
-                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], $"Stream Table ({i + 1}/{v7.StreamTableLocation.PageList.Count})");
+                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], $"Stream Table ({i + 1}/{v7.StreamTableLocation.PageList.Length})");
                     }
                 }
             }
@@ -323,7 +330,7 @@ namespace PESpy.View
                             name = $"{specialName} / {name}";
                     }
 
-                    nameBuilder.Append(" | " + name).Append(" (").Append(match.pageIndex + 1).Append("/").Append(match.si.PageList.Count).Append(")");
+                    nameBuilder.Append(" | " + name).Append(" (").Append(match.pageIndex + 1).Append("/").Append(match.si.PageList.Length).Append(")");
                 }
                 else if (specialPageMap.TryGetValue(i, out var name))
                 {

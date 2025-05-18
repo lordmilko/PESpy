@@ -58,6 +58,7 @@ namespace PESpy.PDB
         }
 
         public static implicit operator DbiHdrVersion(ushort value) => new DbiHdrVersion {vernew = value};
+        public static unsafe implicit operator ushort(DbiHdrVersion value) => *(ushort*) (&value);
 
         public override string ToString()
         {

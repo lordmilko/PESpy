@@ -117,6 +117,14 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal const int FixedStructSize =
+            32          + //32
+            sizeof(int) + //PageSize
+            sizeof(int) + //FpmPageNo
+            sizeof(int) + //NumPages
+            8           + //StreamTableSizeInfo
+            sizeof(int);  //PagesOfStreamTablePageList[0]
+
         private readonly MemoryChunk chunk;
 
         internal BigMsfHdr(in MemoryChunk chunk)

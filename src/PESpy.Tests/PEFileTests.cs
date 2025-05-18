@@ -3262,7 +3262,7 @@ namespace PESpy.Tests
             finally
             {
                 if (stream is FileStream f)
-                    mmf.Close();
+                    mmf.Dispose();
 
                 stream?.Dispose();
             }

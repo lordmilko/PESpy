@@ -21,7 +21,7 @@ namespace PESpy
             }
             catch
             {
-                mmf.Close();
+                mmf.Dispose();
 
                 throw;
             }
@@ -283,7 +283,7 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
-            mmf.Close();
+            mmf.Dispose();
 
             disposed = true;
         }

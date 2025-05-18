@@ -20,7 +20,7 @@ namespace PESpy.View
             private int pageIndex;
 
             private readonly int pageSize;
-            private readonly List<PN> pageList;
+            private readonly PN[] pageList;
 
             private List<IView> items;
 

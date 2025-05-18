@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
-using ClrDebug.PDB;
-using PESpy.OBJ;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -17,42 +15,82 @@ namespace PESpy.PDB
     public class Modi60 : IModi, IValue, IViewable //Will always be boxed
     {
         //Supposedly this field is used to store the "currently open mod", but in version 6.0 I don't think its actually used
-        public int pmod => chunk.PeekInt32(0);
+        public int pmod
+        {
+            get => chunk.PeekInt32(0);
+            set => chunk.PokeInt32(0, value);
+        }
 
         /// <summary>
         /// this module's first section contribution
         /// </summary>
-        public SC sc => chunk.PeekUnmanaged<SC>(4);
+        public SC sc
+        {
+            get => chunk.PeekUnmanaged<SC>(4);
+            set => chunk.PokeUnmanaged<SC>(4, value);
+        }
 
-        public Modi60Flags flags => chunk.PeekUInt16(4 + SC.StructSize);
+        public Modi60Flags flags
+        {
+            get => chunk.PeekUInt16(4 + SC.StructSize);
+            set => chunk.PokeUInt16(4 + SC.StructSize, value);
+        }
 
         /// <summary>
         /// SN of module debug info (syms, lines, fpo), or snNil
         /// </summary>
-        public SN sn => chunk.PeekUInt16(6 + SC.StructSize);
+        public SN sn
+        {
+            get => chunk.PeekUInt16(6 + SC.StructSize);
+            set => chunk.PokeUInt16(6 + SC.StructSize, value);
+        }
 
         /// <summary>
         /// size of local symbols debug info in stream sn
         /// </summary>
-        public int cbSyms => chunk.PeekInt32(8 + SC.StructSize);
+        public int cbSyms
+        {
+            get => chunk.PeekInt32(8 + SC.StructSize);
+            set => chunk.PokeInt32(8 + SC.StructSize, value);
+        }
 
         /// <summary>
         /// size of line number debug info in stream sn
         /// </summary>
-        public int cbLines => chunk.PeekInt32(12 + SC.StructSize);
+        public int cbLines
+        {
+            get => chunk.PeekInt32(12 + SC.StructSize);
+            set => chunk.PokeInt32(12 + SC.StructSize, value);
+        }
 
         /// <summary>
         /// size of C13 style line number info in stream sn
         /// </summary>
-        public int cbC13Lines => chunk.PeekInt32(16 + SC.StructSize);
+        public int cbC13Lines
+        {
+            get => chunk.PeekInt32(16 + SC.StructSize);
+            set => chunk.PokeInt32(16 + SC.StructSize, value);
+        }
 
         /// <summary>
         /// number of files contributing to this module
         /// </summary>
-        public ushort ifileMac => chunk.PeekUInt16(20 + SC.StructSize);
+        public ushort ifileMac
+        {
+            get => chunk.PeekUInt16(20 + SC.StructSize);
+            set => chunk.PokeUInt16(20 + SC.StructSize, value);
+        }
 
-        public ushort padding1 => chunk.PeekUInt16(22 + SC.StructSize);
-        public int mpifileichFile => chunk.PeekInt32(24 + SC.StructSize);
+        public ushort padding1
+        {
+            get => chunk.PeekUInt16(22 + SC.StructSize);
+            set => chunk.PokeUInt16(22 + SC.StructSize, value);
+        }
+        public int mpifileichFile
+        {
+            get => chunk.PeekInt32(24 + SC.StructSize);
+            set => chunk.PokeInt32(24 + SC.StructSize, value);
+        }
         public ECInfo ecInfo => new ECInfo(chunk.Slice(28 + SC.StructSize));
         public AnsiString szModule { get; }
         public AnsiString szObjFile { get; }
@@ -99,6 +137,19 @@ namespace PESpy.PDB
         }
 
         public int Offset => chunk.AbsoluteOffset;
+
+        internal const int FixedStructSize =
+            sizeof(int) + //pmod
+            SC.StructSize + //sc
+            sizeof(short) + //flags
+            sizeof(short) + //sn
+            sizeof(int) + //cbSyms
+            sizeof(int) + //cbLines
+            sizeof(int) + //cbC13Lines
+            sizeof(short) + //iFileMac
+            sizeof(short) + //padding1
+            sizeof(int) + //mpifileichFile
+            ECInfo.StructSize; //ecInfo
 
         private readonly MemoryChunk chunk;
 

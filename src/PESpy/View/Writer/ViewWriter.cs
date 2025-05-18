@@ -206,7 +206,7 @@ namespace PESpy.View
                 p.WriteValue(item, item.len + 2, ViewKind.TypType);
         }
 
-        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, List<PN> value)
+        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, PN[] value)
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 

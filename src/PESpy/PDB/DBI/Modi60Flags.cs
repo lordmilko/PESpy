@@ -34,5 +34,6 @@ namespace PESpy.PDB
         }
 
         public static implicit operator Modi60Flags(ushort value) => new Modi60Flags(value);
+        public static implicit operator ushort(Modi60Flags value) => value.value;
     }
 }

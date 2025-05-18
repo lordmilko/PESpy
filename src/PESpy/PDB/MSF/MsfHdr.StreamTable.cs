@@ -12,10 +12,10 @@ namespace PESpy.PDB
 
             public SI_PERSIST[] StreamPersists { get; }
 
-            public List<List<PN>> StreamPages { get; }
+            public PN[][] StreamPages { get; }
 
             //This is not part of the on-disk data
-            public List<SI> StreamInfos { get; }
+            public SI[] StreamInfos { get; }
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -30,8 +30,8 @@ namespace PESpy.PDB
                 //SI_PERSIST stores the stream size and a page list to something (currently unknown), but the in-memory API of microsoft-pdb
                 //tends to use SI entities, so we're going to do the same
                 var streamPersists = new SI_PERSIST[numStreams];
-                var streamInfos = new List<SI>(numStreams);
-                var streamPages = new List<List<PN>>(numStreams);
+                var streamInfos = new SI[numStreams];
+                var streamPages = new PN[numStreams][];
 
                 for (var i = 0; i < numStreams; i++)
                     streamPersists[i] = new SI_PERSIST(chunk.Slice(sizeof(int) + (i * SI_PERSIST.StructSize)));
@@ -45,31 +45,15 @@ namespace PESpy.PDB
                     //That's what we want to do here anyway, so may as well defer to SI to do the reading work for us
                     var si = new SI(pagesChunk, streamPersists[i], pageSize);
 
-                    streamPages.Add(si.PageList);
-                    streamInfos.Add(si);
+                    streamPages[i] = si.PageList;
+                    streamInfos[i] = si;
 
-                    pagesChunk = pagesChunk.Slice(si.PageList.Count * sizeof(short));
+                    pagesChunk = pagesChunk.Slice(si.PageList.Length * sizeof(short));
                 }
 
                 StreamPersists = streamPersists;
                 StreamPages = streamPages;
                 StreamInfos = streamInfos;
-            }
-
-            public bool HasStream(SN sn)
-            {
-                if (sn >= StreamInfos.Count)
-                    return false;
-
-                var si = StreamInfos[sn];
-
-                return si.ByteCount != -1;
-            }
-
-            public SI this[SN sn]
-            {
-                get => throw new NotImplementedException();
-                set => throw new NotImplementedException();
             }
 
             void IViewable.WriteView(ViewWriter writer)
@@ -81,13 +65,13 @@ namespace PESpy.PDB
 
                 //We store the StreamPages as 32-bit but they were originally 16-bit
 
-                for (var i = 0; i < StreamPages.Count; i++)
+                for (var i = 0; i < StreamPages.Length; i++)
                 {
                     var item = StreamPages[i];
 
-                    var arr = new ushort[item.Count];
+                    var arr = new ushort[item.Length];
 
-                    for (var j = 0; j < item.Count; j++)
+                    for (var j = 0; j < item.Length; j++)
                         arr[j] = (ushort) (int) item[j];
 
                     s.WriteField($"PageList ({i})", arr);

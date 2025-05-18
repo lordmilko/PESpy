@@ -253,15 +253,7 @@ namespace PESpy.View.Builder
                                 //For the pages of the stream table itself, we list these as belonging to "index -1"
                                 if (pdbMerger.pdbFile is PDB7File v7)
                                 {
-#if NET5_0_OR_GREATER
-                                    siPageList = CollectionsMarshal.AsSpan<PN>(v7.StreamTableLocation.PageList);
-#else
-                                    //Rent an array rather than allocate a new one just to store the page list
-                                    var list = v7.StreamTableLocation.PageList;
-                                    rentedArray = ArrayPool<PN>.Shared.Rent(list.Count);
-                                    list.CopyTo(rentedArray);
-                                    siPageList = new Span<PN>(rentedArray, 0, list.Count);
-#endif
+                                    siPageList = v7.StreamTableLocation.PageList;
                                 }
                                 else
                                 {
@@ -285,14 +277,7 @@ namespace PESpy.View.Builder
                             {
                                 var si = pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
 
-#if NET5_0_OR_GREATER
-                                siPageList = CollectionsMarshal.AsSpan<PN>(si.PageList);
-#else
-                                var list = si.PageList;
-                                rentedArray = ArrayPool<PN>.Shared.Rent(list.Count);
-                                list.CopyTo(rentedArray);
-                                siPageList = new Span<PN>(rentedArray, 0, list.Count);
-#endif
+                                siPageList = si.PageList;
                             }
 
                             var nextPageFound = false;

@@ -23,9 +23,7 @@ namespace PESpy.Tests
             if (!Directory.Exists(vsRoot))
                 throw new InvalidOperationException("Visual Studio 2022 is not installed");
 
-            Kernel32.AddDllDirectory(vsRoot);
-
-            var hModule = Kernel32.LoadLibraryExW("mspdbcore.dll", LOAD_LIBRARY_FLAGS.LOAD_LIBRARY_SEARCH_USER_DIRS);
+            var hModule = Kernel32.LoadLibraryExW("mspdbcore.dll", LOAD_LIBRARY_FLAGS.LOAD_WITH_ALTERED_SEARCH_PATH);
 
             pdbCore = new MsPdbCore(hModule);
         }

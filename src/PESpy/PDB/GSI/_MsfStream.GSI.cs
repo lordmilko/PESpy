@@ -51,6 +51,8 @@ namespace PESpy.PDB
                             //Reading the buckets is not yet implemented
                         }
                     }
+                    else
+                        Symbols = null!;
                 }
                 else
                 {

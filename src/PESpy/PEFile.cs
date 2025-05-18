@@ -100,7 +100,7 @@ namespace PESpy
             }
             catch
             {
-                mmf.Close();
+                mmf.Dispose();
 
                 throw;
             }
@@ -128,7 +128,7 @@ namespace PESpy
                 }
                 catch
                 {
-                    mmf.Close();
+                    mmf.Dispose();
 
                     throw;
                 }
@@ -2660,6 +2660,7 @@ namespace PESpy
             blockProvider = localProvider;
             headerBlock = new LocalHeaderMemoryBlock(localProvider);
             InitializeHeaders();
+            localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
         }
 
         //ctor for initializing PEFile from an IMemoryReader that reads remote memory
@@ -2667,12 +2668,15 @@ namespace PESpy
         {
             IsLoadedImage = true;
 
-            blockProvider = new RemoteMemoryBlockProvider(reader, address, this);
+            var remoteProvider = new RemoteMemoryBlockProvider(reader, address, this);
+            blockProvider = remoteProvider;
 
             //Will automatically demand
             headerBlock = new RemoteHeaderMemoryBlock(reader, address, blockProvider);
 
             InitializeHeaders();
+
+            remoteProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
         }
 
         private void InitializeHeaders()

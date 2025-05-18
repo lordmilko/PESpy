@@ -7,7 +7,11 @@ namespace PESpy.PDB
     public class PDBStream70 : PDBStream, IValue, IViewable //Header could either be PDBStream or PDBStream70, so must be a class
     {
         //sig70. if fRepro ("z") is used in the open mode, this is -1. Otherwise, it's a random GUID
-        public Guid Guid => chunk.PeekGuid(12);
+        public Guid Guid
+        {
+            get => chunk.PeekGuid(12);
+            set => chunk.PokeGuid(12, value);
+        }
 
         internal new const int StructSize =
             sizeof(int) + //ImplementationVersion

@@ -1,4 +1,6 @@
-﻿namespace PESpy.PDB
+﻿using System;
+
+namespace PESpy.PDB
 {
     //What size should SN be? It's 16-bit, however there's also UNSN which is the 32-bit version.
     //However, MSF::ReplaceStream takes the 16-bit SN, so it's not clear to me what would actually
@@ -7,7 +9,7 @@
     /// <summary>
     /// Represents a 16-bit stream number.
     /// </summary>
-    public readonly struct SN
+    public readonly struct SN : IEquatable<SN>
     {
         public const ushort UserMin = 1;
         public const ushort Max = 0x1000;
@@ -28,6 +30,27 @@
 
         public static implicit operator ushort(SN value) => value.value;
         public static implicit operator SN(ushort value) => new SN(value);
+
+        public override int GetHashCode() => value.GetHashCode();
+
+        public override bool Equals(object obj)
+        {
+            if (obj is SN sn)
+                return value == sn.value;
+
+            if (obj is short s)
+                return (ushort) s == value;
+
+            if (obj is ushort u)
+                return u == value;
+
+            if (obj is int i)
+                return i == value;
+
+            return false;
+        }
+
+        public bool Equals(SN other) => value == other.value;
 
         public override string ToString()
         {

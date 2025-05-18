@@ -159,7 +159,7 @@ namespace PESpy
             {
                 //If we got a file, ownership of the MMF transfers to the file
                 if (file == null)
-                    mmf.Close();
+                    mmf.Dispose();
             }
         }
     }
