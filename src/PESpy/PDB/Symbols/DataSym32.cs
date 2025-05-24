@@ -18,13 +18,13 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="DATASYM32.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="DATASYM32.off"/>
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="DATASYM32.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="DATASYM32.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

@@ -43,7 +43,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="MANPROCSYM.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="MANPROCSYM.flags"/>
         public CV_PROCFLAGS flags => value->flags;

@@ -22,7 +22,7 @@ namespace PESpy.PDB
         public Guid idOem => value->idOem;
 
         /// <inheritdoc cref="OEMSYMBOL.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

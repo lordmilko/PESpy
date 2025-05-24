@@ -48,13 +48,13 @@ namespace PESpy.PDB
         public CV_uoff32_t fpOff => value->fpOff;
 
         /// <inheritdoc cref="PROCSYMMIPS.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="PROCSYMMIPS.off"/>
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="PROCSYMMIPS.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="PROCSYMMIPS.retReg"/>
         public byte retReg => value->retReg;

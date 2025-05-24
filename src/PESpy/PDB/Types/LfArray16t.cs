@@ -15,9 +15,9 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_typ16_t elemtype => value->elemtype;
+        public TypOrEnumType elemtype => new TypOrEnumType((byte*) value, value->elemtype);
 
-        public CV_typ16_t idxtype => value->idxtype;
+        public TypOrEnumType idxtype => new TypOrEnumType((byte*) value, value->idxtype);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

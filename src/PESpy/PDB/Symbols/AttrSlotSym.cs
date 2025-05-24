@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public int iSlot => value->iSlot;
 
         /// <inheritdoc cref="ATTRSLOTSYM.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="ATTRSLOTSYM.attr"/>
         public CV_lvar_attr attr => value->attr;

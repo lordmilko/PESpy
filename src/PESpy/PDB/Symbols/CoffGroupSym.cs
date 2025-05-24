@@ -27,7 +27,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="COFFGROUPSYM.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="COFFGROUPSYM.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

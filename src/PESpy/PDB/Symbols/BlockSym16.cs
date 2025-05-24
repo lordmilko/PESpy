@@ -30,7 +30,7 @@ namespace PESpy.PDB
         public CV_uoff16_t off => value->off;
 
         /// <inheritdoc cref="BLOCKSYM16.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="BLOCKSYM16.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

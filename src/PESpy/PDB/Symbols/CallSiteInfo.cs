@@ -27,7 +27,7 @@ namespace PESpy.PDB
         public short __reserved_0 => value->__reserved_0;
 
         /// <inheritdoc cref="CALLSITEINFO.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="LABELSYM32.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="LABELSYM32.flags"/>
         public CV_PROCFLAGS flags => value->flags;

@@ -21,7 +21,7 @@ namespace PESpy.PDB
         /// Type index
         /// </summary>
         /// <inheritdoc cref="DATASYMHLSL32_EX.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="DATASYMHLSL32_EX.regID"/>
         public int regID => value->regID;

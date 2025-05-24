@@ -25,7 +25,7 @@ namespace PESpy.PDB
         public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="REGREL16.typind"/>
-        public CV_typ16_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REGREL16.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public short rank => value->rank;
 
-        public CV_typ16_t typ => value->typ;
+        public TypOrEnumType typ => new TypOrEnumType((byte*) value, value->typ);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

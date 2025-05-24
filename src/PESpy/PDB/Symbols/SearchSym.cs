@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public int startsym => value->startsym;
 
         /// <inheritdoc cref="SEARCHSYM.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

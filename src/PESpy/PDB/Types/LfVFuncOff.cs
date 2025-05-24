@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public short pad0 => value->pad0;
 
-        public CV_typ_t type => value->type;
+        public TypOrEnumType type => new TypOrEnumType((byte*) value, value->type);
 
         public CV_off32_t offset => value->offset;
 

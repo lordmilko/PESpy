@@ -19,9 +19,9 @@ namespace PESpy.PDB
 
         public CV_prop_t property => value->property;
 
-        public CV_typ_t utype => value->utype;
+        public TypOrEnumType utype => new TypOrEnumType((byte*) value, value->utype);
 
-        public CV_typ_t field => value->field;
+        public TypOrEnumType field => new TypOrEnumType((byte*) value, value->field);
 
         public FixedUtf8String Name => TypType.ReadString(value->Name);
 

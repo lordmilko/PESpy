@@ -22,7 +22,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="REGREL32.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REGREL32.reg"/>
         public CV_HREG_e reg => (CV_HREG_e) value->reg;

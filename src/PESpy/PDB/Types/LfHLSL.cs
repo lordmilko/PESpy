@@ -15,7 +15,7 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_typ_t subtype => value->subtype;
+        public TypOrEnumType subtype => new TypOrEnumType((byte*) value, value->subtype);
 
         public short kind => value->kind;
 

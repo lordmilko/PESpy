@@ -15,19 +15,48 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_typ_t elemtype => value->elemtype;
+        public TypOrEnumType elemtype => new TypOrEnumType((byte*) value, value->elemtype);
 
-        public CV_typ_t idxtype => value->idxtype;
+        public TypOrEnumType idxtype => new TypOrEnumType((byte*) value, value->idxtype);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(int)    + //elemtype
             sizeof(int);     //idxtype
 
+        #region data
+
+        public int length
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->data, out var length, out var bytesRead);
+
+                return (int) length;
+            }
+        }
+
+        public FixedUtf8String name
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                //I am assuming I need to use normal ST/UTF parsing logic
+                return TypType.ReadString(value->data + bytesRead);
+            }
+        }
+
+        #endregion
+
         internal LfArray(lfArray* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read data");
+        }
+
+        public override string ToString()
+        {
+            return $"{elemtype}[{length}]";
         }
     }
 }

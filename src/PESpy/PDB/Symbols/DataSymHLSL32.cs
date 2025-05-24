@@ -18,7 +18,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="DATASYMHLSL32.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="DATASYMHLSL32.dataslot"/>
         public int dataslot => value->dataslot;

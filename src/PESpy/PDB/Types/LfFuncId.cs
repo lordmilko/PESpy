@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public CV_ItemId scopeId => value->scopeId;
 
-        public CV_typ_t type => value->type;
+        public TypOrEnumType type => new TypOrEnumType((byte*) value, value->type);
 
         public FixedUtf8String Name => TypType.ReadString(value->name);
 

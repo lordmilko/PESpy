@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public CV_fldattr_t attr => value->attr;
 
-        public CV_typ_t index => value->index;
+        public TypOrEnumType index => new TypOrEnumType((byte*) value, value->index);
 
         public FixedUtf8String Name => TypType.ReadString(value->Name);
 

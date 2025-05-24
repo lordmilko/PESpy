@@ -39,10 +39,10 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="PROCSYM32_16t.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="PROCSYM32_16t.typind"/>
-        public CV_typ16_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="PROCSYM32_16t.flags"/>
         public CV_PROCFLAGS flags => value->flags;

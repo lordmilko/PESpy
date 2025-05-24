@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
-        public CV_typ16_t field => value->field;
+        public TypOrEnumType field => new TypOrEnumType((byte*) value, value->field);
 
         public CV_prop_t property => value->property;
 

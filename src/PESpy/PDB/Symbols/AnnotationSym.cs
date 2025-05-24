@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="ANNOTATIONSYM.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="ANNOTATIONSYM.csz"/>
         public short csz => value->csz;

@@ -15,11 +15,11 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_typ16_t rvtype => value->rvtype;
+        public TypOrEnumType rvtype => new TypOrEnumType((byte*) value, value->rvtype);
 
-        public CV_typ16_t classtype => value->classtype;
+        public TypOrEnumType classtype => new TypOrEnumType((byte*) value, value->classtype);
 
-        public CV_typ16_t thistype => value->thistype;
+        public TypOrEnumType thistype => new TypOrEnumType((byte*) value, value->thistype);
 
         public byte calltype => value->calltype;
 
@@ -27,7 +27,7 @@ namespace PESpy.PDB
 
         public short parmcount => value->parmcount;
 
-        public CV_typ16_t arglist => value->arglist;
+        public TypOrEnumType arglist => new TypOrEnumType((byte*) value, value->arglist);
 
         public int thisadjust => value->thisadjust;
 

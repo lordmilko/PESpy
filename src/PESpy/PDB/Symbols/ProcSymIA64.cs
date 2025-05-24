@@ -36,13 +36,13 @@ namespace PESpy.PDB
         public int DbgEnd => value->DbgEnd;
 
         /// <inheritdoc cref="PROCSYMIA64.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="PROCSYMIA64.off"/>
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="PROCSYMIA64.seg"/>
-        public short seg => value->seg;
+        public ushort seg => value->seg;
 
         /// <inheritdoc cref="PROCSYMIA64.retReg"/>
         public short retReg => value->retReg;

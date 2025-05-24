@@ -19,7 +19,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="REGSYM_16t.typind"/>
-        public CV_typ16_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REGSYM_16t.reg"/>
         public CV_HREG_e reg => (CV_HREG_e) value->reg;

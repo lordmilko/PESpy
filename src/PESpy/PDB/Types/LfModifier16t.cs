@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public CV_modifier_t attr => value->attr;
 
-        public CV_typ16_t type => value->type;
+        public TypOrEnumType type => new TypOrEnumType((byte*) value, value->type);
 
         internal const int StructSize =
             sizeof(ushort) + //leaf

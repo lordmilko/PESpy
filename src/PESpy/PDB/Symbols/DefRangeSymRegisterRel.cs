@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -19,7 +20,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="DEFRANGESYMREGISTERREL.baseReg"/>
-        public short baseReg => value->baseReg;
+        public CV_HREG_e baseReg => (CV_HREG_e) value->baseReg;
 
         /// <inheritdoc cref="DEFRANGESYMREGISTERREL.spilledUdtMember"/>
         public bool spilledUdtMember => value->spilledUdtMember;

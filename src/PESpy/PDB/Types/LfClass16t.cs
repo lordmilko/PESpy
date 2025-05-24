@@ -17,13 +17,13 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
-        public CV_typ16_t field => value->field;
+        public TypOrEnumType field => new TypOrEnumType((byte*) value, value->field);
 
         public CV_prop_t property => value->property;
 
-        public CV_typ16_t derived => value->derived;
+        public TypOrEnumType derived => new TypOrEnumType((byte*) value, value->derived);
 
-        public CV_typ16_t vshape => value->vshape;
+        public TypOrEnumType vshape => new TypOrEnumType((byte*) value, value->vshape);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

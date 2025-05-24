@@ -19,7 +19,7 @@ namespace PESpy.PDB
 
         public CV_prop_t property => value->property;
 
-        public CV_typ_t field => value->field;
+        public TypOrEnumType field => new TypOrEnumType((byte*) value, value->field);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

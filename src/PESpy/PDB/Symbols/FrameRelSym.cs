@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public CV_off32_t off => value->off;
 
         /// <inheritdoc cref="FRAMERELSYM.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="FRAMERELSYM.attr"/>
         public CV_lvar_attr attr => value->attr;

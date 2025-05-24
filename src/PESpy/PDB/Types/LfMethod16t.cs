@@ -17,7 +17,7 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
-        public CV_typ16_t mList => value->mList;
+        public TypOrEnumType mList => new TypOrEnumType((byte*) value, value->mList);
 
         public FixedUtf8String Name => TypType.ReadString(value->Name);
 

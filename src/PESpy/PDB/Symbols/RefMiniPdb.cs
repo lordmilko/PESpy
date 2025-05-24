@@ -21,7 +21,7 @@ namespace PESpy.PDB
         public int isectCoff => value->isectCoff;
 
         /// <inheritdoc cref="REFMINIPDB.typind"/>
-        public CV_typ_t typind => value->typind;
+        public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REFMINIPDB.imod"/>
         public short imod => value->imod;
