@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public float val => value->val;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(float);   //val
+
         internal LfReal32(lfReal32* value)
         {
             this.value = value;

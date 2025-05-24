@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public CV_typ_t typ => value->typ;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //rank
+            sizeof(int);     //typ
+
         internal LfDimVar(lfDimVar* value)
         {
             this.value = value;

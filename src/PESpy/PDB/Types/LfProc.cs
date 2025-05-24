@@ -26,6 +26,14 @@ namespace PESpy.PDB
 
         public TypOrEnumType arglist => new TypOrEnumType((byte*) value, value->arglist);
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //rvtype
+            sizeof(byte)   + //calltype
+            1              + //funcattr
+            sizeof(short)  + //parmcount
+            sizeof(int);     //arglist
+
         internal LfProc(lfProc* value)
         {
             this.value = value;

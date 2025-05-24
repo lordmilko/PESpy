@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public CV_typ16_t idxtype => value->idxtype;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //elemtype
+            sizeof(short);   //idxtype
+
         internal LfArray16t(lfArray_16t* value)
         {
             this.value = value;

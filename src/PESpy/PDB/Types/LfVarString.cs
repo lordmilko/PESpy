@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public short len => value->len;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //len
+
         internal LfVarString(lfVarString* value)
         {
             this.value = value;

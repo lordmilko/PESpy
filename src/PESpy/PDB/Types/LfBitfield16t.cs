@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public CV_typ16_t type => value->type;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(byte)   + //length
+            sizeof(byte)   + //position
+            sizeof(short);   //type
+
         internal LfBitfield16t(lfBitfield_16t* value)
         {
             this.value = value;

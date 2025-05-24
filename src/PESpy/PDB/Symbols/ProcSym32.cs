@@ -59,12 +59,16 @@ namespace PESpy.PDB
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp
-            sizeof(int)    + //pParent
-            sizeof(int)    + //pEnd
-            sizeof(int)    + //pNext
-            sizeof(int)    + //len
-            sizeof(int)    + //DbgStart
-            sizeof(int);     //DbgEnd
+            sizeof(int) +    //pParent
+            sizeof(int) +    //pEnd
+            sizeof(int) +    //pNext
+            sizeof(int) +    //len
+            sizeof(int) +    //DbgStart
+            sizeof(int) +    //DbgEnd
+            sizeof(int) +    //typind
+            sizeof(int) +    //off
+            sizeof(short) +  //seg
+            sizeof(byte);    //flags
 
         internal ProcSym32(PROCSYM32* value)
         {

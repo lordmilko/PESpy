@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public double val_imag => value->val_imag;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(double) + //val_real
+            sizeof(double);  //val_imag
+
         internal LfCmplx64(lfCmplx64* value)
         {
             this.value = value;

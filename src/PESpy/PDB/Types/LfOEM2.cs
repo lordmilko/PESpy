@@ -20,6 +20,11 @@ namespace PESpy.PDB
 
         public int count => value->count;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            16             + //idOem
+            sizeof(int);     //count
+
         internal LfOEM2(lfOEM2* value)
         {
             this.value = value;

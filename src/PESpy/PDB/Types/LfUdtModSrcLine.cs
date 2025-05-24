@@ -23,6 +23,13 @@ namespace PESpy.PDB
 
         public short imod => value->imod;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //type
+            sizeof(int)    + //src
+            sizeof(int)    + //line
+            sizeof(short);   //imod
+
         internal LfUdtModSrcLine(lfUdtModSrcLine* value)
         {
             this.value = value;

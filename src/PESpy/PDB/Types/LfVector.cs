@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public int count => value->count;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //elemtype
+            sizeof(int);     //count
+
         internal LfVector(lfVector* value)
         {
             this.value = value;

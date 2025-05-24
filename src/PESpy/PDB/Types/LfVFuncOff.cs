@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public CV_off32_t offset => value->offset;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //pad0
+            sizeof(int)    + //type
+            sizeof(int);     //offset
+
         internal LfVFuncOff(lfVFuncOff* value)
         {
             this.value = value;

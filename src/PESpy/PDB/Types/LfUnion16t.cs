@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public CV_prop_t property => value->property;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //count
+            sizeof(short)  + //field
+            2;               //property
+
         internal LfUnion16t(lfUnion_16t* value)
         {
             this.value = value;

@@ -25,6 +25,14 @@ namespace PESpy.PDB
 
         public CV_matrixattr_t matattr => value->matattr;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //elemtype
+            sizeof(int)    + //rows
+            sizeof(int)    + //cols
+            sizeof(int)    + //majorStride
+            1;               //matattr
+
         internal LfMatrix(lfMatrix* value)
         {
             this.value = value;

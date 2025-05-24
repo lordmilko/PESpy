@@ -31,6 +31,17 @@ namespace PESpy.PDB
 
         public int thisadjust => value->thisadjust;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //rvtype
+            sizeof(short)  + //classtype
+            sizeof(short)  + //thistype
+            sizeof(byte)   + //calltype
+            1              + //funcattr
+            sizeof(short)  + //parmcount
+            sizeof(short)  + //arglist
+            sizeof(int);     //thisadjust
+
         internal LfMFunc16t(lfMFunc_16t* value)
         {
             this.value = value;

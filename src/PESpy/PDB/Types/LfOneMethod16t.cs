@@ -21,6 +21,11 @@ namespace PESpy.PDB
 
         //fixed int vbaseoff[1]
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            2              + //attr
+            sizeof(short);   //index
+
         internal LfOneMethod16t(lfOneMethod_16t* value)
         {
             this.value = value;

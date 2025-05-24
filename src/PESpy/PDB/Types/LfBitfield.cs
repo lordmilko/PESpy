@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public byte position => value->position;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //type
+            sizeof(byte)   + //length
+            sizeof(byte);    //position
+
         internal LfBitfield(lfBitfield* value)
         {
             this.value = value;

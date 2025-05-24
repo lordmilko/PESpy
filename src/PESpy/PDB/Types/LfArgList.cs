@@ -32,6 +32,10 @@ namespace PESpy.PDB
             }
         }
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int);     //count
+
         internal LfArgList(lfArgList* value)
         {
             this.value = value;

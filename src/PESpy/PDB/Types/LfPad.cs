@@ -18,6 +18,9 @@ namespace PESpy.PDB
         //I wouldn't expect it to actually have a TYPTYPE behind it
         public LEAF_ENUM_e leaf => (LEAF_ENUM_e) value->leaf;
 
+        internal const int StructSize =
+            sizeof(byte);  //leaf
+
         internal LfPad(lfPad* value)
         {
             this.value = value;

@@ -20,6 +20,10 @@ namespace PESpy.PDB
 
         public Span<CV_typ16_t> arg => new Span<CV_typ16_t>(value->arg, count);
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //count
+
         internal LfArgList16t(lfArgList_16t* value)
         {
             this.value = value;

@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public CV_typ_t index => value->index;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //pad0
+            sizeof(int);     //index
+
         internal LfFriendCls(lfFriendCls* value)
         {
             this.value = value;

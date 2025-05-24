@@ -46,6 +46,11 @@ namespace PESpy.PDB
 
         #endregion
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            2              + //attr
+            sizeof(int);     //index
+
         internal LfMember(lfMember* value)
         {
             this.value = value;

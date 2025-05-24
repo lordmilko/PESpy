@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public int stride => value->stride;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //elemtype
+            sizeof(int)    + //idxtype
+            sizeof(int);     //stride
+
         internal LfStridedArray(lfStridedArray* value)
         {
             this.value = value;

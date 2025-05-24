@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public short rank => value->rank;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //typ
+            sizeof(short);   //rank
+
         internal LfDimCon(lfDimCon* value)
         {
             this.value = value;

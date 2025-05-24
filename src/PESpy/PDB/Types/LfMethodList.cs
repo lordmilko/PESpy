@@ -15,6 +15,9 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
+        internal const int FixedStructSize =
+            sizeof(ushort);  //leaf
+
         internal LfMethodList(lfMethodList* value)
         {
             this.value = value;

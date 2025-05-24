@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public CV_typ16_t type => value->type;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //type
+
         internal LfVFuncTab16t(lfVFuncTab_16t* value)
         {
             this.value = value;

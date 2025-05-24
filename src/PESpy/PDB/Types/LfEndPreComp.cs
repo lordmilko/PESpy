@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public int signature => value->signature;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int);     //signature
+
         internal LfEndPreComp(lfEndPreComp* value)
         {
             this.value = value;

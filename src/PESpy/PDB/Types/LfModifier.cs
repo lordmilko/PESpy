@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public CV_modifier_t attr => value->attr;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //type
+            2;               //attr
+
         internal LfModifier(lfModifier* value)
         {
             this.value = value;

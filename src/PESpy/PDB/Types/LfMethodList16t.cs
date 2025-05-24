@@ -17,6 +17,9 @@ namespace PESpy.PDB
 
         //fixed byte mList[1]
 
+        internal const int FixedStructSize =
+            sizeof(ushort);  //leaf
+
         internal LfMethodList16t(lfMethodList_16t* value)
         {
             this.value = value;

@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public short mode => value->mode;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //mode
+
         internal LfLabel(lfLabel* value)
         {
             this.value = value;

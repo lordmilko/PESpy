@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public CV_typ_t utype => value->utype;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int);     //utype
+
         internal LfBArray(lfBArray* value)
         {
             this.value = value;

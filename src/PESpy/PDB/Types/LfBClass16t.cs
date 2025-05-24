@@ -19,6 +19,11 @@ namespace PESpy.PDB
 
         public CV_fldattr_t attr => value->attr;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //index
+            2;               //attr
+
         internal LfBClass16t(lfBClass_16t* value)
         {
             this.value = value;

@@ -18,6 +18,9 @@ namespace PESpy.PDB
 
         public Span<byte> val => new Span<byte>(value->val, 10);
 
+        internal const int FixedStructSize =
+            sizeof(ushort);  //leaf
+
         internal LfReal80(lfReal80* value)
         {
             this.value = value;

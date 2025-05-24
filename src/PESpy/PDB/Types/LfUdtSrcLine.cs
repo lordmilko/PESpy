@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public int line => value->line;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //type
+            sizeof(int)    + //src
+            sizeof(int);     //line
+
         internal LfUdtSrcLine(lfUdtSrcLine* value)
         {
             this.value = value;

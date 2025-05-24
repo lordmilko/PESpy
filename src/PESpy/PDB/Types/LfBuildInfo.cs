@@ -20,6 +20,10 @@ namespace PESpy.PDB
 
         public Span<CV_ItemId> arg => new Span<CV_ItemId>(value->arg, count); //You can index into this using CV_BuildInfo_e
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //count
+
         internal LfBuildInfo(lfBuildInfo* value)
         {
             this.value = value;

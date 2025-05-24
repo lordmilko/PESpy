@@ -25,6 +25,14 @@ namespace PESpy.PDB
 
         public CV_typ16_t arglist => value->arglist;
 
+        internal const int StructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //rvtype
+            sizeof(byte)   + //calltype
+            1              + //funcattr
+            sizeof(short)  + //parmcount
+            sizeof(short);   //arglist
+
         internal LfProc16t(lfProc_16t* value)
         {
             this.value = value;

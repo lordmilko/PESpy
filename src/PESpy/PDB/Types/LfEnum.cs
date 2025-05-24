@@ -25,6 +25,13 @@ namespace PESpy.PDB
 
         public FixedUtf8String Name => TypType.ReadString(value->Name);
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short)  + //count
+            2              + //property
+            sizeof(int)    + //utype
+            sizeof(int);     //field
+
         internal LfEnum(lfEnum* value)
         {
             this.value = value;

@@ -17,6 +17,10 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(short);   //count
+
         internal LfDerived16t(lfDerived_16t* value)
         {
             this.value = value;

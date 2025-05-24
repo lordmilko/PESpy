@@ -21,6 +21,12 @@ namespace PESpy.PDB
 
         public CV_typ_t vbptr => value->vbptr;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            2              + //attr
+            sizeof(int)    + //index
+            sizeof(int);     //vbptr
+
         internal LfVBClass(lfVBClass* value)
         {
             this.value = value;

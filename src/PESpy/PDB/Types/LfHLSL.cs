@@ -25,6 +25,12 @@ namespace PESpy.PDB
 
         public short propdata => value->propdata;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //subtype
+            sizeof(short)  + //kind
+            sizeof(short);   //propdata
+
         internal LfHLSL(lfHLSL* value)
         {
             this.value = value;

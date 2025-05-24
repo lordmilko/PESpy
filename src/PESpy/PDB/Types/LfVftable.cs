@@ -23,6 +23,13 @@ namespace PESpy.PDB
 
         public int len => value->len;
 
+        internal const int FixedStructSize =
+            sizeof(ushort) + //leaf
+            sizeof(int)    + //type
+            sizeof(int)    + //baseVftable
+            sizeof(int)    + //offsetInObjectLayout
+            sizeof(int);     //len
+
         internal LfVftable(lfVftable* value)
         {
             this.value = value;
