@@ -14,10 +14,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigTypeDefOrRefIndexSize;
 
-        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal EventTable(int numRows, int stringIndexSize, int typeDefOrRefIndexSize, Lazy<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal EventTable(int numRows, int stringIndexSize, int typeDefOrRefIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -40,13 +40,13 @@ namespace PESpy.Ecma335
         public StringIndex GetName(EventIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
-        public int GetEventType(EventIndex index)
+        public Index GetEventType(EventIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + EventTypeOffset, isBigTypeDefOrRefIndexSize);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + EventTypeOffset, isBigTypeDefOrRefIndexSize);
         }
 
         public int GetRowOffset(EventIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

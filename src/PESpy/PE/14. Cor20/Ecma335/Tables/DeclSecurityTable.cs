@@ -14,10 +14,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasDeclSecurityIndex;
         private readonly bool isBigBlobIndexSize;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal DeclSecurityTable(int numRows, int hasDeclSecurityIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal DeclSecurityTable(int numRows, int hasDeclSecurityIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -37,16 +37,16 @@ namespace PESpy.Ecma335
             return (CorDeclSecurity) tableChunk.PeekUInt16(rowOffset + ActionOffset);
         }
 
-        public int GetParent(DeclSecurityIndex index)
+        public Index GetParent(DeclSecurityIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasDeclSecurityIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasDeclSecurityIndex);
         }
 
         public BlobIndex GetPermissionSet(DeclSecurityIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PermissionSetOffset, isBigBlobIndexSize), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PermissionSetOffset, isBigBlobIndexSize), blobHeap);
         }
 
         public int GetRowOffset(DeclSecurityIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

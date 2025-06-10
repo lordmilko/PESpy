@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public StringIndex Name => table.GetName(RowIndex);
 
-        public int EventType => table.GetEventType(RowIndex);
+        public Index EventType => table.GetEventType(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
 
             s.WriteValue(nameof(EventFlags), EventFlags, sizeof(short));
             s.WriteStringHeapIndex(nameof(Name), Name);
-            s.WriteTypeDefOrRefIndex(nameof(EventType), EventType);
+            s.WriteTypeDefOrRefIndex(nameof(EventType), (int) EventType);
         }
     }
 }

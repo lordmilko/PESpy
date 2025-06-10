@@ -5,7 +5,7 @@ namespace PESpy
     public static partial class Bundle
     {
         //header_fixed_v2_t
-        public struct HeaderFixedV2
+        public class HeaderFixedV2 //May not be present
         {
 #if PEFAST
             public Location DepsJsonLocation => new Location(chunk);
@@ -24,10 +24,13 @@ namespace PESpy
                     {
                         var location = DepsJsonLocation;
 
-                        //I think it's an absolute offset?
+                        if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) location.Offset, out var valueChunk))
+                        {
+                            depsJson = valueChunk.PeekUtf8FixedLength(0, (int) location.Size);
+                        }
                     }
 
-                    throw new NotImplementedException();
+                    return depsJson;
                 }
             }
 
@@ -41,10 +44,13 @@ namespace PESpy
                     {
                         var location = RuntimeConfigJsonLocation;
 
-                        //I think it's an absolute offset?
+                        if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) location.Offset, out var valueChunk))
+                        {
+                            runtimeConfigJson = valueChunk.PeekUtf8FixedLength(0, (int) location.Size);
+                        }
                     }
 
-                    throw new NotImplementedException();
+                    return runtimeConfigJson;
                 }
             }
 #else
@@ -54,6 +60,10 @@ namespace PESpy
 
             public header_flags_t Flags { get; }
 #endif
+            internal const int StructSize =
+                16 + //DepsJsonLocation
+                16 + //RuntimeConfigJsonLocation
+                sizeof(long); //Flags
 
 #if PEFAST
             private readonly MemoryChunk chunk;

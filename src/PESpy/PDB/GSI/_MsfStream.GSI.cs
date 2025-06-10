@@ -42,6 +42,8 @@ namespace PESpy.PDB
                         if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
                             throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
 
+                        SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolChunk);
+
                         var symbolsStart = symbolChunk.Pointer;
 
                         Symbols = new GlobalSymTypeList(HashRecords, symbolsStart);

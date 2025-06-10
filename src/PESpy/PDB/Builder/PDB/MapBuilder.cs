@@ -25,7 +25,7 @@ namespace PESpy.PDB
             return size;
         }
 
-        public readonly int Serialize(in MemoryChunk chunk)
+        internal readonly int Serialize(in MemoryChunk chunk)
         {
             chunk.PokeInt32(0, Size);
             chunk.PokeInt32(4, Capacity);

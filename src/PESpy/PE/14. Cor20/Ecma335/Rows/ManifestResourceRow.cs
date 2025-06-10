@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
 
         public StringIndex Name => table.GetName(RowIndex);
 
-        public int Implementation => table.GetImplementation(RowIndex);
+        public Index Implementation => table.GetImplementation(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -39,7 +39,7 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(ResourceOffset), ResourceOffset);
             s.WriteValue(nameof(Flags), Flags, sizeof(int));
             s.WriteStringHeapIndex(nameof(Name), Name);
-            s.WriteImplementationIndex(nameof(Implementation), Implementation);
+            s.WriteImplementationIndex(nameof(Implementation), (int) Implementation);
         }
     }
 }

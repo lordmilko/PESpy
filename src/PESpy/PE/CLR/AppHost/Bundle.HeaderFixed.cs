@@ -22,6 +22,11 @@
 #if PEFAST
             public int Offset => chunk.AbsoluteOffset;
 
+            internal const int StructSize =
+                sizeof(int) + //MajorVersion
+                sizeof(int) + //MinorVersion
+                sizeof(int);  //NumEmbeddedFiles
+
             private readonly MemoryChunk chunk;
 
             internal HeaderFixed(in MemoryChunk chunk)

@@ -182,7 +182,7 @@ namespace PESpy
                 var exportTableDirectory = peFile.OptionalHeader.ExportTableDirectory;
 
                 var exportTableStart = exportTableDirectory.VirtualAddress;
-                var exportTableEnd = exportTableDirectory.Size;
+                var exportTableEnd = exportTableStart + exportTableDirectory.Size;
 
                 var numberOfFunctions = NumberOfFunctions;
 

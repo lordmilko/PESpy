@@ -29,6 +29,8 @@ namespace PESpy
         }
 
         public bool IsLoadedImage => peFile.IsLoadedImage;
+        public SymStoreKey[] SymStoreKeys => peFile.SymStoreKeys;
+
         public ImageDosHeader DosHeader => peFile.DosHeader;
         public ByteBlob DosStub => peFile.DosStub;
         public RichHeader? RichHeader => peFile.RichHeader;
@@ -111,9 +113,10 @@ namespace PESpy
         /// </summary>
         /// <param name="hProcess">A handle to the process containing the module that should be read.</param>
         /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
+        /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.</param>
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
-        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase) =>
-            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase);
+        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true) =>
+            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded);
 
         public static PEFile FromStream(Stream stream, bool isLoadedImage)
         {
@@ -134,7 +137,7 @@ namespace PESpy
                 }
             }
 
-            return new PEFile(new StreamMemoryReader(stream), stream.Position);
+            return new PEFile(new StreamMemoryReader(stream), stream.Position, isLoadedImage);
         }
 #else
         /// <summary>
@@ -163,7 +166,8 @@ namespace PESpy
         #endregion
 
         /// <summary>
-        /// Gets whether the image exists within the memory a live process, or exists on disk. Offsets are slightly different in some areas when in memory vs on disk.
+        /// Gets whether the image has been mapped into the address space by the operating system loader, indicating that sections have been laid out according to their RVAs.<para/>
+        /// Modules may be memory mapped without having been processed by the loader, in which case they should be processed as if they exist on disk.
         /// </summary>
         public bool IsLoadedImage { get; init; }
 
@@ -226,6 +230,19 @@ namespace PESpy
                         }
                     }
 
+                    var runtimeInfo = RuntimeInfo;
+
+                    if (runtimeInfo != null)
+                    {
+                        var runtimeModuleIndex = runtimeInfo.RuntimeModuleIndex;
+                        var dacModuleIndex = runtimeInfo.DacModuleIndex;
+                        var dbiModuleIndex = runtimeInfo.DbiModuleIndex;
+
+                        results.Add(SymStoreKey.FromPE("coreclr.dll", runtimeModuleIndex.TimeStamp, runtimeModuleIndex.ImageSize, SymStoreKeyKind.CLR));
+                        results.Add(SymStoreKey.FromPE("mscordaccore.dll", dacModuleIndex.TimeStamp, dacModuleIndex.ImageSize, SymStoreKeyKind.DAC));
+                        results.Add(SymStoreKey.FromPE("mscordbi.dll", dbiModuleIndex.TimeStamp, dbiModuleIndex.ImageSize, SymStoreKeyKind.DBI));
+                    }
+
                     symStoreKeys = results.ToArray();
                 }
 
@@ -233,6 +250,59 @@ namespace PESpy
             }
         }
 
+        public bool TryGetSymStoreKey(SymStoreKeyKind kind, out SymStoreKey key)
+        {
+            key = default;
+
+            switch (kind)
+            {
+                case SymStoreKeyKind.PE:
+                    if (Name == null)
+                        return false;
+
+                    key = SymStoreKey.FromPE(Name, FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage);
+                    return true;
+
+                case SymStoreKeyKind.PDB:
+                case SymStoreKeyKind.DBG:
+                case SymStoreKeyKind.CLR:
+                {
+                    var runtimeInfo = RuntimeInfo;
+
+                    if (runtimeInfo == null)
+                        return false;
+
+                    var runtimeModuleIndex = runtimeInfo.RuntimeModuleIndex;
+
+                    key = SymStoreKey.FromPE("coreclr.dll", runtimeModuleIndex.TimeStamp, runtimeModuleIndex.ImageSize, SymStoreKeyKind.CLR);
+                    return true;
+                }
+
+                case SymStoreKeyKind.DAC:
+                {
+                    var runtimeInfo = RuntimeInfo;
+
+                    if (runtimeInfo == null)
+                        return false;
+
+                    var dacModuleIndex = runtimeInfo.DacModuleIndex;
+
+                    key = SymStoreKey.FromPE("mscordaccore.dll", dacModuleIndex.TimeStamp, dacModuleIndex.ImageSize, SymStoreKeyKind.DAC);
+                    return true;
+                }
+
+                case SymStoreKeyKind.DBI:
+                {
+                    var runtimeInfo = RuntimeInfo;
+
+                    if (runtimeInfo == null)
+                        return false;
+
+                    var dbiModuleIndex = runtimeInfo.DbiModuleIndex;
+
+                    key = SymStoreKey.FromPE("mscordbi.dll", dbiModuleIndex.TimeStamp, dbiModuleIndex.ImageSize, SymStoreKeyKind.DBI);
+                    return true;
+                }
         /// <inheritdoc/>
         public string? Name { get; private set; }
 
@@ -1583,6 +1653,27 @@ namespace PESpy
             }
         }
 
+        public unsafe bool TryGetRawMetadata(out byte* metadata, out int length)
+        {
+            var cor20 = Cor20Header;
+
+            if (cor20 != null)
+            {
+                var table = cor20.Metadata;
+
+                if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                {
+                    metadata = chunk.Pointer;
+                    length = table.Size;
+                    return true;
+                }
+            }
+
+            metadata = default;
+            length = default;
+            return false;
+        }
+
         #endregion
         #region Cor20Resources
 
@@ -1913,7 +2004,7 @@ namespace PESpy
         #region NGEN
 #if PEFAST
 
-        private CorCompileHeader? NgenHeader => Cor20ManagedNativeHeader as CorCompileHeader;
+        public CorCompileHeader? NgenHeader => Cor20ManagedNativeHeader as CorCompileHeader;
 
         #region NgenHelperTable
 
@@ -2313,14 +2404,27 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private AppHostSignature? appHostSignature;
 
+        private bool hasTriedAppHostSignature;
+
 #if PEFAST
-        public AppHostSignature? AppHostSignature
+        public unsafe AppHostSignature? AppHostSignature
         {
             get
             {
-                appHostSignature = null;
-                Debug.Assert(appHostSignature == null); //Dummy use
-                throw new NotImplementedException();
+                if (appHostSignature == null && !hasTriedAppHostSignature)
+                {
+                    //Scanning the entire DLL for the AppHost signature could be slow,
+                    //so we don't want the Visual Studio debugger to automatically do this just
+                    //because we looked at the properties of the PEFile
+                    Debugger.NotifyOfCrossThreadDependency();
+
+                    GetRawPointer(out var pointer, out var length);
+
+                    appHostSignature = AppHostSignature.New(pointer, length, headerBlock);
+                    hasTriedAppHostSignature = true;
+                }
+
+                return appHostSignature;
             }
         }
 #else
@@ -2434,7 +2538,12 @@ namespace PESpy
                         var rva = export.ForwardOrAddress.Address;
 
                         if (TryGetValueChunkFromSection(rva, out var valueChunk))
+                        {
                             runtimeInfo = new RuntimeInfo(valueChunk);
+
+                            if (runtimeInfo.Signature != "DotnetRuntimeInfo")
+                                runtimeInfo = default;
+                        }
                     }
 
                     hasTriedRuntimeInfo = true;
@@ -2605,9 +2714,15 @@ namespace PESpy
 #if PEFAST
         private unsafe PEViewWriter GetViewWriter(ViewMode mode, IViewDisassembler? viewDisassembler)
         {
-            byte* pointer;
-            int length;
+            GetRawPointer(out var pointer, out var length);
 
+            var writer = new PEViewWriter(this, pointer, length, viewDisassembler, mode);
+
+            return writer;
+        }
+
+        private unsafe void GetRawPointer(out byte* pointer, out int length)
+        {
             if (blockProvider is LocalMemoryBlockProvider l)
             {
                 pointer = l.Pointer;
@@ -2617,10 +2732,6 @@ namespace PESpy
             {
                 throw new NotImplementedException();
             }
-
-            var writer = new PEViewWriter(this, pointer, length, viewDisassembler, mode);
-
-            return writer;
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile
@@ -2664,9 +2775,9 @@ namespace PESpy
         }
 
         //ctor for initializing PEFile from an IMemoryReader that reads remote memory
-        private PEFile(IMemoryReader reader, long address)
+        private PEFile(IMemoryReader reader, long address, bool isLoadedImage)
         {
-            IsLoadedImage = true;
+            IsLoadedImage = isLoadedImage;
 
             var remoteProvider = new RemoteMemoryBlockProvider(reader, address, this);
             blockProvider = remoteProvider;
@@ -3091,6 +3202,17 @@ namespace PESpy
             }
 
             return block;
+        }
+
+        public unsafe void GetRawSectionData(int rva, out byte* ptr, out int length)
+        {
+            if (TryGetSectionBlockFromRVA(rva, out var block, out var offset))
+            {
+                block.Demand();
+                ptr = block.LocalPointer + offset;
+                length = block.Length - offset;
+                return;
+            }
         }
 
         private bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)

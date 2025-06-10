@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public StateMachineMethodIndex RowIndex { get; }
 
-        public int MoveNextMethod => table.GetMoveNextMethod(RowIndex);
+        public MethodDefIndex MoveNextMethod => table.GetMoveNextMethod(RowIndex);
 
-        public int KickoffMethod => table.GetKickoffMethod(RowIndex);
+        public MethodDefIndex KickoffMethod => table.GetKickoffMethod(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("StateMachineMethod Row", this, ViewKind.PortablePdb_StateMachineMethodRow);
 
-            s.WriteValue(nameof(MoveNextMethod), MoveNextMethod);
-            s.WriteValue(nameof(KickoffMethod), KickoffMethod);
+            s.WriteValue(nameof(MoveNextMethod), (int) MoveNextMethod);
+            s.WriteValue(nameof(KickoffMethod), (int) KickoffMethod);
         }
     }
 }

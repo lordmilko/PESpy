@@ -20,10 +20,10 @@
             RowSize = FieldOffset + fieldIndexSize;
         }
 
-        public int GetField(FieldPtrIndex index)
+        public FieldIndex GetField(FieldPtrIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + FieldOffset, isBigFieldIndex);
+            return (FieldIndex) tableChunk.PeekEcmaIndex(rowOffset + FieldOffset, isBigFieldIndex);
         }
 
         public int GetRowOffset(FieldPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

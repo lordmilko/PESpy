@@ -414,6 +414,11 @@ namespace PESpy.View
                 WriteFieldInternal(name, view, view.Size);
             }
 
+            public unsafe void WriteUnmanagedField<T>(string name, T value) where T : unmanaged
+            {
+                WriteFieldInternal(name, value, sizeof(T));
+            }
+
             public void WriteInline<T>(T value) where T : IViewable
             {
                 var startIndex = fields.Count;

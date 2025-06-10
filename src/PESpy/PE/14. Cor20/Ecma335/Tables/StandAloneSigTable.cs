@@ -10,10 +10,10 @@ namespace PESpy.Ecma335
 
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal StandAloneSigTable(int numRows, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal StandAloneSigTable(int numRows, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         public BlobIndex GetSignature(StandAloneSigIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(StandAloneSigIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

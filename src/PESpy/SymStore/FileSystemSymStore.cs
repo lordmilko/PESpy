@@ -11,28 +11,44 @@ namespace PESpy
             DirectoryName = directoryName;
         }
 
-        protected override SymStoreFile? GetFile(SymStoreKey key)
+        protected override (SymStoreFile file, Stream stream)? GetFile(SymStoreKey key)
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 
             if (File.Exists(fileName))
             {
-                using var fs = File.OpenRead(fileName);
+                var fs = File.OpenRead(fileName);
 
                 //If the length is 0, assume that we previously attempted to download the file and that it got corrupt.
                 //Try and download the file again
                 if (fs.Length == 0)
                     return null;
 
-                return new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar));
+                return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs);
             }
 
             return null;
         }
 
-        protected override void SaveFile(SymStoreKey key, SymStoreFile file)
+        protected override (SymStoreFile file, Stream stream)? SaveFile(SymStoreKey key, SymStoreFile file, Stream stream)
         {
-            throw new System.NotImplementedException();
+            var fileName = Path.Combine(DirectoryName, key.Index);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+
+            var fs = File.OpenWrite(fileName);
+
+            try
+            {
+                stream.CopyTo(fs);
+            }
+            catch
+            {
+                fs.Dispose();
+                throw;
+            }
+
+            return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace PESpy
     /// </summary>
     public readonly struct StorageSignature : IValue, IViewable
     {
-        private const uint STORAGE_MAGIC_SIG = 0x424A5342; //BSJB
+        public const uint STORAGE_MAGIC_SIG = 0x424A5342; //BSJB
 
 #if PEFAST
         /// <summary>

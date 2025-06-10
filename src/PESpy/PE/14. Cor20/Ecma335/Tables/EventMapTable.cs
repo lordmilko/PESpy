@@ -24,16 +24,16 @@
             RowSize = EventListOffset + eventIndexSize;
         }
 
-        public int GetParent(EventMapIndex index)
+        public TypeDefIndex GetParent(EventMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
         }
 
-        public int GetEventList(EventMapIndex index)
+        public EventIndex GetEventList(EventMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + EventListOffset, isBigEventIndex);
+            return (EventIndex) tableChunk.PeekEcmaIndex(rowOffset + EventListOffset, isBigEventIndex);
         }
 
         public int GetRowOffset(EventMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

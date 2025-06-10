@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public byte Padding => table.GetPadding(RowIndex);
 
-        public int Parent => table.GetParent(RowIndex);
+        public Index Parent => table.GetParent(RowIndex);
 
         public BlobIndex Value => table.GetValue(RowIndex);
 
@@ -38,7 +38,7 @@ namespace PESpy.Ecma335
 
             s.WriteValue(nameof(Type), Type, sizeof(byte));
             s.WriteValue(nameof(Padding), Padding);
-            s.WriteHasConstantIndex(nameof(Parent), Parent);
+            s.WriteHasConstantIndex(nameof(Parent), (int) Parent);
             s.WriteBlobHeapIndex(nameof(Value), Value);
         }
     }

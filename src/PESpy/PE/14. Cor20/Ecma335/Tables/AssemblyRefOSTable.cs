@@ -44,10 +44,10 @@
             return tableChunk.PeekInt32(rowOffset + OSMinorVersionOffset);
         }
 
-        public int GetAssemblyRef(AssemblyRefOSIndex index)
+        public AssemblyRefIndex GetAssemblyRef(AssemblyRefOSIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + AssemblyRefOffset, isBigAssemblyRefIndex);
+            return (AssemblyRefIndex) tableChunk.PeekEcmaIndex(rowOffset + AssemblyRefOffset, isBigAssemblyRefIndex);
         }
 
         public int GetRowOffset(AssemblyRefOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

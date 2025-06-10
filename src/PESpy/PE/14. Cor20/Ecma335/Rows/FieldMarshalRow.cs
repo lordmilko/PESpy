@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public FieldMarshalIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public Index Parent => table.GetParent(RowIndex);
 
         public BlobIndex NativeType => table.GetNativeType(RowIndex);
 
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("FieldMarshal Row", this, ViewKind.Metadata_FieldMarshalRow);
 
-            s.WriteHasFieldMarshalIndex(nameof(Parent), Parent);
+            s.WriteHasFieldMarshalIndex(nameof(Parent), (int) Parent);
             s.WriteBlobHeapIndex(nameof(NativeType), NativeType);
         }
     }

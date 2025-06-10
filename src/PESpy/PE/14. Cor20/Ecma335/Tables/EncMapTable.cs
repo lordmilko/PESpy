@@ -1,4 +1,6 @@
-﻿namespace PESpy.Ecma335
+﻿using ClrDebug;
+
+namespace PESpy.Ecma335
 {
     public sealed class EncMapTable : Table<EncMapRow>
     {
@@ -16,7 +18,7 @@
             RowSize = TokenOffset + sizeof(int);
         }
 
-        public int GetToken(EncMapIndex index)
+        public mdToken GetToken(EncMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
             return tableChunk.PeekInt32(rowOffset + TokenOffset);

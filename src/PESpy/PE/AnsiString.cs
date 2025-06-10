@@ -13,6 +13,8 @@ namespace PESpy
 
         public AnsiString(byte* value) => this.Value = value;
 
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
+
         public static implicit operator byte*(AnsiString value) => value.Value;
 
         public static explicit operator AnsiString(byte* value) => new AnsiString(value);

@@ -24,16 +24,16 @@
             RowSize = ConstraintOffset + typeDefOrRefIndexSize;
         }
 
-        public int GetOwner(GenericParamConstraintIndex index)
+        public GenericParamIndex GetOwner(GenericParamConstraintIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + OwnerOffset, isBigGenericParamIndex);
+            return (GenericParamIndex) tableChunk.PeekEcmaIndex(rowOffset + OwnerOffset, isBigGenericParamIndex);
         }
 
-        public int GetConstraint(GenericParamConstraintIndex index)
+        public Index GetConstraint(GenericParamConstraintIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ConstraintOffset, isBigTypeDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ConstraintOffset, isBigTypeDefOrRefIndex);
         }
 
         public int GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

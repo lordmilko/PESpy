@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public CorGenericParamAttr Flags => table.GetFlags(RowIndex);
 
-        public int Owner => table.GetOwner(RowIndex);
+        public Index Owner => table.GetOwner(RowIndex);
 
         public StringIndex Name => table.GetName(RowIndex);
 
@@ -38,7 +38,7 @@ namespace PESpy.Ecma335
 
             s.WriteValue(nameof(Number), Number);
             s.WriteValue(nameof(Flags), Flags, sizeof(short));
-            s.WriteTypeOrMethodDefIndex(nameof(Owner), Owner);
+            s.WriteTypeOrMethodDefIndex(nameof(Owner), (int) Owner);
             s.WriteStringHeapIndex(nameof(Name), Name);
         }
     }

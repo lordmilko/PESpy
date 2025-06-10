@@ -11,13 +11,13 @@ namespace PESpy.Ecma335
     {
         public LocalScopeIndex RowIndex { get; }
 
-        public int Method => table.GetMethod(RowIndex);
+        public MethodDefIndex Method => table.GetMethod(RowIndex);
 
-        public int ImportScope => table.GetImportScope(RowIndex);
+        public ImportScopeIndex ImportScope => table.GetImportScope(RowIndex);
 
-        public int VariableList => table.GetVariableList(RowIndex);
+        public LocalVariableIndex VariableList => table.GetVariableList(RowIndex);
 
-        public int ConstantList => table.GetConstantList(RowIndex);
+        public LocalConstantIndex ConstantList => table.GetConstantList(RowIndex);
 
         public uint StartOffset => table.GetStartOffset(RowIndex);
 
@@ -39,10 +39,10 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("LocalScope Row", this, ViewKind.PortablePdb_LocalScopeRow);
 
-            s.WriteValue(nameof(Method), Method);
-            s.WriteValue(nameof(ImportScope), ImportScope);
-            s.WriteValue(nameof(VariableList), VariableList);
-            s.WriteValue(nameof(ConstantList), ConstantList);
+            s.WriteValue(nameof(Method), (int) Method);
+            s.WriteValue(nameof(ImportScope), (int) ImportScope);
+            s.WriteValue(nameof(VariableList), (int) VariableList);
+            s.WriteValue(nameof(ConstantList), (int) ConstantList);
             s.WriteValue(nameof(StartOffset), StartOffset);
             s.WriteValue(nameof(Length), Length);
         }

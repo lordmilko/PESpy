@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <LocalSymHelp>$(MSBuildThisFileDirectory)\..\..\SymHelp\src\SymHelp\bin\Debug\net472\SymHelp.dll</LocalSymHelp>
+    <LocalSymHelp>$(MSBuildThisFileDirectory)\..\..\SymHelp_old2\src\SymHelp\bin\Debug\net472\SymHelp.dll</LocalSymHelp>
   </PropertyGroup>
   
   <ItemGroup>

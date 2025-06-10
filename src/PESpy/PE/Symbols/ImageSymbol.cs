@@ -13,6 +13,12 @@ namespace PESpy
         public const short IMAGE_SYM_SECTION_MAX = unchecked((short) 0xFEFF); //0xFF00-0xFFFF are special
         public const int IMAGE_SYM_SECTION_MAX_EX = int.MaxValue;
 
+        public const ushort N_BTMASK = 0x000F;
+        public const ushort N_TMASK = 0x0030;
+        //N_TMASK1 and N_TMASK2 don't seem to be used
+        public const ushort N_BTSHIFT = 4;
+        public const ushort N_TSHIFT = 2;
+
         public NameOrOffset Name { get; }
 
 #if PEFAST
@@ -22,9 +28,9 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public short SectionNumber => chunk.PeekInt16(12);
+        public ushort SectionNumber => chunk.PeekUInt16(12);
 #else
-        public short SectionNumber { get; }
+        public ushort SectionNumber { get; }
 #endif
 
 #if PEFAST
@@ -32,6 +38,10 @@ namespace PESpy
 #else
         public ImageSymType Type { get; }
 #endif
+
+        public ImageSymType BasicType => (ImageSymType) ((ushort) Type & N_BTMASK);
+
+        public ImageSymDType DerivedType => (ImageSymDType) (((ushort) Type & N_TMASK) >> N_BTSHIFT);
 
 #if PEFAST
         public ImageSymClass StorageClass => (ImageSymClass) chunk.PeekByte(16);
@@ -64,7 +74,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
 #if PEFAST
         private readonly MemoryChunk chunk;
 
-        internal ImageSymbol(in MemoryChunk chunk)
+        internal ImageSymbol(in MemoryChunk chunk, CoffSymbolTable symbolTable)
         {
             this.chunk = chunk;
             AuxSymbols = default!;
@@ -73,7 +83,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
              * the name is declared in the string table that immediately follows the list of symbols,
              * and the name contains a pointer into it. If the first 4 bytes of the name are all 0, then
              * the second 4 bytes is an offset into the string table. Otherwise, the name is the name */
-            Name = new NameOrOffset(chunk);
+            Name = new NameOrOffset(chunk, symbolTable);
 
             var numAux = NumberOfAuxSymbols;
 
@@ -131,14 +141,14 @@ public ImageAuxSymbol[] AuxSymbols { get; }
         {
             using var s = writer.CreateStruct(nameof(IMAGE_SYMBOL), this, ViewKind.ImageSymbol);
 
-            if (Name.ShortName == null)
+            if (Name.Short == 0)
             {
                 s.WriteField("Name.Short", Name.Short);
                 s.WriteField("Name.Long", Name.Long);
             }
             else
             {
-                s.WriteNullPaddedUTF8Field(nameof(Name), Name.ShortName, 8);
+                s.WriteNullPaddedUTF8Field(nameof(Name), Name.Name, 8);
             }
 
             s.WriteField(nameof(Value), Value);
@@ -149,15 +159,15 @@ public ImageAuxSymbol[] AuxSymbols { get; }
             s.WriteInline(AuxSymbols);
         }
 
-        public struct NameOrOffset
+        public readonly struct NameOrOffset
         {
-            public string? ShortName { get; }
+            public string Name { get; }
 
             public int Short { get; }
             public int Long { get; }
 
 #if PEFAST
-            internal NameOrOffset(in MemoryChunk chunk)
+            internal NameOrOffset(in MemoryChunk chunk, CoffSymbolTable symbolTable)
             {
                 var @short = chunk.PeekInt32(0);
                 var @long = chunk.PeekInt32(4);
@@ -172,7 +182,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
                 {
                     Short = @short;
                     Long = @long;
-                    ShortName = null;
+                    Name = symbolTable.GetString(Long).ToString();
                 }
                 else
                 {
@@ -200,7 +210,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
                         }
                     }
 
-                    ShortName = Encoding.ASCII.GetString(bytes, 0, nonPaddedLength);
+                    Name = Encoding.ASCII.GetString(bytes, 0, nonPaddedLength);
                     Short = 0;
                     Long = 0;
                 }
@@ -208,10 +218,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
 
             public override string ToString()
             {
-                if (ShortName != null)
-                    return ShortName.ToString();
-
-                return $"Long Name {Long}";
+                return Name;
             }
         }
 

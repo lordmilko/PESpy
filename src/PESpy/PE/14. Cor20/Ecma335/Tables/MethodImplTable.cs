@@ -26,22 +26,22 @@
             RowSize = MethodDeclarationOffset + methodDefOrRefIndexSize;
         }
 
-        public int GetClass(MethodImplIndex index)
+        public TypeDefIndex GetClass(MethodImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
         }
 
-        public int GetMethodBody(MethodImplIndex index)
+        public Index GetMethodBody(MethodImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodBodyOffset, isBigMethodDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodBodyOffset, isBigMethodDefOrRefIndex);
         }
 
-        public int GetMethodDeclaration(MethodImplIndex index)
+        public Index GetMethodDeclaration(MethodImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodDeclarationOffset, isBigMethodDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodDeclarationOffset, isBigMethodDefOrRefIndex);
         }
 
         public int GetRowOffset(MethodImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

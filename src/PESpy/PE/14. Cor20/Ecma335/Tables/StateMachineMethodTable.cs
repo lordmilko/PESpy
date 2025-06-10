@@ -7,27 +7,31 @@
         private readonly int MoveNextMethodOffset;
         private readonly int KickoffMethodOffset;
 
+        private readonly bool isBigMethodIndex;
+
         private readonly MemoryChunk tableChunk;
 
-        internal StateMachineMethodTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal StateMachineMethodTable(int numRows, int methodIndexSize, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
+
+            isBigMethodIndex = methodIndexSize == 4;
 
             MoveNextMethodOffset = 0;
             KickoffMethodOffset = MoveNextMethodOffset + sizeof(int);
             RowSize = KickoffMethodOffset + sizeof(int);
         }
 
-        public int GetMoveNextMethod(StateMachineMethodIndex index)
+        public MethodDefIndex GetMoveNextMethod(StateMachineMethodIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + MoveNextMethodOffset);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MoveNextMethodOffset, isBigMethodIndex);
         }
 
-        public int GetKickoffMethod(StateMachineMethodIndex index)
+        public MethodDefIndex GetKickoffMethod(StateMachineMethodIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + KickoffMethodOffset);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + KickoffMethodOffset, isBigMethodIndex);
         }
 
         public int GetRowOffset(StateMachineMethodIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

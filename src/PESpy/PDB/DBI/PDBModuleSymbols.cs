@@ -10,7 +10,7 @@ namespace PESpy.PDB
         public CV_SIGNATURE Signature { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public SymTypeList Symbols { get; }
+        public SymTypeList List { get; }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -22,13 +22,13 @@ namespace PESpy.PDB
         {
             this.chunk = chunk;
             Signature = signature;
-            Symbols = symbols;
+            List = symbols;
         }
 
         void IViewable.WriteView(ViewWriter writer)
         {
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
-            writer.WritePagedGlobal(chunk.RelativeOffset + 4, (PagedMemoryBlock) chunk.block, Symbols);
+            writer.WritePagedGlobal(chunk.RelativeOffset + 4, (PagedMemoryBlock) chunk.block, List);
         }
     }
 }

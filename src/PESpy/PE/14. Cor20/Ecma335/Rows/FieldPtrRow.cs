@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public FieldPtrIndex RowIndex { get; }
 
-        public int Field => table.GetField(RowIndex);
+        public FieldIndex Field => table.GetField(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("FieldPtr Row", this, ViewKind.Metadata_FieldPtrRow);
 
-            s.WriteValue(nameof(Field), Field);
+            s.WriteValue(nameof(Field), (int) Field);
         }
     }
 }

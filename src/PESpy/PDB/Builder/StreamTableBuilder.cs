@@ -77,6 +77,17 @@ namespace PESpy.PDB
             return si.sn;
         }
 
+        public void DeleteStream(SN sn)
+        {
+            ref var si = ref this[sn];
+
+            for (var i = 0; i < si.PageList.Count; i++)
+                pdbFileBuilder.FreePage(si.PageList[i]);
+
+            si.PageList.Clear();
+            si.ByteCount = -1;
+        }
+
         internal StreamInfoBuilder Measure()
         {
             highestUsedStream = -1; //We'll do +1 below to calculate the actual number of streams, so this cancels out

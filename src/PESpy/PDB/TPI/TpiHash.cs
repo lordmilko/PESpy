@@ -8,37 +8,65 @@ namespace PESpy.PDB
         /// <summary>
         /// main hash stream
         /// </summary>
-        public SN sn => chunk.PeekUInt16(0);
+        public SN sn
+        {
+            get => chunk.PeekUInt16(0);
+            set => chunk.PokeUInt16(0, value);
+        }
 
         /// <summary>
         /// auxilliary hash data if necessary
         /// </summary>
-        public SN snPad => chunk.PeekUInt16(2);
+        public SN snPad
+        {
+            get => chunk.PeekUInt16(2);
+            set => chunk.PokeUInt16(2, value);
+        }
 
         /// <summary>
         /// size of hash key
         /// </summary>
-        public int cbHashKey => chunk.PeekInt32(4);
+        public int cbHashKey
+        {
+            get => chunk.PeekInt32(4);
+            set => chunk.PokeInt32(4, value);
+        }
 
         /// <summary>
         /// how many buckets we have
         /// </summary>
-        public int cHashBuckets => chunk.PeekInt32(8);
+        public int cHashBuckets
+        {
+            get => chunk.PeekInt32(8);
+            set => chunk.PokeInt32(8, value);
+        }
 
         /// <summary>
         /// offcb of hashvals
         /// </summary>
-        public OffCb offcbHashVals => new OffCb(chunk.Slice(12));
+        public OffCb offcbHashVals
+        {
+            get => chunk.PeekUnmanaged<OffCb>(12);
+            set => chunk.PokeUnmanaged<OffCb>(12, value);
+        }
 
         /// <summary>
         /// offcb of (TI,OFF) pairs
         /// </summary>
-        public OffCb offcbTiOff => new OffCb(chunk.Slice(20));
+        public OffCb offcbTiOff
+        {
+            get => chunk.PeekUnmanaged<OffCb>(20);
+            set => chunk.PokeUnmanaged<OffCb>(20, value);
+        }
 
         /// <summary>
         /// offcb of hash head list, maps (hashval,ti), where ti is the head of the hashval chain.
         /// </summary>
-        public OffCb offcbHashAdj => new OffCb(chunk.Slice(28));
+        public OffCb offcbHashAdj
+        {
+            get => chunk.PeekUnmanaged<OffCb>(28);
+            set => chunk.PokeUnmanaged<OffCb>(28, value);
+        }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -66,9 +94,9 @@ namespace PESpy.PDB
             s.WriteField(nameof(snPad), snPad);
             s.WriteField(nameof(cbHashKey), cbHashKey);
             s.WriteField(nameof(cHashBuckets), cHashBuckets);
-            s.WriteStructField(nameof(offcbHashVals), offcbHashVals);
-            s.WriteStructField(nameof(offcbTiOff), offcbTiOff);
-            s.WriteStructField(nameof(offcbHashAdj), offcbHashAdj);
+            s.WriteUnmanagedField(nameof(offcbHashVals), offcbHashVals);
+            s.WriteUnmanagedField(nameof(offcbTiOff), offcbTiOff);
+            s.WriteUnmanagedField(nameof(offcbHashAdj), offcbHashAdj);
         }
     }
 }

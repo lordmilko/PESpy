@@ -14,10 +14,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigCustomAttributeTypeIndexSize;
         private readonly bool isBigBlobIndexSize;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal CustomAttributeTable(int numRows, int hasCustomAttributeIndexSize, int customAttributeTypeIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal CustomAttributeTable(int numRows, int hasCustomAttributeIndexSize, int customAttributeTypeIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -34,22 +34,22 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(CustomAttributeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public int GetParent(CustomAttributeIndex index)
+        public Index GetParent(CustomAttributeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomAttributeIndexSize);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomAttributeIndexSize);
         }
 
-        public int GetType(CustomAttributeIndex index)
+        public Index GetType(CustomAttributeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + TypeOffset, isBigCustomAttributeTypeIndexSize);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + TypeOffset, isBigCustomAttributeTypeIndexSize);
         }
 
         public BlobIndex GetValue(CustomAttributeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap);
         }
 
         public CustomAttributeRow this[CustomAttributeIndex index] => this[(int) index];

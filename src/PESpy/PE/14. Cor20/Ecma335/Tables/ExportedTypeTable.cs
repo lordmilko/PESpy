@@ -16,10 +16,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ExportedTypeTable(int numRows, int stringIndexSize, int implementationIndexSize, Lazy<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ExportedTypeTable(int numRows, int stringIndexSize, int implementationIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -50,19 +50,19 @@ namespace PESpy.Ecma335
         public StringIndex GetTypeName(ExportedTypeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNameOffset, isBigStringIndex), stringHeap);
         }
 
         public StringIndex GetTypeNamespace(ExportedTypeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap);
         }
 
-        public int GetImplementation(ExportedTypeIndex index)
+        public Index GetImplementation(ExportedTypeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ImplementationOffset, isBigImplementationIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ImplementationOffset, isBigImplementationIndex);
         }
 
         public int GetRowOffset(ExportedTypeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

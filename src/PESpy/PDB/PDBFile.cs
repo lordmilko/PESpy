@@ -54,10 +54,10 @@ namespace PESpy
         public PDBFileKind PDBKind { get; }
 
         /// <inheritdoc/>
-        public string? Name { get; private set; }
+        public string Name { get; private set; }
 
         /// <inheritdoc/>
-        public string? FileName { get; private set; }
+        public string FileName { get; private set; }
 
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PDB;

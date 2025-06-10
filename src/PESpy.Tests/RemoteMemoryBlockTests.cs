@@ -249,6 +249,7 @@ namespace PESpy.Tests
                 size: size,
                 reader: reader,
                 provider: null,
+                null,
                 IntPtr.Size == 4
             );
 

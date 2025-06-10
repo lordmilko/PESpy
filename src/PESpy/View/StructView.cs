@@ -44,6 +44,7 @@ namespace PESpy.View
             Offset = offset;
             Name = name;
             Children = children;
+            Debug.Assert(children[0] != null);
             Size = size;
             Kind = kind;
         }
@@ -169,6 +170,7 @@ namespace PESpy.View
             for (var i = 0; i < Children.Length; i++)
             {
                 var newChild = ((ISplittableView) Children[i]).WithOffset(runningOffset);
+                newChildren[i] = newChild;
                 runningOffset += newChild.Size;
             }
 

@@ -23,9 +23,13 @@ namespace PESpy.PDB
             throw new NotImplementedException();
         }
 
-        public void SetAll() => PageMap.SetAll(true);
+        public void SetAll()
+        {
+            PageMap.SetAll(true);
+            nextFreePage = 0;
+        }
 
-        private int nextFreePage;
+        private int nextFreePage; //I accidentally seem to have implemented the same concept as FPM::iwRover
 
         //FPM::nextPn
         public PN AllocPage()
@@ -90,11 +94,7 @@ namespace PESpy.PDB
         internal void Add(BitArray other)
         {
             PageMap.Or(other);
-        }
-
-        internal void CopyFrom(in FPM other)
-        {
-            PageMap = new BitArray(other.PageMap);
+            nextFreePage = 0;
         }
 
         internal void Serialize()
@@ -164,6 +164,7 @@ namespace PESpy.PDB
         public void FreePage(PN pn)
         {
             PageMap[pn] = true;
+            nextFreePage = 0;
         }
     }
 }

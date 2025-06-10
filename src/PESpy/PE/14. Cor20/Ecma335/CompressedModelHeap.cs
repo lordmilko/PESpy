@@ -172,9 +172,9 @@ namespace PESpy.Ecma335
             }
 
             //When constructing the CompressedModelHeap, the other heaps may not have been constructed yet, so these need to be lazily evaluated
-            Lazy<StringHeap?> stringHeap = new Lazy<StringHeap?>(() => ecmaMetadata.StringHeap);
-            Lazy<BlobHeap?> blobHeap = new Lazy<BlobHeap?>(() => ecmaMetadata.BlobHeap);
-            Lazy<GuidHeap?> guidHeap = new Lazy<GuidHeap?>(() => ecmaMetadata.GuidHeap);
+            Func<StringHeap?> stringHeap = () => ecmaMetadata.StringHeap;
+            Func<BlobHeap?> blobHeap = () => ecmaMetadata.BlobHeap;
+            Func<GuidHeap?> guidHeap = () => ecmaMetadata.GuidHeap;
 
             var sizes = new MetadataSizes(Header.HeapSizes, isMinimalDelta, rowCounts);
             this.sizes = sizes;
@@ -856,6 +856,7 @@ namespace PESpy.Ecma335
                 MethodDebugInformationTable = new MethodDebugInformationTable(
                     numRows,
                     sizes.BlobIndexSize,
+                    sizes.GetSimpleIndexSize(TableKind.Document),
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -869,6 +870,10 @@ namespace PESpy.Ecma335
             {
                 LocalScopeTable = new LocalScopeTable(
                     numRows,
+                    sizes.GetSimpleIndexSize(TableKind.MethodDebugInformation),
+                    sizes.GetSimpleIndexSize(TableKind.ImportScope),
+                    sizes.GetSimpleIndexSize(TableKind.LocalVariable),
+                    sizes.GetSimpleIndexSize(TableKind.LocalConstant),
                     chunk.Slice(offset)
                 );
                 offset += numRows * LocalScopeTable.RowSize;
@@ -912,6 +917,7 @@ namespace PESpy.Ecma335
                 ImportScopeTable = new ImportScopeTable(
                     numRows,
                     sizes.BlobIndexSize,
+                    sizes.GetSimpleIndexSize(TableKind.ImportScope),
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -925,6 +931,7 @@ namespace PESpy.Ecma335
             {
                 StateMachineMethodTable = new StateMachineMethodTable(
                     numRows,
+                    sizes.GetSimpleIndexSize(TableKind.MethodDebugInformation),
                     chunk.Slice(offset)
                 );
                 offset += numRows * StateMachineMethodTable.RowSize;

@@ -14,11 +14,11 @@ namespace PESpy.Ecma335
 
         public CorPinvokeMap MappingFlags => table.GetMappingFlags(RowIndex);
 
-        public int MemberForwarded => table.GetMemberForwarded(RowIndex);
+        public Index MemberForwarded => table.GetMemberForwarded(RowIndex);
 
         public StringIndex ImportName => table.GetImportName(RowIndex);
 
-        public int ImportScope => table.GetImportScope(RowIndex);
+        public ModuleRefIndex ImportScope => table.GetImportScope(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -37,9 +37,9 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("ImplMap Row", this, ViewKind.Metadata_ImplMapRow);
 
             s.WriteValue(nameof(MappingFlags), MappingFlags, sizeof(short));
-            s.WriteMemberForwardedIndex(nameof(MemberForwarded), MemberForwarded);
+            s.WriteMemberForwardedIndex(nameof(MemberForwarded), (int) MemberForwarded);
             s.WriteStringHeapIndex(nameof(ImportName), ImportName);
-            s.WriteSimpleIndex(nameof(ImportScope), ImportScope, TableKind.ModuleRef);
+            s.WriteSimpleIndex(nameof(ImportScope), (int) ImportScope, TableKind.ModuleRef);
         }
     }
 }

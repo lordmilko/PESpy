@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public EventPtrIndex RowIndex { get; }
 
-        public int Event => table.GetEvent(RowIndex);
+        public EventIndex Event => table.GetEvent(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("EventPtr Row", this, ViewKind.Metadata_EventPtrRow);
 
-            s.WriteValue(nameof(Event), Event);
+            s.WriteValue(nameof(Event), (int) Event);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public MemberRefIndex RowIndex { get; }
 
-        public int Class => table.GetClass(RowIndex);
+        public Index Class => table.GetClass(RowIndex);
 
         public StringIndex Name => table.GetName(RowIndex);
 
@@ -33,7 +33,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("MemberRef Row", this, ViewKind.Metadata_MemberRefRow);
 
-            s.WriteMemberRefParentIndex(nameof(Class), Class);
+            s.WriteMemberRefParentIndex(nameof(Class), (int) Class);
             s.WriteStringHeapIndex(nameof(Name), Name);
             s.WriteBlobHeapIndex(nameof(Signature), Signature);
         }

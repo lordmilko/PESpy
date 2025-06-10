@@ -118,6 +118,17 @@ namespace PESpy
             return true;
         }
 
+        public bool Contains(T value)
+        {
+            for (var i = 0; i < Length; i++)
+            {
+                if (this[i].Equals(value))
+                    return true;
+            }
+
+            return false;
+        }
+
         public IEnumerable<TResult> Select<TResult>(Func<T, TResult> selector)
         {
             foreach (var item in this)

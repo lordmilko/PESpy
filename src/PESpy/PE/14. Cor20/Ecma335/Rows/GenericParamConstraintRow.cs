@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public GenericParamConstraintIndex RowIndex { get; }
 
-        public int Owner => table.GetOwner(RowIndex);
+        public GenericParamIndex Owner => table.GetOwner(RowIndex);
 
-        public int Constraint => table.GetConstraint(RowIndex);
+        public Index Constraint => table.GetConstraint(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("GenericParamConstraint Row", this, ViewKind.Metadata_GenericParamConstraintRow);
 
-            s.WriteSimpleIndex(nameof(Owner), Owner, TableKind.GenericParam);
-            s.WriteTypeDefOrRefIndex(nameof(Constraint), Constraint);
+            s.WriteSimpleIndex(nameof(Owner), (int) Owner, TableKind.GenericParam);
+            s.WriteTypeDefOrRefIndex(nameof(Constraint), (int) Constraint);
         }
     }
 }

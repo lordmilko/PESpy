@@ -10,7 +10,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    class LIBFile : IFile, IViewable, IDisposable
+    public class LIBFile : IFile, IViewable, IDisposable
     {
         public static LIBFile FromFile(string path)
         {
@@ -49,6 +49,8 @@ namespace PESpy
         public FirstLinkerMember? FirstLinkerMember { get; private set; }
         
         public SecondLinkerMember? SecondLinkerMember { get; private set; }
+
+        public LongNamesMember? LongNamesMember { get; private set; }
 
         public IImportLibraryMember[] ImportLibrary { get; private set; }
 
@@ -154,8 +156,9 @@ namespace PESpy
                 else if (memberName == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_LONGNAMES_MEMBER)
                 {
                     //It's the longnames member
-                    Debug.Assert(false);
-                    throw new NotImplementedException("Handling longnames is not implemented");
+                    LongNamesMember = new LongNamesMember(chunk.Slice(read));
+                    read += LongNamesMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
+
                 }
                 else if (memberName == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_HYBRIDMAP_MEMBER)
                 {
@@ -218,6 +221,7 @@ namespace PESpy
             writer.WriteGlobal(0, Signature, Signature.Length, ViewKind.Value);
             writer.WriteGlobal(FirstLinkerMember);
             writer.WriteGlobal(SecondLinkerMember);
+            writer.WriteGlobal(LongNamesMember);
             writer.WriteGlobal(ImportLibrary);
         }
 

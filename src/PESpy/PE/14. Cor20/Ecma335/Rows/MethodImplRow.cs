@@ -11,11 +11,11 @@ namespace PESpy.Ecma335
     {
         public MethodImplIndex RowIndex { get; }
 
-        public int Class => table.GetClass(RowIndex);
+        public TypeDefIndex Class => table.GetClass(RowIndex);
 
-        public int MethodBody => table.GetMethodBody(RowIndex);
+        public Index MethodBody => table.GetMethodBody(RowIndex);
 
-        public int MethodDeclaration => table.GetMethodDeclaration(RowIndex);
+        public Index MethodDeclaration => table.GetMethodDeclaration(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -33,9 +33,9 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("MethodImpl Row", this, ViewKind.Metadata_MethodImplRow);
 
-            s.WriteSimpleIndex(nameof(Class), Class, TableKind.TypeDef);
-            s.WriteMethodDefOrRefIndex(nameof(MethodBody), MethodBody);
-            s.WriteMethodDefOrRefIndex(nameof(MethodDeclaration), MethodDeclaration);
+            s.WriteSimpleIndex(nameof(Class), (int) Class, TableKind.TypeDef);
+            s.WriteMethodDefOrRefIndex(nameof(MethodBody), (int) MethodBody);
+            s.WriteMethodDefOrRefIndex(nameof(MethodDeclaration), (int) MethodDeclaration);
         }
     }
 }

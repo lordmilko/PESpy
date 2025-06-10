@@ -22,16 +22,16 @@
             RowSize = EnclosingClassOffset + typeDefIndexSize;
         }
 
-        public int GetNestedClass(NestedClassIndex index)
+        public TypeDefIndex GetNestedClass(NestedClassIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + NestedClassOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + NestedClassOffset, isBigTypeDefIndex);
         }
 
-        public int GetEnclosingClass(NestedClassIndex index)
+        public TypeDefIndex GetEnclosingClass(NestedClassIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + EnclosingClassOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + EnclosingClassOffset, isBigTypeDefIndex);
         }
 
         public int GetRowOffset(NestedClassIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

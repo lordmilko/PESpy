@@ -14,11 +14,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal PropertyTable(int numRows, int stringIndexSize, int blobIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal PropertyTable(int numRows, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -42,13 +42,13 @@ namespace PESpy.Ecma335
         public StringIndex GetName(PropertyIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public BlobIndex GetType(PropertyIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(PropertyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

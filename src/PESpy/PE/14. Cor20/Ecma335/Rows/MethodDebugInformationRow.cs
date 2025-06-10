@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public MethodDebugInformationIndex RowIndex { get; }
 
-        public int Document => table.GetDocument(RowIndex);
+        public DocumentIndex Document => table.GetDocument(RowIndex);
 
         public BlobIndex SequencePoints => table.GetSequencePoints(RowIndex);
 
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("MethodDebugInformation Row", this, ViewKind.PortablePdb_MethodDebugInformationRow);
 
-            s.WriteValue(nameof(Document), Document);
+            s.WriteValue(nameof(Document), (int) Document);
             s.WriteBlobHeapIndex(nameof(SequencePoints), SequencePoints);
         }
     }

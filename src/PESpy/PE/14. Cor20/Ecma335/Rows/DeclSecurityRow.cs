@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
         //SecurityAction does not have all of the values that CorDeclSecurity has
         public CorDeclSecurity Action => table.GetAction(RowIndex);
 
-        public int Parent => table.GetParent(RowIndex);
+        public Index Parent => table.GetParent(RowIndex);
 
         public BlobIndex PermissionSet => table.GetPermissionSet(RowIndex);
 
@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("DeclSecurity Row", this, ViewKind.Metadata_DeclSecurityRow);
 
             s.WriteValue(nameof(Action), Action, sizeof(short));
-            s.WriteHasDeclSecurityIndex(nameof(Parent), Parent);
+            s.WriteHasDeclSecurityIndex(nameof(Parent), (int) Parent);
             s.WriteBlobHeapIndex(nameof(PermissionSet), PermissionSet);
         }
     }

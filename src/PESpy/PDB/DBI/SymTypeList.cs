@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -55,10 +56,40 @@ namespace PESpy.PDB
             }
         }
 
-        internal SymTypeList(byte* ptr, int length)
+        public SymTypeList(byte* ptr, int length)
         {
             this.ptr = ptr;
             this.end = ptr + length;
+        }
+
+        public void CopyTo(Span<byte> destination)
+        {
+            new Span<byte>(ptr, (int) (end - ptr)).CopyTo(destination);
+        }
+
+        //Performs a linear search
+        public SymType this[int index]
+        {
+            get
+            {
+                var i = 0;
+
+                var p = ptr;
+                var e = end;
+
+                while (p < e)
+                {
+                    var s = (SYMTYPE*) p;
+
+                    if (i == index)
+                        return s;
+
+                    i++;
+                    p += SymType.GetSymbolLength(s);
+                }
+
+                throw new IndexOutOfRangeException();
+            }
         }
 
         public IEnumerator<SymType> GetEnumerator() => new Enumerator(ptr, end);

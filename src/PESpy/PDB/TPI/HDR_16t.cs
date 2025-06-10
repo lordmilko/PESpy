@@ -6,15 +6,35 @@ namespace PESpy.PDB
     //Used when the TPI version is <= impv41
     public class HDR_16t : IHDR //Header could either be HDR or HDR_16t
     {
-        public TPIImpv vers => (TPIImpv) chunk.PeekUInt32(0);
+        public TPIImpv vers
+        {
+            get => (TPIImpv) chunk.PeekUInt32(0);
+            set => chunk.PokeUInt32(0, (uint) value);
+        }
 
-        public ushort tiMin => chunk.PeekUInt16(4);
+        public ushort tiMin
+        {
+            get => chunk.PeekUInt16(4);
+            set => chunk.PokeUInt16(4, value);
+        }
 
-        public ushort tiMac => chunk.PeekUInt16(6);
+        public ushort tiMac
+        {
+            get => chunk.PeekUInt16(6);
+            set => chunk.PokeUInt16(6, value);
+        }
 
-        public int cbGprec => chunk.PeekInt32(8);
+        public int cbGprec
+        {
+            get => chunk.PeekInt32(8);
+            set => chunk.PokeInt32(8, value);
+        }
 
-        public SN snHash => chunk.PeekUInt16(12);
+        public SN snHash
+        {
+            get => chunk.PeekUInt16(12);
+            set => chunk.PokeUInt16(12, value);
+        }
 
         int IHDR.StructSize => StructSize;
 

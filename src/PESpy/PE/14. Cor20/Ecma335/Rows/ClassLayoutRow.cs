@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
 
         public int ClassSize => table.GetClassSize(RowIndex);
 
-        public int Parent => table.GetParent(RowIndex);
+        public TypeDefIndex Parent => table.GetParent(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -35,7 +35,7 @@ namespace PESpy.Ecma335
 
             s.WriteValue(nameof(PackingSize), PackingSize);
             s.WriteValue(nameof(ClassSize), ClassSize);
-            s.WriteSimpleIndex(nameof(Parent), Parent, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(Parent), (int) Parent, TableKind.TypeDef);
         }
     }
 }

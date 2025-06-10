@@ -12,6 +12,28 @@ namespace PESpy.PDB
 
             public TypTypeList Types { get; }
 
+            private MsfStream.TpiHash? tpiHash;
+
+            public MsfStream.TpiHash? TpiHash
+            {
+                get
+                {
+                    if (tpiHash == null && Hdr is HDR h)
+                    {
+                        var info = h.tpihash;
+
+                        var pdbFile = chunk.PDBFile();
+
+                        if (pdbFile.TryGetStreamChunk(info.sn, out var hashChunk))
+                        {
+                            tpiHash = new MsfStream.TpiHash(hashChunk, info, h.vers);
+                        }
+                    }
+
+                    return tpiHash;
+                }
+            }
+
             public int Offset => chunk.AbsoluteOffset;
 
             private readonly MemoryChunk chunk;

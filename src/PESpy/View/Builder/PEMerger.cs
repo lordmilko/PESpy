@@ -148,7 +148,7 @@ namespace PESpy.View.Builder
                 //this data might not exist when reading a loaded image
                 var lastResult = results.Last();
                 var overlayStart = lastResult.Offset + lastResult.Size;
-                var fileEnd = (Int32) peFile.OptionalHeader.SizeOfImage;
+                var fileEnd = (int) extension.GetInputLength();
 
                 TryCreateOMFRegion(results);
 

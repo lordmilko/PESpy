@@ -22,7 +22,7 @@ namespace PESpy
         }
 
         public MemoryBlock CreateBlock(int rva, int size) =>
-            new RemoteMemoryBlock(baseAddress, rva, size, reader, this, is32Bit);
+            new RemoteMemoryBlock(baseAddress, rva, size, reader, this, File, is32Bit);
     }
 }
 #endif

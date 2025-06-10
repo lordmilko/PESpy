@@ -13,7 +13,7 @@ namespace PESpy
     /// <summary>
     /// Represents a New Executable (NE) file.
     /// </summary>
-    internal class NEFile : IFile, IViewable, IDisposable
+    public class NEFile : IFile, IViewable, IDisposable
     {
         public static NEFile FromFile(string path)
         {

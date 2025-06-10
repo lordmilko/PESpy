@@ -34,16 +34,16 @@ namespace PESpy.Ecma335
             return (CorMethodSemanticsAttr) tableChunk.PeekUInt16(rowOffset + SemanticsOffset);
         }
 
-        public int GetMethod(MethodSemanticsIndex index)
+        public MethodDefIndex GetMethod(MethodSemanticsIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, hasBigMethodDefIndex);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, hasBigMethodDefIndex);
         }
 
-        public int GetAssociation(MethodSemanticsIndex index)
+        public Index GetAssociation(MethodSemanticsIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + AssociationOffset, hasBigHasSemanticsIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + AssociationOffset, hasBigHasSemanticsIndex);
         }
 
         public int GetRowOffset(MethodSemanticsIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

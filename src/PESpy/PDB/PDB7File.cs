@@ -49,7 +49,8 @@ namespace PESpy
 #endif
         }
 
-        private unsafe void Save()
+        //This does not perform a "Commit". We are just directly hacking the PDB
+        public unsafe void Save()
         {
             //File.OpenWrite opens the file with FileAccess.Write, but we need ReadWrite to memory map it
             using var fs = File.Open(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);

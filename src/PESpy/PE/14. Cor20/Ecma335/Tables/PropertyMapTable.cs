@@ -24,16 +24,16 @@
             RowSize = PropertyListOffset + propertyIndexSize;
         }
 
-        public int GetParent(PropertyMapIndex index)
+        public TypeDefIndex GetParent(PropertyMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
         }
 
-        public int GetPropertyList(PropertyMapIndex index)
+        public PropertyIndex GetPropertyList(PropertyMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + PropertyListOffset, isBigPropertyIndex);
+            return (PropertyIndex) tableChunk.PeekEcmaIndex(rowOffset + PropertyListOffset, isBigPropertyIndex);
         }
 
         public int GetRowOffset(PropertyMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

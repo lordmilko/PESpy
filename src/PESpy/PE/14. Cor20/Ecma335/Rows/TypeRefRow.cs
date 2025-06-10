@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public TypeRefIndex RowIndex { get; }
 
-        public int ResolutionScope => table.GetResolutionScope(RowIndex);
+        public Index ResolutionScope => table.GetResolutionScope(RowIndex);
 
         public StringIndex TypeName => table.GetTypeName(RowIndex);
 
@@ -33,7 +33,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("TypeRef Row", this, ViewKind.Metadata_TypeRefRow);
 
-            s.WriteResolutionScopeIndex(nameof(ResolutionScope), ResolutionScope);
+            s.WriteResolutionScopeIndex(nameof(ResolutionScope), (int) ResolutionScope);
             s.WriteStringHeapIndex(nameof(TypeName), TypeName);
             s.WriteStringHeapIndex(nameof(TypeNamespace), TypeNamespace);
         }

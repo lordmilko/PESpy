@@ -20,10 +20,10 @@
             RowSize = PropertyOffset + propertyIndexSize;
         }
 
-        public int GetProperty(PropertyPtrIndex index)
+        public PropertyIndex GetProperty(PropertyPtrIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + PropertyOffset, isBigPropertyIndex);
+            return (PropertyIndex) tableChunk.PeekEcmaIndex(rowOffset + PropertyOffset, isBigPropertyIndex);
         }
 
         public int GetRowOffset(PropertyPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

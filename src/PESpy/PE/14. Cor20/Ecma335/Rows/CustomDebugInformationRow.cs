@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public CustomDebugInformationIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public Index Parent => table.GetParent(RowIndex);
 
         public GuidIndex Kind => table.GetKind(RowIndex);
 
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("CustomDebugInformation Row", this, ViewKind.PortablePdb_CustomDebugInformationRow);
 
-            s.WriteHasCustomDebugInformationIndex(nameof(Parent), Parent);
+            s.WriteHasCustomDebugInformationIndex(nameof(Parent), (int) Parent);
             s.WriteGuidHeapIndex(nameof(Kind), Kind);
             s.WriteBlobHeapIndex(nameof(Value), Value);
         }

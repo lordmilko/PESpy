@@ -21,11 +21,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigStringIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal AssemblyTable(int numRows, int blobIndexSize, int stringIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyTable(int numRows, int blobIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -85,19 +85,19 @@ namespace PESpy.Ecma335
         public BlobIndex GetPublicKey(AssemblyIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PublicKeyOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PublicKeyOffset, isBigBlobIndex), blobHeap);
         }
 
         public StringIndex GetName(AssemblyIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public StringIndex GetCulture(AssemblyIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + CultureOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + CultureOffset, isBigStringIndex), stringHeap);
         }
 
         public int GetRowOffset(AssemblyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

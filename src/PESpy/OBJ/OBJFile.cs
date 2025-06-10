@@ -1,13 +1,15 @@
 ﻿#if PEFAST
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using ClrDebug;
 using PESpy.OBJ;
 using PESpy.View;
 
 namespace PESpy
 {
-    class OBJFile : IFile, IViewable, IDisposable
+    public class OBJFile : IFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)
         {
@@ -87,6 +89,15 @@ namespace PESpy
                 }
 
                 return sectionData;
+            }
+        }
+
+        public IEnumerable<T> GetSectionData<T>(string name) where T : class
+        {
+            for (var i = 0; i < SectionHeaders.Length; i++)
+            {
+                if (SectionHeaders[i].Name == name)
+                    yield return Unsafe.As<T>(SectionData[i]);
             }
         }
 
@@ -263,7 +274,7 @@ namespace PESpy
                     writer.WriteGlobal(v);
                 else if (item is RawValue<FixedUtf8String> s)
                     writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, ViewKind.Value);
-                else if (item is RawValue<byte[]> b)
+                else if (item is RawValue<NativeSpan<byte>> b)
                     continue;
                 else
                     throw new NotImplementedException($"Don't know how to write a value of type {item.GetType().Name}");

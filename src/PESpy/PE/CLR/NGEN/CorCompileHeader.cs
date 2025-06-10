@@ -3,7 +3,7 @@ using ClrDebug;
 
 namespace PESpy
 {
-    class CorCompileHeader : IValue
+    public class CorCompileHeader : IValue
     {
         internal const int NGESignature = 0x0045474E; //NGE
 

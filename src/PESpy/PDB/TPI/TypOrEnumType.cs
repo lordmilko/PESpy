@@ -3,6 +3,8 @@ using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
+    //For more info on types, see the comments at the top of TypType.cs
+
     public class TypOrEnumTypeDebugView
     {
         private TypOrEnumType type;

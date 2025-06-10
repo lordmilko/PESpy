@@ -23,6 +23,29 @@ namespace PESpy.PDB
                 snSymRecs = SN.Nil;
             }
 
+            internal void Init()
+            {
+                //DBI1::fInit seems to clear the DBI when you're creating it.
+                //It deletes and recreates the stream. It also deletes all sub-streams of the DBI
+                pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
+                pdbFileBuilder.Commit(PDBCommitFlags.None);
+                pdbFileBuilder.StreamTable[SN.DBI].ByteCount = 0;
+
+                //mspdbcore.dll has implemented logic not in microsoft-pdb wherein the NewDBIHdr is immediately inserted
+                //back into the file, and it is committed
+                pdbFileBuilder.Commit(PDBCommitFlags.DBI);
+
+                //Creating DBI also creates TPI, IPI, Publics and Globals
+                pdbFileBuilder.AcquireGSI();
+                pdbFileBuilder.AcquirePSGSI();
+
+                pdbFileBuilder.AcquireTPI();
+                pdbFileBuilder.AcquireIPI();
+
+                //When DBI1::clearDBI calls PDB1::OpenStreamEx to see if the /LinkInfo stream exists, this causes it to be cleared
+                //At the end of DBI1::fInit it calls fInitializeTMCacheInfo which adds the /TMCache stream
+            }
+
             #region NewDBIHdr
             #region verSignature
 
@@ -384,12 +407,93 @@ namespace PESpy.PDB
 
             internal void Measure()
             {
-                throw new NotImplementedException();
+                cbGpModi = Modules?.Measure() ?? 0;
+                cbSC = SectionContribs?.Measure() ?? 0;
+                cbSecMap = SectionMap?.Measure() ?? 0;
+                cbFileInfo = FileInfo?.Measure() ?? 0;
+                //Type Server Map
+                cbECInfo = NameTableEC?.Measure() ?? 0;
+                cbDbgHdr = DbgHdr?.Measure() ?? 0;
+
+                var size = NewDBIHdr.StructSize + cbGpModi + cbSC + cbSecMap + cbFileInfo + cbECInfo + cbDbgHdr;
+
+                //The PDB stream is saved by "replacing" it, which means that the previous stream gets deleted
+                pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
+
+                pdbFileBuilder.AllocPages(SN.DBI, size);
             }
 
             internal void Serialize()
             {
-                throw new NotImplementedException();
+                if (!Changed)
+                    return;
+
+                var chunk = pdbFileBuilder.SlicePaged(SN.DBI);
+
+                _ = new NewDBIHdr(chunk)
+                {
+                    verSignature = verSignature,
+                    verHdr = verHdr,
+                    age = age,
+                    snGSSyms = snGSSyms,
+                    usVerAll = usVerAll,
+                    snPSSyms = snPSSyms,
+                    usVerPdbDllBuild = usVerPdbDllBuild,
+                    snSymRecs = snSymRecs,
+                    usVerPdbDllRBld = usVerPdbDllRBld,
+                    cbGpModi = cbGpModi,
+                    cbSC = cbSC,
+                    cbSecMap = cbSecMap,
+                    cbFileInfo = cbFileInfo,
+                    cbTSMap = cbTSMap,
+                    iMFC = iMFC,
+                    cbDbgHdr = cbDbgHdr,
+                    cbECInfo = cbECInfo,
+                    flags = flags,
+                    wMachine = wMachine,
+                    rgulReserved = rgulReserved
+                };
+
+                var offset = NewDBIHdr.StructSize;
+
+                if (Modules != null)
+                {
+                    Modules.Serialize(chunk.Slice(offset));
+                    offset += cbGpModi;
+                }
+
+                if (SectionContribs != null)
+                {
+                    SectionContribs.Serialize(chunk.Slice(offset));
+                    offset += cbSC;
+                }
+
+                if (SectionMap != null)
+                {
+                    SectionMap.Serialize(chunk.Slice(offset));
+                    offset += cbSecMap;
+                }
+
+                if (FileInfo != null)
+                {
+                    FileInfo.Serialize(chunk.Slice(offset));
+                    offset += cbFileInfo;
+                }
+
+                //Type Server Map
+                if (NameTableEC != null)
+                {
+                    NameTableEC.Serialize(chunk.Slice(offset));
+                    offset += cbECInfo;
+                }
+
+                if (DbgHdr != null)
+                {
+                    DbgHdr.Serialize(chunk.Slice(offset));
+                    offset += cbDbgHdr;
+                }
+
+                Changed = false;
             }
         }
     }

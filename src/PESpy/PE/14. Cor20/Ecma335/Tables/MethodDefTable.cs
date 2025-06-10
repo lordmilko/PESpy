@@ -18,11 +18,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigParamIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal MethodDefTable(int numRows, int stringIndexSize, int blobIndexSize, int paramIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal MethodDefTable(int numRows, int stringIndexSize, int blobIndexSize, int paramIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -62,19 +62,19 @@ namespace PESpy.Ecma335
         public StringIndex GetName(MethodDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public BlobIndex GetSignature(MethodDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap);
         }
 
-        public int GetParamList(MethodDefIndex index)
+        public ParamIndex GetParamList(MethodDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParamListOffset, isBigParamIndex);
+            return (ParamIndex) tableChunk.PeekEcmaIndex(rowOffset + ParamListOffset, isBigParamIndex);
         }
 
         public int GetRowOffset(MethodDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

@@ -10,10 +10,10 @@ namespace PESpy.Ecma335
 
         private readonly bool isBigStringIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ModuleRefTable(int numRows, int stringIndexSize, Lazy<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ModuleRefTable(int numRows, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         public StringIndex GetName(ModuleRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public int GetRowOffset(ModuleRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

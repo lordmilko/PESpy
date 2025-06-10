@@ -13,7 +13,7 @@ namespace PESpy
     /// <summary>
     /// Represents a Linear Executable (LE) file.
     /// </summary>
-    internal class LEFile : IFile, IViewable, IDisposable
+    public class LEFile : IFile, IViewable, IDisposable
     {
         public static LEFile FromFile(string path)
         {

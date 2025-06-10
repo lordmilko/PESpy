@@ -13,10 +13,10 @@ namespace PESpy.Ecma335
         private readonly int SequenceOffset;
         private readonly int NameOffset;
 
-        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ParamTable(int numRows, int stringIndexSize, Lazy<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ParamTable(int numRows, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -44,7 +44,7 @@ namespace PESpy.Ecma335
         public StringIndex GetName(ParamIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public int GetRowOffset(ParamIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

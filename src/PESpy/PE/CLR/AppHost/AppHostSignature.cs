@@ -52,7 +52,7 @@ namespace PESpy
 
         //If the 8 bytes prior to the bundle header are 0, it's a non-bundle apphost.
         //If it's not 0, it's a single file apphost
-        private static byte[] bundleHeaderPlaceholder =
+        private static readonly byte[] bundleHeaderPlaceholder =
         {
             // 8 bytes represent the bundle header-offset
             // Zero for non-bundle apphosts (default).
@@ -64,7 +64,17 @@ namespace PESpy
             0xee, 0x3b, 0x2d, 0xce, 0x24, 0xb3, 0x6a, 0xae
         };
 
-#if !PEFAST
+#if PEFAST
+        internal static unsafe AppHostSignature? New(byte* mmf, int length, HeaderMemoryBlock globalBlock)
+        {
+            var index = KMPSearch(bundleHeaderPlaceholder, mmf, length);
+
+            if (index == -1)
+                return null;
+
+            return new AppHostSignature(new MemoryChunk(globalBlock, index - 8));
+        }
+#else
         internal static AppHostSignature? New(IFileReader reader)
         {
             var stream = ((StreamFileReader) reader).GetStreamStartUnsafe();
@@ -80,16 +90,34 @@ namespace PESpy
         }
 #endif
 
-        public VA<Bundle.Manifest> BundleHeaderOffset { get; }
+        private VA<Bundle.Manifest> bundleHeaderOffset;
+
+        public VA<Bundle.Manifest> BundleHeaderOffset
+        {
+            get
+            {
+                if (bundleHeaderOffset.ListedAddress == 0)
+                {
+                    var offset = chunk.PeekInt64(0);
+
+                    if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) offset, out var valueChunk))
+                        bundleHeaderOffset = new VA<Bundle.Manifest>(offset, valueChunk.AbsoluteOffset, new Bundle.Manifest(valueChunk));
+                }
+
+                return bundleHeaderOffset;
+            }
+        }
 
         public byte[] BundleSignature { get; }
 
         public RawOffset Offset { get; }
 
 #if PEFAST
+        private readonly MemoryChunk chunk;
+
         internal AppHostSignature(in MemoryChunk chunk)
         {
-            throw new NotImplementedException();
+            this.chunk = chunk;
         }
 #else
         internal AppHostSignature(IFileReader reader)
@@ -116,58 +144,39 @@ namespace PESpy
         }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-        private static int KMPSearch(Stream stream, byte[] pattern)
+
+        private static unsafe int KMPSearch(byte[] pattern, byte* bytes, long bytesLength)
         {
-            var blockSize = 4096;
+            int m = 0;
+            int i = 0;
+            int[] table = ComputeKMPFailureFunction(pattern);
 
-            int[] table = ComputeKMPFailureFunction(pattern);  // Failure function
-            byte[] buffer = new byte[blockSize + pattern.Length];  // Buffer with space for overlap
-            int bytesRead;
-            int m = 0;  // The beginning of the current match in the buffer
-            int i = 0;  // The current position in the pattern
-            long totalBytesRead = 0;  // Track the total bytes read from the stream
-
-            while ((bytesRead = stream.Read(buffer, pattern.Length, blockSize)) > 0)
+            while (m + i < bytesLength)
             {
-                int bufferLength = bytesRead + pattern.Length;
-
-                // Search through the buffer
-                for (int k = 0; m + i < bufferLength; k++)
+                if (pattern[i] == bytes[m + i])
                 {
-                    if (pattern[i] == buffer[m + i])
+                    if (i == pattern.Length - 1)
                     {
-                        if (i == pattern.Length - 1)  // Found match
-                        {
-                            return (int)(totalBytesRead + m - pattern.Length);  // Return the starting index of the match in the stream
-                        }
-                        i++;
+                        return m;
+                    }
+                    i++;
+                }
+                else
+                {
+                    if (table[i] > -1)
+                    {
+                        m = m + i - table[i];
+                        i = table[i];
                     }
                     else
                     {
-                        if (table[i] > -1)
-                        {
-                            m = m + i - table[i];  // Use the failure function to adjust the start of the match
-                            i = table[i];
-                        }
-                        else
-                        {
-                            m++;  // No match, move to the next character in the buffer
-                            i = 0;
-                        }
+                        m++;
+                        i = 0;
                     }
                 }
-
-                // Update the total number of bytes read so far
-                totalBytesRead += bytesRead;
-
-                // Copy the last part (pattern.Length bytes) of the current block to the beginning of the buffer
-                Array.Copy(buffer, blockSize, buffer, 0, pattern.Length);
-
-                // Reset m to point to the start of the new data (right after the overlap)
-                m = 0;
             }
 
-            return -1;  // No match found
+            return -1;
         }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm

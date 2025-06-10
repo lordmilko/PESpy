@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.PDB;
@@ -10,7 +11,7 @@ namespace PESpy
         HashSet<long> SymbolMemory { get; }
     }
 
-    class SymbolMemoryTracker
+    public class SymbolMemoryTracker
     {
         /* We provide access to symbols directly from memory (either from the MMF or from a buffer they are copied into (when they span multiple pages).
          * As such, these pointers cannot contain any state, which presents a problem when they want to display strings (which may or may not
@@ -57,9 +58,45 @@ namespace PESpy
             }
         }
 
-        private static unsafe void InsertEntry<T>(MemoryBlock block, List<(long start, long end, T value)> list, T value)
+        //You can resolve names, but not RVAs, as these require section headers which we won't have registered with the SymbolMemoryTracker
+        public static unsafe void RegisterCVSymbolMemory(byte* memory, int length)
         {
-            var start = (long) block.LocalPointer;
+            var signature = *(CV_SIGNATURE*) memory;
+
+            switch (signature)
+            {
+                case CV_SIGNATURE.C7:
+                case CV_SIGNATURE.C11:
+                case CV_SIGNATURE.C13:
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(CV_SIGNATURE)} '{signature}'");
+            }
+
+            lock (globalMemoryRangesLock)
+            {
+                //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
+                var isLengthPrefixedString = signature != CV_SIGNATURE.C13;
+
+                InsertEntry(memory, length, globalMemoryRanges, isLengthPrefixedString);
+            }
+        }
+
+        public static unsafe void UnregisterCVSymbolMemory(byte* memory)
+        {
+            lock (globalMemoryRangesLock)
+            {
+                globalMemoryRanges.RemoveAll(kv => kv.start == (long) memory);
+            }
+        }
+
+        private static unsafe void InsertEntry<T>(MemoryBlock block, List<(long start, long end, T value)> list, T value) =>
+            InsertEntry<T>(block.LocalPointer, block.Length, list, value);
+
+        private static unsafe void InsertEntry<T>(byte* memory, int length, List<(long start, long end, T value)> list, T value)
+        {
+            var start = (long) memory;
 
             var didInsert = false;
 
@@ -67,14 +104,14 @@ namespace PESpy
             {
                 if (list[i].start > start)
                 {
-                    list.Insert(i, (start, (long) (block.LocalPointer + block.Length), value));
+                    list.Insert(i, (start, (long) (memory + length), value));
                     didInsert = true;
                     break;
                 }
             }
 
             if (!didInsert)
-                list.Add(((long) block.LocalPointer, (long) (block.LocalPointer + block.Length), value));
+                list.Add(((long) memory, (long) (memory + length), value));
         }
 
         internal static ImageSectionHeader[]? GetSectionHeaders(long address)
@@ -128,7 +165,7 @@ namespace PESpy
                 }
             }
 
-            Debug.Assert(false, "Attempted to query whether data ian unregistered memory address");
+            Debug.Assert(false, "Attempted to query data in an unregistered memory address");
             return default; //Assume it's a modern file with non-length prefixed strings
         }
 

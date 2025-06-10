@@ -22,7 +22,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        public int ParamList => table.GetParamList(RowIndex);
+        public ParamIndex ParamList => table.GetParamList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -45,7 +45,7 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(Flags), Flags, sizeof(short));
             s.WriteStringHeapIndex(nameof(Name), Name);
             s.WriteBlobHeapIndex(nameof(Signature), Signature);
-            s.WriteSimpleIndex(nameof(ParamList), ParamList, TableKind.Param);
+            s.WriteSimpleIndex(nameof(ParamList), (int) ParamList, TableKind.Param);
         }
     }
 }

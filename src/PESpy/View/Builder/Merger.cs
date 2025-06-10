@@ -369,7 +369,7 @@ namespace PESpy.View.Builder
 
                             return;
                         }
-                        else if (view is ValueView<string> || view is ByteBlobView)
+                        else if (view is ValueView<string> || view is ValueView<AnsiString> || view is ByteBlobView)
                         {
                             return;
                         }

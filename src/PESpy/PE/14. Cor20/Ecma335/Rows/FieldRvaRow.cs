@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public int RVA => table.GetRVA(RowIndex);
 
-        public int Field => table.GetField(RowIndex);
+        public FieldIndex Field => table.GetField(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -32,7 +32,7 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("FieldRva Row", this, ViewKind.Metadata_FieldRvaRow);
 
             s.WriteValue(nameof(RVA), RVA);
-            s.WriteSimpleIndex(nameof(Field), Field, TableKind.Field);
+            s.WriteSimpleIndex(nameof(Field), (int) Field, TableKind.Field);
         }
     }
 }

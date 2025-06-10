@@ -1,8 +1,9 @@
 ﻿using System;
+using System.IO;
 
 namespace PESpy
 {
-    abstract class SymStore
+    internal abstract class SymStore
     {
         public static bool TryGetFile(ReadOnlySpan<char> searchPath, SymStoreKey key, out string? filePath)
         {
@@ -43,11 +44,12 @@ namespace PESpy
                 }
             }
 
-            var file = store!.Cascade(key);
+            var fileAndStream = store!.Cascade(key);
 
-            if (file != null)
+            if (fileAndStream != null)
             {
-                filePath = file.Value.FileName;
+                fileAndStream.Value.stream.Dispose();
+                filePath = fileAndStream.Value.file.FileName;
                 return true;
             }
 
@@ -62,26 +64,37 @@ namespace PESpy
             BackingStore = backingStore;
         }
 
-        public SymStoreFile? Cascade(SymStoreKey key)
+        public (SymStoreFile file, Stream stream)? Cascade(SymStoreKey key)
         {
-            var file = GetFile(key);
+            var fileAndStream = GetFile(key);
 
-            if (file == null)
+            if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    file = BackingStore.Cascade(key);
+                    fileAndStream = BackingStore.Cascade(key);
 
-                    if (file != null)
-                        SaveFile(key, file.Value);
+                    if (fileAndStream != null)
+                    {
+                        var oldStream = fileAndStream.Value.stream;
+
+                        try
+                        {
+                            fileAndStream = SaveFile(key, fileAndStream.Value.file, fileAndStream.Value.stream);
+                        }
+                        finally
+                        {
+                            oldStream.Dispose();
+                        }
+                    }
                 }
             }
 
-            return file;
+            return fileAndStream;
         }
 
-        protected abstract SymStoreFile? GetFile(SymStoreKey key);
+        protected abstract (SymStoreFile file, Stream stream)? GetFile(SymStoreKey key);
 
-        protected abstract void SaveFile(SymStoreKey key, SymStoreFile file);
+        protected abstract (SymStoreFile file, Stream stream)? SaveFile(SymStoreKey key, SymStoreFile file, Stream stream);
     }
 }

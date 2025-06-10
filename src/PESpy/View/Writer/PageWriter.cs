@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using PESpy.PDB;
 
 namespace PESpy.View
@@ -23,6 +24,7 @@ namespace PESpy.View
             private readonly PN[] pageList;
 
             private List<IView> items;
+            private bool end;
 
             internal PageWriter(int startRelativeOffset, PagedMemoryBlock block, ViewWriter viewWriter, bool global, bool shouldAdd)
             {
@@ -39,6 +41,7 @@ namespace PESpy.View
                 this.shouldAdd = shouldAdd;
 
                 items = viewWriter.RentList();
+                end = false;
             }
 
             public void WriteValue<T>(in T value, int size, ViewKind kind)
@@ -51,6 +54,13 @@ namespace PESpy.View
                 {
                     //Move onto the next page
                     pageIndex++;
+
+                    if (pageIndex >= pageList.Length)
+                    {
+                        end = true;
+                        return;
+                    }
+
                     pageStart = pageList[pageIndex] * pageSize;
 
                     //Adjust for any overflow

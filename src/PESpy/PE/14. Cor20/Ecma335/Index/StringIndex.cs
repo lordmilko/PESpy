@@ -1,15 +1,17 @@
-﻿namespace PESpy.Ecma335
+﻿using System;
+
+namespace PESpy.Ecma335
 {
     public readonly struct StringIndex
     {
         public readonly int Offset;
 
-        private readonly StringHeap? stringHeap;
+        private readonly Func<StringHeap?> getStringHeap;
 
-        internal StringIndex(int offset, StringHeap? stringHeap)
+        internal StringIndex(int offset, Func<StringHeap?> getStringHeap)
         {
             Offset = offset;
-            this.stringHeap = stringHeap;
+            this.getStringHeap = getStringHeap;
         }
 
         public static explicit operator StringIndex(int value) => new StringIndex(value, default);
@@ -19,6 +21,8 @@
 
         public override string ToString()
         {
+            var stringHeap = getStringHeap();
+
             if (stringHeap != null)
                 return $"\"{stringHeap.GetString(Offset)}\"";
 

@@ -14,11 +14,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigGuidIndex;
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
-        private readonly Lazy<GuidHeap?> guidHeap;
+        private readonly Func<BlobHeap?> blobHeap;
+        private readonly Func<GuidHeap?> guidHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal CustomDebugInformationTable(int numRows, int hasCustomDebugInformationIndexSize, int guidIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, Lazy<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal CustomDebugInformationTable(int numRows, int hasCustomDebugInformationIndexSize, int guidIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, Func<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -34,22 +34,22 @@ namespace PESpy.Ecma335
             RowSize = ValueOffset + blobIndexSize;
         }
 
-        public int GetParent(CustomDebugInformationIndex index)
+        public Index GetParent(CustomDebugInformationIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomDebugInformationIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomDebugInformationIndex);
         }
 
         public GuidIndex GetKind(CustomDebugInformationIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + KindOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + KindOffset, isBigGuidIndex), guidHeap);
         }
 
         public BlobIndex GetValue(CustomDebugInformationIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(CustomDebugInformationIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

@@ -10,32 +10,39 @@ namespace PESpy.Ecma335
         private readonly int ImportsOffset;
 
         private readonly bool isBigBlobIndex;
+        private readonly bool isBigImportScopeIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ImportScopeTable(int numRows, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ImportScopeTable(
+            int numRows,
+            int blobIndexSize,
+            int importScopeIndexSize,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
 
             isBigBlobIndex = blobIndexSize == 4;
+            isBigImportScopeIndex = importScopeIndexSize == 4;
 
             ParentOffset = 0;
-            ImportsOffset = ParentOffset + sizeof(int);
+            ImportsOffset = ParentOffset + importScopeIndexSize;
             RowSize = ImportsOffset + blobIndexSize;
         }
 
-        public int GetParent(ImportScopeIndex index)
+        public ImportScopeIndex GetParent(ImportScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + ParentOffset);
+            return (ImportScopeIndex) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigImportScopeIndex);
         }
 
         public BlobIndex GetImports(ImportScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ImportsOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ImportsOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(ImportScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

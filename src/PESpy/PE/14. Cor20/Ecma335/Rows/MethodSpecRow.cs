@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public MethodSpecIndex RowIndex { get; }
 
-        public int Method => table.GetMethod(RowIndex);
+        public Index Method => table.GetMethod(RowIndex);
 
         public BlobIndex Instantiation => table.GetInstantiation(RowIndex);
 
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("MethodSpec Row", this, ViewKind.Metadata_MethodSpecRow);
 
-            s.WriteMethodDefOrRefIndex(nameof(Method), Method);
+            s.WriteMethodDefOrRefIndex(nameof(Method), (int) Method);
             s.WriteBlobHeapIndex(nameof(Instantiation), Instantiation);
         }
     }

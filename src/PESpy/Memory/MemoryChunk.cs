@@ -292,10 +292,9 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PokeUnmanaged<T>(int offset, T value)
+        public void PokeUnmanaged<T>(int offset, T value) where T : unmanaged
         {
-            //Not sure how to get the length of each T
-            throw new NotImplementedException();
+            *(T*)(Pointer + offset) = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

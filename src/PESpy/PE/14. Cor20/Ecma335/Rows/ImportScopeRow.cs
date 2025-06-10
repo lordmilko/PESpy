@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public ImportScopeIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public ImportScopeIndex Parent => table.GetParent(RowIndex);
 
         public BlobIndex Imports => table.GetImports(RowIndex);
 
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("ImportScope Row", this, ViewKind.PortablePdb_ImportScopeRow);
 
-            s.WriteValue(nameof(Parent), Parent);
+            s.WriteValue(nameof(Parent), (int) Parent);
             s.WriteBlobHeapIndex(nameof(Imports), Imports);
         }
     }

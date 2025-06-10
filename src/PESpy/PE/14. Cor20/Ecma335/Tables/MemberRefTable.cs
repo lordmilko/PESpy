@@ -14,11 +14,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal MemberRefTable(int numRows, int memberRefParentIndexSize, int stringIndexSize, int blobIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal MemberRefTable(int numRows, int memberRefParentIndexSize, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -34,22 +34,22 @@ namespace PESpy.Ecma335
             RowSize = SignatureOffset + blobIndexSize;
         }
 
-        public int GetClass(MemberRefIndex index)
+        public Index GetClass(MemberRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigMemberRefParentIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigMemberRefParentIndex);
         }
 
         public StringIndex GetName(MemberRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public BlobIndex GetSignature(MemberRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(MemberRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public EventMapIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public TypeDefIndex Parent => table.GetParent(RowIndex);
 
-        public int EventList => table.GetEventList(RowIndex);
+        public EventIndex EventList => table.GetEventList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("EventMap Row", this, ViewKind.Metadata_EventMapRow);
 
-            s.WriteSimpleIndex(nameof(Parent), Parent, TableKind.TypeDef);
-            s.WriteSimpleIndex(nameof(EventList), EventList, TableKind.Event);
+            s.WriteSimpleIndex(nameof(Parent), (int) Parent, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(EventList), (int) EventList, TableKind.Event);
         }
     }
 }

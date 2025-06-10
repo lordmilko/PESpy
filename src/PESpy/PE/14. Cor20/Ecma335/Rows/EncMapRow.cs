@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 #if !DEBUG_POSITION
 using RawOffset = System.Int32;
@@ -11,7 +12,7 @@ namespace PESpy.Ecma335
     {
         public EncMapIndex RowIndex { get; }
 
-        public int Token => table.GetToken(RowIndex);
+        public mdToken Token => table.GetToken(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 

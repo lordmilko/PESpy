@@ -18,7 +18,7 @@ namespace PESpy
 
         public override int Length => byteCount;
 
-        public PDBFile PDBFile { get; }
+        public PDBFile? PDBFile { get; }
 
         private HashSet<long>? symbolMemory;
 
@@ -30,7 +30,7 @@ namespace PESpy
             int pageSize,
             byte* mmf,
             bool writable,
-            PDBFile pdbFile) : base(null, writable)
+            PDBFile? pdbFile) : base(null, writable)
         {
             if (pageList.Length == 0)
                 throw new ArgumentException("Page List had 0 pages"); //Demand() forcefully accesses index 0 below

@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy.OBJ
 {
     //Name is made up
-    class OBJSymbolsTable : IValue, IViewable
+    public class OBJSymbolsTable : IValue, IViewable
     {
         public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
 
@@ -22,7 +23,7 @@ namespace PESpy.OBJ
                 {
                     //C7 and C11 use ST strings
                     SymbolMemoryTracker.RegisterCVSymbolMemory(sig, chunk);
-                    c7Symbols = new SymTypeList(chunk.Pointer + 4, length - 4);
+                    c7Symbols = new SymTypeList(chunk.Pointer + 4, Length - 4);
                 }
 
                 return c7Symbols;
@@ -41,7 +42,7 @@ namespace PESpy.OBJ
 
                     var results = new List<CvDebugSSubsectionHeader>();
 
-                    while (totalOffset < length)
+                    while (totalOffset < Length)
                     {
                         //The start of each record must be 32-bit aligned relative to the start
                         //of the section. i.e. if the section starts at 1, address 5 is aligned
@@ -69,17 +70,26 @@ namespace PESpy.OBJ
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
-        private int length;
+
+        /// <summary>
+        /// Gets the number of bytes contained in the table.
+        /// </summary>
+        public int Length { get; }
 
         internal OBJSymbolsTable(in MemoryChunk chunk, int length)
         {
             this.chunk = chunk;
-            this.length = length;
+            Length = length;
 
             _ = C7Symbols;
 #if STRESS_TEST
             _ = C13SubSections;
 #endif
+        }
+
+        public unsafe void CopyTo(Span<byte> destination)
+        {
+            new Span<byte>(chunk.Pointer, Length).CopyTo(destination);
         }
 
         void IViewable.WriteView(ViewWriter writer)

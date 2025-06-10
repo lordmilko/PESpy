@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public ParamPtrIndex RowIndex { get; }
 
-        public int Param => table.GetParam(RowIndex);
+        public ParamIndex Param => table.GetParam(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("ParamPtr Row", this, ViewKind.Metadata_ParamPtrRow);
 
-            s.WriteValue(nameof(Param), Param);
+            s.WriteValue(nameof(Param), (int) Param);
         }
     }
 }

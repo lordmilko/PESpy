@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public InterfaceImplIndex RowIndex { get; }
 
-        public int Class => table.GetClass(RowIndex);
+        public TypeDefIndex Class => table.GetClass(RowIndex);
 
-        public int Interface => table.GetInterface(RowIndex);
+        public Index Interface => table.GetInterface(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("InterfaceImpl Row", this, ViewKind.Metadata_InterfaceImplRow);
 
-            s.WriteSimpleIndex(nameof(Class), Class, TableKind.TypeDef);
-            s.WriteTypeDefOrRefIndex(nameof(Interface), Interface);
+            s.WriteSimpleIndex(nameof(Class), (int) Class, TableKind.TypeDef);
+            s.WriteTypeDefOrRefIndex(nameof(Interface), (int) Interface);
         }
     }
 }

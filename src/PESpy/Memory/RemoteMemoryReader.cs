@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace PESpy
@@ -35,6 +36,7 @@ namespace PESpy
 
                 if (!result)
                 {
+                    Debug.Assert(false, "Failed to read memory");
                     break;
                 }
 

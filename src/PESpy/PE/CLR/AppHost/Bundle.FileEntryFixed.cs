@@ -28,13 +28,19 @@
 #endif
 
 #if PEFAST
+            internal const int FixedStructSize =
+                sizeof(long) + //Offset
+                sizeof(long) + //Size
+                //CompressedSize is optional
+                sizeof(byte);  //Type
+
             private readonly MemoryChunk chunk;
             private readonly bool hasCompressedSize;
 
-            internal FileEntryFixed(in MemoryChunk chunk, int majorVersion)
+            internal FileEntryFixed(in MemoryChunk chunk, bool hasCompressedSize)
             {
                 this.chunk = chunk;
-                hasCompressedSize = majorVersion >= 6;
+                this.hasCompressedSize = hasCompressedSize;
             }
 #else
             internal FileEntryFixed(IFileReader reader, int majorVersion)

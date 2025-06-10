@@ -1,15 +1,17 @@
-﻿namespace PESpy.Ecma335
+﻿using System;
+
+namespace PESpy.Ecma335
 {
     public readonly struct DocumentNameBlobIndex
     {
         public readonly int Offset;
 
-        private readonly BlobHeap? blobHeap;
+        private readonly Func<BlobHeap?> getBlobHeap;
 
-        internal DocumentNameBlobIndex(int offset, BlobHeap? blobHeap)
+        internal DocumentNameBlobIndex(int offset, Func<BlobHeap?> getBlobHeap)
         {
             Offset = offset;
-            this.blobHeap = blobHeap;
+            this.getBlobHeap = getBlobHeap;
         }
 
         public static explicit operator DocumentNameBlobIndex(int value) => new DocumentNameBlobIndex(value, default);
@@ -19,6 +21,8 @@
 
         public override string ToString()
         {
+            var blobHeap = getBlobHeap();
+
             if (blobHeap != null)
                 return $"\"{blobHeap.GetDocumentName(Offset)}\"";
 

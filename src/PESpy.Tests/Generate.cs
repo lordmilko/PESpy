@@ -940,7 +940,7 @@ public long ImageBase => chunk.Is32Bit ? chunk.PeekPointer(4) : chunk.PeekPointe
 
             foreach (var file in files)
             {
-                if (!file.Contains("BigMsfHdr"))
+                if (!file.Contains("TpiHash"))
                     continue;
 
                 var text = File.ReadAllText(file);

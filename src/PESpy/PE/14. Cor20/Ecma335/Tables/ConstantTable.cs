@@ -15,10 +15,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasConstantIndexSize;
         private readonly bool isBigBlobIndexSize;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ConstantTable(int numRows, int hasConstantIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ConstantTable(int numRows, int hasConstantIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -45,16 +45,16 @@ namespace PESpy.Ecma335
             return tableChunk.PeekByte(rowOffset + PaddingOffset);
         }
 
-        public int GetParent(ConstantIndex index)
+        public Index GetParent(ConstantIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasConstantIndexSize);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasConstantIndexSize);
         }
 
         public BlobIndex GetValue(ConstantIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap);
         }
 
         public int GetRowOffset(ConstantIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

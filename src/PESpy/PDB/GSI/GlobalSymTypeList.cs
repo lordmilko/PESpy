@@ -8,9 +8,9 @@ namespace PESpy.PDB
 {
     internal class GlobalSymTypeListDebugView
     {
-        private readonly SymTypeList list;
+        private readonly GlobalSymTypeList list;
 
-        public GlobalSymTypeListDebugView(SymTypeList list)
+        public GlobalSymTypeListDebugView(GlobalSymTypeList list)
         {
             this.list = list;
         }
@@ -33,6 +33,16 @@ namespace PESpy.PDB
         {
             this.hashRecords = hashRecords;
             this.symbolsStart = symbolsStart;
+        }
+
+        public SymType this[int index]
+        {
+            get
+            {
+                ref var record = ref hashRecords[index];
+
+                return (SYMTYPE*) (symbolsStart + record.off - 1);
+            }
         }
 
         public IEnumerator<SymType> GetEnumerator() => new Enumerator(hashRecords, symbolsStart);

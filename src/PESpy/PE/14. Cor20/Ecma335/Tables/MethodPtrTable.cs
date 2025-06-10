@@ -20,10 +20,10 @@
             RowSize = MethodOffset + methodIndexSize;
         }
 
-        public int GetMethod(MethodPtrIndex index)
+        public MethodDefIndex GetMethod(MethodPtrIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodIndex);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodIndex);
         }
 
         public int GetRowOffset(MethodPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

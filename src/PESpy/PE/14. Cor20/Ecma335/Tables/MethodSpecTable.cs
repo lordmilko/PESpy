@@ -12,10 +12,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigMethodDefOrRefIndex;
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal MethodSpecTable(int numRows, int methodDefOrRefIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal MethodSpecTable(int numRows, int methodDefOrRefIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -28,16 +28,16 @@ namespace PESpy.Ecma335
             RowSize = InstantiationOffset + blobIndexSize;
         }
 
-        public int GetMethod(MethodSpecIndex index)
+        public Index GetMethod(MethodSpecIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodDefOrRefIndex);
         }
 
         public BlobIndex GetInstantiation(MethodSpecIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + InstantiationOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + InstantiationOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(MethodSpecIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

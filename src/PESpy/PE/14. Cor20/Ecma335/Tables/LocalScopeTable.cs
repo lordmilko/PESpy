@@ -11,43 +11,59 @@
         private readonly int StartOffset;
         private readonly int LengthOffset;
 
+        private readonly bool isBigMethodIndex;
+        private readonly bool isBigImportScopeIndex;
+        private readonly bool isBigLocalVariableIndex;
+        private readonly bool isBigLocalConstantIndex;
+
         private readonly MemoryChunk tableChunk;
 
-        internal LocalScopeTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal LocalScopeTable(
+            int numRows,
+            int methodIndexSize,
+            int importScopeIndexSize,
+            int localVariableIndexSize,
+            int localConstantIndexSize,
+            in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
 
+            isBigMethodIndex = methodIndexSize == 4;
+            isBigImportScopeIndex = importScopeIndexSize == 4;
+            isBigLocalVariableIndex = localVariableIndexSize == 4;
+            isBigLocalConstantIndex = localConstantIndexSize == 4;
+
             MethodOffset = 0;
-            ImportScopeOffset = MethodOffset + sizeof(int);
-            VariableListOffset = ImportScopeOffset + sizeof(int);
-            ConstantListOffset = VariableListOffset + sizeof(int);
-            StartOffset = ConstantListOffset + sizeof(int);
+            ImportScopeOffset = MethodOffset + methodIndexSize;
+            VariableListOffset = ImportScopeOffset + importScopeIndexSize;
+            ConstantListOffset = VariableListOffset + localVariableIndexSize;
+            StartOffset = ConstantListOffset + localConstantIndexSize;
             LengthOffset = StartOffset + sizeof(int);
             RowSize = LengthOffset + sizeof(int);
         }
 
-        public int GetMethod(LocalScopeIndex index)
+        public MethodDefIndex GetMethod(LocalScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + MethodOffset);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodIndex);
         }
 
-        public int GetImportScope(LocalScopeIndex index)
+        public ImportScopeIndex GetImportScope(LocalScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + ImportScopeOffset);
+            return (ImportScopeIndex) tableChunk.PeekEcmaIndex(rowOffset + ImportScopeOffset, isBigImportScopeIndex);
         }
 
-        public int GetVariableList(LocalScopeIndex index)
+        public LocalVariableIndex GetVariableList(LocalScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + VariableListOffset);
+            return (LocalVariableIndex) tableChunk.PeekEcmaIndex(rowOffset + VariableListOffset, isBigLocalVariableIndex);
         }
 
-        public int GetConstantList(LocalScopeIndex index)
+        public LocalConstantIndex GetConstantList(LocalScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + ConstantListOffset);
+            return (LocalConstantIndex) tableChunk.PeekEcmaIndex(rowOffset + ConstantListOffset, isBigLocalConstantIndex);
         }
 
         public uint GetStartOffset(LocalScopeIndex index)

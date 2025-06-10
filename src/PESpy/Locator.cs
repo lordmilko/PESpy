@@ -89,6 +89,24 @@ namespace PESpy
         public static bool TryLocate(string exeOrDbgPath, out Artifacts result, string? searchPath = null) =>
             LocateInternal(exeOrDbgPath, SearchFlags.All, searchPath, out result);
 
+        //Locate a file with a given key from the symbol server
+        public static bool TryLocate(SymStoreKey key, out string? result)
+        {
+            var nameToLocate = Path.GetFileNameWithoutExtension(key.Index);
+            var extToUse = Path.GetExtension(key.Index);
+
+            foreach (var environmentName in environmentNames)
+            {
+                var environmentPath = Environment.GetEnvironmentVariable(environmentName);
+
+                if (LocateFileInPath(nameToLocate, environmentPath, extToUse, key, out result))
+                    return true;
+            }
+
+            result = default;
+            return false;
+        }
+
         //Locate the *.dbg file associated with a given *.exe, or returns the *.dbg file itself
         public static bool TryLocateDBG(string exeOrDbgPath, out string? result, string? searchPath = null)
         {
@@ -137,6 +155,7 @@ namespace PESpy
             public string? SearchPath;
             public string? PEFileExt;
             public bool Stripped;
+            public bool NGEN;
 
             public uint PETimeDateStamp;
             public int PESizeOfImage;
@@ -156,7 +175,7 @@ namespace PESpy
             var ctx = new LocatorContext
             {
                 Flags = flags,
-                SearchPath = searchPath
+                SearchPath = searchPath,
             };
 
             result = default;
@@ -182,6 +201,14 @@ namespace PESpy
                                         ctx.Stripped = (peFile.FileHeader.Characteristics & ImageFile.DebugStripped) != 0;
                                         ctx.PETimeDateStamp = peFile.FileHeader.TimeDateStamp;
                                         ctx.PESizeOfImage = peFile.OptionalHeader.SizeOfImage;
+
+                                        if (exeOrDbgPath.EndsWith(".ni.exe") || exeOrDbgPath.EndsWith(".ni.dll"))
+                                        {
+                                            //Possible NGEN file
+                                            if (peFile.NgenHeader != null)
+                                                ctx.NGEN = true;
+                                        }
+
                                         break;
 
                                     case FileKind.DBG:
@@ -296,14 +323,25 @@ namespace PESpy
                     case ImageDebugType.CodeView:
                         if ((ctx.Flags & SearchFlags.PDB) != 0 && debugDir.Data is ICodeViewPDB c)
                         {
+                            var pdbName = c.Path.ToString();
+
+                            if (ctx.NGEN)
+                            {
+                                if (!pdbName.EndsWith(".ni.pdb"))
+                                    continue;
+                            }
+                            else
+                            {
+                                if (pdbName.EndsWith(".ni.pdb"))
+                                    continue;
+                            }
+
                             SymStoreKey symSrvIndex;
 
                             if (c is RSDSI r)
                                 symSrvIndex = SymStoreKey.FromRSDSI(r);
                             else
                                 symSrvIndex = SymStoreKey.FromNB10((NB10I) c);
-
-                            var pdbName = c.Path.ToString();
 
                             var path = LocatePDBFile(ctx.File.FileName!, pdbName, ctx.SearchPath, ctx.PEFileExt, symSrvIndex);
 
@@ -548,7 +586,10 @@ namespace PESpy
                         str = builder.ToString();
 
                         if (File.Exists(str))
+                        {
+                            fileInPath = str;
                             return true;
+                        }
                     }
                 }
             }

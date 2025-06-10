@@ -20,11 +20,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigStringIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal AssemblyRefTable(int numRows, int blobIndexSize, int stringIndexSize, Lazy<StringHeap?> stringHeap, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyRefTable(int numRows, int blobIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -78,25 +78,25 @@ namespace PESpy.Ecma335
         public BlobIndex GetPublicKeyOrToken(AssemblyRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PublicKeyOrTokenOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + PublicKeyOrTokenOffset, isBigBlobIndex), blobHeap);
         }
 
         public StringIndex GetName(AssemblyRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public StringIndex GetCulture(AssemblyRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + CultureOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + CultureOffset, isBigStringIndex), stringHeap);
         }
 
         public BlobIndex GetHashValue(AssemblyRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashValueOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashValueOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(AssemblyRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

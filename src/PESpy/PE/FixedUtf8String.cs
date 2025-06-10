@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using System;
+
+namespace PESpy
 {
     public readonly unsafe struct FixedUtf8String
     {
@@ -10,6 +12,8 @@
             Value = value;
             Length = length;
         }
+
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
 
         public bool Equals(FixedUtf8String other) => this.Value == other.Value;
 

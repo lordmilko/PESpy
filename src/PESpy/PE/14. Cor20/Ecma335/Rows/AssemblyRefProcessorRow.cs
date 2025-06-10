@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public int Processor => table.GetProcessor(RowIndex);
 
-        public int AssemblyRef => table.GetAssemblyRef(RowIndex);
+        public AssemblyRefIndex AssemblyRef => table.GetAssemblyRef(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -32,7 +32,7 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("AssemblyRefProcessor Row", this, ViewKind.Metadata_AssemblyRefProcessorRow);
 
             s.WriteValue(nameof(Processor), Processor);
-            s.WriteSimpleIndex(nameof(AssemblyRef), AssemblyRef, TableKind.AssemblyRef);
+            s.WriteSimpleIndex(nameof(AssemblyRef), (int) AssemblyRef, TableKind.AssemblyRef);
         }
     }
 }

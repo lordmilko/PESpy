@@ -15,11 +15,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigGuidIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
-        private readonly Lazy<GuidHeap?> guidHeap;
+        private readonly Func<StringHeap?> stringHeap;
+        private readonly Func<GuidHeap?> guidHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal ModuleTable(int numRows, int stringIndexSize, int guidIndexSize, Lazy<StringHeap?> stringHeap, Lazy<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ModuleTable(int numRows, int stringIndexSize, int guidIndexSize, Func<StringHeap?> stringHeap, Func<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
@@ -45,25 +45,25 @@ namespace PESpy.Ecma335
         public StringIndex GetName(ModuleIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
         public GuidIndex GetMvid(ModuleIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + MvidOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + MvidOffset, isBigGuidIndex), guidHeap);
         }
 
         public GuidIndex GetEncId(ModuleIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + EncIdOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + EncIdOffset, isBigGuidIndex), guidHeap);
         }
 
         public GuidIndex GetEncBaseId(ModuleIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + EncBaseIdOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + EncBaseIdOffset, isBigGuidIndex), guidHeap);
         }
 
         public int GetRowOffset(ModuleIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

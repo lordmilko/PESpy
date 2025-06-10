@@ -18,11 +18,11 @@ namespace PESpy.Ecma335
 
         public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        public int Extends => table.GetExtends(RowIndex);
+        public Index Extends => table.GetExtends(RowIndex);
 
-        public int FieldList => table.GetFieldList(RowIndex);
+        public FieldIndex FieldList => table.GetFieldList(RowIndex);
 
-        public int MethodList => table.GetMethodList(RowIndex);
+        public MethodDefIndex MethodList => table.GetMethodList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -43,9 +43,9 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(Flags), Flags, sizeof(int));
             s.WriteStringHeapIndex(nameof(TypeName), TypeName);
             s.WriteStringHeapIndex(nameof(TypeNamespace), TypeNamespace);
-            s.WriteTypeDefOrRefIndex(nameof(Extends), Extends);
-            s.WriteSimpleIndex(nameof(FieldList), FieldList, TableKind.Field);
-            s.WriteSimpleIndex(nameof(MethodList), MethodList, TableKind.MethodDef);
+            s.WriteTypeDefOrRefIndex(nameof(Extends), (int) Extends);
+            s.WriteSimpleIndex(nameof(FieldList), (int) FieldList, TableKind.Field);
+            s.WriteSimpleIndex(nameof(MethodList), (int) MethodList, TableKind.MethodDef);
         }
     }
 }

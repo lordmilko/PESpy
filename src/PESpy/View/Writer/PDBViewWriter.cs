@@ -18,7 +18,7 @@ namespace PESpy.View
             byte* mmf,
             int length
 #else
-            IFileReader reader,
+            IFileReader reader
 #endif
             ) : base(
 #if PEFAST
@@ -99,7 +99,19 @@ namespace PESpy.View
                     foreach (var module in pdbFile.DBI.Modules)
                     {
                         if (module.sn != SN.Nil)
-                            streamIndexToNameMap.Add(module.sn, $"Symbols: {Path.GetFileName(module.ToString())}"); 
+                        {
+                            //Can't do Path.GetFileName, because in .NET PDBs each module is named after a class,
+                            //and compile generated classes may contain <>
+
+                            var str = module.ToString();
+
+                            var lastIndex = str.LastIndexOfAny(new[] {'\\', '/'});
+
+                            if (lastIndex != -1 && lastIndex < str.Length - 1)
+                                str = str.Substring(lastIndex);
+
+                            streamIndexToNameMap.Add(module.sn, $"Symbols: {str}");
+                        }
                     }
                 }
 

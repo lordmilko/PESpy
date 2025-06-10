@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace PESpy.Ecma335
 {
@@ -6,12 +7,12 @@ namespace PESpy.Ecma335
     {
         public readonly int Offset;
 
-        private readonly BlobHeap? blobHeap;
+        private readonly Func<BlobHeap?> getBlobHeap;
 
-        internal BlobIndex(int offset, BlobHeap? blobHeap)
+        internal BlobIndex(int offset, Func<BlobHeap?> getBlobHeap)
         {
             Offset = offset;
-            this.blobHeap = blobHeap;
+            this.getBlobHeap = getBlobHeap;
         }
 
         public static explicit operator BlobIndex(int value) => new BlobIndex(value, default);
@@ -21,6 +22,8 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
+            var blobHeap = getBlobHeap();
+
             if (blobHeap != null)
             {
                 var blob = blobHeap.GetBlob(Offset);

@@ -19,8 +19,17 @@ namespace PESpy
 
         private IMemoryReader reader;
 
+        private PEFile peFile;
+
         //baseAddress: the base address of the module in the remote process. All RVAs will be read relative to this VA
-        internal RemoteMemoryBlock(long baseAddress, int rva, int size, IMemoryReader reader, IMemoryBlockProvider provider, bool is32Bit) : base(provider)
+        internal RemoteMemoryBlock(
+            long baseAddress,
+            int rva,
+            int size,
+            IMemoryReader reader,
+            IMemoryBlockProvider provider,
+            PEFile peFile,
+            bool is32Bit) : base(provider)
         {
             this.baseAddress = baseAddress;
             RemoteStartOffset = rva;
@@ -36,6 +45,7 @@ namespace PESpy
             LocalPointer = (byte*) Marshal.AllocHGlobal(size);
             RemoteEndOffset = endRva;
 
+            this.peFile = peFile;
             Is32Bit = is32Bit;
         }
 
@@ -47,6 +57,13 @@ namespace PESpy
 
             if (hasReadAllPages)
                 return; //Fast path bail out
+
+            //If the file is memory mapped, but hasn't been processed by the loader, we need to convert the RVA to a physical offset
+            if (!peFile.IsLoadedImage)
+            {
+                if (peFile.TryGetOffset(rva, out var offset))
+                    rva = offset;
+            }
 
             var firstRequestedPage = (rva - RemoteStartOffset) / PageSize;
             Debug.Assert(firstRequestedPage >= 0);

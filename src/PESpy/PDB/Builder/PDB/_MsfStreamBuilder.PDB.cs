@@ -5,7 +5,7 @@ namespace PESpy.PDB
 {
     public partial class MsfStreamBuilder
     {
-        private static void SetValue<T>(ref T field, T value, ref bool changed)
+        internal static void SetValue<T>(ref T field, T value, ref bool changed)
         {
             if (Equals(field, value))
                 return;
@@ -20,7 +20,7 @@ namespace PESpy.PDB
 
             private readonly PDBFileBuilder pdbFileBuilder;
 
-            internal PDB(PDBFileBuilder pdbFileBuilder)
+            internal PDB(PDBFileBuilder pdbFileBuilder, Guid? guid)
             {
                 this.pdbFileBuilder = pdbFileBuilder;
 
@@ -31,7 +31,7 @@ namespace PESpy.PDB
                 ImplementationVersion = PDBIMPV.PDBImpvVC70;
                 Age = 1;
                 Signature = (uint) DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                Guid = Guid.NewGuid();
+                Guid = guid ?? Guid.NewGuid();
 
                 StreamNameTable = new NMTNIBuilder();
 
@@ -135,7 +135,14 @@ namespace PESpy.PDB
                 if (features != null)
                     size += features.Length * sizeof(int);
 
+                //The PDB stream is saved by "replacing" it, which means that the previous stream gets deleted
+                pdbFileBuilder.StreamTable.DeleteStream(SN.PDB);
+
                 pdbFileBuilder.AllocPages(SN.PDB, size);
+
+                //A PDB is saved by calling PDB1::Commit, which means in our MSF test we're going to be committing the PDB1 again
+                //and thus changing its page. Therefore, the PDB always needs to be changed, so we can move it to a new page
+                Changed = true;
             }
 
             internal void Serialize()
@@ -143,8 +150,6 @@ namespace PESpy.PDB
                 if (!Changed)
                     return;
 
-                //Ensure that the stream has enough pages to satisfy the write.
-                //Any new pages that may be required will be allocated
                 var chunk = pdbFileBuilder.SlicePaged(SN.PDB);
 
                 _ = new PDBStream70(chunk)

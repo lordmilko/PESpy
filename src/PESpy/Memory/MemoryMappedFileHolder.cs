@@ -44,11 +44,22 @@ namespace PESpy
             }
         }
 
+        //Fake
+        public MemoryMappedFileHolder(byte* address, long length)
+        {
+            Address = address;
+            Length = length;
+
+            mmf = default;
+            mma = default;
+            Writable = default;
+        }
+
         public void Dispose()
         {
             RuntimeHelpers.PrepareConstrainedRegions();
 
-            if (Address != (byte*) 0)
+            if (Address != (byte*) 0 && mma != null) //If mma is null, it's a fake MMF
             {
                 RuntimeHelpers.PrepareConstrainedRegions();
 
@@ -58,7 +69,7 @@ namespace PESpy
                 }
                 finally
                 {
-                    mma!.SafeMemoryMappedViewHandle.ReleasePointer();
+                    mma.SafeMemoryMappedViewHandle.ReleasePointer();
                     Address = (byte*) 0;
                 }
             }

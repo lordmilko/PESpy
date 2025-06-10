@@ -210,7 +210,7 @@ namespace PESpy
             sizeof(int) +   // PointerToLineNumbers
             sizeof(short) + // NumberOfRelocations
             sizeof(short) + // NumberOfLineNumbers
-            sizeof(int);    // SectionCharacteristics
+            sizeof(int);    // Characteristics
 
 #if PEFAST
         private readonly MemoryChunk chunk;

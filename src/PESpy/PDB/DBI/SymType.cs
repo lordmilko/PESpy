@@ -9,47 +9,91 @@ namespace PESpy.PDB
     public static class SymTypeExtensions
     {
         //This method _does_ traverse ref symbols
-        public static bool TryGetRVA(in this SymType symType, out int rva)
+        public static unsafe bool TryGetRVA(in this SymType symType, out int rva)
+        {
+            if (TryGetOffSeg(symType, out var off, out var seg))
+            {
+                var rawRva = SymType.GetRelativeVirtualAddress((SYMTYPE*) symType, seg, off);
+
+                //Data symbols can have a section index of 0, indicating they don't physically exist
+                if (rawRva != null)
+                {
+                    rva = rawRva.Value;
+                    return true;
+                }
+            }
+
+            rva = default;
+            return false;
+        }
+
+        public static bool TryGetOffSeg(in this SymType symType, out int off, out ushort seg)
         {
             //The following symbol kinds have a "seg" member which indicates they may store an RVA
-
-            int? rawRva;
 
             switch (symType.rectyp)
             {
                 case SYM_ENUM_e.S_ANNOTATION:
-                    rawRva = ((AnnotationSym) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((AnnotationSym) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_BLOCK16:
                 case SYM_ENUM_e.S_WITH16:
-                    rawRva = ((BlockSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((BlockSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_BLOCK32_ST:
                 case SYM_ENUM_e.S_WITH32_ST:
                 case SYM_ENUM_e.S_BLOCK32:
                 case SYM_ENUM_e.S_WITH32:
-                    rawRva = ((BlockSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((BlockSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_CEXMODEL16:
-                    rawRva = ((CExMSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((CExMSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_CEXMODEL32:
-                    rawRva = ((CExMSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((CExMSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_COFFGROUP:
-                    rawRva = ((CoffGroupSym) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((CoffGroupSym) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LDATA16:
                 case SYM_ENUM_e.S_GDATA16:
                 case SYM_ENUM_e.S_PUB16:
-                    rawRva = ((DataSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((DataSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LDATA32_ST:
                 case SYM_ENUM_e.S_GDATA32_ST:
@@ -63,37 +107,61 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GTHREAD32:
                 case SYM_ENUM_e.S_LMANDATA:
                 case SYM_ENUM_e.S_GMANDATA:
-                    rawRva = ((DataSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((DataSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LDATA32_16t:
                 case SYM_ENUM_e.S_GDATA32_16t:
                 case SYM_ENUM_e.S_PUB32_16t:
                 case SYM_ENUM_e.S_LTHREAD32_16t:
                 case SYM_ENUM_e.S_GTHREAD32_16t:
-                    rawRva = ((DataSym3216t) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((DataSym3216t) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LABEL16:
-                    rawRva = ((LabelSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((LabelSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LABEL32_ST:
                 case SYM_ENUM_e.S_LABEL32:
-                    rawRva = ((LabelSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((LabelSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_GMANPROC_ST:
                 case SYM_ENUM_e.S_LMANPROC_ST:
                 case SYM_ENUM_e.S_GMANPROC:
                 case SYM_ENUM_e.S_LMANPROC:
-                    rawRva = ((ManProcSym) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ManProcSym) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROC16:
                 case SYM_ENUM_e.S_GPROC16:
-                    rawRva = ((ProcSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROC32_ST:
                 case SYM_ENUM_e.S_GPROC32_ST:
@@ -103,13 +171,21 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROC32_ID:
                 case SYM_ENUM_e.S_LPROC32_DPC:
                 case SYM_ENUM_e.S_LPROC32_DPC_ID:
-                    rawRva = ((ProcSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROC32_16t:
                 case SYM_ENUM_e.S_GPROC32_16t:
-                    rawRva = ((ProcSym3216t) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSym3216t) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROCIA64_ST:
                 case SYM_ENUM_e.S_GPROCIA64_ST:
@@ -117,8 +193,12 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROCIA64:
                 case SYM_ENUM_e.S_LPROCIA64_ID:
                 case SYM_ENUM_e.S_GPROCIA64_ID:
-                    rawRva = ((ProcSymIA64) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSymIA64) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROCMIPS_ST:
                 case SYM_ENUM_e.S_GPROCMIPS_ST:
@@ -126,58 +206,69 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_GPROCMIPS:
                 case SYM_ENUM_e.S_LPROCMIPS_ID:
                 case SYM_ENUM_e.S_GPROCMIPS_ID:
-                    rawRva = ((ProcSymMips) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSymMips) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_LPROCMIPS_16t:
                 case SYM_ENUM_e.S_GPROCMIPS_16t:
-                    rawRva = ((ProcSymMips16t) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ProcSymMips16t) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_PUB32_ST:
                 case SYM_ENUM_e.S_PUB32:
-                    rawRva = ((PubSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((PubSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 //case SYM_ENUM_e.S_SSEARCH: //SSEARCH has a seg but no off
 
                 case SYM_ENUM_e.S_THUNK16:
-                    rawRva = ((ThunkSym16) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ThunkSym16) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 case SYM_ENUM_e.S_THUNK32_ST:
                 case SYM_ENUM_e.S_THUNK32:
-                    rawRva = ((ThunkSym32) symType).RelativeVirtualAddress;
-                    break;
+                {
+                    var sym = ((ThunkSym32) symType);
+                    off = sym.off;
+                    seg = sym.seg;
+                    return true;
+                }
 
                 //ref symbols don't have a seg, but they may point to something that does!
 
                 case SYM_ENUM_e.S_PROCREF_ST:
                 case SYM_ENUM_e.S_DATAREF_ST:
                 case SYM_ENUM_e.S_LPROCREF_ST:
-                    return ((RefSym) symType).Symbol.TryGetRVA(out rva);
+                    return ((RefSym) symType).Symbol.TryGetOffSeg(out off, out seg);
 
                 case SYM_ENUM_e.S_PROCREF:
                 case SYM_ENUM_e.S_DATAREF:
                 case SYM_ENUM_e.S_LPROCREF:
                 case SYM_ENUM_e.S_ANNOTATIONREF:
                 case SYM_ENUM_e.S_TOKENREF:
-                    return ((RefSym2) symType).Symbol.TryGetRVA(out rva);
+                    return ((RefSym2) symType).Symbol.TryGetOffSeg(out off, out seg);
 
                 default:
-                    rva = default;
+                    off = default;
+                    seg = default;
                     return false;
             }
-
-            //Data symbols can have a section index of 0, indicating they don't physically exist
-            if (rawRva != null)
-            {
-                rva = rawRva.Value;
-                return true;
-            }
-
-            rva = default;
-            return false;
         }
 
         /// <summary>
@@ -211,7 +302,7 @@ namespace PESpy.PDB
             if (symType.IsProc() || symType.IsThunk())
                 return true;
 
-            short seg;
+            ushort seg;
             int off;
 
             switch (symType.rectyp)
@@ -479,7 +570,7 @@ namespace PESpy.PDB
             }
         }
 
-        internal static int? GetRelativeVirtualAddress<T>(T* symType, short seg, int off) where T : unmanaged
+        internal static int? GetRelativeVirtualAddress<T>(T* symType, ushort seg, int off) where T : unmanaged
         {
             //DataSym32 items may have a section number of 0, e.g. IID_IClassFactory in mscordbi. These also don't have an offset,
             //and so therefore don't have an RVA
@@ -521,7 +612,7 @@ namespace PESpy.PDB
             return symbols.GetSymbolFromOffset(ibSym);
         }
 
-        internal static IModi? GetModuleFromSectionAddress<T>(T* symType, short seg, int off) where T : unmanaged
+        internal static IModi? GetModuleFromSectionAddress<T>(T* symType, ushort seg, int off) where T : unmanaged
         {
             //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
 
@@ -560,7 +651,7 @@ namespace PESpy.PDB
             return module;
         }
 
-        internal static bool TryGetSectionContrib(SYMTYPE* symType, short seg, int off, out SC40 sc)
+        internal static bool TryGetSectionContrib(SYMTYPE* symType, ushort seg, int off, out SC40 sc)
         {
             var dbi = SymbolMemoryTracker.GetPDB((long) symType)?.DBI;
 

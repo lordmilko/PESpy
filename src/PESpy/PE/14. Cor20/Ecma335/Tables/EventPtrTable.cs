@@ -20,10 +20,10 @@
             RowSize = EventOffset + eventIndexSize;
         }
 
-        public int GetEvent(EventPtrIndex index)
+        public EventIndex GetEvent(EventPtrIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + EventOffset, isBigEventIndex);
+            return (EventIndex) tableChunk.PeekEcmaIndex(rowOffset + EventOffset, isBigEventIndex);
         }
 
         public int GetRowOffset(EventPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

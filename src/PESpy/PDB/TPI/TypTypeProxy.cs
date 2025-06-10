@@ -48,7 +48,6 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_PRECOMP_16t:    return (LfPreComp16t) typType;
                 case LEAF_ENUM_e.LF_ENDPRECOMP:     return (LfEndPreComp) typType;
                 case LEAF_ENUM_e.LF_OEM_16t:        return (LfOEM16t) typType;
-                case LEAF_ENUM_e.LF_TYPESERVER_ST:  return (LfTypeServer) typType;
                 case LEAF_ENUM_e.LF_SKIP_16t:       return (LfSkip16t) typType;
                 case LEAF_ENUM_e.LF_ARGLIST_16t:    return (LfArgList16t) typType;
                 case LEAF_ENUM_e.LF_DEFARG_16t:     return (LfDefArg16t) typType;
@@ -73,7 +72,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_IVBCLASS_16t:
                     return (LfVBClass16t) typType;
                 
-                case LEAF_ENUM_e.LF_ENUMERATE_ST:  throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_ENUMERATE_ST:  throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
                 case LEAF_ENUM_e.LF_FRIENDFCN_16t: return (LfFriendFcn16t) typType;
                 case LEAF_ENUM_e.LF_INDEX_16t:     return (LfIndex16t) typType;
                 case LEAF_ENUM_e.LF_MEMBER_16t:    return (LfMember16t) typType;
@@ -125,7 +124,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_SUBSTR_LIST:
                     return (LfArgList) typType;
 
-                case LEAF_ENUM_e.LF_DEFARG_ST:  throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_DEFARG_ST:  throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
                 case LEAF_ENUM_e.LF_FIELDLIST:  return (LfFieldList) typType;
                 case LEAF_ENUM_e.LF_DERIVED:    return (LfDerived) typType;
                 case LEAF_ENUM_e.LF_BITFIELD:   return (LfBitfield) typType;
@@ -148,7 +147,7 @@ namespace PESpy.PDB
 
                 case LEAF_ENUM_e.LF_IVBCLASS:
                 case LEAF_ENUM_e.LF_FRIENDFCN_ST:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
                 case LEAF_ENUM_e.LF_INDEX: return (LfIndex) typType;
 
@@ -156,24 +155,27 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_STMEMBER_ST:
                 case LEAF_ENUM_e.LF_METHOD_ST:
                 case LEAF_ENUM_e.LF_NESTTYPE_ST:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
                 case LEAF_ENUM_e.LF_VFUNCTAB:     return (LfVFuncTab) typType;
                 case LEAF_ENUM_e.LF_FRIENDCLS:    return (LfFriendCls) typType;
-                case LEAF_ENUM_e.LF_ONEMETHOD_ST: throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_ONEMETHOD_ST: throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
                 case LEAF_ENUM_e.LF_VFUNCOFF:     return (LfVFuncOff) typType;
 
                 case LEAF_ENUM_e.LF_NESTTYPEEX_ST:
                 case LEAF_ENUM_e.LF_MEMBERMODIFY_ST:
                 case LEAF_ENUM_e.LF_MANAGED_ST:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
-                case LEAF_ENUM_e.LF_TYPESERVER:       return (LfTypeServer) typType;
+                case LEAF_ENUM_e.LF_TYPESERVER:
+                case LEAF_ENUM_e.LF_TYPESERVER_ST:
+                    return (LfTypeServer) typType;
+
                 case LEAF_ENUM_e.LF_ENUMERATE:        return (LfEnumerate) typType;
 
                 case LEAF_ENUM_e.LF_DIMARRAY:         return (LfDimArray) typType;
-                case LEAF_ENUM_e.LF_PRECOMP:          throw new NotImplementedException();
-                case LEAF_ENUM_e.LF_ALIAS:            throw new NotImplementedException();
+                case LEAF_ENUM_e.LF_PRECOMP:          return (LfPreComp) typType;
+                case LEAF_ENUM_e.LF_ALIAS:            return (LfAlias) typType;
                 case LEAF_ENUM_e.LF_DEFARG:           return (LfDefArg) typType;
                 case LEAF_ENUM_e.LF_FRIENDFCN:        return (LfFriendFcn) typType;
                 case LEAF_ENUM_e.LF_MEMBER:           return (LfMember) typType;

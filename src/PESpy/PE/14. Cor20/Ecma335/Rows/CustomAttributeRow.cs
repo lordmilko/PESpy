@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public CustomAttributeIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public Index Parent => table.GetParent(RowIndex);
 
-        public int Type => table.GetType(RowIndex);
+        public Index Type => table.GetType(RowIndex);
 
         public BlobIndex Value => table.GetValue(RowIndex);
 
@@ -33,8 +33,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("CustomAttribute Row", this, ViewKind.Metadata_CustomAttributeRow);
 
-            s.WriteHasCustomAttributeIndex(nameof(Parent), Parent);
-            s.WriteCustomAttributeTypeIndex(nameof(Type), Type);
+            s.WriteHasCustomAttributeIndex(nameof(Parent), (int) Parent);
+            s.WriteCustomAttributeTypeIndex(nameof(Type), (int) Type);
             s.WriteBlobHeapIndex(nameof(Value), Value);
         }
     }

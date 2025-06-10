@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public PropertyMapIndex RowIndex { get; }
 
-        public int Parent => table.GetParent(RowIndex);
+        public TypeDefIndex Parent => table.GetParent(RowIndex);
 
-        public int PropertyList => table.GetPropertyList(RowIndex);
+        public PropertyIndex PropertyList => table.GetPropertyList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("PropertyMap Row", this, ViewKind.Metadata_PropertyMapRow);
 
-            s.WriteSimpleIndex(nameof(Parent), Parent, TableKind.TypeDef);
-            s.WriteSimpleIndex(nameof(PropertyList), PropertyList, TableKind.Property);
+            s.WriteSimpleIndex(nameof(Parent), (int) Parent, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(PropertyList), (int) PropertyList, TableKind.Property);
         }
     }
 }

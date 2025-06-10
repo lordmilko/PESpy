@@ -206,12 +206,20 @@ namespace PESpy.View
                 p.WriteValue(item, item.len + 2, ViewKind.TypType);
         }
 
-        internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, PN[] value)
+        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, T[] value) where T : unmanaged
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-                p.WriteValue(item, sizeof(int), ViewKind.Value);
+                p.WriteValue(item, sizeof(T), ViewKind.Value);
+        }
+
+        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, NativeSpan<T> value) where T : unmanaged
+        {
+            using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
+
+            foreach (var item in value)
+                p.WriteValue(item, sizeof(T), ViewKind.Value);
         }
 
         public void WriteGlobal(RawOffset offset, TypTypeList value)

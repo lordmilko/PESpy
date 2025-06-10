@@ -12,10 +12,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasFieldMarshalIndex;
         private readonly bool isBigBlobIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
+        private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal FieldMarshalTable(int numRows, int hasFieldMarshalIndexSize, int blobIndexSize, Lazy<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal FieldMarshalTable(int numRows, int hasFieldMarshalIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -28,16 +28,16 @@ namespace PESpy.Ecma335
             RowSize = NativeTypeOffset + blobIndexSize;
         }
 
-        public int GetParent(FieldMarshalIndex index)
+        public Index GetParent(FieldMarshalIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasFieldMarshalIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasFieldMarshalIndex);
         }
 
         public BlobIndex GetNativeType(FieldMarshalIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + NativeTypeOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + NativeTypeOffset, isBigBlobIndex), blobHeap);
         }
 
         public int GetRowOffset(FieldMarshalIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

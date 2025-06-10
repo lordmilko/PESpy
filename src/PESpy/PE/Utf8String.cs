@@ -13,6 +13,8 @@ namespace PESpy
 
         public Utf8String(byte* value) => this.Value = value;
 
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
+
         public static implicit operator byte*(Utf8String value) => value.Value;
 
         public static explicit operator Utf8String(byte* value) => new Utf8String(value);

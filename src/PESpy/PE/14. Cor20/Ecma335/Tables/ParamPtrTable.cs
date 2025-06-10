@@ -20,10 +20,10 @@
             RowSize = ParamOffset + paramIndexSize;
         }
 
-        public int GetParam(ParamPtrIndex index)
+        public ParamIndex GetParam(ParamPtrIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParamOffset, isBigParamIndex);
+            return (ParamIndex) tableChunk.PeekEcmaIndex(rowOffset + ParamOffset, isBigParamIndex);
         }
 
         public int GetRowOffset(ParamPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

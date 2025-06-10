@@ -13,6 +13,8 @@ namespace PESpy
 
         public Utf16String(char* value) => this.Value = value;
 
+        public void CopyTo(Span<char> destination) => new Span<char>(Value, Length).CopyTo(destination);
+
         public static implicit operator char*(Utf16String value) => value.Value;
 
         public static explicit operator Utf16String(char* value) => new Utf16String(value);

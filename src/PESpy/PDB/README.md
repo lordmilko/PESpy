@@ -135,7 +135,7 @@ Overall, reading the stream table (using `SI_PERSIST.cb` coupled with the singul
 
 There is one more wrinkle to understand when it comes to the Stream Table. The first valid number you can use for a stream is 1 (`snUserMin`). SN 0 cannot be used because SN 0 has a special meaning: `snSt`...the stream that stores the stream table!
 
-Before you lose your mind, that this stream table madness never ends, fear not! What `snSt` really does is it stores a backup of the *previous* stream table.
+Before you lose your mind, that this stream table madness never ends, fear not! What `snSt` really does (when it comes to reading the data on disk) is it stores a backup of the *previous* stream table.
 
 To illustrate this, consider the following
 1. create a brand new PDB (via `MSFOpenW`). The Stream Table is empty

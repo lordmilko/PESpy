@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using PESpy.View;
 
 namespace PESpy
@@ -17,25 +18,25 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public int Version => chunk.PeekInt32(18);
+        public int Version => chunk.PeekInt32(20); //2 bytes pf padding for alignment
 #else
         public int Version { get; }
 #endif
 
 #if PEFAST
-        public ModuleIndex RuntimeModuleIndex => new ModuleIndex(chunk.Slice(22));
+        public ModuleIndex RuntimeModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24);
 #else
         public ModuleIndex RuntimeModuleIndex { get; }
 #endif
 
 #if PEFAST
-        public ModuleIndex DacModuleIndex => new ModuleIndex(chunk.Slice(22 + ModuleIndex.StructSize));
+        public ModuleIndex DacModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + ModuleIndex.StructSize);
 #else
         public ModuleIndex DacModuleIndex { get; }
 #endif
 
 #if PEFAST
-        public ModuleIndex DbiModuleIndex => new ModuleIndex(chunk.Slice(22 + (2 * ModuleIndex.StructSize)));
+        public ModuleIndex DbiModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + (2 * ModuleIndex.StructSize));
 #else
         public ModuleIndex DbiModuleIndex { get; }
 #endif
@@ -124,9 +125,9 @@ namespace PESpy
             s.Align(4);
 
             s.WriteField(nameof(Version), Version);
-            s.WriteStructField(nameof(RuntimeModuleIndex), RuntimeModuleIndex);
-            s.WriteStructField(nameof(DacModuleIndex), DacModuleIndex);
-            s.WriteStructField(nameof(DbiModuleIndex), DbiModuleIndex);
+            s.WriteUnmanagedField(nameof(RuntimeModuleIndex), RuntimeModuleIndex);
+            s.WriteUnmanagedField(nameof(DacModuleIndex), DacModuleIndex);
+            s.WriteUnmanagedField(nameof(DbiModuleIndex), DbiModuleIndex);
 
             if (Version >= 2)
             {
@@ -134,78 +135,20 @@ namespace PESpy
             }
         }
 
-        //This type is made up
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         [DebuggerDisplay("Size = {Size}, TimeStamp = {TimeStamp}, ImageSize = {ImageSize}")]
-        public struct ModuleIndex : IValue, IViewable
+        public unsafe struct ModuleIndex
         {
-            //https://github.com/dotnet/runtime/blob/511d26611c051c56e546404ea616c220cc78817c/eng/native/genmoduleindex.cmd#L4
-
-#if PEFAST
-            public byte Size => chunk.PeekByte(0);
-#else
-            public byte Size { get; }
-#endif
-
-#if PEFAST
-            public uint TimeStamp => chunk.PeekUInt32(1);
-#else
-            public uint TimeStamp { get; }
-#endif
-
-#if PEFAST
-            public int ImageSize => chunk.PeekInt32(5);
-#else
-            public int ImageSize { get; }
-#endif
-
-#if PEFAST
-            public NativeSpan<byte> Extra => chunk.PeekNativeSpan<byte>(9, 15);
-#else
-            public byte[] Extra { get; }
-#endif
-
-#if PEFAST
-            public int Offset => chunk.AbsoluteOffset;
-#else
-            public int Offset { get; }
-#endif
+            public byte Size;
+            public uint TimeStamp;
+            public int ImageSize;
+            public fixed byte Extra[15];
 
             internal const int StructSize =
                 sizeof(byte) + //Size
                 sizeof(uint) + //TimeStamp
                 sizeof(int) + //ImageSize
                 15; //Module index is 24 bytes. Remaining bytes are currently unused
-
-#if PEFAST
-            private readonly MemoryChunk chunk;
-
-            internal ModuleIndex(in MemoryChunk chunk)
-            {
-                this.chunk = chunk;
-            }
-#else
-            internal ModuleIndex(IFileReader reader)
-            {
-                Offset = (int) reader.Position;
-
-                Size = reader.ReadByte();
-                TimeStamp = reader.ReadUInt32();
-                ImageSize = reader.ReadInt32();
-
-                //The module index is 24 bytes. Read the remaining bytes (currently unused)
-                Extra = reader.ReadBytes(15);
-            }
-#endif
-
-            void IViewable.WriteView(ViewWriter writer)
-            {
-                using var s = writer.CreateStruct("Module Index", this, ViewKind.ModuleIndex);
-
-                s.WriteField(nameof(Size), Size);
-                s.WriteField(nameof(TimeStamp), TimeStamp);
-                s.WriteField(nameof(ImageSize), ImageSize);
-                s.WriteField(nameof(Extra), Extra);
-            }
         }
     }
 }

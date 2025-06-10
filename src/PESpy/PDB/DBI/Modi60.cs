@@ -190,7 +190,7 @@ namespace PESpy.PDB
             using var s = writer.CreateStruct("MODI_60_Persist", this, ViewKind.Modi60Persist);
 
             s.WriteField(nameof(pmod), pmod);
-            s.WriteInline(sc);
+            s.WriteStructField(nameof(sc), sc);
 
             writer.WriteGlobal(Symbols);
 

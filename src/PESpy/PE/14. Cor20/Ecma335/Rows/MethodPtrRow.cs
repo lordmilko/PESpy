@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
     {
         public MethodPtrIndex RowIndex { get; }
 
-        public int Method => table.GetMethod(RowIndex);
+        public MethodDefIndex Method => table.GetMethod(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("MethodPtr Row", this, ViewKind.Metadata_MethodPtrRow);
 
-            s.WriteValue(nameof(Method), Method);
+            s.WriteValue(nameof(Method), (int) Method);
         }
     }
 }

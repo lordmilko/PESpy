@@ -98,20 +98,60 @@ namespace PESpy.PDB
             StreamTable = new StreamTableBuilder((BigMsfHdr.StreamTable) pdbFile.StreamTable, this);
         }
 
-        public MsfStreamBuilder.PDB AcquirePDB()
+        public MsfStreamBuilder.PDB AcquirePDB(Guid? guid = null)
         {
             if (PDB == null)
-                PDB = new MsfStreamBuilder.PDB(this);
+            {
+                PDB = new MsfStreamBuilder.PDB(this, guid);
+
+                //PDB1 commits the PDB immediately
+                Commit(PDBCommitFlags.PDB);
+            }
 
             return PDB;
+        }
+
+        public MsfStreamBuilder.TPI AcquireTPI()
+        {
+            if (TPI == null)
+                TPI = new MsfStreamBuilder.TPI(this, SN.TPI);
+
+            return TPI;
         }
 
         public MsfStreamBuilder.DBI AcquireDBI()
         {
             if (DBI == null)
+            {
                 DBI = new MsfStreamBuilder.DBI(this);
+                DBI.Init();
+            }
 
             return DBI;
+        }
+
+        public MsfStreamBuilder.TPI AcquireIPI()
+        {
+            if (IPI == null)
+                IPI = new MsfStreamBuilder.TPI(this, SN.IPI);
+
+            return IPI;
+        }
+
+        public MsfStreamBuilder.GSI AcquireGSI()
+        {
+            if (GSI == null)
+                GSI = new MsfStreamBuilder.GSI(this);
+
+            return GSI;
+        }
+
+        public MsfStreamBuilder.PSGSI AcquirePSGSI()
+        {
+            if (PSGSI == null)
+                PSGSI = new MsfStreamBuilder.PSGSI(this);
+
+            return PSGSI;
         }
 
         private unsafe void EnsureMSF()

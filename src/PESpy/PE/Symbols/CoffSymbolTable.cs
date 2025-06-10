@@ -34,7 +34,7 @@ namespace PESpy
 
                     while (read < end)
                     {
-                        var symbol = new ImageSymbol(chunk.Slice(read));
+                        var symbol = new ImageSymbol(chunk.Slice(read), this);
 
                         read += ImageSymbol.StructSize + (symbol.NumberOfAuxSymbols * ImageAuxSymbol.StructSize);
 
@@ -91,6 +91,12 @@ namespace PESpy
 
                 return strings;
             }
+        }
+
+        public AnsiString GetString(int offset)
+        {
+            //The string table begins with the StringTableSize. So an offset of 4 targets the first string after the offset
+            return chunk.PeekAnsiNullTerminatedString((numberOfSymbols * ImageSymbol.StructSize) + offset);
         }
 #else
         public int StringTableSize { get; }

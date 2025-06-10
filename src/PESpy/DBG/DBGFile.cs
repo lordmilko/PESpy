@@ -7,7 +7,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    class DBGFile : IFile, IViewable, IDisposable
+    public class DBGFile : IFile, IViewable, IDisposable
     {
         public static DBGFile FromFile(string path)
         {

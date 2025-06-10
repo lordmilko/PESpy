@@ -13,27 +13,47 @@ namespace PESpy.PDB
         /// <summary>
         /// version which created this TypeServer
         /// </summary>
-        public TPIImpv vers => (TPIImpv) chunk.PeekUInt32(0);
+        public TPIImpv vers
+        {
+            get => (TPIImpv) chunk.PeekUInt32(0);
+            set => chunk.PokeUInt32(0, (uint) value);
+        }
 
         /// <summary>
         /// size of the header, allows easier upgrading and backwards compatibility
         /// </summary>
-        public int cbHdr => chunk.PeekInt32(4);
+        public int cbHdr
+        {
+            get => chunk.PeekInt32(4);
+            set => chunk.PokeInt32(4, value);
+        }
 
         /// <summary>
         /// lowest TI
         /// </summary>
-        public CV_typ_t tiMin => chunk.PeekInt32(8);
+        public CV_typ_t tiMin
+        {
+            get => chunk.PeekInt32(8);
+            set => chunk.PokeInt32(8, value);
+        }
 
         /// <summary>
         /// highest TI + 1
         /// </summary>
-        public CV_typ_t tiMac => chunk.PeekInt32(12);
+        public CV_typ_t tiMac
+        {
+            get => chunk.PeekInt32(12);
+            set => chunk.PokeInt32(12, value);
+        }
 
         /// <summary>
         /// count of bytes used by the gprec which follows.
         /// </summary>
-        public int cbGprec => chunk.PeekInt32(16);
+        public int cbGprec
+        {
+            get => chunk.PeekInt32(16);
+            set => chunk.PokeInt32(16, value);
+        }
 
         /// <summary>
         /// hash stream schema

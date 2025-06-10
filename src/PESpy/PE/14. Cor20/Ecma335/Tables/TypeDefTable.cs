@@ -19,7 +19,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigFieldIndex;
         private readonly bool isBigMethodIndex;
 
-        private readonly Lazy<StringHeap?> stringHeap;
+        private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;
 
         internal TypeDefTable(
@@ -28,7 +28,7 @@ namespace PESpy.Ecma335
             int typeDefOrRefIndexSize,
             int fieldIndexSize,
             int methodIndexSize,
-            Lazy<StringHeap?> stringHeap,
+            Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
@@ -57,31 +57,31 @@ namespace PESpy.Ecma335
         public StringIndex GetTypeName(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNameOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNameOffset, isBigStringIndex), stringHeap);
         }
 
         public StringIndex GetTypeNamespace(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap.Value);
+            return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap);
         }
 
-        public int GetExtends(TypeDefIndex index)
+        public Index GetExtends(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ExtendsOffset, isBigTypeDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ExtendsOffset, isBigTypeDefOrRefIndex);
         }
 
-        public int GetFieldList(TypeDefIndex index)
+        public FieldIndex GetFieldList(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + FieldListOffset, isBigFieldIndex);
+            return (FieldIndex) tableChunk.PeekEcmaIndex(rowOffset + FieldListOffset, isBigFieldIndex);
         }
 
-        public int GetMethodList(TypeDefIndex index)
+        public MethodDefIndex GetMethodList(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + MethodListOffset, isBigMethodIndex);
+            return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodListOffset, isBigMethodIndex);
         }
 
         public int GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

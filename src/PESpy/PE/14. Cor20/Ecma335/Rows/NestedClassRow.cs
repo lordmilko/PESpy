@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
     {
         public NestedClassIndex RowIndex { get; }
 
-        public int NestedClass => table.GetNestedClass(RowIndex);
+        public TypeDefIndex NestedClass => table.GetNestedClass(RowIndex);
 
-        public int EnclosingClass => table.GetEnclosingClass(RowIndex);
+        public TypeDefIndex EnclosingClass => table.GetEnclosingClass(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -31,8 +31,8 @@ namespace PESpy.Ecma335
         {
             using var s = writer.CreateMetadataRow("NestedClass Row", this, ViewKind.Metadata_NestedClassRow);
 
-            s.WriteSimpleIndex(nameof(NestedClass), NestedClass, TableKind.TypeDef);
-            s.WriteSimpleIndex(nameof(EnclosingClass), EnclosingClass, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(NestedClass), (int) NestedClass, TableKind.TypeDef);
+            s.WriteSimpleIndex(nameof(EnclosingClass), (int) EnclosingClass, TableKind.TypeDef);
         }
     }
 }

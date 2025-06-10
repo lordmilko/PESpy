@@ -24,16 +24,16 @@
             RowSize = InterfaceOffset + typeDefOrRefIndexSize;
         }
 
-        public int GetClass(InterfaceImplIndex index)
+        public TypeDefIndex GetClass(InterfaceImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
         }
 
-        public int GetInterface(InterfaceImplIndex index)
+        public Index GetInterface(InterfaceImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + InterfaceOffset, isBigTypeDefOrRefIndex);
+            return (Index) tableChunk.PeekEcmaIndex(rowOffset + InterfaceOffset, isBigTypeDefOrRefIndex);
         }
 
         public int GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

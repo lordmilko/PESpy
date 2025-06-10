@@ -14,11 +14,11 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigGuidIndex;
 
-        private readonly Lazy<BlobHeap?> blobHeap;
-        private readonly Lazy<GuidHeap?> guidHeap;
+        private readonly Func<BlobHeap?> blobHeap;
+        private readonly Func<GuidHeap?> guidHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal DocumentTable(int numRows, int blobIndexSize, int guidIndexSize, Lazy<BlobHeap?> blobHeap, Lazy<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal DocumentTable(int numRows, int blobIndexSize, int guidIndexSize, Func<BlobHeap?> blobHeap, Func<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -37,25 +37,25 @@ namespace PESpy.Ecma335
         public DocumentNameBlobIndex GetName(DocumentIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new DocumentNameBlobIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigBlobIndex), blobHeap.Value);
+            return new DocumentNameBlobIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigBlobIndex), blobHeap);
         }
 
         public GuidIndex GetHashAlgorithm(DocumentIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + HashAlgorithmOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + HashAlgorithmOffset, isBigGuidIndex), guidHeap);
         }
 
         public BlobIndex GetHash(DocumentIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashOffset, isBigBlobIndex), blobHeap.Value);
+            return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashOffset, isBigBlobIndex), blobHeap);
         }
 
         public GuidIndex GetLanguage(DocumentIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + LanguageOffset, isBigGuidIndex), guidHeap.Value);
+            return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + LanguageOffset, isBigGuidIndex), guidHeap);
         }
 
         public int GetRowOffset(DocumentIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

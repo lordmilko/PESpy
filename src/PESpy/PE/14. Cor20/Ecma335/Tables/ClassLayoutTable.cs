@@ -36,10 +36,10 @@
             return tableChunk.PeekInt32(rowOffset + ClassSizeOffset);
         }
 
-        public int GetParent(ClassLayoutIndex index)
+        public TypeDefIndex GetParent(ClassLayoutIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
+            return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
         }
 
         public int GetRowOffset(ClassLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

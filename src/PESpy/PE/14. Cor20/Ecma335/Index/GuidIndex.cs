@@ -1,15 +1,17 @@
-﻿namespace PESpy.Ecma335
+﻿using System;
+
+namespace PESpy.Ecma335
 {
     public readonly struct GuidIndex
     {
         public readonly int Offset;
 
-        private readonly GuidHeap? guidHeap;
+        private readonly Func<GuidHeap?> getGuidHeap;
 
-        internal GuidIndex(int offset, GuidHeap? guidHeap)
+        internal GuidIndex(int offset, Func<GuidHeap?> getGuidHeap)
         {
             Offset = offset;
-            this.guidHeap = guidHeap;
+            this.getGuidHeap = getGuidHeap;
         }
 
         public static explicit operator GuidIndex(int value) => new GuidIndex(value, default);
@@ -19,6 +21,8 @@
 
         public override string ToString()
         {
+            var guidHeap = getGuidHeap();
+
             if (guidHeap != null)
                 return guidHeap[this].Value.ToString();
 

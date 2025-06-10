@@ -14,9 +14,9 @@ namespace PESpy.Ecma335
 
         public CorMethodSemanticsAttr Semantics => table.GetSemantics(RowIndex);
 
-        public int Method => table.GetMethod(RowIndex);
+        public MethodDefIndex Method => table.GetMethod(RowIndex);
 
-        public int Association => table.GetAssociation(RowIndex);
+        public Index Association => table.GetAssociation(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -35,8 +35,8 @@ namespace PESpy.Ecma335
             using var s = writer.CreateMetadataRow("MethodSemantics Row", this, ViewKind.Metadata_MethodSemanticsRow);
 
             s.WriteValue(nameof(Semantics), Semantics, sizeof(short));
-            s.WriteSimpleIndex(nameof(Method), Method, TableKind.MethodDef);
-            s.WriteHasSemanticsIndex(nameof(Association), Association);
+            s.WriteSimpleIndex(nameof(Method), (int) Method, TableKind.MethodDef);
+            s.WriteHasSemanticsIndex(nameof(Association), (int) Association);
         }
     }
 }
