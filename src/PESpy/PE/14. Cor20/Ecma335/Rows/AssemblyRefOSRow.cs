@@ -29,15 +29,25 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("AssemblyRefOS Row", this, ViewKind.Metadata_AssemblyRefOSRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("AssemblyRefOS Row", this, ViewKind.Metadata_AssemblyRefOSRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(OSPlatformID), OSPlatformID);
             s.WriteValue(nameof(OSMajorVersion), OSMajorVersion);
             s.WriteValue(nameof(OSMinorVersion), OSMinorVersion);
 
             s.WriteSimpleIndex(nameof(AssemblyRef), (int) AssemblyRef, TableKind.AssemblyRef);
+
+            return s.ToArray();
         }
     }
 }

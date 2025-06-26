@@ -145,8 +145,15 @@ namespace PESpy.PDB
             {
                 get
                 {
-                    if (fileInfo == null && DbiHdr.cbFileInfo > 0)
-                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap));
+                    if (fileInfo == null)
+                    {
+                        var length = DbiHdr.cbFileInfo;
+
+                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length);
+                    }
+
+                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length);
+                    }
 
                     return fileInfo;
                 }
@@ -369,7 +376,7 @@ namespace PESpy.PDB
 #endif
             }
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
                 writer.WriteGlobal(DbiHdr);
                 writer.WriteGlobal(Modules);
@@ -403,6 +410,10 @@ namespace PESpy.PDB
                 //NewFPO
                 writer.WriteGlobal(SectionHdrOrig);
             }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
         }
     }
 }

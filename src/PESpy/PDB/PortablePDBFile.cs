@@ -57,10 +57,14 @@ namespace PESpy
             Dispose(false);
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             throw new NotImplementedException();
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

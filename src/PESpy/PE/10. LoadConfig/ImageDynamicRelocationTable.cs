@@ -15,6 +15,11 @@ namespace PESpy
 
         public int Offset { get; }
 
+        internal int StructSize =>
+            sizeof(int) + //Version
+            sizeof(int) + //Size
+            Size;
+
 #if PEFAST
         internal ImageDynamicRelocationTable(in MemoryChunk chunk)
         {
@@ -95,9 +100,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_DYNAMIC_RELOCATION_TABLE), this, ViewKind.ImageDynamicRelocationTable);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_DYNAMIC_RELOCATION_TABLE), this, ViewKind.ImageDynamicRelocationTable, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Version), Version);
 
@@ -111,6 +124,8 @@ namespace PESpy
             {
                 Debug.Assert(false, $"Don't know how to handle a {nameof(ImageDynamicRelocationTable)} with version {Version}");
             }
+
+            return s.ToArray();
         }
     }
 }

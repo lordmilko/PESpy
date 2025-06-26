@@ -19,6 +19,24 @@ namespace PESpy.PDB
 
             public int Offset => chunk.AbsoluteOffset;
 
+            internal int StructSize
+            {
+                get
+                {
+                    var size = sizeof(int); //NumStreams
+
+                    var streamInfos = StreamInfos;
+
+                    size += streamInfos.Length * SI_PERSIST.StructSize; //StreamPersists
+
+                    //StreamPages
+                    for (var i = 0; i < streamInfos.Length; i++)
+                        size += streamInfos[i].PageList.Length * sizeof(short);
+
+                    return size;
+                }
+            }
+
             private readonly MemoryChunk chunk;
 
             internal StreamTable(in MemoryChunk chunk, int pageSize)
@@ -56,9 +74,17 @@ namespace PESpy.PDB
                 StreamInfos = streamInfos;
             }
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct("Stream Table", this, ViewKind.StreamTable);
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct("Stream Table", this, ViewKind.StreamTable, StructSize);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("NumStreams", NumStreams);
                 s.WriteInline(StreamPersists);
@@ -76,6 +102,8 @@ namespace PESpy.PDB
 
                     s.WriteField($"PageList ({i})", arr);
                 }
+
+                return s.ToArray();
             }
         }
     }

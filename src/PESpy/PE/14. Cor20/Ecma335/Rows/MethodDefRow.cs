@@ -36,9 +36,17 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("MethodDef Row", this, ViewKind.Metadata_MethodDefRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("MethodDef Row", this, ViewKind.Metadata_MethodDefRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(RVA), RVA);
             s.WriteValue(nameof(ImplFlags), ImplFlags, sizeof(short));
@@ -46,6 +54,8 @@ namespace PESpy.Ecma335
             s.WriteStringHeapIndex(nameof(Name), Name);
             s.WriteBlobHeapIndex(nameof(Signature), Signature);
             s.WriteSimpleIndex(nameof(ParamList), (int) ParamList, TableKind.Param);
+
+            return s.ToArray();
         }
     }
 }

@@ -32,14 +32,24 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("GenericParam Row", this, ViewKind.Metadata_GenericParamRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("GenericParam Row", this, ViewKind.Metadata_GenericParamRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(Number), Number);
             s.WriteValue(nameof(Flags), Flags, sizeof(short));
             s.WriteTypeOrMethodDefIndex(nameof(Owner), (int) Owner);
             s.WriteStringHeapIndex(nameof(Name), Name);
+
+            return s.ToArray();
         }
     }
 }

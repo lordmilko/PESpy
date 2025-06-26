@@ -22,6 +22,8 @@ namespace PESpy
 #else
         public int Offset { get; }
 #endif
+        internal const int StructSize =
+            sizeof(int); //flags
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -39,9 +41,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION), this, ViewKind.ImageImportControlTransferDynamicRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION), this, ViewKind.ImageImportControlTransferDynamicRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var b = s.WriteBitFields<uint>())
             {
@@ -49,6 +59,8 @@ namespace PESpy
                 b.WriteField(nameof(IndirectCall), IndirectCall, 1);
                 b.WriteField(nameof(IATIndex), IATIndex, 19);
             }
+
+            return s.ToArray();
         }
     }
 }

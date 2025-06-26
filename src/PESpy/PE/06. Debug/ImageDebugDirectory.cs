@@ -588,19 +588,8 @@ namespace PESpy
 
         #endregion
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_DEBUG_DIRECTORY), this, ViewKind.ImageDebugDirectory);
-
-            s.WriteField(nameof(Characteristics), Characteristics);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteField(nameof(Type), Type, sizeof(int));
-            s.WriteField(nameof(SizeOfData), SizeOfData);
-            s.WriteField(nameof(AddressOfRawData), AddressOfRawData);
-            s.WriteField(nameof(PointerToRawData), PointerToRawData);
-
             if (Data != null)
             {
                 if (Data is IViewable v)
@@ -612,6 +601,25 @@ namespace PESpy
                 else
                     throw new NotImplementedException($"Don't know how to write a value of type {Data.GetType().Name}");
             }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_DEBUG_DIRECTORY), this, ViewKind.ImageDebugDirectory, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Characteristics), Characteristics);
+            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+            s.WriteField(nameof(MajorVersion), MajorVersion);
+            s.WriteField(nameof(MinorVersion), MinorVersion);
+            s.WriteField(nameof(Type), Type, sizeof(int));
+            s.WriteField(nameof(SizeOfData), SizeOfData);
+            s.WriteField(nameof(AddressOfRawData), AddressOfRawData);
+            s.WriteField(nameof(PointerToRawData), PointerToRawData);
+
+            return s.ToArray();
         }
 
         public override string ToString()

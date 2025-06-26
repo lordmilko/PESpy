@@ -154,9 +154,17 @@ namespace PESpy
             }
 #endif
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct(nameof(StringFileInfo), this, ViewKind.StringFileInfo);
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct(nameof(StringFileInfo), this, ViewKind.StringFileInfo, Length);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);
@@ -183,6 +191,8 @@ namespace PESpy
                 }
 
                 s.VerifyLength(Length);
+
+                return s.ToArray();
             }
         }
     }

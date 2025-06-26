@@ -70,9 +70,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PSGSIHDR), this, ViewKind.PSGSIHDR);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PSGSIHDR), this, ViewKind.PSGSIHDR, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(cbSymHash), cbSymHash);
             s.WriteField(nameof(cbAddrMap), cbAddrMap);
@@ -82,6 +90,8 @@ namespace PESpy.PDB
             s.Align(4);
             s.WriteField(nameof(offThunkTable), offThunkTable);
             s.WriteField(nameof(nSects), nSects);
+
+            return s.ToArray();
         }
     }
 }

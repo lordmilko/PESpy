@@ -86,17 +86,27 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(TpiHash), this, ViewKind.TpiHash);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(TpiHash), this, ViewKind.TpiHash, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(sn), sn);
             s.WriteField(nameof(snPad), snPad);
             s.WriteField(nameof(cbHashKey), cbHashKey);
             s.WriteField(nameof(cHashBuckets), cHashBuckets);
-            s.WriteUnmanagedField(nameof(offcbHashVals), offcbHashVals);
-            s.WriteUnmanagedField(nameof(offcbTiOff), offcbTiOff);
-            s.WriteUnmanagedField(nameof(offcbHashAdj), offcbHashAdj);
+            s.WriteStructField(nameof(offcbHashVals), offcbHashVals);
+            s.WriteStructField(nameof(offcbTiOff), offcbTiOff);
+            s.WriteStructField(nameof(offcbHashAdj), offcbHashAdj);
+
+            return s.ToArray();
         }
     }
 }

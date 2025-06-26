@@ -134,9 +134,17 @@ namespace PESpy
 
         #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_COR20_HEADER), this, ViewKind.ImageCor20Header);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_COR20_HEADER), this, ViewKind.ImageCor20Header, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("cb", ByteCount);
             s.WriteField(nameof(MajorRuntimeVersion), MajorRuntimeVersion);
@@ -150,6 +158,8 @@ namespace PESpy
             s.WriteStructField(nameof(VTableFixups), VTableFixups);
             s.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumps);
             s.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeader);
+
+            return s.ToArray();
         }
     }
 }

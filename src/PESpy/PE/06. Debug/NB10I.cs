@@ -53,6 +53,10 @@ namespace PESpy
             sizeof(int) + //PdbSignature
             sizeof(int);  //Age
 
+        internal int StructSize =>
+            FixedStructSize +
+            Path.Length + 1;
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -80,15 +84,25 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(NB10I), this, ViewKind.NB10I);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(NB10I), this, ViewKind.NB10I, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("dwSig", Signature, sizeof(uint));
             s.WriteField("dwOffset", dwOffset);
             s.WriteField("sig", PdbSignature);
             s.WriteField("age", Age);
             s.WriteAnsiNullTerminatedField("szPdb", Path);
+
+            return s.ToArray();
         }
 
         public override string ToString()

@@ -51,9 +51,9 @@ namespace PESpy.Tests
 
         public static void VerifyStruct(this IView view, string name, int offset, int size, params Action<IView>[] verifyChildren)
         {
-            Assert.IsInstanceOfType(view, typeof(StructView));
+            Assert.IsInstanceOfType(view, typeof(IStructView));
 
-            var structView = (StructView) view;
+            var structView = (IStructView) view;
 
             Assert.AreEqual(name, structView.Name, "Name was incorrect");
             Assert.AreEqual(offset, structView.Offset, $"Offset of {name} was incorrect. Also size is {structView.Size}");
@@ -67,9 +67,9 @@ namespace PESpy.Tests
 
         public static void VerifyStructIgnoreChildren(this IView view, string name, int offset, int size)
         {
-            Assert.IsInstanceOfType(view, typeof(StructView));
+            Assert.IsInstanceOfType(view, typeof(IStructView));
 
-            var structView = (StructView) view;
+            var structView = (IStructView) view;
 
             Assert.AreEqual(name, structView.Name, "Name was incorrect");
             Assert.AreEqual(offset, structView.Offset, $"Offset of {name} was incorrect. Also, size is {structView.Size}");
@@ -102,6 +102,12 @@ namespace PESpy.Tests
             {
                 if (fieldValue is NativeSpan<PN> a)
                     fieldValue = a.ToArray();
+                else if (fieldValue is NativeSpan<int> b1)
+                    fieldValue = b1.ToArray();
+                else if (fieldValue is NativeSpan<short> b2)
+                    fieldValue = b2.ToArray();
+                else if (fieldValue is NativeSpan<byte> b3)
+                    fieldValue = b3.ToArray();
                 else
                     throw new NotImplementedException();
 

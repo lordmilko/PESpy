@@ -31,6 +31,10 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(int) + //Size
+            Size; //Hash
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -48,12 +52,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(Reproducible), this, ViewKind.Reproducible);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(Reproducible), this, ViewKind.Reproducible, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Size), Size);
             s.WriteField(nameof(Hash), Hash);
+
+            return s.ToArray();
         }
     }
 }

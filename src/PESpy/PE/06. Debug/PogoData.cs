@@ -100,12 +100,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PogoData), this, ViewKind.PogoData);
+            throw new System.NotImplementedException();
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PogoData), this, ViewKind.PogoData, sizeOfData);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Signature), Signature, sizeof(int));
             s.WriteInline(Entries);
+
+            return s.ToArray();
         }
     }
 }

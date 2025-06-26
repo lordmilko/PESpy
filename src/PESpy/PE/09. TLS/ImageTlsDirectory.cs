@@ -101,9 +101,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("IMAGE_TLS_DIRECTORY", this, ViewKind.ImageTlsDirectory);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_TLS_DIRECTORY", this, ViewKind.ImageTlsDirectory, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WritePointerField(nameof(StartAddressOfRawData), StartAddressOfRawData);
             s.WritePointerField(nameof(EndAddressOfRawData), EndAddressOfRawData);
@@ -111,6 +119,8 @@ namespace PESpy
             s.WritePointerField(nameof(AddressOfCallBacks), AddressOfCallBacks);
             s.WriteField(nameof(SizeOfZeroFill), SizeOfZeroFill);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));
+
+            return s.ToArray();
         }
     }
 }

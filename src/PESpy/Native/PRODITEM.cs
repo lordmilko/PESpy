@@ -15,5 +15,9 @@ namespace PESpy.Native
         /// Count of objects built with that product
         /// </summary>
         public int dwCount;
+
+        public const int StructSize =
+            sizeof(int) + //dwProdid
+            sizeof(int); //dwCount
     }
 }

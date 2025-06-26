@@ -30,6 +30,10 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(short) + //Length
+            (Length * 2); //NameString
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -48,12 +52,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_RESOURCE_DIR_STRING_U), this, ViewKind.ImageResourceDirStringU);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_RESOURCE_DIR_STRING_U), this, ViewKind.ImageResourceDirStringU, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Length), Length);
             s.WriteUTF16Field(nameof(NameString), NameString, Length);
+
+            return s.ToArray();
         }
 
         public override string ToString()

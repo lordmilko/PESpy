@@ -40,9 +40,17 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("Assembly Row", this, ViewKind.Metadata_AssemblyRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Assembly Row", this, ViewKind.Metadata_AssemblyRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(HashAlgId), HashAlgId, sizeof(int));
             s.WriteValue(nameof(MajorVersion), MajorVersion);
@@ -53,6 +61,8 @@ namespace PESpy.Ecma335
             s.WriteBlobHeapIndex(nameof(PublicKey), PublicKey);
             s.WriteStringHeapIndex(nameof(Name), Name);
             s.WriteStringHeapIndex(nameof(Culture), Culture);
+
+            return s.ToArray();
         }
     }
 }

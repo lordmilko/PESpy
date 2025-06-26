@@ -126,9 +126,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_ENCLAVE_IMPORT), this, ViewKind.ImageEnclaveImport);
+            writer.WriteRVAAnsiNullTerminatedField(ImportName);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_ENCLAVE_IMPORT), this, ViewKind.ImageEnclaveImport, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(MatchType), MatchType, sizeof(int));
             s.WriteField(nameof(MinimumSecurityVersion), MinimumSecurityVersion);
@@ -137,6 +145,8 @@ namespace PESpy
             s.WriteField(nameof(ImageID), ImageID);
             s.WriteRVAAnsiNullTerminatedField(nameof(ImportName), ImportName);
             s.WriteField(nameof(Reserved), Reserved);
+
+            return s.ToArray();
         }
 
         public override string ToString()

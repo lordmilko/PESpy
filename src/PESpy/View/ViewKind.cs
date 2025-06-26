@@ -48,7 +48,7 @@ namespace PESpy.View
         CC,
 
         /// <summary>
-        /// A named <see cref="IFieldView"/> contained in a <see cref="StructView"/>.
+        /// A named <see cref="IFieldView"/> contained in an <see cref="IStructView"/>.
         /// </summary>
         Field,
 
@@ -75,44 +75,44 @@ namespace PESpy.View
         #region Headers
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageDosHeader"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageDosHeader"/>.
         /// </summary>
         ImageDosHeader,
 
         DosStub,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.RichHeader"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.RichHeader"/>.
         /// </summary>
         RichHeader,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ProdItem"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ProdItem"/>.
         /// </summary>
         ProdItem,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageNtHeaders"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageNtHeaders"/>.
         /// </summary>
         ImageNtHeaders,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageFileHeader"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageFileHeader"/>.
         /// </summary>
         ImageFileHeader,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageOptionalHeader"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageOptionalHeader"/>.
         /// </summary>
         ImageOptionalHeader,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageDataDirectory"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageDataDirectory"/>.
         /// </summary>
         ImageDataDirectory,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageSectionHeader"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageSectionHeader"/>.
         /// </summary>
         ImageSectionHeader,
 
@@ -124,13 +124,15 @@ namespace PESpy.View
 
         ImageAuxSymbol,
 
+        ImageLineNumber,
+
         AnonObjectHeader,
 
         #endregion
         #region Exports Table (0)
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageExportDirectory"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageExportDirectory"/>.
         /// </summary>
         ImageExportDirectory,
 
@@ -153,17 +155,17 @@ namespace PESpy.View
         #region Import Table (1)
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageImportDescriptor"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageImportDescriptor"/>.
         /// </summary>
         ImageImportDescriptor,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageThunkData"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageThunkData"/>.
         /// </summary>
         ImageThunkData,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageImportByName"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageImportByName"/>.
         /// </summary>
         ImageImportByName,
 
@@ -188,62 +190,62 @@ namespace PESpy.View
         #region Resource Directory (2)
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageResourceDirectory"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageResourceDirectory"/>.
         /// </summary>
         ImageResourceDirectory,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageResourceDirectoryEntry"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageResourceDirectoryEntry"/>.
         /// </summary>
         ImageResourceDirectoryEntry,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageResourceDataEntry"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageResourceDataEntry"/>.
         /// </summary>
         ImageResourceDataEntry,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.ImageResourceDirStringU"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageResourceDirStringU"/>.
         /// </summary>
         ImageResourceDirStringU,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.VsVersionInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VsVersionInfo"/>.
         /// </summary>
         VsVersionInfo,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.VsFixedFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VsFixedFileInfo"/>.
         /// </summary>
         VsFixedFileInfo,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="VsVersionInfo.StringFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.StringFileInfo"/>.
         /// </summary>
         StringFileInfo,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="VsVersionInfo.StringTable"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.StringTable"/>.
         /// </summary>
         StringTable,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="VsVersionInfo.String"/> contained in a <see cref="VsVersionInfo.StringTable"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.String"/> contained in a <see cref="VsVersionInfo.StringTable"/>.
         /// </summary>
         StringTable_String,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="VsVersionInfo.VarFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.VarFileInfo"/>.
         /// </summary>
         VarFileInfo,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="VsVersionInfo.Var"/> contained in a <see cref="VsVersionInfo.VarFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.Var"/> contained in a <see cref="VsVersionInfo.VarFileInfo"/>.
         /// </summary>
         VarFileInfo_Var,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="ClrDebugResource"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="ClrDebugResource"/>.
         /// </summary>
         ClrDebugResource,
 
@@ -251,17 +253,17 @@ namespace PESpy.View
         #region Exception Table (3)
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.RuntimeFunction"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.RuntimeFunction"/>.
         /// </summary>
         RuntimeFunction,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.UnwindInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.UnwindInfo"/>.
         /// </summary>
         UnwindInfo,
 
         /// <summary>
-        /// A <see cref="StructView"/> that represents a <see cref="PESpy.UnwindCode"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.UnwindCode"/>.
         /// </summary>
         UnwindCode,
 
@@ -522,6 +524,7 @@ namespace PESpy.View
         SI,
 
         //snPDB
+        PDBStream,
         PDBStream70,
         StreamNameTable,
 
@@ -581,6 +584,8 @@ namespace PESpy.View
 
         ImageArchiveMemberHeader,
         FirstLinkerMember,
+        SecondLinkerMember,
+        LongNamesMember,
         LongImportLibraryMember,
         ShortImportLibraryMember,
         ImportObjectHeader,

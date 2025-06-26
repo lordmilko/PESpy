@@ -75,7 +75,7 @@ namespace PESpy
             );
         }
 
-        protected override void WriteView(ViewWriter writer)
+        protected override void WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(MsfHeader);
 

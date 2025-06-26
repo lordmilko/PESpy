@@ -201,9 +201,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(NewDBIHdr), this, ViewKind.NewDbiHdr);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(NewDBIHdr), this, ViewKind.NewDbiHdr, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(verSignature), verSignature);
             s.WriteField(nameof(verHdr), verHdr, sizeof(int));
@@ -250,6 +258,8 @@ namespace PESpy.PDB
 
             s.WriteField(nameof(wMachine), wMachine, sizeof(short));
             s.WriteField(nameof(rgulReserved), rgulReserved);
+
+            return s.ToArray();
         }
     }
 }

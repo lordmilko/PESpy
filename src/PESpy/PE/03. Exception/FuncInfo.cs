@@ -200,6 +200,18 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal const int StructSize =
+            sizeof(int) + //magicNumberAndBBTFlags
+            sizeof(int) + //MaxState
+            sizeof(int) + //UnwindMap
+            sizeof(int) + //nTryBlocks
+            sizeof(int) + //TryBlockMap
+            sizeof(int) + //nIPMapEntries
+            sizeof(int) + //IPToStateMap
+            sizeof(int) + //DispUnwindHelp
+            sizeof(int) + //DispESTypeList
+            sizeof(int); //EHFlags
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -304,9 +316,19 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PESpy.Native.FuncInfo), this, ViewKind.FuncInfo);
+            writer.WriteRVAField(UnwindMap);
+            writer.WriteRVAField(TryBlockMap);
+            writer.WriteRVAField(IPToStateMap);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PESpy.Native.FuncInfo), this, ViewKind.FuncInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var b = s.WriteBitFields<uint>())
             {
@@ -324,6 +346,8 @@ namespace PESpy
             s.WriteField("dispUnwindHelp", DispUnwindHelp);
             s.WriteField("dispESTypeList", DispESTypeList);
             s.WriteField(nameof(EHFlags), EHFlags);
+
+            return s.ToArray();
         }
     }
 }

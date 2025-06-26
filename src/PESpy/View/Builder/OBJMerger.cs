@@ -67,7 +67,7 @@ namespace PESpy.View.Builder
                 var interSectionLength = start - lastSectionEnd;
                 var children = merger.BuildSection(lastSectionEnd, lastSectionEnd + interSectionLength, v => v, v => v);
 
-                var isRelocations = children.All(c => c is StructView { Name: "IMAGE_RELOCATION" });
+                var isRelocations = children.All(c => c is IStructView { Name: "IMAGE_RELOCATION" });
 
                 var interRegion = new LogicalRegionView(lastSectionEnd, isRelocations ? "Relocations" : "Inter-Section Data", children, ViewKind.Value, interSectionLength);
                 results.Add(interRegion);

@@ -235,10 +235,18 @@ namespace PESpy.NE
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //Also called "new_exe"
-            using var s = writer.CreateStruct(nameof(IMAGE_OS2_HEADER), this, ViewKind.ImageOS2Header);
+            //No globals
+        }
+
+        //Also called "new_exe"
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_OS2_HEADER), this, ViewKind.ImageOS2Header, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("ne_magic", Magic);
             s.WriteField("ne_ver", VersionNumber);
@@ -270,6 +278,8 @@ namespace PESpy.NE
             s.WriteField("ne_psegrefbytes", OffsetToSegmentRefBytes);
             s.WriteField("ne_swaparea", MinimumCodeSwapAreaSize);
             s.WriteField("ne_expver", ExpectedWindowsVersionNumber);
+
+            return s.ToArray();
         }
     }
 }

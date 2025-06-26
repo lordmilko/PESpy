@@ -26,6 +26,11 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal static int StructSize(bool is32Bit) =>
+            sizeof(int) + //Size
+            sizeof(int) + //DbiVersion
+            (is32Bit ? 4 : 8); //ContinueStartupEvent
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -47,13 +52,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CLR_ENGINE_METRICS", this, ViewKind.GlobalValueEntry);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CLR_ENGINE_METRICS", this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Size), Size);
             s.WriteField(nameof(DbiVersion), DbiVersion);
             s.WritePointerField(nameof(ContinueStartupEvent), ContinueStartupEvent);
+
+            return s.ToArray();
         }
     }
 }

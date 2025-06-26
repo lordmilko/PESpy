@@ -49,10 +49,14 @@ namespace PESpy.OBJ
             new Span<byte>(chunk.Pointer, Length).CopyTo(destination);
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
             writer.WriteGlobal(Offset + 4, Types);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

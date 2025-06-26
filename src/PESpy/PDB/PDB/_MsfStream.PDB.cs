@@ -85,11 +85,11 @@ namespace PESpy.PDB
                      *
                      * It's possible that the versions used could change in the future; as such, we will say that IPI is present as long as any features are defined */
 
-                     return Features.Length > 0;
+                    return Features.Length > 0;
                 }
             }
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
                 writer.WriteGlobal(PDBHeader);
                 writer.WriteGlobal(StreamNameTable);
@@ -104,6 +104,10 @@ namespace PESpy.PDB
                         p.WriteValue(feature, sizeof(int), ViewKind.Value);
                 }
             }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
         }
     }
 }

@@ -193,9 +193,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(VS_FIXEDFILEINFO), this, ViewKind.VsFixedFileInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(VS_FIXEDFILEINFO), this, ViewKind.VsFixedFileInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("dwSignature", Signature);
             s.WriteField("dwStrucVersion", StrucVersion);
@@ -212,6 +220,8 @@ namespace PESpy
             s.WriteField("dwFileSubtype", FileSubtype);
             s.WriteField("dwFileDateMS", FileDateMS);
             s.WriteField("dwFileDateLS", FileDateLS);
+
+            return s.ToArray();
         }
     }
 }

@@ -28,6 +28,10 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize =>
+            sizeof(int) +
+            length;
+
         private readonly MemoryChunk chunk;
         private int length;
 
@@ -37,12 +41,22 @@ namespace PESpy.PDB
             this.length = length;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("RVA + FrameData", this, ViewKind.RvaAndFrameData);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("RVA + FrameData", this, ViewKind.RvaAndFrameData, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(RVA), RVA);
             s.WriteInline(FrameData);
+
+            return s.ToArray();
         }
     }
 }

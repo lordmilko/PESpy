@@ -23,12 +23,22 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(ECInfo), this, ViewKind.ECInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(ECInfo), this, ViewKind.ECInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(niSrcFile), niSrcFile);
             s.WriteField(nameof(niPdbFile), niPdbFile);
+
+            return s.ToArray();
         }
     }
 }

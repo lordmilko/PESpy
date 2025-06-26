@@ -109,6 +109,39 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal int StructSize
+        {
+            get
+            {
+                var size = 4 + (((CountOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
+
+                if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
+                {
+                    size += sizeof(int); //ExceptionHandler
+
+                    var data = ExceptionData;
+
+                    if (data != null)
+                    {
+                        if (data is RawValue<int>)
+                            size += sizeof(int);
+                        else if (data is ScopeTable s)
+                            size += s.StructSize;
+                        else if (data is RVA<FuncInfoV1> || data is RVA<FuncInfo> || data is RVA<FuncInfo4>)
+                            size += sizeof(int);
+                        else
+                            throw new NotImplementedException();
+                    }
+                }
+                else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
+                {
+                    size += RuntimeFunction.StructSize; //FunctionEntry
+                }
+
+                return size;
+            }
+        }
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -607,9 +640,17 @@ namespace PESpy
             R15 = 15  //1 111
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(UNWIND_INFO), this, ViewKind.UnwindInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(UNWIND_INFO), this, ViewKind.UnwindInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var b = s.WriteBitFields<byte>())
             {
@@ -641,6 +682,8 @@ namespace PESpy
             {
                 s.WriteInline(FunctionEntry);
             }
+
+            return s.ToArray();
         }
     }
 }

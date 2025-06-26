@@ -9,6 +9,20 @@
 
 namespace PESpy.Ecma335
 {
+    public readonly struct Index
+    {
+        public readonly int RowId;
+
+        public Index(int rowId)
+        {
+            RowId = rowId;
+        }
+
+        public static explicit operator Index(int value) => new Index(value);
+
+        public static explicit operator int(Index value) => value.RowId;
+    }
+
 <#
 var types = new[]
 {

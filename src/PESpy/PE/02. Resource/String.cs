@@ -146,9 +146,17 @@ namespace PESpy
             }
 #endif
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct(nameof(String), this, ViewKind.StringTable_String);
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct(nameof(String), this, ViewKind.StringTable_String, Length);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);
@@ -164,6 +172,8 @@ namespace PESpy
                 s.WriteUTF16NullTerminatedField(nameof(Value), Value);
 
                 s.VerifyLength(Length);
+
+                return s.ToArray();
             }
         }
     }

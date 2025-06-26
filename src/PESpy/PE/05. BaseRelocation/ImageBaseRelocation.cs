@@ -60,9 +60,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_BASE_RELOCATION), this, ViewKind.ImageBaseRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_BASE_RELOCATION), this, ViewKind.ImageBaseRelocation, SizeOfBlock);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(VirtualAddress), VirtualAddress);
             s.WriteField(nameof(SizeOfBlock), SizeOfBlock);
@@ -77,6 +85,8 @@ namespace PESpy
                     b.WriteField("Offset", entry.Offset, 12);
                 }
             }
+
+            return s.ToArray();
         }
 
         /// <summary>

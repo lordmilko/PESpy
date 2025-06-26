@@ -28,14 +28,24 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(ClrDebug.OMF.OMFDirEntry), this, ViewKind.OMFDirEntry);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(ClrDebug.OMF.OMFDirEntry), this, ViewKind.OMFDirEntry, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(SubSection), SubSection, sizeof(ushort));
             s.WriteField(nameof(iMod), iMod);
             s.WriteField(nameof(lfo), lfo);
             s.WriteField(nameof(cb), cb);
+
+            return s.ToArray();
         }
 
         public override string ToString()

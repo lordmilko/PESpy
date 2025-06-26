@@ -70,7 +70,7 @@ namespace PESpy
             hdr = new OHDR(globalChunk);
         }
 
-        protected override void WriteView(ViewWriter writer)
+        protected override void WriteGlobals(ViewWriter writer)
         {
             throw new System.NotImplementedException();
         }

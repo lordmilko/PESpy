@@ -94,6 +94,10 @@ namespace PESpy
             sizeof(ushort) + //OffsetModuleName
             sizeof(ushort); //NumberOfModuleForwarderRefs
 
+        internal int StructSize =>
+            FixedStructSize +
+            (NumberOfModuleForwarderRefs * ImageBoundForwarderRef.StructSize);
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -141,20 +145,29 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_BOUND_IMPORT_DESCRIPTOR), this, ViewKind.ImageBoundImportDescriptor);
-
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-
-            s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
-
             if (Name.IsValid && Name.ListedOffset != 0)
                 writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
 
+            writer.RelayGlobals(Refs);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_BOUND_IMPORT_DESCRIPTOR), this, ViewKind.ImageBoundImportDescriptor, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+            s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
+
             s.WriteField(nameof(NumberOfModuleForwarderRefs), NumberOfModuleForwarderRefs);
-            
+
             s.WriteInline(Refs);
+
+            return s.ToArray();
         }
 
         public override string ToString()

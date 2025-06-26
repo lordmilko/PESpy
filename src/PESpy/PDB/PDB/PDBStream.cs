@@ -42,15 +42,27 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
-
-        protected virtual void WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PDBStream), this, ViewKind.PDBStream70);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => WriteStruct(writer);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
+
+        protected virtual IView? WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PDBStream), this, ViewKind.PDBStream, StructSize);
+
+        protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("impv", ImplementationVersion, sizeof(int));
             s.WriteField("sig", Signature);
             s.WriteField("age", Age);
+
+            return s.ToArray();
         }
     }
 }

@@ -27,12 +27,22 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("StateMachineMethod Row", this, ViewKind.PortablePdb_StateMachineMethodRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("StateMachineMethod Row", this, ViewKind.PortablePdb_StateMachineMethodRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(MoveNextMethod), (int) MoveNextMethod);
             s.WriteValue(nameof(KickoffMethod), (int) KickoffMethod);
+
+            return s.ToArray();
         }
     }
 }

@@ -25,11 +25,21 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("AssemblyProcessor Row", this, ViewKind.Metadata_AssemblyProcessorRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("AssemblyProcessor Row", this, ViewKind.Metadata_AssemblyProcessorRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(Processor), Processor);
+
+            return s.ToArray();
         }
     }
 }

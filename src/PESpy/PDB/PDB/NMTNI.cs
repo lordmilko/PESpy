@@ -86,9 +86,17 @@ namespace PESpy.PDB
             NameToStreamNumberMap = nameToStreamNumberMap;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Stream Name Table", this, ViewKind.StreamNameTable);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Stream Name Table", this, ViewKind.StreamNameTable, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("Name Buffer Size", NameBufferSize);
 
@@ -98,6 +106,8 @@ namespace PESpy.PDB
             s.WriteInline(NameOffsetToStreamIndexMap);
 
             s.WriteField("niMac", LargestNameIndex);
+
+            return s.ToArray();
         }
     }
 }

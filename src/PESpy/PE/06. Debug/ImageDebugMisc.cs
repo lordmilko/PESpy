@@ -50,6 +50,12 @@ namespace PESpy
             sizeof(byte) + //Unicode
             3;             //Reserved
 
+        internal int StructSize =>
+            FixedStructSize +
+            (Unicode
+                ? (Data.Length + 1) * 2
+                : (Data.Length + 1));
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -81,9 +87,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_DEBUG_MISC), this, ViewKind.ImageDebugMisc);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_DEBUG_MISC), this, ViewKind.ImageDebugMisc, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(DataType), DataType, sizeof(int));
             s.WriteField(nameof(Length), Length);
@@ -94,6 +108,8 @@ namespace PESpy
                 s.WriteUTF16NullTerminatedField(nameof(Data), Data);
             else
                 s.WriteAnsiNullTerminatedField(nameof(Data), Data);
+
+            return s.ToArray();
         }
 
         public override string ToString()

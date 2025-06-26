@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using PESpy.View;
 
@@ -79,10 +77,14 @@ namespace PESpy.PDB
             return (value + divisor - 1) / divisor;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             //PageList could cross page boundaries
             writer.WritePagedGlobal(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, PageList);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

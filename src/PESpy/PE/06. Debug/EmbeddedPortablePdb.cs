@@ -55,13 +55,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Embedded Portable PDB", this, ViewKind.EmbeddedPortablePdb);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Embedded Portable PDB", this, ViewKind.EmbeddedPortablePdb, sizeOfData);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Signature), Signature);
             s.WriteField(nameof(UncompressedSize), UncompressedSize);
             s.WriteField(nameof(PortablePdbImage), PortablePdbImage);
+
+            return s.ToArray();
         }
     }
 }

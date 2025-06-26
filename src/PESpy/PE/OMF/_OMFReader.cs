@@ -31,8 +31,6 @@ namespace PESpy
         {
             var endOfFile = startAddress + length;
 
-            globalBlock.Demand(length - 8, 8);
-
             var endSig = (OMFSignature*) (endOfFile - 8);
 
             var oldStyle = false;
@@ -103,7 +101,6 @@ namespace PESpy
             //It's a match!
             var startOffset = length - lfoBase;
             var omfLength = lfoBase - 8; //lfoBase describes how many bytes to rewind from the end of the file to find the data, which means it also describes the length of the data to the end of the file
-            globalBlock.Demand(startOffset, omfLength);
 
             var chunk = new MemoryChunk(globalBlock, startOffset);
 

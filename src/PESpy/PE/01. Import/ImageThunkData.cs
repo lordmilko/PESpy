@@ -237,17 +237,28 @@ namespace PESpy
             Name
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("IMAGE_THUNK_DATA", this, ViewKind.ImageThunkData);
+            switch (Kind)
+            {
+                case DataKind.Name:
+                    if (Name.IsValid)
+                        writer.WriteTaggedGlobal(Name.Value);
+                    break;
+            }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_THUNK_DATA", this, ViewKind.ImageThunkData, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             switch (Kind)
             {
                 case DataKind.Name:
                     s.WritePointerField("AddressOfData", Value);
-
-                    if (Name.IsValid)
-                        writer.WriteTaggedGlobal(Name.Value);
                     break;
 
                 case DataKind.Forwarder:
@@ -268,6 +279,8 @@ namespace PESpy
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(DataKind)} '{Kind}'");
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

@@ -65,9 +65,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(OMFSegMapDesc), this, ViewKind.OMFSegMapDesc);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(OMFSegMapDesc), this, ViewKind.OMFSegMapDesc, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var bitField = s.WriteBitFields<ushort>())
             {
@@ -90,6 +98,8 @@ namespace PESpy.PDB
             s.WriteField(nameof(iClassName), iClassName);
             s.WriteField(nameof(offset), offset);
             s.WriteField(nameof(cbSeg), cbSeg);
+
+            return s.ToArray();
         }
     }
 }

@@ -213,7 +213,7 @@ namespace PESpy
             //We have now read the minimum amount of info that must exist in a valid PDB file. All other sections like PDB, DBI, etc are completely optional
         }
 
-        protected override void WriteView(ViewWriter writer)
+        protected override void WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(MsfHeader);
 

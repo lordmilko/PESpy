@@ -310,9 +310,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct($"{nameof(IMAGE_DELAYLOAD_DESCRIPTOR)} {DllNameRVA}", this, ViewKind.ImageDelayLoadDescriptor);
+            //No globals
+        }
+
+        void IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct($"{nameof(IMAGE_DELAYLOAD_DESCRIPTOR)} {DllNameRVA}", this, ViewKind.ImageDelayLoadDescriptor, StructSize);
+
+        IView[] IViewable.GetChildren()
+        {
+            using var s = ViewWriter.StructWriter.Alloc();
 
             //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
             //from regular import names
@@ -347,6 +355,8 @@ namespace PESpy
 
                 r.WriteValues(UnloadInformationTable.Value);
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

@@ -85,13 +85,27 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal const int FixedStructSize =
+            sizeof(int) + //pmod
+            SC40.StructSize + //sc
+            sizeof(short) + //flags
+            sizeof(short) + //sn
+            sizeof(int) + //cbSyms
+            sizeof(int) + //cbLines
+            sizeof(int) + //cbFpo
+            sizeof(short) + //iFileMac
+            sizeof(short) + //Padding
+            sizeof(int); //mpifileichFile
+
+        internal int StructSize => (FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1 + 3) & ~3; //32-bit aligned
+
         private readonly MemoryChunk chunk;
 
         internal Modi(in MemoryChunk chunk, out int read)
         {
             this.chunk = chunk;
 
-            var szModuleStart = 28 + SC40.StructSize;
+            var szModuleStart = FixedStructSize;
             szModule = chunk.PeekAnsiNullTerminatedString(szModuleStart);
 
             var szObjFileStart = szModuleStart + szModule.Length + 1;
@@ -107,14 +121,20 @@ namespace PESpy.PDB
 #endif
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("MODI", this, ViewKind.Modi);
+            writer.WriteGlobal(Symbols);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("MODI", this, ViewKind.Modi, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(pmod), pmod);
             s.WriteStructField(nameof(sc), sc);
-
-            writer.WriteGlobal(Symbols);
 
             using (var bitField = s.WriteBitFields<ushort>())
             {
@@ -131,6 +151,8 @@ namespace PESpy.PDB
             s.WriteField(nameof(mpifileichFile), mpifileichFile);
             s.WriteAnsiNullTerminatedField(nameof(szModule), szModule);
             s.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFile);
+
+            return s.ToArray();
         }
 
         public override string ToString()

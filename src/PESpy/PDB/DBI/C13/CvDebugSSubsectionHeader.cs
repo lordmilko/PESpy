@@ -93,6 +93,10 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize =>
+            sizeof(int) + //Type
+            Length;
+
         private readonly MemoryChunk chunk;
 
         internal CvDebugSSubsectionHeader(in MemoryChunk chunk)
@@ -130,9 +134,17 @@ namespace PESpy.PDB
             return results.ToArray();
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CV_DebugSSubsectionHeader_t", this, ViewKind.CvDebugSSubsectionHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CV_DebugSSubsectionHeader_t", this, ViewKind.CvDebugSSubsectionHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("type", Type, sizeof(int));
             s.WriteField("cbLen", Length);
@@ -189,6 +201,8 @@ namespace PESpy.PDB
                 default:
                     throw new NotImplementedException();
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

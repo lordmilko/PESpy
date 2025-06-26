@@ -17,6 +17,13 @@ namespace PESpy.Ecma335
         private readonly byte unicodeByte;
         private readonly byte lengthSize;
 
+        internal int StructSize =>
+            lengthSize +
+            (Value.Length > 0
+                ? (Value.Length * 2) + //UTF-16
+                sizeof(byte) : //The UnicodeByte is part of the length that is read in the compressed length. The length of the string is _always_ odd, but that doesn't mean that the total length of the UserString struct is always odd
+            0);
+
         public UserString(int offset, byte* start, byte lengthSize, FixedUtf16String value, byte unicodeByte)
         {
             Offset = offset;
@@ -26,9 +33,17 @@ namespace PESpy.Ecma335
             this.unicodeByte = unicodeByte;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("UserString", this, ViewKind.Metadata_UserString);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("UserString", this, ViewKind.Metadata_UserString, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("Size", CompressedSize);
 
@@ -37,6 +52,8 @@ namespace PESpy.Ecma335
                 s.WriteUTF16Field("Value", Value, Value.Length);
                 s.WriteField(nameof(UnicodeByte), UnicodeByte);
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

@@ -23,6 +23,9 @@ namespace PESpy
 #else
         public int Offset { get; }
 #endif
+        internal int StructSize =>
+            sizeof(byte) + //PrologueByteCount
+            PrologueByteCount; //PrologueBytes
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -41,12 +44,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER), this, ViewKind.ImagePrologueDynamicRelocationHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER), this, ViewKind.ImagePrologueDynamicRelocationHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(PrologueByteCount), PrologueByteCount);
             s.WriteField(nameof(PrologueBytes), PrologueBytes);
+
+            return s.ToArray();
         }
     }
 }

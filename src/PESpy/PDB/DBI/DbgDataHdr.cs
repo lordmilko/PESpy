@@ -49,9 +49,17 @@ namespace PESpy.PDB
             return SN.Nil;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(DbgDataHdr), this, ViewKind.DbgDataHdr);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(DbgDataHdr), this, ViewKind.DbgDataHdr, maxIndex * sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             //This is supposed to be an array
 
@@ -108,6 +116,8 @@ namespace PESpy.PDB
                         break;
                 }
             }
+
+            return s.ToArray();
         }
     }
 }

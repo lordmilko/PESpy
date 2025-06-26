@@ -20,11 +20,54 @@ namespace PESpy
 
         public virtual byte OpInfo { get; protected set; }
 
+        public virtual int StructSize =>
+            sizeof(byte) + //CodeOffset
+            sizeof(byte); //UnwindOp
+
         internal UnwindCode(int offset, byte codeOffset, UWOP unwindOp)
         {
             Offset = offset;
             CodeOffset = codeOffset;
             UnwindOp = unwindOp;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        //An UnwindCode is at least 2 bytes. Anyone who overrides WriteViewExtra is larger
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(UNWIND_CODE), this, ViewKind.UnwindCode, StructSize);
+
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            //Can't pass a using variable by ref
+            var s = viewWriter.CreateStruct(parent);
+
+            try
+            {
+                s.WriteField(nameof(CodeOffset), CodeOffset);
+
+                using (var b = s.WriteBitFields<byte>())
+                {
+                    b.WriteField(nameof(UnwindOp), UnwindOp, 4);
+                    b.WriteField(nameof(OpInfo), OpInfo, 4);
+                }
+
+                WriteViewExtra(ref s);
+
+                return s.ToArray();
+            }
+            finally
+            {
+                s.Dispose();
+            }
+        }
+
+        internal virtual void WriteViewExtra(ref StructWriter structWriter)
+        {
         }
 
         public class PushNonVolatile : UnwindCode
@@ -42,6 +85,10 @@ namespace PESpy
         public class AllocLarge : UnwindCode
         {
             public int Size { get; }
+
+            public override int StructSize =>
+                (OpInfo == 0 ? sizeof(short) : sizeof(int)) + //Size
+                base.StructSize;
 
             public AllocLarge(int offset, byte codeOffset, byte opInfo, int size) : base(offset, codeOffset, UWOP.ALLOC_LARGE)
             {
@@ -92,6 +139,10 @@ namespace PESpy
 
             public ushort StackOffset { get; }
 
+            public override int StructSize =>
+                sizeof(short) + //StackOffset
+                base.StructSize;
+
             public SaveNonVolatile(int offset, byte codeOffset, UnwindInfo.X64Register register, ushort stackOffset) : base(offset, codeOffset, UWOP.SAVE_NONVOL)
             {
                 Register = register;
@@ -112,6 +163,10 @@ namespace PESpy
 
             public int StackOffset { get; }
 
+            public override int StructSize =>
+                sizeof(int) + //StackOffset
+                base.StructSize;
+
             public SaveNonVolatileFar(int offset, byte codeOffset, UnwindInfo.X64Register register, int stackOffset) : base(offset, codeOffset, UWOP.SAVE_NONVOL_FAR)
             {
                 Register = register;
@@ -122,7 +177,7 @@ namespace PESpy
             {
                 //The high word has been shifted 16 bits to the right and then added to the low word.
                 //We don't currently store them separately
-                structWriter.WriteField(nameof(Offset), Offset);
+                structWriter.WriteField(nameof(StackOffset), StackOffset);
             }
         }
 
@@ -141,6 +196,10 @@ namespace PESpy
             public override byte OpInfo => (byte) Register;
 
             public ushort StackOffset { get; }
+
+            public override int StructSize =>
+                sizeof(int) + //StackOffset
+                base.StructSize;
 
             public SaveXmm128(int offset, byte codeOffset, UnwindInfo.X64Register register, ushort stackOffset) : base(offset, codeOffset, UWOP.SAVE_XMM128)
             {
@@ -161,6 +220,10 @@ namespace PESpy
             public override byte OpInfo => (byte) Register;
 
             public int StackOffset { get; }
+
+            public override int StructSize =>
+                sizeof(int) + //StackOffset
+                base.StructSize;
 
             public SaveXmm128Far(int offset, byte codeOffset, UnwindInfo.X64Register register, int stackOffset) : base(offset, codeOffset, UWOP.SAVE_XMM128_FAR)
             {
@@ -190,32 +253,6 @@ namespace PESpy
             {
                 OpInfo = opInfo;
             }
-        }
-
-        void IViewable.WriteView(ViewWriter writer)
-        {
-            var s = writer.CreateStruct(nameof(UNWIND_CODE), this, ViewKind.UnwindCode);
-
-            try
-            {
-                s.WriteField(nameof(CodeOffset), CodeOffset);
-
-                using (var b = s.WriteBitFields<byte>())
-                {
-                    b.WriteField(nameof(UnwindOp), UnwindOp, 4);
-                    b.WriteField(nameof(OpInfo), OpInfo, 4);
-                }
-
-                WriteViewExtra(ref s);
-            }
-            finally
-            {
-                s.Dispose();
-            }
-        }
-
-        internal virtual void WriteViewExtra(ref StructWriter structWriter)
-        {
         }
     }
 }

@@ -16,6 +16,11 @@ namespace PESpy
 
         public int Offset { get; }
 
+        internal int StructSize =>
+            sizeof(int) + //Version
+            sizeof(int) + //BDDSize
+            BDDSize; //BDDNodes
+
 #if PEFAST
         internal ImageBDDInfo(in MemoryChunk chunk)
         {
@@ -49,13 +54,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_BDD_INFO), this, ViewKind.ImageBDDInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_BDD_INFO), this, ViewKind.ImageBDDInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Version), Version);
             s.WriteField(nameof(BDDSize), BDDSize);
             s.WriteInline(BDDNodes);
+
+            return s.ToArray();
         }
     }
 }

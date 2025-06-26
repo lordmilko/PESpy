@@ -47,9 +47,17 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMPORT_OBJECT_HEADER), this, ViewKind.ImportObjectHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMPORT_OBJECT_HEADER), this, ViewKind.ImportObjectHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Sig1), Sig1, sizeof(short));
             s.WriteField(nameof(Sig2), Sig2);
@@ -58,13 +66,15 @@ namespace PESpy
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
             s.WriteField(nameof(SizeOfData), SizeOfData);
             s.WriteField("Ordinal / Hint", Ordinal); //Don't know what "grf" refers to
-            
+
             using (var bitField = s.WriteBitFields<ushort>())
             {
                 bitField.WriteField(nameof(Type), Type, 2);
                 bitField.WriteField(nameof(NameType), NameType, 3);
                 bitField.WriteField(nameof(Reserved), Reserved, 11);
             }
+
+            return s.ToArray();
         }
     }
 }

@@ -26,9 +26,17 @@ namespace PESpy.PDB
             sizeof(ushort) + //imod
             sizeof(ushort); //padding2
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateUnmanagedStruct(nameof(SC40), ViewKind.SC40);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(nameof(SC40), this, ViewKind.SC40, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(isect), isect);
             s.WriteField(nameof(padding1), padding1);
@@ -37,6 +45,8 @@ namespace PESpy.PDB
             s.WriteField(nameof(dwCharacteristics), dwCharacteristics, sizeof(int));
             s.WriteField(nameof(imod), imod);
             s.WriteField(nameof(padding2), padding2);
+
+            return s.ToArray();
         }
 
         #region ISC40

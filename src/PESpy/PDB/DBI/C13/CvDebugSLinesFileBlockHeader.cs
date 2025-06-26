@@ -16,9 +16,14 @@ namespace PESpy.PDB
 
         public CvLine[] lines { get; }
 
-        public CV_Column_t[] columns => throw new NotImplementedException(); //todo
+        public CV_Column_t[] columns { get; }
 
         public int Offset => chunk.AbsoluteOffset;
+
+        internal static int FixedStructSize =
+            sizeof(int) + //offFile
+            sizeof(int) + //nLines
+            sizeof(int); //cbBlock
 
         private readonly MemoryChunk chunk;
 
@@ -30,21 +35,31 @@ namespace PESpy.PDB
             var lines = new CvLine[nLines];
 
             for (var i = 0; i < lines.Length; i++)
-                lines[i] = new CvLine(chunk.Slice(12 + (i * CvLine.StructSize)));
+                lines[i] = new CvLine(chunk.Slice(FixedStructSize + (i * CvLine.StructSize)));
 
             this.lines = lines;
             Debug.Assert(!flags.HasFlag(CV_LINES.HAVE_COLUMNS), "Need to add support for columns");
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CV_DebugSLinesFileBlockHeader_t", this, ViewKind.CvDebugSLinesFileBlockHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CV_DebugSLinesFileBlockHeader_t", this, ViewKind.CvDebugSLinesFileBlockHeader, FixedStructSize + (lines.Length * CvLine.StructSize) + (columns.Length * 4));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(nLines), nLines);
             s.WriteField(nameof(cbBlock), cbBlock);
             s.WriteInline(lines);
 
-            //todo: columns
+            Debug.Assert(columns.Length == 0); //todo
+
+            return s.ToArray();
         }
     }
 }

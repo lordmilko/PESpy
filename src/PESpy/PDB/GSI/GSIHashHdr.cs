@@ -34,14 +34,24 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(GSIHashHdr), this, ViewKind.GSIHashHdr);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(GSIHashHdr), this, ViewKind.GSIHashHdr, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(verSignature), verSignature);
             s.WriteField(nameof(verHdr), verHdr, sizeof(int));
             s.WriteField(nameof(cbHr), cbHr);
             s.WriteField(nameof(cbBuckets), cbBuckets);
+
+            return s.ToArray();
         }
     }
 }

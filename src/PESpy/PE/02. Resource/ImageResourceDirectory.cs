@@ -215,9 +215,17 @@ namespace PESpy
             }
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_RESOURCE_DIRECTORY), this, ViewKind.ImageResourceDirectory);
+            writer.WriteGlobal(Entries);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_RESOURCE_DIRECTORY), this, ViewKind.ImageResourceDirectory, FixedStructSize); //The entries are written as global, so the FixedStructSize is all we care about
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Characteristics), Characteristics);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
@@ -226,7 +234,7 @@ namespace PESpy
             s.WriteField(nameof(NumberOfNamedEntries), NumberOfNamedEntries);
             s.WriteField(nameof(NumberOfIdEntries), NumberOfIdEntries);
 
-            writer.WriteGlobal(Entries);
+            return s.ToArray();
         }
     }
 }

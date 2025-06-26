@@ -138,9 +138,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_RESOURCE_DIRECTORY_ENTRY), this, ViewKind.ImageResourceDirectoryEntry);
+            if (NameOrId.NameIsString)
+                writer.WriteRVAField(NameOrId.NameOffset);
+
+            if (dataAndDirectoryUnion.DataIsDirectory)
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToDirectory);
+            else
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToData);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_RESOURCE_DIRECTORY_ENTRY), this, ViewKind.ImageResourceDirectoryEntry, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             if (NameOrId.NameIsString)
                 s.WriteRVAField("Name", NameOrId.NameOffset);
@@ -152,15 +166,14 @@ namespace PESpy
                 //We need to write the original value, where the high bit is set. The high bit will have been cleared
                 //in OffsetToDirectory, but is still present in OffsetToData (where we stored it for posterity)
                 s.WriteField("OffsetToData", (int) dataAndDirectoryUnion.OffsetToData.ListedOffset);
-
-                if (dataAndDirectoryUnion.OffsetToDirectory.IsValid)
-                    writer.WriteGlobal(dataAndDirectoryUnion.OffsetToDirectory.Value);
             }
             else
             {
                 //No high bit to set, so we can just write OffsetToData as is
                 s.WriteRVAField("OffsetToData", dataAndDirectoryUnion.OffsetToData);
             }
+
+            return s.ToArray();
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]

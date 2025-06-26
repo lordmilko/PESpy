@@ -958,8 +958,10 @@ namespace PESpy.Ecma335
             #endregion
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
+            writer.WriteGlobal(Header);
+
             static void WriteTable<T>(ViewWriter writer, string tableName, Table<T>? table) where T : IValue, IViewable
             {
                 if (table != null && table.Count > 0)
@@ -973,8 +975,6 @@ namespace PESpy.Ecma335
                         r.WriteValue(table[i]);
                 }
             }
-
-            writer.WriteGlobal(Header);
 
             WriteTable(writer, "Modules", ModuleTable);
             WriteTable(writer, "TypeRefs", TypeRefTable);
@@ -1032,5 +1032,9 @@ namespace PESpy.Ecma335
             WriteTable(writer, "StateMachineMethods", StateMachineMethodTable);
             WriteTable(writer, "CustomDebugInformation", CustomDebugInformationTable);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

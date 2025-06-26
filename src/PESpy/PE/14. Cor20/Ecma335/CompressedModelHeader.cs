@@ -65,6 +65,9 @@ namespace PESpy.Ecma335
             sizeof(long) + //Valid
             sizeof(long);  //Sorted
 
+        internal int StructSize =>
+            FixedStructSize + (RowCounts.Length * sizeof(int));
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -157,9 +160,17 @@ namespace PESpy.Ecma335
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Metadata Header", this, ViewKind.MetadataHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Metadata Header", this, ViewKind.MetadataHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Reserved1), Reserved1);
             s.WriteField(nameof(MajorVersion), MajorVersion);
@@ -169,6 +180,8 @@ namespace PESpy.Ecma335
             s.WriteField(nameof(Valid), Valid, sizeof(long));
             s.WriteField(nameof(Sorted), Sorted, sizeof(long));
             s.WriteField(nameof(RowCounts), RowCounts);
+
+            return s.ToArray();
         }
     }
 }

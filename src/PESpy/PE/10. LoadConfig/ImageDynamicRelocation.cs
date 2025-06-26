@@ -178,6 +178,11 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal int StructSize(bool is32Bit) =>
+            (is32Bit ? 4 : 8) + //Symbol
+            sizeof(int) + //BaseRelocSize
+            BaseRelocSize;
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -345,11 +350,19 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("IMAGE_DYNAMIC_RELOCATION", this, ViewKind.ImageDynamicRelocation);
+            //No globals
+        }
 
-            s.WriteField(nameof(Symbol), Symbol, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_DYNAMIC_RELOCATION", this, ViewKind.ImageDynamicRelocation, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Symbol), Symbol, chunk.PointerSize);
             s.WriteField(nameof(BaseRelocSize), BaseRelocSize);
 
             switch (Symbol)
@@ -379,6 +392,8 @@ namespace PESpy
                     s.WriteInline((ImageBaseRelocation[]) Data!);
                     break;
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

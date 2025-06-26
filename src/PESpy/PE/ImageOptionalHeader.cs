@@ -481,7 +481,7 @@ namespace PESpy
             sizeof(int) +   // SizeOfImage
             sizeof(int);    // SizeOfHeaders
 
-        internal static int StructSize(bool is32Bit) =>
+        internal int StructSize(bool is32Bit) =>
             OffsetOfChecksum +
             sizeof(int) + // Checksum
             sizeof(short) + // Subsystem
@@ -491,7 +491,7 @@ namespace PESpy
                 : sizeof(long)) + // SizeOfStackReserve, SizeOfStackCommit, SizeOfHeapReserve, SizeOfHeapCommit
             sizeof(int) + // LoaderFlags
             sizeof(int) + // NumberOfRvaAndSizes
-            16 * sizeof(long); // directory entries
+            NumberOfRvaAndSizes * sizeof(long); // directory entries
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -603,10 +603,18 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //We don't care about representing that there's a 32 and 64-bit versions of the structure
-            using var s = writer.CreateStruct("IMAGE_OPTIONAL_HEADER", this, ViewKind.ImageOptionalHeader);
+            //No globals
+        }
+
+        //We don't care about representing that there's a 32 and 64-bit versions of the structure
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_OPTIONAL_HEADER", this, ViewKind.ImageOptionalHeader, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             #region Standard Fields
 
@@ -619,7 +627,7 @@ namespace PESpy
             s.WriteField(nameof(AddressOfEntryPoint), AddressOfEntryPoint);
             s.WriteField(nameof(BaseOfCode), BaseOfCode);
 
-            if (((PEViewWriter) writer).Is32Bit)
+            if (chunk.Is32Bit)
                 s.WriteField(nameof(BaseOfData), BaseOfData);
 
             #endregion
@@ -701,6 +709,8 @@ namespace PESpy
                 s.WriteStructField(nameof(NullDirectory), NullDirectory);
 
             #endregion
+
+            return s.ToArray();
         }
     }
 }

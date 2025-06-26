@@ -193,7 +193,7 @@ namespace PESpy.View.Builder
                 if (repeatingGroupMode == 0)
                     repeatingGroupMode = RepeatingGroupMode.LogicalRegion;
             }
-            else if (nextValue is StructView s && s.Name == "IMAGE_IMPORT_BY_NAME")
+            else if (nextValue is IStructView s && s.Name == "IMAGE_IMPORT_BY_NAME")
             {
                 if (repeatingGroupMode != 0 && (repeatingGroupMode != RepeatingGroupMode.ImportFunctionNames && repeatingGroupMode != RepeatingGroupMode.DelayImportFunctionNames))
                     FinalizeRepeatingTypeRegion();

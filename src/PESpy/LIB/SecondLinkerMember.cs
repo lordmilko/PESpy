@@ -22,6 +22,8 @@ namespace PESpy.LIB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        public int StructSize => ImageArchiveMemberHeader.StructSize + ArchiveHeader.Size;
+
         private readonly MemoryChunk chunk;
 
         internal SecondLinkerMember(in MemoryChunk chunk)
@@ -46,10 +48,18 @@ namespace PESpy.LIB
             StringTable = stringTable;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //It's more of a region but we want to have named children for stuff
-            using var s = writer.CreateStruct("Second Linker Member", this, ViewKind.FirstLinkerMember);
+            //No globals
+        }
+
+        //It's more of a region but we want to have named children for stuff
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Second Linker Member", this, ViewKind.SecondLinkerMember, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteInline(ArchiveHeader);
             s.WriteField("Number Of Members", NumberOfMembers);
@@ -59,6 +69,8 @@ namespace PESpy.LIB
 
             foreach (var value in StringTable)
                 s.WriteInlineAnsiNullTerminated(value);
+
+            return s.ToArray();
         }
     }
 }

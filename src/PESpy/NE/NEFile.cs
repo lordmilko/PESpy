@@ -259,12 +259,12 @@ namespace PESpy
         public unsafe FileView GetView()
         {
             var writer = new NEViewWriter(this, mmf.Address, (int) mmf.Length, null);
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(DosHeader);
             writer.WriteDosStub(DosStub);
@@ -308,6 +308,10 @@ namespace PESpy
 
             writer.WriteGlobal((IViewable?) OMFData);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

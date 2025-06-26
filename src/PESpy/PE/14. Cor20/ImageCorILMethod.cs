@@ -251,7 +251,12 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer)
         {
             var kind = (CorILMethodFlags) ((int) Flags & Extensions.CorILMethod_FormatMask);
 
@@ -259,9 +264,48 @@ namespace PESpy
             {
                 case CorILMethodFlags.TinyFormat:
                 case CorILMethodFlags.TinyFormat1:
-                {
-                    using var s = writer.CreateStruct(nameof(IMAGE_COR_ILMETHOD_TINY), this, ViewKind.ImageCorILMethodTiny);
+                    return writer.NewStruct(nameof(IMAGE_COR_ILMETHOD_TINY), this, ViewKind.ImageCorILMethodTiny, sizeof(byte) + ILBytes.Length);
 
+                case CorILMethodFlags.FatFormat:
+                    return writer.NewStruct(nameof(IMAGE_COR_ILMETHOD_FAT), this, ViewKind.ImageCorILMethodFat, GetFatStructSize());
+
+                default:
+                    return null;
+            }
+        }
+
+        private int GetFatStructSize()
+        {
+            var size =
+                sizeof(int) + //Flags / Size / MaxStack
+                sizeof(int) + //CodeSize
+                sizeof(int) + //LocalVarSigTok
+                ILBytes.Length; //ILBytes
+
+            if (EHSections.Length > 0)
+            {
+                size = (size + 3) & ~3; //32-bit align
+
+                var ehSections = EHSections;
+
+                for (var i = 0; i < ehSections.Length; i++)
+                    throw new NotImplementedException(); //todo: will the section's header's datasize tell us?
+            }
+
+            throw new NotImplementedException();
+        }
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            var kind = (CorILMethodFlags) ((int) Flags & Extensions.CorILMethod_FormatMask);
+
+            using var s = viewWriter.CreateStruct(parent);
+
+            switch (kind)
+            {
+                case CorILMethodFlags.TinyFormat:
+                case CorILMethodFlags.TinyFormat1:
+                {
                     //The bit shifts make it very confusing, but per ECMA 335 II.25.4.2 the format is as follows
                     using (var b = s.WriteBitFields<byte>())
                     {
@@ -275,8 +319,6 @@ namespace PESpy
 
                 case CorILMethodFlags.FatFormat:
                 {
-                    using var s = writer.CreateStruct(nameof(IMAGE_COR_ILMETHOD_FAT), this, ViewKind.ImageCorILMethodFat);
-
                     using (var b = s.WriteBitFields<uint>())
                     {
                         b.WriteField(nameof(Flags), Flags, 12);
@@ -288,9 +330,18 @@ namespace PESpy
                     s.WriteField(nameof(LocalVarSigTok), LocalVarSigTok);
                     s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
 
-                    throw new NotImplementedException("Need to align and then write the sections");
+                    if (EHSections.Length > 0)
+                    {
+                        s.Align(4);
+
+                        s.WriteInline(EHSections);
+                    }
+
+                    break;
                 }
             }
+
+            return s.ToArray();
         }
     }
 }

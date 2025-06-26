@@ -18,11 +18,11 @@ namespace PESpy.PDB
                 //Following this is Addr Mao, and then Thunk Map
             }
 
-            protected override void WriteView(ViewWriter writer)
+            protected override void WriteGlobals(ViewWriter writer)
             {
                 writer.WriteGlobal(PSGsiHdr);
 
-                base.WriteView(writer);
+                base.WriteGlobals(writer);
             }
         }
     }

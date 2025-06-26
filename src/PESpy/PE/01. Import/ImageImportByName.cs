@@ -29,6 +29,10 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(short) +
+            Name.Length + 1;
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -48,12 +52,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_IMPORT_BY_NAME), this, ViewKind.ImageImportByName);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_IMPORT_BY_NAME), this, ViewKind.ImageImportByName, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Hint), Hint);
             s.WriteAnsiNullTerminatedField(nameof(Name), Name);
+
+            return s.ToArray();
         }
 
         public override string ToString()

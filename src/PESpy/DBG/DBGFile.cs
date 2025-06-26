@@ -171,12 +171,12 @@ namespace PESpy
         public unsafe FileView GetView()
         {
             var writer = new DBGViewWriter(this, mmf.Address, (int) mmf.Length);
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(DebugHeader);
             writer.WriteGlobal(SectionHeaders);
@@ -193,6 +193,10 @@ namespace PESpy
 
             writer.WriteGlobal(DebugTable);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

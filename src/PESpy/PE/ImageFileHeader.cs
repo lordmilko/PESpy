@@ -161,9 +161,18 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_FILE_HEADER), this, ViewKind.ImageFileHeader);
+            if (PointerToSymbolTable.IsValid)
+                writer.WriteUniqueGlobal(PointerToSymbolTable.Value); //ImageCoffSymbolsHeader can declare the Coff Symbol Table as well
+        }
+
+        IView? IViewable.WriteStruct(PESpy.View.ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_FILE_HEADER), this, ViewKind.ImageFileHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Machine), Machine, sizeof(short));
             s.WriteField(nameof(NumberOfSections), NumberOfSections);
@@ -171,12 +180,11 @@ namespace PESpy
 
             s.WriteField(nameof(PointerToSymbolTable), (int) PointerToSymbolTable.ListedAddress);
 
-            if (PointerToSymbolTable.IsValid)
-                writer.WriteUniqueGlobal(PointerToSymbolTable.Value); //ImageCoffSymbolsHeader can declare the Coff Symbol Table as well
-
             s.WriteField(nameof(NumberOfSymbols), NumberOfSymbols);
             s.WriteField(nameof(SizeOfOptionalHeader), SizeOfOptionalHeader);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(short));
+
+            return s.ToArray();
         }
     }
 }

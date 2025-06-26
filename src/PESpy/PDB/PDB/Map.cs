@@ -68,9 +68,17 @@ namespace PESpy.PDB
             Entries = entries;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Map", this, default);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Map", this, default, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("Size", Size);
             s.WriteField("Capacity", Capacity);
@@ -80,6 +88,8 @@ namespace PESpy.PDB
             s.WriteField("Deleted Words", DeletedWords);
 
             s.WriteInline(Entries);
+
+            return s.ToArray();
         }
 
         public readonly struct Entry : IValue, IViewable
@@ -101,12 +111,22 @@ namespace PESpy.PDB
                 this.chunk = chunk;
             }
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct("Entry", this, default);
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct("Entry", this, default, StructSize);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("Key", Key);
                 s.WriteField("Value", Value);
+
+                return s.ToArray();
             }
         }
     }

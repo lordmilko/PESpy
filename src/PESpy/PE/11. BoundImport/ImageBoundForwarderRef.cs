@@ -96,16 +96,24 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_BOUND_FORWARDER_REF), this, ViewKind.ImageBoundForwarderRef);
+            if (Name.IsValid)
+                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_BOUND_FORWARDER_REF), this, ViewKind.ImageBoundForwarderRef, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
             s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
             s.WriteField(nameof(Reserved), Reserved);
 
-            if (Name.IsValid)
-                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
+            return s.ToArray();
         }
 
         public override string ToString()

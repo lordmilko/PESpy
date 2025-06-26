@@ -37,6 +37,26 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal const int FixedStructSize =
+            sizeof(byte) + //Flags
+            sizeof(byte) + //Padding
+            sizeof(short); //Streams
+
+        internal int StructSize
+        {
+            get
+            {
+                var size = FixedStructSize;
+
+                var streamHeaders = StreamHeaders;
+
+                for (var i = 0; i < streamHeaders.Length; i++)
+                    size += streamHeaders[i].StructSize;
+
+                return size;
+            }
+        }
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -81,14 +101,24 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(STORAGEHEADER), this, ViewKind.StorageHeader);
+            writer.RelayGlobals(StreamHeaders);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(STORAGEHEADER), this, ViewKind.StorageHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("fFlags", Flags, sizeof(byte));
             s.WriteField("pad", Padding);
             s.WriteField("iStreams", Streams);
             s.WriteInline(StreamHeaders);
+
+            return s.ToArray();
         }
     }
 }

@@ -154,6 +154,14 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
+        internal const int FixedStructSize =
+            sizeof(int) + //DanS
+            sizeof(int) + //Padding1
+            sizeof(int) + //Padding2
+            sizeof(int) + //Padding3
+            sizeof(int) + //Rich
+            sizeof(int); //XorKey
+
         private RichHeader(Span<byte> bytes, RawOffset start, int bufferPos, int length)
         {
             //"start" stores the start offset of the bytes after the DOS Stub, and bufferPos initially stores the address of
@@ -177,8 +185,7 @@ namespace PESpy
             //DanS + 3x padding bytes
             const int prolog = 16;
 
-            var size = Marshal.SizeOf<PRODITEM>();
-            var numRecords = (length - prolog) / size;
+            var numRecords = (length - prolog) / PRODITEM.StructSize;
 
             var items = new ProdItem[numRecords];
 
@@ -186,7 +193,7 @@ namespace PESpy
             {
                 items[i] = new ProdItem(start, bufferPos, bytes);
 
-                bufferPos += size;
+                bufferPos += PRODITEM.StructSize;
             }
 
             Items = items;
@@ -197,9 +204,17 @@ namespace PESpy
             XorKey = MemoryMarshal.Read<int>(bytes.Slice(bufferPos));
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Rich Header", this, ViewKind.RichHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Rich Header", this, ViewKind.RichHeader, FixedStructSize + (Items.Length * ProdItem.StructSize));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(DanS), DanS);
             s.WriteField(nameof(Padding1), Padding1);
@@ -208,6 +223,8 @@ namespace PESpy
             s.WriteInline(Items);
             s.WriteField(nameof(Rich), Rich);
             s.WriteField(nameof(XorKey), XorKey);
+
+            return s.ToArray();
         }
     }
 }

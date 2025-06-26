@@ -350,15 +350,8 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_RESOURCE_DATA_ENTRY), this, ViewKind.ImageResourceDataEntry);
-
-            s.WriteField(nameof(OffsetToData), (int) OffsetToData.ListedOffset);
-            s.WriteField(nameof(Size), Size);
-            s.WriteField(nameof(CodePage), CodePage);
-            s.WriteField(nameof(Reserved), Reserved);
-
             if (OffsetToData.IsValid)
             {
                 if (OffsetToData.Value is VsVersionInfo v)
@@ -370,6 +363,21 @@ namespace PESpy
                 else
                     throw new NotImplementedException($"Don't know how to write a resource of type {OffsetToData.Value.GetType().Name}");
             }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_RESOURCE_DATA_ENTRY), this, ViewKind.ImageResourceDataEntry, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(OffsetToData), (int) OffsetToData.ListedOffset);
+            s.WriteField(nameof(Size), Size);
+            s.WriteField(nameof(CodePage), CodePage);
+            s.WriteField(nameof(Reserved), Reserved);
+
+            return s.ToArray();
         }
     }
 }

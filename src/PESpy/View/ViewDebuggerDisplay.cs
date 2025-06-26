@@ -54,7 +54,7 @@ namespace PESpy.View
 
             builder.Append(" = ");
 
-            if (view.Value is StructView s)
+            if (view.Value is IStructView s)
             {
                 builder.Append(s.Name);
 
@@ -116,14 +116,14 @@ namespace PESpy.View
 
             if (view.Children.Length > 0)
             {
-                if (view.Children[0] is StructView st)
+                if (view.Children[0] is IStructView st)
                 {
                     var first = st.Name;
 
-                    if (view.Children.Length > 1 && view.Children.All(v => v is StructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
+                    if (view.Children.Length > 1 && view.Children.All(v => v is IStructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
                         builder.Append(" (").Append(view.Children.Length).Append(")");
                     else if (first == "IMAGE_IMPORT_BY_NAME")
-                        builder.Append(" (").Append(view.Children.Count(v => v is StructView { Name: "IMAGE_IMPORT_BY_NAME" } || v is IValueView { Value: string })).Append(")");
+                        builder.Append(" (").Append(view.Children.Count(v => v is IStructView { Name: "IMAGE_IMPORT_BY_NAME" } || v is IValueView { Value: string })).Append(")");
                 }
                 else if (view.Kind == ViewKind.Strings || view.Kind == ViewKind.StringPoolHeap)
                 {
@@ -187,7 +187,7 @@ namespace PESpy.View
             return gb.ToString("N2") + " GB";
         }
 
-        public static string Struct(StructView view)
+        public static string Struct(IStructView view)
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
@@ -272,7 +272,7 @@ namespace PESpy.View
                 }
             }
 
-            if (view is SplitStructView)
+            if (view is ISplitView)
                 builder.Append(" (Split)");
 
             return builder.ToString();

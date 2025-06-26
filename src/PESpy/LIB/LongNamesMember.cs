@@ -13,6 +13,8 @@ namespace PESpy.LIB
 
         public int Offset { get; }
 
+        public int StructSize => ImageArchiveMemberHeader.StructSize + ArchiveHeader.Size;
+
         internal LongNamesMember(in MemoryChunk chunk)
         {
             Offset = chunk.AbsoluteOffset;
@@ -34,9 +36,24 @@ namespace PESpy.LIB
             Names = names.ToArray();
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            throw new System.NotImplementedException();
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Long Names Member", this, ViewKind.LongNamesMember, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteInline(ArchiveHeader);
+
+            foreach (var value in Names)
+                s.WriteInlineAnsiNullTerminated(value);
+
+            return s.ToArray();
         }
     }
 }

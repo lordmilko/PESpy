@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -99,7 +98,7 @@ namespace PESpy.PDB
             /* We're going to read, say, 4 byte's worth, but might only be interested in the first 25 bits. If you look at the hex in the FPM,
              * every bit after the first 25 (for the 25 pages we might have) will be all 1 (FF) indicating that all of these other "pages"
              * (that don't actually exist yet) are "free" */
-            PageMap = new BitArray(fpmReader.PeekSpan<byte>(0, fpmNumBytes).ToArray());
+            PageMap = new BitArray(fpmReader.PeekNativeSpan<byte>(0, fpmNumBytes).ToArray());
         }
     }
 }

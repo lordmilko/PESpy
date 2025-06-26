@@ -19,7 +19,7 @@
         protected internal abstract TResult VisitOverlay(OverlayView view);
         protected internal abstract TResult VisitFile(FileView view);
         protected internal abstract TResult VisitSection(SectionView view);
-        protected internal abstract TResult VisitStruct(StructView view);
+        protected internal abstract TResult VisitStruct(IStructView view);
         protected internal abstract TResult VisitValue(IValueView view);
     }
 }

@@ -147,9 +147,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION), this, ViewKind.ImageFunctionOverrideDynamicRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION), this, ViewKind.ImageFunctionOverrideDynamicRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(OriginalRva), OriginalRva);
             s.WriteField(nameof(BDDOffset), BDDOffset);
@@ -157,6 +165,8 @@ namespace PESpy
             s.WriteField(nameof(BaseRelocSize), BaseRelocSize);
             s.WriteField(nameof(RVAs), RVAs);
             s.WriteInline(BaseRelocs);
+
+            return s.ToArray();
         }
     }
 }

@@ -28,6 +28,11 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(long) + //pVFTable
+            sizeof(long) + //Spare
+            Name.Length + 1; //Name
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -46,13 +51,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PESpy.Native.TypeDescriptor), this, ViewKind.TypeDescriptor);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PESpy.Native.TypeDescriptor), this, ViewKind.TypeDescriptor, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WritePointerField("pVFTable", pVFTable);
             s.WritePointerField("spare", Spare);
             s.WriteAnsiNullTerminatedField("name", Name);
+
+            return s.ToArray();
         }
 
         public override string ToString()

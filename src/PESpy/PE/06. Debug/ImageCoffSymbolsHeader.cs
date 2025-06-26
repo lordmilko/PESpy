@@ -75,6 +75,16 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(int) + //NumberOfSymbols
+            sizeof(int) + //LvaToFirstSymbol
+            sizeof(int) + //NumberOfLinenumbers
+            sizeof(int) + //LvaToFirstLinenumber
+            sizeof(int) + //RvaToFirstByteOfCode
+            sizeof(int) + //RvaToLastByteOfCode
+            sizeof(int) + //RvaToFirstByteOfData
+            sizeof(int); //RvaToLastByteOfData
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -128,16 +138,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(PESpy.View.ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_COFF_SYMBOLS_HEADER), this, ViewKind.ImageCoffSymbolsHeader);
+            if (LvaToFirstSymbol.IsValid)
+                writer.WriteUniqueGlobal(LvaToFirstSymbol.Value);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_COFF_SYMBOLS_HEADER), this, ViewKind.ImageCoffSymbolsHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(NumberOfSymbols), NumberOfSymbols);
 
             s.WriteField(nameof(LvaToFirstSymbol), LvaToFirstSymbol.ListedOffset);
-
-            if (LvaToFirstSymbol.IsValid)
-                writer.WriteUniqueGlobal(LvaToFirstSymbol.Value);
 
             s.WriteField(nameof(NumberOfLinenumbers), NumberOfLinenumbers);
             s.WriteField(nameof(LvaToFirstLinenumber), LvaToFirstLinenumber);
@@ -145,6 +161,8 @@ namespace PESpy
             s.WriteField(nameof(RvaToLastByteOfCode), RvaToLastByteOfCode);
             s.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfData);
             s.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfData);
+
+            return s.ToArray();
         }
     }
 }

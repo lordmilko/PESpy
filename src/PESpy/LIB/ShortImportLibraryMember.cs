@@ -1,4 +1,5 @@
 ﻿#if PEFAST
+using System;
 using PESpy.View;
 
 namespace PESpy.LIB
@@ -22,7 +23,7 @@ namespace PESpy.LIB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(ArchiveHeader);
             writer.WriteGlobal(ImportHeader);
@@ -35,6 +36,10 @@ namespace PESpy.LIB
             var dllName = DllName;
             writer.WriteGlobal(importNameOffset + importNameLength, dllName, dllName.Length + 1, ViewKind.Value);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public override string ToString()
         {

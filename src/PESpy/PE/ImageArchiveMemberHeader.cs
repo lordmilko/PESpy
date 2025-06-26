@@ -39,9 +39,17 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_ARCHIVE_MEMBER_HEADER), this, ViewKind.ImageArchiveMemberHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_ARCHIVE_MEMBER_HEADER), this, ViewKind.ImageArchiveMemberHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteAnsiFixedLengthField(nameof(Name), Name);
             s.WriteAnsiFixedLengthField(nameof(Date), Date);
@@ -50,6 +58,8 @@ namespace PESpy
             s.WriteAnsiFixedLengthField(nameof(Mode), Mode);
             s.WriteAnsiFixedLengthField(nameof(Size), chunk.PeekAnsiFixedLength(48, 10));
             s.WriteAnsiFixedLengthField(nameof(EndHeader), EndHeader);
+
+            return s.ToArray();
         }
 
         public override string ToString()

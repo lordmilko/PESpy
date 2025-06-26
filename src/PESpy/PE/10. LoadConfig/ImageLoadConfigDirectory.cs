@@ -1423,15 +1423,48 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("IMAGE_LOAD_CONFIG_DIRECTORY", this, ViewKind.ImageLoadConfigDirectory);
+            writer.WriteVAPointerField(LockPrefixTable, ViewKind.LockPrefixTable); //9
+
+            writer.WriteVAPointerField(SecurityCookie, ViewKind.SecurityCookie); //17
+            writer.WriteVAPointerField(SEHandlerTable, ViewKind.SEHandlerTable); //18
+
+            writer.WriteVAPointerField(GuardCFCheckFunctionPointer, ViewKind.GuardCFCheckFunctionPointer); //20
+            writer.WriteVAPointerField(GuardCFDispatchFunctionPointer, ViewKind.GuardCFDispatchFunctionPointer); //21
+
+            writer.WriteVAPointerField(GuardCFFunctionTable); //22
+            writer.WriteVAPointerField(GuardAddressTakenIatEntryTable); //26
+            writer.WriteVAPointerField(GuardLongJumpTargetTable); //28
+
+            writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer); //33
+
+            if (DynamicValueRelocTableOffset.IsValid) //34
+                writer.WriteGlobal((IViewable) DynamicValueRelocTableOffset.Value);
+
+            writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer); //37
+
+            writer.WriteVAPointerField(EnclaveConfigurationPointer); //40
+            writer.WriteVAPointerField(GuardEHContinuationTable); //42
+
+            writer.WriteVAPointerField(GuardXFGCheckFunctionPointer, ViewKind.GuardXFGCheckFunctionPointer); //44
+            writer.WriteVAPointerField(GuardXFGDispatchFunctionPointer, ViewKind.GuardXFGDispatchFunctionPointer); //45
+            writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer); //46
+            writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer); //48
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_LOAD_CONFIG_DIRECTORY", this, ViewKind.ImageLoadConfigDirectory, Size);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Size), Size);
 
             for (var i = 1; s.Size < Size; i++)
             {
-                switch (i)
+                switch (i) //We're switching on i, which is not related to the number of bytes written
                 {
                     #region Default
 
@@ -1480,14 +1513,14 @@ namespace PESpy
                         break;
 
                     case 12:
-                        if (((PEViewWriter) writer).Is32Bit)
+                        if (((PEViewWriter) viewWriter).Is32Bit)
                             s.WriteField(nameof(ProcessHeapFlags), ProcessHeapFlags); //Flags
                         else
                             s.WritePointerField(nameof(ProcessAffinityMask), ProcessAffinityMask); //Don't think this is flags
                         break;
 
                     case 13:
-                        if (((PEViewWriter) writer).Is32Bit)
+                        if (((PEViewWriter) viewWriter).Is32Bit)
                             s.WritePointerField(nameof(ProcessAffinityMask), ProcessAffinityMask); //Don't think this is flags
                         else
                             s.WriteField(nameof(ProcessHeapFlags), ProcessHeapFlags); //Flags
@@ -1584,9 +1617,6 @@ namespace PESpy
 
                     case 34:
                         s.WriteField(nameof(DynamicValueRelocTableOffset), DynamicValueRelocTableOffset.ListedOffset);
-
-                        if (DynamicValueRelocTableOffset.IsValid)
-                            writer.WriteGlobal((IViewable) DynamicValueRelocTableOffset.Value);
                         break;
 
                     case 35:
@@ -1657,6 +1687,8 @@ namespace PESpy
 #endif
                 }
             }
+
+            return s.ToArray();
         }
     }
 }

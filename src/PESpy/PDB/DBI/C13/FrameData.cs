@@ -44,9 +44,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(FRAMEDATA), this, ViewKind.FrameData);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(FRAMEDATA), this, ViewKind.FrameData, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(ulRvaStart), ulRvaStart);
             s.WriteField(nameof(cbBlock), cbBlock);
@@ -56,7 +64,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(frameFunc), frameFunc);
             s.WriteField(nameof(cbProlog), cbProlog);
             s.WriteField(nameof(cbSavedRegs), cbSavedRegs);
-            
+
             using (var bitField = s.WriteBitFields<int>())
             {
                 bitField.WriteField(nameof(fHasSEH), fHasSEH, 1);
@@ -64,6 +72,8 @@ namespace PESpy.PDB
                 bitField.WriteField(nameof(fIsFunctionStart), fIsFunctionStart, 1);
                 bitField.WriteField(nameof(reserved), reserved, 29);
             }
+
+            return s.ToArray();
         }
     }
 }

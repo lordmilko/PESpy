@@ -62,9 +62,17 @@ namespace PESpy
                 throw new BadImageFormatException("Invalid Debug Signature");
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_SEPARATE_DEBUG_HEADER), this, ViewKind.ImageSeparateDebugHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_SEPARATE_DEBUG_HEADER), this, ViewKind.ImageSeparateDebugHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Signature), Signature);
             s.WriteField(nameof(Flags), Flags);
@@ -79,6 +87,8 @@ namespace PESpy
             s.WriteField(nameof(DebugDirectorySize), DebugDirectorySize);
             s.WriteField(nameof(SectionAlignment), SectionAlignment);
             s.WriteField(nameof(Reserved), Reserved);
+
+            return s.ToArray();
         }
     }
 }

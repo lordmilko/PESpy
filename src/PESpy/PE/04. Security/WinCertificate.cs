@@ -110,14 +110,24 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(WIN_CERTIFICATE), this, ViewKind.WinCertificate);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(WIN_CERTIFICATE), this, ViewKind.WinCertificate, Length); //Length includes the fields before the data
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("dwLength", Length);
             s.WriteField("wRevision", Revision, sizeof(short));
             s.WriteField("wCertificateType", CertificateType, sizeof(short));
             s.WriteInline((IViewable) Certificate);
+
+            return s.ToArray();
         }
 
         public override string ToString()

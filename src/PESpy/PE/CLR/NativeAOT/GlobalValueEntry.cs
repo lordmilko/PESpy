@@ -37,6 +37,9 @@ namespace PESpy
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal static int StructSize(bool is32Bit) =>
+            2 * (is32Bit ? 4 : 8); //Name / Address
+
         private readonly MemoryChunk chunk;
 
         internal GlobalValueEntry(in MemoryChunk chunk)
@@ -74,12 +77,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct($"{nameof(GlobalValueEntry)} {Name}", this, ViewKind.GlobalValueEntry);
+            writer.WriteVAAnsiNullTerminatedField(Name);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct($"{nameof(GlobalValueEntry)} {Name}", this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteVAAnsiNullTerminatedField(nameof(Name), Name);
             s.WritePointerField(nameof(Address), Address);
+
+            return s.ToArray();
         }
 
         public override string ToString()

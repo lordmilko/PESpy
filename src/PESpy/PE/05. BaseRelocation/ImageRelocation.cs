@@ -59,14 +59,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_RELOCATION), this, ViewKind.ImageRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_RELOCATION), this, ViewKind.ImageRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(VirtualAddress), VirtualAddress);
             s.WriteField(nameof(SymbolTableIndex), SymbolTableIndex);
 
-            var machine = ((IMachineWriter) writer).Machine;
+            var machine = ((IMachineWriter) viewWriter).Machine;
 
             //Unknown:
             //ImageRelAm
@@ -148,6 +156,8 @@ namespace PESpy
                     s.WriteField(nameof(Type), Type);
                     break;
             }
+
+            return s.ToArray();
         }
     }
 }

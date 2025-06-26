@@ -12,16 +12,19 @@ namespace PESpy
         public bool Reserved            => ((flags >> 15) & 0x1) != 0;
 
 #if PEFAST
+        private ushort flags => chunk.PeekUInt16(0);
+#else
+        private readonly ushort flags;
+#endif
+
+#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
 #else
         public int Offset { get; }
 #endif
 
-#if PEFAST
-        private ushort flags => chunk.PeekUInt16(0);
-#else
-        private readonly ushort flags;
-#endif
+        internal const int StructSize =
+            sizeof(short);
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -39,9 +42,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION), this, ViewKind.ImageIndirControlTransferDynamicRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION), this, ViewKind.ImageIndirControlTransferDynamicRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var b = s.WriteBitFields<ushort>())
             {
@@ -51,6 +62,8 @@ namespace PESpy
                 b.WriteField(nameof(CfgCheck), CfgCheck, 1);
                 b.WriteField(nameof(Reserved), Reserved, 1);
             }
+
+            return s.ToArray();
         }
     }
 }

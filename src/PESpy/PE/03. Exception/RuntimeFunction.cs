@@ -114,13 +114,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(RUNTIME_FUNCTION), this, ViewKind.RuntimeFunction);
+            writer.WriteRVAField(UnwindData);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(RUNTIME_FUNCTION), this, ViewKind.RuntimeFunction, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(BeginAddress), BeginAddress);
             s.WriteField(nameof(EndAddress), EndAddress);
             s.WriteRVAField(nameof(UnwindData), UnwindData);
+
+            return s.ToArray();
         }
     }
 }

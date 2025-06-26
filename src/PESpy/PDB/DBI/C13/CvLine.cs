@@ -40,9 +40,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CV_Line_t", this, ViewKind.CvLine);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CV_Line_t", this, ViewKind.CvLine, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(offset), offset);
 
@@ -52,6 +60,8 @@ namespace PESpy.PDB
                 bitField.WriteField(nameof(deltaLineEnd), deltaLineEnd, 7);
                 bitField.WriteField(nameof(fStatement), fStatement, 1);
             }
+
+            return s.ToArray();
         }
     }
 }

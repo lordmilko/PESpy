@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
 #if PEFAST
 namespace PESpy.LIB
@@ -76,7 +77,7 @@ namespace PESpy.LIB
             this.chunk = new MemoryChunk(block, 0);
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             //Relocations need to know what our machine is, so we must temporarily set it
             var l = (LIBViewWriter) writer;
@@ -95,6 +96,10 @@ namespace PESpy.LIB
 
             l.Machine = default;
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public override string ToString()
         {

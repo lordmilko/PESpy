@@ -211,12 +211,12 @@ namespace PESpy
         public unsafe FileView GetView()
         {
             var writer = new LIBViewWriter(this, mmf.Address, (int) mmf.Length);
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(0, Signature, Signature.Length, ViewKind.Value);
             writer.WriteGlobal(FirstLinkerMember);
@@ -224,6 +224,12 @@ namespace PESpy
             writer.WriteGlobal(LongNamesMember);
             writer.WriteGlobal(ImportLibrary);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            throw new NotSupportedException();
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) =>
+            throw new NotSupportedException();
 
         public void Dispose()
         {

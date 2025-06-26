@@ -37,9 +37,17 @@ namespace PESpy.PDB
         public static unsafe implicit operator SC40(SC2 value) => *(SC40*) &value;
         public static unsafe implicit operator SC(SC2 value) => *(SC*) &value;
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateUnmanagedStruct(nameof(SC2), ViewKind.SC2);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(nameof(SC2), this, ViewKind.SC2, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             //SC40
             s.WriteField(nameof(isect), isect);
@@ -56,6 +64,8 @@ namespace PESpy.PDB
 
             //SC2
             s.WriteField(nameof(isectCoff), isectCoff);
+
+            return s.ToArray();
         }
 
         #region ISC40

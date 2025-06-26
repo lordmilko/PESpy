@@ -129,15 +129,25 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PESpy.Native.TryBlockMapEntry), this, ViewKind.TryBlockMapEntry);
+            writer.WriteRVAField(HandlerArray);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PESpy.Native.TryBlockMapEntry), this, ViewKind.TryBlockMapEntry, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("tryLow", TryLow);
             s.WriteField("tryHigh", TryHigh);
             s.WriteField("catchHigh", CatchHigh);
             s.WriteField("nCatches", nCatches);
             s.WriteRVAField("dispHandlerArray", HandlerArray);
+
+            return s.ToArray();
         }
     }
 }

@@ -44,12 +44,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PESpy.Native.UnwindMapEntry), this, ViewKind.UnwindMapEntry);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PESpy.Native.UnwindMapEntry), this, ViewKind.UnwindMapEntry, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("toState", ToState);
             s.WriteField("action", Action);
+
+            return s.ToArray();
         }
     }
 }

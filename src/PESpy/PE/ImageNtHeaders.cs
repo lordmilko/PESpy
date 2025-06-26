@@ -48,10 +48,10 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
-        internal static int StructSize(bool is32Bit) =>
+        internal int StructSize(bool is32Bit) =>
             sizeof(int) + //Signature
             ImageFileHeader.StructSize +
-            ImageOptionalHeader.StructSize(is32Bit);
+            OptionalHeader.StructSize(is32Bit);
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -101,14 +101,24 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //We don't care about representing that there's a 64-bit version of the structure
-            using var s = writer.CreateStruct(nameof(IMAGE_NT_HEADERS), this, ViewKind.ImageNtHeaders);
+            writer.RelayGlobals(FileHeader);
+        }
+
+        //We don't care about representing that there's a 64-bit version of the structure
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_NT_HEADERS), this, ViewKind.ImageNtHeaders, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Signature), Signature);
             s.WriteInline(FileHeader);
             s.WriteInline(OptionalHeader);
+
+            return s.ToArray();
         }
     }
 }

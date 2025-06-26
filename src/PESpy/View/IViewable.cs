@@ -8,6 +8,12 @@ namespace PESpy.View
     /// </summary>
     public interface IViewable
     {
-        void WriteView(ViewWriter writer);
+        void WriteGlobals(ViewWriter writer);
+
+        IView? WriteStruct(ViewWriter writer);
+
+        //We need to pass our parent view, because the offset of the IValue may have been changed to be in a different mode (e.g. physical or virtual)
+        //when the parent struct was created
+        IView[] GetChildren(IView parent, ViewWriter writer);
     }
 }

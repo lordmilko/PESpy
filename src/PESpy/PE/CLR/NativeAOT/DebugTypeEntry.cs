@@ -65,6 +65,11 @@ namespace PESpy
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal static int StructSize(bool is32Bit) =>
+            2 * (is32Bit ? 4 : 8) + //TypeName / FieldName
+            sizeof(int) + //FieldOffset
+            sizeof(int); //ReservedPadding
+
         private readonly MemoryChunk chunk;
 
         internal DebugTypeEntry(in MemoryChunk chunk)
@@ -117,16 +122,29 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteVAAnsiNullTerminatedField(TypeName);
+            writer.WriteVAAnsiNullTerminatedField(FieldName);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer)
         {
             var name = TypeName.ListedAddress == 0 ? $"{nameof(DebugTypeEntry)} {TypeName}" : $"{nameof(DebugTypeEntry)} {TypeName}.{FieldName}";
 
-            using var s = writer.CreateStruct(name, this, ViewKind.DebugTypeEntry);
+            return writer.NewStruct(name, this, ViewKind.DebugTypeEntry, StructSize(((PEViewWriter) writer).Is32Bit));
+        }
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteVAAnsiNullTerminatedField(nameof(TypeName), TypeName);
             s.WriteVAAnsiNullTerminatedField(nameof(FieldName), FieldName);
             s.WriteField(nameof(FieldOffset), FieldOffset);
             s.WriteField(nameof(ReservedPadding), ReservedPadding);
+
+            return s.ToArray();
         }
 
         public override string ToString()

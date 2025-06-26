@@ -10,6 +10,8 @@ namespace PESpy
 
         public int Offset { get; }
 
+        private readonly int length;
+
 #if PEFAST
         internal GuardEHContinuationTable(in MemoryChunk chunk, IMAGE_GUARD flags, long entryCount)
         {
@@ -30,6 +32,8 @@ namespace PESpy
                 entries[i] = new Entry(chunk.Slice(read), metadataSize);
                 read += 4 + metadataSize;
             }
+
+            length = read;
 
             Entries = entries;
         }
@@ -53,11 +57,21 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(GuardEHContinuationTable), this, ViewKind.GuardEHContinuationTable);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(GuardEHContinuationTable), this, ViewKind.GuardEHContinuationTable, length);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteInline(Entries);
+
+            return s.ToArray();
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -120,14 +134,24 @@ namespace PESpy
             }
 #endif
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct("EHCONT Entry", this, ViewKind.GuardEHContinuationTable_Entry);
+                //No globals
+            }
 
-                s.WriteField(nameof(Function), Function);
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct("EHCONT Entry", this, ViewKind.GuardEHContinuationTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
-                if (Flags != null)
-                    s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Function), Function);
+
+            if (Flags != null)
+                s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
+
+                return s.ToArray();
             }
         }
     }

@@ -15,6 +15,8 @@ namespace PESpy.Ecma335
         private readonly int length;
         private readonly byte lengthSize;
 
+        internal int StructSize => lengthSize + length;
+
         public BlobEntry(int offset, byte* start, byte lengthSize, int length)
         {
             Offset = offset;
@@ -23,12 +25,22 @@ namespace PESpy.Ecma335
             this.length = length;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("BlobEntry", this, ViewKind.Metadata_Guid);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("BlobEntry", this, ViewKind.Metadata_Guid, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("Size", CompressedSize);
             s.WriteField("Value", Value);
+
+            return s.ToArray();
         }
     }
 }

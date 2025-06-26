@@ -265,17 +265,19 @@ namespace PESpy
 
             if (DebugTypeEntries.IsValid)
             {
-                using var r = writer.CreateRegion(DebugTypeEntries.ActualOffset, "DebugTypeEntries", ViewKind.DebugTypeEntries);
+                using var r = viewWriter.CreateRegion(DebugTypeEntries.ActualOffset, "DebugTypeEntries", ViewKind.DebugTypeEntries);
 
                 r.WriteValues(DebugTypeEntries.Value);
             }
 
             if (GlobalValueEntries.IsValid)
             {
-                using var r = writer.CreateRegion(GlobalValueEntries.ActualOffset, "GlobalValueEntries", ViewKind.GlobalValueEntries);
+                using var r = viewWriter.CreateRegion(GlobalValueEntries.ActualOffset, "GlobalValueEntries", ViewKind.GlobalValueEntries);
 
                 r.WriteValues(GlobalValueEntries.Value);
             }
+
+            return s.ToArray();
         }
     }
 }

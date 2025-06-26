@@ -137,9 +137,17 @@ public ImageAuxSymbol[] AuxSymbols { get; }
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_SYMBOL), this, ViewKind.ImageSymbol);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_SYMBOL), this, ViewKind.ImageSymbol, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             if (Name.Short == 0)
             {
@@ -157,6 +165,8 @@ public ImageAuxSymbol[] AuxSymbols { get; }
             s.WriteField(nameof(StorageClass), StorageClass, sizeof(byte));
             s.WriteField(nameof(NumberOfAuxSymbols), NumberOfAuxSymbols);
             s.WriteInline(AuxSymbols);
+
+            return s.ToArray();
         }
 
         public readonly struct NameOrOffset

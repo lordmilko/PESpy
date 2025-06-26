@@ -56,9 +56,17 @@ namespace PESpy.PDB
 #endif
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CV_DebugSLinesHeader_t", this, ViewKind.CvDebugSLinesHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CV_DebugSLinesHeader_t", this, ViewKind.CvDebugSLinesHeader, length);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(offCon), offCon);
             s.WriteField(nameof(segCon), segCon);
@@ -66,6 +74,8 @@ namespace PESpy.PDB
             s.WriteField(nameof(cbCon), cbCon);
 
             s.WriteInline(FileBlocks);
+
+            return s.ToArray();
         }
     }
 }

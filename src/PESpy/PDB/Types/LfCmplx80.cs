@@ -16,9 +16,9 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public Span<byte> val_real => new Span<byte>(value->val_real, 10);
+        public NativeSpan<byte> val_real => new NativeSpan<byte>(value->val_real, 10);
 
-        public Span<byte> val_imag => new Span<byte>(value->val_imag, 10);
+        public NativeSpan<byte> val_imag => new NativeSpan<byte>(value->val_imag, 10);
 
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf

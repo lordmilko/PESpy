@@ -29,7 +29,9 @@ namespace PESpy
 
         public int VersionStringLength => chunk.PeekInt32(12);
 
-        public FixedUtf8String Version => chunk.PeekUtf8FixedLength(16, VersionStringLength);
+        //The version string is a bit weird. It's really more of a null padded string, but VersionStringLength bytes
+        //are allocated for it
+        public FixedUtf8String Version => chunk.PeekNullPaddedUtf8(16, VersionStringLength);
 #else
         /// <summary>
         /// Magic signature for physical metadata : 0x424A5342.
@@ -59,6 +61,10 @@ namespace PESpy
             sizeof(short) + //MinorVersion
             sizeof(int) + //ExtraData
             sizeof(int); //VersionStringLength
+
+        internal int StructSize =>
+            FixedStructSize +
+            VersionStringLength;
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -92,9 +98,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(STORAGESIGNATURE), this, ViewKind.StorageSignature);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(STORAGESIGNATURE), this, ViewKind.StorageSignature, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("iSignature", Signature);
             s.WriteField("iMajorVer", MajorVersion);
@@ -104,6 +118,8 @@ namespace PESpy
             s.WriteUtf8FixedLengthField("pVersion", Version);
 
             s.Align(4);
+
+            return s.ToArray();
         }
     }
 }

@@ -65,14 +65,24 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_LOAD_CONFIG_CODE_INTEGRITY), this, ViewKind.ImageLoadConfigCodeIntegrity);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_LOAD_CONFIG_CODE_INTEGRITY), this, ViewKind.ImageLoadConfigCodeIntegrity, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Flags), Flags);
             s.WriteField(nameof(Catalog), Catalog);
             s.WriteField(nameof(CatalogOffset), CatalogOffset);
             s.WriteField(nameof(Reserved), Reserved);
+
+            return s.ToArray();
         }
     }
 }

@@ -114,6 +114,10 @@ namespace PESpy
             sizeof(int) + //iOffset
             sizeof(int); //Size
 
+        internal int StructSize =>
+            (FixedStructSize +
+            Name.Length + 1 + 3) & ~3; //32-bit aligned
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -195,16 +199,8 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(STORAGESTREAM), this, ViewKind.StorageStream);
-
-            s.WriteField("iOffset", iOffset);
-            s.WriteField("iSize", Size);
-            s.WriteAnsiNullTerminatedField("rcName", Name);
-
-            s.Align(4);
-
             switch (Name)
             {
                 case CompressedModelStream:
@@ -273,6 +269,22 @@ namespace PESpy
                 default:
                     throw new NotImplementedException($"Don't know how to handle serializing stream '{Name}'");
             }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(STORAGESTREAM), this, ViewKind.StorageStream, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField("iOffset", iOffset);
+            s.WriteField("iSize", Size);
+            s.WriteAnsiNullTerminatedField("rcName", Name);
+
+            s.Align(4);
+
+            return s.ToArray();
         }
 
         public override string ToString()

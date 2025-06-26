@@ -370,9 +370,17 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_VXD_HEADER), this, ViewKind.ImageVXDHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_VXD_HEADER), this, ViewKind.ImageVXDHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("e32_magic", Magic);
             s.WriteField("e32_border", ByteOrder, sizeof(byte));
@@ -425,6 +433,8 @@ namespace PESpy
             s.WriteField("e32_winreslen", e32_winreslen);
             s.WriteField("e32_devid", DeviceID);
             s.WriteField("e32_ddkver", DDKVersion);
+
+            return s.ToArray();
         }
     }
 }

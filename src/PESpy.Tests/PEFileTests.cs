@@ -1659,7 +1659,7 @@ namespace PESpy.Tests
             TestView<NB10I>(
                 v => v.VerifyStruct(
                     name: "NB10I", offset: 148992, size: 27,
-                    c => c.VerifyField(name: "dwSig", value: 808534606),
+                    c => c.VerifyField(name: "dwSig", value: CodeViewSig.NB10),
                     c => c.VerifyField(name: "dwOffset", value: 0),
                     c => c.VerifyField(name: "sig", value: 988769516),
                     c => c.VerifyField(name: "age", value: 1),

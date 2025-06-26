@@ -119,15 +119,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(FPO_DATA), this, ViewKind.FpoData);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(FPO_DATA), this, ViewKind.FpoData, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("ulOffStart", OffStart);
             s.WriteField("cbProcSize", ProcSize);
             s.WriteField("cdwLocals", Locals);
             s.WriteField("cdwParams", Params);
-            
+
             using (var bitField = s.WriteBitFields<ushort>())
             {
                 bitField.WriteField(nameof(cbProlog), cbProlog, 8);
@@ -137,6 +145,8 @@ namespace PESpy
                 bitField.WriteField(nameof(reserved), reserved, 1);
                 bitField.WriteField(nameof(cbFrame), cbFrame, 2);
             }
+
+            return s.ToArray();
         }
 
         public override string ToString()

@@ -44,7 +44,7 @@ namespace PESpy
             this.mmf = mmf;
             PDBFile = pdbFile;
 
-            Demand();
+            AcquireBuffer(RemoteStartOffset, Length, false);
         }
 
 
@@ -64,8 +64,6 @@ namespace PESpy
 
             return result;
         }
-
-        public override void Demand(int offset, int length) => AcquireBuffer(offset, length, false);
 
         private void AcquireBuffer(int offset, int length, bool copyData)
         {

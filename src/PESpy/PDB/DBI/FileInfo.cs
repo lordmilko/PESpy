@@ -36,10 +36,12 @@ namespace PESpy.PDB
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
+        private readonly int length;
 
-        internal unsafe FileInfo(in MemoryChunk chunk)
+        internal unsafe FileInfo(in MemoryChunk chunk, int length)
         {
             this.chunk = chunk;
+            this.length = length;
 
             //I believe the information encapsulated by the FileInfo type is what you get when you call DBI1::QueryFileInfo
 
@@ -78,8 +80,8 @@ namespace PESpy.PDB
                     {
                         var offset = fileNameOffsets[i];
 
-                        var length = namesChunk.PeekByte(offset);
-                        var str = namesChunk.PeekUtf8FixedLength(offset + 1, length);
+                        var strLen = namesChunk.PeekByte(offset);
+                        var str = namesChunk.PeekUtf8FixedLength(offset + 1, strLen);
                         names[i] = new RawValue<FixedUtf8String>(namesChunk.AbsoluteOffset + offset, str);
                     }
                 }
@@ -109,9 +111,17 @@ namespace PESpy.PDB
             Names = names;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("File Info", this, ViewKind.FileInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("File Info", this, ViewKind.FileInfo, length);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(NumModules), NumModules);
             s.WriteField(nameof(NumSourceFiles), NumSourceFiles);
@@ -143,6 +153,8 @@ namespace PESpy.PDB
                         s.WriteInlineUtf8NullTerminated(name);
                 }
             }
+
+            return s.ToArray();
         }
     }
 }

@@ -20,11 +20,6 @@ namespace PESpy
             LocalPointer = (byte*) Marshal.AllocHGlobal(Length);
             this.address = address;
 
-            Demand();
-        }
-
-        public override void Demand(int offset, int length)
-        {
             reader.ReadVirtual(address, (IntPtr) LocalPointer, Length);
         }
 
@@ -35,7 +30,7 @@ namespace PESpy
 
             var oldPtr = LocalPointer;
             LocalPointer = (byte*) Marshal.AllocHGlobal(newSize);
-            throw new NotImplementedException($"{Length} -> {newSize}. Need to copy the old memory based on our current length and then update the current pointer and size");
+            throw new NotImplementedException($"{Length} -> {newSize}. Need to copy the old memory based on our current length, update the current pointer and size and read the extra missing memory");
         }
 
         public override void Dispose(bool disposing)

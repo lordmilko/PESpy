@@ -151,6 +151,8 @@ namespace PESpy.PDB
             sizeof(int) + //mpifileichFile
             ECInfo.StructSize; //ecInfo
 
+        internal int StructSize => (FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1 + 3) & ~3; //32-bit aligned
+
         private readonly MemoryChunk chunk;
 
         internal unsafe Modi60(in MemoryChunk chunk, out int read)
@@ -185,14 +187,20 @@ namespace PESpy.PDB
 #endif
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("MODI_60_Persist", this, ViewKind.Modi60Persist);
+            writer.WriteGlobal(Symbols);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("MODI_60_Persist", this, ViewKind.Modi60Persist, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(pmod), pmod);
             s.WriteStructField(nameof(sc), sc);
-
-            writer.WriteGlobal(Symbols);
 
             using (var bitField = s.WriteBitFields<ushort>())
             {
@@ -212,6 +220,8 @@ namespace PESpy.PDB
             s.WriteInline(ecInfo);
             s.WriteAnsiNullTerminatedField(nameof(szModule), szModule);
             s.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFile);
+
+            return s.ToArray();
         }
 
         public override string ToString()

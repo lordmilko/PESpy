@@ -23,14 +23,19 @@ namespace PESpy.PDB
         {
         }
 
-        protected override void WriteView(ViewWriter writer)
+        protected override IView? WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PDBStream70), this, ViewKind.PDBStream70, StructSize);
+
+        protected override IView[] GetChildren(IView parent, ViewWriter viewWriter)
         {
-            using var s = writer.CreateStruct(nameof(PDBStream70), this, ViewKind.PDBStream70);
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("impv", ImplementationVersion, sizeof(int));
             s.WriteField("sig", Signature);
             s.WriteField("age", Age);
             s.WriteField("sig70", Guid);
+
+            return s.ToArray();
         }
     }
 }

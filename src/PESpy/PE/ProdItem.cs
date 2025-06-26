@@ -28,6 +28,11 @@ namespace PESpy
 
         public RawOffset Offset { get; }
 
+        internal const int StructSize =
+            sizeof(short) + //ProdId
+            sizeof(short) + //BuildId
+            sizeof(int); //Count
+
         internal ProdItem(RawOffset start, int bufferPos, Span<byte> bytes)
         {
             Offset = start + bufferPos;
@@ -353,13 +358,23 @@ namespace PESpy
             };
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PRODITEM), this, ViewKind.ProdItem);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PRODITEM), this, ViewKind.ProdItem, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(ProdId), ProdId);
             s.WriteField(nameof(BuildId), BuildId);
             s.WriteField(nameof(Count), Count);
+
+            return s.ToArray();
         }
     }
 }

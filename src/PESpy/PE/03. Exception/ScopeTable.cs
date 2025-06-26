@@ -55,6 +55,10 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal int StructSize =>
+            sizeof(int) + //Count
+            (ScopeRecord.StructSize * Count);
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -82,6 +86,25 @@ namespace PESpy
         public IEnumerator<ScopeRecord> GetEnumerator() => Records.Select(v => v).GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(SCOPE_TABLE), this, ViewKind.ScopeTable, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Count), Count);
+            s.WriteInline(Records);
+
+            return s.ToArray();
+        }
 
         #region Record
 
@@ -167,25 +190,27 @@ namespace PESpy
             }
 #endif
 
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct("ScopeRecord", this, ViewKind.ScopeRecord);
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct("ScopeRecord", this, ViewKind.ScopeRecord, StructSize);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField(nameof(BeginAddress), BeginAddress);
                 s.WriteField(nameof(EndAddress), EndAddress);
                 s.WriteField(nameof(HandlerAddress), HandlerAddress);
                 s.WriteField(nameof(JumpTarget), JumpTarget);
+
+                return s.ToArray();
             }
         }
 
-#endregion
-
-        void IViewable.WriteView(ViewWriter writer)
-        {
-            using var s = writer.CreateStruct(nameof(SCOPE_TABLE), this, ViewKind.ScopeTable);
-
-            s.WriteField(nameof(Count), Count);
-            s.WriteInline(Records);
-        }
+        #endregion
     }
 }

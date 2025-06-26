@@ -81,9 +81,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(CLR_DEBUG_RESOURCE), this, ViewKind.ClrDebugResource);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(CLR_DEBUG_RESOURCE), this, ViewKind.ClrDebugResource, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("dwVersion", Version);
             s.WriteField("signature", Signature);
@@ -91,6 +99,8 @@ namespace PESpy
             s.WriteField("dwDacSizeOfImage", DacSizeOfImage);
             s.WriteField("dwDbiTimeStamp", DbiTimeStamp);
             s.WriteField("dwDbiSizeOfImage", DbiSizeOfImage);
+
+            return s.ToArray();
         }
     }
 }

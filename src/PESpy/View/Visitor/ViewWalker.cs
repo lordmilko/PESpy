@@ -31,7 +31,7 @@
 
         protected internal override void VisitSection(SectionView view) => VisitChildren(view);
 
-        protected internal override void VisitStruct(StructView view) => VisitChildren(view);
+        protected internal override void VisitStruct(IStructView view) => VisitChildren(view);
 
         protected internal override void VisitValue(IValueView view)
         {

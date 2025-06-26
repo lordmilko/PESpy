@@ -525,9 +525,13 @@ namespace PESpy
             }
         }
 
-        void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
+        void IViewable.WriteGlobals(ViewWriter writer) => WriteGlobals(writer);
 
-        protected abstract void WriteView(ViewWriter writer);
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+
+        protected abstract void WriteGlobals(ViewWriter writer);
 
         protected void WriteMsfStreamViews(ViewWriter writer)
         {
@@ -552,7 +556,7 @@ namespace PESpy
         public FileView GetView()
         {
             var writer = new PDBViewWriter(this, mmf.Address, (int) mmf.Length);
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }

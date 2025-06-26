@@ -10,6 +10,8 @@ namespace PESpy
 
         public int Offset { get; }
 
+        private readonly int length;
+
 #if PEFAST
         internal GuardCFFunctionTable(in MemoryChunk chunk, IMAGE_GUARD flags, long functionCount)
         {
@@ -43,6 +45,8 @@ namespace PESpy
                 entries[i] = new Entry(chunk.Slice(read), metadataSize);
                 read += 4 + metadataSize;
             }
+
+            length = read;
 
             var peFile = chunk.PEFile();
 
@@ -149,11 +153,22 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(GuardCFFunctionTable), this, ViewKind.GuardCFFunctionTable);
+            //We don't have any globals, but our children do
+            writer.RelayGlobals(Entries);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(GuardCFFunctionTable), this, ViewKind.GuardCFFunctionTable, length);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteInline(Entries);
+
+            return s.ToArray();
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -166,7 +181,7 @@ namespace PESpy
 
             public IMAGE_GUARD_FLAG? Flags { get; init; }
 
-            public RVA<ulong>? XFG { get; init; }
+            public RVA<ulong>? XFG { get; init; } //This is set by GuardCFFunctionTableEntry after this type has been constructed
 
             public int Offset { get; init; }
 
@@ -222,20 +237,27 @@ namespace PESpy
             }
 #endif
 
-
-            void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
-                using var s = writer.CreateStruct("GFIDS Entry", this, ViewKind.GuardCFFunctionTable_Entry);
+                //We do not need to write the listed address, because the address wasn't listed!
+                //We calculated it based on the address stored in Function
+                if (XFG != null && XFG.Value.IsValid)
+                    writer.WriteGlobal(XFG.Value.ActualOffset, XFG.Value.Value, sizeof(long), ViewKind.XFG);
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewStruct("GFIDS Entry", this, ViewKind.GuardCFFunctionTable_Entry, sizeof(int) + (Flags != null ? 1 : 0)); //The XFG RVA is not part of the structure
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField(nameof(Function), Function);
 
                 if (Flags != null)
                     s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
 
-                //We do not need to write the listed address, because the address wasn't listed!
-                //We calculated it based on the address stored in Function
-                if (XFG != null && XFG.Value.IsValid)
-                    writer.WriteGlobal(XFG.Value.ActualOffset, XFG.Value.Value, sizeof(long), ViewKind.XFG);
+                return s.ToArray();
             }
         }
     }

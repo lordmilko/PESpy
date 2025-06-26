@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -25,10 +26,14 @@ namespace PESpy.PDB
             List = symbols;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
             writer.WritePagedGlobal(chunk.RelativeOffset + 4, (PagedMemoryBlock) chunk.block, List);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

@@ -67,19 +67,22 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer) => WriteView(writer);
-
-        protected virtual void WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            var s = writer.CreateStruct(nameof(ANON_OBJECT_HEADER), this, ViewKind.AnonObjectHeader);
-
-            WriteAnonObjectHeader(ref s);
-
-            s.Dispose();
+            //No globals
         }
 
-        internal void WriteAnonObjectHeader(ref ViewWriter.StructWriter s)
+        IView? IViewable.WriteStruct(ViewWriter writer) => WriteStruct(writer);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
+
+        protected virtual IView? WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(ANON_OBJECT_HEADER), this, ViewKind.AnonObjectHeader, StructSize);
+
+        protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
         {
+            using var s = viewWriter.CreateStruct(parent);
+
             s.WriteField(nameof(Sig1), Sig1, sizeof(short));
             s.WriteField(nameof(Sig2), Sig2);
             s.WriteField(nameof(Version), Version);
@@ -87,6 +90,8 @@ namespace PESpy
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
             s.WriteField(nameof(ClassID), ClassID);
             s.WriteField(nameof(SizeOfData), SizeOfData);
+
+            return s.ToArray();
         }
     }
 }

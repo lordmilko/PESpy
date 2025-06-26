@@ -35,9 +35,17 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateMetadataRow("LocalScope Row", this, ViewKind.PortablePdb_LocalScopeRow);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("LocalScope Row", this, ViewKind.PortablePdb_LocalScopeRow, table.RowSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateMetadataRow(parent);
 
             s.WriteValue(nameof(Method), (int) Method);
             s.WriteValue(nameof(ImportScope), (int) ImportScope);
@@ -45,6 +53,8 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(ConstantList), (int) ConstantList);
             s.WriteValue(nameof(StartOffset), StartOffset);
             s.WriteValue(nameof(Length), Length);
+
+            return s.ToArray();
         }
     }
 }

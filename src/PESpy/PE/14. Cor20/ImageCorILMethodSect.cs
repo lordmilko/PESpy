@@ -53,15 +53,28 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer)
         {
             var isFat = Kind.HasFlag(CorILMethodSect.FatFormat);
 
-            using var s = writer.CreateStruct(
+            return writer.NewStruct(
                 isFat ? nameof(IMAGE_COR_ILMETHOD_SECT_FAT) : nameof(IMAGE_COR_ILMETHOD_SECT_SMALL),
                 this,
-                ViewKind.ImageCorILMethodSect
+                ViewKind.ImageCorILMethodSect,
+                StructSize
             );
+        }
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            var isFat = Kind.HasFlag(CorILMethodSect.FatFormat);
+
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Kind), Kind, sizeof(byte));
 
@@ -69,6 +82,8 @@ namespace PESpy
                 throw new System.NotImplementedException();
             else
                 s.WriteField(nameof(DataSize), (byte) DataSize);
+
+            return s.ToArray();
         }
     }
 }

@@ -41,16 +41,6 @@ namespace PESpy
             Dispose(false);
         }
 
-        //Demand that the entire block be loaded into memory
-        public void Demand() => Demand(RemoteStartOffset, Length);
-
-        public void Demand(int length) => Demand(RemoteStartOffset, length);
-
-        //Demand that the memory range between offset and offset + length is loaded into memory
-        public virtual void Demand(int offset, int length)
-        {
-        }
-
         public virtual bool Contains(int offset)
         {
             //If you don't have a RemoteEndOffset, override this method

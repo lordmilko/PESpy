@@ -31,9 +31,14 @@ namespace PESpy
         {
         }
 
-        protected override void WriteView(ViewWriter writer)
+        protected override IView? WriteStruct(ViewWriter writer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
+        }
+
+        protected override IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

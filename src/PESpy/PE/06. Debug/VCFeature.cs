@@ -49,6 +49,13 @@ namespace PESpy
         public RawOffset Offset { get; }
 #endif
 
+        internal const int StructSize =
+            sizeof(int) + //PreVC11
+            sizeof(int) + //C_CPP
+            sizeof(int) + //GS
+            sizeof(int) + //SDL
+            sizeof(int); //GuardN
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -69,15 +76,25 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("VCFeature", this, ViewKind.VCFeature);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("VCFeature", this, ViewKind.VCFeature, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(PreVC11), PreVC11);
             s.WriteField(nameof(C_CPP), C_CPP);
             s.WriteField(nameof(GS), GS);
             s.WriteField(nameof(SDL), SDL);
             s.WriteField(nameof(GuardN), GuardN);
+
+            return s.ToArray();
         }
     }
 }

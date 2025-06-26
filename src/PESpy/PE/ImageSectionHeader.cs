@@ -300,9 +300,18 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_SECTION_HEADER), this, ViewKind.ImageSectionHeader);
+            writer.WriteSmallVAPointerField(PointerToRelocations);
+            writer.WriteSmallVAPointerField(PointerToLineNumbers);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_SECTION_HEADER), this, ViewKind.ImageSectionHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             //Name is exactly 8 bytes. If the name is only 4 bytes, the remaining 4 bytes are \0
             s.WriteNullPaddedUTF8Field(nameof(Name), Name, NameSize);
@@ -315,6 +324,8 @@ namespace PESpy
             s.WriteField(nameof(NumberOfRelocations), NumberOfRelocations);
             s.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbers);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));
+
+            return s.ToArray();
         }
 
         public override string ToString()

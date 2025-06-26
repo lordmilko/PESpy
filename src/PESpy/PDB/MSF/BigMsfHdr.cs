@@ -133,9 +133,17 @@ namespace PESpy.PDB
             StreamTableSizeInfo = new SI_PERSIST(chunk.Slice(44));
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("BIGMSF_HDR", this, ViewKind.BigMsfHdr);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("BIGMSF_HDR", this, ViewKind.BigMsfHdr, FixedStructSize + (PagesOfStreamTablePageList.Length * sizeof(int)));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteNullPaddedUTF8Field("szMagic", BigHdrMagic, 32); //It's not null padded, it's just exactly 32 bytes
             s.WriteField("cbPg", PageSize);
@@ -143,6 +151,8 @@ namespace PESpy.PDB
             s.WriteField("pnMac", NumPages);
             s.WriteStructField("siSt", StreamTableSizeInfo);
             s.WriteField("mpspnpnSt", PagesOfStreamTablePageList);
+
+            return s.ToArray();
         }
     }
 }

@@ -272,9 +272,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_DOS_HEADER), this, ViewKind.ImageDosHeader);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_DOS_HEADER), this, ViewKind.ImageDosHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_magic), Magic);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_cblp), BytesOnLastPageOfFile);
@@ -295,6 +303,8 @@ namespace PESpy
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_oeminfo), OEMInformation);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_res2), ReservedWords2);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_lfanew), (int) FileAddressOfNewExeHeader);
+
+            return s.ToArray();
         }
     }
 }

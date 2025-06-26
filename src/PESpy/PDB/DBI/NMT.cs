@@ -48,6 +48,17 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal const int FixedStructSize =
+            VHdr.StructSize + //vhdr
+            sizeof(int) + //NameBufferSize
+            sizeof(int) + //NumOffsets
+            sizeof(int); //NumStrings
+
+        internal int StructSize =>
+            FixedStructSize +
+            NameBufferSize +
+            (NumOffsets * sizeof(int));
+
         private readonly MemoryChunk chunk;
 
         //It's not the same as the StreamNameTable NMTNI; NMTNI has a Map with a list of present/deleted words. We don't have that here
@@ -56,9 +67,17 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Name Table", this, ViewKind.NameTable);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Name Table", this, ViewKind.NameTable, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteInline(vhdr);
             s.WriteField("Name Buffer Size", NameBufferSize);
@@ -76,6 +95,8 @@ namespace PESpy.PDB
             s.WriteField("Num Offsets", NumOffsets);
             s.WriteField("Offsets", Offsets);
             s.WriteField("Num Strings", NumStrings);
+
+            return s.ToArray();
         }
     }
 }

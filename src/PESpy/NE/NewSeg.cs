@@ -56,14 +56,24 @@ namespace PESpy.NE
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("new_seg", this, ViewKind.NewSeg);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("new_seg", this, ViewKind.NewSeg, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(ns_sector), ns_sector);
             s.WriteField(nameof(ns_cbseg), ns_cbseg);
             s.WriteField(nameof(ns_flags), ns_flags, sizeof(short));
             s.WriteField(nameof(ns_minalloc), ns_minalloc);
+
+            return s.ToArray();
         }
     }
 }

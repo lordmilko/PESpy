@@ -17,6 +17,12 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize =>
+            sizeof(int) + //name
+            sizeof(byte) + //len
+            sizeof(byte) + //type
+            len;
+
         private readonly MemoryChunk chunk;
 
         internal CvFileCheckSum(in MemoryChunk chunk)
@@ -24,14 +30,24 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("CV_FileCheckSum", this, ViewKind.CvFileCheckSum);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("CV_FileCheckSum", this, ViewKind.CvFileCheckSum, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(name), name);
             s.WriteField(nameof(len), len);
             s.WriteField(nameof(type), type, sizeof(byte));
             s.WriteField(nameof(hash), hash);
+
+            return s.ToArray();
         }
     }
 }

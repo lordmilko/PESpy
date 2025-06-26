@@ -111,6 +111,21 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal static int StructSize(bool is32Bit) =>
+            sizeof(int) + //Size
+            sizeof(int) + //MinimumRequiredConfigSize
+            sizeof(int) + //PolicyFlags
+            sizeof(int) + //NumberOfImports
+            sizeof(int) + //ImportList
+            sizeof(int) + //ImportEntrySize
+            IMAGE_ENCLAVE_SHORT_ID_LENGTH + //FamilyID
+            IMAGE_ENCLAVE_SHORT_ID_LENGTH + //ImageID
+            sizeof(int) + //ImageVersion
+            sizeof(int) + //SecurityVersion
+            (is32Bit ? 4 : 8) + //EnclaveSize
+            sizeof(int) + //NumberOfThreads
+            sizeof(int); //EnclaveFlags
+
 #if PEFAST
         private readonly MemoryChunk chunk;
 
@@ -156,9 +171,17 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("IMAGE_ENCLAVE_CONFIG", this, ViewKind.ImageEnclaveConfig);
+            writer.WriteRVAField(ImportList);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("IMAGE_ENCLAVE_CONFIG", this, ViewKind.ImageEnclaveConfig, StructSize(((PEViewWriter) writer).Is32Bit));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Size), Size);
             s.WriteField(nameof(MinimumRequiredConfigSize), MinimumRequiredConfigSize);
@@ -173,6 +196,8 @@ namespace PESpy
             s.WriteField(nameof(EnclaveSize), EnclaveSize);
             s.WriteField(nameof(NumberOfThreads), NumberOfThreads);
             s.WriteField(nameof(EnclaveFlags), EnclaveFlags);
+
+            return s.ToArray();
         }
     }
 }

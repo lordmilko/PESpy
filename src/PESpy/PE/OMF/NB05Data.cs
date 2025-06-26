@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -31,7 +32,7 @@ namespace PESpy
             TableData = tableData;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             //The merger will wrap this all up in a region
 
@@ -54,5 +55,9 @@ namespace PESpy
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

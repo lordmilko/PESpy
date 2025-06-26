@@ -269,18 +269,11 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct($"{nameof(IMAGE_IMPORT_DESCRIPTOR)} {Name}", this, ViewKind.ImageImportDescriptor);
+            writer.WriteRVAAnsiNullTerminatedField(Name);
 
             using var _ = writer.EnterTag(ViewTag.Import);
-
-            s.WriteField(nameof(OriginalFirstThunk), (int) OriginalFirstThunk.ListedOffset);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(ForwarderChain), ForwarderChain);
-            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
-
-            s.WriteField(nameof(FirstThunk), (int) FirstThunk.ListedOffset);
 
             if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
             {
@@ -295,6 +288,22 @@ namespace PESpy
 
                 r.WriteUnique(OriginalFirstThunk.Value);
             }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct($"{nameof(IMAGE_IMPORT_DESCRIPTOR)} {Name}", this, ViewKind.ImageImportDescriptor, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(OriginalFirstThunk), (int) OriginalFirstThunk.ListedOffset);
+            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+            s.WriteField(nameof(ForwarderChain), ForwarderChain);
+            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
+            s.WriteField(nameof(FirstThunk), (int) FirstThunk.ListedOffset);
+
+            return s.ToArray();
         }
 
         public override string ToString()

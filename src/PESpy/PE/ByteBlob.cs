@@ -49,9 +49,14 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteByteBlob(this);
+            //No globals
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.WriteByteBlob(this);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }

@@ -32,6 +32,11 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize =>
+            sizeof(short) + //cSeg
+            sizeof(short) + //cSegLog
+            (OMFSegDesc.StructSize * cSeg);
+
         private readonly MemoryChunk chunk;
 
         internal OMFSegMap(in MemoryChunk chunk)
@@ -40,13 +45,23 @@ namespace PESpy.PDB
             descs = null;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(OMFSegMap), this, ViewKind.OMFSegMap);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(OMFSegMap), this, ViewKind.OMFSegMap, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(cSeg), cSeg);
             s.WriteField(nameof(cSegLog), cSegLog);
             s.WriteInline(rgDesc);
+
+            return s.ToArray();
         }
     }
 }

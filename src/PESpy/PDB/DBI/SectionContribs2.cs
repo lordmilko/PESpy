@@ -13,6 +13,10 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize =>
+            sizeof(int) + //Version
+            (SC2.StructSize * numElems);
+
         private readonly MemoryChunk chunk;
         private readonly int numElems;
 
@@ -36,12 +40,22 @@ namespace PESpy.PDB
             return false;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Section Contribs", this, ViewKind.SectionContribsV60);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Section Contribs", this, ViewKind.SectionContribsV60, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField("Version", Version, sizeof(int));
             s.WriteInline(Entries);
+
+            return s.ToArray();
         }
     }
 }

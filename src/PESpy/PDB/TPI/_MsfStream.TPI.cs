@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -67,11 +67,16 @@ namespace PESpy.PDB
             }
 
             void IViewable.WriteView(ViewWriter writer)
+            void IViewable.WriteGlobals(ViewWriter writer)
             {
                 writer.WriteGlobal(Hdr);
 
                 writer.WritePagedGlobal(chunk.RelativeOffset + Hdr.StructSize, (PagedMemoryBlock) chunk.block, Types);
             }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
         }
     }
 }

@@ -941,21 +941,9 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_EXPORT_DIRECTORY), this, ViewKind.ImageExportDirectory);
-
-            s.WriteField(nameof(Characteristics), Characteristics);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
-            s.WriteField(nameof(Base), Base);
-            s.WriteField(nameof(NumberOfFunctions), NumberOfFunctions);
-            s.WriteField(nameof(NumberOfNames), NumberOfNames);
-            s.WriteField(nameof(AddressOfFunctions), (int) AddressOfFunctions.ListedOffset);
-            s.WriteField(nameof(AddressOfNames), (int) AddressOfNames.ListedOffset);
-            s.WriteField(nameof(AddressOfNameOrdinals), (int) AddressOfNameOrdinals.ListedOffset);
+            writer.WriteRVAAnsiNullTerminatedField(Name);
 
             if (AddressOfFunctions.IsValid)
             {
@@ -990,6 +978,28 @@ namespace PESpy
 
                 r.WriteValues(AddressOfNameOrdinals.Value);
             }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_EXPORT_DIRECTORY), this, ViewKind.ImageExportDirectory, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Characteristics), Characteristics);
+            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+            s.WriteField(nameof(MajorVersion), MajorVersion);
+            s.WriteField(nameof(MinorVersion), MinorVersion);
+            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
+            s.WriteField(nameof(Base), Base);
+            s.WriteField(nameof(NumberOfFunctions), NumberOfFunctions);
+            s.WriteField(nameof(NumberOfNames), NumberOfNames);
+            s.WriteField(nameof(AddressOfFunctions), (int) AddressOfFunctions.ListedOffset);
+            s.WriteField(nameof(AddressOfNames), (int) AddressOfNames.ListedOffset);
+            s.WriteField(nameof(AddressOfNameOrdinals), (int) AddressOfNameOrdinals.ListedOffset);
+
+            return s.ToArray();
         }
 
         /// <summary>

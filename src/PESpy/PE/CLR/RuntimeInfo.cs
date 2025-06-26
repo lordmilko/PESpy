@@ -50,7 +50,7 @@ namespace PESpy
             {
                 if (runtimeVersion == null && Version >= 2)
                 {
-                    var start = 22 + (3 * ModuleIndex.StructSize);
+                    var start = 24 + (3 * ModuleIndex.StructSize);
 
                     runtimeVersion = new Version(
                         chunk.PeekInt32(start),
@@ -72,6 +72,18 @@ namespace PESpy
 #else
         public int Offset { get; }
 #endif
+
+        internal const int FixedStructSize =
+            20 + //Signature + padding
+            sizeof(int) + //Version
+            ModuleIndex.StructSize + //RuntimeModuleIndex
+            ModuleIndex.StructSize + //DacModuleIndex
+            ModuleIndex.StructSize; //DbiModuleIndex
+
+        internal int StructSize =>
+            Version < 2
+            ? FixedStructSize
+            : FixedStructSize + (4 * sizeof(int));
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -117,27 +129,37 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(RuntimeInfo), this, ViewKind.RuntimeInfo);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(RuntimeInfo), this, ViewKind.RuntimeInfo, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteUTF8NullTerminatedField(nameof(Signature), Signature);
             s.Align(4);
 
             s.WriteField(nameof(Version), Version);
-            s.WriteUnmanagedField(nameof(RuntimeModuleIndex), RuntimeModuleIndex);
-            s.WriteUnmanagedField(nameof(DacModuleIndex), DacModuleIndex);
-            s.WriteUnmanagedField(nameof(DbiModuleIndex), DbiModuleIndex);
+            s.WriteStructField(nameof(RuntimeModuleIndex), RuntimeModuleIndex);
+            s.WriteStructField(nameof(DacModuleIndex), DacModuleIndex);
+            s.WriteStructField(nameof(DbiModuleIndex), DbiModuleIndex);
 
             if (Version >= 2)
             {
                 s.WriteField(nameof(RuntimeVersion), new int[] { RuntimeVersion!.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
             }
+
+            return s.ToArray();
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         [DebuggerDisplay("Size = {Size}, TimeStamp = {TimeStamp}, ImageSize = {ImageSize}")]
-        public unsafe struct ModuleIndex
+        public unsafe struct ModuleIndex : IViewable
         {
             public byte Size;
             public uint TimeStamp;
@@ -149,6 +171,29 @@ namespace PESpy
                 sizeof(uint) + //TimeStamp
                 sizeof(int) + //ImageSize
                 15; //Module index is 24 bytes. Remaining bytes are currently unused
+
+            void IViewable.WriteGlobals(ViewWriter writer)
+            {
+                //No globals
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) =>
+                writer.NewUnmanagedStruct("Module Index", this, ViewKind.ModuleIndex, StructSize);
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter writer)
+            {
+                using var s = writer.CreateStruct(parent);
+
+                fixed (byte* e = Extra)
+                {
+                    s.WriteField(nameof(Size), Size);
+                    s.WriteField(nameof(TimeStamp), TimeStamp);
+                    s.WriteField(nameof(ImageSize), ImageSize);
+                    s.WriteField(nameof(Extra), new NativeSpan<byte>(e, 15));
+
+                    return s.ToArray();
+                }
+            }
         }
     }
 }

@@ -1060,7 +1060,7 @@ namespace PESpy.Tests
 
                 var dbi = views.OfType<LogicalRegionView>().Single(v => v.Name.Contains("DBI (3)"));
 
-                var dbgDataHdr = (StructView) dbi.Children.Single(c => c.Kind == ViewKind.DbgDataHdr);
+                var dbgDataHdr = (IStructView) dbi.Children.Single(c => c.Kind == ViewKind.DbgDataHdr);
 
                 //Everyone should be snNil but the one we're after
                 Assert.AreEqual(12, dbgDataHdr.Children.Length);

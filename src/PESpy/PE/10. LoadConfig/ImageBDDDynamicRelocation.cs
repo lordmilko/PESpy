@@ -61,13 +61,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_BDD_DYNAMIC_RELOCATION), this, ViewKind.ImageBDDDynamicRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_BDD_DYNAMIC_RELOCATION), this, ViewKind.ImageBDDDynamicRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Left), Left);
             s.WriteField(nameof(Right), Right);
             s.WriteField(nameof(Value), Value);
+
+            return s.ToArray();
         }
     }
 }

@@ -10,16 +10,19 @@ namespace PESpy
         public short RegisterNumber => (short) ((flags >> 12) & 0xF);
 
 #if PEFAST
+        private ushort flags => chunk.PeekUInt16(0);
+#else
+        private readonly ushort flags;
+#endif
+
+#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
 #else
         public int Offset { get; }
 #endif
 
-#if PEFAST
-        private ushort flags => chunk.PeekUInt16(0);
-#else
-        private readonly ushort flags;
-#endif
+        internal const int StructSize =
+            sizeof(short);
 
 #if PEFAST
         private readonly MemoryChunk chunk;
@@ -37,15 +40,25 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION), this, ViewKind.ImageSwitchTableBranchDynamicRelocation);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION), this, ViewKind.ImageSwitchTableBranchDynamicRelocation, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             using (var b = s.WriteBitFields<ushort>())
             {
                 b.WriteField(nameof(PageRelativeOffset), PageRelativeOffset, 12);
                 b.WriteField(nameof(RegisterNumber), RegisterNumber, 4);
             }
+
+            return s.ToArray();
         }
     }
 }

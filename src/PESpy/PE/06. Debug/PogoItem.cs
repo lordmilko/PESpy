@@ -32,6 +32,10 @@ namespace PESpy
             sizeof(int) + //RVA
             sizeof(int); //Size
 
+        internal int StructSize =>
+            FixedStructSize +
+            Name.Length + 1; //Name
+
 #if PEFAST
         public RawOffset Offset => chunk.AbsoluteOffset;
 #else
@@ -62,13 +66,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct(nameof(PogoItem), this, ViewKind.PogoItem);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(nameof(PogoItem), this, ViewKind.PogoItem, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(RVA), RVA);
             s.WriteField(nameof(Size), Size);
             s.WriteAnsiNullTerminatedField(nameof(Name), Name);
+
+            return s.ToArray();
         }
 
         public override string ToString()

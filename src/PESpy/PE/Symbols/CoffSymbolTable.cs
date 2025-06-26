@@ -112,6 +112,10 @@ namespace PESpy
         public int Offset { get; }
 #endif
 
+        internal int StructSize =>
+            numberOfSymbols * ImageSymbol.StructSize + //Will include regular and aux symbols
+            StringTableSize; //StringTableSize includes its own length (4) in its total size
+
 #if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int numberOfSymbols;
@@ -167,13 +171,23 @@ namespace PESpy
         }
 #endif
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = writer.CreateStruct("Coff Symbol Table", this, ViewKind.CoffSymbolTable);
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct("Coff Symbol Table", this, ViewKind.CoffSymbolTable, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
 
             s.WriteInline(Symbols);
             s.WriteField("String Table Size", StringTableSize);
             s.WriteInlineAnsiNullTerminated(Strings);
+
+            return s.ToArray();
         }
     }
 }

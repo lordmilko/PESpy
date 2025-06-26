@@ -1,4 +1,5 @@
-﻿using PESpy.Ecma335;
+﻿using System;
+using PESpy.Ecma335;
 using PESpy.View;
 using static PESpy.StorageStream;
 
@@ -191,12 +192,16 @@ namespace PESpy
             initialized = true;
         }
 
-        void IViewable.WriteView(ViewWriter writer)
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
             //A region will be created around everything during merging
 
             writer.WriteGlobal(Signature);
             writer.WriteGlobal(Header);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
     }
 }
