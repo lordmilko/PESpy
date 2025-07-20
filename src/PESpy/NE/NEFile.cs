@@ -282,7 +282,7 @@ namespace PESpy
                 
                 for (var i = 0; i < moduleReferences!.Length; i++)
                 {
-                    writer.WriteGlobal(offset + (i * sizeof(short)), moduleReferences[i], sizeof(ushort), ViewKind.Value);
+                    writer.WriteGlobal(offset + (i * sizeof(short)), moduleReferences[i], sizeof(ushort), ViewKind.NE_ModuleReference);
                 }
             }
 
@@ -294,10 +294,10 @@ namespace PESpy
 
                 foreach (var name in importedNames!)
                 {
-                    writer.WriteGlobal(offset, (byte) name.Length, sizeof(byte), ViewKind.Value);
+                    writer.WriteGlobal(offset, (byte) name.Length, sizeof(byte), ViewKind.NE_ImportedName_Length);
 
                     if (name.Length > 0)
-                        writer.WriteGlobal(offset + 1, name, name.Length, ViewKind.Value);
+                        writer.WriteGlobal(offset + 1, name, name.Length, ViewKind.NE_ImportedName_String);
 
                     offset += name.Length + 1;
                 }

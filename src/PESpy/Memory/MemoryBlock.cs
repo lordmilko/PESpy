@@ -22,8 +22,6 @@ namespace PESpy
         //but we don't currently use Length anywhere performance critical, so we make this a computed property
         public virtual int Length => RemoteEndOffset - RemoteStartOffset;
 
-        //Gets the size of a pointer in the context of the PE File (4 or 8 bytes).
-        //We don't need to know the pointer size? when we're reading a pointer, we still either do ReadInt32 or ReadInt64
         internal bool Is32Bit { get; set; }
 
         internal bool writable;

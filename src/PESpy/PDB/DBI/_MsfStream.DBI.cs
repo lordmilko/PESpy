@@ -152,9 +152,6 @@ namespace PESpy.PDB
                         fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length);
                     }
 
-                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length);
-                    }
-
                     return fileInfo;
                 }
             }

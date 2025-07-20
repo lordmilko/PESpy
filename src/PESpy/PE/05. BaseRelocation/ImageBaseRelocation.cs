@@ -93,7 +93,7 @@ namespace PESpy
         /// Represents an entry in an <see cref="IMAGE_BASE_RELOCATION"/> record.<para/>
         /// This type encapsulates the bitfields of a <see cref="ushort"/> value and does not have a well-known native struct declaration.
         /// </summary>
-        [DebuggerDisplay("Type = {Type}, Offset = {Offset}, Value = {Value}")]
+        [DebuggerDisplay("Type = {Type}, Offset = {Offset}")]
         public readonly struct Entry
         {
             public ImageRelBased Type => (ImageRelBased) (Value >> 12);

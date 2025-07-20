@@ -35,14 +35,24 @@ namespace PESpy
         PortablePDB,
 
         /// <summary>
-        /// A <see cref="OBJFile"/> describing a COFF based object file.
+        /// An <see cref="OBJFile"/> describing a COFF based object file.
         /// </summary>
         OBJ,
 
         /// <summary>
         /// A <see cref="LIBFile"/> describing a COFF based object library.
         /// </summary>
-        LIB
+        LIB,
+
+        /// <summary>
+        /// An <see cref="OMFFile"/> describing an Object Module Format file.
+        /// </summary>
+        OMF,
+
+        /// <summary>
+        /// An <see cref="OMFLIBFile"/> describing an object library stored using Object Module Format.
+        /// </summary>
+        OMFLIB,
     }
 
     public interface IFile : IDisposable

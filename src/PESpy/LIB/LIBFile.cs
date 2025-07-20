@@ -218,7 +218,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteGlobal(0, Signature, Signature.Length, ViewKind.Value);
+            writer.WriteGlobal(0, Signature, Signature.Length, ViewKind.LIBFile_Signature);
             writer.WriteGlobal(FirstLinkerMember);
             writer.WriteGlobal(SecondLinkerMember);
             writer.WriteGlobal(LongNamesMember);

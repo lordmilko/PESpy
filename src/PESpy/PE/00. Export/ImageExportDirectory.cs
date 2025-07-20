@@ -18,6 +18,8 @@ namespace PESpy
     [DebuggerDisplay("Exports = {Exports.Length}")]
     public class ImageExportDirectory : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
     {
+        private const int NameOffset = 12;
+
 #if PEFAST
         /// <summary>
         /// Reserved, must be 0.
@@ -52,7 +54,7 @@ namespace PESpy
             {
                 if (lazyName == null)
                 {
-                    var rva = chunk.PeekInt32(12);
+                    var rva = chunk.PeekInt32(NameOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -943,7 +945,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAAnsiNullTerminatedField(Name);
+            writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageExportDirectory_Name, fieldOffset: NameOffset);
 
             if (AddressOfFunctions.IsValid)
             {

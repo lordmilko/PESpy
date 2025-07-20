@@ -18,6 +18,7 @@ namespace PESpy
     /// </summary>
     public class ImageImportDescriptor : IValue, IViewable //A class so that we don't have to keep recreating [Original]FirstThunk depending on which struct copy loaded it
     {
+        private const int NameOffset = 12;
         /// <summary>
         /// The RVA of the import lookup table. This table contains a name or ordinal for each import.
         /// </summary>
@@ -75,7 +76,7 @@ namespace PESpy
             {
                 if (name == null)
                 {
-                    var rva = chunk.PeekInt32(12);
+                    var rva = chunk.PeekInt32(NameOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -271,7 +272,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAAnsiNullTerminatedField(Name);
+            writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageImportDescriptor_Name, fieldOffset: NameOffset);
 
             using var _ = writer.EnterTag(ViewTag.Import);
 

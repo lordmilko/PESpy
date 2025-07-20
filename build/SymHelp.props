@@ -1,12 +1,17 @@
 <Project>
   <PropertyGroup>
-    <LocalSymHelp>$(MSBuildThisFileDirectory)\..\..\SymHelp_old2\src\SymHelp\bin\Debug\net472\SymHelp.dll</LocalSymHelp>
+    <LocalSymHelp_old2>$(MSBuildThisFileDirectory)\..\..\SymHelp_old2\src\SymHelp\bin\Debug\net472\SymHelp_old2.dll</LocalSymHelp_old2>
+    <LocalSymHelp>$(MSBuildThisFileDirectory)\..\..\SymHelp\src\SymHelp\bin\Debug\netstandard2.0\SymHelp.dll</LocalSymHelp>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <!-- If SymHelp has been cloned to the parent directory containing both SymHelp and ReDbg,
          prefer the local version for development purposes -->
-    <PackageReference Include="SymHelp" Version="$(SymHelpVersion)" Condition="!Exists('$(LocalSymHelp)')" />
+    <PackageReference Include="SymHelp" Version="$(SymHelpVersion)" Condition="!Exists('$(LocalSymHelp_old2)')" />
+
+    <Reference Include="SymHelp_old2" Condition="Exists('$(LocalSymHelp_old2)')">
+      <HintPath>$(LocalSymHelp_old2)</HintPath>
+    </Reference>
 
     <Reference Include="SymHelp" Condition="Exists('$(LocalSymHelp)')">
       <HintPath>$(LocalSymHelp)</HintPath>

@@ -5,6 +5,8 @@ namespace PESpy
 {
     public struct GlobalValueEntry : IValue, IViewable
     {
+        private const int NameOffset = 0;
+
 #if PEFAST
         private VA<AnsiString> name;
 
@@ -14,7 +16,7 @@ namespace PESpy
             {
                 if (name.ListedAddress == 0)
                 {
-                    var ptr = (long) chunk.PeekPointer(0);
+                    var ptr = (long) chunk.PeekPointer(NameOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -79,7 +81,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAAnsiNullTerminatedField(Name);
+            writer.WriteVAAnsiNullTerminatedField(Name, ViewKind.GlobalValueEntry_Name, fieldOffset: NameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

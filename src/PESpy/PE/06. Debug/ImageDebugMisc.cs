@@ -36,7 +36,7 @@ namespace PESpy
         public byte[] Reserved { get; }
 #endif
 
-        public string Data { get; }
+        public NullTerminatedString Data => chunk.PeekNullTerminatedString(12, Unicode ? StringKind.UTF16 : StringKind.ANSI);
 
 #if PEFAST
         public RawOffset Offset => chunk.AbsoluteOffset;
@@ -62,11 +62,6 @@ namespace PESpy
         internal ImageDebugMisc(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-
-            if (Unicode)
-                Data = chunk.PeekUtf16NullTerminatedString(FixedStructSize).ToString();
-            else
-                Data = chunk.PeekAnsiNullTerminatedString(FixedStructSize).ToString();
         }
 #else
         internal ImageDebugMisc(IFileReader reader)
@@ -103,18 +98,14 @@ namespace PESpy
             s.WriteField(nameof(Length), Length);
             s.WriteField(nameof(Unicode), (byte) (Unicode ? 1 : 0));
             s.WriteField(nameof(Reserved), Reserved);
-
-            if (Unicode)
-                s.WriteUTF16NullTerminatedField(nameof(Data), Data);
-            else
-                s.WriteAnsiNullTerminatedField(nameof(Data), Data);
+            s.WriteNullTerminatedField(nameof(Data), Data);
 
             return s.ToArray();
         }
 
         public override string ToString()
         {
-            return Data;
+            return Data.ToString();
         }
     }
 }

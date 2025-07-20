@@ -36,7 +36,7 @@ namespace PESpy
         {
             //The merger will wrap this all up in a region
 
-            writer.WriteGlobal(Offset, Sig, sizeof(int), ViewKind.Value);
+            writer.WriteGlobal(Offset, Sig, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, "lfoDir", LfoDir, sizeof(int));
 
             //Data comes before the header

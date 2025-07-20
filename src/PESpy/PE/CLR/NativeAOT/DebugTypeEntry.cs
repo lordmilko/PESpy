@@ -4,6 +4,9 @@ namespace PESpy
 {
     public struct DebugTypeEntry : IValue, IViewable
     {
+        private const int TypeNameOffset = 0;
+        private int FieldNameOffset => chunk.PointerSize;
+
 #if PEFAST
         private VA<AnsiString> typeName;
 
@@ -13,7 +16,7 @@ namespace PESpy
             {
                 if (typeName.ListedAddress == 0)
                 {
-                    var value = (long) chunk.PeekPointer(0);
+                    var value = (long) chunk.PeekPointer(TypeNameOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -40,7 +43,7 @@ namespace PESpy
             {
                 if (fieldName.ListedAddress == 0)
                 {
-                    var value = (long) chunk.PeekPointer(chunk.PointerSize);
+                    var value = (long) chunk.PeekPointer(FieldNameOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -124,8 +127,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAAnsiNullTerminatedField(TypeName);
-            writer.WriteVAAnsiNullTerminatedField(FieldName);
+            writer.WriteVAAnsiNullTerminatedField(TypeName, ViewKind.DebugTypeEntry_TypeName, fieldOffset: TypeNameOffset);
+            writer.WriteVAAnsiNullTerminatedField(FieldName, ViewKind.DebugTypeEntry_FieldName, fieldOffset: FieldNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer)

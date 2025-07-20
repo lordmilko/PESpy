@@ -155,8 +155,8 @@ namespace PESpy
                 writer.NewStruct(nameof(String), this, ViewKind.StringTable_String, Length);
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);

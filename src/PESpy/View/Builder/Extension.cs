@@ -174,7 +174,7 @@ namespace PESpy.View.Builder
                     if (nextValue.Start == i)
                     {
                         if (nextValue.IsUnicode)
-                            results.Add(new ValueView<Utf16String>(offset + nextValue.Start, nextValue.Unicode, nextValue.Length, ViewKind.String));
+                            results.Add(new ValueView<FixedUtf16String>(offset + nextValue.Start, nextValue.Unicode, nextValue.Length, ViewKind.String));
                         else
                             results.Add(new ValueView<AnsiString>(offset + nextValue.Start, nextValue.Ansi, nextValue.Length, ViewKind.String));
 

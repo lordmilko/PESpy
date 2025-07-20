@@ -20,6 +20,24 @@ namespace PESpy
         public const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
         public const int IMAGE_ENCLAVE_LONG_ID_LENGTH = 32;
 
+        private int LockPrefixTableOffset => 24 + (2 * chunk.PointerSize);
+        private int SecurityCookieOffset => 32 + (7 * chunk.PointerSize);
+        private int SEHandlerTableOffset => 32 + (8 * chunk.PointerSize);
+        private int GuardCFCheckFunctionPointerOffset => 32 + (10 * chunk.PointerSize);
+        private int GuardCFDispatchFunctionPointerOffset => 32 + (11 * chunk.PointerSize);
+        private int GuardCFFunctionTableOffset => 32 + (12 * chunk.PointerSize);
+        private int GuardAddressTakenIatEntryTableOffset => 48 + (14 * chunk.PointerSize);
+        private int GuardLongJumpTargetTableOffset => 48 + (16 * chunk.PointerSize);
+        private int GuardRFFailureRoutineFunctionPointerOffset => 48 + (21 * chunk.PointerSize);
+        private int DynamicValueRelocTableOffsetOffset => 48 + (22 * chunk.PointerSize);
+        private int GuardRFVerifyStackPointerFunctionPointerOffset => 56 + (22 * chunk.PointerSize);
+        private int EnclaveConfigurationPointerOffset => 64 + (23 * chunk.PointerSize);
+        private int GuardEHContinuationTableOffset => 64 + (25 * chunk.PointerSize);
+        private int GuardXFGCheckFunctionPointerOffset => 64 + (27 * chunk.PointerSize);
+        private int GuardXFGDispatchFunctionPointerOffset => 64 + (28 * chunk.PointerSize);
+        private int GuardXFGTableDispatchFunctionPointerOffset => 64 + (29 * chunk.PointerSize);
+        private int GuardMemcpyFunctionPointerOffset => 64 + (31 * chunk.PointerSize);
+
         /// <summary>
         /// The size of the structure. For Windows XP, the size must be specified as 64 for x86 images.
         /// </summary>
@@ -118,7 +136,7 @@ namespace PESpy
             {
                 if (lockPrefixTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(24 + (2 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(LockPrefixTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -264,7 +282,7 @@ namespace PESpy
             {
                 if (securityCookie.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(32 + (7 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(SecurityCookieOffset, Size);
 
                     if (value != 0)
                     {
@@ -304,7 +322,7 @@ namespace PESpy
             {
                 if (seHandlerTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(32 + (8 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(SEHandlerTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -317,7 +335,7 @@ namespace PESpy
                             var entries = new long[SEHandlerCount];
 
                             for (var i = 0; i < SEHandlerCount; i++)
-                                entries[i] = valueChunk.PeekInt32(i * 8);
+                                entries[i] = valueChunk.PeekInt32(i * 4);
 
                             seHandlerTable = new VA<long[]>(value, valueChunk.AbsoluteOffset, entries);
                         }
@@ -352,7 +370,7 @@ namespace PESpy
         private VA<long> guardCFCheckFunctionPointer;
 
         public VA<long> GuardCFCheckFunctionPointer =>
-            GetFunctionPointer(ref guardCFCheckFunctionPointer, chunk.TryPeekPointer(32 + (10 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardCFCheckFunctionPointer, chunk.TryPeekPointer(GuardCFCheckFunctionPointerOffset, Size));
 #else
         public VA<long> GuardCFCheckFunctionPointer { get; init; } //20
 #endif
@@ -364,7 +382,7 @@ namespace PESpy
         private VA<long> guardCFDispatchFunctionPointer;
 
         public VA<long> GuardCFDispatchFunctionPointer =>
-            GetFunctionPointer(ref guardCFDispatchFunctionPointer, chunk.TryPeekPointer(32 + (11 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardCFDispatchFunctionPointer, chunk.TryPeekPointer(GuardCFDispatchFunctionPointerOffset, Size));
 #else
         public VA<long> GuardCFDispatchFunctionPointer { get; init; } //21
 #endif
@@ -381,7 +399,7 @@ namespace PESpy
             {
                 if (guardCFFunctionTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(32 + (12 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(GuardCFFunctionTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -464,7 +482,7 @@ namespace PESpy
             {
                 if (guardAddressTakenIatEntryTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(48 + (14 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(GuardAddressTakenIatEntryTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -511,7 +529,7 @@ namespace PESpy
             {
                 if (guardLongJumpTargetTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(48 + (16 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(GuardLongJumpTargetTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -573,7 +591,7 @@ namespace PESpy
         private VA<long> guardRFFailureRoutineFunctionPointer;
 
         public VA<long> GuardRFFailureRoutineFunctionPointer =>
-            GetFunctionPointer(ref guardRFFailureRoutineFunctionPointer, chunk.TryPeekPointer(48 + (21 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardRFFailureRoutineFunctionPointer, chunk.TryPeekPointer(GuardRFFailureRoutineFunctionPointerOffset, Size));
 #else
         public VA<long> GuardRFFailureRoutineFunctionPointer { get; init; } //33
 #endif
@@ -587,7 +605,7 @@ namespace PESpy
             {
                 if (dynamicValueRelocTableOffset.ListedOffset == 0)
                 {
-                    var value = chunk.TryPeekInt32(48 + (22 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekInt32(DynamicValueRelocTableOffsetOffset, Size);
 
                     if (value != 0)
                     {
@@ -648,7 +666,7 @@ namespace PESpy
         private VA<long> guardRFVerifyStackPointerFunctionPointer;
 
         public VA<long> GuardRFVerifyStackPointerFunctionPointer =>
-            GetFunctionPointer(ref guardRFVerifyStackPointerFunctionPointer, chunk.TryPeekPointer(56 + (22 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardRFVerifyStackPointerFunctionPointer, chunk.TryPeekPointer(GuardRFVerifyStackPointerFunctionPointerOffset, Size));
 #else
         public VA<long> GuardRFVerifyStackPointerFunctionPointer { get; init; } //37
 #endif
@@ -674,7 +692,7 @@ namespace PESpy
             {
                 if (enclaveConfigurationPointer.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(64 + (23 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(EnclaveConfigurationPointerOffset, Size);
 
                     if (value != 0)
                     {
@@ -720,7 +738,7 @@ namespace PESpy
                 ////https://learn.microsoft.com/en-us/cpp/build/reference/guard-enable-eh-continuation-metadata?view=msvc-170
                 if (guardEHContinuationTable.ListedAddress == 0)
                 {
-                    var value = chunk.TryPeekPointer(64 + (25 * chunk.PointerSize), Size);
+                    var value = chunk.TryPeekPointer(GuardEHContinuationTableOffset, Size);
 
                     if (value != 0)
                     {
@@ -758,7 +776,7 @@ namespace PESpy
         private VA<long> guardXFGCheckFunctionPointer;
 
         public VA<long> GuardXFGCheckFunctionPointer =>
-            GetFunctionPointer(ref guardXFGCheckFunctionPointer, chunk.TryPeekPointer(64 + (27 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardXFGCheckFunctionPointer, chunk.TryPeekPointer(GuardXFGCheckFunctionPointerOffset, Size));
 #else
         public VA<long> GuardXFGCheckFunctionPointer { get; init; } //44
 #endif
@@ -767,7 +785,7 @@ namespace PESpy
         private VA<long> guardXFGDispatchFunctionPointer;
 
         public VA<long> GuardXFGDispatchFunctionPointer =>
-            GetFunctionPointer(ref guardXFGDispatchFunctionPointer, chunk.TryPeekPointer(64 + (28 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardXFGDispatchFunctionPointer, chunk.TryPeekPointer(GuardXFGDispatchFunctionPointerOffset, Size));
 #else
         public VA<long> GuardXFGDispatchFunctionPointer { get; init; } //45
 #endif
@@ -776,7 +794,7 @@ namespace PESpy
         private VA<long> guardXFGTableDispatchFunctionPointer;
 
         public VA<long> GuardXFGTableDispatchFunctionPointer =>
-            GetFunctionPointer(ref guardXFGTableDispatchFunctionPointer, chunk.TryPeekPointer(64 + (29 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardXFGTableDispatchFunctionPointer, chunk.TryPeekPointer(GuardXFGTableDispatchFunctionPointerOffset, Size));
 #else
         public VA<long> GuardXFGTableDispatchFunctionPointer { get; init; } //46
 #endif
@@ -794,7 +812,7 @@ namespace PESpy
         private VA<long> guardMemcpyFunctionPointer;
 
         public VA<long> GuardMemcpyFunctionPointer =>
-            GetFunctionPointer(ref guardMemcpyFunctionPointer, chunk.TryPeekPointer(64 + (31 * chunk.PointerSize), Size));
+            GetFunctionPointer(ref guardMemcpyFunctionPointer, chunk.TryPeekPointer(GuardMemcpyFunctionPointerOffset, Size));
 #else
         public VA<long> GuardMemcpyFunctionPointer { get; init; } //48
 #endif
@@ -1425,32 +1443,32 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAPointerField(LockPrefixTable, ViewKind.LockPrefixTable); //9
+            writer.WriteVAPointerField(LockPrefixTable, ViewKind.LockPrefixTable, fieldOffset: LockPrefixTableOffset); //9
 
-            writer.WriteVAPointerField(SecurityCookie, ViewKind.SecurityCookie); //17
-            writer.WriteVAPointerField(SEHandlerTable, ViewKind.SEHandlerTable); //18
+            writer.WriteVAPointerField(SecurityCookie, ViewKind.SecurityCookie, fieldOffset: SecurityCookieOffset); //17
+            writer.WriteVAPointerField(SEHandlerTable, ViewKind.SEHandlerTable, fieldOffset: SEHandlerTableOffset); //18
 
-            writer.WriteVAPointerField(GuardCFCheckFunctionPointer, ViewKind.GuardCFCheckFunctionPointer); //20
-            writer.WriteVAPointerField(GuardCFDispatchFunctionPointer, ViewKind.GuardCFDispatchFunctionPointer); //21
+            writer.WriteVAPointerField(GuardCFCheckFunctionPointer, ViewKind.GuardCFCheckFunctionPointer, fieldOffset: GuardCFCheckFunctionPointerOffset); //20
+            writer.WriteVAPointerField(GuardCFDispatchFunctionPointer, ViewKind.GuardCFDispatchFunctionPointer, fieldOffset: GuardCFDispatchFunctionPointerOffset); //21
 
-            writer.WriteVAPointerField(GuardCFFunctionTable); //22
-            writer.WriteVAPointerField(GuardAddressTakenIatEntryTable); //26
-            writer.WriteVAPointerField(GuardLongJumpTargetTable); //28
+            writer.WriteVAPointerField(GuardCFFunctionTable, fieldOffset: GuardCFFunctionTableOffset); //22
+            writer.WriteVAPointerField(GuardAddressTakenIatEntryTable, fieldOffset: GuardAddressTakenIatEntryTableOffset); //26
+            writer.WriteVAPointerField(GuardLongJumpTargetTable, fieldOffset: GuardLongJumpTargetTableOffset); //28
 
-            writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer); //33
+            writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer, fieldOffset: GuardRFFailureRoutineFunctionPointerOffset); //33
 
             if (DynamicValueRelocTableOffset.IsValid) //34
                 writer.WriteGlobal((IViewable) DynamicValueRelocTableOffset.Value);
 
-            writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer); //37
+            writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer, fieldOffset: GuardRFVerifyStackPointerFunctionPointerOffset); //37
 
-            writer.WriteVAPointerField(EnclaveConfigurationPointer); //40
-            writer.WriteVAPointerField(GuardEHContinuationTable); //42
+            writer.WriteVAPointerField(EnclaveConfigurationPointer, fieldOffset: EnclaveConfigurationPointerOffset); //40
+            writer.WriteVAPointerField(GuardEHContinuationTable, fieldOffset: GuardEHContinuationTableOffset); //42
 
-            writer.WriteVAPointerField(GuardXFGCheckFunctionPointer, ViewKind.GuardXFGCheckFunctionPointer); //44
-            writer.WriteVAPointerField(GuardXFGDispatchFunctionPointer, ViewKind.GuardXFGDispatchFunctionPointer); //45
-            writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer); //46
-            writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer); //48
+            writer.WriteVAPointerField(GuardXFGCheckFunctionPointer, ViewKind.GuardXFGCheckFunctionPointer, fieldOffset: GuardXFGCheckFunctionPointerOffset); //44
+            writer.WriteVAPointerField(GuardXFGDispatchFunctionPointer, ViewKind.GuardXFGDispatchFunctionPointer, fieldOffset: GuardXFGDispatchFunctionPointerOffset); //45
+            writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer, fieldOffset: GuardXFGTableDispatchFunctionPointerOffset); //46
+            writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer, fieldOffset: GuardMemcpyFunctionPointerOffset); //48
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

@@ -59,6 +59,9 @@ namespace PESpy
             }
         }
 
+        private const int NameOrIdOffset = 0;
+        private const int DataAndDirectoryOffset = 4;
+
         /// <summary>
         /// Gets the parent directory entry of this entry, or <see langword="null"/> if this is the top level entry.<para/>
         /// This member is not part of the native struct definition.
@@ -124,7 +127,7 @@ namespace PESpy
             Parent = parent;
 
             NameOrId = new UnionNameOrId(chunk, rootRVA);
-            dataAndDirectoryUnion = new UnionOffsetToData(chunk.Slice(4), rootRVA, this);
+            dataAndDirectoryUnion = new UnionOffsetToData(chunk.Slice(DataAndDirectoryOffset), rootRVA, this);
         }
 #else
         internal ImageResourceDirectoryEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
@@ -141,12 +144,12 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             if (NameOrId.NameIsString)
-                writer.WriteRVAField(NameOrId.NameOffset);
+                writer.WriteRVAField(NameOrId.NameOffset, fieldOffset: NameOrIdOffset);
 
             if (dataAndDirectoryUnion.DataIsDirectory)
-                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToDirectory);
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToDirectory, fieldOffset: DataAndDirectoryOffset);
             else
-                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToData);
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToData, fieldOffset: DataAndDirectoryOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

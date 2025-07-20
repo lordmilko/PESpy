@@ -99,7 +99,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             if (Name.IsValid)
-                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
+                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.ImageBoundForwarderRef_Name);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

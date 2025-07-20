@@ -15,6 +15,9 @@ namespace PESpy
     /// </summary>
     public struct ImageSectionHeader : IValue, IViewable //Stored in an array, so can be a struct
     {
+        private const int PointerToRelocationsOffset = 24;
+        private const int PointerToLineNumbersOffset = 28;
+
         /// <summary>
         /// The name of the section.
         /// </summary>
@@ -86,7 +89,7 @@ namespace PESpy
             {
                 if (pointerToRelocations.ListedAddress == 0)
                 {
-                    var offset = chunk.PeekInt32(24);
+                    var offset = chunk.PeekInt32(PointerToRelocationsOffset);
 
                     if (offset == 0)
                     {
@@ -133,7 +136,7 @@ namespace PESpy
             {
                 if (pointerToLineNumbers.ListedAddress == 0)
                 {
-                    var offset = chunk.PeekInt32(28);
+                    var offset = chunk.PeekInt32(PointerToLineNumbersOffset);
 
                     if (offset == 0)
                     {
@@ -302,8 +305,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteSmallVAPointerField(PointerToRelocations);
-            writer.WriteSmallVAPointerField(PointerToLineNumbers);
+            writer.WriteSmallVAPointerField(PointerToRelocations, fieldOffset: PointerToRelocationsOffset);
+            writer.WriteSmallVAPointerField(PointerToLineNumbers, fieldOffset: PointerToLineNumbersOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

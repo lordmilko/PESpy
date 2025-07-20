@@ -101,6 +101,9 @@ namespace PESpy
                                     break;
 
                                 case ResourceType.MessageTable:
+                                    value = new MessageResourceData(valueChunk);
+                                    break;
+
                                 case ResourceType.GroupCursor:
                                 case ResourceType.GroupIcon:
                                     goto default;
@@ -354,12 +357,8 @@ namespace PESpy
         {
             if (OffsetToData.IsValid)
             {
-                if (OffsetToData.Value is VsVersionInfo v)
+                if (OffsetToData.Value is IViewable v)
                     writer.WriteGlobal(v);
-                else if (OffsetToData.Value is ClrDebugResource c)
-                    writer.WriteGlobal(c);
-                else if (OffsetToData.Value is ByteBlob b)
-                    writer.WriteGlobal(b);
                 else
                     throw new NotImplementedException($"Don't know how to write a resource of type {OffsetToData.Value.GetType().Name}");
             }

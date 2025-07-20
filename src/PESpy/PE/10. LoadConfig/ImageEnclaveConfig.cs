@@ -8,6 +8,8 @@ namespace PESpy
     //IMAGE_ENCLAVE_CONFIG32 / IMAGE_ENCLAVE_CONFIG64
     public struct ImageEnclaveConfig : IValue, IViewable
     {
+        private const int ImportListOffset = 16;
+
 #if PEFAST
         public int Size => chunk.PeekInt32(0);
 #else
@@ -38,7 +40,7 @@ namespace PESpy
             {
                 if (importList.ListedOffset == 0)
                 {
-                    var value = chunk.PeekInt32(16);
+                    var value = chunk.PeekInt32(ImportListOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -173,7 +175,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(ImportList);
+            writer.WriteRVAField(ImportList, fieldOffset: ImportListOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

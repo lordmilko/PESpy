@@ -4,6 +4,8 @@ namespace PESpy
 {
     public struct HandlerType : IValue, IViewable
     {
+        private const int TypeOffset = 4;
+
 #if PEFAST
         public int Adjectives => chunk.PeekInt32(0);
 #else
@@ -19,7 +21,7 @@ namespace PESpy
             {
                 if (type.ListedOffset == 0)
                 {
-                    var dispType = chunk.PeekInt32(4);
+                    var dispType = chunk.PeekInt32(TypeOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -103,7 +105,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(Type);
+            writer.WriteRVAField(Type, fieldOffset: TypeOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

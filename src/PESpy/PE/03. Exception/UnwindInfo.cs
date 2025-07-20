@@ -13,7 +13,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="UNWIND_INFO"/> structure.
     /// </summary>
-    public class UnwindInfo : IValue, IViewable
+    public class UnwindInfo : IValue, IViewable //We can't make this a struct, as there'll be a recursive link between RuntimeFunction and UnwindInfo
     {
 #if PEFAST
         public byte Version => (byte) (versionAndFlags & 0x7); //bottom 3 bits
@@ -100,7 +100,8 @@ namespace PESpy
 #endif
         public int ExceptionHandler { get; }
 
-        public RuntimeFunction FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
+        //Needs to be nullable, because the properties in a RuntimeFunction call into MemoryChunk
+        public RuntimeFunction? FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
         public IValue? ExceptionData { get; }
 
 #if PEFAST
@@ -680,7 +681,7 @@ namespace PESpy
             }
             else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
             {
-                s.WriteInline(FunctionEntry);
+                s.WriteInline(FunctionEntry.Value);
             }
 
             return s.ToArray();

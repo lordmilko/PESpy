@@ -28,7 +28,7 @@ namespace PESpy.PDB
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
+            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
             writer.WritePagedGlobal(chunk.RelativeOffset + 4, (PagedMemoryBlock) chunk.block, List);
         }
 

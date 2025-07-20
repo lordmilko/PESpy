@@ -15,6 +15,10 @@ namespace PESpy
          * takes if it's not a standard format? Thus, I conclude that for all FuncInfo related entities, _EH_RELATIVE_FUNCINFO
          * should be used */
 
+        private const int UnwindMapOffset = 8;
+        private const int TryBlockMapOffset = 16;
+        private const int IPToStateMapOffset = 24;
+
 #if PEFAST
         private int magicNumberAndBBTFlags => chunk.PeekInt32(0);
 #else
@@ -52,7 +56,7 @@ namespace PESpy
             {
                 if (unwindMap.ListedOffset == 0)
                 {
-                    var dispUnwindMap = chunk.PeekInt32(8);
+                    var dispUnwindMap = chunk.PeekInt32(UnwindMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -97,7 +101,7 @@ namespace PESpy
             {
                 if (tryBlockMap.ListedOffset == 0)
                 {
-                    var dispTryBlockMap = chunk.PeekInt32(16);
+                    var dispTryBlockMap = chunk.PeekInt32(TryBlockMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -142,7 +146,7 @@ namespace PESpy
             {
                 if (ipToStateMap.ListedOffset == 0)
                 {
-                    var dispIPtoStateMap = chunk.PeekInt32(24);
+                    var dispIPtoStateMap = chunk.PeekInt32(IPToStateMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -318,9 +322,9 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(UnwindMap);
-            writer.WriteRVAField(TryBlockMap);
-            writer.WriteRVAField(IPToStateMap);
+            writer.WriteRVAField(UnwindMap, fieldOffset: UnwindMapOffset);
+            writer.WriteRVAField(TryBlockMap, fieldOffset: TryBlockMapOffset);
+            writer.WriteRVAField(IPToStateMap, fieldOffset: IPToStateMapOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

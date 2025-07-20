@@ -102,7 +102,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            throw new System.NotImplementedException();
+            //No globals
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

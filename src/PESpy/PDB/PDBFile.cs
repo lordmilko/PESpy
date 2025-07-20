@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;

@@ -31,10 +31,10 @@ namespace PESpy.LIB
             var importNameOffset = Offset + ImageArchiveMemberHeader.StructSize + ImportObjectHeader.StructSize;
             var importName = ImportName;
             var importNameLength = importName.Length + 1;
-            writer.WriteGlobal(importNameOffset, importName, importNameLength, ViewKind.Value);
+            writer.WriteGlobal(importNameOffset, importName, importNameLength, ViewKind.ShortImportLibrary_ImportName);
 
             var dllName = DllName;
-            writer.WriteGlobal(importNameOffset + importNameLength, dllName, dllName.Length + 1, ViewKind.Value);
+            writer.WriteGlobal(importNameOffset + importNameLength, dllName, dllName.Length + 1, ViewKind.ShortImportLibrary_DllName);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

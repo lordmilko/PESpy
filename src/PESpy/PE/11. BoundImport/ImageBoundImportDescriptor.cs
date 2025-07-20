@@ -148,7 +148,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             if (Name.IsValid && Name.ListedOffset != 0)
-                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.String);
+                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.ImageBoundImportDescriptor_Name);
 
             writer.RelayGlobals(Refs);
         }

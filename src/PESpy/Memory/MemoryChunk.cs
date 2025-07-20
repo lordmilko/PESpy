@@ -106,6 +106,9 @@ namespace PESpy
         public FixedUtf16String PeekUtf16FixedLength(int offset, int numChars) => new FixedUtf16String((char*) (Pointer + offset), numChars);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NullTerminatedString PeekNullTerminatedString(int offset, StringKind kind) => new NullTerminatedString(Pointer + offset, kind);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PeekBigEndianInt32(int offset)
         {
             var ptr = (Pointer + offset);
@@ -131,6 +134,54 @@ namespace PESpy
             }
 
             return value;
+        }
+
+        public int Peek7BitEncodedInt32(int offset, out int bytesRead)
+        {
+            // Unlike writing, we can't delegate to the 64-bit read on
+            // 64-bit platforms. The reason for this is that we want to
+            // stop consuming bytes if we encounter an integer overflow.
+
+            uint result = 0;
+            byte byteReadJustNow;
+
+            // Read the integer 7 bits at a time. The high bit
+            // of the byte when on means to continue reading more bytes.
+            //
+            // There are two failure cases: we've read more than 5 bytes,
+            // or the fifth byte is about to cause integer overflow.
+            // This means that we can read the first 4 bytes without
+            // worrying about integer overflow.
+
+            bytesRead = 0;
+
+            const int MaxBytesWithoutOverflow = 4;
+            for (int shift = 0; shift < MaxBytesWithoutOverflow * 7; shift += 7)
+            {
+                // ReadByte handles end of stream cases for us.
+                byteReadJustNow = PeekByte(offset + bytesRead);
+                bytesRead++;
+                result |= (byteReadJustNow & 0x7Fu) << shift;
+
+                if (byteReadJustNow <= 0x7Fu)
+                {
+                    return (int) result; // early exit
+                }
+            }
+
+            // Read the 5th byte. Since we already read 28 bits,
+            // the value of this byte must fit within 4 bits (32 - 28),
+            // and it must not have the high bit set.
+
+            byteReadJustNow = PeekByte(offset + bytesRead);
+            bytesRead++;
+            if (byteReadJustNow > 0b_1111u)
+            {
+                throw new FormatException("Too many bytes in what should have been a 7-bit encoded integer.");
+            }
+
+            result |= (uint) byteReadJustNow << (MaxBytesWithoutOverflow * 7);
+            return (int) result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -337,8 +388,6 @@ namespace PESpy
 
             return new MemoryChunk(block, this.RelativeOffset + offset);
         }
-
-        internal void Demand(int rva, int length) => block.Demand(rva, length);
 
         public MemoryChunk(MemoryBlock block, int offset)
         {

@@ -51,7 +51,7 @@ namespace PESpy.OBJ
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.Value);
+            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
             writer.WriteGlobal(Offset + 4, Types);
         }
 

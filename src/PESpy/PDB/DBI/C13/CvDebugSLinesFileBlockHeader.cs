@@ -31,6 +31,7 @@ namespace PESpy.PDB
         {
             this.chunk = chunk;
             this.lines = default!;
+            columns = default;
 
             var lines = new CvLine[nLines];
 

@@ -4,6 +4,8 @@ namespace PESpy
 {
     public struct TryBlockMapEntry : IValue, IViewable
     {
+        private const int HandlerArrayOffset = 16;
+
         /// <summary>
         /// Lowest state index of try
         /// </summary>
@@ -52,7 +54,7 @@ namespace PESpy
             {
                 if (handlerArray.ListedOffset == 0)
                 {
-                    var dispHandlerArray = chunk.PeekInt32(16);
+                    var dispHandlerArray = chunk.PeekInt32(HandlerArrayOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -131,7 +133,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(HandlerArray);
+            writer.WriteRVAField(HandlerArray, fieldOffset: HandlerArrayOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
