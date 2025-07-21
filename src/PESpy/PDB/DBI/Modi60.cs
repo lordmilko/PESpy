@@ -118,7 +118,7 @@ namespace PESpy.PDB
 
                         var end = moduleChunk.AbsoluteOffset + cbC13Lines;
 
-                        var headers = new List<CvDebugSSubsectionHeader>();
+                        using var headers = new PooledList<CvDebugSSubsectionHeader>();
 
                         while (moduleChunk.AbsoluteOffset < end)
                         {

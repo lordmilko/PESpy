@@ -24,7 +24,7 @@ namespace PESpy
             Sect = new ImageCorILMethodSect(kind, chunk, out var read);
 
             int numItems;
-            var isFat = kind.HasFlag(CorILMethodSect.FatFormat);
+            var isFat = (kind & CorILMethodSect.FatFormat) != 0;
 
             //ECMA 335 II.25.4.5
             if (isFat)
@@ -61,7 +61,7 @@ namespace PESpy
             Sect = new ImageCorILMethodSect(kind, reader);
 
             int numItems;
-            var isFat = kind.HasFlag(CorILMethodSect.FatFormat);
+            var isFat = (kind & CorILMethodSect.FatFormat) != 0;
 
             //ECMA 335 II.25.4.5
             if (isFat)
@@ -94,7 +94,7 @@ namespace PESpy
 
             using var s = writer.CreateStruct(
                 isFat ? nameof(IMAGE_COR_ILMETHOD_SECT_EH_FAT) : nameof(IMAGE_COR_ILMETHOD_SECT_EH_SMALL),
-                this,
+            var isFat = (Sect.Kind & CorILMethodSect.FatFormat) != 0;
                 ViewKind.ImageCorILMethodSectEH
             );
 

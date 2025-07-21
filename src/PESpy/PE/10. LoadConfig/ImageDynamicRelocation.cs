@@ -42,7 +42,7 @@ namespace PESpy
                         case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            var list = new List<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
+                            using var list = new PooledList<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
 
                             var read = chunk.PointerSize + 4;
                             var end = BaseRelocSize + read;
@@ -74,7 +74,7 @@ namespace PESpy
                         case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            var list = new List<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
+                            using var list = new PooledList<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
 
                             var read = chunk.PointerSize + 4;
                             var end = BaseRelocSize + read;
@@ -106,19 +106,19 @@ namespace PESpy
                         case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            var list = new List<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
+                            using var list = new PooledList<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
 
-                                var read = chunk.PointerSize + 4;
-                                var end = BaseRelocSize + read;
+                            var read = chunk.PointerSize + 4;
+                            var end = BaseRelocSize + read;
 
-                                while (read < end)
-                                {
-                                    var offset = (int) chunk.AbsoluteOffset + read;
+                            while (read < end)
+                            {
+                                var offset = (int) chunk.AbsoluteOffset + read;
 
-                                    var virtualAddress = chunk.PeekInt32(read);
-                                    var sizeOfBlock = chunk.PeekInt32(read + 4);
+                                var virtualAddress = chunk.PeekInt32(read);
+                                var sizeOfBlock = chunk.PeekInt32(read + 4);
 
-                                    var numEntries = (sizeOfBlock - 8) / 2;
+                                var numEntries = (sizeOfBlock - 8) / 2;
 
                                 var entries = new ImageSwitchTableBranchDynamicRelocation[numEntries];
 
@@ -147,7 +147,7 @@ namespace PESpy
                             //When parsing ntoskrnl you can get strange values starting with FFFF.
                             //This is apparently related to PTE randomization https://blog.csdn.net/zhuhuibeishadiao/article/details/110172123
                             //Not really sure what to do, but treating the entries as an array of regular old ImageBaseRelocation seems to work
-                            var list = new List<ImageBaseRelocation>();
+                            using var list = new PooledList<ImageBaseRelocation>();
 
                                 var read = chunk.PointerSize + 4;
                                 var end = BaseRelocSize + read;
@@ -218,7 +218,7 @@ namespace PESpy
                 case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
                 {
                     //Don't know how many entries each ImageBaseRelocation will have
-                    var list = new List<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
+                    using var list = new PooledList<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
 
                     while (reader.Position < end)
                     {
@@ -252,7 +252,7 @@ namespace PESpy
                 case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
                 {
                     //Don't know how many entries each ImageBaseRelocation will have
-                    var list = new List<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
+                    using var list = new PooledList<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
 
                     while (reader.Position < end)
                     {
@@ -286,7 +286,7 @@ namespace PESpy
                 case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
                 {
                     //Don't know how many entries each ImageBaseRelocation will have
-                    var list = new List<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
+                    using var list = new PooledList<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
 
                     while (reader.Position < end)
                     {
@@ -326,7 +326,7 @@ namespace PESpy
                     //When parsing ntoskrnl you can get strange values starting with FFFF.
                     //This is apparently related to PTE randomization https://blog.csdn.net/zhuhuibeishadiao/article/details/110172123
                     //Not really sure what to do, but treating the entries as an array of regular old ImageBaseRelocation seems to work
-                    var list = new List<ImageBaseRelocation>();
+                    using var list = new PooledList<ImageBaseRelocation>();
 
                     while (reader.Position < end)
                     {

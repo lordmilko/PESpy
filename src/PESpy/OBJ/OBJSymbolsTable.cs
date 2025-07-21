@@ -40,7 +40,7 @@ namespace PESpy.OBJ
                 {
                     var totalOffset = 4;
 
-                    var results = new List<CvDebugSSubsectionHeader>();
+                    using var results = new PooledList<CvDebugSSubsectionHeader>();
 
                     while (totalOffset < Length)
                     {

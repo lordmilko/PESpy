@@ -49,7 +49,7 @@ namespace PESpy
 
                             if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
                             {
-                                var results = new List<DebugTypeEntry>();
+                                using var results = new PooledList<DebugTypeEntry>();
 
                                 var read = 0;
                                 var ptrSize = chunk.PointerSize;
@@ -107,7 +107,7 @@ namespace PESpy
 
                             if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
                             {
-                                var results = new List<GlobalValueEntry>();
+                                using var results = new PooledList<GlobalValueEntry>();
 
                                 var read = 0;
                                 var ptrSize = chunk.PointerSize;
@@ -200,7 +200,7 @@ namespace PESpy
                     var actualOffset = (int) (debugTypeEntriesAddress - peFile.OptionalHeader.ImageBase);
                     reader.Seek(actualOffset);
 
-                    var debugTypeEntries = new List<DebugTypeEntry>();
+                    using var debugTypeEntries = new PooledList<DebugTypeEntry>();
 
                     while (true)
                     {
@@ -224,7 +224,7 @@ namespace PESpy
                     var actualOffset = (int) (globalEntriesAddress - peFile.OptionalHeader.ImageBase);
                     reader.Seek(actualOffset);
 
-                    var globalValueEntries = new List<GlobalValueEntry>();
+                    using var globalValueEntries = new PooledList<GlobalValueEntry>();
 
                     while (true)
                     {

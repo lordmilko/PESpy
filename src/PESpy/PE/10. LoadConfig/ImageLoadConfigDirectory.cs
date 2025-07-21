@@ -146,7 +146,7 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            var entries = new List<long>();
+                            using var entries = new PooledList<long>();
 
                             var pointerSize = chunk.PointerSize;
 
@@ -1124,7 +1124,7 @@ namespace PESpy
                 {
                     reader.Seek(offset);
 
-                    var entries = new List<long>();
+                    using var entries = new PooledList<long>();
 
                     while (true)
                     {

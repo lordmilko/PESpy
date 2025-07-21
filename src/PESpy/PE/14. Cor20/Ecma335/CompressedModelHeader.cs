@@ -82,7 +82,7 @@ namespace PESpy.Ecma335
 
             ulong bit = 1;
 
-            var compressedRowCounts = new List<int>();
+            using var compressedRowCounts = new PooledList<int>();
 
             RowCounts = default!;
             var valid = Valid;
@@ -107,7 +107,7 @@ namespace PESpy.Ecma335
             RowCounts = compressedRowCounts.ToArray();
 
 #if DEBUG
-            if (HeapSizes.HasFlag(HeapSizes.EXTRA_DATA))
+            if ((HeapSizes & HeapSizes.EXTRA_DATA) != 0)
                 throw new NotImplementedException("Don't know how to handle having extra data");
 #endif
         }
@@ -135,7 +135,7 @@ namespace PESpy.Ecma335
 
             ulong bit = 1;
 
-            var compressedRowCounts = new List<int>();
+            using var compressedRowCounts = new PooledList<int>();
 
             for (var i = 0; i < rowCounts.Length; i++)
             {
@@ -154,7 +154,7 @@ namespace PESpy.Ecma335
             RowCounts = compressedRowCounts.ToArray();
 
 #if DEBUG
-            if (HeapSizes.HasFlag(HeapSizes.EXTRA_DATA))
+            if ((HeapSizes & HeapSizes.EXTRA_DATA) != 0)
                 throw new NotImplementedException("Don't know how to handle having extra data");
 #endif
         }

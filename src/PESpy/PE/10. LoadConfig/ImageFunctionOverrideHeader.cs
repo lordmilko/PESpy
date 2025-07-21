@@ -21,7 +21,7 @@ namespace PESpy
             {
                 if (funcOverrides == null)
                 {
-                    var results = new List<ImageFunctionOverrideDynamicRelocation>();
+                    using var results = new PooledList<ImageFunctionOverrideDynamicRelocation>();
 
                     var read = 4;
                     var end = FuncOverrideSize + 4;
@@ -95,7 +95,7 @@ namespace PESpy
 
             var funcOverrideEnd = reader.Position + FuncOverrideSize;
 
-            var funcOverrides = new List<ImageFunctionOverrideDynamicRelocation>();
+            using var funcOverrides = new PooledList<ImageFunctionOverrideDynamicRelocation>();
 
             //ImageFunctionOverrideDynamicRelocation is dynamic in size
             while (reader.Position < funcOverrideEnd)

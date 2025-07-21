@@ -118,7 +118,7 @@ namespace PESpy
             OffsetModuleName = reader.ReadUInt16();
             NumberOfModuleForwarderRefs = reader.ReadUInt16();
 
-            var refs = new List<ImageBoundForwarderRef>();
+            using var refs = new PooledList<ImageBoundForwarderRef>();
 
             var pos = reader.Position;
 

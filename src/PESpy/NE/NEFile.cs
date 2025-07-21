@@ -171,7 +171,7 @@ namespace PESpy
 
                         var read = 0;
 
-                        var results = new List<FixedAnsiString>();
+                        using var results = new PooledList<FixedAnsiString>();
 
                         while (read < length)
                         {

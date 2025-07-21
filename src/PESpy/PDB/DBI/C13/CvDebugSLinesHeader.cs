@@ -23,7 +23,7 @@ namespace PESpy.PDB
                 {
                     var read = 12;
 
-                    var results = new List<CvDebugSLinesFileBlockHeader>();
+                    using var results = new PooledList<CvDebugSLinesFileBlockHeader>();
 
                     while (read < length)
                     {
@@ -49,7 +49,7 @@ namespace PESpy.PDB
             this.chunk = chunk;
             this.length = length;
 
-            Debug.Assert(!flags.HasFlag(CV_LINES.HAVE_COLUMNS), "Need to add support for columns");
+            Debug.Assert((flags & CV_LINES.HAVE_COLUMNS) == 0, "Need to add support for columns");
 
 #if STRESS_TEST
             _ = FileBlocks;

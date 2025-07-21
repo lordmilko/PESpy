@@ -101,7 +101,7 @@ namespace PESpy
                     LocalVarSigTok = chunk.PeekUInt32(8);
                     isValid = true;
 
-                    if (Flags.HasFlag(CorILMethodFlags.MoreSects))
+                    if ((Flags & CorILMethodFlags.MoreSects) != 0)
                     {
                         //Skip over the IL bytes, and then align to a 32-bit boundary
                         var read = (12 + CodeSize + 3) & ~3;
@@ -167,7 +167,7 @@ namespace PESpy
                     ILBytes = reader.ReadBytes(CodeSize);
                     isValid = true;
 
-                    if (Flags.HasFlag(CorILMethodFlags.MoreSects))
+                    if ((Flags & CorILMethodFlags.MoreSects) != 0)
                     {
                         var alignedPosition = (reader.Position + 3) & ~3;
 
@@ -196,7 +196,7 @@ namespace PESpy
 #if PEFAST
         private static ImageCorILMethodSectEH[] ReadExtraSections(in MemoryChunk chunk)
         {
-            var sections = new List<ImageCorILMethodSectEH>();
+            using var sections = new PooledList<ImageCorILMethodSectEH>();
 
             var sectFlags = (CorILMethodSect) chunk.PeekByte(0);
 
@@ -216,7 +216,7 @@ namespace PESpy
                     throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
             }
 
-            if (sectFlags.HasFlag(CorILMethodSect.MoreSects))
+            if ((sectFlags & CorILMethodSect.MoreSects) != 0)
                 throw new NotImplementedException("Don't know how to handle having more sections. Do we need to align first? And then jump back to the start (after initializing our list)?");
 
             return sections.ToArray();
@@ -224,7 +224,7 @@ namespace PESpy
 #else
         private static ImageCorILMethodSectEH[] ReadExtraSections(IFileReader reader)
         {
-            var sections = new List<ImageCorILMethodSectEH>();
+            using var sections = new PooledList<ImageCorILMethodSectEH>();
 
             var sectFlags = (CorILMethodSect) reader.ReadByte();
 
@@ -244,7 +244,7 @@ namespace PESpy
                     throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
             }
 
-            if (sectFlags.HasFlag(CorILMethodSect.MoreSects))
+            if ((sectFlags & CorILMethodSect.MoreSects) != 0)
                 throw new NotImplementedException("Don't know how to handle having more sections. Do we need to align first? And then jump back to the start (after initializing our list)?");
 
             return sections.ToArray();

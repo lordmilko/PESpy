@@ -96,7 +96,7 @@ namespace PESpy
                 {
                     if (debugHeader.ExportedNamesSize > 0)
                     {
-                        var exportedNames = new List<RawValue<AnsiString>>();
+                        using var exportedNames = new PooledList<RawValue<AnsiString>>();
 
                         var read = 0;
 

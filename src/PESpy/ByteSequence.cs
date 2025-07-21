@@ -80,24 +80,32 @@ namespace PESpy
             if (items.Length == 0)
                 throw new ArgumentException("At least 1 byte pattern must be specified");
 
-            var bytes = new List<byte>();
-            var masks = new List<byte>();
+            var bytes = new PooledList<byte>();
+            var masks = new PooledList<byte>();
 
-            foreach (var item in items)
+            try
             {
-                if (item.StartsWith("0x") || flirt)
-                    ParseHexString(item, bytes, masks);
-                else if (item == "*")
-                    Mark = bytes.Count;
-                else
-                    ParseBinaryString(item, bytes, masks);
-            }
+                foreach (var item in items)
+                {
+                    if (item.StartsWith("0x") || flirt)
+                        ParseHexString(item, ref bytes, ref masks);
+                    else if (item == "*")
+                        Mark = bytes.Count;
+                    else
+                        ParseBinaryString(item, ref bytes, ref masks);
+                }
 
-            Bytes = bytes.ToArray();
-            Masks = masks.ToArray();
+                Bytes = bytes.ToArray();
+                Masks = masks.ToArray();
+            }
+            finally
+            {
+                bytes.Dispose();
+                masks.Dispose();
+            }
         }
 
-        private void ParseHexString(string item, List<byte> bytes, List<byte> masks)
+        private void ParseHexString(string item, ref PooledList<byte> bytes, ref PooledList<byte> masks)
         {
             //As a shorthand, hex numbers are represented as one big number. e.g. 0xff10
             //means we want bytes 0xff and 0x10
@@ -149,7 +157,7 @@ namespace PESpy
             }
         }
 
-        private void ParseBinaryString(string item, List<byte> bytes, List<byte> masks)
+        private void ParseBinaryString(string item, ref PooledList<byte> bytes, ref PooledList<byte> masks)
         {
             //Should be a bit sequence
             if (item.Length % 8 != 0)
@@ -237,7 +245,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            var components = new List<Tuple<string, bool>>();
+            using var components = new PooledList<Tuple<string, bool>>();
 
             for (var i = 0; i < Masks.Length; i++)
             {
@@ -275,7 +283,7 @@ namespace PESpy
                     //Binary
 
                     var binaryMask = 1;
-                    var binaryStr = new List<string>();
+                    using var binaryStr = new PooledList<string>();
 
                     for (var j = 0; j < 8; j++)
                     {
@@ -295,7 +303,7 @@ namespace PESpy
 
                     binaryStr.Reverse();
 
-                    components.Add(Tuple.Create(string.Join(string.Empty, binaryStr), false));
+                    components.Add(Tuple.Create(string.Join(string.Empty, binaryStr.ToArray()), false)); //todo: eliminate array allocation
                 }
             }
 

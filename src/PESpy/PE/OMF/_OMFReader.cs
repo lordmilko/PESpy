@@ -346,7 +346,7 @@ namespace PESpy
                         //The first entry is an empty string, because library indices are 1-based
                         var read = 0;
 
-                        var libraries = new List<FixedAnsiString>();
+                        using var libraries = new PooledList<FixedAnsiString>();
 
                         while (read < entry.cb)
                         {

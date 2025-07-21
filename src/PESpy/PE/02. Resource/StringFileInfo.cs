@@ -74,7 +74,7 @@ namespace PESpy
 
                         if (read < length)
                         {
-                            var results = new List<StringTable>();
+                            using var results = new PooledList<StringTable>();
 
                             do
                             {
@@ -135,7 +135,7 @@ namespace PESpy
                 Padding = Align32(reader, out var didAlign, end);
                 Debug.Assert(!didAlign);
 
-                var items = new List<StringTable>();
+                using var items = new PooledList<StringTable>();
 
                 while (reader.Position < end)
                 {

@@ -402,7 +402,7 @@ namespace PESpy.View.Builder
 
                             var numItemsToReplace = k - j - 1;
 
-                            var newViews = new List<IView>();
+                            using var newViews = new PooledList<IView>();
 
                             if (child.Offset > replacement.Offset)
                             {

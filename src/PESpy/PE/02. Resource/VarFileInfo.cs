@@ -51,7 +51,7 @@ namespace PESpy
 
                         if (alignedRead < length)
                         {
-                            var results = new List<Var>();
+                            using var results = new PooledList<Var>();
 
                             do
                             {
@@ -121,7 +121,7 @@ namespace PESpy
                 Padding = Align32(reader, out var didAlign, end);
                 Debug.Assert(didAlign);
 
-                var items = new List<Var>();
+                using var items = new PooledList<Var>();
 
                 while (reader.Position < end)
                 {

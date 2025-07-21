@@ -103,7 +103,7 @@ namespace PESpy.PDB
         {
             this.chunk = chunk;
 
-            if (Type.HasFlag(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IGNORE))
+            if ((Type & DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IGNORE) != 0)
                 throw new System.NotImplementedException(); //you're meant to ignore the contents when this bit is set, but is the data actually valid?
 
 #if STRESS_TEST
@@ -122,7 +122,7 @@ namespace PESpy.PDB
 
             var end = Length;
 
-            var results = new List<RawValue<Utf8String>>();
+            using var results = new PooledList<RawValue<Utf8String>>();
 
             while (read < end)
             {

@@ -101,7 +101,7 @@ namespace PESpy.PDB
                     using var p = writer.CreatePagedWriter(featuresStart, (PagedMemoryBlock) chunk.block, global: true);
 
                     foreach (var feature in Features)
-                        p.WriteValue(feature, sizeof(int), ViewKind.Value);
+                        p.WriteValue(feature, sizeof(int), ViewKind.PdbFeature);
                 }
             }
 

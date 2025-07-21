@@ -102,7 +102,7 @@ namespace PESpy
             var hasFirstLinkerMember = false;
             var hasSecondLinkerMember = false;
 
-            var imports = new List<IImportLibraryMember>();
+            using var imports = new PooledList<IImportLibraryMember>();
 
             //Read all "members" located in the library
             while (read < mmf.Length)

@@ -127,7 +127,7 @@ namespace PESpy
                 //byte position
                 var dict = new Dictionary<ByteSequenceTreeNode, ByteSequenceTreeNode>(ByteSequenceTreeNodeEqualityComparer.Instance);
 
-                var toRemove = new List<ByteSequenceTreeNode>();
+                using var toRemove = new PooledList<ByteSequenceTreeNode>();
 
                 foreach (var item in nextLevels)
                 {
@@ -223,7 +223,7 @@ namespace PESpy
         {
             if (Depth > 0)
             {
-                var bytes = new List<byte>();
+                using var bytes = new PooledList<byte>();
 
                 bytes.Add(MatchedByte!.Value);
 

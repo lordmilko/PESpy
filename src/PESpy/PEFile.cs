@@ -179,7 +179,7 @@ namespace PESpy
             {
                 if (symStoreKeys == null)
                 {
-                    var results = new List<SymStoreKey>();
+                    using var results = new PooledList<SymStoreKey>();
 
                     if (Name != null)
                     {
@@ -689,7 +689,7 @@ namespace PESpy
                         //I don't know if we're guaranteed to fill up the entire ImportTableDirectory with
                         //ImageImportDescriptor objects, or if there's other stuff in there too. I feel like
                         //the latter is the case, as such we can't calculate exactly how many entries we'll have
-                        var results = new List<ImageImportDescriptor>();
+                        using var results = new PooledList<ImageImportDescriptor>();
 
                         var read = 0;
 
@@ -730,7 +730,7 @@ namespace PESpy
                         {
                             reader.Seek(offset);
 
-                            var results = new List<ImageImportDescriptor>();
+                            using var results = new PooledList<ImageImportDescriptor>();
 
                             while (true)
                             {
@@ -933,7 +933,7 @@ namespace PESpy
 
                         var end = securityTableDirectory.Size;
 
-                        var results = new List<WinCertificate>();
+                        using var results = new PooledList<WinCertificate>();
 
                         var read = 0;
 
@@ -977,7 +977,7 @@ namespace PESpy
 
                             var end = offset + OptionalHeader.SecurityTableDirectory.Size;
 
-                            var results = new List<WinCertificate>();
+                            using var results = new PooledList<WinCertificate>();
 
                             while (reader.Position < end)
                             {
@@ -1023,7 +1023,7 @@ namespace PESpy
 
                     var end = OptionalHeader.BaseRelocationTableDirectory.Size;
 
-                    var results = new List<ImageBaseRelocation>();
+                    using var results = new PooledList<ImageBaseRelocation>();
 
                     var read = 0;
 
@@ -1306,7 +1306,7 @@ namespace PESpy
                     {
                         var end = boundImportTableDirectory.Size;
 
-                        chunk.Demand(boundImportTableDirectory.VirtualAddress, end);
+                        using var results = new PooledList<ImageBoundImportDescriptor>();
 
                         var results = new List<ImageBoundImportDescriptor>();
 
@@ -1349,7 +1349,7 @@ namespace PESpy
                         {
                             var end = offset + OptionalHeader.BoundImportTableDirectory.Size;
 
-                            var results = new List<ImageBoundImportDescriptor>();
+                            using var results = new PooledList<ImageBoundImportDescriptor>();
 
                             reader.Seek(offset);
 
@@ -1416,7 +1416,7 @@ namespace PESpy
                             var is32Bit = OptionalHeader.Magic == PEMagic.PE32;
                             var thunkDataSize = is32Bit ? 4 : 8;
 
-                            var results = new List<ImageThunkData>();
+                            using var results = new PooledList<ImageThunkData>();
 
                             var read = 0;
 
@@ -1498,9 +1498,7 @@ namespace PESpy
 
                     if (delayImportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(delayImportTableDirectory, out var chunk))
                     {
-                        chunk.Demand(delayImportTableDirectory.VirtualAddress, delayImportTableDirectory.Size);
-
-                        var results = new List<ImageDelayLoadDescriptor>();
+                        using var results = new PooledList<ImageDelayLoadDescriptor>();
 
                         var read = 0;
 
@@ -1537,7 +1535,7 @@ namespace PESpy
                         {
                             reader.Seek(offset);
 
-                            var results = new List<ImageDelayLoadDescriptor>();
+                            using var results = new PooledList<ImageDelayLoadDescriptor>();
 
                             while (true)
                             {
@@ -1883,7 +1881,7 @@ namespace PESpy
                     if (methodDefs == null)
                         return null;
 
-                    var results = new List<ImageCorILMethod>();
+                    using var results = new PooledList<ImageCorILMethod>();
 
                     foreach (var methodDef in methodDefs)
                     {
@@ -1953,7 +1951,7 @@ namespace PESpy
 
                     if (methods != null)
                     {
-                        var ilMethods = new List<ImageCorILMethod>();
+                        using var ilMethods = new PooledList<ImageCorILMethod>();
 
                         lock (readerLock)
                         {
@@ -2374,7 +2372,7 @@ namespace PESpy
                 {
                     var cor20Header = Cor20Header;
 
-                    if (cor20Header != null && cor20Header.Flags.HasFlag(COMIMAGE_FLAGS.IL_LIBRARY))
+                    if (cor20Header != null && (cor20Header.Flags & COMIMAGE_FLAGS.IL_LIBRARY) != 0)
                     {
                         if (TryGetOffset(cor20Header.ManagedNativeHeader.VirtualAddress, out var offset))
                         {

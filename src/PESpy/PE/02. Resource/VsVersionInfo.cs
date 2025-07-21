@@ -59,7 +59,7 @@ namespace PESpy
 
                     if (read < length)
                     {
-                        var results = new List<IValue>();
+                        using var results = new PooledList<IValue>();
 
                         do
                         {
@@ -169,7 +169,7 @@ namespace PESpy
 
                 //Read StringFileInfo/VarFileInfo structures. The start of these structures are identical
 
-                var children = new List<IValue>();
+                using var children = new PooledList<IValue>();
 
                 while (reader.Position < end)
                 {

@@ -20,7 +20,7 @@ namespace PESpy
 
             Kind = kind;
 
-            if (kind.HasFlag(CorILMethodSect.FatFormat))
+            if ((kind & CorILMethodSect.FatFormat) != 0)
             {
                 //The data pointed to by the section is in fat format, and its length is encoded in 3 bytes
                 throw new NotImplementedException();
@@ -40,7 +40,7 @@ namespace PESpy
 
             Kind = kind;
 
-            if (kind.HasFlag(CorILMethodSect.FatFormat))
+            if ((kind & CorILMethodSect.FatFormat) != 0)
             {
                 //The data pointed to by the section is in fat format, and its length is encoded in 3 bytes
                 throw new NotImplementedException();
@@ -60,7 +60,7 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer)
         {
-            var isFat = Kind.HasFlag(CorILMethodSect.FatFormat);
+            var isFat = (Kind & CorILMethodSect.FatFormat) != 0;
 
             return writer.NewStruct(
                 isFat ? nameof(IMAGE_COR_ILMETHOD_SECT_FAT) : nameof(IMAGE_COR_ILMETHOD_SECT_SMALL),
@@ -72,7 +72,7 @@ namespace PESpy
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
-            var isFat = Kind.HasFlag(CorILMethodSect.FatFormat);
+            var isFat = (Kind & CorILMethodSect.FatFormat) != 0;
 
             using var s = viewWriter.CreateStruct(parent);
 

@@ -49,7 +49,7 @@ namespace PESpy
                     //CountOfCodes represents a count of "slots" that follow. A "slot" is a 16 bit value
                     //that either contains an UNWIND_CODE, or some additional data relating to the previous
                     //UNWIND_CODE. Thus, we don't know how many top level "codes" we'll actually have
-                    var unwindCodes = new List<UnwindCode>();
+                    using var unwindCodes = new PooledList<UnwindCode>();
 
                     for (var i = 0; i < CountOfCodes; i++)
                     {
@@ -304,7 +304,7 @@ namespace PESpy
             //CountOfCodes represents a count of "slots" that follow. A "slot" is a 16 bit value
             //that either contains an UNWIND_CODE, or some additional data relating to the previous
             //UNWIND_CODE. Thus, we don't know how many top level "codes" we'll actually have
-            var unwindCodes = new List<UnwindCode>();
+            using var unwindCodes = new PooledList<UnwindCode>();
 
             for (var i = 0; i < CountOfCodes; i++)
             {

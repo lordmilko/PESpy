@@ -35,9 +35,9 @@ namespace PESpy.Ecma335
             IsMinimalDelta = isMinimalDelta;
             this.rowCounts = rowCounts;
 
-            StringIndexSize = heapSizes.HasFlag(HeapSizes.HEAP_STRING_4) ? 4 : 2;
-            GuidIndexSize = heapSizes.HasFlag(HeapSizes.HEAP_GUID_4) ? 4 : 2;
-            BlobIndexSize = heapSizes.HasFlag(HeapSizes.HEAP_BLOB_4) ? 4 : 2;
+            StringIndexSize = ((heapSizes & HeapSizes.HEAP_STRING_4) != 0) ? 4 : 2;
+            GuidIndexSize = ((heapSizes & HeapSizes.HEAP_GUID_4) != 0) ? 4 : 2;
+            BlobIndexSize = ((heapSizes & HeapSizes.HEAP_BLOB_4) != 0) ? 4 : 2;
 
             TypeDefOrRefSize        = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.TypeDefOrRef);
             HasConstantSize         = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasConstant);

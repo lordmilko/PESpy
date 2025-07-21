@@ -19,6 +19,7 @@ namespace PESpy
     public class ImageImportDescriptor : IValue, IViewable //A class so that we don't have to keep recreating [Original]FirstThunk depending on which struct copy loaded it
     {
         private const int NameOffset = 12;
+
         /// <summary>
         /// The RVA of the import lookup table. This table contains a name or ordinal for each import.
         /// </summary>
@@ -222,7 +223,7 @@ namespace PESpy
             var is32Bit = peFile.OptionalHeader.Magic == PEMagic.PE32;
             var thunkDataSize = is32Bit ? 4 : 8;
 
-            var results = new List<ImageThunkData>();
+            using var results = new PooledList<ImageThunkData>();
 
             var read = 0;
 
@@ -251,7 +252,7 @@ namespace PESpy
 #if PEFAST
         internal static RVA<ImageThunkData[]> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
         {
-            var results = new List<ImageThunkData>();
+            using var results = new PooledList<ImageThunkData>();
 
             var size = valueChunk.PointerSize;
 

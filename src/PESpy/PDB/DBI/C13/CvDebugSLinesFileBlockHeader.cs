@@ -39,7 +39,7 @@ namespace PESpy.PDB
                 lines[i] = new CvLine(chunk.Slice(FixedStructSize + (i * CvLine.StructSize)));
 
             this.lines = lines;
-            Debug.Assert(!flags.HasFlag(CV_LINES.HAVE_COLUMNS), "Need to add support for columns");
+            Debug.Assert((flags & CV_LINES.HAVE_COLUMNS) == 0, "Need to add support for columns");
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

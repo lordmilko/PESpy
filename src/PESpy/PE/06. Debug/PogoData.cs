@@ -42,7 +42,7 @@ namespace PESpy
 
                     var read = 4;
 
-                    var results = new List<PogoItem>();
+                    using var results = new PooledList<PogoItem>();
 
                     while (read < end)
                     {
@@ -91,7 +91,7 @@ namespace PESpy
 
             var end = (int) Offset + sizeOfData;
 
-            var entries = new List<PogoItem>();
+            using var entries = new PooledList<PogoItem>();
 
             while (reader.Position < end)
                 entries.Add(new PogoItem(reader));

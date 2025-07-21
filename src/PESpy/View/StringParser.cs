@@ -10,7 +10,7 @@ namespace PESpy.View
         public int Start;
         public int Length;
         public AnsiString Ansi;
-        public Utf16String Unicode;
+        public FixedUtf16String Unicode;
         public bool IsUnicode;
 
         public override string ToString()
@@ -49,54 +49,68 @@ namespace PESpy.View
 
         internal static ExtractedString[] GetAnsiNullTerminated(NativeSpan<byte> bytes)
         {
-            var results = new List<ExtractedString>();
+            var results = new PooledList<ExtractedString>();
 
-			for (var i = 0; i < bytes.Length; i++)
+            try
             {
-                var b = bytes[i];
-
-				if (b < 0x7F && displayableAscii[b])
+                for (var i = 0; i < bytes.Length; i++)
                 {
-                    //We potentially found the start of an ASCII string. Continue reading characters as long as valid until we hit a \0
+                    var b = bytes[i];
 
-                    GetAnsiWorker(ref i, bytes, results);
+                    if (b < 0x7F && displayableAscii[b])
+                    {
+                        //We potentially found the start of an ASCII string. Continue reading characters as long as valid until we hit a \0
+
+                        GetAnsiWorker(ref i, bytes, ref results);
+                    }
                 }
-            }
 
-            return results.ToArray();
+                return results.ToArray();
+            }
+            finally
+            {
+                results.Dispose();
+            }
         }
 
         public static ExtractedString[] GetStrings(NativeSpan<byte> bytes)
         {
-            var results = new List<ExtractedString>();
+            var results = new PooledList<ExtractedString>();
 
-            for (var i = 0; i < bytes.Length; i++)
+            try
             {
-                var b = bytes[i];
-
-                if (b < 0x7F && displayableAscii[b])
+                for (var i = 0; i < bytes.Length; i++)
                 {
-                    //It's either an ASCII string or a unicode string
+                    var b = bytes[i];
 
-                    if (i < bytes.Length - 1 && bytes[i + 1] == 0)
+                    if (b < 0x7F && displayableAscii[b])
                     {
-                        //It's either a random value followed by a 0, or a unicode string
+                        //It's either an ASCII string or a unicode string
 
-                        GetUnicodeWorker(ref i, bytes, false, results);
-                    }
-                    else
-                    {
-                        //Try for a simple ASCII then
-                        GetAnsiWorker(ref i, bytes, results);
+                        if (i < bytes.Length - 1 && bytes[i + 1] == 0)
+                        {
+                            //It's either a random value followed by a 0, or a unicode string
+
+                            GetUnicodeWorker(ref i, bytes, false, ref results);
+                        }
+                        else
+                        {
+                            //Try for a simple ASCII then
+                            GetAnsiWorker(ref i, bytes, ref results);
+                        }
                     }
                 }
-            }
 
-            return results.ToArray();
+                return results.ToArray();
+            }
+            finally
+            {
+                results.Dispose();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetAnsiWorker(ref int i, NativeSpan<byte> bytes, List<ExtractedString> results)
+        private static unsafe void GetAnsiWorker(ref int i, NativeSpan<byte> bytes, ref PooledList<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -156,7 +170,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetUnicodeWorker(ref int i, NativeSpan<byte> bytes, bool nullTerminated, List<ExtractedString> results)
+        private static unsafe void GetUnicodeWorker(ref int i, NativeSpan<byte> bytes, bool nullTerminated, ref PooledList<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -198,11 +212,11 @@ namespace PESpy.View
 
             if (foundEnd)
             {
-                var length = (j - i) + 2;
+                var length = (j - i);
 
-                if (length >= MinimumStringLength * 2) //4 characters + \0
+                if (length >= MinimumStringLength * 2) //4 characters
                 {
-                    var str = new Utf16String((char*) (byte*) bytes.Slice(i));
+                    var str = new FixedUtf16String((char*) (byte*) bytes.Slice(i), length / 2);
 
                     results.Add(new ExtractedString
                     {

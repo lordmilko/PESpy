@@ -24,7 +24,7 @@ namespace PESpy.LIB
 
             var size = archiveHeader.Size + ImageArchiveMemberHeader.StructSize;
 
-            var names = new List<AnsiString>();
+            using var names = new PooledList<AnsiString>();
 
             while (read < size)
             {
