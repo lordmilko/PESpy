@@ -45,7 +45,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_ARCHIVE_MEMBER_HEADER), this, ViewKind.ImageArchiveMemberHeader, StructSize);
+            writer.NewStruct(Strings.IMAGE_ARCHIVE_MEMBER_HEADER, this, ViewKind.ImageArchiveMemberHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

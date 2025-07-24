@@ -135,7 +135,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(RuntimeInfo), this, ViewKind.RuntimeInfo, StructSize);
+            writer.NewStruct(Strings.RuntimeInfo, this, ViewKind.RuntimeInfo, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -178,7 +178,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewUnmanagedStruct("Module Index", this, ViewKind.ModuleIndex, StructSize);
+                writer.NewUnmanagedStruct(Strings.ModuleIndex, this, ViewKind.ModuleIndex, StructSize);
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter writer)
             {

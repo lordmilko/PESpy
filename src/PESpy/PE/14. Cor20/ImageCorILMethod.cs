@@ -264,10 +264,10 @@ namespace PESpy
             {
                 case CorILMethodFlags.TinyFormat:
                 case CorILMethodFlags.TinyFormat1:
-                    return writer.NewStruct(nameof(IMAGE_COR_ILMETHOD_TINY), this, ViewKind.ImageCorILMethodTiny, sizeof(byte) + ILBytes.Length);
+                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_TINY, this, ViewKind.ImageCorILMethodTiny, sizeof(byte) + ILBytes.Length);
 
                 case CorILMethodFlags.FatFormat:
-                    return writer.NewStruct(nameof(IMAGE_COR_ILMETHOD_FAT), this, ViewKind.ImageCorILMethodFat, GetFatStructSize());
+                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_FAT, this, ViewKind.ImageCorILMethodFat, GetFatStructSize());
 
                 default:
                     return null;

@@ -29,7 +29,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("ParamPtr Row", this, ViewKind.Metadata_ParamPtrRow, table.RowSize);
+            writer.NewStruct(Strings.ParamPtrRow, this, ViewKind.Metadata_ParamPtrRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

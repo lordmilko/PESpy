@@ -52,7 +52,7 @@ namespace PESpy.PDB
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(PDBStream), this, ViewKind.PDBStream, StructSize);
+            writer.NewStruct(Strings.PDBStream, this, ViewKind.PDBStream, StructSize);
 
         protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
         {

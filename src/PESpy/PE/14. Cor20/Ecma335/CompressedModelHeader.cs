@@ -166,7 +166,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Metadata Header", this, ViewKind.MetadataHeader, StructSize);
+            writer.NewStruct(Strings.MetadataHeader, this, ViewKind.MetadataHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

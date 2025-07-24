@@ -82,7 +82,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("VCFeature", this, ViewKind.VCFeature, StructSize);
+            writer.NewStruct(Strings.VCFeature, this, ViewKind.VCFeature, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

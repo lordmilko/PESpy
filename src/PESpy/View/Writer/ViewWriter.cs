@@ -349,7 +349,7 @@ namespace PESpy.View
             return new RegionWriter(viewOffset, name, kind, this, false, scopeKind, shouldAdd);
         }
 
-        internal MetadataRowWriter CreateMetadataRow<T>(string name, in T value, ViewKind kind) where T : IValue
+        internal MetadataRowWriter CreateMetadataRow<T>(FixedUtf8String name, in T value, ViewKind kind) where T : IValue
         {
             var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
             

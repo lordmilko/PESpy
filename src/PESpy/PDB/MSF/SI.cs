@@ -80,7 +80,7 @@ namespace PESpy.PDB
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //PageList could cross page boundaries
-            writer.WritePagedGlobal(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, PageList);
+            writer.WritePagedGlobal(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, PageList, ViewKind.PN);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

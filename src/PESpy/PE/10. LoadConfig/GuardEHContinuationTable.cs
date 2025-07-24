@@ -63,7 +63,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(GuardEHContinuationTable), this, ViewKind.GuardEHContinuationTable, length);
+            writer.NewStruct(Strings.GuardEHContinuationTable, this, ViewKind.GuardEHContinuationTable, length);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -140,7 +140,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct("EHCONT Entry", this, ViewKind.GuardEHContinuationTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
+                writer.NewStruct(Strings.EHCONTEntry, this, ViewKind.GuardEHContinuationTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

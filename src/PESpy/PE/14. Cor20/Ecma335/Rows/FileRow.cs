@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("File Row", this, ViewKind.Metadata_FileRow, table.RowSize);
+            writer.NewStruct(Strings.FileRow, this, ViewKind.Metadata_FileRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

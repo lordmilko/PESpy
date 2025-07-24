@@ -50,7 +50,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER), this, ViewKind.ImagePrologueDynamicRelocationHeader, StructSize);
+            writer.NewStruct(Strings.IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER, this, ViewKind.ImagePrologueDynamicRelocationHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

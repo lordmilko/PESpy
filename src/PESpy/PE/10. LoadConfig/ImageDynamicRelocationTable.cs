@@ -106,7 +106,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_DYNAMIC_RELOCATION_TABLE), this, ViewKind.ImageDynamicRelocationTable, StructSize);
+            writer.NewStruct(Strings.IMAGE_DYNAMIC_RELOCATION_TABLE, this, ViewKind.ImageDynamicRelocationTable, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

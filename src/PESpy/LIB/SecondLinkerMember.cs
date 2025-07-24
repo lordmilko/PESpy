@@ -55,7 +55,7 @@ namespace PESpy.LIB
 
         //It's more of a region but we want to have named children for stuff
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Second Linker Member", this, ViewKind.SecondLinkerMember, StructSize);
+            writer.NewStruct(Strings.SecondLinkerMember, this, ViewKind.SecondLinkerMember, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

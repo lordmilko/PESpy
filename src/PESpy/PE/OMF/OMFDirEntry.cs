@@ -34,7 +34,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(ClrDebug.OMF.OMFDirEntry), this, ViewKind.OMFDirEntry, StructSize);
+            writer.NewStruct(Strings.OMFDirEntry, this, ViewKind.OMFDirEntry, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

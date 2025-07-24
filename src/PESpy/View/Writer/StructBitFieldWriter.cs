@@ -10,7 +10,7 @@ namespace PESpy.View
     {
         internal ref struct StructBitFieldWriter
         {
-            private string structName;
+            private FixedUtf8String structName;
             private ViewKind kind;
             private List<IView> parentFields;
             private List<IView> fields;
@@ -19,7 +19,7 @@ namespace PESpy.View
             private int maxSize; //In bytes
             private ViewWriter viewWriter;
 
-            internal StructBitFieldWriter(string name, RawOffset offset, ViewKind kind, List<IView> parentFields, int bytes, ViewWriter viewWriter)
+            internal StructBitFieldWriter(FixedUtf8String name, RawOffset offset, ViewKind kind, List<IView> parentFields, int bytes, ViewWriter viewWriter)
             {
                 structName = name;
                 this.offset = offset;

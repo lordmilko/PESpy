@@ -53,7 +53,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMPORT_OBJECT_HEADER), this, ViewKind.ImportObjectHeader, StructSize);
+            writer.NewStruct(Strings.IMPORT_OBJECT_HEADER, this, ViewKind.ImportObjectHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

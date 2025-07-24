@@ -103,7 +103,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_BOUND_FORWARDER_REF), this, ViewKind.ImageBoundForwarderRef, StructSize);
+            writer.NewStruct(Strings.IMAGE_BOUND_FORWARDER_REF, this, ViewKind.ImageBoundForwarderRef, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

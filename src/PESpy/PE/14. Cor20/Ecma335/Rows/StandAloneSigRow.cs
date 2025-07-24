@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("StandAloneSig Row", this, ViewKind.Metadata_StandAloneSigRow, table.RowSize);
+            writer.NewStruct(Strings.StandAloneSigRow, this, ViewKind.Metadata_StandAloneSigRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

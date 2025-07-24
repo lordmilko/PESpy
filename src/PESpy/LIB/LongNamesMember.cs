@@ -42,7 +42,7 @@ namespace PESpy.LIB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Long Names Member", this, ViewKind.LongNamesMember, StructSize);
+            writer.NewStruct(Strings.LongNamesMember, this, ViewKind.LongNamesMember, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

@@ -108,7 +108,7 @@ namespace PESpy
 
         //We don't care about representing that there's a 64-bit version of the structure
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_NT_HEADERS), this, ViewKind.ImageNtHeaders, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(Strings.IMAGE_NT_HEADERS, this, ViewKind.ImageNtHeaders, StructSize(((PEViewWriter) writer).Is32Bit));
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

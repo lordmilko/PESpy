@@ -140,7 +140,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("CV_DebugSSubsectionHeader_t", this, ViewKind.CvDebugSSubsectionHeader, StructSize);
+            writer.NewStruct(Strings.CV_DebugSSubsectionHeader_t, this, ViewKind.CvDebugSSubsectionHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

@@ -33,7 +33,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("NestedClass Row", this, ViewKind.Metadata_NestedClassRow, table.RowSize);
+            writer.NewStruct(Strings.NestedClassRow, this, ViewKind.Metadata_NestedClassRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

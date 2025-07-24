@@ -66,7 +66,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_BASE_RELOCATION), this, ViewKind.ImageBaseRelocation, SizeOfBlock);
+            writer.NewStruct(Strings.IMAGE_BASE_RELOCATION, this, ViewKind.ImageBaseRelocation, SizeOfBlock);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -79,7 +79,7 @@ namespace PESpy
             //https://github.com/dotnet/roslyn/blob/e2d4e372f19c16f9b3dea06f7ca857ed5d42bc09/src/Compilers/CSharp/Portable/Lowering/LocalRewriter/LocalRewriter_ForEachStatement.cs
             foreach (var entry in Entries)
             {
-                using (var b = s.WriteStructBitField<ushort>("Entry", ViewKind.BaseRelocationEntry))
+                using (var b = s.WriteStructBitField<ushort>(Strings.Entry, ViewKind.BaseRelocationEntry))
                 {
                     b.WriteField("Type", entry.Type, 4);
                     b.WriteField("Offset", entry.Offset, 12);

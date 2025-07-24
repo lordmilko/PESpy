@@ -58,7 +58,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(Reproducible), this, ViewKind.Reproducible, StructSize);
+            writer.NewStruct(Strings.Reproducible, this, ViewKind.Reproducible, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

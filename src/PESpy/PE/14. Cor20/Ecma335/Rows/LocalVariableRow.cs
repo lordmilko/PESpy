@@ -35,7 +35,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("LocalVariable Row", this, ViewKind.PortablePdb_LocalVariableRow, table.RowSize);
+            writer.NewStruct(Strings.LocalVariableRow, this, ViewKind.PortablePdb_LocalVariableRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

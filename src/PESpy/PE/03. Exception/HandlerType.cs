@@ -109,7 +109,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(PESpy.Native.HandlerType), this, ViewKind.HandlerType, StructSize);
+            writer.NewStruct(Strings.HandlerType, this, ViewKind.HandlerType, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

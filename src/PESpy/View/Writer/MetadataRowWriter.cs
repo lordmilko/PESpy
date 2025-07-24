@@ -11,7 +11,7 @@ namespace PESpy.View
     {
         internal ref struct MetadataRowWriter
         {
-            private string structName;
+            private FixedUtf8String structName;
             private ViewKind kind;
             private RawOffset startOffset;
             private RawOffset currentOffset;
@@ -22,6 +22,7 @@ namespace PESpy.View
             public RawOffset Size => currentOffset - startOffset;
 
             internal MetadataRowWriter(string name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
+            internal MetadataRowWriter(FixedUtf8String name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
             {
                 structName = name;
                 this.startOffset = startOffset;

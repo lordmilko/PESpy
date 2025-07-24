@@ -38,7 +38,7 @@ namespace PESpy
 
         //An UnwindCode is at least 2 bytes. Anyone who overrides WriteViewExtra is larger
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(UNWIND_CODE), this, ViewKind.UnwindCode, StructSize);
+            writer.NewStruct(Strings.UNWIND_CODE, this, ViewKind.UnwindCode, StructSize);
 
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)

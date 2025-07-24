@@ -193,7 +193,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("MODI_60_Persist", this, ViewKind.Modi60Persist, StructSize);
+            writer.NewStruct(Strings.MODI_60_Persist, this, ViewKind.Modi60Persist, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

@@ -104,7 +104,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(STORAGESIGNATURE), this, ViewKind.StorageSignature, StructSize);
+            writer.NewStruct(Strings.STORAGESIGNATURE, this, ViewKind.StorageSignature, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

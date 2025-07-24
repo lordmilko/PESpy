@@ -33,7 +33,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("ImportScope Row", this, ViewKind.PortablePdb_ImportScopeRow, table.RowSize);
+            writer.NewStruct(Strings.ImportScopeRow, this, ViewKind.PortablePdb_ImportScopeRow, table.RowSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

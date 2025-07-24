@@ -71,7 +71,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_LOAD_CONFIG_CODE_INTEGRITY), this, ViewKind.ImageLoadConfigCodeIntegrity, StructSize);
+            writer.NewStruct(Strings.IMAGE_LOAD_CONFIG_CODE_INTEGRITY, this, ViewKind.ImageLoadConfigCodeIntegrity, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

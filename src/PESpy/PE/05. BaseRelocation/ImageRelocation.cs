@@ -65,7 +65,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_RELOCATION), this, ViewKind.ImageRelocation, StructSize);
+            writer.NewStruct(Strings.IMAGE_RELOCATION, this, ViewKind.ImageRelocation, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

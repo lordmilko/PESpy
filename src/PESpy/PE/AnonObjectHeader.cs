@@ -77,7 +77,7 @@ namespace PESpy
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(ANON_OBJECT_HEADER), this, ViewKind.AnonObjectHeader, StructSize);
+            writer.NewStruct(Strings.ANON_OBJECT_HEADER, this, ViewKind.AnonObjectHeader, StructSize);
 
         protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
         {

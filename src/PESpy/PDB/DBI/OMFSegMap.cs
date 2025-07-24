@@ -51,7 +51,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(OMFSegMap), this, ViewKind.OMFSegMap, StructSize);
+            writer.NewStruct(Strings.OMFSegMap, this, ViewKind.OMFSegMap, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

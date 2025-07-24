@@ -94,7 +94,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(SCOPE_TABLE), this, ViewKind.ScopeTable, StructSize);
+            writer.NewStruct(Strings.SCOPE_TABLE, this, ViewKind.ScopeTable, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -196,7 +196,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct("ScopeRecord", this, ViewKind.ScopeRecord, StructSize);
+                writer.NewStruct(Strings.ScopeRecord, this, ViewKind.ScopeRecord, StructSize);
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
             {

@@ -160,7 +160,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(GuardCFFunctionTable), this, ViewKind.GuardCFFunctionTable, length);
+            writer.NewStruct(Strings.GuardCFFunctionTable, this, ViewKind.GuardCFFunctionTable, length);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -246,7 +246,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct("GFIDS Entry", this, ViewKind.GuardCFFunctionTable_Entry, sizeof(int) + (Flags != null ? 1 : 0)); //The XFG RVA is not part of the structure
+                writer.NewStruct(Strings.GFIDSEntry, this, ViewKind.GuardCFFunctionTable_Entry, sizeof(int) + (Flags != null ? 1 : 0)); //The XFG RVA is not part of the structure
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
             {

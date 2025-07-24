@@ -106,7 +106,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(PogoData), this, ViewKind.PogoData, sizeOfData);
+            writer.NewStruct(Strings.PogoData, this, ViewKind.PogoData, sizeOfData);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

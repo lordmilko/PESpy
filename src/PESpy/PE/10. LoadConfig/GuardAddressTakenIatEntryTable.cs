@@ -65,7 +65,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(GuardAddressTakenIatEntryTable), this, ViewKind.GuardAddressTakenIatEntryTable, length);
+            writer.NewStruct(Strings.GuardAddressTakenIatEntryTable, this, ViewKind.GuardAddressTakenIatEntryTable, length);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -142,7 +142,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct("Entry", this, ViewKind.GuardAddressTakenIatEntryTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
+                writer.NewStruct(Strings.Entry, this, ViewKind.GuardAddressTakenIatEntryTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
             {

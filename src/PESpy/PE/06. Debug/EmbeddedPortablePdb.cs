@@ -61,7 +61,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Embedded Portable PDB", this, ViewKind.EmbeddedPortablePdb, sizeOfData);
+            writer.NewStruct(Strings.EmbeddedPortablePDB, this, ViewKind.EmbeddedPortablePdb, sizeOfData);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

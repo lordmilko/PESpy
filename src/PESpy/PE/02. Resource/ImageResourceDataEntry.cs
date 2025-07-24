@@ -365,7 +365,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_RESOURCE_DATA_ENTRY), this, ViewKind.ImageResourceDataEntry, StructSize);
+            writer.NewStruct(Strings.IMAGE_RESOURCE_DATA_ENTRY, this, ViewKind.ImageResourceDataEntry, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

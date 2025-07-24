@@ -36,7 +36,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("CV_FileCheckSum", this, ViewKind.CvFileCheckSum, StructSize);
+            writer.NewStruct(Strings.CV_FileCheckSum, this, ViewKind.CvFileCheckSum, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

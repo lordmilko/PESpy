@@ -116,7 +116,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(WIN_CERTIFICATE), this, ViewKind.WinCertificate, Length); //Length includes the fields before the data
+            writer.NewStruct(Strings.WIN_CERTIFICATE, this, ViewKind.WinCertificate, Length); //Length includes the fields before the data
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

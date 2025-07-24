@@ -39,7 +39,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("UserString", this, ViewKind.Metadata_UserString, StructSize);
+            writer.NewStruct(Strings.UserString, this, ViewKind.Metadata_UserString, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

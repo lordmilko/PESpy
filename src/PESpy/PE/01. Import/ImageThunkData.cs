@@ -249,7 +249,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("IMAGE_THUNK_DATA", this, ViewKind.ImageThunkData, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
+            writer.NewStruct(Strings.IMAGE_THUNK_DATA, this, ViewKind.ImageThunkData, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

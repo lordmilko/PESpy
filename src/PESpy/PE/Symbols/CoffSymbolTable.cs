@@ -177,7 +177,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Coff Symbol Table", this, ViewKind.CoffSymbolTable, StructSize);
+            writer.NewStruct(PESpy.Strings.CoffSymbolTable, this, ViewKind.CoffSymbolTable, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

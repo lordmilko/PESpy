@@ -76,7 +76,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(PSGSIHDR), this, ViewKind.PSGSIHDR, StructSize);
+            writer.NewStruct(Strings.PSGSIHDR, this, ViewKind.PSGSIHDR, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

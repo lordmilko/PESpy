@@ -3,7 +3,7 @@
  * Please do not modify this file directly - modify Index.tt instead *
  ********************************************************************/
 
- using System;
+using System;
 
 namespace PESpy.Ecma335
 {

@@ -242,7 +242,7 @@ namespace PESpy.NE
 
         //Also called "new_exe"
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_OS2_HEADER), this, ViewKind.ImageOS2Header, StructSize);
+            writer.NewStruct(Strings.IMAGE_OS2_HEADER, this, ViewKind.ImageOS2Header, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

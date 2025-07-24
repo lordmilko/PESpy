@@ -143,7 +143,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_SYMBOL), this, ViewKind.ImageSymbol, StructSize);
+            writer.NewStruct(Strings.IMAGE_SYMBOL, this, ViewKind.ImageSymbol, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

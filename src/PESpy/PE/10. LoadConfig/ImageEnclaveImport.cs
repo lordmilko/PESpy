@@ -133,7 +133,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_ENCLAVE_IMPORT), this, ViewKind.ImageEnclaveImport, StructSize);
+            writer.NewStruct(Strings.IMAGE_ENCLAVE_IMPORT, this, ViewKind.ImageEnclaveImport, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

@@ -24,7 +24,7 @@ namespace PESpy.PDB
         }
 
         protected override IView? WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(PDBStream70), this, ViewKind.PDBStream70, StructSize);
+            writer.NewStruct(Strings.PDBStream70, this, ViewKind.PDBStream70, StructSize);
 
         protected override IView[] GetChildren(IView parent, ViewWriter viewWriter)
         {

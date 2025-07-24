@@ -277,7 +277,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_AUX_SYMBOL), this, ViewKind.ImageAuxSymbol, StructSize);
+            writer.NewStruct(Strings.IMAGE_AUX_SYMBOL, this, ViewKind.ImageAuxSymbol, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

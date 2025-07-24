@@ -983,7 +983,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_EXPORT_DIRECTORY), this, ViewKind.ImageExportDirectory, StructSize);
+            writer.NewStruct(Strings.IMAGE_EXPORT_DIRECTORY, this, ViewKind.ImageExportDirectory, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

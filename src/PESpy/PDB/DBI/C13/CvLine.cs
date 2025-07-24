@@ -46,7 +46,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("CV_Line_t", this, ViewKind.CvLine, StructSize);
+            writer.NewStruct(Strings.CV_Line_t, this, ViewKind.CvLine, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

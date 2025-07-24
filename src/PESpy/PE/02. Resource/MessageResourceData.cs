@@ -44,7 +44,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(MESSAGE_RESOURCE_DATA), this, ViewKind.MessageResourceData, sizeof(int) + (NumberOfBlocks * MessageResourceBlock.StructSize));
+            writer.NewStruct(Strings.MESSAGE_RESOURCE_DATA, this, ViewKind.MessageResourceData, sizeof(int) + (NumberOfBlocks * MessageResourceBlock.StructSize));
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

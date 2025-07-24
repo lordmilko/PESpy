@@ -376,7 +376,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_VXD_HEADER), this, ViewKind.ImageVXDHeader, StructSize);
+            writer.NewStruct(Strings.IMAGE_VXD_HEADER, this, ViewKind.ImageVXDHeader, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

@@ -604,7 +604,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(nameof(IMAGE_DEBUG_DIRECTORY), this, ViewKind.ImageDebugDirectory, StructSize);
+            writer.NewStruct(Strings.IMAGE_DEBUG_DIRECTORY, this, ViewKind.ImageDebugDirectory, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
