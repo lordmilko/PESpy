@@ -15,6 +15,14 @@ namespace PESpy
 
         public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
 
+        public void CopyTo(char[] array)
+        {
+            var value = Value;
+
+            for (var i = 0; i < Length; i++)
+                array[i] = (char) value[i];
+        }
+
         public bool Equals(FixedUtf8String other) => this.Value == other.Value;
 
         public bool Equals(string? other)
@@ -40,10 +48,13 @@ namespace PESpy
         }
 
         public static bool operator ==(FixedUtf8String left, string? right) => left.Equals(right);
-        public static bool operator !=(FixedUtf8String left, string? right) => left.Equals(right);
+        public static bool operator !=(FixedUtf8String left, string? right) => !left.Equals(right);
 
         public static bool operator ==(string? left, FixedUtf8String right) => right.Equals(left);
-        public static bool operator !=(string? left, FixedUtf8String right) => right.Equals(left);
+        public static bool operator !=(string? left, FixedUtf8String right) => !right.Equals(left);
+
+        public static bool operator ==(FixedUtf8String left, FixedUtf8String right) => Equals(left, right);
+        public static bool operator !=(FixedUtf8String left, FixedUtf8String right) => !Equals(left, right);
 
         public override bool Equals(object obj)
         {
@@ -55,6 +66,24 @@ namespace PESpy
 
             return false;
         }
+
+        public bool StartsWith(string value)
+        {
+            if (value.Length > Length)
+                return false;
+
+            //We currently only support ANSI values
+
+            for (var i = 0; i < value.Length; i++)
+            {
+                if ((byte) value[i] != Value[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
 
         public override int GetHashCode() => unchecked((int) this.Value);
 

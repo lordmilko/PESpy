@@ -7,7 +7,7 @@ namespace PESpy
     /// <summary>
     /// Describes legacy symbol kinds found in NB00, NB01 and NB02 C6 style symbols.
     /// </summary>
-    enum OLDSYM : byte //Name is made up
+    public enum OLDSYM : byte //Name is made up
     {
         /// <summary>
         /// Block start - obsolete<para/>

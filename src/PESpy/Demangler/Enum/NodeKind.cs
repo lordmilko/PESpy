@@ -53,6 +53,7 @@
             //Not in llvm-undname
 
             AllocWinRTQualifiedBaseIdentifier,
+            ScopedIdentifier
         }
     }
 }

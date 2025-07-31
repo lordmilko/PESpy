@@ -1,4 +1,5 @@
-﻿using ClrDebug.DIA;
+﻿using System.Diagnostics;
+using ClrDebug.DIA;
 
 #nullable disable
 
@@ -18,7 +19,8 @@ namespace PESpy
 
             public override void OutputPre(ref Utf8StringBuilder builder, UNDNAME flags)
             {
-                if ((flags & UNDNAME.UNDNAME_NO_ECSU) == 0)
+                Debug.Assert(Tag != TagKind.Enum, "I think enum plays by different rules when it comes to no ECSU and/or name only. Check UnDecorateSymbolName");
+                if ((flags & UNDNAME.UNDNAME_NO_ECSU) == 0 && (flags & UNDNAME.UNDNAME_NAME_ONLY) == 0)
                 {
                     var value = Tag switch
                     {

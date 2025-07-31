@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB

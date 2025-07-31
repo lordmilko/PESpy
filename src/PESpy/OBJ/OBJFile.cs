@@ -1,6 +1,7 @@
 ﻿#if PEFAST
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using ClrDebug;
@@ -9,6 +10,7 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //Also represents EXP files
     public class OBJFile : IFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)
@@ -37,6 +39,8 @@ namespace PESpy
 
         /// <inheritdoc/>
         public FileKind Kind => FileKind.OBJ;
+
+        public int Length => globalBlock.Length;
 
         /* When a program is compiled with /GL for link time code generation,
          * obj file begins with ANON_OBJECT_HEADER instead of IMAGE_FILE_HEADER.
@@ -101,7 +105,7 @@ namespace PESpy
             }
         }
 
-        internal static IValue? GetDataForSection(in MemoryChunk sectionChunk, FixedUtf8String sectionName, int sizeOfRawData)
+        internal static unsafe IValue? GetDataForSection(in MemoryChunk sectionChunk, FixedUtf8String sectionName, int sizeOfRawData)
         {
             //Can't switch as section name is a Utf8String and we don't want to allocate
             if (sectionName == ".drectve")
@@ -259,6 +263,13 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawPointer(out byte* pointer, out int length)
+        {
+            pointer = mmf.Address;
+            length = (int) mmf.Length;
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(AnonObjectHeader);
@@ -301,6 +312,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

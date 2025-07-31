@@ -1,7 +1,8 @@
 ﻿using ClrDebug.OMF;
-using PESpy.PDB;
 using System.Collections.Generic;
 using System;
+using System.Diagnostics;
+using ClrDebug.PDB;
 
 namespace PESpy
 {
@@ -27,7 +28,7 @@ namespace PESpy
         //startAddress should be the start address of the file
         //length should be the total length of the file
         //globalBlock should be a block that is capable of accessing the entire file
-        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out IValue? omfData)
+        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out ICodeView? omfData)
         {
             var endOfFile = startAddress + length;
 

@@ -186,14 +186,16 @@ namespace PESpy
 
             public abstract void Reset();
 
-            public override unsafe string ToString()
+            public override unsafe string ToString() => ToString(UNDNAME.UNDNAME_COMPLETE);
+
+            public unsafe string ToString(UNDNAME flags)
             {
                 var ptr = stackalloc char[MaxSymbolName];
                 var builder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
 
                 try
                 {
-                    Output(ref builder, UNDNAME.UNDNAME_COMPLETE);
+                    Output(ref builder, flags);
                     return builder.ToString();
                 }
                 finally

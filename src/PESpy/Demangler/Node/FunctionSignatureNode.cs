@@ -44,6 +44,9 @@ namespace PESpy
                 if ((FunctionClass & FunctionClass.ExternC) != 0)
                     return;
 
+                if ((flags & UNDNAME.UNDNAME_NAME_ONLY) != 0)
+                    return;
+
                 var functionClass = FunctionClass;
 
                 if ((flags & UNDNAME.UNDNAME_NO_ACCESS_SPECIFIERS) == 0)
@@ -82,7 +85,8 @@ namespace PESpy
 
             public override void OutputPost(ref Utf8StringBuilder builder, UNDNAME flags)
             {
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
+                if ((flags & UNDNAME.UNDNAME_NAME_ONLY) != 0)
+                    return;
 
                 //llvm-undname displays all this stuff for extern "C" functions, but UnDecorateSymbolName does not
 
@@ -108,6 +112,13 @@ namespace PESpy
 
                 var qualifiers = Qualifiers;
 
+                if ((FunctionClass & FunctionClass.Member) != 0 && (Qualifiers != Qualifiers.None || ExtQualifiers != Qualifiers.None))
+                {
+                    //I think the qualifiers may only get appended when we're not a static member, so this assert is here
+                    //to check when we're not static so we can verify this manually
+                    Debug.Assert((FunctionClass & FunctionClass.Static) == 0);
+                }
+
                 //There's a bug in UnDecorateSymbolName wherein a space between the end of the function parameters and the first qualifier is not specified
                 var skipFirstSpaceBefore = true;
 
@@ -130,8 +141,6 @@ namespace PESpy
                         builder.Append(" &&");
                         break;
                 }
-
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
 
                 if (ReturnType != null)
                     ReturnType.OutputPost(ref builder, flags);

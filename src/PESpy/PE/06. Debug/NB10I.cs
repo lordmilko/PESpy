@@ -24,9 +24,9 @@ namespace PESpy
 #endif
 
 #if PEFAST
-        public int PdbSignature => chunk.PeekInt32(8);
+        public uint PdbSignature => chunk.PeekUInt32(8);
 #else
-        public int PdbSignature { get; }
+        public uint PdbSignature { get; }
 #endif
 
 #if PEFAST

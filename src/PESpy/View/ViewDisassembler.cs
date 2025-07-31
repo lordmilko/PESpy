@@ -16,6 +16,10 @@ namespace PESpy.View
 
         public abstract T[] Disassemble(in AsmRange<T> range, int instructionCount);
 
+        public abstract string FormatInstruction(in T instr);
+
+        public abstract void FormatInstruction(in T instr, object context);
+
         protected abstract int RecomputeRangeLength(int startOffset, int startRVA, int endOffset);
 
         public bool TryParseBytes(ref int offset, int rva, ref NativeSpan<byte> bytes, List<IView> results)

@@ -315,12 +315,12 @@ namespace PESpy
             //No globals
         }
 
-        void IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct($"{nameof(IMAGE_DELAYLOAD_DESCRIPTOR)} {DllNameRVA}", this, ViewKind.ImageDelayLoadDescriptor, StructSize);
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.IMAGE_DELAYLOAD_DESCRIPTOR, this, ViewKind.ImageDelayLoadDescriptor, StructSize);
 
-        IView[] IViewable.GetChildren()
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
-            using var s = ViewWriter.StructWriter.Alloc();
+            using var s = viewWriter.CreateStruct(parent);
 
             //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
             //from regular import names

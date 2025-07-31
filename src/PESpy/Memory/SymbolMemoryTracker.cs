@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using ClrDebug.PDB;
-using PESpy.PDB;
 
 namespace PESpy
 {
@@ -17,8 +15,7 @@ namespace PESpy
          * As such, these pointers cannot contain any state, which presents a problem when they want to display strings (which may or may not
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
-        private static readonly List<(long start, long end, bool isLengthPrefixedString)> globalMemoryRanges = new();
-        private static readonly List<(long start, long end, PDBFile? pdb)> globalPdbRanges = new();
+        private static readonly List<(long start, long end, ISymbolAccessor? file)> globalAccessorRanges = new();
         private static readonly object globalMemoryRangesLock = new object();
 
         internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
@@ -33,15 +30,28 @@ namespace PESpy
                     //Its a PDB. We use ST strings if our version <= vc98
                     var pdb = ((PagedMemoryBlock) block).PDBFile;
 
-                    var isLengthPrefixedString = pdb.PDB!.PDBHeader.ImplementationVersion <= PDBIMPV.PDBImpvVC98;
-
-                    InsertEntry(block, globalMemoryRanges, isLengthPrefixedString);
-                    InsertEntry(block, globalPdbRanges, pdb);
+                    InsertEntry(block, globalAccessorRanges, pdb);
                 }
             }
         }
 
-        internal static unsafe void RegisterCVSymbolMemory(CV_SIGNATURE signature, in MemoryChunk chunk)
+        internal static unsafe void RegisterPDBSymbolMemory(PDBGlobalMemoryBlock globalBlock, byte* memory, int length)
+        {
+            var rangeOwner = (ISymbolMemoryBlock) globalBlock;
+
+            lock (globalMemoryRangesLock)
+            {
+                if (rangeOwner.SymbolMemory.Add((long) memory))
+                {
+                    //Its a PDB. We use ST strings if our version <= vc98
+                    var pdb = globalBlock.PDBFile;
+
+                    InsertEntry(memory, length, globalAccessorRanges, pdb);
+                }
+            }
+        }
+
+        internal static unsafe void RegisterCVSymbolMemory(in MemoryChunk chunk, ISymbolAccessor symbolAccessor)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
@@ -51,43 +61,9 @@ namespace PESpy
                 if (rangeOwner.SymbolMemory.Add((long) block.LocalPointer))
                 {
                     //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
-                    var isLengthPrefixedString = signature != CV_SIGNATURE.C13;
 
-                    InsertEntry(block, globalMemoryRanges, isLengthPrefixedString);
+                    InsertEntry(block, globalAccessorRanges, symbolAccessor);
                 }
-            }
-        }
-
-        //You can resolve names, but not RVAs, as these require section headers which we won't have registered with the SymbolMemoryTracker
-        public static unsafe void RegisterCVSymbolMemory(byte* memory, int length)
-        {
-            var signature = *(CV_SIGNATURE*) memory;
-
-            switch (signature)
-            {
-                case CV_SIGNATURE.C7:
-                case CV_SIGNATURE.C11:
-                case CV_SIGNATURE.C13:
-                    break;
-
-                default:
-                    throw new NotImplementedException($"Don't know how to handle {nameof(CV_SIGNATURE)} '{signature}'");
-            }
-
-            lock (globalMemoryRangesLock)
-            {
-                //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
-                var isLengthPrefixedString = signature != CV_SIGNATURE.C13;
-
-                InsertEntry(memory, length, globalMemoryRanges, isLengthPrefixedString);
-            }
-        }
-
-        public static unsafe void UnregisterCVSymbolMemory(byte* memory)
-        {
-            lock (globalMemoryRangesLock)
-            {
-                globalMemoryRanges.RemoveAll(kv => kv.start == (long) memory);
             }
         }
 
@@ -97,6 +73,22 @@ namespace PESpy
         private static unsafe void InsertEntry<T>(byte* memory, int length, List<(long start, long end, T value)> list, T value)
         {
             var start = (long) memory;
+
+            var lo = 0;
+            var hi = list.Count - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                if (list[mid].start < start)
+                    lo = mid + 1;
+                else
+                    hi = mid - 1;
+            }
+
+            list.Insert(lo, (start, (long) (memory + length), value));
+            return;
 
             var didInsert = false;
 
@@ -116,24 +108,23 @@ namespace PESpy
 
         internal static ImageSectionHeader[]? GetSectionHeaders(long address)
         {
-            var dbi = FindItem(address, globalPdbRanges)?.DBI;
+            var accessor = FindItem(address, globalAccessorRanges);
 
-            return dbi?.SectionHdr;
+            if (accessor == null)
+                return null;
+
+            return accessor.GetSectionHeaders();
         }
 
-        internal static IModi[]? GetModules(long address)
-        {
-            var dbi = FindItem(address, globalPdbRanges)?.DBI;
+        internal static ISymbolAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges);
 
-            return dbi?.Modules;
-        }
-
-        internal static PDBFile? GetPDB(long address) => FindItem(address, globalPdbRanges);
-
-        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalMemoryRanges);
+        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalAccessorRanges)?.HasLengthPrefixedStrings ?? false;
 
         private static T? FindItem<T>(long address, List<(long start, long end, T value)> list)
         {
+            if (address == 0)
+                throw new InvalidOperationException("Cannot search for a value with address 0");
+
             lock (globalMemoryRangesLock)
             {
                 //We ensure our ranges are sorted; we should be able to binary search
@@ -173,8 +164,7 @@ namespace PESpy
         {
             lock (globalMemoryRangesLock)
             {
-                globalMemoryRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
-                globalPdbRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
+                globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
                 block.SymbolMemory.Clear();
             }
         }

@@ -209,13 +209,17 @@ using ClrDebug.DIA;
             }
         }
 
-        public static void ParseString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
+        public static int ParseString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
         {
             var builder = new Utf8StringBuilder(outputSpan);
 
             try
             {
                 ParseString(str, ref builder, flags);
+
+                //If we wrote beyond the end of the span, we rented a buffer to write the rest. But that
+                //data will be truncated
+                return Math.Min(builder.Length, outputSpan.Length);
             }
             finally
             {
@@ -223,7 +227,7 @@ using ClrDebug.DIA;
             }
         }
 
-        public static unsafe string ParseString(string str)
+        public static unsafe string ParseString(string str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
         {
             //If it's not a mangled string, return the input string as is
             if (!str.StartsWith("?"))
@@ -247,7 +251,7 @@ using ClrDebug.DIA;
                         if (!TryParseInternal(ref textWriter, out var symbolNode))
                             return str;
 
-                        return symbolNode.ToString();
+                        return symbolNode.ToString(flags);
                     }
                     finally
                     {
@@ -258,6 +262,44 @@ using ClrDebug.DIA;
             finally
             {
                 ArrayPool<byte>.Shared.Return(array);
+            }
+        }
+
+        public static unsafe string ParseString(FixedUtf8String str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
+        {
+            var textWriter = new TextWindow(str.Value, str.Length);
+
+            try
+            {
+                if (!TryParseInternal(ref textWriter, out var symbolNode))
+                    return str.ToString();
+
+                return symbolNode.ToString(flags);
+            }
+            finally
+            {
+                textWriter.Dispose();
+            }
+        }
+
+        public static unsafe bool TryParseString(FixedUtf8String str, UNDNAME flags, out string result)
+        {
+            var textWriter = new TextWindow(str.Value, str.Length);
+
+            try
+            {
+                if (!TryParseInternal(ref textWriter, out var symbolNode))
+                {
+                    result = default;
+                    return false;
+                }
+
+                result = symbolNode.ToString(flags);
+                return true;
+            }
+            finally
+            {
+                textWriter.Dispose();
             }
         }
 
@@ -398,7 +440,7 @@ using ClrDebug.DIA;
             variableSymbol = textWindow.AllocVariableSymbol(
                 name: textWindow.AllocQualifiedName(
                     textWindow.AllocNodeArray(
-                        textWindow.AllocNamedIdentifier(strRttiTypeDescriptorName)
+                        textWindow.AllocNamedIdentifier(Strings.RTTITypeDescriptorName)
                     )
                 ),
                 type: type
@@ -423,6 +465,11 @@ using ClrDebug.DIA;
             {
                 case NodeKind.PointerType:
                     var pointerType = (PointerTypeNode) type;
+
+                    //llvm-undname just merges the ext qualifiers onto the main set, but that's not
+                    //how UnDecorateSymbolName works. It builds up a string as it goes, and you could have
+                    //a type wchar_t const, wrapped in a pointer that is __ptr64 const. Extra flags
+                    //need to be applied to the pointer type to say __ptr64 again, so we get wchar_t const * __ptr64 const __ptr64
                     pointerType.VariableEncodingQualifiers |= ParsePointerExtQualifiers(ref textWindow);
 
                     var affinity = PointerAffinity.Pointer;
@@ -1639,11 +1686,11 @@ using ClrDebug.DIA;
 
             for (var i = 0; i < textWindow.BackRefNames.Count; i++)
             {
-                if (textWindow.BackRefNames[i].Name.AsSpan().SequenceEqual(str.AsSpan()))
+                if (textWindow.BackRefNames[i].key.AsSpan().SequenceEqual(str.AsSpan()))
                     return;
             }
 
-            textWindow.BackRefNames.Add(textWindow.AllocNamedIdentifier(str));
+            textWindow.BackRefNames.Add((str, textWindow.AllocNamedIdentifier(str)));
         }
 
         private static unsafe void MemorizeIdentifier(ref TextWindow textWindow, IdentifierNode identifier)
@@ -1655,10 +1702,19 @@ using ClrDebug.DIA;
             {
                 identifier.Output(ref builder, UNDNAME.UNDNAME_COMPLETE);
 
-                var str = builder.ToPointer();
-                textWindow.AddPointer(str);
+                var key = builder.ToPointer();
+                textWindow.AddPointer(key);
 
-                MemorizeString(ref textWindow, str);
+                if (textWindow.BackRefNames.Count >= 10)
+                    return;
+
+                for (var i = 0; i < textWindow.BackRefNames.Count; i++)
+                {
+                    if (textWindow.BackRefNames[i].key.AsSpan().SequenceEqual(key.AsSpan()))
+                        return;
+                }
+
+                textWindow.BackRefNames.Add((key, identifier));
             }
             finally
             {
@@ -1823,7 +1879,7 @@ using ClrDebug.DIA;
                 return false;
             }
 
-            identifier = textWindow.BackRefNames[i];
+            identifier = textWindow.BackRefNames[i].node;
 
             return true;
         }
@@ -1991,12 +2047,12 @@ using ClrDebug.DIA;
                     case '7': //?_7
                         //Vftable
                         textWindow.AdvanceChar(3);
-                        return TryParseSpecialTableSymbolNode(ref textWindow, strVftable, out symbolNode);
+                        return TryParseSpecialTableSymbolNode(ref textWindow, Strings.vftable, out symbolNode);
 
                     case '8': //?_8
                         //Vbtable
                         textWindow.AdvanceChar(3);
-                        return TryParseSpecialTableSymbolNode(ref textWindow, strVbtable, out symbolNode);
+                        return TryParseSpecialTableSymbolNode(ref textWindow, Strings.vbtable, out symbolNode);
 
                     case '9': //?_9
                         //VcallThunk
@@ -2054,7 +2110,7 @@ using ClrDebug.DIA;
 
                                 symbolNode = textWindow.AllocVariableSymbol(
                                     name: textWindow.AllocQualifiedName(
-                                        textWindow.AllocNodeArray(textWindow.AllocNamedIdentifier(strRttiTypeDescriptor))
+                                        textWindow.AllocNodeArray(textWindow.AllocNamedIdentifier(Strings.RTTITypeDescriptor))
                                     ),
                                     type: type
                                 );
@@ -2068,17 +2124,17 @@ using ClrDebug.DIA;
                             case '2': //?_R2
                                 //RttiBaseClassArray
                                 textWindow.AdvanceChar(4);
-                                return TryParseUntypedVariable(ref textWindow, strRttiBaseClassArray, out symbolNode);
+                                return TryParseUntypedVariable(ref textWindow, Strings.RTTIBaseClassArray, out symbolNode);
 
                             case '3': //?_R3
                                 //RttiClassHierarchyDescriptor
                                 textWindow.AdvanceChar(4);
-                                return TryParseUntypedVariable(ref textWindow, strRttiClassHierarchyDescriptor, out symbolNode);
+                                return TryParseUntypedVariable(ref textWindow, Strings.RTTIClassHierarchyDescriptor, out symbolNode);
 
                             case '4': //?_R4
                                 //RttiCompleteObjLocator
                                 textWindow.AdvanceChar(4);
-                                return TryParseSpecialTableSymbolNode(ref textWindow, strRttiCompleteObjectLocator, out symbolNode);
+                                return TryParseSpecialTableSymbolNode(ref textWindow, Strings.RTTICompleteObjectLocator, out symbolNode);
 
                             default:
                                 break;
@@ -2088,7 +2144,7 @@ using ClrDebug.DIA;
                     case 'S': //?_S
                         //LocalVftable
                         textWindow.AdvanceChar(3);
-                        return TryParseSpecialTableSymbolNode(ref textWindow, strLocalVftable, out symbolNode);
+                        return TryParseSpecialTableSymbolNode(ref textWindow, Strings.localvftable, out symbolNode);
 
                     case '_':
                         switch (textWindow.PeekChar(3))
@@ -2367,16 +2423,16 @@ using ClrDebug.DIA;
         {
             textWindow.AdvanceChar(2); //?A
 
-            identifier = textWindow.AllocNamedIdentifier(strAnonymousNamespace);
+            identifier = textWindow.AllocNamedIdentifier(Strings.anonymousnamespace);
 
             var at = textWindow.FindChar('@');
 
             if (at == -1)
                 return false;
 
-            var str = textWindow.ReadAndAdvance(at);
+            var namespaceKey = textWindow.ReadAndAdvance(at);
 
-            MemorizeString(ref textWindow, str);
+            MemorizeString(ref textWindow, namespaceKey);
 
             textWindow.AdvanceChar(); //Skip over the @
 

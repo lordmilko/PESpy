@@ -1,6 +1,6 @@
 ﻿#if PEFAST
 using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using PESpy.NE;
@@ -13,7 +13,7 @@ namespace PESpy
     /// <summary>
     /// Represents a New Executable (NE) file.
     /// </summary>
-    public class NEFile : IFile, IViewable, IDisposable
+    public class NEFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
     {
         public static NEFile FromFile(string path)
         {
@@ -199,20 +199,20 @@ namespace PESpy
         #endregion
         #region OMFData
 
-        private IValue? omfData;
-        private bool hasTriedOmfData;
+        private ICodeView? codeViewData;
+        private bool hasTriedCodeViewData;
 
-        public unsafe IValue? OMFData
+        public unsafe ICodeView? CodeViewData
         {
             get
             {
-                if (omfData == null && !hasTriedOmfData)
+                if (codeViewData == null && !hasTriedCodeViewData)
                 {
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out omfData);
-                    hasTriedOmfData = true;
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out codeViewData);
+                    hasTriedCodeViewData = true;
                 }
 
-                return omfData;
+                return codeViewData;
             }
         }
 
@@ -226,6 +226,8 @@ namespace PESpy
 
         /// <inheritdoc/>
         public FileKind Kind => FileKind.NE;
+
+        public int Length => globalBlock.Length;
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
@@ -262,6 +264,13 @@ namespace PESpy
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawPointer(out byte* pointer, out int length)
+        {
+            pointer = mmf.Address;
+            length = (int) mmf.Length;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -306,7 +315,7 @@ namespace PESpy
             //Entry Table
             //Non-Resident Name Table
 
-            writer.WriteGlobal((IViewable?) OMFData);
+            writer.WriteGlobal((IViewable?) CodeViewData);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;
@@ -329,6 +338,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

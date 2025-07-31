@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 #if !DEBUG_POSITION
@@ -15,7 +16,8 @@ namespace PESpy
         public const ushort IMAGE_DOS_SIGNATURE = 0x5A4D;     //MZ
 
         /// <summary>
-        /// Magic number
+        /// Magic number<para/>
+        /// e_magic
         /// </summary>
 #if PEFAST
         public ushort Magic => chunk.PeekUInt16(0);
@@ -24,7 +26,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Bytes on last page of file
+        /// Bytes on last page of file<para/>
+        /// e_cblp
         /// </summary>
 #if PEFAST
         public short BytesOnLastPageOfFile => chunk.PeekInt16(2);
@@ -33,7 +36,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Pages in file
+        /// Pages in file<para/>
+        /// e_cp
         /// </summary>
 #if PEFAST
         public short PagesInFile => chunk.PeekInt16(4);
@@ -42,7 +46,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Relocations
+        /// Relocations<para/>
+        /// e_crlc
         /// </summary>
 #if PEFAST
         public short Relocations => chunk.PeekInt16(6);
@@ -51,7 +56,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Size of header in paragraphs
+        /// Size of header in paragraphs<para/>
+        /// e_cparhdr
         /// </summary>
 #if PEFAST
         public short SizeOfHeaderInParagraphs => chunk.PeekInt16(8);
@@ -60,7 +66,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Minimum extra paragraphs needed
+        /// Minimum extra paragraphs needed<para/>
+        /// e_minalloc
         /// </summary>
 #if PEFAST
         public ushort MinimumExtraParagraphsNeeded => chunk.PeekUInt16(10);
@@ -69,7 +76,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Maximum extra paragraphs needed
+        /// Maximum extra paragraphs needed<para/>
+        /// e_maxalloc
         /// </summary>
 #if PEFAST
         public ushort MaximumExtraParagraphsNeeded => chunk.PeekUInt16(12);
@@ -78,7 +86,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Initial (relative) SS value
+        /// Initial (relative) SS value<para/>
+        /// e_ss
         /// </summary>
 #if PEFAST
         public short InitialRelativeSSValue => chunk.PeekInt16(14);
@@ -87,7 +96,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Initial SP value
+        /// Initial SP value<para/>
+        /// e_sp
         /// </summary>
 #if PEFAST
         public short InitialSPValue => chunk.PeekInt16(16);
@@ -96,7 +106,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Checksum
+        /// Checksum<para/>
+        /// e_csum
         /// </summary>
 #if PEFAST
         public short Checksum => chunk.PeekInt16(18);
@@ -105,7 +116,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Initial IP value
+        /// Initial IP value<para/>
+        /// e_ip
         /// </summary>
 #if PEFAST
         public short InitialIPValue => chunk.PeekInt16(20);
@@ -114,7 +126,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Initial (relative) CS value
+        /// Initial (relative) CS value<para/>
+        /// e_cs
         /// </summary>
 #if PEFAST
         public short InitialRelativeCSValue => chunk.PeekInt16(22);
@@ -123,7 +136,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// File address of relocation table
+        /// File address of relocation table<para/>
+        /// e_lfarlc
         /// </summary>
 #if PEFAST
         public short FileAddressOfRelocationTable => chunk.PeekInt16(24);
@@ -132,7 +146,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Overlay number
+        /// Overlay number<para/>
+        /// e_ovno
         /// </summary>
 #if PEFAST
         public short OverlayNumber => chunk.PeekInt16(26);
@@ -140,8 +155,11 @@ namespace PESpy
         public short OverlayNumber { get; init; }
 #endif
 
+        //Extended Header
+
         /// <summary>
-        /// Reserved words
+        /// Reserved words<para/>
+        /// e_res
         /// </summary>
 #if PEFAST
         public NativeSpan<short> ReservedWords => chunk.PeekNativeSpan<short>(28, 4);
@@ -150,7 +168,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// OEM identifier (for e_oeminfo)
+        /// OEM identifier (for e_oeminfo)<para/>
+        /// e_oemid
         /// </summary>
 #if PEFAST
         public short OEMIdentifier => chunk.PeekInt16(36);
@@ -159,7 +178,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// OEM information; e_oemid specific
+        /// OEM information; e_oemid specific<para/>
+        /// e_oeminfo
         /// </summary>
 #if PEFAST
         public short OEMInformation => chunk.PeekInt16(38);
@@ -168,7 +188,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// Reserved words
+        /// Reserved words<para/>
+        /// e_res2
         /// </summary>
 #if PEFAST
         public NativeSpan<short> ReservedWords2 => chunk.PeekNativeSpan<short>(40, 10);
@@ -177,7 +198,8 @@ namespace PESpy
 #endif
 
         /// <summary>
-        /// File address of new exe header
+        /// File address of new exe header<para/>
+        /// e_lfanew
         /// </summary>
 #if PEFAST
         public int FileAddressOfNewExeHeader => chunk.PeekInt32(60);
@@ -226,6 +248,9 @@ namespace PESpy
 
                 throw new BadImageFormatException("Unknown file format.");
             }
+
+            //Note that you can't rely on FileAddressOfRelocationTable alone; some tools may zero this out and just set FileAddressOfNewExeHeader
+            Debug.Assert(FileAddressOfRelocationTable > 0x1C || FileAddressOfNewExeHeader != 0, "Encountered a file without an extended header. Consider making the getters for the extended headers return default values when the extended header is known to be not present");
         }
 #else
         internal ImageDosHeader(IFileReader reader)
@@ -284,6 +309,10 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
+            //Fields after e_ovno are considered to be part of the "extended header", and are only present
+            //if e_lfarlc is greater than 0x1C
+            http://justsolve.archiveteam.org/wiki/MS-DOS_EXE
+
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_magic), Magic);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_cblp), BytesOnLastPageOfFile);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_cp), PagesInFile);
@@ -298,6 +327,11 @@ namespace PESpy
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_cs), InitialRelativeCSValue);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_lfarlc), FileAddressOfRelocationTable);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_ovno), OverlayNumber);
+
+            //Note that you can't rely on FileAddressOfRelocationTable alone; some tools may zero this out and just set FileAddressOfNewExeHeader
+            Debug.Assert(FileAddressOfRelocationTable > 0x1C || FileAddressOfNewExeHeader != 0, "Encountered a file without an extended header. Consider making the getters for the extended headers return default values when the extended header is known to be not present");
+
+            //Extended header
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_res), ReservedWords);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_oemid), OEMIdentifier);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_oeminfo), OEMInformation);

@@ -1,11 +1,33 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using System.Text;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     //Typically OMF* structs are only used for older CodeView formats, however OMFSegMap is definitely what is used
     //by DBI. The data is deserialized from the PDB into bufSecMap which is regularly casted to OMFSegMap*
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct OMFSegMapDesc : IValue, IViewable
     {
+        private string DebuggerDisplay()
+        {
+            var builder = new StringBuilder();
+
+            if (TryGetSegName(iSegName, out var segName))
+                builder.Append($"SegName = {segName}");
+            else
+                builder.Append($"iSegName = {iSegName}");
+
+            builder.Append(", ");
+
+            if (TryGetSegName(iClassName, out var className))
+                builder.Append($"ClassName = {className}");
+            else
+                builder.Append($"iClassName = {iClassName}");
+
+            return builder.ToString();
+        }
+
         /// <summary>
         /// descriptor flags bit field.
         /// </summary>
@@ -45,6 +67,57 @@ namespace PESpy.PDB
         /// byte count of the logical segment or group
         /// </summary>
         public int cbSeg => chunk.PeekInt16(16);
+
+        public AnsiString SegName
+        {
+            get
+            {
+                var index = iSegName;
+
+                if (TryGetSegName(index, out var str))
+                    return str;
+
+                return default;
+            }
+        }
+
+        public AnsiString ClassName
+        {
+            get
+            {
+                var index = iClassName;
+
+                if (TryGetSegName(index, out var str))
+                    return str;
+
+                return default;
+            }
+        }
+
+        private bool TryGetSegName(int offset, out AnsiString str)
+        {
+            if (offset == -1)
+            {
+                str = default;
+                return false;
+            }
+
+            //PDBs have an OMFSegMap, but no sstSegName
+            var file = chunk.File() as IFileWithCodeViewData;
+
+            if (file == null)
+            {
+                str = default;
+                return false;
+            }
+
+            var codeViewData = file.CodeViewData;
+            Debug.Assert(codeViewData != null); //We're in an OMFSegMapDesc, so implicitly there should be data!
+
+            //Not sure if DNRB or NB02 could have an OMFSegMap
+            var nb05 = (NB05Data) codeViewData!;
+            return nb05.TryGetSegName(offset, out str);
+        }
 
         public int Offset => chunk.AbsoluteOffset;
 

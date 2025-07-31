@@ -1,4 +1,4 @@
-﻿using System;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -41,6 +41,21 @@ namespace PESpy.Ecma335
             s.WriteField("Value", Value);
 
             return s.ToArray();
+        }
+
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+
+            for (var i = 0; i < Value.Length; i++)
+            {
+                builder.Append(Value[i].ToString("X2"));
+
+                if (i < Value.Length - 1)
+                    builder.Append(" ");
+            }
+
+            return builder.ToString();
         }
     }
 }

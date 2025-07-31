@@ -24,7 +24,7 @@ namespace PESpy.PDB
         public int ibSym => value->ibSym;
 
         /// <inheritdoc cref="REFSYM2.imod"/>
-        public short imod => value->imod;
+        public ushort imod => value->imod;
 
         /// <inheritdoc cref="REFSYM2.name"/>
         public FixedUtf8String name => SymType.ReadString(value, value->name);

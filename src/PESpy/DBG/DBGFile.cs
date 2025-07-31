@@ -41,6 +41,8 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.DBG;
 
+        public int Length => globalBlock.Length;
+
         internal unsafe DBGFile(string fileName, in MemoryMappedFileHolder mmf)
         {
             this.mmf = mmf;
@@ -214,6 +216,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

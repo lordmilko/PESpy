@@ -156,7 +156,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
             }
             else
             {
-                s.WriteNullPaddedUTF8Field(nameof(Name), Name.Name, 8);
+                s.WriteNullPaddedAnsiField(nameof(Name), Name.Name, 8);
             }
 
             s.WriteField(nameof(Value), Value);
@@ -171,7 +171,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
 
         public readonly struct NameOrOffset
         {
-            public string Name { get; }
+            public FixedAnsiString Name { get; }
 
             public int Short { get; }
             public int Long { get; }
@@ -192,35 +192,11 @@ public ImageAuxSymbol[] AuxSymbols { get; }
                 {
                     Short = @short;
                     Long = @long;
-                    Name = symbolTable.GetString(Long).ToString();
+                    Name = (FixedAnsiString) symbolTable.GetString(Long);
                 }
                 else
                 {
-                    //Extract the bytes from the Int32's we read
-                    var bytes = new byte[]
-                    {
-                        (byte) (@short & 0xFF),
-                        (byte) ((@short >> 8) & 0xFF),
-                        (byte) ((@short >> 16) & 0xFF),
-                        (byte) ((@short >> 24) & 0xFF),
-                        (byte) (@long & 0xFF),
-                        (byte) ((@long >> 8) & 0xFF),
-                        (byte) ((@long >> 16) & 0xFF),
-                        (byte) ((@long >> 24) & 0xFF),
-                    };
-
-                    int nonPaddedLength = 0;
-
-                    for (int i = bytes.Length; i > 0; --i)
-                    {
-                        if (bytes[i - 1] != 0)
-                        {
-                            nonPaddedLength = i;
-                            break;
-                        }
-                    }
-
-                    Name = Encoding.ASCII.GetString(bytes, 0, nonPaddedLength);
+                    Name = chunk.PeekNullPaddedAnsi(0, 8);
                     Short = 0;
                     Long = 0;
                 }
@@ -228,7 +204,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
 
             public override string ToString()
             {
-                return Name;
+                return Name.ToString();
             }
         }
 

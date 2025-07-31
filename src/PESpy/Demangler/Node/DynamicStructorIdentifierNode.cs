@@ -23,7 +23,11 @@ namespace PESpy
             {
                 if (Variable != null)
                 {
+                    Debug.Assert(false, "Need to verify what the format is meant to be for having a Variable in UnDecorateSymbolName");
 
+                    builder.Append("`");
+                    Variable.Output(ref builder, flags);
+                    builder.Append("''");
                 }
                 else
                 {

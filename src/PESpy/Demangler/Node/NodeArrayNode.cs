@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
+using System.Linq;
 using ClrDebug.DIA;
 
 #nullable disable
@@ -8,6 +10,19 @@ namespace PESpy
 {
     public static partial class Demangler
     {
+        class NodeArrayNodeDebugView
+        {
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public Node[] Items { get; }
+
+            public NodeArrayNodeDebugView(NodeArrayNode nodeArrayNode)
+            {
+                Items = nodeArrayNode.rentedNodes.Take(nodeArrayNode.Count).ToArray();
+            }
+        }
+
+        [DebuggerDisplay("Count = {Count}")]
+        [DebuggerTypeProxy(typeof(NodeArrayNodeDebugView))]
         public class NodeArrayNode : Node
         {
             internal Node[] rentedNodes;

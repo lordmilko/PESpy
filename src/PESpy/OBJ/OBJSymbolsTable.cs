@@ -1,14 +1,75 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using ClrDebug.PDB;
+using PESpy.LIB;
 using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy.OBJ
 {
     //Name is made up
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public class OBJSymbolsTable : IValue, IViewable
     {
+        private string DebuggerDisplay()
+        {
+            switch (Signature)
+            {
+                case CV_SIGNATURE.C7:
+                case CV_SIGNATURE.C11:
+                case CV_SIGNATURE.C13:
+                    return $"{Signature} Symbols";
+
+                default:
+                    //Garbage; must be C6
+                    return "C6 Symbols";
+            }
+        }
+
         public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
+
+        private unsafe SymTypeList? c6Symbols;
+
+        //Even in modern OBJ files you can have C6 symbols. There can be two .debug$S sections, and only
+        //one of which starts with a valid Signature
+        public unsafe SymTypeList? C6Symbols
+        {
+            get
+            {
+                if (c6Symbols == null)
+                {
+                    switch (Signature)
+                    {
+                        case CV_SIGNATURE.C7:
+                        case CV_SIGNATURE.C11:
+                        case CV_SIGNATURE.C13:
+                            break;
+                    }
+
+                    //Garbage; must be C6
+
+                    var block = chunk.block;
+
+                    //C7 and C11 use ST strings
+                    ISymbolAccessor symbolAccessor = null;
+
+                    if (block is GlobalMemoryBlock b)
+                    {
+                        symbolAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                    }
+                    else
+                    {
+                        var s = (GlobalSubMemoryBlock) block;
+                        symbolAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
+                    }
+
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
+                    c6Symbols = new SymTypeList(chunk.Pointer, Length);
+                }
+
+                return c6Symbols;
+            }
+        }
 
         public SymTypeList? c7Symbols;
 
@@ -21,8 +82,22 @@ namespace PESpy.OBJ
 
                 if (c7Symbols == null && sig is CV_SIGNATURE.C7 or CV_SIGNATURE.C11)
                 {
+                    var block = chunk.block;
+
                     //C7 and C11 use ST strings
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(sig, chunk);
+                    ISymbolAccessor symbolAccessor = null;
+
+                    if (block is GlobalMemoryBlock b)
+                    {
+                        symbolAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                    }
+                    else
+                    {
+                        var s = (GlobalSubMemoryBlock) block;
+                        symbolAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
+                    }
+
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
                     c7Symbols = new SymTypeList(chunk.Pointer + 4, Length - 4);
                 }
 
@@ -94,14 +169,24 @@ namespace PESpy.OBJ
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
+            switch (Signature)
+            {
+                case CV_SIGNATURE.C7:
+                case CV_SIGNATURE.C11:
+                    writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
+                    writer.WriteGlobal(Offset + 4, C7Symbols);
+                    break;
 
-            var c7 = C7Symbols;
+                case CV_SIGNATURE.C13:
+                    writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
+                    writer.WriteGlobal(C13SubSections);
+                    break;
 
-            if (c7 != null)
-                writer.WriteGlobal(Offset + 4, c7);
-            else
-                writer.WriteGlobal(C13SubSections);
+                default:
+                    //Garbage; must be C6
+                    writer.WriteGlobal(Offset, C6Symbols);
+                    break;
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

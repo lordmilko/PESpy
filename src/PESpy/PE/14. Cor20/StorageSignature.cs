@@ -115,7 +115,7 @@ namespace PESpy
             s.WriteField("iMinorVer", MinorVersion);
             s.WriteField("iExtraData", ExtraData);
             s.WriteField("iVersionString", VersionStringLength);
-            s.WriteUtf8FixedLengthField("pVersion", Version);
+            s.WriteUTF8FixedLengthField("pVersion", Version);
 
             s.Align(4);
 

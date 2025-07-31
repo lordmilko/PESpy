@@ -25,7 +25,7 @@ namespace PESpy
             internal int Position;
 
             public PooledList<TypeNode> BackRefFunctionParams;
-            public PooledList<NamedIdentifierNode> BackRefNames;
+            public PooledList<(FixedUtf8String key, IdentifierNode node)> BackRefNames;
 
             private PooledList<FixedUtf8String> strings; //We don't need to initialize this; if we add something to it, it will initialize itself
 
@@ -488,6 +488,15 @@ namespace PESpy
                 nodeArrayNode.count = 1;
                 nodeArrayNode.rentedNodes = singletonArray;
                 return nodeArrayNode;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ScopedIdentifierNode AllocScopedIdentifier(SymbolNode scope, ulong number)
+            {
+                var scopedIdentifierNode = arena?.ScopedIdentifier.Allocate() ?? new ScopedIdentifierNode();
+                scopedIdentifierNode.Scope = scope;
+                scopedIdentifierNode.Number = number;
+                return scopedIdentifierNode;
             }
 
             #endregion

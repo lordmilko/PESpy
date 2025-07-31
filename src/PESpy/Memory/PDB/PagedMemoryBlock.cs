@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using PESpy.PDB;
 
 namespace PESpy
@@ -13,8 +13,8 @@ namespace PESpy
         private int byteCount;
         internal int pageSize;
 
-        private byte* mmf;
-        internal bool ownsMemory;
+        private MemoryMappedFile? mmf;
+        private MemoryMappedViewAccessor? mma;
 
         public override int Length => byteCount;
 
@@ -24,11 +24,15 @@ namespace PESpy
 
         HashSet<long> ISymbolMemoryBlock.SymbolMemory => symbolMemory ??= new HashSet<long>();
 
+        //True if this PagedMemoryBlock owns the memory that it encapsulates and is responsible for freeing it. This also implies that
+        //the data is split between non-contiguous pages
+        internal bool OwnsMemory => mmf != null;
+
         public PagedMemoryBlock(
             PN[] pageList,
             int byteCount,
             int pageSize,
-            byte* mmf,
+            byte* mmfAddress,
             bool writable,
             PDBFile? pdbFile) : base(null, writable)
         {
@@ -41,12 +45,10 @@ namespace PESpy
             this.byteCount = byteCount;
 
             this.pageSize = pageSize;
-            this.mmf = mmf;
             PDBFile = pdbFile;
 
-            AcquireBuffer(RemoteStartOffset, Length, false);
+            AcquireBuffer(mmfAddress, RemoteStartOffset, Length, false);
         }
-
 
         public override bool Contains(int offset)
         {
@@ -65,7 +67,7 @@ namespace PESpy
             return result;
         }
 
-        private void AcquireBuffer(int offset, int length, bool copyData)
+        private void AcquireBuffer(byte* sourceAddress, int offset, int length, bool copyData)
         {
             Debug.Assert(pageSize != 0);
 
@@ -79,7 +81,7 @@ namespace PESpy
                 //Fast path: there's only one page. Data already in the PDB should already have been zeroed
 
                 var pageStart = pageList[0] * pageSize;
-                LocalPointer = mmf + pageStart;
+                LocalPointer = sourceAddress + pageStart;
                 RemoteStartOffset = pageStart;
             }
             else
@@ -106,7 +108,7 @@ namespace PESpy
                     //Fast path. The block begins at the first page
 
                     var pageStart = pageList[0] * pageSize;
-                    LocalPointer = mmf + pageStart;
+                    LocalPointer = sourceAddress + pageStart;
                     RemoteStartOffset = pageStart;
                 }
                 else
@@ -114,18 +116,33 @@ namespace PESpy
                     //Slow path. We need to allocate a buffer and copy all of the memory in
 
                     var bufferSize = pageList.Length * pageSize;
-                    var ptr = Marshal.AllocHGlobal(bufferSize);
+                    mmf = MemoryMappedFile.CreateNew(null, bufferSize);
+                    mma = mmf.CreateViewAccessor();
 
+                    RuntimeHelpers.PrepareConstrainedRegions();
+
+                    byte* destAddress = default;
+
+                    try
+                    {
+                        //Empty; needed to make constrained region work
+                    }
+                    finally
+                    {
+                        //While MMA does have some helper methods on it that can be used to read certain value types,
+                        //it acquires/releases the pointer after each value read, inside of a try/finally block, which I feel
+                        //adds a bit of overhead
+                        mma.SafeMemoryMappedViewHandle.AcquirePointer(ref destAddress);
+                    }
                     for (var i = 0; i < pageList.Length; i++)
                     {
-                        var source = new Span<byte>(mmf + (pageList[i] * pageSize), pageSize);
-                        var destination = new Span<byte>((byte*) (ptr + (i * pageSize)), pageSize);
+                        var source = new Span<byte>(sourceAddress + (pageList[i] * pageSize), pageSize);
+                        var destination = new Span<byte>((byte*) (destAddress + (i * pageSize)), pageSize);
 
                         source.CopyTo(destination);
                     }
 
-                    ownsMemory = true;
-                    LocalPointer = (byte*) ptr;
+                    LocalPointer = (byte*) destAddress;
                     RemoteStartOffset = pageList[0] * pageSize;
                 }
             }
@@ -138,9 +155,21 @@ namespace PESpy
 
             SymbolMemoryTracker.ClearSymbolMemory(this);
 
-            if (ownsMemory && LocalPointer != default)
+            if (mmf != null && LocalPointer != default)
             {
-                Marshal.FreeHGlobal((IntPtr) LocalPointer);
+                RuntimeHelpers.PrepareConstrainedRegions();
+
+                try
+                {
+                    //Empty
+                }
+                finally
+                {
+                    mma!.SafeMemoryMappedViewHandle.ReleasePointer();
+                }
+
+                mma!.Dispose();
+                mmf.Dispose();
                 LocalPointer = default;
             }
         }

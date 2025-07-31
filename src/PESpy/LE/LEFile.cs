@@ -82,6 +82,8 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.LE;
 
+        public int Length => globalBlock.Length;
+
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
 

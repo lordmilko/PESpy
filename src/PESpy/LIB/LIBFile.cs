@@ -39,6 +39,8 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.LIB;
 
+        public int Length => globalBlock.Length;
+
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
 
@@ -247,6 +249,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

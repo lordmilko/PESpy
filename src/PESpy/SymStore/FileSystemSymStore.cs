@@ -22,7 +22,10 @@ namespace PESpy
                 //If the length is 0, assume that we previously attempted to download the file and that it got corrupt.
                 //Try and download the file again
                 if (fs.Length == 0)
+                {
+                    fs.Dispose();
                     return null;
+                }
 
                 return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs);
             }
@@ -42,13 +45,10 @@ namespace PESpy
             {
                 stream.CopyTo(fs);
             }
-            catch
-            {
-                fs.Dispose();
-                throw;
-            }
 
-            return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs);
+            File.Move(tempFile, fileName);
+
+            return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), File.OpenRead(fileName));
         }
     }
 }

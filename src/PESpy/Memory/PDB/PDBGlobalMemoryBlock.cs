@@ -6,13 +6,17 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    internal class PDBGlobalMemoryBlock : MemoryBlock
+    internal class PDBGlobalMemoryBlock : MemoryBlock, ISymbolMemoryBlock
     {
         internal PDBFile? PDBFile { get; }
 
         public override int Length { get; }
 
         internal Dictionary<PN[], PagedMemoryBlock> blockCache = new();
+
+        private HashSet<long>? symbolMemory;
+
+        HashSet<long> ISymbolMemoryBlock.SymbolMemory => symbolMemory ??= new HashSet<long>();
 
         private object objLock = new object();
         internal int pageSize;
@@ -72,6 +76,8 @@ namespace PESpy
 
             lock (objLock)
             {
+                SymbolMemoryTracker.ClearSymbolMemory(this);
+
                 foreach (var pagedBlock in blockCache)
                 {
                     pagedBlock.Value.Dispose();

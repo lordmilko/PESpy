@@ -1,23 +1,46 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct GuardCFFunctionTable : IValue, IViewable
+    internal class GuardCFFunctionTableDebugView
     {
+        private GuardCFFunctionTable table;
+
+        public GuardCFFunctionTableDebugView(GuardCFFunctionTable table)
+        {
+            this.table = table;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public Entry[] Entries { get; }
+        public GuardCFFunctionTable.Entry[] Items => table.ToArray();
+    }
 
-        public int Offset { get; }
+    //This can allocate a lot of memory given the number of functions that might be present. As such, don't store any entries,
+    //and instead lazily retrieve them
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(GuardCFFunctionTableDebugView))]
+    public readonly struct GuardCFFunctionTable : IValue, IViewable, IEnumerable<GuardCFFunctionTable.Entry>
+    {
+        public int Count { get; }
 
-        private readonly int length;
+        public int Offset => chunk.AbsoluteOffset;
+
+        internal int StructSize => Count * (sizeof(int) + metadataSize);
+
+        private readonly MemoryChunk chunk;
+        private readonly byte metadataSize;
 
 #if PEFAST
         internal GuardCFFunctionTable(in MemoryChunk chunk, IMAGE_GUARD flags, long functionCount)
         {
-            Offset = chunk.AbsoluteOffset;
+            this.chunk = chunk;
 
-            //Eagerly populate. If you're asking for the GuardCFFunctionTable, you want the entries
+            Count = (int) functionCount;
 
             /*  https://learn.microsoft.com/en-us/windows/win32/secbp/pe-metadata
              *
@@ -34,57 +57,27 @@ namespace PESpy
              */
 
             var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
+        }
 
-            var entries = new Entry[functionCount];
-
-            int read = 0;
-
-            //On the first run, don't query XFG info, as we've already filled our reader's buffer with the data of all of the entries to be read
-            for (var i = 0; i < functionCount; i++)
+        public Entry this[int index]
+        {
+            get
             {
-                entries[i] = new Entry(chunk.Slice(read), metadataSize);
-                read += 4 + metadataSize;
-            }
+                if (index < 0 || index >= Count)
+                    throw new IndexOutOfRangeException();
 
-            length = read;
+                var peFile = chunk.PEFile();
+                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, peFile);
 
-            var peFile = chunk.PEFile();
-
-            //Update each entry that should also have an XFG
-            for (var i = 0; i < functionCount; i++)
-            {
-                ref var current = ref entries[i];
-
-                if (current.Flags != null && (current.Flags.Value & IMAGE_GUARD_FLAG.FID_XFG) != 0)
-                {
-                    //Functions that are configured to use Extended Flow Guard (XFG) are preceded by an 8 byte signature, that is passed as an argument
-                    //when attempting to perform an indirect jump to a function, which is then validated against the signature that is listed behind the
-                    //start of the function
-                    var xfgAddress = current.Function - 8;
-
-                    RVA<ulong> xfg;
-
-                    if (peFile.TryGetValueChunkFromSection(xfgAddress, out var xfgChunk))
-                    {
-                        var signature = xfgChunk.PeekUInt64(0);
-
-                        xfg = new RVA<ulong>(xfgAddress, xfgChunk.AbsoluteOffset, signature);
-                    }
-                    else
-                        xfg = new RVA<ulong>(xfgAddress);
-
-                    entries[i] = new Entry
-                    {
-                        Offset = current.Offset,
-                        Function = current.Function,
-                        Flags = current.Flags,
-                        XFG = xfg
-                    };
-                }
+                return entry;
             }
 
             Entries = entries;
         }
+
+        public IEnumerator<Entry> GetEnumerator() => new Enumerator(Count, metadataSize, chunk);
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 #else
         internal GuardCFFunctionTable(IFileReader reader, PEFile peFile, IMAGE_GUARD flags, long functionCount)
         {
@@ -156,11 +149,12 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //We don't have any globals, but our children do
-            writer.RelayGlobals(Entries);
+            foreach (var entry in this)
+                ((IViewable) entry).WriteGlobals(writer);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.GuardCFFunctionTable, this, ViewKind.GuardCFFunctionTable, length);
+            writer.NewStruct(Strings.GuardCFFunctionTable, this, ViewKind.GuardCFFunctionTable, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -181,7 +175,7 @@ namespace PESpy
 
             public IMAGE_GUARD_FLAG? Flags { get; init; }
 
-            public RVA<ulong>? XFG { get; init; } //This is set by GuardCFFunctionTableEntry after this type has been constructed
+            public RVA<ulong>? XFG { get; init; }
 
             public int Offset { get; init; }
 
@@ -200,6 +194,24 @@ namespace PESpy
 
                     case 1:
                         Flags = (IMAGE_GUARD_FLAG) chunk.PeekByte(4);
+
+                        if ((Flags.Value & IMAGE_GUARD_FLAG.FID_XFG) != 0)
+                        {
+                            //Functions that are configured to use Extended Flow Guard (XFG) are preceded by an 8 byte signature, that is passed as an argument
+                            //when attempting to perform an indirect jump to a function, which is then validated against the signature that is listed behind the
+                            //start of the function
+                            var xfgAddress = Function - 8;
+
+                            if (peFile.TryGetValueChunkFromSection(xfgAddress, out var xfgChunk))
+                            {
+                                var signature = xfgChunk.PeekUInt64(0);
+
+                                XFG = new RVA<ulong>(xfgAddress, xfgChunk.AbsoluteOffset, signature);
+                            }
+                            else
+                                XFG = new RVA<ulong>(xfgAddress);
+                        }
+
                         break;
 
                     default:
@@ -258,6 +270,49 @@ namespace PESpy
                     s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
 
                 return s.ToArray();
+            }
+        }
+
+        public struct Enumerator : IEnumerator<Entry>
+        {
+            private readonly MemoryChunk chunk;
+            private int index;
+            private readonly int count;
+            private readonly int metadataSize;
+            private readonly PEFile peFile;
+
+            internal Enumerator(int count, int metadataSize, in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+                this.count = count;
+                this.metadataSize = metadataSize;
+                peFile = chunk.PEFile();
+                index = default;
+            }
+
+            public Entry Current { get; private set; }
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext()
+            {
+                if (index < count)
+                {
+                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, peFile);
+                    index++;
+                    return true;
+                }
+
+                Current = default;
+                return false;
+            }
+
+            public void Reset()
+            {
+            }
+
+            public void Dispose()
+            {
             }
         }
     }

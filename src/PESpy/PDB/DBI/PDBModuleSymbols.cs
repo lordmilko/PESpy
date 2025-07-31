@@ -17,8 +17,6 @@ namespace PESpy.PDB
 
         private readonly MemoryChunk chunk;
 
-        public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*)(chunk.Pointer + offset);
-
         internal PDBModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymTypeList symbols)
         {
             this.chunk = chunk;
@@ -26,10 +24,21 @@ namespace PESpy.PDB
             List = symbols;
         }
 
+        public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (chunk.Pointer + offset);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            //If the signature can be C6, we need to not write the signature and not do offset + 4 below
+            Debug.Assert(Signature is CV_SIGNATURE.C7 or CV_SIGNATURE.C11 or CV_SIGNATURE.C13);
+
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
-            writer.WritePagedGlobal(chunk.RelativeOffset + 4, (PagedMemoryBlock) chunk.block, List);
+
+            var block = chunk.block;
+
+            if (block is PagedMemoryBlock p)
+                writer.WritePagedGlobal(chunk.RelativeOffset + 4, p, List);
+            else
+                writer.WriteGlobal(chunk.RelativeOffset + 4, List);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

@@ -7,7 +7,7 @@ namespace PESpy.PDB
         GSIHashSCImpvV70 = 0xeffe0000 + 19990810
     }
 
-    public readonly struct GSIHashHdr : IValue, IViewable
+    public class GSIHashHdr : IValue, IViewable //May not be present
     {
         public const int hdrSignature = -1;
 

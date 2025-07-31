@@ -20,7 +20,9 @@ namespace PESpy
             {
                 var skipFirstSpaceBefore = false;
 
-                OutputQualifiers(ref builder, flags, Qualifiers, false, true, ref skipFirstSpaceBefore);
+                if ((flags & UNDNAME.UNDNAME_NAME_ONLY) == 0)
+                    OutputQualifiers(ref builder, flags, Qualifiers, false, true, ref skipFirstSpaceBefore);
+
                 Name.Output(ref builder, flags);
 
                 if (TargetName != null)

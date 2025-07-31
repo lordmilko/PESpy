@@ -19,6 +19,8 @@ namespace PESpy
 
         public static explicit operator Utf8String(byte* value) => new Utf8String(value);
 
+        public static explicit operator FixedUtf8String(Utf8String value) => new FixedUtf8String(value.Value, value.Length);
+
         public bool Equals(Utf8String other) => this.Value == other.Value;
 
         public bool Equals(string? other)
@@ -44,10 +46,10 @@ namespace PESpy
         }
 
         public static bool operator ==(Utf8String left, string right) => left.Equals(right);
-        public static bool operator !=(Utf8String left, string right) => left.Equals(right);
+        public static bool operator !=(Utf8String left, string right) => !left.Equals(right);
 
         public static bool operator ==(string left, Utf8String right) => right.Equals(left);
-        public static bool operator !=(string left, Utf8String right) => right.Equals(left);
+        public static bool operator !=(string left, Utf8String right) => !right.Equals(left);
 
         public override bool Equals(object obj)
         {

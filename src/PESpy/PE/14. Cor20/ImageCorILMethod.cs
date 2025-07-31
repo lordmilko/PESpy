@@ -289,10 +289,14 @@ namespace PESpy
                 var ehSections = EHSections;
 
                 for (var i = 0; i < ehSections.Length; i++)
-                    throw new NotImplementedException(); //todo: will the section's header's datasize tell us?
+                {
+                    ref var ehSection = ref ehSections[i];
+
+                    size += ehSection.Sect.DataSize;
+                }
             }
 
-            throw new NotImplementedException();
+            return size;
         }
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)

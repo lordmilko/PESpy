@@ -66,7 +66,7 @@ namespace PESpy
         /// The address of a unit of resource data in the Resource Data area.
         /// </summary>
 #if PEFAST
-        public RVA<IValue> OffsetToData
+        public unsafe RVA<IValue> OffsetToData
         {
             get
             {
@@ -119,6 +119,10 @@ namespace PESpy
                                 case ResourceType.AniIcon:
                                 case ResourceType.Html:
                                 case ResourceType.Manifest:
+                                    //Note that the manifest may start with a UTF-8 BOM
+                                    value = new RawValue<FixedUtf8String>(valueChunk.AbsoluteOffset, new FixedUtf8String(valueChunk.Pointer, valueChunk.Remaining));
+                                    break;
+
                                 default:
                                     value = new ByteBlob(valueChunk, Size);
                                     break;
@@ -359,6 +363,8 @@ namespace PESpy
             {
                 if (OffsetToData.Value is IViewable v)
                     writer.WriteGlobal(v);
+                else if (OffsetToData.Value is RawValue<FixedUtf8String> r)
+                    writer.WriteGlobal(r.Offset, r.Value, r.Value.Length, ViewKind.Manifest);
                 else
                     throw new NotImplementedException($"Don't know how to write a resource of type {OffsetToData.Value.GetType().Name}");
             }

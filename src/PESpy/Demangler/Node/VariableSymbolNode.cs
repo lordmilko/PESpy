@@ -19,6 +19,12 @@ namespace PESpy
 
             public override void Output(ref Utf8StringBuilder builder, UNDNAME flags)
             {
+                if ((flags & UNDNAME.UNDNAME_NAME_ONLY) != 0)
+                {
+                    Name.Output(ref builder, flags);
+                    return;
+                }
+
                 string accessSpec = null;
                 bool isStatic = true;
 
@@ -38,20 +44,14 @@ namespace PESpy
                         break;
                 }
 
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
-
                 if (accessSpec != null)
                 {
                     builder.Append(accessSpec);
                     builder.Append(": ");
                 }
 
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
-
                 if (isStatic)
                     builder.Append("static ");
-
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
 
                 if (Type != null)
                 {
@@ -60,8 +60,6 @@ namespace PESpy
                 }
 
                 Name.Output(ref builder, flags);
-
-                Debug.Assert(flags == UNDNAME.UNDNAME_COMPLETE);
 
                 if (Type != null)
                     Type.OutputPost(ref builder, flags);

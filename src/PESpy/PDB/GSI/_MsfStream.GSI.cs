@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -7,23 +11,23 @@ namespace PESpy.PDB
     {
         public class GSI : IValue, IViewable
         {
-            private readonly GSIHashHdr gsiHdr;
+            public GSIHashHdr? GsiHdr { get; }
 
-            public ref readonly GSIHashHdr GsiHdr => ref gsiHdr;
+            public NativeSpan<HRFile> HashRecords { get; }
 
-            public NativeSpan<HRFile> HashRecords => chunk.PeekNativeSpan<HRFile>(GSIHashHdr.StructSize, gsiHdr.cbHr / HRFile.StructSize);
+            public int[] Buckets { get; }
 
             public GlobalSymTypeList Symbols { get; }
 
             public int Offset => chunk.AbsoluteOffset;
 
+            private int iphrHash;
+
             internal readonly MemoryChunk chunk;
             
-            internal unsafe GSI(in MemoryChunk chunk)
+            internal unsafe GSI(in MemoryChunk chunk, int length)
             {
                 this.chunk = chunk;
-                
-                gsiHdr = new GSIHashHdr(chunk);
 
                 if (GsiHdr.verSignature == GSIHashHdr.hdrSignature && GsiHdr.verHdr == GSIHashSCImpv.GSIHashSCImpvV70)
                 {

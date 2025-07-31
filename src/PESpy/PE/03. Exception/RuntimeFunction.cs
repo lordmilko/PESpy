@@ -46,7 +46,8 @@ namespace PESpy
                      * stream of them one after the other. Given that the exception directory is supposed to purely be comprised of RUNTIME_FUNCTION entries,
                      * if we see an UnwindData that lies within the bounds of the exception directory, we'll assume it's one of these anomalous entries, and
                      * mark it as bad (since it's clearly not pointing to an UnwindInfo) */
-                    if (!(rva >= exceptionTableDirectory.VirtualAddress &&
+                    if (peFile.FileHeader.Machine == ClrDebug.IMAGE_FILE_MACHINE.AMD64 && //I think UnwindInfo only applies for AMD64
+                        !(rva >= exceptionTableDirectory.VirtualAddress &&
                         rva <= (exceptionTableDirectory.VirtualAddress + exceptionTableDirectory.Size)) &&
                         peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                     {

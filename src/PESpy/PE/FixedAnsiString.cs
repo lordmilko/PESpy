@@ -13,6 +13,8 @@ namespace PESpy
             Length = length;
         }
 
+        public static explicit operator FixedUtf8String(FixedAnsiString value) => new FixedUtf8String(value.Value, value.Length);
+
         public bool Equals(FixedAnsiString other) => this.Value == other.Value;
 
         public bool Equals(string? other)
@@ -40,10 +42,10 @@ namespace PESpy
         public static implicit operator Span<byte>(FixedAnsiString value) => new Span<byte>(value.Value, value.Length);
 
         public static bool operator ==(FixedAnsiString left, string right) => left.Equals(right);
-        public static bool operator !=(FixedAnsiString left, string right) => left.Equals(right);
+        public static bool operator !=(FixedAnsiString left, string right) => !left.Equals(right);
 
         public static bool operator ==(string left, FixedAnsiString right) => right.Equals(left);
-        public static bool operator !=(string left, FixedAnsiString right) => right.Equals(left);
+        public static bool operator !=(string left, FixedAnsiString right) => !right.Equals(left);
 
         public override bool Equals(object obj)
         {

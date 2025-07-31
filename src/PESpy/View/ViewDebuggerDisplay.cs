@@ -123,7 +123,7 @@ namespace PESpy.View
                     if (view.Children.Length > 1 && view.Children.All(v => v is IStructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
                         builder.Append(" (").Append(view.Children.Length).Append(")");
                     else if (first == "IMAGE_IMPORT_BY_NAME")
-                        builder.Append(" (").Append(view.Children.Count(v => v is IStructView { Name: "IMAGE_IMPORT_BY_NAME" } || v is IValueView { Value: string })).Append(")");
+                        builder.Append(" (").Append(view.Children.Count(v => v is IStructView s && s.Name == Strings.IMAGE_IMPORT_BY_NAME || v is IValueView { Value: string })).Append(")");
                 }
                 else if (view.Kind == ViewKind.Strings || view.Kind == ViewKind.StringPoolHeap)
                 {
@@ -245,31 +245,36 @@ namespace PESpy.View
             }
             else
             {
-                var nameField = fields.FirstOrDefault(f => f.Name == "Name")?.Value;
-
-                if (nameField != null)
-                {
-                    builder.Append(" ").Append(nameField);
-                }
+                if (view.TryGetEnhancedName(out var enhancedName))
+                    builder.Append(" ").Append(enhancedName);
                 else
                 {
-                    var valueField = fields.FirstOrDefault(f => f.Name == "Value")?.Value;
+                    var nameField = fields.FirstOrDefault(f => f.Name == "Name")?.Value;
 
-                    if (valueField != null)
+                    if (nameField != null)
                     {
-                        if (valueField is string s)
-                            valueField = $"\"{s}\"";
-
-                        builder.Append(" ").Append(valueField);
+                        builder.Append(" ").Append(nameField);
                     }
                     else
                     {
-                        var typeField = fields.FirstOrDefault(f => StringComparer.OrdinalIgnoreCase.Equals(f.Name, "Type"))?.Value;
+                        var valueField = fields.FirstOrDefault(f => f.Name == "Value")?.Value;
 
-                        if (typeField != null && typeField.GetType().IsEnum)
-                            builder.Append(" (").Append(typeField).Append(")");
+                        if (valueField != null)
+                        {
+                            if (valueField is string s)
+                                valueField = $"\"{s}\"";
+
+                            builder.Append(" ").Append(valueField);
+                        }
+                        else
+                        {
+                            var typeField = fields.FirstOrDefault(f => StringComparer.OrdinalIgnoreCase.Equals(f.Name, "Type"))?.Value;
+
+                            if (typeField != null && typeField.GetType().IsEnum)
+                                builder.Append(" (").Append(typeField).Append(")");
+                        }
                     }
-                }
+                }                
             }
 
             if (view is ISplitView)

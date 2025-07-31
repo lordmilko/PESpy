@@ -445,14 +445,44 @@ namespace PESpy.PDB
             var builder = new StringBuilder();
             builder.Append("[").Append(symType.rectyp).Append("]");
 
-            var value = GetValue(symType);
+            static void AppendPublicName(FixedUtf8String name, StringBuilder builder)
+            {
+                var demangled = Demangler.ParseString(name);
 
-            var defaultStr = symType.rectyp.ToString();
+                builder.Append(" ").Append(demangled);
 
-            var str = value.ToString();
+                if (name == demangled)
+                    return;
 
-            if (defaultStr != str)
-                builder.Append(" ").Append(str);
+                builder.Append(" <- ").Append(name.ToString());
+            }
+
+            switch (symType.rectyp)
+            {
+                case SYM_ENUM_e.S_PUB16:
+                    AppendPublicName(((DataSym16) symType).name, builder);
+                    break;
+
+                case SYM_ENUM_e.S_PUB32_16t:
+                    AppendPublicName(((DataSym3216t) symType).name, builder);
+                    break;
+
+                case SYM_ENUM_e.S_PUB32_ST:
+                case SYM_ENUM_e.S_PUB32:
+                    AppendPublicName(((PubSym32) symType).name, builder);
+                    break;
+
+                default:
+                    var value = GetValue(symType);
+
+                    var defaultStr = symType.rectyp.ToString();
+
+                    var str = value.ToString();
+
+                    if (defaultStr != str)
+                        builder.Append(" ").Append(str);
+                    break;
+            }
 
             return builder.ToString();
         }

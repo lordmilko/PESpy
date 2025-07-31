@@ -80,18 +80,45 @@ namespace PESpy
         public readonly struct Entry : IValue, IViewable
         {
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string DebuggerDisplay => $"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
+            private string DebuggerDisplay
+            {
+                get
+                {
+                    if (TryGetImportInfo(out var descriptorIndex, out var thunkIndex, out var isDelayImport))
+                    {
+                        if (isDelayImport)
+                        {
+                            ref var descriptor = ref peFile.DelayImportTable![descriptorIndex];
+                            ref var thunk = ref descriptor.ImportNameTableRVA.Value[thunkIndex];
+
+                            return $"[Delay] {descriptor.DllNameRVA} {thunk}";
+                        }
+                        else
+                        {
+                            ref var descriptor = ref peFile.ImportTable![descriptorIndex];
+                            ref var thunk = ref descriptor.OriginalFirstThunk.Value[thunkIndex];
+
+                            return $"[Import] {descriptor.Name} {thunk}";
+                        }
+                    }
+
+                    return $"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
+                }
+            }
 
             public int Function { get; init; }
 
             public IMAGE_GUARD_FLAG? Flags { get; init; }
 
-            public int Offset { get; init; }
+            public int Offset { get; }
+
+            private readonly PEFile peFile;
 
 #if PEFAST
             internal Entry(in MemoryChunk chunk, int metadataSize)
             {
-                Offset = (int) chunk.AbsoluteOffset;
+                Offset = chunk.AbsoluteOffset;
+                this.peFile = chunk.PEFile();
 
                 Function = chunk.PeekInt32(0);
 
@@ -110,6 +137,134 @@ namespace PESpy
                         Flags = null;
                         break;
                 }
+            }
+
+            public bool TryGetImportInfo(out int descriptorIndex, out int thunkIndex, out bool isDelayImport)
+            {
+                var targetAddress = Function;
+
+                if (!peFile.IsLoadedImage)
+                {
+                    if (!peFile.TryGetOffset(Function, out targetAddress))
+                    {
+                        descriptorIndex = default;
+                        thunkIndex = default;
+                        isDelayImport = default;
+                        return false;
+                    }
+                }
+
+                var importTable = peFile.ImportTable;
+
+                if (importTable != null)
+                {
+                    if (TryGetImportTableInfo(targetAddress, importTable, out descriptorIndex, out thunkIndex))
+                    {
+                        isDelayImport = false;
+                        return true;
+                    }
+                }
+
+                var delayImportTable = peFile.DelayImportTable;
+
+                if (delayImportTable != null)
+                {
+                    if (TryGetDelayImportTableInfo(targetAddress, delayImportTable, out descriptorIndex, out thunkIndex))
+                    {
+                        isDelayImport = true;
+                        return true;
+                    }
+                }
+
+                descriptorIndex = default;
+                thunkIndex = default;
+                isDelayImport = default;
+                return false;
+            }
+
+            private static bool TryGetImportTableInfo(int targetAddress, ImageImportDescriptor[] importTable, out int descriptorIndex, out int thunkIndex)
+            {
+                for (var i = 0; i < importTable.Length; i++)
+                {
+                    ref var descriptor = ref importTable[i];
+
+                    var iat = descriptor.FirstThunk;
+
+                    if (iat.IsValid)
+                    {
+                        if (TrySearchThunkList(targetAddress, iat.Value, out thunkIndex))
+                        {
+                            descriptorIndex = i;
+                            return true;
+                        }
+                    }
+                }
+
+                descriptorIndex = default;
+                thunkIndex = default;
+                return false;
+            }
+
+            private static bool TryGetDelayImportTableInfo(int targetAddress, ImageDelayLoadDescriptor[] importTable, out int descriptorIndex, out int thunkIndex)
+            {
+                for (var i = 0; i < importTable.Length; i++)
+                {
+                    ref var descriptor = ref importTable[i];
+
+                    var iat = descriptor.ImportAddressTableRVA;
+
+                    if (iat.IsValid)
+                    {
+                        if (TrySearchThunkList(targetAddress, iat.Value, out thunkIndex))
+                        {
+                            descriptorIndex = i;
+                            return true;
+                        }
+                    }
+                }
+
+                descriptorIndex = default;
+                thunkIndex = default;
+                return false;
+            }
+
+            private static bool TrySearchThunkList(int targetAddress, ImageThunkData[] thunkList, out int index)
+            {
+                if (thunkList.Length == 0)
+                {
+                    index = -1;
+                    return false;
+                }
+
+                if (targetAddress < thunkList[0].Offset || targetAddress > thunkList[thunkList.Length - 1].Offset)
+                {
+                    index = -1;
+                    return false;
+                }
+
+                var lo = 0;
+                var hi = thunkList.Length - 1;
+
+                while (lo <= hi)
+                {
+                    var mid = (lo + hi) / 2;
+
+                    var offset = thunkList[mid].Offset;
+
+                    if (offset > targetAddress)
+                        hi = mid - 1;
+                    else if (offset < targetAddress)
+                        lo = mid + 1;
+                    else
+                    {
+                        index = mid;
+                        return true;
+                    }
+                }
+
+                //Something went wrong. PE File is corrupt?
+                index = -1;
+                return false;
             }
 #else
             internal Entry(IFileReader reader, int metadataSize)

@@ -88,6 +88,23 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FixedAnsiString PeekNullPaddedAnsi(int offset, int numChars)
+        {
+            //The string is at most numChars long
+            var ptr = Pointer + offset;
+
+            int i = 0;
+
+            for (; i < numChars; i++)
+            {
+                if (*(ptr + i) == 0)
+                    break;
+            }
+
+            return new FixedAnsiString(ptr, i);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AnsiString PeekAnsiNullTerminatedString(int offset) => new AnsiString(Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

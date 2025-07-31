@@ -44,10 +44,10 @@ namespace PESpy
         }
 
         public static bool operator ==(Utf16String left, string right) => left.Equals(right);
-        public static bool operator !=(Utf16String left, string right) => left.Equals(right);
+        public static bool operator !=(Utf16String left, string right) => !left.Equals(right);
 
         public static bool operator ==(string left, Utf16String right) => right.Equals(left);
-        public static bool operator !=(string left, Utf16String right) => right.Equals(left);
+        public static bool operator !=(string left, Utf16String right) => !right.Equals(left);
 
         public override bool Equals(object obj)
         {

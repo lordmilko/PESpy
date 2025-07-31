@@ -1,5 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using PESpy.Native;
@@ -293,7 +291,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct($"{nameof(IMAGE_IMPORT_DESCRIPTOR)} {Name}", this, ViewKind.ImageImportDescriptor, StructSize);
+            writer.NewStruct(Strings.IMAGE_IMPORT_DESCRIPTOR, this, ViewKind.ImageImportDescriptor, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
