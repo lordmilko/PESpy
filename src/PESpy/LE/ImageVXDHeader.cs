@@ -1,10 +1,7 @@
-﻿using System;
-using PESpy.LE;
-using PESpy.Native;
+﻿using PESpy.LE;
 using PESpy.NE;
 using PESpy.View;
 
-#if PEFAST
 namespace PESpy
 {
     //Also called e32_exe
@@ -438,4 +435,3 @@ namespace PESpy
         }
     }
 }
-#endif

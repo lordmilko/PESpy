@@ -20,7 +20,6 @@ namespace PESpy
             sizeof(int) + //Size
             Size;
 
-#if PEFAST
         internal ImageDynamicRelocationTable(in MemoryChunk chunk)
         {
             Offset = chunk.AbsoluteOffset;
@@ -62,43 +61,6 @@ namespace PESpy
                 DynamicRelocations = default!;
             }
         }
-#else
-        internal ImageDynamicRelocationTable(IFileReader reader, PEFile peFile)
-        {
-            Offset = (int) reader.Position;
-
-            //Is it a V1 or V2 structure?
-            Version = reader.ReadInt32();
-
-            if (Version == 1)
-            {
-                Size = reader.ReadInt32(); //The size that all of the ImageDynamicRelocation entries occupy. Note that the "Symbol" member of each relocation is 8 bytes in x64
-
-                //ImageDynamicRelocation contains heaps of dynamically sized structures, so we can't assume how many
-                //entries we'll have
-
-                using var dynamicRelocations = new PooledList<ImageDynamicRelocation>();
-
-                var end = reader.Position + Size;
-
-                reader.FillBuffer(Size - 8); //We've already read 8 bytes
-
-                while (reader.Position < end)
-                    dynamicRelocations.Add(new ImageDynamicRelocation(reader, peFile));
-
-                Debug.Assert(reader.Position == end);
-
-                DynamicRelocations = dynamicRelocations.ToArray();
-            }
-            else
-            {
-                //Haven't found an assembly that uses version 2 yet
-                Debug.Assert(false, $"Don't know how to handle a {nameof(ImageDynamicRelocationTable)} with version {Version}");
-                Size = default;
-                DynamicRelocations = default;
-            }
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

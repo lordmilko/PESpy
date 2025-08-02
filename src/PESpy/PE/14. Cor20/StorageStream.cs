@@ -2,9 +2,6 @@
 using PESpy.Ecma335;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -24,7 +21,6 @@ namespace PESpy
         public const string MinimalMDStream = "#JTD"; //"Minimal Delta"
         public const string PdbStream = "#Pdb";
 
-#if PEFAST
         public int iOffset => chunk.PeekInt32(0);
 
         public int Size => chunk.PeekInt32(4);
@@ -94,21 +90,8 @@ namespace PESpy
                 return data;
             }
         }
-#else
-        public int iOffset { get; }
 
-        public int Size { get; }
-
-        public string Name { get; }
-
-        public object Data { get; }
-#endif
-
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //iOffset
@@ -118,7 +101,6 @@ namespace PESpy
             (FixedStructSize +
             Name.Length + 1 + 3) & ~3; //32-bit aligned
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal StorageStream(in MemoryChunk chunk)
@@ -129,75 +111,6 @@ namespace PESpy
             Name = chunk.PeekUtf8NullTerminatedString(8).ToString();
             data = null;
         }
-#else
-        internal StorageStream(IFileReader reader, IMetadataCallback callback, RawOffset metadataRootOffset)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            iOffset = reader.ReadInt32();
-            Size = reader.ReadInt32();
-
-            Name = reader.ReadAnsiNullTerminatedString();
-
-            //Align to next 4 byte boundary. Because it was an ANSI string, there could be 1-3 bytes
-            var alignmentTarget = (reader.Position + 3) & ~3;
-
-            while (reader.Position < alignmentTarget)
-                reader.ReadByte();
-
-            var startOffset = metadataRootOffset + iOffset;
-
-            var oldPosition = reader.Position;
-
-            reader.Seek(startOffset);
-
-            switch (Name)
-            {
-                //II.24.2.1
-                case CompressedModelStream: //#~
-                    Data = new CompressedModelHeap(reader, Size);
-                    callback.NotifyCompressedModel((CompressedModelHeap) Data);
-                    break;
-
-                //II.24.2.3
-                case StringPoolStream: //#Strings
-                    Data = new StringHeap(reader, Size);
-                    callback.NotifyStringPool((StringHeap) Data);
-                    break;
-
-                //II.24.4
-                case USBlobPoolStream: //#US
-                    Data = new UserStringHeap(reader, Size);
-                    callback.NotifyUserStringPool((UserStringHeap) Data);
-                    break;
-
-                //II.24.2.4
-                case BlobPoolStream: //#Blob
-                    Data = new BlobHeap(reader, Size);
-                    callback.NotifyBlobPool((BlobHeap) Data);
-                    break;
-
-                //II.24.2.5
-                case GuidPoolStream: //#GUID
-                    Data = new GuidHeap(reader, Size);
-                    callback.NotifyGuidPool((GuidHeap) Data);
-                    break;
-
-                case PdbStream: //#Pdb
-                    Data = new PdbHeap(reader, Size);
-                    callback.NotifyPdb((PdbHeap) Data);
-                    break;
-
-                case "#!": //I've seen this header in mscorlib.ni but nobody knows how to handle it
-                    throw new NotImplementedException("Need to parse #1 stream as bytes");
-
-                default:
-                    throw new NotImplementedException($"Don't know how to parse stream '{Name}'");
-            }
-
-            reader.Seek(oldPosition);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

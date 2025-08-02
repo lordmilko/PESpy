@@ -123,14 +123,9 @@ namespace PESpy
         #endregion
         #endregion
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }   
-#endif
         private bool initialized;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal EcmaMetadata(in MemoryChunk chunk)
@@ -140,15 +135,6 @@ namespace PESpy
             signature = new StorageSignature(chunk);
             header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3)); //Align to next 4 byte boundary
         }
-#else
-        internal EcmaMetadata(IFileReader reader, IMetadataCallback callback)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            Signature = new StorageSignature(reader);
-            Header = new StorageHeader(reader, callback, Signature.Offset);
-        }
-#endif
 
         private void EnsureHeaps()
         {

@@ -1,4 +1,3 @@
-﻿#if PEFAST
 using System;
 using System.Collections.Generic;
 using ClrDebug;
@@ -15,22 +14,12 @@ namespace PESpy.View
 
         IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine!.Value;
 
-        internal unsafe LIBViewWriter(
-            LIBFile libFile,
-#if PEFAST
-            byte* mmf,
-            int length
-#else
-            IFileReader reader,
-#endif
-            ) : base(
-#if PEFAST
-            mmf,
-            length,
-#else
-            reader,
-#endif
-            null, ViewMode.Default, TryGetViewOffset, null)
+        protected unsafe LIBViewWriter(LIBFile libFile) : this(libFile, (byte*) 1, 1)
+        {
+        }
+
+        internal unsafe LIBViewWriter(LIBFile libFile, byte* mmf, int length) :
+            base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.libFile = libFile;
         }
@@ -88,4 +77,3 @@ namespace PESpy.View
         }
     }
 }
-#endif

@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -18,7 +15,7 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.Field(this),nq}")]
     public class FieldView<TValue> : IFieldView, ISplittableView
     {
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         public string Name { get; }
 
@@ -30,7 +27,7 @@ namespace PESpy.View
 
         public ViewKind Kind => ViewKind.Field;
 
-        public FieldView(RawOffset offset, string name, TValue value, int size)
+        public FieldView(int offset, string name, TValue value, int size)
         {
             Offset = offset;
             Name = name;
@@ -91,7 +88,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitFieldView(RawOffset offset, string name, TValue value, int size) : base(offset, name, value, size)
+        public SplitFieldView(int offset, string name, TValue value, int size) : base(offset, name, value, size)
         {
         }
     }

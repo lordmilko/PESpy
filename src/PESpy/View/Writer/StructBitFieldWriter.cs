@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -19,7 +16,7 @@ namespace PESpy.View
             private int maxSize; //In bytes
             private ViewWriter viewWriter;
 
-            internal StructBitFieldWriter(FixedUtf8String name, RawOffset offset, ViewKind kind, List<IView> parentFields, int bytes, ViewWriter viewWriter)
+            internal StructBitFieldWriter(FixedUtf8String name, int offset, ViewKind kind, List<IView> parentFields, int bytes, ViewWriter viewWriter)
             {
                 structName = name;
                 this.offset = offset;

@@ -1,7 +1,4 @@
 ﻿using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -10,23 +7,11 @@ namespace PESpy
     /// </summary>
     public readonly struct PogoItem : IValue, IViewable
     {
-#if PEFAST
         public int RVA => chunk.PeekInt32(0);
-#else
-        public int RVA { get; }
-#endif
 
-#if PEFAST
         public int Size => chunk.PeekInt32(4);
-#else
-        public int Size { get; }
-#endif
 
-#if PEFAST
         public AnsiString Name => chunk.PeekAnsiNullTerminatedString(8);
-#else
-        public string Name { get; }
-#endif
 
         internal const int FixedStructSize =
             sizeof(int) + //RVA
@@ -36,35 +21,14 @@ namespace PESpy
             FixedStructSize +
             Name.Length + 1; //Name
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal PogoItem(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal PogoItem(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            RVA = reader.ReadInt32();
-            Size = reader.ReadInt32();
-            Name = reader.ReadAnsiNullTerminatedString();
-
-            //Each entry should be aligned to 4 bytes
-            var alignmentTarget = (reader.Position + 3) & ~3;
-
-            while (reader.Position < alignmentTarget)
-                reader.ReadByte();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

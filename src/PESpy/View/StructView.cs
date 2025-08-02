@@ -15,7 +15,7 @@ namespace PESpy.View
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
         /// </summary>
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         /// <summary>
         /// Gets the native name of the type that this structure represents.

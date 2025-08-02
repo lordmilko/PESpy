@@ -8,9 +8,6 @@ using System.Runtime.InteropServices;
 #endif
 using PESpy.PDB;
 
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View.Builder
 {
@@ -46,8 +43,8 @@ namespace PESpy.View.Builder
         internal abstract IView[] Merge();
 
         internal IView[] BuildSection(
-            RawOffset startRva,
-            RawOffset endRva,
+            int startRva,
+            int endRva,
             Func<int, int>? getRealOffset = null,
             Func<int, int>? getRVA = null,
             bool isOverlay = false)
@@ -86,7 +83,7 @@ namespace PESpy.View.Builder
             return masterList.ToArray();
         }
 
-        private void TryGetNextDirectory(RawOffset rva, RawOffset endRva, ref RawOffset currentEnd)
+        private void TryGetNextDirectory(int rva, int endRva, ref int currentEnd)
         {
             //If we skipped over the directory because we don't know it (meaning we read it as a byte blob), we need to skip to the next valid directory
             while (nextDataDirectoryIndex < discoveredDataDirectories.Count && discoveredDataDirectories[nextDataDirectoryIndex].Start < rva)
@@ -124,7 +121,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void GetValueOrBytes(ref RawOffset rva, RawOffset currentEnd, RawOffset endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        private void GetValueOrBytes(ref int rva, int currentEnd, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             if (nextStructIndex < sortedStructs.Count && (nextValue = sortedStructs[nextStructIndex]).Offset < currentEnd)
             {
@@ -461,7 +458,7 @@ namespace PESpy.View.Builder
             throw new NotImplementedException();
         }
 
-        void FinalizeDirectoryRegion(RawOffset endRva, ref RawOffset currentEnd)
+        void FinalizeDirectoryRegion(int endRva, ref int currentEnd)
         {
             if (directory == null)
                 return;
@@ -535,7 +532,7 @@ namespace PESpy.View.Builder
             repeatingGroupMode = 0;
         }
 
-        void ReadByteBlob(ref RawOffset rva, RawOffset end, RawOffset endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        void ReadByteBlob(ref int rva, int end, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var dirIndex = directory == null ? nextDataDirectoryIndex : nextDataDirectoryIndex + 1;
 
@@ -548,7 +545,7 @@ namespace PESpy.View.Builder
                 //is still useful for handling dodgy PE Files
                 if (nextDirectory.Start > rva && end >= nextDirectory.Start && rva != nextDirectory.Start)
                 {
-                    var newEnd = (RawOffset) Math.Min((int) end, (int) nextDirectory.Start);
+                    var newEnd = Math.Min(end, nextDirectory.Start);
 
                     end = newEnd;
                 }

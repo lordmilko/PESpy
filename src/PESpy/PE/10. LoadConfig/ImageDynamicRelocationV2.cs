@@ -5,33 +5,27 @@ namespace PESpy
 {
     public readonly struct ImageDynamicRelocationV2 : IValue
     {
-        public int HeaderSize { get; }
+        public int HeaderSize => chunk.PeekInt32(0);
 
-        public int FixupInfoSize { get; }
+        public int FixupInfoSize => chunk.PeekInt32(4);
 
-        public long Symbol { get; }
+        public ulong Symbol => chunk.PeekPointer(8);
 
-        public int SymbolGroup { get; }
+        public int SymbolGroup => chunk.PeekInt32(8 + chunk.PointerSize);
 
-        public int Flags { get; }
+        public int Flags => chunk.PeekInt32(12 + chunk.PointerSize); //todo: enum?
 
-        public int Offset { get; }
+        // ...     variable length header fields
+        // BYTE    FixupInfo[FixupInfoSize]
+        public NativeSpan<byte> FixupInfo => chunk.PeekNativeSpan<byte>(16 + chunk.PointerSize, FixupInfoSize);
 
-#if !PEFAST
-        internal ImageDynamicRelocationV2(IFileReader reader, PEFile peFile)
+        public int Offset => chunk.AbsoluteOffset;
+
+        private readonly MemoryChunk chunk;
+
+        internal ImageDynamicRelocationV2(in MemoryChunk chunk)
         {
-            Offset = (int) reader.Position;
-
-            HeaderSize = reader.ReadInt32();
-            FixupInfoSize = reader.ReadInt32();
-            Symbol = peFile.OptionalHeader.Magic == PEMagic.PE32 ? reader.ReadUInt32() : reader.ReadInt64();
-            SymbolGroup = reader.ReadInt32();
-            Flags = reader.ReadInt32(); //todo: which enum
-
-            // ...     variable length header fields
-            // BYTE    FixupInfo[FixupInfoSize]
-            throw new NotImplementedException();
+            this.chunk = chunk;
         }
-#endif
     }
 }

@@ -7,7 +7,5 @@
 
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
-
-    <DefineConstants>$(DefineConstants);PEFAST</DefineConstants>
   </PropertyGroup>
 </Project>

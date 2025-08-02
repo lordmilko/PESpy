@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using ClrDebug;
 using PESpy.View.Builder;
 
@@ -11,22 +10,12 @@ namespace PESpy.View
 
         public IMAGE_FILE_MACHINE Machine => objFile.FileHeader.Machine;
 
-        internal unsafe OBJViewWriter(
-            OBJFile objFile,
-#if PEFAST
-            byte* mmf,
-            int length
-#else
-            IFileReader reader,
-#endif
-            ) : base(
-#if PEFAST
-            mmf,
-            length,
-#else
-            reader,
-#endif
-            null, ViewMode.Default, TryGetViewOffset, null)
+        protected unsafe OBJViewWriter(OBJFile objFile) : this(objFile, (byte*) 1, 1)
+        {
+        }
+
+        internal unsafe OBJViewWriter(OBJFile objFile, byte* mmf, int length) :
+            base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.objFile = objFile;
         }
@@ -53,4 +42,3 @@ namespace PESpy.View
         }
     }
 }
-#endif

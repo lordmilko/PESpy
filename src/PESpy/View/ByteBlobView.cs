@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -14,7 +11,7 @@ namespace PESpy.View
             this.view = view;
         }
 
-        public RawOffset Offset => view.Offset;
+        public int Offset => view.Offset;
 
         public int Size => view.Size;
 
@@ -29,7 +26,7 @@ namespace PESpy.View
     public class ByteBlobView : IView, ISplittableView
     {
         /// <inheritdoc />
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         public NativeSpan<byte> Bytes { get; }
 
@@ -56,7 +53,7 @@ namespace PESpy.View
             }
         }
 
-        public ByteBlobView(RawOffset offset, NativeSpan<byte> bytes, ViewKind? kind)
+        public ByteBlobView(int offset, NativeSpan<byte> bytes, ViewKind? kind)
         {
             Offset = offset;
             Bytes = bytes;
@@ -65,7 +62,7 @@ namespace PESpy.View
         }
 
         //For SplitByteBlobView only
-        protected ByteBlobView(RawOffset offset, NativeSpan<byte> bytes, int size, ViewKind? kind)
+        protected ByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind? kind)
         {
             Offset = offset;
             Bytes = bytes;
@@ -124,7 +121,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitByteBlobView(RawOffset offset, NativeSpan<byte> bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
+        public SplitByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
         {
         }
     }

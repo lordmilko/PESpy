@@ -11,37 +11,16 @@ namespace PESpy
     /// </summary>
     public class RuntimeInfo : IValue, IViewable
     {
-#if PEFAST
         public Utf8String Signature => chunk.PeekUtf8NullTerminatedString(0); //Should be DotNetRuntimeInfo\0
-#else
-        public string Signature { get; }
-#endif
 
-#if PEFAST
         public int Version => chunk.PeekInt32(20); //2 bytes pf padding for alignment
-#else
-        public int Version { get; }
-#endif
 
-#if PEFAST
         public ModuleIndex RuntimeModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24);
-#else
-        public ModuleIndex RuntimeModuleIndex { get; }
-#endif
 
-#if PEFAST
         public ModuleIndex DacModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + ModuleIndex.StructSize);
-#else
-        public ModuleIndex DacModuleIndex { get; }
-#endif
 
-#if PEFAST
         public ModuleIndex DbiModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + (2 * ModuleIndex.StructSize));
-#else
-        public ModuleIndex DbiModuleIndex { get; }
-#endif
 
-#if PEFAST
         private Version? runtimeVersion;
 
         public Version? RuntimeVersion
@@ -63,15 +42,8 @@ namespace PESpy
                 return runtimeVersion;
             }
         }
-#else
-        public Version? RuntimeVersion { get; }
-#endif
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         internal const int FixedStructSize =
             20 + //Signature + padding
@@ -85,49 +57,12 @@ namespace PESpy
             ? FixedStructSize
             : FixedStructSize + (4 * sizeof(int));
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal RuntimeInfo(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal RuntimeInfo(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            Signature = reader.ReadUTF8NullTerminatedString();
-
-            if (Signature != "DotNetRuntimeInfo")
-            {
-                throw new NotImplementedException("Don't know how to handle having an invalid signature");
-            }
-
-            //Signature is 18 bytes, so need to read 2 more for alignment
-            var padding = reader.ReadInt16();
-
-            Version = reader.ReadInt32();
-
-            RuntimeModuleIndex = new ModuleIndex(reader);
-            DacModuleIndex = new ModuleIndex(reader);
-            DbiModuleIndex = new ModuleIndex(reader);
-
-            if (Version >= 2)
-            {
-                RuntimeVersion = new Version(
-                    reader.ReadInt32(),
-                    reader.ReadInt32(),
-                    reader.ReadInt32(),
-                    reader.ReadInt32()
-                );
-            }
-            else
-            {
-                RuntimeVersion = null;
-            }
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

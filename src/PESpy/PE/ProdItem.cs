@@ -3,9 +3,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -26,14 +23,14 @@ namespace PESpy
 
         public string? VisualStudioVersion { get; init; }
 
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         internal const int StructSize =
             sizeof(short) + //ProdId
             sizeof(short) + //BuildId
             sizeof(int); //Count
 
-        internal ProdItem(RawOffset start, int bufferPos, Span<byte> bytes)
+        internal ProdItem(int start, int bufferPos, Span<byte> bytes)
         {
             Offset = start + bufferPos;
 

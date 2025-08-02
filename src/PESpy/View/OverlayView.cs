@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -12,14 +9,14 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.Overlay(this),nq}")]
     public class OverlayView : IContainerView
     {
-        public RawOffset Offset { get; }
+        public int Offset { get; }
         public int Size { get; }
         public ViewKind Kind => ViewKind.Overlay;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public OverlayView(RawOffset offset, IView[] children, int size)
+        public OverlayView(int offset, IView[] children, int size)
         {
             Offset = offset;
             Children = children;

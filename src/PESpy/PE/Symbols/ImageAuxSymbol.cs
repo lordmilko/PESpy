@@ -47,7 +47,6 @@ namespace PESpy
 
     public readonly struct ImageAuxSymbol : IValue, IViewable
     {
-#if PEFAST
         #region Union
 
         public SymData Sym => new SymData(chunk);
@@ -236,22 +235,14 @@ namespace PESpy
                 this.chunk = chunk;
             }
         }
-#endif
 
-#if PEFAST
         //IMAGE_AUX_SYMBOL has a number of unioned fields. The data that is in effect depends on the data in the parent IMAGE_SYMBOL
         public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, StructSize);
 
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public byte[] Bytes { get; }
-
-        public int Offset { get; }
-#endif
 
         internal const int StructSize = 18;
 
-#if PEFAST
         public AuxSymbolKind Kind { get; }
 
         private readonly MemoryChunk chunk;
@@ -261,15 +252,6 @@ namespace PESpy
             this.chunk = chunk;
             Kind = kind;
         }
-#else
-        internal ImageAuxSymbol(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            //IMAGE_AUX_SYMBOL has a number of unioned fields; don't know how to detect which one is in use
-            Bytes = reader.ReadBytes(18);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -283,13 +265,9 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-#if PEFAST
             //We don't currently calculate our Kind
             Debug.Assert(Kind == AuxSymbolKind.Unknown);
             s.WriteField("Bytes", Bytes);
-#else
-            s.WriteField("Bytes", Bytes);
-#endif
 
             return s.ToArray();
         }

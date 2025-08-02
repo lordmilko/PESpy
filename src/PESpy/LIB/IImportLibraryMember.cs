@@ -1,6 +1,5 @@
 ﻿using PESpy.View;
 
-#if PEFAST
 namespace PESpy.LIB
 {
     public interface IImportLibraryMember : IValue, IViewable
@@ -8,4 +7,3 @@ namespace PESpy.LIB
         ImageArchiveMemberHeader ArchiveHeader { get; }
     }
 }
-#endif

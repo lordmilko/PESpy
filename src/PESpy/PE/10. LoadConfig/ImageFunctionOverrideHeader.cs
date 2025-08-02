@@ -7,7 +7,6 @@ namespace PESpy
 {
     public class ImageFunctionOverrideHeader : IValue, IViewable //Will be boxed in ImageDynamicRelocation record
     {
-#if PEFAST
         public int FuncOverrideSize => chunk.PeekInt32(0);
 
         //IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
@@ -64,17 +63,7 @@ namespace PESpy
         }
 
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int FuncOverrideSize { get; }
 
-        public ImageFunctionOverrideDynamicRelocation[] FuncOverrides { get; }
-
-        public ImageBDDInfo BDDInfo { get; }
-
-        public int Offset { get; }
-#endif
-
-#if PEFAST
         private readonly MemoryChunk chunk;
         private int length;
 
@@ -83,33 +72,6 @@ namespace PESpy
             this.chunk = chunk;
             this.length = length;
         }
-#else
-        internal ImageFunctionOverrideHeader(IFileReader reader, int end)
-        {
-            Offset = (int) reader.Position;
-
-            FuncOverrideSize = reader.ReadInt32();
-
-            //IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
-            //IMAGE_BDD_INFO BDDInfo; // BDD region, size in bytes: DVRTEntrySize - sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) - FuncOverrideSize
-
-            var funcOverrideEnd = reader.Position + FuncOverrideSize;
-
-            using var funcOverrides = new PooledList<ImageFunctionOverrideDynamicRelocation>();
-
-            //ImageFunctionOverrideDynamicRelocation is dynamic in size
-            while (reader.Position < funcOverrideEnd)
-                funcOverrides.Add(new ImageFunctionOverrideDynamicRelocation(reader));
-
-            FuncOverrides = funcOverrides.ToArray();
-
-            //I don't know if it's guaranteed that we'll then have a BDD
-            var bddSize = end - reader.Position;
-            Debug.Assert(bddSize != 0);
-
-            BDDInfo = new ImageBDDInfo(reader);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

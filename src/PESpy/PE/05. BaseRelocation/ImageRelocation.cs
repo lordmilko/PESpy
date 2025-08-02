@@ -13,7 +13,6 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string DebuggerDisplay => $"VirtualAddress = {VirtualAddress}, SymbolTableIndex = {SymbolTableIndex}, Type = {(ImageRelI386) Type} (I386) / {(ImageRelAmd64) Type} (Amd64)";
 
-#if PEFAST
         public int VirtualAddress => chunk.PeekInt32(0);
 
         public int RelocCount => VirtualAddress;
@@ -21,22 +20,13 @@ namespace PESpy
         public int SymbolTableIndex => chunk.PeekInt32(4);
 
         public short Type => chunk.PeekInt16(8);
-#else
-        public int VirtualAddress { get; init; }
 
-        public int RelocCount => VirtualAddress;
-
-        public int SymbolTableIndex { get; }
-
-        public short Type { get; }
-#endif
 
         internal const int StructSize =
             sizeof(int) + //VirtualAddress
             sizeof(int) + //SymbolTableIndex
             sizeof(short); //Type
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
@@ -45,19 +35,6 @@ namespace PESpy
         {
             this.chunk = chunk;
         }
-
-#else
-        public int Offset { get; }
-
-        internal ImageRelocation(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            VirtualAddress = reader.ReadInt32();
-            SymbolTableIndex = reader.ReadInt32();
-            Type = reader.ReadInt16();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

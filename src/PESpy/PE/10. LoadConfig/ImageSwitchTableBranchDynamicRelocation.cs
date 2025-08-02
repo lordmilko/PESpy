@@ -9,36 +9,19 @@ namespace PESpy
 
         public short RegisterNumber => (short) ((flags >> 12) & 0xF);
 
-#if PEFAST
         private ushort flags => chunk.PeekUInt16(0);
-#else
-        private readonly ushort flags;
-#endif
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         internal const int StructSize =
             sizeof(short);
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageSwitchTableBranchDynamicRelocation(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImageSwitchTableBranchDynamicRelocation(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            flags = reader.ReadUInt16();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

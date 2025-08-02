@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-using RVA = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -38,9 +34,8 @@ namespace PESpy
         public short Ordinal { get; }
         public RVA<ImageImportByName> Name { get; } //AddressOfData
 
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
-#if PEFAST
         internal ImageThunkData(in MemoryChunk chunk, bool isIAT)
         {
             //ImageThunkData is too complicated to try and do lazily while also using a struct
@@ -116,14 +111,14 @@ namespace PESpy
                 {
                     RVA<ImageImportByName> name;
 
-                    if (chunk.PEFile().TryGetValueChunkFromSection((RVA) (int) Value, out var nameChunk))
+                    if (chunk.PEFile().TryGetValueChunkFromSection((int) Value, out var nameChunk))
                     {
                         var importByName = new ImageImportByName(nameChunk);
-                        name = new RVA<ImageImportByName>((RVA) (int) Value, nameChunk.AbsoluteOffset, importByName);
+                        name = new RVA<ImageImportByName>((int) Value, nameChunk.AbsoluteOffset, importByName);
                     }
                     else
                     {
-                        name = new RVA<ImageImportByName>((RVA) (int) Value);
+                        name = new RVA<ImageImportByName>((int) Value);
                     }
 
                     Kind = DataKind.Name;
@@ -131,99 +126,6 @@ namespace PESpy
                 }
             }
         }
-#else
-        internal ImageThunkData(IFileReader reader, PEFile peFile, bool is32Bit, bool isIAT)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            Kind = default;
-            Function = default;
-            Value = default;
-            Ordinal = default;
-            Name = default;
-
-            /* The value stored in IMAGE_THUNK_DATA can have four possible meanings
-             *
-             *     ForwarderString: haven't figured that out yet
-             *
-             *     Function: the IMAGE_THUNK_DATA describes an entry in the IAT. The value is the address the PE thinks the real function definition will be found at.
-             *               Sometimes this value is larger than ImageBase, but not always. So in the case of an IAT, we should just interpret the value as being a function address,
-             *               whatever it is. In the case of delay loaded imports, if you subtract ImageBase from the function address, you may get a little stub used by
-             *               the delay load imports process
-             *
-             *     Ordinal:  in an ILT entry, the high bit of the value is set, indicating its an import by ordinal
-             *
-             *     AddressOfData: in an ILT entry, the high bit of the value is not set, indicating its an IMAGE_IMPORT_BY_NAME */
-
-            if (isIAT)
-            {
-                Kind = DataKind.Function;
-                Value = is32Bit ? reader.ReadUInt32() : reader.ReadUInt64();
-                Function = Value;
-
-                return;
-            }
-
-            //ILT: Ordinal or IMAGE_IMPORT_BY_NAME
-
-            bool isOrdinal = false;
-            int ordinal = 0;
-
-            if (is32Bit)
-            {
-                var value32 = reader.ReadUInt32();
-
-                if (value32 == 0)
-                    return;
-
-                if ((value32 & IMAGE_ORDINAL_FLAG32) != 0)
-                {
-                    isOrdinal = true;
-                    ordinal = IMAGE_ORDINAL32(value32);
-                }
-
-                Value = value32;
-            }
-            else
-            {
-                Value = reader.ReadUInt64();
-
-                if (Value == 0)
-                    return;
-
-                if ((Value & IMAGE_ORDINAL_FLAG64) != 0)
-                {
-                    isOrdinal = true;
-                    ordinal = IMAGE_ORDINAL64(Value);
-                }
-            }
-
-            if (isOrdinal)
-            {
-                //Bits 0-15 are an ordinal
-                Kind = DataKind.Ordinal;
-                Ordinal = (short) ordinal;
-            }
-            else
-            {
-                RVA<ImageImportByName> name;
-
-                if (!peFile.TryGetOffset((RVA)(int)Value, out var offset))
-                    name = new RVA<ImageImportByName>((RVA)(int)Value);
-                else
-                {
-                    reader.Seek(offset);
-
-                    var importByName = new ImageImportByName(reader);
-
-                    name = new RVA<ImageImportByName>((RVA) (int) Value, offset, importByName);
-                }
-
-                Kind = DataKind.Name;
-                Name = name;
-            }
-        }
-#endif
 
         private static int IMAGE_ORDINAL32(uint value) => (int)(value & 0xffff);
 

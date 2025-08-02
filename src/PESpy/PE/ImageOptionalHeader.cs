@@ -2,9 +2,6 @@
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -18,85 +15,49 @@ namespace PESpy
         /// <summary>
         /// Identifies the format of the image file.
         /// </summary>
-#if PEFAST
         public PEMagic Magic => (PEMagic) chunk.PeekUInt16(0);
-#else
-        public PEMagic Magic { get; init; }
-#endif
 
         /// <summary>
         /// The linker major version number.
         /// </summary>
-#if PEFAST
         public byte MajorLinkerVersion => chunk.PeekByte(2);
-#else
-        public byte MajorLinkerVersion { get; init; }
-#endif
 
         /// <summary>
         /// The linker minor version number.
         /// </summary>
-#if PEFAST
         public byte MinorLinkerVersion => chunk.PeekByte(3);
-#else
-        public byte MinorLinkerVersion { get; init; }
-#endif
 
         /// <summary>
         /// The size of the code (text) section, or the sum of all code sections if there are multiple sections.
         /// </summary>
-#if PEFAST
         public int SizeOfCode => chunk.PeekInt32(4);
-#else
-        public int SizeOfCode { get; init; }
-#endif
 
         /// <summary>
         /// The size of the initialized data section, or the sum of all such sections if there are multiple data sections.
         /// </summary>
-#if PEFAST
         public int SizeOfInitializedData => chunk.PeekInt32(8);
-#else
-        public int SizeOfInitializedData { get; init; }
-#endif
 
         /// <summary>
         /// The size of the uninitialized data section (BSS), or the sum of all such sections if there are multiple BSS sections.
         /// </summary>
-#if PEFAST
         public int SizeOfUninitializedData => chunk.PeekInt32(12);
-#else
-        public int SizeOfUninitializedData { get; init; }
-#endif
 
         /// <summary>
         /// The address of the entry point relative to the image base when the PE file is loaded into memory.
         /// For program images, this is the starting address. For device drivers, this is the address of the initialization function.
         /// An entry point is optional for DLLs. When no entry point is present, this field must be zero.
         /// </summary>
-#if PEFAST
         public int AddressOfEntryPoint => chunk.PeekInt32(16);
-#else
-        public int AddressOfEntryPoint { get; init; }
-#endif
 
         /// <summary>
         /// The address that is relative to the image base of the beginning-of-code section when it is loaded into memory.
         /// </summary>
-#if PEFAST
         public int BaseOfCode => chunk.PeekInt32(20);
-#else
-        public int BaseOfCode { get; init; }
-#endif
 
         /// <summary>
         /// The address that is relative to the image base of the beginning-of-data section when it is loaded into memory.
         /// </summary>
-#if PEFAST
         public int BaseOfData => chunk.Is32Bit ? chunk.PeekInt32(24) : 0;
-#else
-        public int BaseOfData { get; init; }
-#endif
 
         #endregion
         #region Windows Specific Fields
@@ -109,21 +70,13 @@ namespace PESpy
         /// calls kernel32!LoadLibrary, or or kernel32!CreateFileMapping with SEC_IMAGE. If the image was loaded via kernel32!CreateFileMapping,
         /// this value may not be the address that the image was actually loaded at.
         /// </remarks>
-#if PEFAST
         public long ImageBase => chunk.Is32Bit ? (long) chunk.PeekPointer(28) : (long) chunk.PeekPointer(24);
-#else
-        public long ImageBase { get; init; }
-#endif
 
         /// <summary>
         /// The alignment (in bytes) of sections when they are loaded into memory. It must be greater than or equal to <see cref="FileAlignment"/>.
         /// The default is the page size for the architecture.
         /// </summary>
-#if PEFAST
         public int SectionAlignment => chunk.PeekInt32(32);
-#else
-        public int SectionAlignment { get; init; }
-#endif
 
         /// <summary>
         /// The alignment factor (in bytes) that is used to align the raw data of sections in the image file.
@@ -131,176 +84,100 @@ namespace PESpy
         /// If the <see cref="SectionAlignment"/> is less than the architecture's page size,
         /// then <see cref="FileAlignment"/> must match <see cref="SectionAlignment"/>.
         /// </summary>
-#if PEFAST
         public int FileAlignment => chunk.PeekInt32(36);
-#else
-        public int FileAlignment { get; init; }
-#endif
 
         /// <summary>
         /// The major version number of the required operating system.
         /// </summary>
-#if PEFAST
         public ushort MajorOperatingSystemVersion => chunk.PeekUInt16(40);
-#else
-        public ushort MajorOperatingSystemVersion { get; init; }
-#endif
 
         /// <summary>
         /// The minor version number of the required operating system.
         /// </summary>
-#if PEFAST
         public ushort MinorOperatingSystemVersion => chunk.PeekUInt16(42);
-#else
-        public ushort MinorOperatingSystemVersion { get; init; }
-#endif
 
         /// <summary>
         /// The major version number of the image.
         /// </summary>
-#if PEFAST
         public ushort MajorImageVersion => chunk.PeekUInt16(44);
-#else
-        public ushort MajorImageVersion { get; init; }
-#endif
 
         /// <summary>
         /// The minor version number of the image.
         /// </summary>
-#if PEFAST
         public ushort MinorImageVersion => chunk.PeekUInt16(46);
-#else
-        public ushort MinorImageVersion { get; init; }
-#endif
 
         /// <summary>
         /// The major version number of the subsystem.
         /// </summary>
-#if PEFAST
         public ushort MajorSubsystemVersion => chunk.PeekUInt16(48);
-#else
-        public ushort MajorSubsystemVersion { get; init; }
-#endif
 
         /// <summary>
         /// The minor version number of the subsystem.
         /// </summary>
-#if PEFAST
         public ushort MinorSubsystemVersion => chunk.PeekUInt16(50);
-#else
-        public ushort MinorSubsystemVersion { get; init; }
-#endif
 
         /// <summary>
         /// This member is reserved and must be 0.
         /// </summary>
-#if PEFAST
         public int Win32VersionValue => chunk.PeekInt32(52);
-#else
-        public int Win32VersionValue { get; init; }
-#endif
 
         /// <summary>
         /// The size (in bytes) of the image, including all headers, as the image is loaded in memory.
         /// It must be a multiple of <see cref="SectionAlignment"/>. This does not include overlay data, which is not loaded into memory.
         /// </summary>
-#if PEFAST
         public int SizeOfImage => chunk.PeekInt32(56);
-#else
-        public int SizeOfImage { get; init; }
-#endif
 
         /// <summary>
         /// The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
         /// </summary>
-#if PEFAST
         public int SizeOfHeaders => chunk.PeekInt32(60);
-#else
-        public int SizeOfHeaders { get; init; }
-#endif
 
         /// <summary>
         /// The image file checksum.
         /// </summary>
-#if PEFAST
         public uint CheckSum => chunk.PeekUInt32(64);
-#else
-        public uint CheckSum { get; init; }
-#endif
 
         /// <summary>
         /// The subsystem that is required to run this image.
         /// </summary>
-#if PEFAST
         public ImageSubsystem Subsystem => (ImageSubsystem) chunk.PeekUInt16(68);
-#else
-        public ImageSubsystem Subsystem { get; init; }
-#endif
 
         /// <summary>
         /// The DLL characteristics of the image.
         /// </summary>
-#if PEFAST
         public ImageDllCharacteristics DllCharacteristics => (ImageDllCharacteristics) chunk.PeekUInt16(70);
-#else
-        public ImageDllCharacteristics DllCharacteristics { get; init; }
-#endif
 
         /// <summary>
         /// The size of the stack to reserve. Only <see cref="SizeOfStackCommit"/> is committed;
         /// the rest is made available one page at a time until the reserve size is reached.
         /// </summary>
-#if PEFAST
         public ulong SizeOfStackReserve => chunk.PeekPointer(72);
-#else
-        public ulong SizeOfStackReserve { get; init; }
-#endif
 
         /// <summary>
         /// The size of the stack to commit.
         /// </summary>
-#if PEFAST
         public ulong SizeOfStackCommit => chunk.PeekPointer(72 + chunk.PointerSize);
-#else
-        public ulong SizeOfStackCommit { get; init; }
-#endif
 
         /// <summary>
         /// The size of the local heap space to reserve. Only <see cref="SizeOfHeapCommit"/> is committed;
         /// the rest is made available one page at a time until the reserve size is reached.
         /// </summary>
-#if PEFAST
         public ulong SizeOfHeapReserve => chunk.PeekPointer(72 + (2 * chunk.PointerSize));
-#else
-        public ulong SizeOfHeapReserve { get; init; }
-#endif
 
         /// <summary>
         /// The size of the local heap space to commit.
         /// </summary>
-#if PEFAST
         public ulong SizeOfHeapCommit => chunk.PeekPointer(72 + (3 * chunk.PointerSize));
-#else
-        public ulong SizeOfHeapCommit { get; init; }
-#endif
 
         /// <summary>
         /// This member is obsolete.
         /// </summary>
-#if PEFAST
         public ImageLoaderFlags LoaderFlags => (ImageLoaderFlags) chunk.PeekUInt32(72 + (4 * chunk.PointerSize));
-#else
-        public ImageLoaderFlags LoaderFlags { get; init; }
-#endif
 
         /// <summary>
         /// The number of data-directory entries in the remainder of the <see cref="ImageOptionalHeader"/>. Each describes a location and size.
         /// </summary>
-#if PEFAST
         public int NumberOfRvaAndSizes => chunk.PeekInt32(76 + (4 * chunk.PointerSize));
-#else
-        public int NumberOfRvaAndSizes { get; init; }
-#endif
 
         #endregion
         #region Directory Entries
@@ -308,38 +185,22 @@ namespace PESpy
         /// <remarks>
         /// Gets information about the size and location of the export directory (IMAGE_DIRECTORY_ENTRY_EXPORT).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ExportTableDirectory => NumberOfRvaAndSizes >= 1 ? new ImageDataDirectory(chunk.Slice(80 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ExportTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the import directory (IMAGE_DIRECTORY_ENTRY_IMPORT).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ImportTableDirectory => NumberOfRvaAndSizes >= 2 ? new ImageDataDirectory(chunk.Slice(88 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ImportTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the resource directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ResourceTableDirectory => NumberOfRvaAndSizes >= 3 ? new ImageDataDirectory(chunk.Slice(96 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ResourceTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the exception directory (IMAGE_DIRECTORY_ENTRY_EXCEPTION).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ExceptionTableDirectory => NumberOfRvaAndSizes >= 4 ? new ImageDataDirectory(chunk.Slice(104 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ExceptionTableDirectory { get; init; }
-#endif
 
         /// <summary>
         /// Gets information about the size and location of the security (certificate table) directory (IMAGE_DIRECTORY_ENTRY_SECURITY).<para/>
@@ -349,114 +210,62 @@ namespace PESpy
         /// These certificates are not loaded into memory as part of the image.
         /// As such, the first field of this entry, which is normally an RVA, is a file pointer instead.
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory SecurityTableDirectory => NumberOfRvaAndSizes >= 5 ? new ImageDataDirectory(chunk.Slice(112 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory SecurityTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the base relocation table (IMAGE_DIRECTORY_ENTRY_BASERELOC).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory BaseRelocationTableDirectory => NumberOfRvaAndSizes >= 6 ? new ImageDataDirectory(chunk.Slice(120 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory BaseRelocationTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the debug directory (IMAGE_DIRECTORY_ENTRY_DEBUG).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory DebugTableDirectory => NumberOfRvaAndSizes >= 7 ? new ImageDataDirectory(chunk.Slice(128 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory DebugTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the architecture-specific data (IMAGE_DIRECTORY_ENTRY_COPYRIGHT or IMAGE_DIRECTORY_ENTRY_ARCHITECTURE).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory CopyrightTableDirectory => NumberOfRvaAndSizes >= 8 ? new ImageDataDirectory(chunk.Slice(136 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory CopyrightTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the the relative virtual address of the global pointer (IMAGE_DIRECTORY_ENTRY_GLOBALPTR).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory GlobalPointerTableDirectory => NumberOfRvaAndSizes >= 9 ? new ImageDataDirectory(chunk.Slice(144 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory GlobalPointerTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the thread local storage directory (IMAGE_DIRECTORY_ENTRY_TLS).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ThreadLocalStorageTableDirectory => NumberOfRvaAndSizes >= 10 ? new ImageDataDirectory(chunk.Slice(152 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ThreadLocalStorageTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the load configuration directory (IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory LoadConfigTableDirectory => NumberOfRvaAndSizes >= 11 ? new ImageDataDirectory(chunk.Slice(160 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory LoadConfigTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the bound import directory (IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory BoundImportTableDirectory => NumberOfRvaAndSizes >= 12 ? new ImageDataDirectory(chunk.Slice(168 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory BoundImportTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the import address table (IMAGE_DIRECTORY_ENTRY_IAT).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory ImportAddressTableDirectory => NumberOfRvaAndSizes >= 13 ? new ImageDataDirectory(chunk.Slice(176 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory ImportAddressTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the delay import table (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory DelayImportTableDirectory => NumberOfRvaAndSizes >= 14 ? new ImageDataDirectory(chunk.Slice(184 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory DelayImportTableDirectory { get; init; }
-#endif
 
         /// <remarks>
         /// Gets information about the size and location of the COM descriptor table (IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR).
         /// </remarks>
-#if PEFAST
         public ImageDataDirectory CorHeaderTableDirectory => NumberOfRvaAndSizes >= 15 ? new ImageDataDirectory(chunk.Slice(192 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory CorHeaderTableDirectory { get; init; }
-#endif
 
-#if PEFAST
         public ImageDataDirectory NullDirectory => NumberOfRvaAndSizes >= 16 ? new ImageDataDirectory(chunk.Slice(200 + (4 * chunk.PointerSize))) : default;
-#else
-        public ImageDataDirectory NullDirectory { get; init; } //Not sure what the name is
-#endif
         #endregion
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int OffsetOfChecksum =
             sizeof(short) + // Magic
@@ -493,115 +302,12 @@ namespace PESpy
             sizeof(int) + // NumberOfRvaAndSizes
             NumberOfRvaAndSizes * sizeof(long); // directory entries
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageOptionalHeader(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImageOptionalHeader(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            PEMagic magic = (PEMagic) reader.ReadUInt16();
-
-            if (magic == PEMagic.ROM)
-                throw new NotImplementedException($"Handling {nameof(PEMagic)}.{magic} is not implemented");
-
-            if (magic != PEMagic.PE32 && magic != PEMagic.PE32Plus)
-                throw new BadImageFormatException("Unknown PE Magic value.");
-
-            //We already have the magic, so we can exclude them from the amount we read in
-            reader.FillBuffer(StructSize(magic == PEMagic.PE32) - sizeof(short));
-
-            Magic = magic;
-            MajorLinkerVersion = reader.ReadByte();
-            MinorLinkerVersion = reader.ReadByte();
-            SizeOfCode = reader.ReadInt32();
-            SizeOfInitializedData = reader.ReadInt32();
-            SizeOfUninitializedData = reader.ReadInt32();
-            AddressOfEntryPoint = reader.ReadInt32();
-            BaseOfCode = reader.ReadInt32();
-
-            if (magic == PEMagic.PE32Plus)
-            {
-                BaseOfData = 0; // not present
-            }
-            else
-            {
-                Debug.Assert(magic == PEMagic.PE32);
-                BaseOfData = reader.ReadInt32();
-            }
-
-#pragma warning disable RS0030
-            ImageBase = magic == PEMagic.PE32Plus
-#pragma warning restore RS0030
-                ? reader.ReadInt64()
-                : reader.ReadInt32();
-
-            // NT additional fields:
-            SectionAlignment = reader.ReadInt32();
-            FileAlignment = reader.ReadInt32();
-            MajorOperatingSystemVersion = reader.ReadUInt16();
-            MinorOperatingSystemVersion = reader.ReadUInt16();
-            MajorImageVersion = reader.ReadUInt16();
-            MinorImageVersion = reader.ReadUInt16();
-            MajorSubsystemVersion = reader.ReadUInt16();
-            MinorSubsystemVersion = reader.ReadUInt16();
-
-            // Win32VersionValue (reserved, should be 0)
-            Win32VersionValue = reader.ReadInt32();
-
-            SizeOfImage = reader.ReadInt32();
-            SizeOfHeaders = reader.ReadInt32();
-            CheckSum = reader.ReadUInt32();
-            Subsystem = (ImageSubsystem) reader.ReadUInt16();
-            DllCharacteristics = (ImageDllCharacteristics) reader.ReadUInt16();
-
-            if (magic == PEMagic.PE32Plus)
-            {
-                SizeOfStackReserve = reader.ReadUInt64();
-                SizeOfStackCommit = reader.ReadUInt64();
-                SizeOfHeapReserve = reader.ReadUInt64();
-                SizeOfHeapCommit = reader.ReadUInt64();
-            }
-            else
-            {
-                SizeOfStackReserve = reader.ReadUInt32();
-                SizeOfStackCommit = reader.ReadUInt32();
-                SizeOfHeapReserve = reader.ReadUInt32();
-                SizeOfHeapCommit = reader.ReadUInt32();
-            }
-
-            LoaderFlags = (ImageLoaderFlags) reader.ReadUInt32();
-
-            NumberOfRvaAndSizes = reader.ReadInt32();
-
-            Debug.Assert(NumberOfRvaAndSizes == 16);
-
-            //Directory entries
-            ExportTableDirectory = new ImageDataDirectory(reader);
-            ImportTableDirectory = new ImageDataDirectory(reader);
-            ResourceTableDirectory = new ImageDataDirectory(reader);
-            ExceptionTableDirectory = new ImageDataDirectory(reader);
-            SecurityTableDirectory = new ImageDataDirectory(reader);
-            BaseRelocationTableDirectory = new ImageDataDirectory(reader);
-            DebugTableDirectory = new ImageDataDirectory(reader);
-            CopyrightTableDirectory = new ImageDataDirectory(reader);
-            GlobalPointerTableDirectory = new ImageDataDirectory(reader);
-            ThreadLocalStorageTableDirectory = new ImageDataDirectory(reader);
-            LoadConfigTableDirectory = new ImageDataDirectory(reader);
-            BoundImportTableDirectory = new ImageDataDirectory(reader);
-            ImportAddressTableDirectory = new ImageDataDirectory(reader);
-            DelayImportTableDirectory = new ImageDataDirectory(reader);
-            CorHeaderTableDirectory = new ImageDataDirectory(reader);
-
-            // ReservedDirectory (should be 0, 0)
-            NullDirectory = new ImageDataDirectory(reader);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

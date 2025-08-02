@@ -1,7 +1,4 @@
-﻿#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
-
+﻿
 namespace PESpy
 {
     /// <summary>
@@ -17,6 +14,6 @@ namespace PESpy
         /// file size of a PE is 4gb (otherwise you could have an RVA trying to reference an address
         /// above 4gb).
         /// </remarks>
-        RawOffset Offset { get; }
+        int Offset { get; }
     }
 }

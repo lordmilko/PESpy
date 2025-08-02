@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-#if !DEBUG_POSITION
-using RVA = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -27,7 +24,7 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetImport(RVA virtualAddress, out ByteMatchKind kind)
+        public bool TryGetImport(int virtualAddress, out ByteMatchKind kind)
         {
             if (!hasRequestedImports)
             {
@@ -76,27 +73,6 @@ namespace PESpy
         public void AddMatch(int virtualAddress, ByteMatchKind? kind)
         {
             addressCache[virtualAddress] = kind;
-        }
-
-        public bool TryGetSymbol(int virtualAddress, out ByteMatchKind kind)
-        {
-#if !PEFAST
-            if (peFile.Services != null)
-            {
-                var name = peFile.Services.GetSymbolForAddress(virtualAddress);
-
-                if (name != null && TryGetKindForName(name, out kind))
-                {
-                    addressCache[(int) virtualAddress] = kind;
-                    return true;
-                }
-            }
-#else
-            //throw new NotImplementedException();
-#endif
-
-            kind = default;
-            return false;
         }
 
         private bool TryGetKindForName(string name, out ByteMatchKind kind)

@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy.LIB
@@ -47,4 +46,3 @@ namespace PESpy.LIB
         }
     }
 }
-#endif

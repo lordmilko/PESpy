@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
@@ -51,4 +50,3 @@ namespace PESpy
             new RemoteMemoryBlock(baseAddress, rva, size, reader, this, File, is32Bit);
     }
 }
-#endif

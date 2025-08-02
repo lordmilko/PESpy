@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using ClrDebug;
+﻿using ClrDebug;
 
 namespace PESpy
 {
@@ -54,4 +53,3 @@ namespace PESpy
         }
     }
 }
-#endif

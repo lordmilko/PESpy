@@ -1,5 +1,4 @@
-﻿using PESpy.Native;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy
 {
@@ -21,7 +20,6 @@ namespace PESpy
             sizeof(int) + //BDDSize
             BDDSize; //BDDNodes
 
-#if PEFAST
         internal ImageBDDInfo(in MemoryChunk chunk)
         {
             Offset = chunk.AbsoluteOffset;
@@ -37,22 +35,6 @@ namespace PESpy
 
             BDDNodes = nodes;
         }
-#else
-        internal ImageBDDInfo(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            Version = reader.ReadInt32();
-            BDDSize = reader.ReadInt32();
-
-            var nodes = new ImageBDDDynamicRelocation[BDDSize / ImageBDDDynamicRelocation.StructSize];
-
-            for (var i = 0; i < nodes.Length; i++)
-                nodes[i] = new ImageBDDDynamicRelocation(reader);
-
-            BDDNodes = nodes;
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

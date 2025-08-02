@@ -1,8 +1,5 @@
 ﻿using System.Diagnostics;
 
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -19,7 +16,7 @@ namespace PESpy.View
     public class ValueView<TValue> : IValueView, ISplittableView
     {
         /// <inheritdoc />
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         /// <summary>
         /// Gets the simple value that this view encompasses.
@@ -33,7 +30,7 @@ namespace PESpy.View
 
         public ViewKind Kind { get; }
 
-        public ValueView(RawOffset offset, TValue value, int size, ViewKind kind = ViewKind.Value)
+        public ValueView(int offset, TValue value, int size, ViewKind kind)
         {
             Debug.Assert(size >= 0);
 

@@ -1,8 +1,5 @@
 ﻿using System;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.Ecma335
 {
@@ -129,7 +126,7 @@ namespace PESpy.Ecma335
 
         public int Size { get; }
 
-        public RawOffset Offset => chunk.AbsoluteOffset;
+        public int Offset => chunk.AbsoluteOffset;
 
         private readonly MetadataSizes sizes;
 

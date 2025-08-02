@@ -15,10 +15,6 @@
     {
         int Age { get; }
 
-#if PEFAST
         AnsiString Path { get; }
-#else
-        string Path { get; }
-#endif
     }
 }

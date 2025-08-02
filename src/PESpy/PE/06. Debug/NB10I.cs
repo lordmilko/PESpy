@@ -1,8 +1,5 @@
 ﻿using System;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -11,41 +8,17 @@ namespace PESpy
     /// </summary>
     public class NB10I : ICodeViewPDB, IViewable //It's going to be boxed
     {
-#if PEFAST
         public CodeViewSig Signature => (CodeViewSig) chunk.PeekUInt32(0);
-#else
-        public CodeViewSig Signature { get; }
-#endif
 
-#if PEFAST
         public int dwOffset => chunk.PeekInt32(4);
-#else
-        public int dwOffset { get; }
-#endif
 
-#if PEFAST
         public uint PdbSignature => chunk.PeekUInt32(8);
-#else
-        public uint PdbSignature { get; }
-#endif
 
-#if PEFAST
         public int Age => chunk.PeekInt32(12);
-#else
-        public int Age { get; }
-#endif
 
-#if PEFAST
         public AnsiString Path => chunk.PeekAnsiNullTerminatedString(16);
-#else
-        public string Path { get; } //It's szPdb[MAX_PATH] but I don't think it's actually going to occupy 260 bytes if not needed
-#endif
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //Signature
@@ -57,32 +30,12 @@ namespace PESpy
             FixedStructSize +
             Path.Length + 1;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal NB10I(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal NB10I(IFileReader reader, CodeViewSig signature)
-        {
-            //Signature has already been read
-            Offset = (RawOffset) reader.Position - 4;
-
-            Signature = signature;
-
-            if (Signature != CodeViewSig.NB10)
-                throw new BadImageFormatException("Unexpected CodeView data signature value.");
-
-            reader.FillBuffer(FixedStructSize - sizeof(int));
-
-            dwOffset = reader.ReadInt32();
-            PdbSignature = reader.ReadInt32();
-            Age = reader.ReadInt32();
-            Path = reader.ReadAnsiNullTerminatedString();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

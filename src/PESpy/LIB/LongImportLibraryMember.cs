@@ -1,7 +1,6 @@
 ﻿using System;
 using PESpy.View;
 
-#if PEFAST
 namespace PESpy.LIB
 {
     //Name is made up
@@ -107,4 +106,3 @@ namespace PESpy.LIB
         }
     }
 }
-#endif

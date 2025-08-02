@@ -1,9 +1,6 @@
 ﻿using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -13,7 +10,6 @@ namespace PESpy
     /// </summary>
     public readonly struct StorageHeader : IValue, IViewable
     {
-#if PEFAST
         public STGHDR Flags => (STGHDR) chunk.PeekByte(0);
 
         public byte Padding => chunk.PeekByte(1);
@@ -21,21 +17,8 @@ namespace PESpy
         public short Streams => chunk.PeekInt16(2);
 
         public StorageStream[] StreamHeaders { get; }
-#else
-        public STGHDR Flags { get; init; }
 
-        public byte Padding { get; init; }
-
-        public short Streams { get; init; }
-
-        public StorageStream[] StreamHeaders { get; init; }
-#endif
-
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(byte) + //Flags
@@ -57,7 +40,6 @@ namespace PESpy
             }
         }
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal StorageHeader(in MemoryChunk chunk)
@@ -79,27 +61,6 @@ namespace PESpy
 
             StreamHeaders = streamHeaders;
         }
-#else
-        internal StorageHeader(
-            IFileReader reader,
-            IMetadataCallback callback,
-            RawOffset metadataRootOffset)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            Flags = (STGHDR) reader.ReadByte();
-            Padding = reader.ReadByte();
-
-            Streams = reader.ReadInt16();
-
-            var streamHeaders = new StorageStream[Streams];
-
-            for (var i = 0; i < Streams; i++)
-                streamHeaders[i] = new StorageStream(reader, callback, metadataRootOffset);
-
-            StreamHeaders = streamHeaders;
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

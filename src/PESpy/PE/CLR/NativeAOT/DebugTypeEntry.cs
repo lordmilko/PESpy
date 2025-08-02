@@ -7,7 +7,6 @@ namespace PESpy
         private const int TypeNameOffset = 0;
         private int FieldNameOffset => chunk.PointerSize;
 
-#if PEFAST
         private VA<AnsiString> typeName;
 
         public VA<AnsiString> TypeName
@@ -81,49 +80,6 @@ namespace PESpy
             typeName = default;
             fieldName = default;
         }
-#else
-        public VA<string> TypeName { get; }
-        public VA<string> FieldName { get; }
-        public int FieldOffset { get; }
-        public int ReservedPadding { get; }
-
-        public int Offset { get; }
-
-        internal DebugTypeEntry(IFileReader reader, PEFile peFile, bool is32Bit)
-        {
-            Offset = (int) reader.Position;
-
-            var typeName = is32Bit ? reader.ReadUInt32() : reader.ReadInt64();
-            var fieldName = is32Bit ? reader.ReadUInt32() : reader.ReadInt64();
-
-            FieldOffset = reader.ReadInt32();
-            ReservedPadding = reader.ReadInt32();
-
-            var oldPosition = reader.Position;
-
-            Debug.Assert(peFile.IsLoadedImage);
-
-            if (typeName != 0)
-            {
-                var actualOffset = (int) (typeName - peFile.OptionalHeader.ImageBase);
-                reader.Seek(actualOffset);
-                TypeName = new VA<string>(typeName, actualOffset, reader.ReadAnsiNullTerminatedString());
-            }
-            else
-                TypeName = new VA<string>(typeName);
-
-            if (fieldName != 0)
-            {
-                var actualOffset = (int) (fieldName - peFile.OptionalHeader.ImageBase);
-                reader.Seek(actualOffset);
-                FieldName = new VA<string>(fieldName, actualOffset, reader.ReadAnsiNullTerminatedString());
-            }
-            else
-                FieldName = new VA<string>(fieldName);
-
-            reader.Seek(oldPosition);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-using RVA = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -21,7 +17,7 @@ namespace PESpy
         /// Gets the actual location of the value, after adjusting for additional
         /// displacements and whether the PE File is loaded into memory or resides on disk.
         /// </summary>
-        RawOffset ActualOffset { get; }
+        int ActualOffset { get; }
 
         bool IsValid { get; }
     }
@@ -37,13 +33,13 @@ namespace PESpy
         /// This value is the location that <see cref="Value"/> will be located at when loaded into memory. If the PE file that is being processed
         /// is being read from disk, this value is informational only, and <see cref="ActualOffset"/> contains the "real" location that the value was read from.
         /// </summary>
-        public RVA ListedOffset { get; }
+        public int ListedOffset { get; }
 
         /// <summary>
         /// Gets the actual offset that the <see cref="Value"/> resides at.<para/>, after adjusting the <see cref="ListedOffset"/> based on whether the PE file is being loaded from virtual memory or from disk.<para/>
         /// If the PE file resides in virtual memory, this value will be the same as <see cref="ListedOffset"/>.
         /// </summary>
-        public RawOffset ActualOffset { get; }
+        public int ActualOffset { get; }
 
         /// <summary>
         /// Gets whether the <see cref="ListedOffset"/> was successfully resolved to a readable address.<para/>
@@ -82,10 +78,12 @@ namespace PESpy
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        RawOffset IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
+        int IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
 
-        public RVA(RVA listedOffset, RawOffset actualOffset, T value)
+        public RVA(int listedOffset, int actualOffset, T value)
         {
+            //Note: in unoptimized code it may show that a boxing occurs here for value types. I have tried different variations of "is object", "is null",
+            //"is not", etc. They all box. But in optimized code this check will be removed
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
@@ -95,11 +93,11 @@ namespace PESpy
             IsValid = true;
         }
 
-        public RVA(RVA listedOffset)
+        public RVA(int listedOffset)
         {
             ListedOffset = listedOffset;
             IsValid = false;
-            ActualOffset = (RawOffset) 0;
+            ActualOffset = 0;
             this.value = default;
         }
 

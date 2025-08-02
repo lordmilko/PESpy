@@ -21,47 +21,23 @@ namespace PESpy
 
         public NameOrOffset Name { get; }
 
-#if PEFAST
         public uint Value => chunk.PeekUInt32(8);
-#else
-        public uint Value { get; }
-#endif
 
-#if PEFAST
         public ushort SectionNumber => chunk.PeekUInt16(12);
-#else
-        public ushort SectionNumber { get; }
-#endif
 
-#if PEFAST
         public ImageSymType Type => (ImageSymType) chunk.PeekUInt16(14);
-#else
-        public ImageSymType Type { get; }
-#endif
 
         public ImageSymType BasicType => (ImageSymType) ((ushort) Type & N_BTMASK);
 
         public ImageSymDType DerivedType => (ImageSymDType) (((ushort) Type & N_TMASK) >> N_BTSHIFT);
 
-#if PEFAST
         public ImageSymClass StorageClass => (ImageSymClass) chunk.PeekByte(16);
-#else
-        public ImageSymClass StorageClass { get; }
-#endif
 
-#if PEFAST
         public byte NumberOfAuxSymbols => chunk.PeekByte(17);
-#else
-        public byte NumberOfAuxSymbols { get; }
-#endif
 
 public ImageAuxSymbol[] AuxSymbols { get; }
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         internal const int StructSize =
             8 + //Name (both halves)
@@ -71,7 +47,6 @@ public ImageAuxSymbol[] AuxSymbols { get; }
             sizeof(byte) + //StorageClass
             sizeof(byte); //NumberOfAuxSymbols
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageSymbol(in MemoryChunk chunk, CoffSymbolTable symbolTable)
@@ -107,35 +82,6 @@ public ImageAuxSymbol[] AuxSymbols { get; }
                 AuxSymbols = results;
             }
         }
-#else
-        internal ImageSymbol(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            //If the name is 8 bytes or less, it can be declared immediately inline. Otherwise,
-            //the name is declared in the string table that immediately follows the list of symbols,
-            //and the name contains a pointer into it. If the first 4 bytes of the name are all 0, then
-            //the second 4 bytes is an offset into the string table. Otherwise, the name is the name
-            Name = new NameOrOffset(reader);
-            Value = reader.ReadUInt32();
-            SectionNumber = reader.ReadInt16();
-            Type = (ImageSymType) reader.ReadInt16(); //I think you haev to use the N_ ype packing constants with this to extract the type + special derived types
-            StorageClass = (ImageSymClass) reader.ReadByte();
-            NumberOfAuxSymbols = reader.ReadByte();
-
-            if (NumberOfAuxSymbols > 0)
-            {
-                var auxSymbols = new ImageAuxSymbol[NumberOfAuxSymbols];
-
-                for (var i = 0; i < NumberOfAuxSymbols; i++)
-                    auxSymbols[i] = new ImageAuxSymbol(reader);
-
-                AuxSymbols = auxSymbols;
-            }
-            else
-                AuxSymbols = Array.Empty<ImageAuxSymbol>();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -176,17 +122,10 @@ public ImageAuxSymbol[] AuxSymbols { get; }
             public int Short { get; }
             public int Long { get; }
 
-#if PEFAST
             internal NameOrOffset(in MemoryChunk chunk, CoffSymbolTable symbolTable)
             {
                 var @short = chunk.PeekInt32(0);
                 var @long = chunk.PeekInt32(4);
-#else
-            internal NameOrOffset(IFileReader reader)
-            {
-                var @short = reader.ReadInt32();
-                var @long = reader.ReadInt32();
-#endif
 
                 if (@short == 0)
                 {

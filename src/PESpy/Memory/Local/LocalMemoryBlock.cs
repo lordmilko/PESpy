@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 
 namespace PESpy
 {
@@ -24,4 +23,3 @@ namespace PESpy
         }
     }
 }
-#endif

@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using PESpy.View.Builder;
 
 namespace PESpy.View
@@ -8,22 +7,11 @@ namespace PESpy.View
     {
         private DBGFile dbgFile;
 
-        internal unsafe DBGViewWriter(
-            DBGFile dbgFile,
-#if PEFAST
-            byte* mmf,
-            int length
-#else
-            IFileReader reader,
-#endif
-            ) : base(
-#if PEFAST
-            mmf,
-            length,
-#else
-            reader,
-#endif
-            null, ViewMode.Default, TryGetViewOffset, null)
+        protected unsafe DBGViewWriter(DBGFile dbgFile) : this(dbgFile, (byte*) 1, 1)
+        {
+        }
+
+        internal unsafe DBGViewWriter(DBGFile dbgFile, byte* mmf, int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.dbgFile = dbgFile;
         }
@@ -50,4 +38,3 @@ namespace PESpy.View
         }
     }
 }
-#endif

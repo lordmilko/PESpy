@@ -12,7 +12,6 @@ namespace PESpy
 
         private readonly int length;
 
-#if PEFAST
         internal GuardLongJumpTargetTable(in MemoryChunk chunk, IMAGE_GUARD flags, long entryCount)
         {
             Offset = (int) chunk.AbsoluteOffset;
@@ -34,24 +33,6 @@ namespace PESpy
 
             Entries = entries;
         }
-#else
-        internal GuardLongJumpTargetTable(IFileReader reader, IMAGE_GUARD flags, long entryCount)
-        {
-            Offset = (int) reader.Position;
-
-            //See GuardCFFunctionTable for info
-            var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
-
-            reader.FillBuffer((int) ((4 + metadataSize) * entryCount));
-
-            var entries = new Entry[entryCount];
-
-            for (var i = 0; i < entryCount; i++)
-                entries[i] = new Entry(reader, metadataSize);
-
-            Entries = entries;
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -82,7 +63,6 @@ namespace PESpy
 
             public int Offset { get; init; }
 
-#if PEFAST
             internal Entry(in MemoryChunk chunk, int metadataSize)
             {
                 Offset = (int) chunk.AbsoluteOffset;
@@ -105,30 +85,6 @@ namespace PESpy
                         break;
                 }
             }
-#else
-            internal Entry(IFileReader reader, int metadataSize)
-            {
-                Offset = (int)reader.Position;
-
-                Target = reader.ReadInt32();
-
-                switch (metadataSize)
-                {
-                    case 0:
-                        Flags = null;
-                        break;
-
-                    case 1:
-                        Flags = (IMAGE_GUARD_FLAG) reader.ReadByte();
-                        break;
-
-                    default:
-                        Debug.Assert(false, $"Don't know how to handle a GFIDS entry of size {metadataSize}");
-                        Flags = null;
-                        break;
-                }
-            }
-#endif
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {

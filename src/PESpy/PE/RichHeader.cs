@@ -2,9 +2,6 @@
 using System.Runtime.InteropServices;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -13,7 +10,6 @@ namespace PESpy
     /// </summary>
     public class RichHeader : IValue, IViewable //May be null, so can't be a struct
     {
-#if PEFAST
         internal static unsafe RichHeader? New(int ntHeaderOffset, HeaderMemoryBlock headerBlock)
         {
             //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
@@ -67,31 +63,6 @@ namespace PESpy
             }
             
         }
-#else
-        internal static RichHeader? New(RawOffset ntHeaderOffset, IFileReader reader)
-        {
-            //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
-
-            /* The rich header, if it exists, lives between the DOS and NT header, and ends in the unencrypted word "Rich"
-             * followed by a XOR key that can be used to decrypt the previous bytes of the header, 4 bytes at a time.
-             * The beginning of the header is demarcated by the word "DanS" (which must be decrypted with the XOR key) */
-
-            var start = (RawOffset) reader.Position;
-
-            var toRead = (int) (ntHeaderOffset - start);
-            var bytes = reader.ReadBytes(toRead);
-
-            if (!TryFindRich(bytes, out var richPosition))
-                return null;
-
-            if (!TryFindDanS(bytes, richPosition, out var dansPosition))
-                return null;
-
-            var richHeaderSize = richPosition - dansPosition;
-
-            return new RichHeader(bytes, start, dansPosition, richHeaderSize);
-        }
-#endif
 
         private static bool TryFindRich(Span<byte> bytes, out int richPosition)
         {
@@ -152,7 +123,7 @@ namespace PESpy
 
         public int XorKey { get; }
 
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         internal const int FixedStructSize =
             sizeof(int) + //DanS
@@ -162,7 +133,7 @@ namespace PESpy
             sizeof(int) + //Rich
             sizeof(int); //XorKey
 
-        private RichHeader(Span<byte> bytes, RawOffset start, int bufferPos, int length)
+        private RichHeader(Span<byte> bytes, int start, int bufferPos, int length)
         {
             //"start" stores the start offset of the bytes after the DOS Stub, and bufferPos initially stores the address of
             //the start of the RichHeader section within that buffer

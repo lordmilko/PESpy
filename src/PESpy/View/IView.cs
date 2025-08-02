@@ -1,9 +1,5 @@
-﻿
-using System;
-#if !DEBUG_POSITION
+﻿using System;
 using System.Collections.Generic;
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -25,7 +21,7 @@ namespace PESpy.View
         /// The meaning of this value depends on the <see cref="ViewMode"/> that was specified when the view was created.
         /// If this is a loaded image, this will be the RVA. Otherwise, this will be the physical offset.
         /// </summary>
-        RawOffset Offset { get; }
+        int Offset { get; }
 
         /// <summary>
         /// Gets the number of bytes that this value consumes.

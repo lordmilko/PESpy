@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace PESpy.View.Builder
 {
@@ -38,4 +37,3 @@ namespace PESpy.View.Builder
         }
     }
 }
-#endif

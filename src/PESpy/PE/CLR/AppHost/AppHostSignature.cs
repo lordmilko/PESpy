@@ -1,9 +1,4 @@
-﻿using System;
-using System.IO;
-using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
+﻿using PESpy.View;
 
 namespace PESpy
 {
@@ -64,7 +59,6 @@ namespace PESpy
             0xee, 0x3b, 0x2d, 0xce, 0x24, 0xb3, 0x6a, 0xae
         };
 
-#if PEFAST
         internal static unsafe AppHostSignature? New(byte* mmf, int length, HeaderMemoryBlock globalBlock)
         {
             var index = KMPSearch(bundleHeaderPlaceholder, mmf, length);
@@ -74,21 +68,6 @@ namespace PESpy
 
             return new AppHostSignature(new MemoryChunk(globalBlock, index - 8));
         }
-#else
-        internal static AppHostSignature? New(IFileReader reader)
-        {
-            var stream = ((StreamFileReader) reader).GetStreamStartUnsafe();
-
-            var index = KMPSearch(stream, bundleHeaderPlaceholder);
-
-            if (index == -1)
-                return null;
-
-            reader.Seek(index - 8);
-
-            return new AppHostSignature(reader);
-        }
-#endif
 
         private VA<Bundle.Manifest> bundleHeaderOffset;
 
@@ -110,37 +89,13 @@ namespace PESpy
 
         public byte[] BundleSignature { get; }
 
-        public RawOffset Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal AppHostSignature(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-        }
-#else
-        internal AppHostSignature(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            var bundleHeaderOffset = reader.ReadInt64();
-
-            BundleSignature = reader.ReadBytes(24);
-
-            if (bundleHeaderOffset != 0)
-            {
-                reader.Seek(bundleHeaderOffset);
-                BundleHeaderOffset = new VA<Bundle.Manifest>(bundleHeaderOffset, (int) bundleHeaderOffset, new Bundle.Manifest(reader));
-            }
-            else
-                BundleHeaderOffset = new VA<Bundle.Manifest>(bundleHeaderOffset);
-        }
-#endif
-
-        void IViewable.WriteView(ViewWriter writer)
-        {
-            //throw new NotImplementedException();
         }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm

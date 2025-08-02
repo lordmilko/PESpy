@@ -1,4 +1,3 @@
-﻿#if PEFAST
 using System;
 using System.Collections.Generic;
 using PESpy.NE;
@@ -162,4 +161,3 @@ namespace PESpy.View.Builder
         }
     }
 }
-#endif

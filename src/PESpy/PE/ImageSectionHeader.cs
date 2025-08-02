@@ -3,11 +3,6 @@ using ClrDebug;
 using PESpy.View;
 using PESpy.LIB;
 
-#if !DEBUG_POSITION
-using RVA = System.Int32;
-using RawOffset = System.Int32;
-#endif
-
 namespace PESpy
 {
     /// <summary>
@@ -21,22 +16,14 @@ namespace PESpy
         /// <summary>
         /// The name of the section.
         /// </summary>
-#if PEFAST
         public FixedUtf8String Name => chunk.PeekNullPaddedUtf8(0, 8);
-#else
-        public string Name { get; init; }
-#endif
 
         /// <summary>
         /// The total size of the section when loaded into memory.
         /// If this value is greater than <see cref="SizeOfRawData"/>, the section is zero-padded.
         /// This field is valid only for PE images and should be set to zero for object files.
         /// </summary>
-#if PEFAST
         public int VirtualSize => chunk.PeekInt32(8);
-#else
-        public int VirtualSize { get; init; }
-#endif
 
         /// <summary>
         /// For PE images, the address of the first byte of the section relative to the image base when the
@@ -44,11 +31,7 @@ namespace PESpy
         /// relocation is applied; for simplicity, compilers should set this to zero. Otherwise,
         /// it is an arbitrary value that is subtracted from offsets during relocation.
         /// </summary>
-#if PEFAST
         public int VirtualAddress => chunk.PeekInt32(12);
-#else
-        public RVA VirtualAddress { get; init; }
-#endif
 
         /// <summary>
         /// The size of the section (for object files) or the size of the initialized data on disk (for image files).
@@ -58,11 +41,7 @@ namespace PESpy
         /// it is possible for <see cref="SizeOfRawData"/> to be greater than <see cref="VirtualSize"/> as well.
         ///  When a section contains only uninitialized data, this field should be zero.
         /// </summary>
-#if PEFAST
         public int SizeOfRawData => chunk.PeekInt32(16);
-#else
-        public int SizeOfRawData { get; init; }
-#endif
 
         /// <summary>
         /// The file pointer to the first page of the section within the COFF file.
@@ -70,17 +49,12 @@ namespace PESpy
         /// For object files, the value should be aligned on a 4 byte boundary for best performance.
         /// When a section contains only uninitialized data, this field should be zero.
         /// </summary>
-#if PEFAST
         public int PointerToRawData => chunk.PeekInt32(20);
-#else
-        public RawOffset PointerToRawData { get; init; }
-#endif
 
         /// <summary>
         /// The file pointer to the beginning of relocation entries for the section.
         /// This is set to zero for PE images or if there are no relocations.
         /// </summary>
-#if PEFAST
         private VA<ImageRelocation[]> pointerToRelocations;
 
         public VA<ImageRelocation[]> PointerToRelocations
@@ -118,16 +92,12 @@ namespace PESpy
                 return pointerToRelocations;
             }
         }
-#else
-        public VA<ImageRelocation[]> PointerToRelocations { get; init; }
-#endif
 
         /// <summary>
         /// The file pointer to the beginning of line-number entries for the section.
         /// This is set to zero if there are no COFF line numbers.
         /// This value should be zero for an image because COFF debugging information is deprecated.
         /// </summary>
-#if PEFAST
         private VA<ImageLineNumber[]> pointerToLineNumbers;
 
         public VA<ImageLineNumber[]> PointerToLineNumbers
@@ -146,9 +116,9 @@ namespace PESpy
                     {
                         if (TryGetHeaderChunk(chunk, offset, out var valueChunk))
                         {
-                            var lineNumbers = new ImageLineNumber[NumberOfRelocations];
+                            var lineNumbers = new ImageLineNumber[NumberOfLineNumbers];
 
-                            for (var i = 0; i < NumberOfRelocations; i++)
+                            for (var i = 0; i < NumberOfLineNumbers; i++)
                                 lineNumbers[i] = new ImageLineNumber(valueChunk.Slice(i * ImageLineNumber.StructSize));
 
                             pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
@@ -163,43 +133,24 @@ namespace PESpy
                 return pointerToLineNumbers;
             }
         }
-#else
-        public VA<ImageLineNumber[]> PointerToLineNumbers { get; init; }
-#endif
 
         /// <summary>
         /// The number of relocation entries for the section. This is set to zero for PE images.
         /// </summary>
-#if PEFAST
         public short NumberOfRelocations => chunk.PeekInt16(32);
-#else
-        public short NumberOfRelocations { get; init; }
-#endif
 
         /// <summary>
         /// The number of line-number entries for the section.
         ///  This value should be zero for an image because COFF debugging information is deprecated.
         /// </summary>
-#if PEFAST
         public short NumberOfLineNumbers => chunk.PeekInt16(34);
-#else
-        public short NumberOfLineNumbers { get; init; }
-#endif
 
         /// <summary>
         /// The flags that describe the characteristics of the section.
         /// </summary>
-#if PEFAST
         public IMAGE_SCN Characteristics => (IMAGE_SCN) chunk.PeekUInt32(36);
-#else
-        public IMAGE_SCN Characteristics { get; init; }
-#endif
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int NameSize = 8;
 
@@ -215,7 +166,6 @@ namespace PESpy
             sizeof(short) + // NumberOfLineNumbers
             sizeof(int);    // Characteristics
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageSectionHeader(in MemoryChunk chunk)
@@ -258,50 +208,12 @@ namespace PESpy
             else
             {
                 //It should be a PE File
-                if (chunk.PEFile().TryGetValueChunkFromSectionOrHeader(offset, out headerChunk))
+                if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset(offset, out headerChunk))
                     return true;
 
                 return false;
             }
         }
-#else
-        internal ImageSectionHeader(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            reader.FillBuffer(StructSize);
-
-            Name = reader.ReadNullPaddedUTF8(NameSize);
-            VirtualSize = reader.ReadInt32();
-            VirtualAddress = (RVA) reader.ReadInt32();
-            SizeOfRawData = reader.ReadInt32();
-            PointerToRawData = (RawOffset) reader.ReadInt32();
-            var pointerToRelocations = reader.ReadInt32();
-            PointerToLineNumbers = new VA<ImageLineNumber[]>(reader.ReadInt32());
-            NumberOfRelocations = reader.ReadInt16();
-            NumberOfLineNumbers = reader.ReadInt16();
-            Characteristics = (IMAGE_SCN) reader.ReadUInt32();
-
-            //@comp.id.Value apparently has the compiler type in the top 16 bits and the compiler id version in the bottom?
-            if (pointerToRelocations == 0)
-                PointerToRelocations = new VA<ImageRelocation[]>(pointerToRelocations);
-            else
-            {
-                var oldOffset = reader.Position;
-
-                reader.Seek(pointerToRelocations);
-
-                var relocations = new ImageRelocation[NumberOfRelocations];
-
-                for (var i = 0; i < NumberOfRelocations; i++)
-                    relocations[i] = new ImageRelocation(reader);
-
-                PointerToRelocations = new VA<ImageRelocation[]>(pointerToRelocations, pointerToRelocations, relocations);
-
-                reader.Seek(oldOffset);
-            }
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

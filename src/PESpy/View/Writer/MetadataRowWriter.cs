@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using PESpy.Ecma335;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -13,16 +10,17 @@ namespace PESpy.View
         {
             private FixedUtf8String structName;
             private ViewKind kind;
-            private RawOffset startOffset;
-            private RawOffset currentOffset;
+            private int startOffset;
+            private int currentOffset;
             private PEViewWriter viewWriter;
             private List<IView> fields;
             private bool shouldAdd;
 
-            public RawOffset Size => currentOffset - startOffset;
+            public int Size => currentOffset - startOffset;
 
             internal MetadataRowWriter(string name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
             internal MetadataRowWriter(FixedUtf8String name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
+            internal MetadataRowWriter(FixedUtf8String name, int startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
             {
                 structName = name;
                 this.startOffset = startOffset;

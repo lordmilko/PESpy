@@ -4,25 +4,18 @@ namespace PESpy
 {
     public readonly struct ImageEpilogueDynamicRelocationHeader : IValue
     {
-        public int EpilogueCount { get; }
-        public byte EpilogueByteCount { get; }
-        public byte BranchDescriptorElementSize { get; }
-        public short BranchDescriptorCount { get; }
+        public int EpilogueCount => chunk.PeekInt32(0);
+        public byte EpilogueByteCount => chunk.PeekByte(4);
+        public byte BranchDescriptorElementSize => chunk.PeekByte(5);
+        public short BranchDescriptorCount => chunk.PeekInt16(6);
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-#if !PEFAST
-        internal ImageEpilogueDynamicRelocationHeader(IFileReader reader)
+        private readonly MemoryChunk chunk;
+
+        internal ImageEpilogueDynamicRelocationHeader(in MemoryChunk chunk)
         {
-            Offset = (int) reader.Position;
-
-            EpilogueCount = reader.ReadInt32();
-            EpilogueByteCount = reader.ReadByte();
-            BranchDescriptorElementSize = reader.ReadByte();
-            BranchDescriptorCount = reader.ReadInt16();
-
-            throw new NotImplementedException();
+            this.chunk = chunk;
         }
-#endif
     }
 }

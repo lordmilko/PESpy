@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-#if !DEBUG_POSITION
-#endif
 
 namespace PESpy.View
 {

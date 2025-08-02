@@ -7,7 +7,6 @@ namespace PESpy
     {
         private const int NameOffset = 0;
 
-#if PEFAST
         private VA<AnsiString> name;
 
         public VA<AnsiString> Name
@@ -49,35 +48,6 @@ namespace PESpy
             this.chunk = chunk;
             name = default;
         }
-#else
-        public VA<string> Name { get; }
-        public long Address { get; }
-
-        public int Offset { get; }
-
-        internal GlobalValueEntry(IFileReader reader, PEFile peFile, bool is32Bit)
-        {
-            Offset = (int) reader.Position;
-
-            var name = is32Bit ? reader.ReadUInt32() : reader.ReadInt64();
-            Address = is32Bit ? reader.ReadUInt32() : reader.ReadInt64();
-
-            var oldPosition = reader.Position;
-
-            Debug.Assert(peFile.IsLoadedImage);
-
-            if (name != 0)
-            {
-                var actualOffset = (int) (name - peFile.OptionalHeader.ImageBase);
-                reader.Seek(actualOffset);
-                Name = new VA<string>(name, actualOffset, reader.ReadAnsiNullTerminatedString());
-            }
-            else
-                Name = new VA<string>(name);
-
-            reader.Seek(oldPosition);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

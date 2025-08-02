@@ -1,9 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -12,7 +9,7 @@ namespace PESpy
     {
         long ListedAddress { get; }
 
-        RawOffset ActualOffset { get; }
+        int ActualOffset { get; }
 
         bool IsValid { get; }
     }
@@ -58,9 +55,9 @@ namespace PESpy
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        RawOffset IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
+        int IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
 
-        public VA(long listedAddress, RawOffset actualOffset, T value)
+        public VA(long listedAddress, int actualOffset, T value)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
@@ -75,7 +72,7 @@ namespace PESpy
         {
             ListedAddress = listedAddress;
             IsValid = false;
-            ActualOffset = (RawOffset)0;
+            ActualOffset = 0;
             this.value = default;
         }
 

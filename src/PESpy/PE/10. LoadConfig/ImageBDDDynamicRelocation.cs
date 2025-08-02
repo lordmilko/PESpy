@@ -8,58 +8,31 @@ namespace PESpy
         /// <summary>
         /// Index of FALSE edge in BDD array
         /// </summary>
-#if PEFAST
         public short Left => chunk.PeekInt16(0);
-#else
-        public short Left { get; }
-#endif
 
         /// <summary>
         /// Index of TRUE edge in BDD array
         /// </summary>
-#if PEFAST
         public short Right => chunk.PeekInt16(2);
-#else
-        public short Right { get; }
-#endif
 
         /// <summary>
         /// Either FeatureNumber or Index into RVAs array
         /// </summary>
-#if PEFAST
         public int Value => chunk.PeekInt32(4);
-#else
-        public int Value { get; }
-#endif
 
         public const int StructSize =
             sizeof(short) + //Left
             sizeof(short) + //Right
             sizeof(int);    //Value
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageBDDDynamicRelocation(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImageBDDDynamicRelocation(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            Left = reader.ReadInt16();
-            Right = reader.ReadInt16();
-            Value = reader.ReadInt32();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

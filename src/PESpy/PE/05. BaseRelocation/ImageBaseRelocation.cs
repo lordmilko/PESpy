@@ -1,64 +1,25 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
     public readonly struct ImageBaseRelocation : IValue, IViewable
     {
-#if PEFAST
         public int VirtualAddress => chunk.PeekInt32(0);
-#else
-        public int VirtualAddress { get; }
-#endif
 
-#if PEFAST
         public int SizeOfBlock => chunk.PeekInt32(4);
-#else
-        public int SizeOfBlock { get; }
-#endif
 
-#if PEFAST
         public NativeSpan<Entry> Entries => chunk.PeekNativeSpan<Entry>(8, (SizeOfBlock - 8) / 2);
-#else
-        public Entry[] Entries { get; }
-#endif
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageBaseRelocation(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImageBaseRelocation(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            VirtualAddress = reader.ReadInt32();
-            SizeOfBlock = reader.ReadInt32();
-
-            var numEntries = (SizeOfBlock - 8) / 2;
-
-            var entries = new Entry[numEntries];
-
-            for (var i = 0; i < numEntries; i++)
-                entries[i] = new Entry(reader);
-
-            Entries = entries;
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -104,12 +65,6 @@ namespace PESpy
 
             //No need to pass a MemoryChunk; we read these directly through a span. The only physical
             //value is the Value field (2 bytes)
-#if !PEFAST
-            internal Entry(IFileReader reader)
-            {
-                Value = reader.ReadUInt16();
-            }
-#endif
         }
     }
 }

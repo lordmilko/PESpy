@@ -1,9 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Linq;
-using System.Text;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -16,7 +11,7 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.LogicalRegion(this),nq}")]
     public class LogicalRegionView : IContainerView
     {
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         public string Name { get; }
 
@@ -27,7 +22,7 @@ namespace PESpy.View
 
         public int Size { get; }
 
-        public LogicalRegionView(RawOffset offset, string name, IView[] children, ViewKind kind, int size)
+        public LogicalRegionView(int offset, string name, IView[] children, ViewKind kind, int size)
         {
             Debug.Assert(size != 0);
             Debug.Assert(kind != 0);

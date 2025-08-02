@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace PESpy.Tests
 {
@@ -17,4 +16,3 @@ namespace PESpy.Tests
         }
     }
 }
-#endif

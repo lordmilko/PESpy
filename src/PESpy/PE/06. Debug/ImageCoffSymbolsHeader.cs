@@ -6,12 +6,8 @@ namespace PESpy
 {
     public struct ImageCoffSymbolsHeader : IValue, IViewable
     {
-#if PEFAST
         public int NumberOfSymbols => chunk.PeekInt32(0);
-#else
-        public int NumberOfSymbols { get; }
-#endif
-#if PEFAST
+
         private RVA<CoffSymbolTable> lvaToFirstSymbol;
 
         public RVA<CoffSymbolTable> LvaToFirstSymbol
@@ -35,45 +31,15 @@ namespace PESpy
                 return lvaToFirstSymbol;
             }
         }
-#else
-        public RVA<CoffSymbolTable> LvaToFirstSymbol { get; }
-#endif
-#if PEFAST
-        public int NumberOfLinenumbers => chunk.PeekInt32(8);
-#else
-        public int NumberOfLinenumbers { get; }
-#endif
-#if PEFAST
-        public int LvaToFirstLinenumber => chunk.PeekInt32(12);
-#else
-        public int LvaToFirstLinenumber { get; }
-#endif
-#if PEFAST
-        public int RvaToFirstByteOfCode => chunk.PeekInt32(16);
-#else
-        public int RvaToFirstByteOfCode { get; }
-#endif
-#if PEFAST
-        public int RvaToLastByteOfCode => chunk.PeekInt32(20);
-#else
-        public int RvaToLastByteOfCode { get; }
-#endif
-#if PEFAST
-        public int RvaToFirstByteOfData => chunk.PeekInt32(24);
-#else
-        public int RvaToFirstByteOfData { get; }
-#endif
-#if PEFAST
-        public int RvaToLastByteOfData => chunk.PeekInt32(28);
-#else
-        public int RvaToLastByteOfData { get; }
-#endif
 
-#if PEFAST
+        public int NumberOfLinenumbers => chunk.PeekInt32(8);
+        public int LvaToFirstLinenumber => chunk.PeekInt32(12);
+        public int RvaToFirstByteOfCode => chunk.PeekInt32(16);
+        public int RvaToLastByteOfCode => chunk.PeekInt32(20);
+        public int RvaToFirstByteOfData => chunk.PeekInt32(24);
+        public int RvaToLastByteOfData => chunk.PeekInt32(28);
+
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         internal int StructSize =>
             sizeof(int) + //NumberOfSymbols
@@ -85,7 +51,6 @@ namespace PESpy
             sizeof(int) + //RvaToFirstByteOfData
             sizeof(int); //RvaToLastByteOfData
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageCoffSymbolsHeader(in MemoryChunk chunk)
@@ -93,50 +58,6 @@ namespace PESpy
             this.chunk = chunk;
             lvaToFirstSymbol = default;
         }
-#else
-        internal ImageCoffSymbolsHeader(IFileReader reader, PEFile peFile)
-        {
-            Offset = (int) reader.Position;
-
-            NumberOfSymbols = reader.ReadInt32();
-            var lvaToFirstSymbol = reader.ReadInt32();
-            NumberOfLinenumbers = reader.ReadInt32();
-            LvaToFirstLinenumber = reader.ReadInt32();
-            RvaToFirstByteOfCode = reader.ReadInt32();
-            RvaToLastByteOfCode = reader.ReadInt32();
-            RvaToFirstByteOfData = reader.ReadInt32();
-            RvaToLastByteOfData = reader.ReadInt32();
-
-            //This offset _should_ be the same offset that was pointed to by the IMAGE_FILE_HEADER
-
-            if (lvaToFirstSymbol > 0)
-            {
-                CoffSymbolTable symbolTable;
-
-                var symbolTableOffset = Offset + lvaToFirstSymbol;
-
-                if (peFile.FileHeader.PointerToSymbolTable.IsValid && peFile.FileHeader.PointerToSymbolTable.ListedAddress == symbolTableOffset && NumberOfSymbols == peFile.FileHeader.NumberOfSymbols)
-                    symbolTable = peFile.FileHeader.PointerToSymbolTable.Value;
-                else
-                {
-                    reader.Seek(symbolTableOffset);
-
-                    symbolTable = new CoffSymbolTable(reader, NumberOfSymbols);
-                }
-
-                LvaToFirstSymbol = new RVA<CoffSymbolTable>(lvaToFirstSymbol, symbolTableOffset, symbolTable);
-            }
-            else
-                LvaToFirstSymbol = default;
-
-            if (LvaToFirstLinenumber > 0)
-            {
-                var lineNumberOffset = Offset + LvaToFirstLinenumber;
-
-                Debug.Assert(false);
-            }
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

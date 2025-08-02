@@ -2,9 +2,6 @@
 using System.Diagnostics;
 using System.Text;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -39,7 +36,6 @@ namespace PESpy
                 }
             }
 
-#if PEFAST
             public short Length => chunk.PeekInt16(0);
 
             public short ValueLength => chunk.PeekInt16(2);
@@ -105,23 +101,7 @@ namespace PESpy
                 sizeof(short) + //Length
                 sizeof(short) + //ValueLength
                 sizeof(short);  //Type
-#else
-            public short Length { get; init; }
 
-            public short ValueLength { get; init; }
-
-            public short Type { get; init; }
-
-            public string Key { get; init; }
-
-            public short Padding { get; init; }
-
-            public String[] Children { get; init; }
-
-            public RawOffset Offset { get; }
-#endif
-
-#if PEFAST
             private readonly MemoryChunk chunk;
 
             internal StringTable(in MemoryChunk chunk)
@@ -133,42 +113,6 @@ namespace PESpy
                 _ = Children;
 #endif
             }
-#else
-            internal StringTable(IFileReader reader)
-            {
-                Offset = (RawOffset) reader.Position;
-
-                Length = reader.ReadInt16();
-
-                Debug.Assert(Length != 0);
-
-                ValueLength = reader.ReadInt16();
-                Type = reader.ReadInt16();
-                Key = reader.ReadUTF16NullTerminatedString();
-
-                var end = (int) Offset + Length;
-
-                Padding = Align32(reader, out var didAlign, end);
-
-                using var items = new PooledList<String>();
-
-                while (reader.Position < end)
-                {
-                    items.Add(new String(reader));
-
-                    if (reader.Position < end)
-                    {
-                        //The documentation doesn't say it, but it seems that each String also needs to be 32-bit aligned
-
-                        Align32(reader, out didAlign, end);
-                    }
-                }
-
-                Debug.Assert(reader.Position == end);
-
-                Children = items.ToArray();
-            }
-#endif
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {

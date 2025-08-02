@@ -4,10 +4,6 @@ using System.Diagnostics;
 using System.Text;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-using RVA = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -106,17 +102,12 @@ namespace PESpy
             }
         }
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //NameOrId
             sizeof(int);  //Offset
 
-#if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int rootRVA;
 
@@ -129,17 +120,6 @@ namespace PESpy
             NameOrId = new UnionNameOrId(chunk, rootRVA);
             dataAndDirectoryUnion = new UnionOffsetToData(chunk.Slice(DataAndDirectoryOffset), rootRVA, this);
         }
-#else
-        internal ImageResourceDirectoryEntry(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry? parent, RawOffset rootOffset)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            Parent = parent;
-
-            NameOrId = new UnionNameOrId(reader, rootOffset);
-            dataAndDirectoryUnion = new UnionOffsetToData(reader, peFile, this, rootOffset);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -208,13 +188,12 @@ namespace PESpy
 
             public ushort Id => (ushort) Name; //Must be ushort, you can have big values
 
-#if PEFAST
-            internal UnionNameOrId(in MemoryChunk chunk, RawOffset rootRVA)
+            internal UnionNameOrId(in MemoryChunk chunk, int rootRVA)
             {
                 var value = chunk.PeekInt32(0);
 
                 var nameIsString = ((value >> 31) & 1) == 1;
-                var nameOffset = (RVA) (value & 0x7FFFFFFF); //Remove the top bit
+                var nameOffset = value & 0x7FFFFFFF; //Remove the top bit
 
                 Name = value;
 
@@ -238,36 +217,6 @@ namespace PESpy
                     NameOffset = new RVA<ImageResourceDirStringU>(nameOffset);
                 }
             }
-#else
-            internal UnionNameOrId(IFileReader reader, RawOffset rootOffset)
-            {
-                var value = reader.ReadInt32();
-
-                var nameIsString = ((value >> 31) & 1) == 1;
-                var nameOffset = (RVA) (value & 0x7FFFFFFF); //Remove the top bit
-
-                Name = value;
-
-                if (nameIsString)
-                {
-                    var oldPosition = reader.Position;
-
-                    var offset = rootOffset + (int) nameOffset;
-                    reader.Seek(offset);
-
-                    var name = new ImageResourceDirStringU(reader);
-
-                    NameOffset = new RVA<ImageResourceDirStringU>(nameOffset, offset, name);
-
-                    reader.Seek(oldPosition);
-                }
-                else
-                {
-                    //It's bad; just list what the bottom 31 bits were
-                    NameOffset = new RVA<ImageResourceDirStringU>(nameOffset);
-                }
-            }
-#endif
 
             public override string ToString()
             {
@@ -303,13 +252,12 @@ namespace PESpy
 
             #endregion
 
-#if PEFAST
             internal UnionOffsetToData(in MemoryChunk chunk, int rootRVA, ImageResourceDirectoryEntry parent)
             {
                 var value = chunk.PeekInt32(0);
 
                 var dataIsDirectory = ((value >> 31) & 1) == 1;
-                var offsetToDirectory = (RVA) (value & 0x7FFFFFFF); //Remove the top bit
+                var offsetToDirectory = value & 0x7FFFFFFF; //Remove the top bit
 
                 if (dataIsDirectory)
                 {
@@ -319,12 +267,12 @@ namespace PESpy
                     {
                         var directory = new ImageResourceDirectory(valueChunk, rootRVA, parent);
 
-                        OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value); //Just store the raw data
+                        OffsetToData = new RVA<ImageResourceDataEntry>(value); //Just store the raw data
                         OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory, offset, directory);
                     }
                     else
                     {
-                        OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value); //Just store the raw data
+                        OffsetToData = new RVA<ImageResourceDataEntry>(value); //Just store the raw data
                         OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory);
                     }
                 }
@@ -336,7 +284,7 @@ namespace PESpy
                     {
                         var data = new ImageResourceDataEntry(valueChunk, parent);
 
-                        OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value, offset, data);
+                        OffsetToData = new RVA<ImageResourceDataEntry>(value, offset, data);
 
                         //Just list what the bottom 31 bits were
                         OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory);
@@ -348,42 +296,6 @@ namespace PESpy
                     }
                 }
             }
-#else
-            public UnionOffsetToData(IFileReader reader, PEFile peFile, ImageResourceDirectoryEntry parent, RawOffset rootOffset)
-            {
-                var value = reader.ReadInt32();
-
-                var dataIsDirectory = ((value >> 31) & 1) == 1;
-                var offsetToDirectory = (RVA) (value & 0x7FFFFFFF); //Remove the top bit
-
-                var oldPosition = reader.Position;
-
-                if (dataIsDirectory)
-                {
-                    var offset = rootOffset + (int) offsetToDirectory;
-                    reader.Seek(offset);
-
-                    var directory = new ImageResourceDirectory(reader, peFile, parent, rootOffset);
-
-                    OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value); //Just store the raw data
-                    OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory, offset, directory);
-                }
-                else
-                {
-                    var offset = rootOffset + value; //The high bit isn't set, so the value is OffsetToData
-                    reader.Seek(offset);
-
-                    var data = new ImageResourceDataEntry(reader, peFile, parent);
-
-                    OffsetToData = new RVA<ImageResourceDataEntry>((RVA) value, offset, data);
-
-                    //Just list what the bottom 31 bits were
-                    OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory);
-                }
-
-                reader.Seek(oldPosition);
-            }
-#endif
         }
     }
 }

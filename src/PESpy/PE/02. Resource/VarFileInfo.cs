@@ -1,9 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -11,7 +7,6 @@ namespace PESpy
     {
         public struct VarFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
         {
-#if PEFAST
             public short Length => chunk.PeekInt16(0);
 
             public short ValueLength => chunk.PeekInt16(2);
@@ -78,23 +73,6 @@ namespace PESpy
                 sizeof(short) + //ValueLength
                 sizeof(short);  //Type
 
-#else
-            public short Length { get; init; }
-
-            public short ValueLength { get; init; }
-
-            public short Type { get; init; }
-
-            public string Key { get; init; }
-
-            public short Padding { get; init; }
-
-            public Var[] Children { get; init; }
-
-            public RawOffset Offset { get; }
-#endif
-
-#if PEFAST
             private readonly MemoryChunk chunk;
 
             internal VarFileInfo(in MemoryChunk chunk)
@@ -102,43 +80,6 @@ namespace PESpy
                 this.chunk = chunk;
                 children = default;
             }
-#else
-            internal VarFileInfo(RawOffset offset, short length, short valueLength, short type, string key, IFileReader reader)
-            {
-                Offset = offset;
-
-                Length = length;
-
-                Debug.Assert(Length != 0);
-
-                ValueLength = valueLength;
-                Type = type;
-                Key = key;
-
-                var end = (int) Offset + length;
-
-                //Will always require alignment, because name is 24 bytes and we only read 3 shorts
-                Padding = Align32(reader, out var didAlign, end);
-                Debug.Assert(didAlign);
-
-                using var items = new PooledList<Var>();
-
-                while (reader.Position < end)
-                {
-                    items.Add(new Var(reader));
-
-                    if (reader.Position < end)
-                    {
-                        //On the basis that each String must be 32-bit aligned, I'm going to assume that each Var must be 32-bit aligned too
-                        Align32(reader, out didAlign, end);
-                    }
-                }
-
-                Debug.Assert(reader.Position == end);
-
-                Children = items.ToArray();
-            }
-#endif
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {

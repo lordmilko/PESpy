@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -13,14 +10,14 @@ namespace PESpy.View
     {
         public string Name { get; }
 
-        public RawOffset Offset { get; }
+        public int Offset { get; }
         public int Size { get; }
         public ViewKind Kind => ViewKind.Section;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public SectionView(RawOffset offset, string name, IView[] children, int size)
+        public SectionView(int offset, string name, IView[] children, int size)
         {
             Offset = offset;
             Name = name;

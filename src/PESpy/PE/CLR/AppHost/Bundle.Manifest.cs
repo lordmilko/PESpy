@@ -10,7 +10,6 @@
 
             public FileEntry[] Files { get; }
 
-#if PEFAST
             private readonly MemoryChunk chunk;
 
             internal Manifest(in MemoryChunk chunk)
@@ -45,26 +44,6 @@
 
                 Files = files;
             }
-#else
-            internal Manifest(IFileReader reader)
-            {
-                Header = new HeaderFixed(reader);
-                BundleID = new BundleEncodedString(reader);
-
-                if (Header.MajorVersion >= 2)
-                {
-                    AdditionalContext = new HeaderFixedV2(reader);
-                }
-
-                //Immediately following the headers are file_entry_t records
-                var files = new FileEntry[Header.NumEmbeddedFiles];
-
-                for (var i = 0; i < files.Length; i++)
-                    files[i] = new FileEntry(reader, Header.MajorVersion);
-
-                Files = files;
-            }
-#endif
         }
     }    
 }

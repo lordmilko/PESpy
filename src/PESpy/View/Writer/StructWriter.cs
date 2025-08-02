@@ -6,9 +6,6 @@ using ClrDebug.PDB;
 using PESpy.PDB;
 using Enum = System.Enum;
 using SN = PESpy.PDB.SN;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -18,8 +15,8 @@ namespace PESpy.View
         {
             private string structName;
             private ViewKind kind;
-            private RawOffset startOffset;
-            private RawOffset currentOffset;
+            private int startOffset;
+            private int currentOffset;
             private ViewWriter viewWriter;
             private List<IView> fields;
             private bool shouldAdd;

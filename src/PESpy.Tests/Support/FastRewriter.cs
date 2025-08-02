@@ -115,11 +115,7 @@ namespace PESpy.Tests
                 if (property.Identifier.Text == "Offset")
                 {
                     var newProp = ParseMemberDeclaration(@"
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 ");
 
                     newProp = newProp.WithTrailingTrivia(newProp.GetTrailingTrivia().Add(Trivia(EndIfDirectiveTrivia(false))).Add(EndOfLine(Environment.NewLine)));

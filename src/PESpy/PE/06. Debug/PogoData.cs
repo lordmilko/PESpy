@@ -1,8 +1,5 @@
 ﻿using System.Collections.Generic;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -23,13 +20,8 @@ namespace PESpy
     /// </summary>
     public struct PogoData : IValue, IViewable
     {
-#if PEFAST
         public PogoSignatureKind Signature => (PogoSignatureKind) chunk.PeekUInt32(0);
-#else
-        public PogoSignatureKind Signature { get; }
-#endif
 
-#if PEFAST
         private PogoItem[]? entries;
 
         public PogoItem[] Entries
@@ -62,17 +54,8 @@ namespace PESpy
             }
         }
 
-#else
-        public PogoItem[] Entries { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
-
-#if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int sizeOfData;
 
@@ -82,23 +65,6 @@ namespace PESpy
             this.sizeOfData = sizeOfData;
             entries = default;
         }
-#else
-        internal PogoData(IFileReader reader, PogoSignatureKind signature, int sizeOfData)
-        {
-            //Signature has already been read
-            Offset = (RawOffset) reader.Position - 4;
-            Signature = signature;
-
-            var end = (int) Offset + sizeOfData;
-
-            using var entries = new PooledList<PogoItem>();
-
-            while (reader.Position < end)
-                entries.Add(new PogoItem(reader));
-
-            Entries = entries.ToArray();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

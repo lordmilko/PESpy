@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -12,7 +9,7 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.Header(this),nq}")]
     public class HeaderView : IContainerView
     {
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         public int Size { get; }
 

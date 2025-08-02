@@ -11,49 +11,28 @@ namespace PESpy
         /// <summary>
         /// RVA of original function
         /// </summary>
-#if PEFAST
         public int OriginalRva => chunk.PeekInt32(0);
-#else
-        public int OriginalRva { get; }
-#endif
 
         /// <summary>
         /// Offset into the BDD region
         /// </summary>
-#if PEFAST
         public int BDDOffset => chunk.PeekInt32(4);
-#else
-        public int BDDOffset { get; }
-#endif
 
         /// <summary>
         /// Size in bytes taken by RVAs. Must be multiple of sizeof(int).
         /// </summary>
-#if PEFAST
         public int RvaSize => chunk.PeekInt32(8);
-#else
-        public int RvaSize { get; }
-#endif
 
         /// <summary>
         /// Size in bytes taken by BaseRelocs
         /// </summary>
-#if PEFAST
         public int BaseRelocSize => chunk.PeekInt32(12);
-#else
-        public int BaseRelocSize { get; }
-#endif
 
         /// <summary>
         /// Array containing overriding func RVAs.
         /// </summary>
-#if PEFAST
         public NativeSpan<int> RVAs => chunk.PeekNativeSpan<int>(16, RvaSize / sizeof(int));
-#else
-        public int[] RVAs { get; }
-#endif
 
-#if PEFAST
         private ImageBaseRelocation[]? baseRelocs;
 
         public ImageBaseRelocation[] BaseRelocs
@@ -88,19 +67,10 @@ namespace PESpy
                 return baseRelocs;
             }
         }
-#else
-        public ImageBaseRelocation[] BaseRelocs { get; }
-#endif
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
         internal int StructSize => 16 + RvaSize + BaseRelocSize;
 
-
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageFunctionOverrideDynamicRelocation(in MemoryChunk chunk)
@@ -108,44 +78,6 @@ namespace PESpy
             this.chunk = chunk;
             baseRelocs = null;
         }
-#else
-        internal ImageFunctionOverrideDynamicRelocation(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            OriginalRva = reader.ReadInt32();
-            BDDOffset = reader.ReadInt32();
-            RvaSize = reader.ReadInt32();
-            BaseRelocSize = reader.ReadInt32();
-
-            var rvas = new int[RvaSize / sizeof(int)];
-
-            for (var i = 0; i < rvas.Length; i++)
-                rvas[i] = reader.ReadInt32();
-
-            RVAs = rvas;
-
-            var end = reader.Position + BaseRelocSize;
-
-            using var baseRelocs = new PooledList<ImageBaseRelocation>();
-
-            // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY]; // Base relocations (RVA + Size + TO)
-            // Padded with extra TOs for 4B alignment
-            // BaseRelocSize size in bytes
-            while (reader.Position < end)
-            {
-                baseRelocs.Add(new ImageBaseRelocation(reader));
-
-                //Must be 32-bit aligned
-                var alignedPosition = (reader.Position + 3) & ~3;
-
-                while (reader.Position < alignedPosition)
-                    reader.ReadByte();
-            }
-
-            BaseRelocs = baseRelocs.ToArray();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

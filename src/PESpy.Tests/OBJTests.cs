@@ -1,4 +1,3 @@
-﻿#if PEFAST
 using System;
 using System.Linq;
 using ClrDebug;
@@ -668,4 +667,3 @@ int main(int a)
         }
     }
 }
-#endif

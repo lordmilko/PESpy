@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.PDB;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -14,15 +11,15 @@ namespace PESpy.View
         {
             private string regionName;
             private ViewKind regionKind;
-            private RawOffset startOffset;
-            private RawOffset currentOffset;
+            private int startOffset;
+            private int currentOffset;
             private ViewWriter viewWriter;
             private List<IView> views;
             private bool global;
             private ViewKind scope;
             private bool shouldAdd;
 
-            internal RegionWriter(RawOffset offset, string name, ViewKind kind, ViewWriter viewWriter, bool global, ViewKind scope, bool shouldAdd)
+            internal RegionWriter(int offset, string name, ViewKind kind, ViewWriter viewWriter, bool global, ViewKind scope, bool shouldAdd)
             {
                 regionName = name;
                 regionKind = kind;
@@ -41,7 +38,7 @@ namespace PESpy.View
             public void WriteValue(uint value) =>
                 WriteValueInternal(value, sizeof(int));
 
-            public void WriteValue(RawOffset offset, Guid value, ViewKind kind = ViewKind.Value)
+            public void WriteValue(int offset, Guid value, ViewKind kind = ViewKind.Value)
             {
                 Debug.Assert(currentOffset == offset);
 
@@ -88,7 +85,6 @@ namespace PESpy.View
                     viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
             }
 
-#if PEFAST
             public void WriteAnsiNullTerminatedValue(RVA<AnsiString> value)
             {
                 WriteValueInternal((int) value.ListedOffset, sizeof(int));
@@ -101,16 +97,15 @@ namespace PESpy.View
             {
                 WriteValueInternal(value.Value, value.Offset);
             }
-#endif
 
-            public void WriteUTF8NullTerminatedValue(RawOffset offset, string value, ViewKind kind)
+            public void WriteUTF8NullTerminatedValue(int offset, string value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 
                 WriteValueInternal(value, value.Length + 1, kind);
             }
 
-            public void WriteUTF8NullTerminatedValue(RawOffset offset, Utf8String value, ViewKind kind)
+            public void WriteUTF8NullTerminatedValue(int offset, Utf8String value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 

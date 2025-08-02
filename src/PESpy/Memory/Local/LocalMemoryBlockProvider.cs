@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using System.IO;
 
 namespace PESpy
@@ -57,4 +56,3 @@ namespace PESpy
         }
     }
 }
-#endif

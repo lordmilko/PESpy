@@ -23,7 +23,6 @@ namespace PESpy
 
         public short MaxStack { get; }
 
-#if PEFAST
         public NativeSpan<byte> ILBytes
         {
             get
@@ -44,21 +43,13 @@ namespace PESpy
                 }
             }
         }
-#else
-        public byte[]? ILBytes { get; }
-#endif
 
         public mdSignature LocalVarSigTok { get; }
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         public ImageCorILMethodSectEH[] EHSections { get; }
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         //It's a bit of a complicated structure due to the fact we're trying to represent a unioned type, so we eagerly read everything
@@ -125,75 +116,7 @@ namespace PESpy
                     break;
             }
         }
-#else
-        internal ImageCorILMethod(IFileReader reader, out bool isValid)
-        {
-            Offset = (int) reader.Position;
 
-            //Is it an IMAGE_COR_ILMETHOD_FAT or an IMAGE_COR_ILMETHOD_TINY?
-            //Read the kind part of IMAGE_COR_ILMETHOD_FAT.FlagsAndSize or IMAGE_COR_ILMETHOD_TINY.Flags_CodeSize
-            var byte1 = reader.ReadByte();
-
-            var kind = (CorILMethodFlags) (byte1 & Extensions.CorILMethod_FormatMask);
-
-            EHSections = Array.Empty<ImageCorILMethodSectEH>();
-
-            //In tiny format, 2 will always be set (TinyFormat), and if 4 is set that means its odd (TinyFormat1)
-            switch (kind)
-            {
-                case CorILMethodFlags.TinyFormat:
-                case CorILMethodFlags.TinyFormat1:
-                    Flags = (CorILMethodFlags) byte1;
-                    CodeSize = (byte) (byte1 >> (Extensions.CorILMethod_FormatShift - 1));
-                    Size = 1;
-                    MaxStack = 8;
-                    ILBytes = reader.ReadBytes(CodeSize);
-
-                    LocalVarSigTok = default;
-                    isValid = true;
-
-                    //Note that you can potentially have a byte like 0x1e which would indicate that there are MoreSects and InitLocals, however
-                    //in the case of TinyFormat, these bits should be ignored (this is also how dnlib handles things)
-
-                    break;
-
-                case CorILMethodFlags.FatFormat:
-                    var byte2 = reader.ReadByte();
-                    Flags = (CorILMethodFlags) (((byte2 & 0x0F) << 8) | (byte1)); //Flags: 12 bits
-                    Size = (byte) (byte2 >> 4);
-                    MaxStack = reader.ReadInt16();
-                    CodeSize = reader.ReadInt32();
-                    LocalVarSigTok = reader.ReadInt32();
-                    ILBytes = reader.ReadBytes(CodeSize);
-                    isValid = true;
-
-                    if ((Flags & CorILMethodFlags.MoreSects) != 0)
-                    {
-                        var alignedPosition = (reader.Position + 3) & ~3;
-
-                        while (reader.Position < alignedPosition)
-                            reader.ReadByte();
-
-                        EHSections = ReadExtraSections(reader);
-                    }
-
-                    break;
-
-                default:
-                    //You can have PInvokes that say they have RVAs but these don't point to valid data
-                    Flags = default;
-                    CodeSize = default;
-                    Size = default;
-                    MaxStack = default;
-                    ILBytes = default;
-                    LocalVarSigTok = default;
-                    isValid = false;
-                    break;
-            }
-        }
-#endif
-
-#if PEFAST
         private static ImageCorILMethodSectEH[] ReadExtraSections(in MemoryChunk chunk)
         {
             using var sections = new PooledList<ImageCorILMethodSectEH>();
@@ -221,35 +144,6 @@ namespace PESpy
 
             return sections.ToArray();
         }
-#else
-        private static ImageCorILMethodSectEH[] ReadExtraSections(IFileReader reader)
-        {
-            using var sections = new PooledList<ImageCorILMethodSectEH>();
-
-            var sectFlags = (CorILMethodSect) reader.ReadByte();
-
-            var kind = sectFlags & CorILMethodSect.KindMask;
-
-            switch (kind)
-            {
-                case CorILMethodSect.EHTable:
-                    sections.Add(new ImageCorILMethodSectEH(kind, reader));
-                    break;
-
-                case CorILMethodSect.OptILTable:
-                case CorILMethodSect.Reserved:
-                    break;
-
-                default:
-                    throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
-            }
-
-            if ((sectFlags & CorILMethodSect.MoreSects) != 0)
-                throw new NotImplementedException("Don't know how to handle having more sections. Do we need to align first? And then jump back to the start (after initializing our list)?");
-
-            return sections.ToArray();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

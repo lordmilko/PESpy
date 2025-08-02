@@ -4,9 +4,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using PESpy.PDB;
 using PESpy.View.Builder;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -45,12 +42,8 @@ namespace PESpy.View
         internal ViewTag CurrentTag => currentTag;
 
         internal unsafe ViewWriter(
-#if PEFAST
             byte* mmf,
             int length,
-#else
-            IFileReader reader,
-#endif
             IViewDisassembler? viewDisassembler,
             ViewMode mode,
             TryGetOffsetDelegate tryGetViewOffset,
@@ -59,11 +52,7 @@ namespace PESpy.View
             this.mode = mode;
             this.tryGetViewOffset = tryGetViewOffset;
             this.getRealOffset = getRealOffset;
-#if PEFAST
             extension = new Extension(mmf, length, viewDisassembler);
-#else
-            extension = new Extension(reader, viewDisassembler);
-#endif
             globalList = new List<IView>();
             listPool = new Stack<List<IView>>();
         }

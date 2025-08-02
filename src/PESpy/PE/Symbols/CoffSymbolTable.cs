@@ -98,25 +98,13 @@ namespace PESpy
             //The string table begins with the StringTableSize. So an offset of 4 targets the first string after the offset
             return chunk.PeekAnsiNullTerminatedString((numberOfSymbols * ImageSymbol.StructSize) + offset);
         }
-#else
-        public int StringTableSize { get; }
 
-        public ImageSymbol[] Symbols { get; }
-
-        public RawValue<string>[] Strings { get; }
-#endif
-
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
 
         internal int StructSize =>
             numberOfSymbols * ImageSymbol.StructSize + //Will include regular and aux symbols
             StringTableSize; //StringTableSize includes its own length (4) in its total size
 
-#if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int numberOfSymbols;
 
@@ -130,46 +118,6 @@ namespace PESpy
             _ = Strings;
 #endif
         }
-#else
-        internal CoffSymbolTable(IFileReader reader, int numberOfSymbols)
-        {
-            Offset = (int) reader.Position;
-
-            //Can't find any info on when IMAGE_SYMBOL_EX should be used instead of IMAGE_SYMBOL   
-
-            using var symbols = new PooledList<ImageSymbol>();
-
-            //There may be aux symbols (which are also 18 bytes large)
-
-            var end = reader.Position + (ImageSymbol.StructSize * numberOfSymbols);
-
-            while (reader.Position < end)
-                symbols.Add(new ImageSymbol(reader));
-
-            Symbols = symbols.ToArray();
-
-            //Next comes the string table
-
-            var start = reader.Position;
-
-            StringTableSize = reader.ReadInt32();
-
-            end = start + StringTableSize;
-
-            using var strings = new PooledList<RawValue<string>>();
-
-            while (reader.Position < end)
-            {
-                var offset = (int) reader.Position;
-                var str = reader.ReadAnsiNullTerminatedString();
-                strings.Add(new RawValue<string>(offset, str));
-            }
-
-            Strings = strings.ToArray();
-
-            Debug.Assert(reader.Position == end);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

@@ -1,19 +1,11 @@
-﻿using System;
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Security.Cryptography.X509Certificates;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
     public class SignedData : IValue, IViewable
     {
-#if PEFAST
         public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
-#else
-        public byte[] Bytes { get; }
-#endif
 
         private X509Certificate2? certificate;
 
@@ -30,25 +22,21 @@ namespace PESpy
 
                 //While the authenticode spec apparently has some "non-standard" things compared to the normal SignedData definition, it seems to me like there's either different identifiers in places, or ASN.1 parsers automatically know how to parse things, whatever the shape
 
-#if PEFAST
                 if (certificate == null)
-                    certificate = new X509Certificate2(Bytes.ToArray()); //There is a ctor that takes a span but it's only available in .NET 5+
+                {
+#if NET
+                    certificate = new X509Certificate2((Span<byte>) Bytes);
 #else
-                if (certificate == null)
-                    certificate = new X509Certificate2(Bytes);
+                    certificate = new X509Certificate2(Bytes.ToArray()); //There is a ctor that takes a span but it's only available in .NET 5+
 #endif
+                }
 
                 return certificate;
             }
         }
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int length;
 
@@ -57,14 +45,6 @@ namespace PESpy
             this.chunk = chunk;
             this.length = length;
         }
-#else
-        internal SignedData(IFileReader reader, int length)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            Bytes = reader.ReadBytes(length);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

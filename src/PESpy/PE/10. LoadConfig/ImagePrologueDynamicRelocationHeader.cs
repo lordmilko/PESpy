@@ -6,43 +6,21 @@ namespace PESpy
 {
     public readonly struct ImagePrologueDynamicRelocationHeader : IValue, IViewable
     {
-#if PEFAST
         public byte PrologueByteCount => chunk.PeekByte(0);
-#else
-        public int PrologueByteCount { get; }
-#endif
 
-#if PEFAST
         public NativeSpan<byte> PrologueBytes => chunk.PeekNativeSpan<byte>(1, PrologueByteCount);
-#else
-        public byte[] PrologueBytes { get; }
-#endif
 
-#if PEFAST
         public int Offset => chunk.AbsoluteOffset;
-#else
-        public int Offset { get; }
-#endif
         internal int StructSize =>
             sizeof(byte) + //PrologueByteCount
             PrologueByteCount; //PrologueBytes
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImagePrologueDynamicRelocationHeader(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImagePrologueDynamicRelocationHeader(IFileReader reader)
-        {
-            Offset = (int) reader.Position;
-
-            PrologueByteCount = reader.ReadByte();
-            PrologueBytes = reader.ReadBytes(PrologueByteCount);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

@@ -2,9 +2,6 @@
 using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.Ecma335
 {

@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using PESpy.View.Builder;
 
 namespace PESpy.View
@@ -7,6 +6,10 @@ namespace PESpy.View
     public class LEViewWriter : ViewWriter
     {
         private readonly LEFile leFile;
+
+        protected unsafe LEViewWriter(LEFile leFile) : this(leFile, (byte*) 1, 1, null)
+        {
+        }
 
         internal unsafe LEViewWriter(
             LEFile leFile,
@@ -39,4 +42,3 @@ namespace PESpy.View
         }
     }
 }
-#endif

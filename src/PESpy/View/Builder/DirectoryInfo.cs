@@ -1,7 +1,4 @@
 ﻿using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View.Builder
 {
@@ -9,10 +6,10 @@ namespace PESpy.View.Builder
     struct DirectoryInfo
     {
         public string Name { get; }
-        public RawOffset Start { get; }
-        public RawOffset End { get; }
+        public int Start { get; }
+        public int End { get; }
 
-        public DirectoryInfo(string name, RawOffset start, int size)
+        public DirectoryInfo(string name, int start, int size)
         {
             Name = name;
             Start = start;

@@ -1,9 +1,6 @@
 ﻿using System;
 using PESpy.Native;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -12,37 +9,17 @@ namespace PESpy
     /// </summary>
     public class ImageDebugMisc : IValue, IViewable //It will always be boxed
     {
-#if PEFAST
         public ImageDebugMiscType DataType => (ImageDebugMiscType) chunk.PeekUInt32(0);
-#else
-        public ImageDebugMiscType DataType { get; }
-#endif
 
-#if PEFAST
         public int Length => chunk.PeekInt32(4);
-#else
-        public int Length { get; }
-#endif
 
-#if PEFAST
         public bool Unicode => chunk.PeekByte(8) != 0;
-#else
-        public bool Unicode { get; }
-#endif
 
-#if PEFAST
         public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(9, 3);
-#else
-        public byte[] Reserved { get; }
-#endif
 
         public NullTerminatedString Data => chunk.PeekNullTerminatedString(12, Unicode ? StringKind.UTF16 : StringKind.ANSI);
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) +  //DataType
@@ -56,31 +33,12 @@ namespace PESpy
                 ? (Data.Length + 1) * 2
                 : (Data.Length + 1));
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal ImageDebugMisc(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
-#else
-        internal ImageDebugMisc(IFileReader reader)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            reader.FillBuffer(FixedStructSize);
-
-            DataType = (ImageDebugMiscType) reader.ReadInt32();
-            Length = reader.ReadInt32();
-            Unicode = reader.ReadByte() != 0;
-            Reserved = reader.ReadArray<byte>(3);
-
-            if (Unicode)
-                Data = reader.ReadUTF16NullTerminatedString();
-            else
-                Data = reader.ReadAnsiNullTerminatedString();
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

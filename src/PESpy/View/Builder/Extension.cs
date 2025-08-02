@@ -1,25 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View.Builder
 {
     unsafe class Extension
     {
-#if PEFAST
         private byte* mmf;
         private int length;
-#else
-        private IFileReader reader;
-#endif
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
 
-#if PEFAST
         internal Extension(byte* mmf, int length, IViewDisassembler? viewDisassembler)
         {
             if (mmf == default || length == 0)
@@ -31,17 +22,8 @@ namespace PESpy.View.Builder
         }
 
         internal long GetInputLength() => length;
-#else
-        internal Extension(IFileReader reader, IViewDisassembler? viewDisassembler)
-        {
-            this.reader = reader;
-            this.viewDisassembler = viewDisassembler;
-        }
 
-        internal long GetInputLength() => ((StreamFileReader) reader).GetStreamUnsafe().Length;
-#endif
-
-        internal IView[]? ReadBytes(ref RawOffset currentRVA, RawOffset endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        internal IView[]? ReadBytes(ref int currentRVA, int endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var offset = currentRVA;
 
@@ -49,11 +31,7 @@ namespace PESpy.View.Builder
             if (getRealOffset != null)
                 offset = getRealOffset(offset);
 
-#if PEFAST
             var span = new NativeSpan<byte>(mmf, length);
-#else
-            reader.Seek(offset);
-#endif
 
             Debug.Assert(endRVA > currentRVA);
 
@@ -69,25 +47,16 @@ namespace PESpy.View.Builder
                 //When reading the overlay from disk, nothing is certain. We can have some level of confidence about the security section,
                 //but there could even be data listed after that as well
 
-#if PEFAST
                 if (offset >= length)
                     return null;
 
                 bytesToRead = Math.Min(bytesToRead, length - offset);
 
                 bytes = span.Slice(offset, bytesToRead);
-#else
-                if (!reader.TryReadBytes((int) bytesToRead, out bytes!))
-                    return null;
-#endif
             }
             else
             {
-#if PEFAST
                 bytes = span.Slice(offset, bytesToRead);
-#else
-                bytes = reader.ReadBytes((int)bytesToRead);
-#endif
             }
 
             IView[]? views;
@@ -103,7 +72,7 @@ namespace PESpy.View.Builder
             return views;
         }
 
-        internal bool TryParseRawBytes(RawOffset offset, ViewKind? kind, NativeSpan<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
+        internal bool TryParseRawBytes(int offset, ViewKind? kind, NativeSpan<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
         {
             //Try get code first, then strings
 
@@ -143,7 +112,7 @@ namespace PESpy.View.Builder
 
             if (bytes.Length >= StringParser.MinimumStringLength || rawBytesResults.Count > 0) //If we've already read some assembly code, force processing
             {
-                var strs = StringParser.GetStrings(bytes);
+                var strs = StringParser.GetStrings((byte*) bytes, bytes.Length);
 
                 if (strs.Length > 0 || rawBytesResults.Count > 0)
                 {
@@ -161,7 +130,7 @@ namespace PESpy.View.Builder
             return false;
         }
 
-        private void SplitBytes(RawOffset offset, NativeSpan<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
+        private void SplitBytes(int offset, NativeSpan<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
         {
             var strIndex = 0;
 
@@ -195,7 +164,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        ByteBlobView CreateByteBlob(RawOffset offset, ref int i, ViewKind? localKind, int end, NativeSpan<byte> bytes)
+        ByteBlobView CreateByteBlob(int offset, ref int i, ViewKind? localKind, int end, NativeSpan<byte> bytes)
         {
             var arr = bytes.Slice(i, end - i);
 

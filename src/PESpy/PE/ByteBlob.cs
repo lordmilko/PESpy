@@ -1,8 +1,5 @@
 ﻿using System;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -11,19 +8,10 @@ namespace PESpy
     /// </summary>
     public readonly struct ByteBlob : IValue, IViewable  //Small enough that returning a copy from properties is OK
     {
-#if PEFAST
         public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
-#else
-        public byte[] Bytes { get; }
-#endif
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
-#if PEFAST
         private readonly MemoryChunk chunk;
         private readonly int length;
 
@@ -32,22 +20,6 @@ namespace PESpy
             this.chunk = chunk;
             this.length = length;
         }
-#else
-        internal ByteBlob(IFileReader reader, int length)
-        {
-            if (length == 0)
-                throw new ArgumentException("Length should not be 0", nameof(length));
-
-            Offset = (RawOffset) reader.Position;
-            Bytes = reader.ReadBytes(length);
-        }
-
-        public ByteBlob(RawOffset fileOffset, byte[] bytes)
-        {
-            Offset = fileOffset;
-            Bytes = bytes;
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

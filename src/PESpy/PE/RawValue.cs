@@ -1,7 +1,4 @@
-﻿#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
-
+﻿
 namespace PESpy
 {
     /// <summary>
@@ -11,9 +8,9 @@ namespace PESpy
     {
         public T Value { get; }
 
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
-        public RawValue(RawOffset offset, T value)
+        public RawValue(int offset, T value)
         {
             Offset = offset;
             Value = value;

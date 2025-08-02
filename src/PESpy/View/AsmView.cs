@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
@@ -18,7 +15,7 @@ namespace PESpy.View
     [DebuggerDisplay("{ViewDebuggerDisplay.Asm(this),nq}")]
     public class AsmView<T> : IAsmView
     {
-        public RawOffset Offset { get; }
+        public int Offset { get; }
 
         private string? name;
 
@@ -55,6 +52,7 @@ namespace PESpy.View
         public T[] Instructions => range.Instructions;
 
         public AsmView(RawOffset offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
+        public AsmView(int offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;
             Kind = kind;

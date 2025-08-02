@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using PESpy.PDB;
 using PESpy.View.Builder;
@@ -12,22 +11,11 @@ namespace PESpy.View
     {
         internal PDBFile pdbFile;
 
-        internal unsafe PDBViewWriter(
-            PDBFile pdbFile,
-#if PEFAST
-            byte* mmf,
-            int length
-#else
-            IFileReader reader
-#endif
-            ) : base(
-#if PEFAST
-            mmf,
-            length,
-#else
-            reader,
-#endif
-            null, ViewMode.Default, TryGetViewOffset, null)
+        protected unsafe PDBViewWriter(PDBFile pdbFile) : this(pdbFile, (byte*) 1, 1)
+        {
+        }
+
+        internal unsafe PDBViewWriter(PDBFile pdbFile, byte* mmf, int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
         {
             this.pdbFile = pdbFile;
         }

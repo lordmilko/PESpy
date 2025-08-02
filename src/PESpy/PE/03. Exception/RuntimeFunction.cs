@@ -1,9 +1,5 @@
 ﻿using System.Diagnostics;
 using PESpy.View;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-using RVA = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -15,19 +11,10 @@ namespace PESpy
     {
         private const int UnwindDataOffset = 8;
 
-#if PEFAST
         public int BeginAddress => chunk.PeekInt32(0);
-#else
-        public int BeginAddress { get; }
-#endif
 
-#if PEFAST
         public int EndAddress => chunk.PeekInt32(4);
-#else
-        public int EndAddress { get; }
-#endif
 
-#if PEFAST
         private RVA<UnwindInfo> unwindData;
 
         public RVA<UnwindInfo> UnwindData
@@ -62,22 +49,14 @@ namespace PESpy
                 return unwindData;
             }
         }
-#else
-        public RVA<UnwindInfo> UnwindData { get; }
-#endif
 
-#if PEFAST
-        public RawOffset Offset => chunk.AbsoluteOffset;
-#else
-        public RawOffset Offset { get; }
-#endif
+        public int Offset => chunk.AbsoluteOffset;
 
         public const int StructSize =
             sizeof(int) + //BeginAddress
             sizeof(int) + //EndAddress
             sizeof(int);  //UnwindData
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal RuntimeFunction(in MemoryChunk chunk)
@@ -89,33 +68,6 @@ namespace PESpy
             _ = UnwindData;
 #endif
         }
-#else
-        internal RuntimeFunction(IFileReader reader, PEFile peFile, in ImageDataDirectory exceptionDirectory, ExceptionHandlerContext context)
-        {
-            Offset = (RawOffset) reader.Position;
-
-            BeginAddress = reader.ReadInt32();
-            EndAddress = reader.ReadInt32();
-
-            var unwindData = (RVA) reader.ReadInt32();
-
-            //Some modules, such as sqlncli11 and mscorlib.ni have bizarre values in their RUNTIME_FUNCTION.UnwindData that point exactly 1 byte
-            //into another RUNTIME_FUNCTION entry. I don't understand what causes this. It's clearly not a one-off, because mscorlib.ni has a whole
-            //stream of them one after the other. Given that the exception directory is supposed to purely be comprised of RUNTIME_FUNCTION entries,
-            //if we see an UnwindData that lies within the bounds of the exception directory, we'll assume it's one of these anomalous entries, and
-            //mark it as bad (since it's clearly not pointing to an UnwindInfo)
-            if (!(unwindData >= exceptionDirectory.VirtualAddress && unwindData <= (exceptionDirectory.VirtualAddress + exceptionDirectory.Size)) && peFile.TryGetOffset(unwindData, out var offset))
-            {
-                reader.Seek(offset);
-
-                var data = new UnwindInfo(reader, peFile, exceptionDirectory, context);
-
-                UnwindData = new RVA<UnwindInfo>(unwindData, offset, data);
-            }
-            else
-                UnwindData = new RVA<UnwindInfo>(unwindData);
-        }
-#endif
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

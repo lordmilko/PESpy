@@ -1,7 +1,6 @@
 ﻿#if PEFAST
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PESpy.OBJ;
 using PESpy.PDB;
 
 namespace PESpy.Tests

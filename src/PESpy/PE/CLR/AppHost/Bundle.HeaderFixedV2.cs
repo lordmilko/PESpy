@@ -7,7 +7,6 @@ namespace PESpy
         //header_fixed_v2_t
         public class HeaderFixedV2 //May not be present
         {
-#if PEFAST
             public Location DepsJsonLocation => new Location(chunk);
 
             public Location RuntimeConfigJsonLocation => new Location(chunk.Slice(Location.StructSize));
@@ -53,19 +52,12 @@ namespace PESpy
                     return runtimeConfigJson;
                 }
             }
-#else
-            public Location DepsJsonLocation { get; }
 
-            public Location RuntimeConfigJsonLocation { get; }
-
-            public header_flags_t Flags { get; }
-#endif
             internal const int StructSize =
                 16 + //DepsJsonLocation
                 16 + //RuntimeConfigJsonLocation
                 sizeof(long); //Flags
 
-#if PEFAST
             private readonly MemoryChunk chunk;
 
             internal HeaderFixedV2(in MemoryChunk chunk)
@@ -74,24 +66,6 @@ namespace PESpy
                 depsJson = default;
                 runtimeConfigJson = default;
             }
-#else
-            internal HeaderFixedV2(IFileReader reader)
-            {
-                DepsJsonLocation = new Location(reader);
-                RuntimeConfigJsonLocation = new Location(reader);
-                Flags = (header_flags_t) reader.ReadInt64();
-
-                var oldPosition = reader.Position;
-
-                reader.Seek(DepsJsonLocation.Offset);
-                var depsJson = reader.ReadUTF8String((int) DepsJsonLocation.Size);
-
-                reader.Seek(RuntimeConfigJsonLocation.Offset);
-                var runtimeConfigJson = reader.ReadUTF8String((int) RuntimeConfigJsonLocation.Size);
-
-                reader.Seek(oldPosition);
-            }
-#endif
         }
     }
 }
