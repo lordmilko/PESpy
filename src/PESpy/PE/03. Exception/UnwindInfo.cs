@@ -1,15 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
 {
+    //Required because we want RuntimeFunction and UnwindInfo to both be value types, which will cause an issue because without this type
+    //there would be a recursive link between them
+    [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
+    public class ChainedRuntimeFunction
+    {
+        private readonly RuntimeFunction runtimeFunction;
+
+        public int BeginAddress => runtimeFunction.BeginAddress;
+
+        public int EndAddress => runtimeFunction.EndAddress;
+
+        public RVA<UnwindInfo> UnwindData => runtimeFunction.UnwindData;
+
+        internal ChainedRuntimeFunction(in MemoryChunk chunk)
+        {
+            this.runtimeFunction = new RuntimeFunction(chunk);
+        }
+
+        public static implicit operator RuntimeFunction(ChainedRuntimeFunction value) => value.runtimeFunction;
+    }
+
     /// <summary>
     /// Represents the <see cref="UNWIND_INFO"/> structure.
     /// </summary>
-    public class UnwindInfo : IValue, IViewable //We can't make this a struct, as there'll be a recursive link between RuntimeFunction and UnwindInfo
+    public struct UnwindInfo : IValue, IViewable
     {
         public byte Version => (byte) (versionAndFlags & 0x7); //bottom 3 bits
 
@@ -81,8 +101,8 @@ namespace PESpy
 
         public int ExceptionHandler { get; }
 
-        //Needs to be nullable, because the properties in a RuntimeFunction call into MemoryChunk
-        public RuntimeFunction? FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
+        //Needs to be indirected via a reference type, because we can't have UnwindInfo and RuntimeFunction both be reference types
+        public ChainedRuntimeFunction? FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
         public IValue? ExceptionData { get; }
 
         public int Offset => chunk.AbsoluteOffset;
@@ -120,7 +140,6 @@ namespace PESpy
             }
         }
 
-#if PEFAST
         private readonly MemoryChunk chunk;
 
         internal UnwindInfo(in MemoryChunk chunk)
@@ -163,10 +182,16 @@ namespace PESpy
                 {
                     var dataChunk = chunk.Slice(extraDataStart + 4);
 
+                    //I think PEAnatomist determines the function type by looking at how much data is remaining.
+                    //It then tries all possible heuristics on each piece of data
+
                     switch (kind)
                     {
                         case ByteMatchKind.__GSHandlerCheck:
                             //Data is an Int32, whose meaning is unknown. Possibly _GS_HANDLER_DATA, but GS_HANDLER_DATA seems to be at least two bytes (alignment is optional). AlignedBaseOffset would also need to be optional for that to work
+                            //Maybe the data is the security cookie, or the offset to the cookie?
+                            //PEAnatomist considers there to be a __GSHandlerCheck if the last 3 bits of the data value are not set
+                            //and there's at least 4 bytes of data between this value and the value after it
 
                             ExceptionData = new RawValue<int>(dataChunk.AbsoluteOffset, dataChunk.PeekInt32(0));
                             break;
@@ -334,7 +359,6 @@ namespace PESpy
                     throw new NotImplementedException($"Don't know how to handle {nameof(UWOP)} '{unwindOp}'.");
             }
         }
-#endif
 
         public enum X64Register : byte
         {
@@ -398,7 +422,7 @@ namespace PESpy
             }
             else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
             {
-                s.WriteInline(FunctionEntry.Value);
+                s.WriteInline((RuntimeFunction) FunctionEntry!);
             }
 
             return s.ToArray();

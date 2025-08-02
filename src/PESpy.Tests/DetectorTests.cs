@@ -1,5 +1,4 @@
-﻿#if PEFAST
-using System;
+﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.PDB;
 
@@ -70,4 +69,3 @@ namespace PESpy.Tests
         }
     }
 }
-#endif

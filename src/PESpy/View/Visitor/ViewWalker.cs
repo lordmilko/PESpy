@@ -24,7 +24,7 @@
 
         protected internal override void VisitHeader(HeaderView view) => VisitChildren(view);
 
-        protected internal override void VisitLogicalReview(LogicalRegionView view) => VisitChildren(view);
+        protected internal override void VisitLogicalRegion(LogicalRegionView view) => VisitChildren(view);
 
         protected internal override void VisitOverlay(OverlayView view) => VisitChildren(view);
         protected internal override void VisitFile(FileView view) => VisitChildren(view);

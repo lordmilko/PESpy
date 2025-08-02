@@ -12,7 +12,7 @@ namespace PESpy
     /// <summary>
     /// Represents a CodeView Program Database (PDB) file.
     /// </summary>
-    public abstract unsafe class PDBFile : IFile, IViewable, IDisposable
+    public abstract unsafe class PDBFile : IFile, IViewable, ISymbolAccessor, IDisposable
     {
         public static PDBFile FromFile(string path, bool writable = false)
         {
@@ -40,6 +40,9 @@ namespace PESpy
                 if (magic == OHDR.OHdrMagic)
                     return new PDB1File(fs.Name, mmf);
 
+                if (*(uint*) mmf.Address == StorageSignature.STORAGE_MAGIC_SIG)
+                    throw new InvalidOperationException("Portable PDB files cannot be opened using this method. Use PortablePDB.FromFile() instead");
+
                 throw new BadImageFormatException("File did not contain a PDB magic signature");
             }
             catch
@@ -63,6 +66,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PDB;
 
+        public int Length => globalBlock.Length;
         #region MSF
 
         //Fields that are specific to MSF (PDB2/PDB7) files. PDB1 does not use MSF
@@ -362,7 +366,7 @@ namespace PESpy
                     if (dbi != null)
                     {
                         if (TryGetStreamChunk(dbi.DbiHdr.snGSSyms, out var chunk))
-                            gsi = new MsfStream.GSI(chunk);
+                            gsi = new MsfStream.GSI(chunk, chunk.Remaining);
                     }
                 }
 
@@ -431,6 +435,72 @@ namespace PESpy
         ~PDBFile()
         {
             Dispose(false);
+        }
+
+        //This does not perform a "Commit". We are just directly hacking the PDB
+        public unsafe void Save()
+        {
+            //File.OpenWrite opens the file with FileAccess.Write, but we need ReadWrite to memory map it
+            using var fs = File.Open(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+            //todo: how does microsoft-pdb go about zeroing stuff
+
+            var pageSize = PageSize;
+
+            fs.SetLength(NumPages * pageSize);
+
+            using var mmf = new MemoryMappedFileHolder(fs, MemoryMappedFileAccess.ReadWrite);
+
+            var dest = new Span<byte>(mmf.Address, (int) mmf.Length);
+
+            /* Now we need to copy a bunch of stuff:
+             * 1. The first 3 pages of the global block (which may contain more than 3 pages
+             *    if we consolidated everything into it for the purposes of showing a view
+             * 2. Every page of every block
+             */
+
+            //Copy the Master Index, FPM 0 and FPM 1
+            new Span<byte>(globalBlock.LocalPointer, globalBlock.Length).Slice(0, pageSize * 3).CopyTo(dest);
+
+            foreach (var kv in globalBlock.blockCache)
+            {
+                //Copy each (modified) page into its respective area of the MMF
+                if (kv.Value.hasChanges)
+                {
+                    for (var i = 0; i < kv.Key.Length; i++)
+                    {
+                        //In the source, the page start is relative to the location of that page within the block
+                        //In the dest, the page start is relative to the actual page within the entire file.
+                        var sourcePageStart = i * pageSize;
+                        var destPageStart = kv.Key[i] * pageSize;
+
+                        var length = pageSize;
+
+                        var previous = kv.Key[i];
+
+                        //Include adjacent pages in the batch
+                        for (var j = i + 1; j < kv.Key.Length; j++)
+                        {
+                            var current = kv.Key[j];
+
+                            if (current == previous + 1)
+                            {
+                                i++;
+                                previous = current;
+                                length += pageSize;
+                            }
+                            else
+                                break;
+                        }
+
+                        var source = new Span<byte>(kv.Value.LocalPointer + sourcePageStart, length);
+                        var destination = new Span<byte>(mmf.Address + destPageStart, length);
+                        source.CopyTo(destination);
+                    }
+
+                    kv.Value.hasChanges = false;
+                }
+            }
         }
 
         protected abstract void ReadHeaders();
@@ -503,28 +573,163 @@ namespace PESpy
 
                     if (moduleSymbols != null)
                     {
-                        foreach (var item in moduleSymbols.Symbols)
+                        foreach (var item in moduleSymbols.List)
                             yield return item;
                     }
                 }
             }
 
             var globals = GSI;
+        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement)
+        {
+            /* Address traversers
+             * 
+             *     CCompByAddrTrav
+             *     CPubByAddrTrav
+             *     CFuncByAddrTrav
+             * CInlineFuncByAddrTrav (not sure what this does)
+             *     CBlockByAddrTrav
+             * CLabelByAddrTrav (not sure what this does)
+             *     CGlobalDataByAddrTrav
+             *     CAllDataByAddrTrav
+             *     CDataByAddrTrav
+             *     CAllSymsByAddrTrav
+             * COMAPSymsByAddrTrav (not sure what this does)
+             *     CModSymsByAddrTrav
+             * 
+             * CAllDataByAddrTrav
+             *     CGlobalDataByAddrTrav
+             *     CDataByAddrTrav
+             *     
+             * CPubByAddrTrav
+             *     PSGSI::getEnumByAddr
+             * 
+             * CDataByAddrTrav
+             *     ModCache::dataByAddr
+             *     CModSymsByAddrTrav
+             * 
+             * CGlobalDataByAddrTrav
+             *     GSI1::NextSym
+             * 
+             * CModSymsByAddrTrav
+             *     DBI::getEnumContrib
+             * 
+             * CBlockByAddrTrav
+             *     CModSymsByAddrTrav
+             *     iterates over the symbols looking for block symbols
+             * 
+             * CAllSymsByAddrTrav
+             *     CPubByAddrTrav
+             *     CBlockByAddrTrav
+             *     CDataByAddrTrav
+             *     CGlobalDataByAddrTrav
+             * 
+             * CCompByAddrTrav (only used when you do a search for SymTagCompiland)
+             *     DBI::QueryModFromAddr
+             *     the IMod is then retrieved from the Mod1, and thenfrom that the module data is somehow retrieved
+             * 
+             * CFuncByAddrTrav
+             *     CModSymsByAddrTrav
+             *     ModCache::blockByAddr
+             *     SymBuffer::isFunctionSym
+             *     
+             */
 
-            if (globals != null)
+            //CAllSymsByAddrTrav always seems to start with CPubByAddrTrav, and only if that returns something does it
+            //try digging deeper.
+
+            var psgsi = PSGSI;
+
+            symType = default;
+            displacement = 0;
+
+            if (psgsi == null)
+                return false;
+
+            //First, resolve this RVA to a section and offset
+            if (!TryGetSectionAndOffset(rva, out var sectionNumber, out int relativeOffset))
+                return false;
+
+            //EnumPubsByAddr::locate
+            if (!psgsi.TryGetNearestSymbol(relativeOffset, sectionNumber, out symType, out displacement))
+                return false;
+
+            //We don't currently support looking for a better symbol
+
+            return true;
+        }
+
+        //Section numbers are 1 based
+        public bool TryGetSectionAndOffset(int rva, out int sectionNumber, out int sectionOffset)
+        {
+            var sectionHeaders = DBI?.SectionHdr;
+
+            if (sectionHeaders != null)
             {
-                foreach (var item in globals.Symbols)
-                    yield return item;
+                for (var i = 0; i < sectionHeaders.Length; i++)
+                {
+                    ref var sectionHeader = ref sectionHeaders[i];
+
+                    if (rva >= sectionHeader.VirtualAddress && rva <= sectionHeader.VirtualAddress + sectionHeader.VirtualSize)
+                    {
+                        sectionOffset = rva - sectionHeader.VirtualAddress;
+                        sectionNumber = i + 1;
+                        return true;
+                    }
+                }
             }
 
-            var publics = PSGSI;
+            sectionNumber = default;
+            sectionOffset = default;
+            return false;
+        }
 
-            if (publics != null)
+        #region ISymbolAccessor
+
+        ImageSectionHeader[]? ISymbolAccessor.GetSectionHeaders() => DBI?.SectionHdr;
+
+        SymType ISymbolAccessor.GetModuleSymbol(ushort imod, int ibSym)
+        {
+            var modules = DBI?.Modules;
+
+            //Module indices are 1 based. So the last module is == modules.Length
+
+            if (modules == null || imod > modules.Length)
+                return default;
+
+            var module = modules[imod - 1];
+
+            var symbols = module.Symbols;
+
+            if (symbols == null)
+                return default;
+
+            //This isn't super ideal (because it will force load _all_ symbols for the module) but I'm not sure what the best way of
+            //storing a reference to the module's MemoryChunk is without needing to constantly try and lookup the symbol stream
+
+            return symbols.GetSymbolFromOffset(ibSym);
+        }
+
+        private bool? hasLengthPrefixedStrings;
+
+        bool ISymbolAccessor.HasLengthPrefixedStrings
+        {
+            get
             {
-                foreach (var item in publics.Symbols)
-                    yield return item;
+                if (hasLengthPrefixedStrings.HasValue)
+                    return hasLengthPrefixedStrings.Value;
+
+                hasLengthPrefixedStrings = PDB!.PDBHeader.ImplementationVersion <= PDBIMPV.PDBImpvVC98;
+
+                return hasLengthPrefixedStrings.Value;
             }
         }
+
+        int? ISymbolAccessor.GetRelativeVirtualAddress(ushort seg, int off) =>
+            SymType.GetRelativeVirtualAddressFromSectionHeaders(((ISymbolAccessor) this).GetSectionHeaders(), seg, off);
+
+        #endregion
+        #region IViewable
 
         void IViewable.WriteGlobals(ViewWriter writer) => WriteGlobals(writer);
 
@@ -562,6 +767,8 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
+        #endregion
+
         public void Dispose()
         {
             Dispose(true);
@@ -575,10 +782,20 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
+            psgsi?.Dispose();
+
             globalBlock.Dispose();
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

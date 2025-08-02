@@ -19,6 +19,8 @@
   <ItemGroup>
     <Compile Remove="_old\**" />
     <None Include="_old\**" />
+
+    <AdditionalFiles Include="BannedSymbols.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,16 +29,30 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Index.tt</DependentUpon>
     </None>
+    <None Include="Strings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Memory" Version="4.5.5" PrivateAssets="all" />
+
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <None Update="PE\14. Cor20\Ecma335\Index\Index.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Index.cs</LastGenOutput>
+    </None>
+    <None Update="Strings.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Strings.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -49,6 +65,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Index.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Strings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

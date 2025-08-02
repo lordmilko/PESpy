@@ -9,7 +9,7 @@
         protected internal abstract void VisitByteBlob(ByteBlobView view);
         protected internal abstract void VisitField(IFieldView view);
         protected internal abstract void VisitHeader(HeaderView view);
-        protected internal abstract void VisitLogicalReview(LogicalRegionView view);
+        protected internal abstract void VisitLogicalRegion(LogicalRegionView view);
         protected internal abstract void VisitOverlay(OverlayView view);
         protected internal abstract void VisitFile(FileView view);
         protected internal abstract void VisitSection(SectionView view);

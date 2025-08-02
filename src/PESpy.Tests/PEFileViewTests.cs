@@ -33,11 +33,11 @@ namespace PESpy.Tests
 
             foreach (var type in types)
             {
-                var writeViewMethod  = typeof(ImageNtHeaders).GetMethod($"{typeof(IViewable).FullName}.{nameof(IViewable.WriteView)}", BindingFlags.Instance | BindingFlags.NonPublic);
+                var writeStructMethod  = typeof(ImageNtHeaders).GetMethod($"{typeof(IViewable).FullName}.{nameof(IViewable.WriteStruct)}", BindingFlags.Instance | BindingFlags.NonPublic);
 
-                Assert.IsNotNull(writeViewMethod);
+                Assert.IsNotNull(writeStructMethod);
 
-                var il = ILDisassembler.Disassemble(writeViewMethod);
+                var il = ILDisassembler.Disassemble(writeStructMethod);
 
                 var disp = new MetaDataDispenserEx();
                 var mdi = disp.OpenScope<MetaDataImport>(typeof(ImageNtHeaders).Assembly.Location, CorOpenFlags.ofRead);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using ClrDebug;
 using ClrDebug.DIA;
@@ -606,7 +606,7 @@ namespace PESpy.Tests
 
             Assert.AreEqual(CV_SIGNATURE.C13, typeTable.Signature);
 
-            var types = typeTable.Types;
+            var types = typeTable.List;
 
             Assert.AreEqual("C:\\TestApp\\vc140.pdb", types.First().ToString());
         }
@@ -636,7 +636,7 @@ namespace PESpy.Tests
 
             Assert.AreEqual(CV_SIGNATURE.C11, typeTable.Signature);
 
-            var types = typeTable.Types;
+            var types = typeTable.List;
 
             Assert.AreEqual("c:\\program files (x86)\\devstudio\\myprojects\\testapp\\debug\\vc50.pdb", types.First().ToString());
         }

@@ -46,6 +46,11 @@ namespace PESpy.Tests
             return new VsPDB(fileName, pdb);
         }
 
+        public static PDB1 OpenPDB(string fileName)
+        {
+            return pdbCore.PDBOpen2W(fileName, PdbOpenMode.pdbRead);
+        }
+
         public string FileName { get; }
 
         public MSF MSF { get; private set; }

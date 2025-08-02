@@ -34,6 +34,9 @@ namespace PESpy.View
         private Stack<List<IView>> listPool;
         private TryGetOffsetDelegate tryGetViewOffset;
         private Func<int, int>? getRealOffset;
+#if DEBUG
+        private HashSet<long> globalFields = new HashSet<long>();
+#endif
 
         internal int UnmanagedOffset;
 
@@ -57,7 +60,10 @@ namespace PESpy.View
             listPool = new Stack<List<IView>>();
         }
 
-        private void Push(List<IView> list) => viewStack.Push(list);
+        private void Push(List<IView> list)
+        {
+            viewStack.Push(list);
+        }
 
         private void Pop() => viewStack.Pop();
 
@@ -81,12 +87,15 @@ namespace PESpy.View
         /// <param name="viewable">The value to write.</param>
         public void WriteGlobal<T>(in T? viewable) where T : IViewable
         {
+            //Note: in unoptimized code it may show that a boxing occurs here for value types. I have tried different variations of "is object", "is null",
+            //"is not", etc. They all box. But in optimized code this check will be removed
             if (viewable == null)
                 return;
 
             Push(globalList);
 
-            viewable.WriteView(this);
+            //Write any nested globals first
+            viewable.WriteGlobals(this);
 
             Pop();
         }
@@ -99,9 +108,44 @@ namespace PESpy.View
             Push(globalList);
 
             for (var i = 0; i < viewable.Length; i++)
-                viewable[i].WriteView(this);
+            {
+                ref var item = ref viewable[i];
 
-            Pop();
+                //Write any nested globals first
+                item.WriteGlobals(this);
+
+                var result = item.WriteStruct(this);
+
+                if (result != null)
+                    globalList.Add(result);
+            }
+        }
+
+        public void WriteGlobal(in RuntimeFunctionList list)
+        {
+            foreach (var item in list)
+            {
+                ((IViewable) item).WriteGlobals(this);
+
+                var result = ((IViewable) item).WriteStruct(this);
+
+                if (result != null)
+                    globalList.Add(result);
+            }
+        }
+
+        public void RelayGlobals<T>(T? viewable) where T : IViewable
+        {
+            viewable?.WriteGlobals(this);
+        }
+
+        public void RelayGlobals<T>(T[]? viewable) where T : IViewable
+        {
+            if (viewable == null)
+                return;
+
+            for (var i = 0; i < viewable.Length; i++)
+                viewable[i].WriteGlobals(this);
         }
 
         public void WriteUniqueGlobal<T>(in T[]? value) where T : IValue, IViewable
@@ -128,15 +172,20 @@ namespace PESpy.View
                 WriteGlobal(value);
         }
 
-        public void WriteGlobal<T>(RawOffset offset, in T value, int size, ViewKind kind)
+        public void WriteGlobal<T>(int offset, in T value, int size, ViewKind kind)
         {
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
             {
+                Debug.Assert(currentScope == 0);
+
                 Push(globalList);
-            
-                AddView(new ValueView<T>(viewOffset, value, size, kind));
+
+                var valueView = NewValue<T>(viewOffset, value, size, kind);
+
+                if (valueView != null)
+                    AddView(valueView);
             
                 Pop();
             }
@@ -195,23 +244,23 @@ namespace PESpy.View
                 p.WriteValue(item, item.len + 2, ViewKind.TypType);
         }
 
-        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, T[] value) where T : unmanaged
+        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, T[] value, ViewKind viewKind) where T : unmanaged
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-                p.WriteValue(item, sizeof(T), ViewKind.Value);
+                p.WriteValue(item, sizeof(T), viewKind);
         }
 
-        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, NativeSpan<T> value) where T : unmanaged
+        internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, NativeSpan<T> value, ViewKind viewKind) where T : unmanaged
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-                p.WriteValue(item, sizeof(T), ViewKind.Value);
+                p.WriteValue(item, sizeof(T), viewKind);
         }
 
-        public void WriteGlobal(RawOffset offset, TypTypeList value)
+        public void WriteGlobal(int offset, TypTypeList value)
         {
             var written = 0;
 
@@ -220,7 +269,11 @@ namespace PESpy.View
             foreach (var item in value)
             {
                 var totalLength = item.len + 2;
-                AddView(new ValueView<TypType>(offset + written, item, totalLength, ViewKind.TypType));
+                var valueView = NewValue<TypType>(offset + written, item, totalLength, ViewKind.TypType);
+
+                if (valueView != null)
+                    AddView(valueView);
+
                 written += totalLength;
             }
 
@@ -236,43 +289,33 @@ namespace PESpy.View
                 if (extension.TryParseRawBytes(
                     viewOffset,
                     ViewKind.DosStub,
-#if PEFAST
                     byteBlob.Bytes,
-#else
-                    byteBlob.Bytes,
-#endif
                     null,
                     out var views))
                     AddViews(views!);
                 else
                     AddView(new ByteBlobView(
                         viewOffset,
-#if PEFAST
                         byteBlob.Bytes,
-#else
-                        byteBlob.Bytes,
-#endif
                         ViewKind.DosStub
                     ));
             }
         }
 
-        public void WriteByteBlob(ByteBlob byteBlob)
+        public ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
             var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
 
             if (shouldAdd)
             {
-                AddView(new ByteBlobView(
+                return new ByteBlobView(
                     viewOffset,
-#if PEFAST
                     byteBlob.Bytes,
-#else
-                    byteBlob.Bytes,
-#endif
                     default
-                ));                
+                );                
             }
+
+            return null;
         }
 
         public void WriteTaggedGlobal<T>(in T value) where T : IViewable
@@ -282,23 +325,265 @@ namespace PESpy.View
 
             var view = WriteIntercepted(value);
 
-            if (!taggedViews.TryGetValue(currentTag, out var hashSet))
+            if (view != null)
             {
-                hashSet = new HashSet<IView>();
-                hashSet.Add(view);
-                taggedViews[currentTag] = hashSet;
-            }
-            else
-                hashSet.Add(view);
+                if (!taggedViews.TryGetValue(currentTag, out var hashSet))
+                {
+                    hashSet = new HashSet<IView>();
+                    hashSet.Add(view);
+                    taggedViews[currentTag] = hashSet;
+                }
+                else
+                    hashSet.Add(view);
 
-            AddView(view);
+                AddView(view);
+            }
         }
+
+        #region Field Globals
+        #region Pointer
+
+        public void WriteVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        public void WriteSmallVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        public void WriteSmallVAPointerField<T>(VA<T[]> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        public void WriteVAPointerField(VA<long> value, ViewKind valueKind, int fieldOffset)
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+            }
+        }
+
+        public void WriteVAPointerField(VA<ulong> value, ViewKind valueKind, int fieldOffset)
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+            }
+        }
+
+        public void WriteVAPointerField(VA<long[]> value, ViewKind valueKind, int fieldOffset)
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), valueKind);
+            }
+        }
+
+        #endregion
+        #region RVA
+
+        public void WriteRVAPointerField(RVA<long> value, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                if (((PEViewWriter) this).Is32Bit)
+                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), default);
+                else
+                    WriteGlobal(value.ActualOffset, value.Value, sizeof(long), default);
+            }
+        }
+
+        public void WriteRVAField(RVA<ulong[]> value, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), default);
+            }
+        }
+
+        public void WriteRVAAnsiNullTerminatedField(RVA<string> value, ViewKind viewKind, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, viewKind);
+            }
+        }
+
+        public void WriteVAAnsiNullTerminatedField(VA<string> value, ViewKind viewKind, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedAddress != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, viewKind);
+            }
+        }
+
+        public void WriteVAAnsiNullTerminatedField(VA<AnsiString> value, ViewKind viewKind, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedAddress != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, viewKind);
+            }
+        }
+
+        public void WriteRVAAnsiNullTerminatedField(RVA<AnsiString> value, ViewKind viewKind, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, viewKind);
+            }
+        }
+
+        public void WriteRVAField<T>(RVA<T> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        public void WriteRVAField<T>(RVA<T[]> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        #endregion
+        #endregion
 
         internal StructWriter CreateStruct<T>(string name, in T value, ViewKind kind) where T : IValue
         {
             var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
             
             return new StructWriter(name, viewOffset, kind, this, shouldAdd);
+        }
+
+        internal StructWriter CreateStruct(IView parent) => new StructWriter(parent.Offset, this);
+
+        protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IValue
+        {
+            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
+
+            if (!shouldAdd)
+                return null;
+
+            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, this);
+
+            return view;
+        }
+
+        protected virtual void WriteXRef(int fieldOffset, int targetOffset)
+        {
+        }
+
+        internal IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        {
+            Debug.Assert(UnmanagedOffset != 0);
+            var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
+
+            if (!shouldAdd)
+                return null;
+
+            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, this);
+
+            return view;
         }
 
         internal StructWriter CreateUnmanagedStruct(string name, ViewKind kind)
@@ -309,7 +594,12 @@ namespace PESpy.View
             return new StructWriter(name, viewOffset, kind, this, shouldAdd);
         }
 
-        internal RegionWriter CreateRegion(RawOffset offset, string name, ViewKind kind, bool global = false)
+        protected internal virtual IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)
+        {
+            return new ValueView<T>(offset, value, size, kind);
+        }
+
+        internal RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false)
         {
             //todo: if its not global, are we writing the region under a structwriter? how does that make sense? will the offsets actually be inside the struct?
             //if not it doesnt make sense. if so, we wouldnt be correctly updating the offsets on the struct
@@ -331,7 +621,7 @@ namespace PESpy.View
         /// <param name="kind">The kind of region that will be created.</param>
         /// <param name="scopeKind">The type of entity that this <see cref="RegionWriter"/> should be limited to capturing.</param>
         /// <returns></returns>
-        internal RegionWriter CreateScopedRegion(RawOffset offset, string name, ViewKind kind, ViewKind scopeKind)
+        internal RegionWriter CreateScopedRegion(int offset, string name, ViewKind kind, ViewKind scopeKind)
         {
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
             
@@ -344,6 +634,8 @@ namespace PESpy.View
             
             return new MetadataRowWriter(name, viewOffset, kind, (PEViewWriter) this, shouldAdd);
         }
+
+        internal MetadataRowWriter CreateMetadataRow(IView parent) => new MetadataRowWriter(parent.Offset, (PEViewWriter) this);
 
         internal IView[]? CreateByteBlob(ref int currentOffset, int size)
         {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using Enum = System.Enum;
@@ -21,9 +20,13 @@ namespace PESpy.View
             private List<IView> fields;
             private bool shouldAdd;
 
-            public RawOffset Size => currentOffset - startOffset;
+#if DEBUG
+            private HashSet<long> globalFields => viewWriter.globalFields;
+#endif
 
-            internal StructWriter(string name, RawOffset startOffset, ViewKind kind, ViewWriter viewWriter, bool shouldAdd)
+            public int Size => currentOffset - startOffset;
+
+            internal StructWriter(string name, int startOffset, ViewKind kind, ViewWriter viewWriter, bool shouldAdd)
             {
                 structName = name;
                 this.startOffset = startOffset;
@@ -32,6 +35,18 @@ namespace PESpy.View
                 this.viewWriter = viewWriter;
                 fields = viewWriter.RentList();
                 this.shouldAdd = shouldAdd;
+            }
+
+            internal StructWriter(int startOffset, ViewWriter viewWriter)
+            {
+                this.startOffset = startOffset;
+                currentOffset = startOffset;
+                this.viewWriter = viewWriter;
+                fields = viewWriter.RentList();
+
+                kind = default;
+                shouldAdd = default;
+                structName = default;
             }
 
             public void WriteField(string name, byte value) =>
@@ -211,48 +226,73 @@ namespace PESpy.View
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
+                //Assert that the global has already been written
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.Value);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteSmallVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
             {
                 WriteField(name, (int) value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.Value);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteSmallVAPointerField<T>(string name, VA<T[]> value) where T : IViewable, IValue
             {
                 WriteField(name, (int) value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.Value);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteVAPointerField(string name, VA<long> value, ViewKind valueKind)
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteVAPointerField(string name, VA<ulong> value, ViewKind valueKind)
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteVAPointerField(string name, VA<long[]> value, ViewKind valueKind)
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), valueKind);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             #endregion
@@ -283,7 +323,7 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, value.Length + 1);
             }
 
-            public void WriteUtf8FixedLengthField(string name, FixedUtf8String value)
+            public void WriteUTF8FixedLengthField(string name, FixedUtf8String value)
             {
                 WriteFieldInternal(name, value, value.Length);
             }
@@ -298,11 +338,27 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, (value.Length + 1) * 2);
             }
 
+            public void WriteNullTerminatedField(string name, NullTerminatedString value)
+            {
+                switch (value.Kind)
+                {
+                    case StringKind.ANSI:
+                    case StringKind.UTF8:
+                        WriteFieldInternal(name, value, value.Length + 1);
+                        break;
+
+                    default:
+                        Debug.Assert(value.Kind == StringKind.UTF16);
+                        WriteFieldInternal(name, value, (value.Length + 1) * 2);
+                        break;
+                }
+            }
+
+            public void WriteNullPaddedAnsiField(string name, FixedAnsiString value, int length) => WriteFieldInternal(name, value, length);
+
             public void WriteNullPaddedUTF8Field(string name, string value, int length) => WriteFieldInternal(name, value, length);
 
-#if PEFAST
             public void WriteNullPaddedUTF8Field(string name, FixedUtf8String value, int length) => WriteFieldInternal(name, value, length);
-#endif
 
             public void WriteUTF16Field(string name, string value, int numChars)
             {
@@ -321,71 +377,96 @@ namespace PESpy.View
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
                 {
-                    if (((PEViewWriter) viewWriter).Is32Bit)
-                        viewWriter.WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), default);
-                    else
-                        viewWriter.WriteGlobal(value.ActualOffset, value.Value, sizeof(long), default);
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
                 }
+#endif
             }
 
             public void WriteRVAField(string name, RVA<ulong[]> value)
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), default);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
+                }
+#endif
             }
 
             public void WriteRVAAnsiNullTerminatedField(string name, RVA<string> value)
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
+                }
+#endif
             }
 
             public void WriteVAAnsiNullTerminatedField(string name, VA<string> value)
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid && value.ListedAddress != 0)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
             public void WriteVAAnsiNullTerminatedField(string name, VA<AnsiString> value)
             {
                 WriteField(name, value.ListedAddress);
 
+#if DEBUG
                 if (value.IsValid && value.ListedAddress != 0)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
             }
 
-#if PEFAST
             public void WriteRVAAnsiNullTerminatedField(string name, RVA<AnsiString> value)
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
-            }
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset), $"Did not write field '{name}' in WriteGlobals");
+                }
 #endif
+            }
 
             public void WriteRVAField<T>(string name, RVA<T> value) where T : IViewable, IValue
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid)
-                    viewWriter.WriteGlobal(value.Value);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
+                }
+#endif
             }
 
             public void WriteRVAField<T>(string name, RVA<T[]> value) where T : IViewable, IValue
             {
                 WriteField(name, (int) value.ListedOffset);
 
+#if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
-                    viewWriter.WriteGlobal(value.Value);
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
+                }
+#endif
             }
 
             #endregion
@@ -394,8 +475,8 @@ namespace PESpy.View
                 WriteFieldInternal(name, guid, 16);
 
             /// <summary>
-            /// Writes a <see cref="StructView"/> inside of a <see cref="FieldView{T}"/>.<para/>
-            /// This contrasts with <see cref="WriteInline{T}(T)"/> which writes a <see cref="StructView"/> directly
+            /// Writes an <see cref="IStructView"/> inside of a <see cref="FieldView{T}"/>.<para/>
+            /// This contrasts with <see cref="WriteInline{T}(T)"/> which writes an <see cref="IStructView"/> directly
             /// without a containing <see cref="FieldView{T}"/>.
             /// </summary>
             /// <typeparam name="T">The type of structure to write.</typeparam>
@@ -405,7 +486,7 @@ namespace PESpy.View
             {
                 var oldOffset = viewWriter.UnmanagedOffset;
                 viewWriter.UnmanagedOffset = currentOffset;
-                var view = (StructView) viewWriter.WriteIntercepted(value);
+                var view = (IStructView) viewWriter.WriteIntercepted(value);
                 viewWriter.UnmanagedOffset = oldOffset;
 
                 WriteFieldInternal(name, view, view.Size);
@@ -424,7 +505,11 @@ namespace PESpy.View
 
                 var oldOffset = viewWriter.UnmanagedOffset;
                 viewWriter.UnmanagedOffset = currentOffset;
-                value.WriteView(viewWriter);
+                var result = value.WriteStruct(viewWriter);
+
+                if (result != null)
+                    fields.Add(result);
+
                 viewWriter.UnmanagedOffset = oldOffset;
 
                 for (var i = startIndex; i < fields.Count; i++)
@@ -446,6 +531,21 @@ namespace PESpy.View
                     viewWriter.UnmanagedOffset = currentOffset;
                     value[i].WriteView(viewWriter);
                     currentOffset += fields[startIndex + i].Size;
+            public void WriteInline(in GuardCFFunctionTable value)
+            {
+                var startIndex = fields.Count;
+                var oldOffset = viewWriter.UnmanagedOffset;
+
+                foreach (var item in value)
+                {
+                    viewWriter.UnmanagedOffset = currentOffset;
+                    var result = ((IViewable) item).WriteStruct(viewWriter);
+
+                    if (result != null)
+                    {
+                        fields.Add(result);
+                        currentOffset += result.Size;
+                    }
                 }
 
                 viewWriter.UnmanagedOffset = oldOffset;
@@ -464,8 +564,13 @@ namespace PESpy.View
                 for (var i = 0; i < value.Length; i++)
                 {
                     viewWriter.UnmanagedOffset = currentOffset;
-                    value[i].WriteView(viewWriter);
-                    currentOffset += fields[startIndex + i].Size;
+                    var child = value[i].WriteStruct(viewWriter);
+
+                    if (child != null)
+                    {
+                        fields.Add(child);
+                        currentOffset += child.Size;
+                    }
                 }
 
                 viewWriter.UnmanagedOffset = oldOffset;
@@ -476,7 +581,7 @@ namespace PESpy.View
             public void WriteInlineAnsiNullTerminated(RawValue<string> value)
             {
                 var size = value.Value.Length + 1;
-                fields.Add(new ValueView<string>(value.Offset, value.Value, size, ViewKind.Value));
+                fields.Add(new ValueView<string>(value.Offset, value.Value, size, ViewKind.String));
                 currentOffset += size;
             }
 
@@ -490,21 +595,21 @@ namespace PESpy.View
             {
                 var size = value.Value.Length + 1;
                 Debug.Assert(currentOffset == value.Offset);
-                fields.Add(new ValueView<AnsiString>(value.Offset, value.Value, size, ViewKind.Value));
+                fields.Add(new ValueView<AnsiString>(value.Offset, value.Value, size, ViewKind.String));
                 currentOffset += size;
             }
 
             public void WriteInlineAnsiNullTerminated(AnsiString value)
             {
                 var size = value.Length + 1;
-                fields.Add(new ValueView<AnsiString>(currentOffset, value, size, ViewKind.Value));
+                fields.Add(new ValueView<AnsiString>(currentOffset, value, size, ViewKind.String));
                 currentOffset += size;
             }
 
             public void WriteInlineFixedAnsiString(FixedAnsiString value)
             {
                 var size = value.Length;
-                fields.Add(new ValueView<FixedAnsiString>(currentOffset, value, size, ViewKind.Value));
+                fields.Add(new ValueView<FixedAnsiString>(currentOffset, value, size, ViewKind.String));
                 currentOffset += size;
             }
 
@@ -512,7 +617,7 @@ namespace PESpy.View
             public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value)
             {
                 Debug.Assert(currentOffset == value.Offset); //We only pass the inner string to WriteInlineFixedAnsiString, so our offset bookkeeping better line up!
-                WriteValue(value.Offset, (byte) value.Value.Length, 1, ViewKind.Value);
+                WriteValue(value.Offset, (byte) value.Value.Length, 1, ViewKind.String);
                 WriteInlineFixedAnsiString(new FixedAnsiString(value.Value.Value, value.Value.Length)); //+1 for the prefixed length
             }
 
@@ -525,7 +630,7 @@ namespace PESpy.View
             public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value)
             {
                 var size = value.Value.Length + 1;
-                fields.Add(new ValueView<Utf8String>(value.Offset, value.Value, size, ViewKind.Value));
+                fields.Add(new ValueView<Utf8String>(value.Offset, value.Value, size, ViewKind.String));
                 currentOffset += size;
             }
 
@@ -533,7 +638,7 @@ namespace PESpy.View
             public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value)
             {
                 var size = value.Value.Length + 1;
-                fields.Add(new ValueView<Utf8String>(value.Offset, new Utf8String(value.Value.Value), size, ViewKind.Value));
+                fields.Add(new ValueView<Utf8String>(value.Offset, new Utf8String(value.Value.Value), size, ViewKind.String));
                 currentOffset += size;
             }
 
@@ -543,12 +648,12 @@ namespace PESpy.View
                     WriteInlineUtf8NullTerminated(item);
             }
 
-            public BitFieldWriter WriteBitFields<TSize>()
+            public unsafe BitFieldWriter WriteBitFields<TSize>() where TSize : unmanaged
             {
                 //Our child writer can't store a reference to us (and even though we're both ref structs, it seems to me that trying to assign ourselves still creates a copy).
                 //So pre-emptively increase the number of bytes written; our child writer will then assert that the specified number of bytes is what was written
                 var off = currentOffset;
-                var bytes = Marshal.SizeOf<TSize>();
+                var bytes = sizeof(TSize);
                 currentOffset += bytes;
                 return new BitFieldWriter(off, fields, bytes);
             }
@@ -559,12 +664,12 @@ namespace PESpy.View
             /// <param name="name">The name to give the synthetic structure.</param>
             /// <param name="kind">The kind of the synthetic structure.</param>
             /// <returns>A writer that creates a synthetic structure around two or more bitfield values.</returns>
-            public StructBitFieldWriter WriteStructBitField<TSize>(string name, ViewKind kind)
+            public unsafe StructBitFieldWriter WriteStructBitField<TSize>(FixedUtf8String name, ViewKind kind) where TSize : unmanaged
             {
                 //Our child writer can't store a reference to us (and even though we're both ref structs, it seems to me that trying to assign ourselves still creates a copy).
                 //So pre-emptively increase the number of bytes written; our child writer will then assert that the specified number of bytes is what was written
                 var off = currentOffset;
-                var bytes = Marshal.SizeOf<TSize>();
+                var bytes = sizeof(TSize);
                 currentOffset += bytes;
                 return new StructBitFieldWriter(name, off, kind, fields, bytes, viewWriter);
             }
@@ -639,6 +744,8 @@ namespace PESpy.View
                 Debug.Assert(Size == length, $"Length of {structName} was not correct");
             }
 
+            public IView[] ToArray() => fields.ToArray();
+
             public void Dispose()
             {
                 if (shouldAdd)
@@ -648,7 +755,7 @@ namespace PESpy.View
                     viewWriter.AddView(structView);    
                 }
                 
-                viewWriter.ReturnList(fields);
+                viewWriter?.ReturnList(fields);
             }
         }
     }

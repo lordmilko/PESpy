@@ -28,8 +28,8 @@ namespace PESpy.View
 
             internal PageWriter(int startRelativeOffset, PagedMemoryBlock block, ViewWriter viewWriter, bool global, bool shouldAdd)
             {
-                relativeOffset = startRelativeOffset;
                 pageSize = block.pageSize;
+                relativeOffset = startRelativeOffset % pageSize;
 
                 pageList = block.pageList;
 

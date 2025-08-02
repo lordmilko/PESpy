@@ -2605,23 +2605,20 @@ namespace PESpy.Tests
             );
 
             TestView<ImageCor20Header>(
-                WithIgnores(
-                    v => v.VerifyStruct(
-                        name: "IMAGE_COR20_HEADER", offset: 520, size: 72,
-                        c => c.VerifyField(name: "cb", value: 72),
-                        c => c.VerifyField(name: "MajorRuntimeVersion", value: (ushort) 2),
-                        c => c.VerifyField(name: "MinorRuntimeVersion", value: (ushort) 5),
-                        c => c.VerifyFieldIgnoreValue(name: "MetaData"),
-                        c => c.VerifyField(name: "Flags", value: (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED)),
-                        c => c.VerifyField(name: "EntryPointTokenOrRVA", value: 0),
-                        c => c.VerifyFieldIgnoreValue(name: "Resources"),
-                        c => c.VerifyFieldIgnoreValue(name: "StrongNameSignature"),
-                        c => c.VerifyFieldIgnoreValue(name: "CodeManagerTable"),
-                        c => c.VerifyFieldIgnoreValue(name: "VTableFixups"),
-                        c => c.VerifyFieldIgnoreValue(name: "ExportAddressTableJumps"),
-                        c => c.VerifyFieldIgnoreValue(name: "ManagedNativeHeader")
-                    ),
-                    after: 8
+                v => v.VerifyStruct(
+                    name: "IMAGE_COR20_HEADER", offset: 520, size: 72,
+                    c => c.VerifyField(name: "cb", value: 72),
+                    c => c.VerifyField(name: "MajorRuntimeVersion", value: (ushort) 2),
+                    c => c.VerifyField(name: "MinorRuntimeVersion", value: (ushort) 5),
+                    c => c.VerifyFieldIgnoreValue(name: "MetaData"),
+                    c => c.VerifyField(name: "Flags", value: (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED)),
+                    c => c.VerifyField(name: "EntryPointTokenOrRVA", value: 0),
+                    c => c.VerifyFieldIgnoreValue(name: "Resources"),
+                    c => c.VerifyFieldIgnoreValue(name: "StrongNameSignature"),
+                    c => c.VerifyFieldIgnoreValue(name: "CodeManagerTable"),
+                    c => c.VerifyFieldIgnoreValue(name: "VTableFixups"),
+                    c => c.VerifyFieldIgnoreValue(name: "ExportAddressTableJumps"),
+                    c => c.VerifyFieldIgnoreValue(name: "ManagedNativeHeader")
                 )
             );
         }
@@ -2646,7 +2643,8 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "iMinorVer", value: (short) 1),
                     c => c.VerifyField(name: "iExtraData", value: 0),
                     c => c.VerifyField(name: "iVersionString", value: 12),
-                    c => c.VerifyField(name: "pVersion", value: "v4.0.30319")
+                    c => c.VerifyField(name: "pVersion", value: "v4.0.30319"),
+                    c => c.VerifyByteBlob(offset: 1604610, value: new byte[] {0, 0})
                 )
             );
         }

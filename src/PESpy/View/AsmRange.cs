@@ -68,7 +68,7 @@ namespace PESpy.View
 
         public T[] Instructions => viewDisassembler.Disassemble(this, instructionCount);
 
-        private readonly ViewDisassembler<T> viewDisassembler;
+        internal readonly ViewDisassembler<T> viewDisassembler;
         internal int instructionCount;
 
         public AsmRange(int startOffset, int startRVA, int functionRVA, ViewDisassembler<T> viewDisassembler, string name)

@@ -48,7 +48,7 @@ namespace PESpy.View
                 if (bitsUsed != maxSize * 8)
                     throw new NotImplementedException();
 
-                var structView = new StructView(offset, structName, fields.ToArray(), maxSize, kind);
+                var structView = new StructView<object>(offset, structName, default, fields.ToArray(), maxSize, kind, viewWriter);
 
                 parentFields.Add(structView);
                 viewWriter.ReturnList(fields);

@@ -43,9 +43,9 @@ namespace PESpy.PDB
                 if (PdbExtensions.CV_IS_PRIMITIVE(typeId))
                     return default;
 
-                var pdb = SymbolMemoryTracker.GetPDB(parent);
+                var accessor = SymbolMemoryTracker.GetAccessor(parent);
 
-                return pdb!.GetTypTypeFromIndex(typeId);
+                return accessor!.GetTypTypeFromIndex(typeId);
             }
         }
 
@@ -73,9 +73,9 @@ namespace PESpy.PDB
                 if (PdbExtensions.CV_IS_PRIMITIVE(typeId))
                     return ((TYPE_ENUM_e) typeId);
 
-                var pdb = SymbolMemoryTracker.GetPDB(parent);
+                var accessor = SymbolMemoryTracker.GetAccessor(parent);
 
-                return pdb!.GetTypTypeFromIndex(typeId);
+                return accessor!.GetTypTypeFromIndex(typeId);
             }
         }
 

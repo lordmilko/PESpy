@@ -19,33 +19,41 @@ namespace PESpy.View.Builder
         internal override IView[] Merge()
         {
             var results = new List<IView>();
+            var results = new PooledList<IView>();
 
-            var os2Header = neFile.OS2Header;
+            try
+            {
+                var os2Header = neFile.OS2Header;
 
-            //The NE Header may be followed by several additional sections at locations relative to the start of the NE Header itself
+                //The NE Header may be followed by several additional sections at locations relative to the start of the NE Header itself
 
-            var sizeOfHeaders = neFile.DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
+                var sizeOfHeaders = neFile.DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
 
-            results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+                results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
 
-            var lastSectionEnd = sizeOfHeaders;
+                var lastSectionEnd = sizeOfHeaders;
 
-            ReadTable("Segment Table",          tableOffset: os2Header.OffsetOfSegmentTable,      os2Header.OffsetOfResourceTable, os2Header, ref lastSectionEnd, results);
-            ReadTable("Resource Table",         tableOffset: os2Header.OffsetOfResourceTable,     os2Header.OffsetOfResidentNameTable, os2Header, ref lastSectionEnd, results);
-            ReadTable("Resident Name Table",    tableOffset: os2Header.OffsetOfResidentNameTable, os2Header.OffsetOfModuleReferenceTable, os2Header, ref lastSectionEnd, results);
-            ReadTable("Module Reference Table", tableOffset: os2Header.OffsetOfModuleReferenceTable, os2Header.OffsetOfImportedNamesTable, os2Header, ref lastSectionEnd, results);
-            ReadTable("Imported Names Table",   tableOffset: os2Header.OffsetOfImportedNamesTable, os2Header.OffsetOfEntryTable, os2Header, ref lastSectionEnd, results);
-            ReadTable("Entry Table",            tableOffset: os2Header.OffsetOfEntryTable, os2Header.OffsetOfNonResidentNamesTable, os2Header, ref lastSectionEnd, results);
+                ReadTable("Segment Table",          tableOffset: os2Header.OffsetOfSegmentTable,         os2Header.OffsetOfResourceTable,         os2Header, ref lastSectionEnd, ref results);
+                ReadTable("Resource Table",         tableOffset: os2Header.OffsetOfResourceTable,        os2Header.OffsetOfResidentNameTable,     os2Header, ref lastSectionEnd, ref results);
+                ReadTable("Resident Name Table",    tableOffset: os2Header.OffsetOfResidentNameTable,    os2Header.OffsetOfModuleReferenceTable,  os2Header, ref lastSectionEnd, ref results);
+                ReadTable("Module Reference Table", tableOffset: os2Header.OffsetOfModuleReferenceTable, os2Header.OffsetOfImportedNamesTable,    os2Header, ref lastSectionEnd, ref results);
+                ReadTable("Imported Names Table",   tableOffset: os2Header.OffsetOfImportedNamesTable,   os2Header.OffsetOfEntryTable,            os2Header, ref lastSectionEnd, ref results);
+                ReadTable("Entry Table",            tableOffset: os2Header.OffsetOfEntryTable,           os2Header.OffsetOfNonResidentNamesTable - os2Header.Offset, os2Header, ref lastSectionEnd, ref results); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
 
-            //Non-Resident Name Table is last, so its length must be computed using a count, rather than
-            //the position of the table after it
-            ReadNonResidentNameTable(os2Header, ref lastSectionEnd, results);
+                //Non-Resident Name Table is last, so its length must be computed using a count, rather than
+                //the position of the table after it
+                ReadNonResidentNameTable(os2Header, ref lastSectionEnd, ref results);
 
-            ReadSegmentData(os2Header, ref lastSectionEnd, results);
+                ReadSegmentData(os2Header, ref lastSectionEnd, ref results);
 
-            ReadOMFData(lastSectionEnd, results);
+                ReadOMFData(lastSectionEnd, ref results);
 
-            return results.ToArray();
+                return results.ToArray();
+            }
+            finally
+            {
+                results.Dispose();
+            }
         }
 
         private void ReadTable(
@@ -54,7 +62,7 @@ namespace PESpy.View.Builder
             int nextTableOffset,
             in ImageOS2Header os2Header,
             ref int lastSectionEnd,
-            List<IView> results)
+            ref PooledList<IView> results)
         {
             if (tableOffset == nextTableOffset)
                 return; //Size is 0
@@ -64,14 +72,14 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            ReadInterSectionData(lastSectionEnd, start, this, results);
+            ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
             results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
 
             lastSectionEnd = end;
         }
 
-        private void ReadNonResidentNameTable(in ImageOS2Header os2Header, ref int lastSectionEnd, List<IView> results)
+        private void ReadNonResidentNameTable(in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
         {
             if (os2Header.SizeOfNonResidentNameTable == 0)
                 return; //There's no table after it, hence why there's an explicit size listed for it
@@ -81,14 +89,14 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            ReadInterSectionData(lastSectionEnd, start, this, results);
+            ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), ViewKind.Value, length));
+            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), ViewKind.NonResidentNameTable, length));
 
             lastSectionEnd = end;
         }
 
-        private void ReadSegmentData(in ImageOS2Header os2Header, ref int lastSectionEnd, List<IView> results)
+        private void ReadSegmentData(in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
         {
             for (var i = 0; i < neFile.SegmentTable.Length; i++)
             {
@@ -97,7 +105,7 @@ namespace PESpy.View.Builder
                 var segmentLength = segment.ns_cbseg;
                 var end = segmentStart + segmentLength;
 
-                ReadInterSectionData(lastSectionEnd, segmentStart, this, results);
+                ReadInterSectionData(lastSectionEnd, segmentStart, this, ref results);
 
                 var data = BuildSection(segmentStart, end);
 
@@ -107,9 +115,9 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ReadOMFData(int lastSectionEnd, List<IView> results)
+        private void ReadOMFData(int lastSectionEnd, ref PooledList<IView> results)
         {
-            var omfData = neFile.OMFData;
+            var omfData = neFile.CodeViewData;
 
             if (omfData != null)
             {
@@ -130,7 +138,7 @@ namespace PESpy.View.Builder
 
                 if (omfData is NB05Data d)
                 {
-                    name = $"{d.Sig} OMF Data";
+                    name = $"{d.Signature} OMF Data";
                     kind = ViewKind.NB05Data;
                 }
                 else
@@ -142,7 +150,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        internal static void ReadInterSectionData(int lastSectionEnd, int start, Merger merger, List<IView> results)
+        internal static void ReadInterSectionData(int lastSectionEnd, int start, Merger merger, ref PooledList<IView> results)
         {
             //You can have data in between segments
             if (lastSectionEnd != -1 && start > lastSectionEnd)
@@ -154,7 +162,7 @@ namespace PESpy.View.Builder
                     results.Add(children[0]);
                 else
                 {
-                    var interRegion = new LogicalRegionView(lastSectionEnd, "Inter-Section Data", children, ViewKind.Value, interSectionLength);
+                    var interRegion = new LogicalRegionView(lastSectionEnd, "Inter-Section Data", children, ViewKind.InterSectionData, interSectionLength);
                     results.Add(interRegion);
                 }
             }

@@ -1,5 +1,4 @@
-﻿using System;
-using ClrDebug;
+﻿using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 

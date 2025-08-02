@@ -51,7 +51,11 @@ namespace PESpy.View
 
                 Push();
 
-                value.WriteView(viewWriter);
+                value.WriteGlobals(viewWriter);
+                var result = value.WriteStruct(viewWriter);
+
+                if (result != null)
+                    views.Add(result);
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
@@ -69,7 +73,12 @@ namespace PESpy.View
                 Push();
 
                 for (var i = 0; i < value.Length; i++)
-                    value[i].WriteView(viewWriter);
+                {
+                    var item = value[i];
+
+                    item.WriteGlobals(viewWriter);
+                    item.WriteStruct(viewWriter);
+                }
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
@@ -143,7 +152,7 @@ namespace PESpy.View
 
             private void WriteValueInternal<T>(T value, int size, ViewKind kind = ViewKind.Value)
             {
-                views.Add(new ValueView<T>(currentOffset, value, size, kind));
+                viewWriter.NewValue(currentOffset, value, size, kind);
                 currentOffset += size;
             }
 

@@ -56,7 +56,7 @@ var strings = new[]{
     "IMAGE_EXPORT_DIRECTORY",
 
     //Import Table (1)
-    //$"{"IMAGE_IMPORT_DESCRIPTOR"} {Name}",
+    "IMAGE_IMPORT_DESCRIPTOR",
     "IMAGE_THUNK_DATA",
     "IMAGE_IMPORT_BY_NAME",
 
@@ -142,7 +142,7 @@ var strings = new[]{
     "IMAGE_BOUND_FORWARDER_REF",
 
     //Delay Import Table (13)
-    //$"{"IMAGE_DELAYLOAD_DESCRIPTOR"} {DllNameRVA}",
+    "IMAGE_DELAYLOAD_DESCRIPTOR",
 
     //CorHeader Directory (14)
     "IMAGE_COR20_HEADER",
@@ -285,6 +285,8 @@ var strings = new[]{
 
     "OMFDirHeader",
     "OMFDirEntry",
+    "OMF Module",
+    "OMFSymHash",
 
     //Demangler
     "`RTTI Type Descriptor'",

@@ -24,7 +24,7 @@ namespace PESpy.PDB
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REFMINIPDB.imod"/>
-        public short imod => value->imod;
+        public ushort imod => value->imod;
 
         /// <inheritdoc cref="REFMINIPDB.fLocal"/>
         public bool fLocal => value->fLocal;

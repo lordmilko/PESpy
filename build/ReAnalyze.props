@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <LocalReAnalyze>$(MSBuildThisFileDirectory)\..\..\ReAnalyze\ReAnalyze\bin\Debug\netstandard2.0\ReAnalyze.dll</LocalReAnalyze>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- If ReAnalyze has been cloned to the parent directory containing both ReAnalyze and ReDbg,
+         prefer the local version for development purposes -->
+    <PackageReference Include="ReAnalyze" Version="$(ReAnalyzeVersion)" Condition="!Exists('$(LocalReAnalyze)')" />
+
+    <Reference Include="ReAnalyze" Condition="Exists('$(LocalReAnalyze)')">
+      <HintPath>$(LocalReAnalyze)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

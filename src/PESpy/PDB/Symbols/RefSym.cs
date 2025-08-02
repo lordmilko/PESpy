@@ -24,7 +24,7 @@ namespace PESpy.PDB
         public int ibSym => value->ibSym;
 
         /// <inheritdoc cref="REFSYM.imod"/>
-        public short imod => value->imod;
+        public ushort imod => value->imod;
 
         /// <inheritdoc cref="REFSYM.usFill"/>
         public short usFill => value->usFill;

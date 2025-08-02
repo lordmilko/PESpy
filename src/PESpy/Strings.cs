@@ -230,6 +230,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// IMAGE_IMPORT_DESCRIPTOR
+        /// </summary>
+        internal static FixedUtf8String IMAGE_IMPORT_DESCRIPTOR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x49, 0x4D, 0x50, 0x4F, 0x52, 0x54, 0x5F, 0x44, 0x45, 0x53, 0x43, 0x52, 0x49, 0x50, 0x54, 0x4F, 0x52 })
+                    return new FixedUtf8String(p, 23);
+            }
+        }
+
+        /// <summary>
         /// IMAGE_THUNK_DATA
         /// </summary>
         internal static FixedUtf8String IMAGE_THUNK_DATA
@@ -1097,6 +1110,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x42, 0x4F, 0x55, 0x4E, 0x44, 0x5F, 0x46, 0x4F, 0x52, 0x57, 0x41, 0x52, 0x44, 0x45, 0x52, 0x5F, 0x52, 0x45, 0x46 })
                     return new FixedUtf8String(p, 25);
+            }
+        }
+
+        /// <summary>
+        /// IMAGE_DELAYLOAD_DESCRIPTOR
+        /// </summary>
+        internal static FixedUtf8String IMAGE_DELAYLOAD_DESCRIPTOR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x44, 0x45, 0x4C, 0x41, 0x59, 0x4C, 0x4F, 0x41, 0x44, 0x5F, 0x44, 0x45, 0x53, 0x43, 0x52, 0x49, 0x50, 0x54, 0x4F, 0x52 })
+                    return new FixedUtf8String(p, 26);
             }
         }
 
@@ -2527,6 +2553,32 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x44, 0x69, 0x72, 0x45, 0x6E, 0x74, 0x72, 0x79 })
                     return new FixedUtf8String(p, 11);
+            }
+        }
+
+        /// <summary>
+        /// OMF Module
+        /// </summary>
+        internal static FixedUtf8String OMFModule
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x20, 0x4D, 0x6F, 0x64, 0x75, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// OMFSymHash
+        /// </summary>
+        internal static FixedUtf8String OMFSymHash
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x53, 0x79, 0x6D, 0x48, 0x61, 0x73, 0x68 })
+                    return new FixedUtf8String(p, 10);
             }
         }
 

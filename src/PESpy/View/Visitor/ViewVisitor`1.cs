@@ -15,7 +15,7 @@
         protected internal abstract TResult VisitByteBlob(ByteBlobView view);
         protected internal abstract TResult VisitField(IFieldView view);
         protected internal abstract TResult VisitHeader(HeaderView view);
-        protected internal abstract TResult VisitLogicalReview(LogicalRegionView view);
+        protected internal abstract TResult VisitLogicalRegion(LogicalRegionView view);
         protected internal abstract TResult VisitOverlay(OverlayView view);
         protected internal abstract TResult VisitFile(FileView view);
         protected internal abstract TResult VisitSection(SectionView view);

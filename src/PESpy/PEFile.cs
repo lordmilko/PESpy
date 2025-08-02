@@ -7,7 +7,6 @@ using System.Threading;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
-using System.Text;
 using Stream = System.IO.Stream;
 
 #if !DEBUG_POSITION
@@ -44,7 +43,7 @@ namespace PESpy
         public ImageExportDirectory? ExportTable => peFile.ExportTable;
         public ImageImportDescriptor[]? ImportTable => peFile.ImportTable;
         public ImageResourceDirectory? ResourceDirectory => peFile.ResourceDirectory;
-        public RuntimeFunction[]? ExceptionTable => peFile.ExceptionTable;
+        public RuntimeFunctionList ExceptionTable => peFile.ExceptionTable;
         public WinCertificate[]? SecurityTable => peFile.SecurityTable;
         public ImageBaseRelocation[]? BaseRelocationTable => peFile.BaseRelocationTable;
         public ImageDebugDirectory[]? DebugTable => peFile.DebugTable;
@@ -76,7 +75,7 @@ namespace PESpy
     /// Represents a Portable Executable (PE) file.
     /// </summary>
     [DebuggerTypeProxy(typeof(PEFileDebugView))]
-    public class PEFile : IFile, IViewable, IDisposable
+    public class PEFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
     {
         #region Static
 
@@ -198,7 +197,7 @@ namespace PESpy
                                     var data = (ImageDebugMisc?) debugDirectory.Data;
 
                                     if (data != null)
-                                        results.Add(SymStoreKey.FromMisc(data.Data, FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage));
+                                        results.Add(SymStoreKey.FromMisc(data.Data.ToString(), FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage));
 
                                     break;
                                 }
@@ -226,6 +225,14 @@ namespace PESpy
             }
         }
 
+        public SymStoreKey GetSymStoreKey(SymStoreKeyKind kind)
+        {
+            if (!TryGetSymStoreKey(kind, out var key))
+                throw new InvalidOperationException($"Could not get a SymStoreKey of type '{kind}'");
+
+            return key;
+        }
+
         public bool TryGetSymStoreKey(SymStoreKeyKind kind, out SymStoreKey key)
         {
             key = default;
@@ -240,7 +247,62 @@ namespace PESpy
                     return true;
 
                 case SymStoreKeyKind.PDB:
+                    {
+                        var debugTable = DebugTable;
+
+                        if (debugTable == null)
+                            return false;
+
+                        for (var i = 0; i < debugTable.Length; i++)
+                        {
+                            ref var debugDir = ref debugTable[i];
+
+                            if (debugDir.Type == ImageDebugType.CodeView)
+                            {
+                                if (debugDir.Data is ICodeViewPDB p)
+                                {
+                                    switch (p.Signature)
+                                    {
+                                        case CodeViewSig.NB10:
+                                            key = SymStoreKey.FromNB10((NB10I) p);
+                                            return true;
+
+                                        case CodeViewSig.RSDS:
+                                            key = SymStoreKey.FromRSDSI((RSDSI) p);
+                                            return true;
+
+                                        default:
+                                            throw new NotImplementedException($"Don't know how to handle {nameof(CodeViewSig)} '{p.Signature}'");
+                                    }
+                                }
+                            }
+                        }
+
+                        return false;
+                    }
+
                 case SymStoreKeyKind.DBG:
+                    {
+                        var debugTable = DebugTable;
+
+                        if (debugTable == null)
+                            return false;
+
+                        for (var i = 0; i < debugTable.Length; i++)
+                        {
+                            ref var debugDir = ref debugTable[i];
+
+                            if (debugDir.Type == ImageDebugType.Misc)
+                            {
+                                var data = (ImageDebugMisc) debugDir.Data!;
+                                key = SymStoreKey.FromMisc(data.Data.ToString(), FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage);
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
+
                 case SymStoreKeyKind.CLR:
                 {
                     var runtimeInfo = RuntimeInfo;
@@ -279,6 +341,12 @@ namespace PESpy
                     key = SymStoreKey.FromPE("mscordbi.dll", dbiModuleIndex.TimeStamp, dbiModuleIndex.ImageSize, SymStoreKeyKind.DBI);
                     return true;
                 }
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(SymStoreKeyKind)} '{kind}'.");
+            }
+        }
+
         /// <inheritdoc/>
         public string? Name { get; private set; }
 
@@ -287,6 +355,10 @@ namespace PESpy
 
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PE;
+
+        public int Length => blockProvider is LocalMemoryBlockProvider l ? (int) l.Length : (int) OptionalHeader.SizeOfImage;
+
+        public bool Is32Bit => headerBlock.Is32Bit;
 
         #region DosHeader
 
@@ -821,7 +893,6 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageThunkData[]? importAddressTable;
 
-#if PEFAST
         /// <summary>
         /// Gets the import address table pointed to by <see cref="ImageOptionalHeader.ImportAddressTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_IAT).<para/>
         /// If the image does not have an import address table, this property returns <see langword="null"/>.
@@ -835,82 +906,6 @@ namespace PESpy
                 throw new NotImplementedException();
             }
         }
-#else
-        public ImageThunkData[]? ImportAddressTable
-        {
-            get
-            {
-                if (!HasRegionFlag(PERegionKind.ImportAddressTable))
-                {
-                    if (TryGetDirectoryOffset(OptionalHeader.ImportAddressTableDirectory, out var offset, true))
-                    {
-                        lock (readerLock)
-                        {
-                            reader.Seek(offset);
-
-                            var is32Bit = OptionalHeader.Magic == PEMagic.PE32;
-                            var thunkDataSize = is32Bit ? 4 : 8;
-
-                            using var results = new PooledList<ImageThunkData>();
-
-                            var read = 0;
-
-                            Dictionary<RawOffset, ImageThunkData> iatCache = null;
-
-                            if (importTable != null)
-                            {
-                                //If the import table has been loaded, use the same ImageThunkData objects where applicable.
-                                //Use the internal field so we don't force load them if they're not already loaded
-                                iatCache = new Dictionary<RawOffset, ImageThunkData>();
-
-                                for (var i = 0; i < importTable.Length; i++)
-                                {
-                                    var descriptor = importTable[i];
-
-                                    if (descriptor.ImportAddressTable.IsValid)
-                                    {
-                                        var iat = descriptor.ImportAddressTable.Value;
-
-                                        if (iat == null) //The last entry is null
-                                            continue;
-
-                                        for (var j = 0; j < iat.Length; j++)
-                                        {
-                                            var item = iat[j];
-
-                                            iatCache.Add(item.Offset, item);
-                                        }
-                                    }
-                                }
-                            }
-
-                            while (read < OptionalHeader.ImportAddressTableDirectory.Size)
-                            {
-                                var itemOffset = offset + read;
-
-                                if (iatCache == null || !iatCache.TryGetValue(itemOffset, out var thunk))
-                                {
-                                    reader.Seek(itemOffset);
-
-                                    thunk = new ImageThunkData(reader, this, is32Bit, true);
-                                }
-
-                                results.Add(thunk);
-
-                                read += thunkDataSize;
-                            }
-
-                            importAddressTable = results.ToArray();
-                        }
-                    }
-
-                    SetRegionFlag(PERegionKind.ImportAddressTable);
-                }
-
-                return importAddressTable;
-            }
-        }
-#endif
 
         #endregion
         #region Delay Import Table (13)
@@ -1806,7 +1801,7 @@ namespace PESpy
         public FileView GetView(ViewMode mode = ViewMode.Default)
         {
             var writer = GetViewWriter(mode, null);
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
@@ -1815,7 +1810,7 @@ namespace PESpy
         {
             var writer = GetViewWriter(mode, viewDisassembler);
 
-            ((IViewable) this).WriteView(writer);
+            ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
@@ -1823,7 +1818,7 @@ namespace PESpy
         public unsafe IView GetView(IViewable viewable, ViewMode mode = ViewMode.Default)
         {
             var writer = GetViewWriter(mode, null);
-            viewable.WriteView(writer);
+            viewable.WriteStruct(writer);
 
             if (writer.Current.Count != 1)
                 throw new NotImplementedException();
@@ -1831,7 +1826,6 @@ namespace PESpy
             return writer.Current[0];
         }
 
-#if PEFAST
         private unsafe PEViewWriter GetViewWriter(ViewMode mode, IViewDisassembler? viewDisassembler)
         {
             GetRawPointer(out var pointer, out var length);
@@ -1841,7 +1835,8 @@ namespace PESpy
             return writer;
         }
 
-        private unsafe void GetRawPointer(out byte* pointer, out int length)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawPointer(out byte* pointer, out int length)
         {
             if (blockProvider is LocalMemoryBlockProvider l)
             {
@@ -1922,58 +1917,6 @@ namespace PESpy
             //If the PEFile is a memory mapped file, this is a no-op
             headerBlock.Resize(ntHeaders.OptionalHeader.SizeOfHeaders);
         }
-#else
-        private IFileReader reader;
-        private object readerLock = new object();
-        private volatile int flags;
-        private bool disposed;
-
-        internal IFileServices? Services { get; }
-
-        internal PEFile(IFileReader reader)
-        {
-            IsLoadedImage = false;
-            (this.reader, this.readerLock) = ((StreamFileReader) reader).CreateSubReader();
-        }
-
-        private PEFile(Stream stream, bool isLoadedImage, IFileServices? services)
-        {
-            //Reading strings from a FileStream is very slow, so use an MMF reader instead
- 
-            reader = new StreamFileReader(stream, readerLock);
-
-            IsLoadedImage = isLoadedImage;
-            Services = services;
-
-#if STRESS_TEST
-            _ = DosHeader;
-            _ = DosStub;
-            _ = RichHeader;
-            _ = NtHeaders;
-            _ = SectionHeaders;
-
-            _ = ExportTable;
-            _ = ImportTable;
-            _ = ResourceDirectory;
-            _ = ExceptionTable;
-            _ = SecurityTable;
-            _ = BaseRelocationTable;
-            _ = DebugTable;
-            //_ = CopyrightTable;
-            //_ = GlobalPointerTable;
-            _ = TlsDirectory;
-            _ = LoadConfigTable;
-            _ = BoundImportTable;
-            _ = ImportAddressTable;
-            _ = DelayImportTable;
-            _ = Cor20Header;
-            _ = ILMethods;
-
-            _ = ReadyToRunHeader;
-            _ = AppHostSignature;
-#endif
-        }
-#endif
 
         ~PEFile()
         {
@@ -2119,7 +2062,7 @@ namespace PESpy
         /// </summary>
         /// <param name="rva">The RVA whose containing section should be found.</param>
         /// <returns>The index of section that contains the RVA, or -1 if none was found.</returns>
-        public int GetSectionContainingRVA(RVA rva)
+        public int GetSectionContainingRVA(int rva)
         {
             if (rva == 0)
                 return -1;
@@ -2141,7 +2084,7 @@ namespace PESpy
             return -1;
         }
 
-        public int GetSectionContainingOffset(RawOffset offset)
+        public int GetSectionContainingOffset(int offset)
         {
             //Offsets returned from TryGetOffset/TryGetDirectoryOffset are just RVAs
             if (IsLoadedImage)
@@ -2162,7 +2105,7 @@ namespace PESpy
             return -1;
         }
 
-        private bool TryGetDirectoryChunk(in ImageDataDirectory entry, out MemoryChunk chunk)
+        internal bool TryGetDirectoryChunk(in ImageDataDirectory entry, out MemoryChunk chunk)
         {
             if (TryGetSectionBlockFromRVA(entry.VirtualAddress, out var block, out var relativeOffset))
             {
@@ -2195,9 +2138,6 @@ namespace PESpy
         {
             if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
             {
-                //We don't know what memory they want, so I guess we need to demand all of it?
-                block!.Demand();
-
                 chunk = new MemoryChunk(block!, relativeOffset);
                 return true;
             }
@@ -2225,7 +2165,14 @@ namespace PESpy
                 return true;
             }
 
-            if (IsLoadedImage)
+            //IsLoadedImage can be false for in-memory modules
+            if (headerBlock is LocalHeaderMemoryBlock)
+            {
+                //In an unloaded image, our header block technically provides access to the entire module
+                chunk = new MemoryChunk(headerBlock, offset);
+                return true;
+            }
+            else
             {
                 //The value isn't part of any known section, but if it's part of the header, we can do something with that
                 if (offset < OptionalHeader.SizeOfHeaders)
@@ -2319,15 +2266,50 @@ namespace PESpy
             return block;
         }
 
-        public unsafe void GetRawSectionData(int rva, out byte* ptr, out int length)
+        public unsafe void GetRawSectionDataFromRVA(int rva, out byte* ptr, out int remainingLength)
         {
-            if (TryGetSectionBlockFromRVA(rva, out var block, out var offset))
+            if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
             {
-                block.Demand();
-                ptr = block.LocalPointer + offset;
-                length = block.Length - offset;
+                ptr = block.LocalPointer + relativeOffset;
+                remainingLength = block.Length - relativeOffset;
                 return;
             }
+
+            throw new BadImageFormatException();
+        }
+
+        public unsafe void GetRawSectionDataFromRVA(int rva, int sectionIndex, out byte* ptr, out int remainingLength)
+        {
+            ref var section = ref SectionHeaders[sectionIndex];
+
+            var block = GetSectionBlock(sectionIndex, section);
+
+            var relativeOffset = rva - section.VirtualAddress;
+            ptr = block.LocalPointer + relativeOffset;
+            remainingLength = block.Length - relativeOffset;
+        }
+
+        public unsafe void GetRawSectionDataFromOffset(int offset, out byte* ptr, out int remainingLength)
+        {
+            if (TryGetSectionBlockFromOffset(offset, out var block, out var relativeOffset))
+            {
+                ptr = block.LocalPointer + relativeOffset;
+                remainingLength = block.Length - relativeOffset;
+                return;
+            }
+
+            throw new BadImageFormatException();
+        }
+
+        public unsafe void GetRawSectionDataFromOffset(int offset, int sectionIndex, out byte* ptr, out int remainingLength)
+        {
+            ref var section = ref SectionHeaders[sectionIndex];
+
+            var block = GetSectionBlock(sectionIndex, section);
+
+            var relativeOffset = offset - section.PointerToRawData;
+            ptr = block.LocalPointer + relativeOffset;
+            remainingLength = block.Length - relativeOffset;
         }
 
         private bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)
@@ -2400,6 +2382,8 @@ namespace PESpy
             return false;
         }
 
+        ICodeView IFileWithCodeViewData.CodeViewData => throw new NotImplementedException(); //todo: try and lookup the relevant codeview debug table
+
         #endregion
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -2412,9 +2396,7 @@ namespace PESpy
 
             writer.WriteGlobal(ExportTable);
 
-#if !PEFAST
             writer.WriteUniqueGlobal(ImportAddressTable); //Write this before the Import Table as we want IAT entries to be in a data directory, not a logical region
-#endif
             writer.WriteGlobal(ImportTable);
             writer.WriteGlobal(ResourceDirectory);
             writer.WriteGlobal(ExceptionTable);
@@ -2435,13 +2417,15 @@ namespace PESpy
 
             //writer.WriteGlobal(ReadyToRunHeader);
 
-#if !PEFAST
             writer.WriteGlobal(AppHostSignature);
-#endif
             writer.WriteGlobal(ClrEngineMetrics);
             writer.WriteGlobal(RuntimeInfo);
             writer.WriteGlobal(DotNetRuntimeDebugHeader);
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

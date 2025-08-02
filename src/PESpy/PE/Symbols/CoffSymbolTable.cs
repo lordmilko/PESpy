@@ -11,7 +11,6 @@ namespace PESpy
     /// </summary>
     public class CoffSymbolTable : IValue, IViewable //Class so that it can be reused with IMAGE_DEBUG_TYPE_COFF
     {
-#if PEFAST
         private ImageSymbol[]? symbols;
 
         public ImageSymbol[] Symbols

@@ -60,7 +60,7 @@ namespace PESpy.Tests.SymStore
                             if (dir.Data is RSDSI r)
                                 yield return GetPDBKey(r.Path.ToString(), r.Guid, r.Age);
                             else if (dir.Data is ImageDebugMisc m)
-                                yield return GetKey(m.Data, _peFile.FileHeader.TimeDateStamp, _peFile.OptionalHeader.SizeOfImage); //I have checked this against symsrv and it's doing the right thing
+                                yield return GetKey(m.Data.ToString(), _peFile.FileHeader.TimeDateStamp, _peFile.OptionalHeader.SizeOfImage); //I have checked this against symsrv and it's doing the right thing
                         }
                     }
                 }

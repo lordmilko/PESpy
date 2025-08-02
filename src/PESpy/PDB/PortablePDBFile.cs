@@ -33,6 +33,8 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PortablePDB;
 
+        public int Length => globalBlock.Length;
+
         public EcmaMetadata EcmaMetadata { get; }
 
         private MemoryMappedFileHolder mmf;
@@ -82,6 +84,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

@@ -18,68 +18,76 @@ namespace PESpy.View.Builder
 
         internal override IView[] Merge()
         {
-            var results = new List<IView>();
+            var results = new PooledList<IView>();
 
-            //The LE Header may be followed by several additional sections at locations relative to the start of the LE Header itself
-
-            var sizeOfHeaders = leFile.DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
-
-            results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
-
-            var vxdHeader = leFile.VXDHeader;
-
-            var lastSectionEnd = sizeOfHeaders;
-
-            //Some offsets are relative to the beginning of the file, while others are relative to the beginning of the LE header
-            var offsets = new[]
+            try
             {
-                vxdHeader.OffsetOfObjectTable,
-                vxdHeader.OffsetOfObjectPageMap,
-                vxdHeader.OffsetOfResourceTable,
-                vxdHeader.OffsetOfResidentNameTable,
-                vxdHeader.OffsetOfEntryTable,
-                vxdHeader.OffsetOfModuleDirectiveTable,
-                //Resident Directives Data?
-                vxdHeader.OffsetOfPerPageChecksumTable,
-                vxdHeader.OffsetOfFixupPageTable,
-                vxdHeader.OffsetOfFixupRecordTable,
-                vxdHeader.OffsetOfImportModuleNameTable,
-                vxdHeader.OffsetOfEnumeratedDataPages   != 0 ? vxdHeader.OffsetOfEnumeratedDataPages   - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
-                vxdHeader.OffsetOfIteratedDataMap       != 0 ? vxdHeader.OffsetOfIteratedDataMap       - vxdHeader.Offset : 0,
-                vxdHeader.OffsetOfNonResidentNamesTable != 0 ? vxdHeader.OffsetOfNonResidentNamesTable - vxdHeader.Offset : 0,
-                vxdHeader.OffsetOfDebugInfo
-            };
+                //The LE Header may be followed by several additional sections at locations relative to the start of the LE Header itself
 
-#if DEBUG
-            for (var i = 1; i < offsets.Length; i++)
-            {
-                var current = offsets[i];
-                var previous = offsets[i - 1];
+                var sizeOfHeaders = leFile.DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
 
-                Debug.Assert(current == 0 || current >= previous);
+                results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+
+                var vxdHeader = leFile.VXDHeader;
+
+                var lastSectionEnd = sizeOfHeaders;
+
+                //Some offsets are relative to the beginning of the file, while others are relative to the beginning of the LE header
+                var offsets = new[]
+                {
+                    vxdHeader.OffsetOfObjectTable,
+                    vxdHeader.OffsetOfObjectPageMap,
+                    vxdHeader.OffsetOfResourceTable,
+                    vxdHeader.OffsetOfResidentNameTable,
+                    vxdHeader.OffsetOfEntryTable,
+                    vxdHeader.OffsetOfModuleDirectiveTable,
+                    //Resident Directives Data?
+                    vxdHeader.OffsetOfPerPageChecksumTable,
+                    vxdHeader.OffsetOfFixupPageTable,
+                    vxdHeader.OffsetOfFixupRecordTable,
+                    vxdHeader.OffsetOfImportModuleNameTable,
+                    vxdHeader.OffsetOfEnumeratedDataPages   != 0 ? vxdHeader.OffsetOfEnumeratedDataPages   - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
+                    vxdHeader.OffsetOfIteratedDataMap       != 0 ? vxdHeader.OffsetOfIteratedDataMap       - vxdHeader.Offset : 0,
+                    vxdHeader.OffsetOfNonResidentNamesTable != 0 ? vxdHeader.OffsetOfNonResidentNamesTable - vxdHeader.Offset : 0,
+                    vxdHeader.OffsetOfDebugInfo
+                };
+
+    #if DEBUG
+                for (var i = 1; i < offsets.Length; i++)
+                {
+                    var current = offsets[i];
+                    var previous = offsets[i - 1];
+
+                    Debug.Assert(current == 0 || current >= previous);
+                }
+    #endif
+                int index = 0;
+                ReadTable("Object Table",             offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Object Page Map",          offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Resource Table",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Resident Name Table",      offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Entry Table",              offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Module Directive Table",   offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Per-Page Checksum",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Fixup Page Table",         offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Fixup Record Table",       offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Import Module Name Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Enumerated Data Pages",    offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Iterated Data Map",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadTable("Non-Resident Names Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
+                ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, vxdHeader.DebugInfoLength);
+                Debug.Assert(index == offsets.Length);
+
+                return results.ToArray();
             }
-#endif
-            int index = 0;
-            ReadTable("Object Table",             offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Object Page Map",          offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Resource Table",           offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Resident Name Table",      offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Entry Table",              offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Module Directive Table",   offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Per-Page Checksum",        offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Fixup Page Table",         offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Fixup Record Table",       offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Import Module Name Table", offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Enumerated Data Pages",    offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Iterated Data Map",        offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadTable("Non-Resident Names Table", offsets, vxdHeader, ref index, ref lastSectionEnd, results);
-            ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, results, vxdHeader.DebugInfoLength);
-            Debug.Assert(index == offsets.Length);
-
-            return results.ToArray();
+            finally
+            {
+                results.Dispose();
+            }
+            
         }
 
-        private void ReadTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, List<IView> results)
+        private void ReadTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, ref PooledList<IView> results)
         {
             var current = offsets[index];
             index++;
@@ -115,14 +123,14 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, results);
+            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
             results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
 
             lastSectionEnd = end;
         }
 
-        private void ReadLastTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, List<IView> results, int length)
+        private void ReadLastTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, ref PooledList<IView> results, int length)
         {
             var current = offsets[index];
             Debug.Assert(index == offsets.Length - 1); //This should be the last entry
@@ -135,7 +143,7 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, results);
+            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
             results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
 

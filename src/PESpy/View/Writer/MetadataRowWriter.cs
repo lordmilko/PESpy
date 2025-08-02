@@ -18,8 +18,6 @@ namespace PESpy.View
 
             public int Size => currentOffset - startOffset;
 
-            internal MetadataRowWriter(string name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
-            internal MetadataRowWriter(FixedUtf8String name, RawOffset startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
             internal MetadataRowWriter(FixedUtf8String name, int startOffset, ViewKind kind, PEViewWriter viewWriter, bool shouldAdd)
             {
                 structName = name;
@@ -29,6 +27,18 @@ namespace PESpy.View
                 this.viewWriter = viewWriter;
                 fields = viewWriter.RentList();
                 this.shouldAdd = shouldAdd;
+            }
+
+            internal MetadataRowWriter(int startOffset, PEViewWriter viewWriter)
+            {
+                this.startOffset = startOffset;
+                currentOffset = startOffset;
+                this.viewWriter = viewWriter;
+                fields = viewWriter.RentList();
+
+                kind = default;
+                shouldAdd = default;
+                structName = default;
             }
 
             internal void WriteValue(string name, byte value) =>
@@ -157,11 +167,13 @@ namespace PESpy.View
                 currentOffset += size;
             }
 
+            public IView[] ToArray() => fields.ToArray();
+
             public void Dispose()
             {
                 if (shouldAdd)
                 {
-                    var structView = new StructView(startOffset, structName, fields.ToArray(), Size, kind);
+                    var structView = new StructView<object>(startOffset, structName, default, fields.ToArray(), Size, kind, viewWriter);
 
                     viewWriter.AddView(structView);    
                 }
