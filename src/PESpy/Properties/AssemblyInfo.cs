@@ -2,7 +2,9 @@
 
 [assembly: InternalsVisibleTo("PESpy.Benchmarks")]
 [assembly: InternalsVisibleTo("PESpy.Tests")]
-[assembly: InternalsVisibleTo("App")]
+[assembly: InternalsVisibleTo("PESpyUI")]
+[assembly: InternalsVisibleTo("ReAnalyze")]
+[assembly: InternalsVisibleTo("SymHelp")]
 
 //init only properties require this type be defined, which is not present in .NET Standard / .NET Framework
 namespace System.Runtime.CompilerServices

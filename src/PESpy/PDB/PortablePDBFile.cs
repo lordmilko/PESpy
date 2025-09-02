@@ -24,6 +24,27 @@ namespace PESpy
             }
         }
 
+        /// <summary>
+        /// Locates a file on the symbol server and opens it as a <see cref="PortablePDBFile"/>.
+        /// </summary>
+        /// <param name="symStoreKey">The <see cref="SymStoreKey"/> describing the file that should be located and opened.</param>
+        /// <returns>A <see cref="PortablePDBFile"/> that provides access to the contents of the specified file.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="SymStoreKey"/> cannot be opened as a <see cref="PortablePDBFile"/>.</exception>
+        public static PortablePDBFile FromKey(SymStoreKey symStoreKey)
+        {
+            switch (symStoreKey.Kind)
+            {
+                case SymStoreKeyKind.PDB:
+                case SymStoreKeyKind.PortablePDB:
+                    var path = Locator.Locate(symStoreKey);
+
+                    return FromFile(path);
+
+                default:
+                    throw new ArgumentException($"{nameof(SymStoreKey)} '{symStoreKey}' of type '{symStoreKey.Kind}' cannot be opened as a {nameof(PortablePDBFile)}");
+            }
+        }
+
         /// <inheritdoc/>
         public string? Name { get; private set; }
 
@@ -61,7 +82,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            throw new NotImplementedException();
+            writer.WriteGlobal(EcmaMetadata);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

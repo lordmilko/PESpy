@@ -79,6 +79,9 @@ namespace PESpy.PDB
         /// <inheritdoc cref="COMPILESYM.verSt"/>
         public FixedUtf8String verSt => SymType.ReadString(value, value->verSt);
 
+        //Following vertSt may be an optional block of zero terminated environment strings terminated with a double zero.
+        //todo: read these. theyre in coreclr.pdb for example
+
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

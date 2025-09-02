@@ -1,44 +1,67 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct GuardAddressTakenIatEntryTable : IValue, IViewable
+    internal class GuardAddressTakenIatEntryTableDebugView
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public Entry[] Entries { get; }
+        private GuardAddressTakenIatEntryTable table;
 
-        public int Offset { get; }
+        public GuardAddressTakenIatEntryTableDebugView(GuardAddressTakenIatEntryTable table)
+        {
+            this.table = table;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public GuardAddressTakenIatEntryTable.Entry[] Items => table.ToArray();
+    }
+
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(GuardCFFunctionTableDebugView))]
+    public readonly struct GuardAddressTakenIatEntryTable : IValue, IViewable, IEnumerable<GuardAddressTakenIatEntryTable.Entry>
+    {
+        public int Count { get; }
+
+        public int Offset => chunk.AbsoluteOffset;
+
+        internal int StructSize => Count * (sizeof(int) + metadataSize);
 
         private readonly MemoryChunk chunk;
-        private readonly int length;
+        private readonly byte metadataSize;
 
         internal GuardAddressTakenIatEntryTable(in MemoryChunk chunk, IMAGE_GUARD flags, long entryCount)
         {
             this.chunk = chunk;
 
-            Offset = (int) chunk.AbsoluteOffset;
+            Count = (int) entryCount;
 
             //See GuardCFFunctionTable for info
             var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
-
-            var entries = new Entry[entryCount];
-
-            var read = 0;
-
-            for (var i = 0; i < entryCount; i++)
-            {
-                entries[i] = new Entry(chunk.Slice(read), metadataSize);
-                read += 4 + metadataSize;
-            }
-
-            //We either need to store length or metadataSize to calculate the IView size, and using metadataSize will mean
-            //we need to also multiply by the number of entries and do 4 + metadataSize for each item. May as well just store
-            //length
-            this.length = read;
-
-            Entries = entries;
         }
+
+        public Entry this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= Count)
+                    throw new IndexOutOfRangeException();
+
+                var peFile = chunk.PEFile();
+                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+
+                return entry;
+            }
+        }
+
+        public Enumerator GetEnumerator() => new Enumerator(Count, metadataSize, chunk);
+
+        IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -46,13 +69,13 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.GuardAddressTakenIatEntryTable, this, ViewKind.GuardAddressTakenIatEntryTable, length);
+            writer.NewStruct(Strings.GuardAddressTakenIatEntryTable, this, ViewKind.GuardAddressTakenIatEntryTable, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteInline(Entries);
+            s.WriteInline(this);
 
             return s.ToArray();
         }
@@ -265,6 +288,47 @@ namespace PESpy
                     s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
 
                 return s.ToArray();
+            }
+        }
+
+        public struct Enumerator : IEnumerator<Entry>
+        {
+            private readonly MemoryChunk chunk;
+            private int index;
+            private readonly int count;
+            private readonly int metadataSize;
+
+            internal Enumerator(int count, int metadataSize, in MemoryChunk chunk)
+            {
+                this.chunk = chunk;
+                this.count = count;
+                this.metadataSize = metadataSize;
+                index = default;
+            }
+
+            public Entry Current { get; private set; }
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext()
+            {
+                if (index < count)
+                {
+                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+                    index++;
+                    return true;
+                }
+
+                Current = default;
+                return false;
+            }
+
+            public void Reset()
+            {
+            }
+
+            public void Dispose()
+            {
             }
         }
     }

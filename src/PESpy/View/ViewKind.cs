@@ -136,6 +136,8 @@ namespace PESpy.View
         /// </summary>
         ImageExportDirectory,
 
+        ImageExportDirectory_Name,
+
         /// <summary>
         /// A <see cref="LogicalRegionView"/> that encapsulates the <see cref="ImageExportDirectory.AddressOfFunctions"/> region.
         /// </summary>
@@ -158,6 +160,8 @@ namespace PESpy.View
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageImportDescriptor"/>.
         /// </summary>
         ImageImportDescriptor,
+
+        ImageImportDescriptor_Name,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageThunkData"/>.
@@ -249,6 +253,14 @@ namespace PESpy.View
         /// </summary>
         ClrDebugResource,
 
+        MessageResourceData,
+
+        MessageResourceBlock,
+
+        MessageResourceEntry,
+
+        Manifest,
+
         #endregion
         #region Exception Table (3)
 
@@ -329,6 +341,7 @@ namespace PESpy.View
 
         ImageEnclaveConfig,
         ImageEnclaveImport,
+        ImageEnclaveImport_ImportName,
 
         GuardAddressTakenIatEntryTable,
         GuardCFFunctionTable,
@@ -371,7 +384,9 @@ namespace PESpy.View
         #region Bound Import Table (11)
 
         ImageBoundImportDescriptor,
+        ImageBoundImportDescriptor_Name,
         ImageBoundForwarderRef,
+        ImageBoundForwarderRef_Name,
 
         #endregion
         #region Import Address Table (12)
@@ -491,20 +506,28 @@ namespace PESpy.View
 
         RuntimeInfo,
         ModuleIndex,
+        ClrEngineMetrics,
 
         //Native AOT
         DotNetRuntimeDebugHeader,
         DebugTypeEntries,
         GlobalValueEntries,
         DebugTypeEntry,
+        DebugTypeEntry_TypeName,
+        DebugTypeEntry_FieldName,
         GlobalValueEntry,
+        GlobalValueEntry_Name,
 
         #endregion
 
         //NE
         NEFile,
+        NE_ImportedName_Length,
+        NE_ImportedName_String,
+        NE_ModuleReference,
         ImageOS2Header,
         NewSeg,
+        NonResidentNameTable,
 
         //LE
         LEFile,
@@ -514,6 +537,7 @@ namespace PESpy.View
 
         PDBFile,
 
+        PN,
         Page,
 
         //MSF
@@ -554,6 +578,11 @@ namespace PESpy.View
         SymType,
         TypType,
 
+        PdbFeature,
+        CvSignature,
+        HRFile,
+        HashBuckets,
+
         CvDebugSSubsectionHeader,
         CvFileCheckSum,
         RvaAndFrameData,
@@ -577,10 +606,14 @@ namespace PESpy.View
         //OBJ
 
         OBJFile,
+        InterSectionData,
+        Relocations,
 
         //LIB
 
         LIBFile,
+
+        LIBFile_Signature,
 
         ImageArchiveMemberHeader,
         FirstLinkerMember,
@@ -588,11 +621,19 @@ namespace PESpy.View
         LongNamesMember,
         LongImportLibraryMember,
         ShortImportLibraryMember,
+        ShortImportLibrary_DllName,
+        ShortImportLibrary_ImportName,
         ImportObjectHeader,
 
         //OMF
         NB05Data,
         OMFDirHeader,
-        OMFDirEntry
+        OMFDirEntry,
+        CodeViewSig,
+        OMFModule,
+        OMFSymHash,
+
+        //DOS
+        DOSFile
     }
 }

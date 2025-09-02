@@ -57,11 +57,13 @@ namespace PESpy.Ecma335
             }
         }
 
-        public IEnumerator<UserString> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        IEnumerator<UserString> IEnumerable<UserString>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<UserString>
+        public struct Enumerator : IEnumerator<UserString>
         {
             public UserString Current { get; private set; }
 

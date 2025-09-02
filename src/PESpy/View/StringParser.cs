@@ -47,21 +47,23 @@ namespace PESpy.View
 
         internal const int MinimumStringLength = 5; //4 + \0
 
-        internal static ExtractedString[] GetAnsiNullTerminated(NativeSpan<byte> bytes)
+        internal static unsafe ExtractedString[] GetAnsiNullTerminated(byte* bytes, int bytesLength)
         {
             var results = new PooledList<ExtractedString>();
 
+            var arr = displayableAscii;
+
             try
             {
-                for (var i = 0; i < bytes.Length; i++)
+                for (var i = 0; i < bytesLength; i++)
                 {
                     var b = bytes[i];
 
-                    if (b < 0x7F && displayableAscii[b])
+                    if (b < 0x7F && arr[b])
                     {
                         //We potentially found the start of an ASCII string. Continue reading characters as long as valid until we hit a \0
 
-                        GetAnsiWorker(ref i, bytes, ref results);
+                        GetAnsiWorker(ref i, bytes, bytesLength, ref results);
                     }
                 }
 
@@ -73,30 +75,33 @@ namespace PESpy.View
             }
         }
 
-        public static ExtractedString[] GetStrings(NativeSpan<byte> bytes)
+        //Don't use Span/NativeSpan, it's too slow indexing into it
+        public unsafe static ExtractedString[] GetStrings(byte* bytes, int bytesLength)
         {
             var results = new PooledList<ExtractedString>();
 
+            var arr = displayableAscii;
+
             try
             {
-                for (var i = 0; i < bytes.Length; i++)
+                for (var i = 0; i < bytesLength; i++)
                 {
                     var b = bytes[i];
 
-                    if (b < 0x7F && displayableAscii[b])
+                    if (b < 0x7F && arr[b])
                     {
                         //It's either an ASCII string or a unicode string
 
-                        if (i < bytes.Length - 1 && bytes[i + 1] == 0)
+                        if (i < bytesLength - 1 && bytes[i + 1] == 0)
                         {
                             //It's either a random value followed by a 0, or a unicode string
 
-                            GetUnicodeWorker(ref i, bytes, false, ref results);
+                            GetUnicodeWorker(ref i, bytes, bytesLength, false, ref results);
                         }
                         else
                         {
                             //Try for a simple ASCII then
-                            GetAnsiWorker(ref i, bytes, ref results);
+                            GetAnsiWorker(ref i, bytes, bytesLength, ref results);
                         }
                     }
                 }
@@ -110,13 +115,15 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetAnsiWorker(ref int i, NativeSpan<byte> bytes, ref PooledList<ExtractedString> results)
+        private static unsafe void GetAnsiWorker(ref int i, byte* bytes, int bytesLength, ref PooledList<ExtractedString> results)
         {
             var foundEnd = false;
 
             int j = i + 1;
 
-            for (; j < bytes.Length; j++)
+            var arr = displayableAscii;
+
+            for (; j < bytesLength; j++)
             {
                 var b2 = bytes[j];
 
@@ -126,7 +133,7 @@ namespace PESpy.View
                     break;
                 }
 
-                if (!displayableAscii[b2])
+                if (!arr[b2])
                 {
                     //Not only was it not a valid string, but everything we read implicitly is also invalid
                     break;
@@ -139,12 +146,12 @@ namespace PESpy.View
                 //the first character of an _actual_ unicode string! To detect this, we'll try and read the next two characters. If they look like unicode characters, we're trampling over
                 //another string; rewind and bail out
 
-                if (j < bytes.Length - 2)
+                if (j < bytesLength - 2)
                 {
                     var u1 = bytes[j + 1];
 
                     //Don't consider a \0\0 here; not only might there just be padding after us, but also if it's \0\0, clearly we haven't run into another string!
-                    if (displayableAscii[u1] && bytes[j + 2] == 0)
+                    if (arr[u1] && bytes[j + 2] == 0)
                     {
                         i = j - 2;
                         return;
@@ -155,7 +162,7 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength) //4 characters + \0
                 {
-                    var str = new AnsiString(bytes.Slice(i));
+                    var str = new AnsiString(bytes + i);
 
                     results.Add(new ExtractedString
                     {
@@ -169,14 +176,15 @@ namespace PESpy.View
             i = j - 1;
         }
 
+        //Don't pass NativeSpan around; it's too slow indexing into it
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetUnicodeWorker(ref int i, NativeSpan<byte> bytes, bool nullTerminated, ref PooledList<ExtractedString> results)
+        private static unsafe void GetUnicodeWorker(ref int i, byte* bytes, int bytesLength, bool nullTerminated, ref PooledList<ExtractedString> results)
         {
             var foundEnd = false;
 
             int j = i + 2;
 
-            for (; j < bytes.Length - 1; j++)
+            for (; j < bytesLength - 1; j++)
             {
                 var b2 = bytes[j];
 
@@ -216,7 +224,7 @@ namespace PESpy.View
 
                 if (length >= MinimumStringLength * 2) //4 characters
                 {
-                    var str = new FixedUtf16String((char*) (byte*) bytes.Slice(i), length / 2);
+                    var str = new FixedUtf16String((char*) (byte*) bytes + i, length / 2);
 
                     results.Add(new ExtractedString
                     {

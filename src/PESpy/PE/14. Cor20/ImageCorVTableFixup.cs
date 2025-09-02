@@ -7,10 +7,19 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageCorVTableFixup : IValue
     {
+        /// <summary>
+        /// Offset of v-table array in image.
+        /// </summary>
         public int RVA => chunk.PeekInt32(0);
 
+        /// <summary>
+        /// How many entries at location.
+        /// </summary>
         public short Count => chunk.PeekInt16(4);
 
+        /// <summary>
+        /// COR_VTABLE_xxx type of entries.
+        /// </summary>
         public COR_VTABLE Type => (COR_VTABLE) chunk.PeekUInt16(6);
 
         public int Offset => chunk.AbsoluteOffset;

@@ -74,6 +74,8 @@ namespace PESpy
                             {
                                 Debug.Assert(false);
                             }
+
+                            read = (read + 3) & ~3;
                         } while (read < length);                        
 
                         children = results.ToArray();

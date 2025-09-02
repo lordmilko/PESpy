@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -14,12 +16,13 @@ namespace PESpy.PDB
         
         //Names are physically located after NameBufferSize and before NumOffsets
 
-        public int NumOffsets => chunk.PeekInt32(VHdr.StructSize + 4 + NameBufferSize);
+        public int NumOffsets => chunk.PeekInt32(VHdr.StructSize + sizeof(int) + NameBufferSize);
 
-        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(VHdr.StructSize + 4 + NameBufferSize + 4, NumOffsets);
+        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(VHdr.StructSize + sizeof(int) + NameBufferSize + sizeof(int), NumOffsets);
 
         //Not sure exactly what NumStrings is; an empty DBI has 1 offset, a null string
-        public int NumStrings => chunk.PeekInt32(VHdr.StructSize + 4 + NameBufferSize + 4 + (NumOffsets * 4));
+        //I feel like maybe it's "cni"
+        public int NumStrings => chunk.PeekInt32(VHdr.StructSize + sizeof(int) + NameBufferSize + sizeof(int) + (NumOffsets * sizeof(int)));
 
         private RawValue<AnsiString>[]? strings;
 
@@ -35,7 +38,7 @@ namespace PESpy.PDB
 
                     for (var i = 0; i < offsets.Length; i++)
                     {
-                        var off = VHdr.StructSize + 4 + offsets[i];
+                        var off = VHdr.StructSize + sizeof(int) + offsets[i];
                         strs[i] = new RawValue<AnsiString>(off + chunk.AbsoluteOffset, chunk.PeekAnsiNullTerminatedString(off));
                     }
 

@@ -18,7 +18,7 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
-        public Span<CV_ItemId> arg => new Span<CV_ItemId>(value->arg, count); //You can index into this using CV_BuildInfo_e
+        public TypOrEnumTypeList<CV_ItemId> arg => new TypOrEnumTypeList<CV_ItemId>(new NativeSpan<CV_ItemId>(value->arg, count)); //You can index into this using CV_BuildInfo_e
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

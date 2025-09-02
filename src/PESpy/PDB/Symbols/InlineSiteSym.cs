@@ -24,7 +24,15 @@ namespace PESpy.PDB
         public int pEnd => value->pEnd;
 
         /// <inheritdoc cref="INLINESITESYM.inlinee"/>
-        public CV_ItemId inlinee => value->inlinee;
+        public TypOrEnumType inlinee => new TypOrEnumType((byte*) value, value->inlinee);
+
+        public BinaryAnnotationList binaryAnnotations => new BinaryAnnotationList(((byte*) value) + FixedStructSize, (reclen + 2) - FixedStructSize);
+
+        #region PESpy
+
+        public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
@@ -36,11 +44,11 @@ namespace PESpy.PDB
         internal InlineSiteSym(INLINESITESYM* value)
         {
             this.value = value;
+        }
 
-            //There is complex logic required to parse binary annotations.
-            //See dumpsym7.cpp!C17BinaryAnnotations
-
-            //Debug.Assert(false, "binaryAnnotations. Anything that is a compressed binary annotation is apparently a PCompressedBinaryAnnotation (just a uint8) but can be decompressed into a BinaryAnnotationOpcode using CVUncompressData (which may be the same as CorSigUncompressData?) dumppdb.cpp has examples for several of these");
+        public override string ToString()
+        {
+            return inlinee.ToString();
         }
     }
 }

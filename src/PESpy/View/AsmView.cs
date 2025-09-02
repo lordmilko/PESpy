@@ -51,7 +51,8 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public T[] Instructions => range.Instructions;
 
-        public AsmView(RawOffset offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
+        public void Format(in T instr, object context) => range.viewDisassembler.FormatInstruction(instr, context);
+
         public AsmView(int offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;

@@ -8,6 +8,10 @@ namespace PESpy.PDB
 
         int cbSyms { get; }
 
+        AnsiString szModule { get; }
+
+        AnsiString szObjFile { get; }
+
         PDBModuleSymbols? Symbols { get; }
     }
 }

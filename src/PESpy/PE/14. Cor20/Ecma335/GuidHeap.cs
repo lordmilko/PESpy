@@ -51,11 +51,13 @@ namespace PESpy.Ecma335
             }
         }
 
-        public IEnumerator<RawValue<Guid>> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        IEnumerator<RawValue<Guid>> IEnumerable<RawValue<Guid>>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<RawValue<Guid>>
+        public struct Enumerator : IEnumerator<RawValue<Guid>>
         {
             public RawValue<Guid> Current { get; private set; }
 

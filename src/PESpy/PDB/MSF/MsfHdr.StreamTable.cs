@@ -55,7 +55,7 @@ namespace PESpy.PDB
                     streamPersists[i] = new SI_PERSIST(chunk.Slice(sizeof(int) + (i * SI_PERSIST.StructSize)));
 
                 //Skip over NumStreams + StreamSizes
-                var pagesChunk = chunk.Slice(4 + (NumStreams * SI_PERSIST.StructSize));
+                var pagesChunk = chunk.Slice(sizeof(int) + (NumStreams * SI_PERSIST.StructSize));
 
                 for (var i = 0; i < numStreams; i++)
                 {

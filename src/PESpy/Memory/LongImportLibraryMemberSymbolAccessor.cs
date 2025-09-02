@@ -31,6 +31,11 @@ namespace PESpy
             throw new System.NotImplementedException();
         }
 
+        public TypType GetTypTypeFromIndex(CV_ItemId typeIndex)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public int? GetRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
     }

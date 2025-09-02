@@ -66,10 +66,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitValueView<TValue>(Offset, Value, Size - diff);
+                first = new SplitValueView<TValue>(Offset, Value, Size - diff, Kind);
             }
 
-            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff);
+            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff, Kind);
             second.Previous = first;
             first.Next = second;
 
@@ -86,7 +86,7 @@ namespace PESpy.View
                 throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
             }
 
-            return new SplitValueView<TValue>(newOffset, Value, Size);
+            return new SplitValueView<TValue>(newOffset, Value, Size, Kind);
         }
     }
 
@@ -96,7 +96,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitValueView(RawOffset offset, TValue value, int size) : base(offset, value, size)
+        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind) : base(offset, value, size, viewKind)
         {
         }
     }

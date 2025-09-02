@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using PESpy.PDB;
 
 #nullable disable
@@ -6,22 +7,11 @@ using PESpy.PDB;
 namespace PESpy.View.Builder
 {
     //Merges PDBs that use MSF. PDB v1 does not use MSF
-    internal class PdbMsfMerger : Merger
+    internal ref partial struct Merger
     {
-        internal PDBFile pdbFile;
-
         internal Dictionary<PN, int> pageNumberToSIIndex;
 
-        internal PdbMsfMerger(
-            PDBFile pdbFile,
-            List<IView> sortedStructs,
-            List<DirectoryInfo> pages,
-            Extension extension) : base(sortedStructs, null, pages, extension)
-        {
-            this.pdbFile = pdbFile;
-        }
-
-        internal override IView[] Merge()
+        internal IView[] MergePDB()
         {
             //When a value spans multiple pages, we'll split the value. The page that the first half is in
             //may be far away from the page that the second half is in. The way we figure out what our "next" page is
@@ -29,8 +19,10 @@ namespace PESpy.View.Builder
             //we'll lookup the SI (which is a struct), find the index of our current page, and then the index of the page after it.
             //That page will be used as the starting offset of the split value
 
+            var pdbFile = (PDBFile) file;
+
             if (pdbFile is PDB1File)
-                throw new System.NotImplementedException();
+                throw new NotImplementedException("Handling a PDB1File is not implemented");
 
             var streamInfos = pdbFile.StreamTable.StreamInfos;
 

@@ -84,6 +84,8 @@ namespace PESpy.PDB
             }
         }
 
+        public static SymType NextSymbol(in SymType symType) => (SymType) (SYMTYPE*) (((byte*) (SYMTYPE*) symType) + GetSymbolLength(symType));
+
         internal static FixedUtf8String ReadString<T>(T* symType, byte* start) where T : unmanaged
         {
             //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
@@ -161,45 +163,6 @@ namespace PESpy.PDB
             return accessor.GetModuleSymbol(imod, ibSym);
         }
 
-        internal static IModi? GetPDBModuleFromSectionAddress<T>(T* symType, ushort seg, int off) where T : unmanaged
-        {
-            //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
-
-            var dbi = ((PDBFile?) SymbolMemoryTracker.GetAccessor((long) symType))?.DBI;
-
-            if (dbi == null)
-                return default;
-
-            var sectionContribs = dbi.SectionContribs;
-
-            if (sectionContribs == null)
-                return default;
-
-            var modules = dbi.Modules;
-
-            if (modules == null)
-                return default;
-
-            var sectionHeaders = dbi.SectionHdr;
-
-            if (sectionHeaders == null || seg > sectionHeaders.Length)
-                return default;
-
-            //Getting the section is easy; the hard part is identifying the module
-            if (!sectionContribs.TryGetSection(seg, off, out var sc))
-                return default;
-
-            //Module numbers are 1 based
-            if (sc.imod > modules.Length)
-                return default;
-
-            //microsoft-pdb calls ximodForIMod which does +1 to this value. an ximod is an "external" imod,
-            //which is 1 based, which means that the actual module indices on the raw SC items are 0 based
-            var module = modules[sc.imod];
-
-            return module;
-        }
-
         //Note: can only be used when a symbol actually came from a PDB File, and not an OBJ file or NB05 record
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool TryPDBGetSectionContrib(SYMTYPE* symType, ushort seg, int off, out SC40 sc)
@@ -263,6 +226,163 @@ namespace PESpy.PDB
                 return false;
 
             return true;
+        }
+
+        public static bool IsBlockSym(SYM_ENUM_e type)
+        {
+            //msdia140!isBlockSym
+            switch (type)
+            {
+                //ThunkSym16
+                case S_THUNK16: //Not supported by DIA
+
+                //ThunkSym32
+                case S_THUNK32:
+                case S_THUNK32_ST: //Not supported by DIA
+
+                //BlockSym16
+                case S_BLOCK16: //Not supported by DIA
+
+                //BlockSym32
+                case S_BLOCK32:
+                case S_BLOCK32_ST: //Not supported by DIA
+                case S_WITH32:
+                case S_WITH32_ST: //Not supported by DIA
+
+                //ProcSym32_16t
+                case S_LPROC32_16t: //Not supported by DIA
+                case S_GPROC32_16t: //Not supported by DIA
+
+                //ProcSym32
+                case S_LPROC32:
+                case S_LPROC32_ST: //Not supported by DIA
+                case S_GPROC32:
+                case S_GPROC32_ST: //Not supported by DIA
+                case S_LPROC32_DPC: //No ST
+
+                //ProcSymMips_16t
+                case S_LPROCMIPS_16t: //Not supported by DIA
+                case S_GPROCMIPS_16t: //Not supported by DIA
+
+                //ProcSymMips
+                case S_LPROCMIPS:
+                case S_LPROCMIPS_ST: //Not supported by DIA
+                case S_GPROCMIPS:
+                case S_GPROCMIPS_ST: //Not supported by DIA
+
+
+                //ProcSymIA64
+                case S_LPROCIA64:
+                case S_LPROCIA64_ST: //Not supported by DIA
+                case S_GPROCIA64:
+                case S_GPROCIA64_ST: //Not supported by DIA
+
+                //ManProcSym
+                case S_GMANPROC:
+                case S_GMANPROC_ST: //Not supported by DIA
+                case S_LMANPROC:
+                case S_LMANPROC_ST: //Not supported by DIA
+
+                //Trampoline doesn't seem to have an associated S_END. It apparently "is" a block symbol
+                //however, but DIA seems to special case it as not being a block symbol. But I mean, if
+                //it doesn't have an S_END, why are we even treating it like a block then?
+                //case S_TRAMPOLINE:
+
+                //Unknown
+                case S_SEPCODE:
+                case S_LPROC32_ID:
+                case S_GPROC32_ID:
+                case S_LPROCMIPS_ID:
+                case S_GPROCMIPS_ID:
+                case S_LPROCIA64_ID:
+                case S_GPROCIA64_ID:
+                case S_LPROC32_DPC_ID:
+
+                //InlineSiteSym
+                case S_INLINESITE:
+                
+                //InlineSiteSym2
+                case S_INLINESITE2:
+
+                //Not publically documented, but used by DIA
+                case S_GPROC32EX:
+                case S_LPROC32EX:
+                case S_GPROC32EX_ID:
+                case S_LPROC32EX_ID:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsFunctionSym(SYM_ENUM_e type)
+        {
+            //msdia140!isFunctionSym
+            switch (type)
+            {
+                case S_LPROC32:
+                case S_GPROC32:
+                case S_LPROCMIPS:
+                case S_GPROCMIPS:
+                case S_LPROCIA64:
+                case S_GPROCIA64:
+                case S_LPROC32_ID:
+                case S_GPROC32_ID:
+                case S_LPROCIA64_ID:
+                case S_GPROCIA64_ID:
+                case S_LPROC32_DPC:
+                case S_LPROC32_DPC_ID:
+                case S_GPROC32EX:
+                case S_LPROC32EX:
+                case S_GPROC32EX_ID:
+                case S_LPROC32EX_ID:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsDefRangeSym(SYM_ENUM_e type)
+        {
+            switch (type)
+            {
+                case S_DEFRANGE:
+                case S_DEFRANGE_SUBFIELD:
+                case S_DEFRANGE_REGISTER:
+                case S_DEFRANGE_FRAMEPOINTER_REL:
+                case S_DEFRANGE_SUBFIELD_REGISTER:
+                case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
+                case S_DEFRANGE_REGISTER_REL:
+                case S_DEFRANGE_HLSL:
+                case S_DEFRANGE_DPC_PTR_TAG:
+                case S_DEFRANGE_REGISTER_REL_INDIR:
+                case S_DEFRANGE_CONSTVAL_ON_ENTRY:
+                case S_DEFRANGE_GLOBALSYM_ON_ENTRY:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsEnd(SYM_ENUM_e type)
+        {
+            switch (type)
+            {
+                case S_END:
+                case S_INLINESITE_END:
+                case S_PROC_ID_END:
+                    return true;
+
+                //case S_ENDARG: //microsoft-pdb doesn't handle this when processing modules; I'm not sure if arg lists are "block syms"
+                case S_ENDARG: //Investigate this
+                    Debug.Assert(false);
+                    return false;
+
+                default:
+                    return false;
+            }
         }
 
         public static implicit operator SymType(SYMTYPE* value) => new SymType(value);

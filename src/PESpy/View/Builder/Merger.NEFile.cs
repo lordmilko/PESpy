@@ -1,24 +1,14 @@
-using System;
-using System.Collections.Generic;
+﻿using System;
 using PESpy.NE;
 
 namespace PESpy.View.Builder
 {
-    internal class NEMerger : Merger
+    internal ref partial struct Merger
     {
-        private readonly NEFile neFile;
-
-        public NEMerger(
-            NEFile neFile,
-            List<IView> sortedStructs,
-            Extension extension) : base(sortedStructs, null, new List<DirectoryInfo>(), extension)
+        internal IView[] MergeNE()
         {
-            this.neFile = neFile;
-        }
+            var neFile = (NEFile) file;
 
-        internal override IView[] Merge()
-        {
-            var results = new List<IView>();
             var results = new PooledList<IView>();
 
             try
@@ -44,9 +34,9 @@ namespace PESpy.View.Builder
                 //the position of the table after it
                 ReadNonResidentNameTable(os2Header, ref lastSectionEnd, ref results);
 
-                ReadSegmentData(os2Header, ref lastSectionEnd, ref results);
+                ReadSegmentData(neFile, os2Header, ref lastSectionEnd, ref results);
 
-                ReadOMFData(lastSectionEnd, ref results);
+                ReadOMFData(neFile, lastSectionEnd, ref results);
 
                 return results.ToArray();
             }
@@ -74,7 +64,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }
@@ -96,7 +86,7 @@ namespace PESpy.View.Builder
             lastSectionEnd = end;
         }
 
-        private void ReadSegmentData(in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadSegmentData(NEFile neFile, in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
         {
             for (var i = 0; i < neFile.SegmentTable.Length; i++)
             {
@@ -115,7 +105,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ReadOMFData(int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadOMFData(NEFile neFile, int lastSectionEnd, ref PooledList<IView> results)
         {
             var omfData = neFile.CodeViewData;
 

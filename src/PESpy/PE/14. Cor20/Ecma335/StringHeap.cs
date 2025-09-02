@@ -42,11 +42,13 @@ namespace PESpy.Ecma335
             return new RawValue<Utf8String>(chunk.AbsoluteOffset + offset, str);
         }
 
-        public IEnumerator<RawValue<Utf8String>> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        IEnumerator<RawValue<Utf8String>> IEnumerable<RawValue<Utf8String>>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<RawValue<Utf8String>>
+        public struct Enumerator : IEnumerator<RawValue<Utf8String>>
         {
             public RawValue<Utf8String> Current { get; private set; }
 

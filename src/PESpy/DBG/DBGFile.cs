@@ -26,6 +26,26 @@ namespace PESpy
             }
         }
 
+        /// <summary>
+        /// Locates a file on the symbol server and opens it as a <see cref="DBGFile"/>.
+        /// </summary>
+        /// <param name="symStoreKey">The <see cref="SymStoreKey"/> describing the file that should be located and opened.</param>
+        /// <returns>A <see cref="DBGFile"/> that provides access to the contents of the specified file.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="SymStoreKey"/> cannot be opened as a <see cref="DBGFile"/>.</exception>
+        public static DBGFile FromKey(SymStoreKey symStoreKey)
+        {
+            switch (symStoreKey.Kind)
+            {
+                case SymStoreKeyKind.PDB:
+                    var path = Locator.Locate(symStoreKey);
+
+                    return FromFile(path);
+
+                default:
+                    throw new ArgumentException($"{nameof(SymStoreKey)} '{symStoreKey}' of type '{symStoreKey.Kind}' cannot be opened as a {nameof(DBGFile)}");
+            }
+        }
+
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
 

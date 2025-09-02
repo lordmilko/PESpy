@@ -8,6 +8,10 @@ namespace PESpy.PDB
     //CV_DebugSLinesFileBlockHeader_t
     public readonly struct CvDebugSLinesFileBlockHeader : IValue, IViewable
     {
+        /* This property returns the relative offset of the CV_FileCheckSum record of this file
+         * from the beginning of DEBUG_S_FILECHKSMS. PDB1 creates a mapping from the index of
+         * the file in the CV_FileCheckSum[] and converts to and from this when you call
+         * EnumLines::GetLinesColumns/ Mod1::QueryFileNameInfo */
         public CV_off32_t offFile => chunk.PeekInt32(0);
 
         public CV_off32_t nLines => chunk.PeekInt32(4);

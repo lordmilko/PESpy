@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -29,27 +30,76 @@ namespace PESpy.PDB
         }
     }
 
-    [DebuggerDisplay("[{typeId.ToString(\"X\"),nq}] {ToString(),nq}")]
+    //Encapsulates a type ID that either represents a value from TYPE_ENUM_e
+    //(if the type ID is <1000) or a TypType that describes the type
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     [DebuggerTypeProxy(typeof(TypOrEnumTypeDebugView))]
     public readonly unsafe struct TypOrEnumType
     {
-        private readonly long parent;
-        private readonly int typeId;
+        private string DebuggerDisplay()
+        {
+            if (IsCrossScopeReference)
+                return $"[CrossScope] 0x{typeId.ToString("X")}";
+
+            return $"[{typeId.ToString("X")}] {ToString()}";
+        }
+
+        private const ulong IPI_BIT = ((ulong) 1 << 63);
+
+        //I thought I could be smart and store whether or not the type is IPI in the high bit of
+        //the typeId, but it turns out that doesn't work, because I've seen an InlineSiteSym2
+        //with an inlinee of 0x80000004. So plan B: store IPI in the high bit of the address instead!
+        private readonly ulong parent;
+        private readonly int typeId; //We store whether the type is IPI in the top bit
 
         public TypType? TypTyp
         {
             get
             {
-                if (PdbExtensions.CV_IS_PRIMITIVE(typeId))
+                var id = typeId;
+
+                if (PdbExtensions.CV_IS_PRIMITIVE(id))
                     return default;
 
-                var accessor = SymbolMemoryTracker.GetAccessor(parent);
+                var accessor = SymbolMemoryTracker.GetAccessor((long) (parent & ~IPI_BIT));
 
-                return accessor!.GetTypTypeFromIndex(typeId);
+                if ((parent & IPI_BIT) != 0)
+                    return accessor!.GetTypTypeFromIndex((CV_ItemId) id);
+                else
+                    return accessor!.GetTypTypeFromIndex((CV_typ_t) id);
             }
         }
 
+        /* If the top most bit of a CV_ItemId is set, that indicates it's a cross scope reference. The CrossScopeId struct can
+         * be used to work with the value, splitting out the high bit. When DIA tries to lookup the type information for a type index,
+         * in msdia140!resolveCrossScopeIndex it bails out if the type index is not negative (i.e. it's checking whether the high bit is set).
+         * 
+         * When you have a CV_ItemId with a value like 0x80000004, this represents a "virtual" ID that references the target of the 4th resolved
+         * cross scope import in the current module's scope. From poking around in the debugger, it seems that virtual cross scope references start at 0,
+         * and that they also seem to count against cross scope imports that don't have the high bit set. Thus, if we have cross scope imports
+         * 
+         *     0x80001234 - high bit set
+         *     0x00001111 - high bit not set
+         *     0x80004567 - high bit set
+         *     0x80008989 - high bit set
+         *     0x80004242 - high bit set
+         * 
+         * it seems that after finding the cross scope export whose local ID is 1234, the result of resolving 0x80001234 will get a virtual type index of 0x8000000
+         * and the result of resolving 0x80004242 will get a virtual type index of 80000004
+         */
+
+        public bool IsCrossScopeReference => (((uint) typeId) & 0x80000000) != 0;
+
+        public CV_ItemId LocalId => (uint) typeId & ~0x80000000;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator CV_typ_t(TypOrEnumType type) => type.typeId;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator CV_ItemId(TypOrEnumType type) => type.typeId;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator int(TypOrEnumType type) => type.typeId;
 
         public TYPE_ENUM_e? PrimitiveType
         {
@@ -69,22 +119,44 @@ namespace PESpy.PDB
                 //How do you map a TI to a TYPTYPE? I _think_ what happens is that precForTi calls TPI1::fLoadRecBlk
                 //which utilizes information in bufTiOff. And bufTiOff seems to come from the snHash. I think when you have
                 //this hash, you can do fast lookup from TI to TYPTYPE. fInitTiToPrecMap seems to be called when the version
-                //is earlier than impv70 which builds up a manual array that maps each type record to a TYPTYPE.
-                if (PdbExtensions.CV_IS_PRIMITIVE(typeId))
-                    return ((TYPE_ENUM_e) typeId);
+                //is earlier than impv70 which builds up a manual array that maps each type record to a TYPTYPE. Furthermore, the meaning
+                //of the top-most bit may be whether the ID represents a "FuncId"
+                var id = typeId;
 
-                var accessor = SymbolMemoryTracker.GetAccessor(parent);
+                if (PdbExtensions.CV_IS_PRIMITIVE(id))
+                    return ((TYPE_ENUM_e) id);
 
-                return accessor!.GetTypTypeFromIndex(typeId);
+                var accessor = SymbolMemoryTracker.GetAccessor((long) (parent & ~IPI_BIT));
+
+                if ((parent & IPI_BIT) != 0)
+                    return accessor!.GetTypTypeFromIndex((CV_ItemId) id);
+                else
+                    return accessor!.GetTypTypeFromIndex((CV_typ_t) id);
             }
         }
 
-        internal TypOrEnumType(byte* parent, int typeId)
+        internal TypOrEnumType(byte* parent, CV_typ16_t typeId) : this(parent, (CV_typ_t) (int) typeId)
         {
-            this.parent = (long) parent;
-            this.typeId = typeId;
         }
 
-        public override string ToString() => Value.ToString();
+        internal TypOrEnumType(byte* parent, CV_typ_t typeId)
+        {
+            this.parent = (ulong) parent;
+            this.typeId = (int) typeId;
+        }
+
+        internal TypOrEnumType(byte* parent, CV_ItemId typeId)
+        {
+            this.parent = (ulong) parent | IPI_BIT;
+            this.typeId = (int) (uint) typeId;
+        }
+
+        public override string ToString()
+        {
+            if (IsCrossScopeReference)
+                return $"0x{typeId.ToString("X")}";
+
+            return Value.ToString();
+        }
     }
 }

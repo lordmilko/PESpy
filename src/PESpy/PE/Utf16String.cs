@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using Roslyn.Utilities;
 
 namespace PESpy
 {
@@ -19,7 +20,13 @@ namespace PESpy
 
         public static explicit operator Utf16String(char* value) => new Utf16String(value);
 
-        public bool Equals(Utf16String other) => this.Value == other.Value;
+        public bool Equals(Utf16String other)
+        {
+            if (Value == other.Value)
+                return true;
+
+            return AsSpan().SequenceEqual(other.AsSpan());
+        }
 
         public bool Equals(string? other)
         {
@@ -60,7 +67,9 @@ namespace PESpy
             return false;
         }
 
-        public override int GetHashCode() => unchecked((int) this.Value);
+        public Span<char> AsSpan() => new Span<char>(Value, Length);
+
+        public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
         public int Length
         {

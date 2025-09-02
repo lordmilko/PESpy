@@ -80,10 +80,10 @@ namespace PESpy.View
                     else
                         (firstChild, secondChild) = child.Split(newBaseOffset, cutoff);
 
-                    SplitStructView first;
+                    SplitStructView<TValue> first;
                     var originalChildren = Children;
 
-                    if (this is SplitStructView s)
+                    if (this is SplitStructView<TValue> s)
                     {
                         //Mutate in place
                         first = s;
@@ -125,7 +125,7 @@ namespace PESpy.View
                             firstChildren[numLeftChildren - 1] = firstChild;
                         }
 
-                        first = new SplitStructView(Offset, Name, firstChildren, Size - diff, Kind);
+                        first = new SplitStructView<TValue>(Offset, Name, value, firstChildren, Size - diff, Kind, viewWriter);
                     }
 
                     //Create second
@@ -147,7 +147,7 @@ namespace PESpy.View
                         }
                     }
 
-                    var second = new SplitStructView(newBaseOffset, Name, secondChildren, diff, Kind);
+                    var second = new SplitStructView<TValue>(newBaseOffset, Name, value, secondChildren, diff, Kind, viewWriter);
 
                     //todo: we're not setting next and previous?
 
@@ -174,7 +174,7 @@ namespace PESpy.View
                 runningOffset += newChild.Size;
             }
 
-            if (this is SplitStructView sv)
+            if (this is SplitStructView<TValue> sv)
             {
                 throw new NotImplementedException(); //todo: what to do about previous and next?
             }

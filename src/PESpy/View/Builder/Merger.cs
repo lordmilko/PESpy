@@ -11,36 +11,58 @@ using PESpy.PDB;
 
 namespace PESpy.View.Builder
 {
-    abstract class Merger
+    internal ref partial struct Merger
     {
-        protected List<IView> sortedStructs;
-        private HashSet<IView>? delayNameViews;
-        protected List<DirectoryInfo> discoveredDataDirectories;
+        private IFile file;
 
-        protected int nextStructIndex;
-        protected int nextDataDirectoryIndex;
+        private PooledList<IView> sortedStructs;
+        private HashSet<IView>? delayNameViews;
+        private PooledList<DirectoryInfo> discoveredDataDirectories;
+
+        private int nextStructIndex;
+        private int nextDataDirectoryIndex;
         private IView? nextValue;
         private DirectoryInfo? directory;
-        protected Extension extension;
+        private Extension extension;
         private RepeatingGroupMode repeatingGroupMode;
 
-        private List<IView> masterList = new List<IView>();
-        private List<IView> currentList = new List<IView>();
-        private List<IView> repeatingTypeList = new List<IView>();
+        private PooledList<IView> masterList = new PooledList<IView>();
+        private PooledList<IView> currentList = new PooledList<IView>();
+        private PooledList<IView> repeatingTypeList = new PooledList<IView>();
 
-        protected Merger(
+        internal Merger(IFile file, List<IView> sortedStructs, Extension extension) : this(file, sortedStructs, default, default, extension)
+        {
+        }
+
+        internal Merger(
+            IFile file,
             List<IView> sortedStructs,
             HashSet<IView>? delayNameViews,
-            List<DirectoryInfo> discoveredDataDirectories,
+            PooledList<DirectoryInfo> discoveredDataDirectories,
             Extension extension)
         {
-            this.sortedStructs = sortedStructs;
+            this.file = file;
+            this.sortedStructs = new PooledList<IView>(sortedStructs);
             this.delayNameViews = delayNameViews;
             this.discoveredDataDirectories = discoveredDataDirectories;
             this.extension = extension;
+
+            nextStructIndex = default;
+            nextDataDirectoryIndex = default;
+            nextValue = default;
+            directory = default;
+            repeatingGroupMode = default;
         }
 
-        internal abstract IView[] Merge();
+        public void Dispose()
+        {
+            sortedStructs.Dispose();
+            discoveredDataDirectories.Dispose();
+
+            masterList.Dispose();
+            currentList.Dispose();
+            repeatingTypeList.Dispose();
+        }
 
         internal IView[] BuildSection(
             int startRva,
@@ -234,9 +256,9 @@ namespace PESpy.View.Builder
                          * to use for the split page, we must figure out what our current page is, which stream that's in
                          * what our index is within that stream, and then what the next page after us is */
 
-                        var pdbMerger = (PdbMsfMerger) this;
-                        var currentPage = (PN) (nextValue.Offset / pdbMerger.pdbFile.PageSize); //We want the current page, so don't divide up
-                        var siIndex = pdbMerger.pageNumberToSIIndex[currentPage];
+                        var pdbFile = (PDBFile) file;
+                        var currentPage = (PN) (nextValue.Offset / pdbFile.PageSize); //We want the current page, so don't divide up
+                        var siIndex = pageNumberToSIIndex[currentPage];
 
                         Span<PN> siPageList;
 
@@ -248,14 +270,14 @@ namespace PESpy.View.Builder
                             if (siIndex == -1)
                             {
                                 //For the pages of the stream table itself, we list these as belonging to "index -1"
-                                if (pdbMerger.pdbFile is PDB7File v7)
+                                if (pdbFile is PDB7File v7)
                                 {
                                     siPageList = v7.StreamTableLocation.PageList;
                                 }
                                 else
                                 {
                                     //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
-                                    var rawPages = ((PDB2File) pdbMerger.pdbFile).MsfHeader.StreamTablePageList;
+                                    var rawPages = ((PDB2File) pdbFile).MsfHeader.StreamTablePageList;
 
                                     var arr = new PN[rawPages.Length];
 
@@ -268,11 +290,11 @@ namespace PESpy.View.Builder
                             else if (siIndex == -2)
                             {
                                 //It's a page describing the location of the stream table's pages
-                                siPageList = ((PDB7File) pdbMerger.pdbFile).MsfHeader.PagesOfStreamTablePageList;
+                                siPageList = ((PDB7File) pdbFile).MsfHeader.PagesOfStreamTablePageList;
                             }
                             else
                             {
-                                var si = pdbMerger.pdbFile.StreamTable.StreamInfos[siIndex];
+                                var si = pdbFile.StreamTable.StreamInfos[siIndex];
 
                                 siPageList = si.PageList;
                             }
@@ -287,7 +309,7 @@ namespace PESpy.View.Builder
                                 {
                                     //The next page in the list is the one that our split value begins from
                                     var nextPage = siPageList[i + 1];
-                                    secondStartOffset = nextPage * pdbMerger.pdbFile.PageSize;
+                                    secondStartOffset = nextPage * pdbFile.PageSize;
                                     nextPageFound = true;
                                     break;
                                 }
@@ -426,19 +448,27 @@ namespace PESpy.View.Builder
                                 var oldRepeatingGroupMode = repeatingGroupMode;
                                 var oldCurrentList = currentList;
 
-                                repeatingTypeList = new List<IView>();
+                                repeatingTypeList = new PooledList<IView>();
                                 repeatingGroupMode = 0;
-                                currentList = new List<IView>();
+                                currentList = new PooledList<IView>();
 
-                                ProcessParsedByteViews(views!);
+                                try
+                                {
+                                    ProcessParsedByteViews(views!);
 
-                                FinalizeRepeatingTypeRegion();
+                                    FinalizeRepeatingTypeRegion();
 
-                                newViews.AddRange(currentList);
+                                    newViews.AddRange(currentList);
+                                }
+                                finally
+                                {
+                                    repeatingTypeList.Dispose();
+                                    currentList.Dispose();
 
-                                repeatingTypeList = oldRepeatingTypeList;
-                                repeatingGroupMode = oldRepeatingGroupMode;
-                                currentList = oldCurrentList;
+                                    repeatingTypeList = oldRepeatingTypeList;
+                                    repeatingGroupMode = oldRepeatingGroupMode;
+                                    currentList = oldCurrentList;
+                                }                                
                             }
 
                             //Add all other children after the junk we're replacing in the directory to the new list of children
@@ -467,7 +497,7 @@ namespace PESpy.View.Builder
 
             Debug.Assert(currentList.Count > 0);
 
-            if (currentList.Count == 1 && currentList[0] is not ByteBlobView && this is not PdbMsfMerger) //When constructing PDB Views, even if we have one big value that takes up an entire page, it should still be wrapped in a page logical view
+            if (currentList.Count == 1 && currentList[0] is not ByteBlobView && file is not PDBFile) //When constructing PDB Views, even if we have one big value that takes up an entire page, it should still be wrapped in a page logical view
             {
                 //Only one item; no point creating a region view around it. But if it's a byte blob, we likely don't support this directory yet, so we should create a region around it
                 //so that it's clear that something is supposed to be there
@@ -477,7 +507,7 @@ namespace PESpy.View.Builder
             {
                 //We've been building up the members of a directory
 
-                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), this is PdbMsfMerger ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
+                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), file is PDBFile ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
 
                 masterList.Add(directoryRegion);
             }
@@ -526,8 +556,12 @@ namespace PESpy.View.Builder
                     throw new NotImplementedException($"Don't know how to handle {nameof(RepeatingGroupMode)} '{repeatingGroupMode}'");
             }
 
-            var size = repeatingTypeList.Sum(v => v.Size);
-            currentList.Add(new LogicalRegionView(repeatingTypeList[0].Offset, regionKind.GetDescription(), repeatingTypeList.Cast<IView>().ToArray(), regionKind, size));
+            var size = 0;
+
+            for (var i = 0; i < repeatingTypeList.Count; i++)
+                size += repeatingTypeList[i].Size;
+
+            currentList.Add(new LogicalRegionView(repeatingTypeList[0].Offset, regionKind.GetDescription(), repeatingTypeList.ToArray(), regionKind, size));
             repeatingTypeList.Clear();
             repeatingGroupMode = 0;
         }

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -9,10 +9,6 @@ using PESpy.Native;
 using PESpy.View;
 using Stream = System.IO.Stream;
 
-#if !DEBUG_POSITION
-using RVA = System.Int32;
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy
 {
@@ -29,6 +25,12 @@ namespace PESpy
 
         public bool IsLoadedImage => peFile.IsLoadedImage;
         public SymStoreKey[] SymStoreKeys => peFile.SymStoreKeys;
+
+        public string? Name => peFile.Name;
+        public string? FileName => peFile.FileName;
+        public FileKind Kind => peFile.Kind;
+        public int Length => peFile.Length;
+        public bool Is32Bit => peFile.Is32Bit;
 
         public ImageDosHeader DosHeader => peFile.DosHeader;
         public ByteBlob DosStub => peFile.DosStub;
@@ -54,11 +56,58 @@ namespace PESpy
         public ImageBoundImportDescriptor[]? BoundImportTable => peFile.BoundImportTable;
         public ImageThunkData[]? ImportAddressTable => peFile.ImportAddressTable;
         public ImageDelayLoadDescriptor[]? DelayImportTable => peFile.DelayImportTable;
+
+        #region Cor20Header
+
         public ImageCor20Header? Cor20Header => peFile.Cor20Header;
 
-        #endregion
+        public EcmaMetadata? EcmaMetadata => peFile.EcmaMetadata;
+
+        public object? Cor20Resources => peFile.Cor20Resources;
+
+        public object? Cor20StrongNameSignature => peFile.Cor20StrongNameSignature;
+
+        public object? Cor20CodeManagerTable => peFile.Cor20CodeManagerTable;
+
+        public object? Cor20VTableFixups => peFile.Cor20VTableFixups;
+
+        public object? Cor20ExportAddressTableJumps => peFile.Cor20ExportAddressTableJumps;
+
+        public IValue? Cor20ManagedNativeHeader => peFile.Cor20ManagedNativeHeader;
 
         public ImageCorILMethod[]? ILMethods => peFile.ILMethods;
+
+        #endregion
+        #endregion
+        #region NGEN
+
+        public CorCompileHeader? NgenHeader => peFile.NgenHeader;
+
+        public object? NgenHelperTable => peFile.NgenHelperTable;
+
+        public object? NgenImportSections => peFile.NgenImportSections;
+
+        public object? NgenStubsData => peFile.NgenStubsData;
+
+        public object? NgenVersionInfo => peFile.NgenVersionInfo;
+
+        public object? NgenDependencies => peFile.NgenDependencies;
+
+        public object? NgenDebugMap => peFile.NgenDebugMap;
+
+        public object? NgenModuleImage => peFile.NgenModuleImage;
+
+        public object? NgenCodeManagerTable => peFile.NgenCodeManagerTable;
+
+        public object? NgenProfileDataList => peFile.NgenProfileDataList;
+
+        public object? NgenManifestMetaData => peFile.NgenManifestMetaData;
+
+        public object? NgenVirtualSectionsTable => peFile.NgenVirtualSectionsTable;
+
+        public object? NgenEEInfoTable => peFile.NgenEEInfoTable;
+
+        #endregion
 
         public ReadyToRunHeader? ReadyToRunHeader => peFile.ReadyToRunHeader;
 
@@ -901,9 +950,15 @@ namespace PESpy
         {
             get
             {
-                importAddressTable = null;
-                Debug.Assert(importAddressTable == null); //Dummy use
-                throw new NotImplementedException();
+                if (importAddressTable == null)
+                {
+                    var directory = OptionalHeader.ImportAddressTableDirectory;
+
+                    if (directory.VirtualAddress != 0 && TryGetDirectoryChunk(directory, out var chunk))
+                        importAddressTable = ImageImportDescriptor.ParseThunks(0, chunk, true).Value;
+                }
+
+                return importAddressTable;
             }
         }
 

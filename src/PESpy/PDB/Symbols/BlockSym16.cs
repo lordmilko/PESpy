@@ -39,6 +39,8 @@ namespace PESpy.PDB
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
+        public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+
         #endregion
 
         internal const int FixedStructSize =

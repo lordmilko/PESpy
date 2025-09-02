@@ -49,7 +49,7 @@ namespace PESpy
 
         public static SymStoreKey FromNB10(NB10I nb10) => FromNB10(nb10.Path.ToString(), nb10.PdbSignature, nb10.Age);
 
-        public static SymStoreKey FromNB10(string name, int pdbSignature, int age)
+        public static SymStoreKey FromNB10(string name, uint pdbSignature, int age)
         {
             name = Path.GetFileName(name);
 

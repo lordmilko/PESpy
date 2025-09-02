@@ -1,20 +1,8 @@
-﻿using System.Collections.Generic;
-
-namespace PESpy.View.Builder
+﻿namespace PESpy.View.Builder
 {
-    internal class DBGMerger : Merger
+    internal ref partial struct Merger
     {
-        private DBGFile dbgFile;
-
-        public DBGMerger(
-            DBGFile dbgFile,
-            List<IView> sortedStructs,
-            Extension extension) : base(sortedStructs, null, new List<DirectoryInfo>(), extension)
-        {
-            this.dbgFile = dbgFile;
-        }
-
-        internal override IView[] Merge()
+        internal IView[] MergeDBG()
         {
             /* There's not much to DBG files. They're literally just
              * - IMAGE_SEPARATE_DEBUG_HEADER

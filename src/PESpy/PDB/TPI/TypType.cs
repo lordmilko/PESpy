@@ -12,6 +12,7 @@ namespace PESpy.PDB
         private readonly TYPTYPE* value;
 
         public ushort len => value->len;
+
         public LEAF_ENUM_e leaf => value->leaf;
 
         public TypType(TYPTYPE* value)

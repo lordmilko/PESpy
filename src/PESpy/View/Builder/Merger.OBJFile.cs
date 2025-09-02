@@ -1,22 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 
 namespace PESpy.View.Builder
 {
-    internal class OBJMerger : Merger
+    internal ref partial struct Merger
     {
-        private readonly OBJFile objFile;
-
-        public OBJMerger(
-            OBJFile objFile,
-            List<IView> sortedStructs,
-            Extension extension) : base(sortedStructs, null, new List<DirectoryInfo>(), extension)
+        internal IView[] MergeOBJ()
         {
-            this.objFile = objFile;
-        }
+            var objFile = (OBJFile) file;
 
-        internal override IView[] Merge()
-        {
             var results = new PooledList<IView>();
 
             try

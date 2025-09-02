@@ -64,7 +64,7 @@ namespace PESpy.OBJ
                     }
 
                     SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c6Symbols = new SymTypeList(chunk.Pointer, Length);
+                    c6Symbols = new SymTypeList(chunk.Pointer, 0, Length);
                 }
 
                 return c6Symbols;
@@ -98,7 +98,7 @@ namespace PESpy.OBJ
                     }
 
                     SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c7Symbols = new SymTypeList(chunk.Pointer + 4, Length - 4);
+                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4);
                 }
 
                 return c7Symbols;

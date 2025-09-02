@@ -1,13 +1,25 @@
-﻿using System;
+﻿using System.Diagnostics;
 using ClrDebug.DIA;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     //CV_FileCheckSum (from Roslyn)
-    public class CvFileCheckSum : IValue, IViewable //The value of the DEBUG_S_SECTION could be one of several values, so we'll always be boxed
+    [DebuggerDisplay("{DebuggerDisplay()}")]
+    public readonly struct CvFileCheckSum : IValue, IViewable
     {
-        public int name => chunk.PeekInt32(0);
+        private string DebuggerDisplay()
+        {
+            var nameMap = chunk.PDBFile().NameMap;
+
+            if (nameMap == null)
+                return $"/names[{name}]";
+
+            return nameMap.GetStringFromNI(name).ToString();
+        }
+
+        //An index into /names
+        public NI name => chunk.PeekInt32(0);
 
         public byte len => chunk.PeekByte(4);
 

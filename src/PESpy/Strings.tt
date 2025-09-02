@@ -285,8 +285,15 @@ var strings = new[]{
 
     "OMFDirHeader",
     "OMFDirEntry",
-    "OMF Module",
+    "OMFModule",
+    "OMFSegDesc",
     "OMFSymHash",
+
+    "dnt",
+    "nsg",
+    "nsg32",
+    "pbi",
+    "smd",
 
     //Demangler
     "`RTTI Type Descriptor'",

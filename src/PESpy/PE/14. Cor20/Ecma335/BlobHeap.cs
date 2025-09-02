@@ -42,7 +42,7 @@ namespace PESpy.Ecma335
             var separator = chunk.PeekByte(read);
             read++;
 
-            var builder = new StringBuilder();
+            using var builder = new ValueStringBuilder();
 
             var isFirst = true;
 
@@ -80,11 +80,13 @@ namespace PESpy.Ecma335
             return builder.ToString();
         }
 
-        public IEnumerator<BlobEntry> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        IEnumerator<BlobEntry> IEnumerable<BlobEntry>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<BlobEntry>
+        public struct Enumerator : IEnumerator<BlobEntry>
         {
             public BlobEntry Current { get; private set; }
 

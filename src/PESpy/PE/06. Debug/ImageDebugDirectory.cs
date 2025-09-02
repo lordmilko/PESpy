@@ -10,6 +10,8 @@ namespace PESpy
     /// </summary>
     public struct ImageDebugDirectory : IValue, IViewable
     {
+        private const int PORTABLE_PDB_MINOR_VERSION = 20557; //PM
+
         /// <summary>
         /// Reserved.
         /// </summary>
@@ -125,10 +127,9 @@ namespace PESpy
 
                             case ImageDebugType.Reserved10:
                                 //C:\Windows\system32\FM20.dll has this with a size of 4. Nobody knows what to do with this directory however
-                                //Format seems to be BB 00 and then two more bytes. Not sure if the 00 is always 00?
+                                //Format seems to be BB 00 and then two more bytes. aspnet_filter.dll had BB 03
                                 if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
-                                    //data = new ByteBlob(valueChunk, SizeOfData);
-                                    throw new NotImplementedException();
+                                    data = new ByteBlob(valueChunk, SizeOfData);
                                 else
                                     data = default;
                                 break;
@@ -206,6 +207,8 @@ namespace PESpy
                 return data;
             }
         }
+
+        public bool IsPortablePDB => MinorVersion == PORTABLE_PDB_MINOR_VERSION;
 
         private bool TryGetValueChunk(out MemoryChunk valueChunk)
         {

@@ -26,7 +26,8 @@ namespace PESpy.PDB
         public SN PData          => GetSN((ushort) DBGTYPE.dbgtypePdata); //8
         public SN NewFPO         => GetSN((ushort) DBGTYPE.dbgtypeNewFPO); //9
         public SN SectionHdrOrig => GetSN((ushort) DBGTYPE.dbgtypeSectionHdrOrig); //10
-        public SN Max            => GetSN((ushort) DBGTYPE.dbgtypeMax); //12 - this is part of it, the total size is 24 bytes
+        //There is a new debug type, "11" which appears to be XFG data, consisting of structs of type XFGTYPEHASHINFODATA
+        public SN Max            => GetSN((ushort) DBGTYPE.dbgtypeMax); //11 - this is part of it, the total size is 24 bytes
 
         public int Offset => chunk.AbsoluteOffset;
 

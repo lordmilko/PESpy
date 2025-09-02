@@ -11,7 +11,19 @@ namespace PESpy
 
         SymType GetModuleSymbol(ushort imod, int ibSym);
 
+        /// <summary>
+        /// Gets a type from the TPI stream.
+        /// </summary>
+        /// <param name="typeIndex">An index into the TPI stream.</param>
+        /// <returns>The type pointed to by the type index.</returns>
         TypType GetTypTypeFromIndex(CV_typ_t typeIndex);
+
+        /// <summary>
+        /// Gets a type from the IPI stream.
+        /// </summary>
+        /// <param name="typeIndex">An index into the IPI stream.</param>
+        /// <returns>The type pointed to by the type index.</returns>
+        TypType GetTypTypeFromIndex(CV_ItemId typeIndex);
 
         int? GetRelativeVirtualAddress(ushort seg, int off);
 

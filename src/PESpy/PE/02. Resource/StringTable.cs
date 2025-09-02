@@ -23,7 +23,9 @@ namespace PESpy
                         {
                             var child = Children[i];
 
-                            builder.Append(child.Key).Append(" = ").Append(child.Value);
+                            builder.Append(child.Key);
+                            builder.Append(" = ");
+                            builder.Append(child.Value);
 
                             if (i < Children.Length - 1)
                                 builder.Append(", ");

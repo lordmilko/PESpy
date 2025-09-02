@@ -107,6 +107,9 @@ namespace PESpy
 
                 s.WriteUTF16NullTerminatedField(nameof(Value), Value);
 
+                if (s.Size < Length)
+                    s.Align(4);
+
                 s.VerifyLength(Length);
 
                 return s.ToArray();

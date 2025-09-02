@@ -28,14 +28,14 @@ namespace PESpy.Ecma335
             {
                 var blob = blobHeap.GetBlob(Offset);
 
-                var builder = new StringBuilder();
+                using var builder = new ValueStringBuilder();
 
                 var value = blob.Value;
 
                 for (var i = 0; i < value.Length; i++)
                 {
                     var item = blob.Value[i];
-                    builder.AppendFormat("{0:X2}", item);
+                    builder.AppendHex(item, 2);
 
                     if (i < value.Length)
                         builder.Append(" ");

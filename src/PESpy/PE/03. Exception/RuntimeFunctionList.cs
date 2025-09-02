@@ -68,7 +68,9 @@ namespace PESpy
 
         public override int GetHashCode() => chunk.block.GetHashCode();
 
-        public IEnumerator<RuntimeFunction> GetEnumerator() => new Enumerator(Count, chunk);
+        public Enumerator GetEnumerator() => new Enumerator(Count, chunk);
+
+        IEnumerator<RuntimeFunction> IEnumerable<RuntimeFunction>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

@@ -1,14 +1,16 @@
-﻿using ClrDebug.PDB;
+﻿using System.Diagnostics;
+using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
     //InlineeSourceLine
-    public readonly struct InlineeSourceLine
+    [DebuggerDisplay("{inlinee.ToString(),nq} (Line {sourceLineNum})")]
+    public unsafe readonly struct InlineeSourceLine
     {
         /// <summary>
         /// function id.
         /// </summary>
-        public CV_ItemId inlinee => chunk.PeekInt32(0);
+        public TypOrEnumType inlinee => new TypOrEnumType(chunk.Pointer, (CV_ItemId) chunk.PeekInt32(0));
 
         /// <summary>
         /// offset into file table DEBUG_S_FILECHKSMS
@@ -18,12 +20,12 @@ namespace PESpy.PDB
         /// <summary>
         /// definition start line number.
         /// </summary>
-        public CV_off32_t sourcLineNum => chunk.PeekInt32(8);
+        public CV_off32_t sourceLineNum => chunk.PeekInt32(8);
 
         internal const int StructSize =
             sizeof(int) + //inlinee
             sizeof(int) + //fileId
-            sizeof(int);  //sourcLineNum
+            sizeof(int);  //sourceLineNum
 
         private readonly MemoryChunk chunk;
 

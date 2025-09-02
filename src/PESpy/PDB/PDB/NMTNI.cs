@@ -8,7 +8,8 @@ namespace PESpy.PDB
     /// Maps named streams to their stream indexes. e.g. stuff like /LinkInfo, /names, etc.<para/>
     /// NMTNI is not the precise format that the data is stored in, but is the type the data gets deserialized into in microsoft-pdb
     /// NMTI is a "name table with user-defined NIs (name indices) and is defined
-    /// to provide contrast with the more general purpose NMT type used for Edit and Continue
+    /// to provide contrast with the more general purpose NMT type used for Edit and Continue<para/>
+    /// Despite its name, it does not appear to have anything to do with NIs; NIs are simply casted to SIs
     /// </summary>
     public readonly struct NMTNI : IValue, IViewable
     {
@@ -20,7 +21,9 @@ namespace PESpy.PDB
          * offset of a given buffer that is passed in to its getsz method, resulting in a char* being returned. */
 
         public readonly int NameBufferSize;
-        public readonly Map NameOffsetToStreamIndexMap;
+
+        //Map<SZO,NI,HcSzo,Buffer>
+        public readonly Map<int, SN, HcSzo> NameOffsetToStreamIndexMap; //They say it's a map to NI but it's actually a map to SN
         public readonly RawValue<string>[] Names;
         public readonly int LargestNameIndex; //The highest NI that's been allocated
 
@@ -43,7 +46,7 @@ namespace PESpy.PDB
 
         public int Offset { get; }
 
-        internal NMTNI(in MemoryChunk chunk)
+        internal unsafe NMTNI(in MemoryChunk chunk)
         {
             Offset = chunk.AbsoluteOffset;
 
@@ -64,7 +67,12 @@ namespace PESpy.PDB
             var nameBufferChunk = chunk.Slice(4);
 
             var mapChunk = nameBufferChunk.Slice(NameBufferSize);
-            NameOffsetToStreamIndexMap = new Map(mapChunk);
+            NameOffsetToStreamIndexMap = new Map<int, SN, HcSzo>(
+                mapChunk,
+                c => (SN) c.PeekUInt32(0),
+                sizeof(int),
+                HcSzo.Instance
+            );
             LargestNameIndex = chunk.PeekInt32(4 + NameBufferSize + NameOffsetToStreamIndexMap.StructSize);
 
             var nameToStreamNumberMap = new Dictionary<string, SN>();

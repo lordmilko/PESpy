@@ -1,6 +1,8 @@
-﻿namespace PESpy
+﻿using PESpy.View;
+
+namespace PESpy
 {
-    public readonly struct OMFSegDesc : IValue
+    public readonly struct OMFSegDesc : IValue, IViewable
     {
         public ushort Seg => chunk.PeekUInt16(0);
 
@@ -23,6 +25,26 @@
         internal OMFSegDesc(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.OMFModule, this, ViewKind.OMFSegDesc, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Seg), Seg);
+            s.WriteField(nameof(pad), pad);
+            s.WriteField(nameof(Off), Off);
+            s.WriteField(nameof(cbSeg), cbSeg);
+
+            return s.ToArray();
         }
     }
 }

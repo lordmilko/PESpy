@@ -87,12 +87,8 @@ namespace PESpy
             writer.WriteVAAnsiNullTerminatedField(FieldName, ViewKind.DebugTypeEntry_FieldName, fieldOffset: FieldNameOffset);
         }
 
-        IView? IViewable.WriteStruct(ViewWriter writer)
-        {
-            var name = TypeName.ListedAddress == 0 ? $"{nameof(DebugTypeEntry)} {TypeName}" : $"{nameof(DebugTypeEntry)} {TypeName}.{FieldName}";
-
-            return writer.NewStruct(name, this, ViewKind.DebugTypeEntry, StructSize(((PEViewWriter) writer).Is32Bit));
-        }
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.DebugTypeEntry, this, ViewKind.DebugTypeEntry, StructSize(chunk.Is32Bit));
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

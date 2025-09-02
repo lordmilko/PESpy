@@ -20,6 +20,11 @@ namespace PESpy
         LE,
 
         /// <summary>
+        /// A <see cref="DOSFile"/> describing an MS-DOS COFF executable.
+        /// </summary>
+        DOS,
+
+        /// <summary>
         /// A <see cref="DBGFile"/> describing a COFF based debug file.
         /// </summary>
         DBG,
@@ -35,7 +40,9 @@ namespace PESpy
         PortablePDB,
 
         /// <summary>
-        /// An <see cref="OBJFile"/> describing a COFF based object file.
+        /// An <see cref="OBJFile"/> describing a COFF based object file.<para/>
+        /// Also represents any COFF based file not better represented by any other <see cref="FileKind"/>
+        /// (such as *.exp files)
         /// </summary>
         OBJ,
 
@@ -70,5 +77,12 @@ namespace PESpy
         string? FileName { get; }
 
         FileKind Kind { get; }
+
+        int Length { get; }
+    }
+
+    internal interface IFileWithCodeViewData
+    {
+        ICodeView CodeViewData { get; }
     }
 }

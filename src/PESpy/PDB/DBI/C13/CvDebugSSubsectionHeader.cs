@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     //CV_DebugSSubsectionHeader_t
-    public class CvDebugSSubsectionHeader : IValue, IViewable //May not be present
+    public class CvDebugSSubsectionHeader : IValue, IViewable //A class to ensure that symbol memory is only registered once
     {
         //type
         public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(0);
@@ -49,7 +50,25 @@ namespace PESpy.PDB
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
-                            data = new CvFileCheckSum(dataChunk);
+                            {
+                                using var results = new PooledList<CvFileCheckSum>();
+
+                                var read = 0;
+                                var length = Length;
+
+                                while (read < length)
+                                {
+                                    var item = new CvFileCheckSum(dataChunk.Slice(read));
+                                    read += item.StructSize;
+
+                                    read = (read + 3) & ~3; //Checksums are 32-bit aligned
+
+                                    results.Add(item);
+                                }
+
+                                data = results.ToArray();
+                                Debug.Assert(read == length);
+                            }
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:
@@ -61,10 +80,12 @@ namespace PESpy.PDB
                             break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS: //CrossScopeReferences (see DumpModCrossScopeRefs)
-                            throw new NotImplementedException();
+                            data = ParseCrossScopeImports(dataChunk);
+                            break;
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS: //LocalIdAndGlobalIdPair
-                            throw new NotImplementedException();
+                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS:
+                            data = ParseCrossScopeExports(dataChunk);
+                            break;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES: //? (DumpObjFileSections calls DumpModILLines)
                             throw new NotImplementedException();
@@ -112,7 +133,14 @@ namespace PESpy.PDB
 
         private object ParseInlineeLines(in MemoryChunk dataChunk)
         {
-            throw new NotImplementedException();
+            SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+
+            var entries = new LocalIdAndGlobalIdPair[Length / LocalIdAndGlobalIdPair.StructSize];
+
+            for (var i = 0; i < entries.Length; i++)
+                entries[i] = new LocalIdAndGlobalIdPair(dataChunk.Slice(i * LocalIdAndGlobalIdPair.StructSize));
+
+            return entries;
         }
 
         private object ParseStringTable(in MemoryChunk dataChunk)

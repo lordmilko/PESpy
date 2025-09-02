@@ -23,8 +23,9 @@ namespace PESpy.PDB
     //PERF: don't allocate a massive array of SymType
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(SymTypeListDebugView))]
-    public unsafe class SymTypeList : IEnumerable<SymType>
+    public unsafe partial class SymTypeList : IEnumerable<SymType>
     {
+        private readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before the CV_SIGNATURE begins
         private readonly byte* ptr;
         private readonly byte* end;
 
@@ -56,12 +57,16 @@ namespace PESpy.PDB
             }
         }
 
-        public SymTypeList(byte* ptr, int length)
+        public SymTypeList(byte* start, int dataOffset, int length)
         {
-            this.ptr = ptr;
+            this.start = start;
+            this.ptr = start + dataOffset;
             this.end = ptr + length;
         }
 
+        public TopLevel GetTopLevel() => new TopLevel(start, ptr, end);
+
+        //Copies all symbols (does not include any CV_SIGNATURE) to the destination buffer
         public void CopyTo(Span<byte> destination)
         {
             new Span<byte>(ptr, (int) (end - ptr)).CopyTo(destination);
@@ -92,11 +97,13 @@ namespace PESpy.PDB
             }
         }
 
-        public IEnumerator<SymType> GetEnumerator() => new Enumerator(ptr, end);
+        public Enumerator GetEnumerator() => new Enumerator(ptr, end);
+
+        IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<SymType>
+        public struct Enumerator : IEnumerator<SymType>
         {
             private byte* ptr;
             private readonly byte* end;

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy
 {
@@ -55,7 +54,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct($"{nameof(GlobalValueEntry)} {Name}", this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(Strings.GlobalValueEntry, this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

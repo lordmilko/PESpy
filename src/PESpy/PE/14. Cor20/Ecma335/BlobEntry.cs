@@ -45,7 +45,7 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
-            var builder = new StringBuilder();
+            using var builder = new ValueStringBuilder();
 
             for (var i = 0; i < Value.Length; i++)
             {

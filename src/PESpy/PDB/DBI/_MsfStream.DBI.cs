@@ -149,7 +149,8 @@ namespace PESpy.PDB
                     {
                         var length = DbiHdr.cbFileInfo;
 
-                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length);
+                        var isLengthPrefixedString = chunk.PDBFile().PDB!.PDBHeader.ImplementationVersion <= ClrDebug.PDB.PDBIMPV.PDBImpvVC98;
+                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length, isLengthPrefixedString);
                     }
 
                     return fileInfo;
@@ -314,7 +315,7 @@ namespace PESpy.PDB
                         {
                             SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk);
                             Debug.Assert(symRecChunk.RelativeOffset == 0);
-                            symbols = new SymTypeList(symRecChunk.Pointer, symRecChunk.Remaining);
+                            symbols = new SymTypeList(symRecChunk.Pointer, 0, symRecChunk.Remaining);
                         }
                     }
 

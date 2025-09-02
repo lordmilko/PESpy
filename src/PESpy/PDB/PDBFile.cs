@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using ClrDebug.PDB;
@@ -50,6 +51,26 @@ namespace PESpy
                 mmf.Dispose();
 
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Locates a file on the symbol server and opens it as a <see cref="PDBFile"/>.
+        /// </summary>
+        /// <param name="symStoreKey">The <see cref="SymStoreKey"/> describing the file that should be located and opened.</param>
+        /// <returns>A <see cref="PDBFile"/> that provides access to the contents of the specified file.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="SymStoreKey"/> cannot be opened as a <see cref="PDBFile"/>.</exception>
+        public static PDBFile FromKey(SymStoreKey symStoreKey)
+        {
+            switch (symStoreKey.Kind)
+            {
+                case SymStoreKeyKind.PDB:
+                    var path = Locator.Locate(symStoreKey);
+
+                    return FromFile(path);
+
+                default:
+                    throw new ArgumentException($"{nameof(SymStoreKey)} '{symStoreKey}' of type '{symStoreKey.Kind}' cannot be opened as a {nameof(PDBFile)}");
             }
         }
 
@@ -145,8 +166,25 @@ namespace PESpy
             {
                 if (previousStreamTable == null && !globalBlock.writable)
                 {
+                    //The previous stream table can sometimes contain junk data when it's been partially overwritten, which may lead it to have
+                    //a very high "number of streams" that takes it out of bounds
                     if (TryGetStreamChunk(SN.ST, out var chunk))
+                    {
+                        //Do an initial sanity check: check whether skipping over NumStreams + StreamSizes would take us out of bounds
+                        var numStreams = chunk.PeekInt32(0);
+
+                        int offset;
+
+                        if (this is PDB7File)
+                            offset = sizeof(int) + (numStreams * sizeof(int));
+                        else
+                            offset = sizeof(int) + (numStreams * SI_PERSIST.StructSize);
+
+                        if (offset > chunk.Remaining)
+                            return null; //The stream contains garbage
+
                         previousStreamTable = CreateStreamTable(chunk, PageSize);
+                    }
                 }
 
                 return previousStreamTable;
@@ -329,6 +367,9 @@ namespace PESpy
 
         private NMT? nameMap;
 
+        /// <summary>
+        /// Gets the contents of the /names stream which contains the name map.
+        /// </summary>
         public NMT? NameMap
         {
             get
@@ -347,6 +388,85 @@ namespace PESpy
                     nameMap = new NMT(chunk);
 
                 return nameMap;
+            }
+        }
+
+        #endregion
+        #region /src/headerblock
+
+        //Gets the stream that contains the SrcHeaderBlock and the map of SrcHeaderOut
+        //entries
+        private MsfStream.SrcHeaders? srcHeaders;
+
+        public MsfStream.SrcHeaders? SrcHeaders
+        {
+            get
+            {
+                if (srcHeaders == null)
+                {
+                    if (TryGetStreamChunk("/src/headerblock", out var chunk))
+                        srcHeaders = new MsfStream.SrcHeaders(chunk, this);
+                }
+
+                return srcHeaders;
+            }
+        }
+
+        #endregion
+        #region srcsrv
+
+        public FixedAnsiString SrcSrv
+        {
+            get
+            {
+                if (TryGetStreamChunk("srcsrv", out var chunk))
+                    return chunk.PeekAnsiFixedLength(0, chunk.Remaining);
+
+                return default;
+            }
+        }
+
+        #endregion
+        #region sourcelink
+
+        public SourceLinkList SourceLink
+        {
+            get
+            {
+                //https://github.com/microsoft/perfview/blob/main/src/TraceEvent/Symbols/NativeSymbolModule.cs#L1144
+                //says that sourcelink data is either stored as a single "sourcelink" stream, or is stored as multiple
+                //sourcelink$n streams, where n starts from 1. Note that even if there's more than 1 stream, the last
+                //stream's length may be 0
+
+                if (TryGetStreamInfo("sourcelink", out var sn, out var si) && si.ByteCount > 0)
+                {
+                    return new SourceLinkList(count: -1, this);
+                }
+                else
+                {
+                    var count = 0;
+
+                    if (TryGetStreamInfo("sourcelink$1", out sn, out si) && si.ByteCount > 0)
+                    {
+                        count++;
+
+                        while (true)
+                        {
+                            var name = count switch
+                            {
+                                1 => "sourcelink$2", //Having two streams is the common case, so avoid allocating here
+                                _ => $"sourcelink${count + 1}"
+                            };
+
+                            if (TryGetStreamInfo(name, out sn, out si) && si.ByteCount > 0)
+                                count++;
+                            else
+                                break;
+                        }
+                    }
+
+                    return new SourceLinkList(count, this);
+                }
             }
         }
 
@@ -505,6 +625,18 @@ namespace PESpy
 
         protected abstract void ReadHeaders();
 
+        public bool TryGetStreamData(string name, out NativeSpan<byte> span)
+        {
+            if (TryGetStreamChunk(name, out var chunk))
+            {
+                span = new NativeSpan<byte>(chunk.Pointer, chunk.Remaining);
+                return true;
+            }
+
+            span = default;
+            return false;
+        }
+
         internal bool TryGetStreamChunk(SN sn, out MemoryChunk chunk)
         {
             if (sn == SN.Nil || StreamTable == null)
@@ -546,8 +678,55 @@ namespace PESpy
             return false;
         }
 
-        //Enumerates symbols from all symbol sources
-        public IEnumerable<SymType> EnumerateSymbols()
+        public bool TryGetStreamInfo(SN sn, out SI si)
+        {
+            if (sn == SN.Nil || StreamTable == null)
+            {
+                si = default;
+                return false;
+            }
+
+            if (StreamTable.StreamPages.Length > sn)
+            {
+                si = StreamTable.StreamInfos[sn];
+                return true;
+            }
+
+            si = default;
+            return false;
+        }
+
+        public bool TryGetStreamInfo(string name, out SN sn, out SI si)
+        {
+            sn = default;
+            si = default;
+
+            if (StreamTable == null)
+                return false;
+
+            var pdb = PDB;
+
+            if (pdb == null)
+                return false;
+
+            if (pdb.StreamNameTable.NameToStreamNumberMap.TryGetValue(name, out sn))
+            {
+                if (sn != SN.Nil && sn < StreamTable.StreamInfos.Length)
+                {
+                    si = StreamTable.StreamInfos[sn];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Enumerates symbols from all symbol sources
+        /// </summary>
+        /// <param name="topLevel">If <see langword="true"/>, excludes symbols nested inside top level block symbols.</param>
+        /// <returns>An enumeration of all symbols.</returns>
+        public IEnumerable<SymType> EnumerateSymbols(bool topLevel = true)
         {
             var dbi = DBI;
 
@@ -573,14 +752,34 @@ namespace PESpy
 
                     if (moduleSymbols != null)
                     {
-                        foreach (var item in moduleSymbols.List)
-                            yield return item;
+                        if (!topLevel)
+                        {
+                            foreach (var item in moduleSymbols.List)
+                                yield return item;
+                        }
+                        else
+                        {
+                            foreach (var item in moduleSymbols.List.GetTopLevel())
+                                yield return item;
+                        }
                     }
                 }
             }
 
             var globals = GSI;
         public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement)
+        {
+            symType = default;
+            displacement = 0;
+
+            //First, resolve this RVA to a section and offset
+            if (!TryGetSectionAndOffset(rva, out var sectionNumber, out int sectionOffset))
+                return false;
+
+            return TryGetSymbolBySectionAndOffset(sectionNumber, sectionOffset, out symType, out displacement);
+        }
+
+        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
         {
             /* Address traversers
              * 
@@ -646,10 +845,6 @@ namespace PESpy
             if (psgsi == null)
                 return false;
 
-            //First, resolve this RVA to a section and offset
-            if (!TryGetSectionAndOffset(rva, out var sectionNumber, out int relativeOffset))
-                return false;
-
             //EnumPubsByAddr::locate
             if (!psgsi.TryGetNearestSymbol(relativeOffset, sectionNumber, out symType, out displacement))
                 return false;
@@ -660,7 +855,7 @@ namespace PESpy
         }
 
         //Section numbers are 1 based
-        public bool TryGetSectionAndOffset(int rva, out int sectionNumber, out int sectionOffset)
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int sectionOffset)
         {
             var sectionHeaders = DBI?.SectionHdr;
 
@@ -673,7 +868,7 @@ namespace PESpy
                     if (rva >= sectionHeader.VirtualAddress && rva <= sectionHeader.VirtualAddress + sectionHeader.VirtualSize)
                     {
                         sectionOffset = rva - sectionHeader.VirtualAddress;
-                        sectionNumber = i + 1;
+                        sectionNumber = (ushort) (i + 1);
                         return true;
                     }
                 }
@@ -682,6 +877,73 @@ namespace PESpy
             sectionNumber = default;
             sectionOffset = default;
             return false;
+        }
+
+        public bool TryGetModuleBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IModi modi)
+        {
+            modi = default;
+
+            var modules = DBI?.Modules;
+
+            if (modules == null)
+                return false;
+
+            if (TryGetModuleIndexBySectionAndOffset(sectionNumber, sectionOffset, out var imod))
+            {
+                //Module numbers are 1 based
+                if (imod > modules.Length)
+                    return false;
+
+                //microsoft-pdb calls ximodForIMod which does +1 to this value. an ximod is an "external" imod,
+                //which is 1 based, which means that the actual module indices on the raw SC items are 0 based
+                modi = modules[imod];
+                return true;
+            }
+
+            modi = default;
+            return false;
+        }
+
+        public bool TryGetModuleIndexBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IMOD imod)
+        {
+            //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
+
+            var dbi = DBI;
+            imod = default;
+
+            if (dbi == null)
+                return false;
+
+            var sectionContribs = dbi.SectionContribs;
+
+            if (sectionContribs == null)
+                return false;            
+
+            var sectionHeaders = dbi.SectionHdr;
+
+            if (sectionHeaders == null || sectionNumber > sectionHeaders.Length)
+                return false;
+
+            //Getting the section is easy; the hard part is identifying the module
+            if (!sectionContribs.TryGetSection(sectionNumber, sectionOffset, out var sc))
+                return false;
+
+            //It's up to the caller to validate that the imod is within range; we're just telling them
+            //what the section contribs say
+            imod = sc.imod;
+            return true;
+        }
+
+        //Requires that the module have a segment and offset to help us locate the module via section contribs
+        public bool TryGetModuleIndexBySymType(in SymType symType, out IMOD imod)
+        {
+            if (!symType.TryGetOffSeg(out var off, out var seg))
+            {
+                imod = default;
+                return false;
+            }
+
+            return TryGetModuleIndexBySectionAndOffset(seg, off, out imod);
         }
 
         #region ISymbolAccessor

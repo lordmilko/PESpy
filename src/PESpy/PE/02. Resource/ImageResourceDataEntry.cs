@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using PESpy.Native;
 using PESpy.View;
+using static PESpy.ClrDebugResource;
 
 namespace PESpy
 {
@@ -126,6 +127,16 @@ namespace PESpy
                         }
                         else
                         {
+                            /* - MUI
+                             *   
+                             *   You might be inclined to think that MUI is FILEMUIINFO, but this is wrong! FILEMUIINFO is what is returned by GetFileMUIInfo,
+                             *   but this is not the physical representation. The physical data starts with CD FE CD FE. The physical representation is converted to FILEMUIINFO
+                             *   by kernelbase!GetFileMUIInfo. There's a bit of complexity to it. ReactOS has their interpretation of the physical data structure
+                             *   
+                             * - IMAGE
+                             * - WEVT_TEMPLATE (https://github.com/libyal/libfwevt/blob/main/documentation/Windows%20Event%20manifest%20binary%20format.asciidoc). need to include this reference permanently
+                             */
+
                             //If it's not a well known type, just parse as a byte blob
 
                             //IMAGE
@@ -216,11 +227,18 @@ namespace PESpy
 
                 var signature = valueChunk.PeekGuid(4);
 
-                if (signature != ClrDebugResource.CLR_ID_ONECORE_CLR)
-                    throw new NotImplementedException("Don't know how to handle Guid not being CLR_ID_ONECORE_CLR. Rewind our IFileReader?");
-
-                value = new ClrDebugResource(valueChunk);
-                return true;
+                if (signature == CLR_ID_V4_DESKTOP ||
+                    signature == CLR_ID_CORECLR ||
+                    signature == CLR_ID_PHONE_CLR ||
+                    signature == CLR_ID_ONECORE_CLR)
+                {
+                    value = new ClrDebugResource(valueChunk);
+                    return true;
+                }
+                else
+                {
+                    Debug.Assert(false, $"Encountered an unknown GUID '{signature}'");
+                }
             }
 
             return false;

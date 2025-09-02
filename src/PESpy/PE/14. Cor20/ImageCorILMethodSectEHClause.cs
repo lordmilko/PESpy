@@ -1,8 +1,10 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
 {
+    [DebuggerDisplay("Flags = {Flags}, TryOffset = {TryOffset}, TryLength = {TryLength}, HandlerOffset = {HandlerOffset}, ClassToken = {ClassToken}, FilterOffset = {FilterOffset}")]
     public readonly struct ImageCorILMethodSectEHClause : IValue, IViewable
     {
         public CorExceptionFlag Flags { get; }
@@ -21,9 +23,30 @@ namespace PESpy
 
         public int Offset { get; }
 
+        private const int FatSize =
+            sizeof(int) + //Flags
+            sizeof(int) + //TryOffset
+            sizeof(int) + //TryLength
+            sizeof(int) + //HandlerOffset
+            sizeof(int) + //HandlerLength
+            sizeof(int); //FilterOffset        
+
+        private const int TinySize =
+            sizeof(short) + //Flags
+            sizeof(short) + //TryOffset
+            sizeof(byte) + //TryLength
+            sizeof(short) + //HandlerOffset
+            sizeof(byte) + //HandlerLength
+            sizeof(int); //FilterOffset
+
+        internal int StructSize => isFat ? FatSize : TinySize;
+
+        private readonly bool isFat;
+
         internal ImageCorILMethodSectEHClause(in MemoryChunk chunk, bool isFat, ref int read)
         {
             Offset = chunk.AbsoluteOffset;
+            this.isFat = isFat;
 
             if (isFat)
             {
@@ -71,6 +94,63 @@ namespace PESpy
                     read += 4;
                     break;
             }
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer)
+        {
+            var isFat = writer.CurrentTag == ViewTag.FatEH;
+
+            return writer.NewStruct(
+                isFat ? Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT : Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL,
+                this,
+                ViewKind.ImageCorILMethodSectEHClause,
+                StructSize
+            );
+        }
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            var isFat = viewWriter.CurrentTag == ViewTag.FatEH;
+
+            using var s = viewWriter.CreateStruct(parent);
+
+            if (isFat)
+            {
+                s.WriteField(nameof(Flags), Flags, sizeof(int));
+                s.WriteField(nameof(TryOffset), TryOffset);
+                s.WriteField(nameof(TryLength), TryLength);
+                s.WriteField(nameof(HandlerOffset), HandlerOffset);
+                s.WriteField(nameof(HandlerLength), HandlerLength);
+            }
+            else
+            {
+                s.WriteField(nameof(Flags), Flags, sizeof(short));
+                s.WriteField(nameof(TryOffset), (short) TryOffset);
+                s.WriteField(nameof(TryLength), (byte) TryLength);
+                s.WriteField(nameof(HandlerOffset), (short) HandlerOffset);
+                s.WriteField(nameof(HandlerLength), (byte) HandlerLength);
+            }
+
+            var kind = Flags & (CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FINALLY | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT);
+
+            switch (kind)
+            {
+                case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT:
+                default:
+                    s.WriteField(nameof(ClassToken), ClassToken);
+                    break;
+
+                case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER:
+                    s.WriteField(nameof(FilterOffset), ClassToken);
+                    break;
+            }
+
+            return s.ToArray();
         }
     }
 }

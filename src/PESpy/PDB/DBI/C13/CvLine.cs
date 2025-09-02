@@ -1,8 +1,10 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     //CV_Line_t
+    [DebuggerDisplay("offset = {offset}, linenumStart = {linenumStart}, deltaLineEnd = {deltaLineEnd}, fStatement = {fStatement}")]
     public readonly struct CvLine : IValue, IViewable
     {
         /// <summary>
@@ -13,19 +15,19 @@ namespace PESpy.PDB
         /// <summary>
         /// line where statement/expression starts
         /// </summary>
-        public int linenumStart => flags & 0x00FFFFFF;
+        public int linenumStart => (int) (flags & 0x00FFFFFF);
 
         /// <summary>
         /// delta to line where statement ends (optional)
         /// </summary>
-        public int deltaLineEnd => (flags >> 24) & 0x7F;
+        public int deltaLineEnd => (int) (flags >> 24) & 0x7F;
 
         /// <summary>
         /// true if a statement linenumber, else an expression line num
         /// </summary>
         public bool fStatement => ((flags >> 31) & 0x1) != 0;
 
-        private int flags => chunk.PeekInt32(4);
+        private uint flags => chunk.PeekUInt32(4);
 
         public int Offset => chunk.AbsoluteOffset;
 

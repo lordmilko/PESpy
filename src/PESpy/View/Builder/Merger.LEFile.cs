@@ -1,23 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace PESpy.View.Builder
 {
-    internal class LEMerger : Merger
+    internal ref partial struct Merger
     {
-        private readonly LEFile leFile;
-
-        public LEMerger(
-            LEFile leFile,
-            List<IView> sortedStructs,
-            Extension extension) : base(sortedStructs, null, new List<DirectoryInfo>(), extension)
+        internal IView[] MergeLE()
         {
-            this.leFile = leFile;
-        }
+            var leFile = (LEFile) file;
 
-        internal override IView[] Merge()
-        {
             var results = new PooledList<IView>();
 
             try
@@ -84,7 +74,6 @@ namespace PESpy.View.Builder
             {
                 results.Dispose();
             }
-            
         }
 
         private void ReadTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, ref PooledList<IView> results)
@@ -123,9 +112,9 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, ref results);
+            ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }
@@ -143,9 +132,9 @@ namespace PESpy.View.Builder
             var end = start + length;
 
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
-            NEMerger.ReadInterSectionData(lastSectionEnd, start, this, ref results);
+            ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length));
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }

@@ -34,8 +34,8 @@ namespace PESpy.View
             Size = size;
         }
 
-        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitLogicalReview(this);
+        public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitLogicalRegion(this);
 
-        public void Accept(ViewVisitor visitor) => visitor.VisitLogicalReview(this);
+        public void Accept(ViewVisitor visitor) => visitor.VisitLogicalRegion(this);
     }
 }

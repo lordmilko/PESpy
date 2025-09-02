@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using ClrDebug;
 using PESpy.LIB;
@@ -45,7 +45,7 @@ namespace PESpy.View
              * - LongNamesMember
              * - ImportLibrary */
 
-            var dataDirectories = new List<DirectoryInfo>();
+            using var dataDirectories = new PooledList<DirectoryInfo>();
 
             var firstLinkerMember = libFile.FirstLinkerMember;
 
@@ -69,9 +69,9 @@ namespace PESpy.View
                     dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
             }
 
-            var merger = new LIBMerger(libFile, structs, dataDirectories, extension);
+            using var merger = new Merger(libFile, structs, default, dataDirectories, extension);
 
-            var results = merger.Merge();
+            var results = merger.MergeLIB();
 
             return new FileView(ViewMode.Physical, results, ViewKind.LIBFile);
         }

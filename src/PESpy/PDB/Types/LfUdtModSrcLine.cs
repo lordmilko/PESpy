@@ -17,11 +17,11 @@ namespace PESpy.PDB
 
         public TypOrEnumType type => new TypOrEnumType((byte*) value, value->type);
 
-        public CV_ItemId src => value->src;
+        public TypOrEnumType src => new TypOrEnumType((byte*) value, value->src);
 
         public int line => value->line;
 
-        public short imod => value->imod;
+        public ushort imod => value->imod;
 
         internal const int StructSize =
             sizeof(ushort) + //leaf

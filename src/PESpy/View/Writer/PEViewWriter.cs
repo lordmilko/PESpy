@@ -173,97 +173,104 @@ namespace PESpy.View
 
             taggedViews.TryGetValue(ViewTag.DelayImport, out var delayNameViews);
 
-            var dataDirectories = new List<DirectoryInfo>();
+            var dataDirectories = new PooledList<DirectoryInfo>();
 
-            void AddVirtualDirectory(ImageDataDirectory directory, string name)
+            try
             {
-                if (directory.VirtualAddress != 0)
-                {
-                    bool isVirtualMode;
+                #region IMAGE_OPTIONAL_HEADER
 
-                    switch (mode)
-                    {
-                        case ViewMode.Default:
-                            isVirtualMode = peFile.IsLoadedImage; //Whatever the PEFile says
-                            break;
+                var o = peFile.OptionalHeader;
 
-                        case ViewMode.Physical:
-                            isVirtualMode = false;
-                            break;
+                AddVirtualDirectory(ref dataDirectories, o.ExportTableDirectory, nameof(o.ExportTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.ImportTableDirectory, nameof(o.ImportTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
 
-                        case ViewMode.Virtual:
-                            isVirtualMode = true;
-                            break;
+                if (o.SecurityTableDirectory.VirtualAddress != 0)
+                    dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
 
-                        default:
-                            throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
-                    }
+                AddVirtualDirectory(ref dataDirectories, o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.DebugTableDirectory, nameof(o.DebugTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
 
-                    var sectionIndex = peFile.GetSectionContainingRVA(directory.VirtualAddress);
+                if (o.BoundImportTableDirectory.VirtualAddress != 0)
+                    dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
 
-                    if (sectionIndex == -1)
-                        return;
+                AddVirtualDirectory(ref dataDirectories, o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
+                AddVirtualDirectory(ref dataDirectories, o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
 
-                    var section = peFile.SectionHeaders[sectionIndex];
+                #endregion
 
-                    int offset;
+                dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
 
-                    if (isVirtualMode)
-                    {
-                        offset = directory.VirtualAddress;
-                    }
-                    else
-                    {
-                        var relativeOffset = (int) (directory.VirtualAddress - section.VirtualAddress);
+                using var merger = new Merger(peFile, structs, delayNameViews, dataDirectories, extension);
 
-                        offset = section.PointerToRawData + relativeOffset;
-                    }
+                var results = merger.MergePE(mode);
 
-                    dataDirectories.Add(new DirectoryInfo(name, offset, directory.Size));
-                }
+                return new FileView(
+                    mode == ViewMode.Default
+                        ? (peFile.IsLoadedImage ? ViewMode.Virtual : ViewMode.Physical)
+                        : mode,
+                    results,
+                    ViewKind.PEFile
+                );
             }
+            finally
+            {
+                dataDirectories.Dispose();
+            }            
+        }
 
-            #region IMAGE_OPTIONAL_HEADER
+        void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
+        {
+            if (directory.VirtualAddress != 0)
+            {
+                bool isVirtualMode;
 
-            var o = peFile.OptionalHeader;
+                switch (mode)
+                {
+                    case ViewMode.Default:
+                        isVirtualMode = peFile.IsLoadedImage; //Whatever the PEFile says
+                        break;
 
-            AddVirtualDirectory(o.ExportTableDirectory, nameof(o.ExportTableDirectory));
-            AddVirtualDirectory(o.ImportTableDirectory, nameof(o.ImportTableDirectory));
-            AddVirtualDirectory(o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
-            AddVirtualDirectory(o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
+                    case ViewMode.Physical:
+                        isVirtualMode = false;
+                        break;
 
-            if (o.SecurityTableDirectory.VirtualAddress != 0)
-                dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
+                    case ViewMode.Virtual:
+                        isVirtualMode = true;
+                        break;
 
-            AddVirtualDirectory(o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
-            AddVirtualDirectory(o.DebugTableDirectory, nameof(o.DebugTableDirectory));
-            AddVirtualDirectory(o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
-            AddVirtualDirectory(o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
-            AddVirtualDirectory(o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
-            AddVirtualDirectory(o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
+                    default:
+                        throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
+                }
 
-            if (o.BoundImportTableDirectory.VirtualAddress != 0)
-                dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
+                var sectionIndex = peFile.GetSectionContainingRVA(directory.VirtualAddress);
 
-            AddVirtualDirectory(o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
-            AddVirtualDirectory(o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
-            AddVirtualDirectory(o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
+                if (sectionIndex == -1)
+                    return;
 
-            #endregion
+                var section = peFile.SectionHeaders[sectionIndex];
 
-            dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
+                int offset;
 
-            var merger = new PEMerger(peFile, structs, delayNameViews, dataDirectories, extension, mode);
+                if (isVirtualMode)
+                {
+                    offset = directory.VirtualAddress;
+                }
+                else
+                {
+                    var relativeOffset = (int) (directory.VirtualAddress - section.VirtualAddress);
 
-            var results = merger.Merge();
+                    offset = section.PointerToRawData + relativeOffset;
+                }
 
-            return new FileView(
-                mode == ViewMode.Default
-                    ? (peFile.IsLoadedImage ? ViewMode.Virtual : ViewMode.Physical)
-                    : mode,
-                results,
-                ViewKind.PEFile
-            );
+                dataDirectories.Add(new DirectoryInfo(name, offset, directory.Size));
+            }
         }
     }
 }

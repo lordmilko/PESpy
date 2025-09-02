@@ -45,11 +45,13 @@ namespace PESpy.PDB
             }
         }
 
-        public IEnumerator<SymType> GetEnumerator() => new Enumerator(hashRecords, symbolsStart);
+        public Enumerator GetEnumerator() => new Enumerator(hashRecords, symbolsStart);
+
+        IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<SymType>
+        public struct Enumerator : IEnumerator<SymType>
         {
             private readonly NativeSpan<HRFile> hashRecords;
             private readonly byte* symbolsStart;

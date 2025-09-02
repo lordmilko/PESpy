@@ -34,9 +34,9 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var merger = new OBJMerger(objFile, structs, extension);
+            using var merger = new Merger(objFile, structs, extension);
 
-            var results = merger.Merge();
+            var results = merger.MergeOBJ();
 
             return new FileView(ViewMode.Physical, results, ViewKind.OBJFile);
         }

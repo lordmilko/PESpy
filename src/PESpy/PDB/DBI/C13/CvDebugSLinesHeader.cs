@@ -6,12 +6,12 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //CV_DebugSLinesHeader_t
-    public class CvDebugSLinesHeader : IValue, IViewable
+    public class CvDebugSLinesHeader : IValue, IViewable //It's going to be boxed, and also it stores a big array which we don't want to lose
     {
-        public CV_off32_t offCon => chunk.PeekInt32(0);
-        public short segCon => chunk.PeekInt16(4);
+        public CV_off32_t offCon => chunk.PeekInt32(0); //Relative offset within segment
+        public short segCon => chunk.PeekInt16(4); //1-based segment number
         public CV_LINES flags => (CV_LINES) chunk.PeekUInt16(6);
-        public int cbCon => chunk.PeekInt32(8);
+        public int cbCon => chunk.PeekInt32(8); //Total number of bytes represented by this area. The difference between the last line and this gives you the length of the last line
 
         private CvDebugSLinesFileBlockHeader[]? fileBlocks;
 

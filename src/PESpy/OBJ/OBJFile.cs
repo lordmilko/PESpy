@@ -122,6 +122,14 @@ namespace PESpy
                 //It's assembly code, but we can't read it ourselves
                 return new RawValue<NativeSpan<byte>>(sectionChunk.AbsoluteOffset, sectionChunk.PeekNativeSpan<byte>(0, sizeOfRawData));
             }
+            else if (sectionName == ".edata")
+            {
+                //Found in *.exp files. I think the format consists of a meaningless ImageExportDirectory
+                //header (it doesn't actually seem to point to any symbols, followed by a numberof symbols),
+                //whose locations are pointed to by COFF symbols
+                //whose section is .edata
+                return AssertNotImplemented();
+            }
             #region CxxIL
             else if (sectionName == ".cil$db")
             {

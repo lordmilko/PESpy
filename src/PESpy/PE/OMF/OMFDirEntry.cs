@@ -1,8 +1,12 @@
+﻿using System;
 ﻿using ClrDebug.OMF;
+using ClrDebug.PDB;
+using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
 {
+    [DebuggerDisplay("[{iMod}] {SubSection}")]
     public readonly struct OMFDirEntry : IValue, IViewable
     {
         public SST SubSection => (SST) chunk.PeekUInt16(0);
@@ -23,7 +27,11 @@ namespace PESpy
 
         private readonly MemoryChunk chunk;
 
-        internal OMFDirEntry(in MemoryChunk chunk)
+        internal OMFDirEntry(
+            in MemoryChunk chunk,
+            in MemoryChunk outerChunk,
+            ISymbolAccessor symbolAccessor,
+            ref CV_SIGNATURE lastSignature)
         {
             this.chunk = chunk;
         }

@@ -128,7 +128,7 @@ namespace PESpy
             switch (kind)
             {
                 case CorILMethodSect.EHTable:
-                    sections.Add(new ImageCorILMethodSectEH(kind, chunk));
+                    sections.Add(new ImageCorILMethodSectEH(sectFlags, chunk));
                     break;
 
                 case CorILMethodSect.OptILTable:

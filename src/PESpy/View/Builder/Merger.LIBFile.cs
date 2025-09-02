@@ -1,23 +1,13 @@
-﻿using System.Collections.Generic;
-using PESpy.LIB;
+﻿using PESpy.LIB;
 
 namespace PESpy.View.Builder
 {
-    internal class LIBMerger : Merger
+    internal ref partial struct Merger
     {
-        private LIBFile libFile;
-
-        public LIBMerger(
-            LIBFile libFile,
-            List<IView> sortedStructs,
-            List<DirectoryInfo> discoveredDataDirectories,
-            Extension extension) : base(sortedStructs, null, discoveredDataDirectories, extension)
+        internal IView[] MergeLIB()
         {
-            this.libFile = libFile;
-        }
+            var libFile = (LIBFile) file;
 
-        internal override IView[] Merge()
-        {
             var results = new PooledList<IView>();
             var nestedObjRegions = new PooledList<IView>();
 
@@ -60,7 +50,7 @@ namespace PESpy.View.Builder
 
                             var nextStructIndexToInsertAt = nextStructIndex;
 
-                            OBJMerger.ProcessSectionHeader(section, start, size, lastSectionEnd, this, ref nestedObjRegions);
+                            ProcessSectionHeader(section, start, size, lastSectionEnd, this, ref nestedObjRegions);
 
                             var endNextStructIndex = nextStructIndex;
 
@@ -68,7 +58,7 @@ namespace PESpy.View.Builder
 
                             sortedStructs.RemoveRange(nextStructIndexToInsertAt, numStructsInserted);
 
-                            sortedStructs.InsertRange(nextStructIndexToInsertAt, nestedObjRegions.ToArray());
+                            sortedStructs.InsertRange(nextStructIndexToInsertAt, nestedObjRegions);
 
                             //Decrement the nextStructIndex by the total number of items we removed. We don't reset nextStructIndex to 0 each time,
                             //as the next struct we're going to be looking for is going to be after the previous long members + sections we've already processed
@@ -85,7 +75,7 @@ namespace PESpy.View.Builder
                         {
                             var originalNextStructIndex = nextStructIndex;
 
-                            OBJMerger.ProcessOverlay(lastSectionEnd, objEnd, this, ref nestedObjRegions);
+                            ProcessOverlay(lastSectionEnd, objEnd, this, ref nestedObjRegions);
 
                             var endNextStructIndex = nextStructIndex;
 
@@ -93,7 +83,7 @@ namespace PESpy.View.Builder
 
                             sortedStructs.RemoveRange(originalNextStructIndex, numStructsInserted);
 
-                            sortedStructs.InsertRange(originalNextStructIndex, nestedObjRegions.ToArray());
+                            sortedStructs.InsertRange(originalNextStructIndex, nestedObjRegions);
 
                             nextStructIndex -= (numStructsInserted - nestedObjRegions.Count);
 

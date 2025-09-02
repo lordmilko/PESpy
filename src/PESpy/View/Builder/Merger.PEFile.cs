@@ -1,28 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace PESpy.View.Builder
 {
-    internal class PEMerger : Merger
+    internal ref partial struct Merger
     {
-        private PEFile peFile;
-        private ViewMode mode;
-
-        internal PEMerger(
-            PEFile peFile,
-            List<IView> sortedStructs,
-            HashSet<IView> delayNameViews,
-            List<DirectoryInfo> discoveredDataDirectories,
-            Extension extension,
-            ViewMode mode) : base(sortedStructs, delayNameViews, discoveredDataDirectories, extension)
+        internal IView[] MergePE(ViewMode mode)
         {
-            this.peFile = peFile;
-            this.mode = mode;
-        }
+            var peFile = (PEFile) file;
 
-        internal override IView[] Merge()
-        {
             var results = new PooledList<IView>();
 
             try
@@ -152,7 +138,7 @@ namespace PESpy.View.Builder
                     var overlayStart = lastResult.Offset + lastResult.Size;
                     var fileEnd = (int) extension.GetInputLength();
 
-                    TryCreateOMFRegion(ref results);
+                    TryCreateOMFRegion(peFile, ref results);
 
                     var overlayData = BuildSection(overlayStart, fileEnd, v => v, v => v, true);
 
@@ -171,7 +157,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void TryCreateOMFRegion(ref PooledList<IView> results)
+        private void TryCreateOMFRegion(PEFile peFile, ref PooledList<IView> results)
         {
             /* If we have OMF data, we want to read that separately. We would expect that if we have OMF data,
              * even if it's pointed to by a debug directory, that the typical OMF pattern is followed and that the

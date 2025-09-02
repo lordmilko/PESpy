@@ -1,8 +1,8 @@
-﻿#if PEFAST
 using System.IO;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.NE;
+using PESpy.OMF;
 using PESpy.PDB;
 
 //Having out IFile? is confusing from an API standpoint because the caller has to keep doing file! whenever they use it when we returned true.
@@ -43,6 +43,10 @@ namespace PESpy
                             file = new NEFile(fs.Name, mmf);
                             return true;
 
+                        case FileKind.DOS:
+                            file = new DOSFile(fs.Name, mmf);
+                            return true;
+
                         case FileKind.DBG:
                             file = new DBGFile(fs.Name, mmf);
                             return true;
@@ -66,8 +70,20 @@ namespace PESpy
                                     file = new PDB7File(fs.Name, mmf);
                                     return true;
                         return true;
+                        case FileKind.PortablePDB:
+                            file = new PortablePDBFile(fs.Name, mmf);
+                            return true;
+
                         case FileKind.OBJ:
                             file = new OBJFile(fs.Name, mmf);
+                            return true;
+
+                        case FileKind.OMF:
+                            file = new OMFFile(fs.Name, mmf);
+                            return true;
+
+                        case FileKind.OMFLIB:
+                            file = new OMFLIBFile(fs.Name, mmf);
                             return true;
                     }
                 }
@@ -149,6 +165,9 @@ namespace PESpy
                     fileKind = FileKind.NE;
                     return true;
                 }
+
+                fileKind = FileKind.DOS;
+                return true;
             }
             else if (length >= ImageSeparateDebugHeader.StructSize && twoLetterSignature == ImageSeparateDebugHeader.IMAGE_SEPARATE_DEBUG_SIGNATURE) //DI
             {
@@ -252,9 +271,32 @@ namespace PESpy
                     return true;
             }
 
+            //Maybe an OMF file? Only the first byte is used, so it's important that this is after all other kinds that use
+            //more than 1 byte
+            switch (*(OMFRecordType*) mmf.Address)
+            {
+                //An OMF "file" can start with THEADR or LHEADR, however it should only start with LHEADR when the file
+                //is embedded inside of an outer LIB file
+
+                case OMFRecordType.THEADR:
+                    if (length >= 5) //A THEADR record is at least 5 bytes (record type (1), record length (2), string length (1), checksum (1))
+                    {
+                        fileKind = FileKind.OMF;
+                        return true;
+                    }
+                    break;
+
+                case OMFRecordType.LIBHDR:
+                    if (length >= 10) //A LIBHDR record is at least 10 bytes (record type (1), record length (2), dictionary offset (4), dictionary size (2), flags (1))
+                    {
+                        fileKind = FileKind.OMFLIB;
+                        return true;
+                    }
+                    break;
+            }
+
             //Unknown value. Not a valid file
             return false;
         }
     }
 }
-#endif

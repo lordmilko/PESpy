@@ -10,6 +10,9 @@ namespace PESpy.PDB
     {
         public CV_SIGNATURE Signature { get; }
 
+        /// <summary>
+        /// Provides access to all symbols contained within the module.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public SymTypeList List { get; }
 

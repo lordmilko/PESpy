@@ -108,7 +108,7 @@ namespace PESpy
 
         internal static ImageSectionHeader[]? GetSectionHeaders(long address)
         {
-            var accessor = FindItem(address, globalAccessorRanges);
+            var accessor = FindItem(address, globalAccessorRanges, out _);
 
             if (accessor == null)
                 return null;
@@ -116,11 +116,20 @@ namespace PESpy
             return accessor.GetSectionHeaders();
         }
 
-        internal static ISymbolAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges);
+        internal static long GetStart(long address)
+        {
+            FindItem(address, globalAccessorRanges, out var start);
+            return start;
+        }
 
-        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalAccessorRanges)?.HasLengthPrefixedStrings ?? false;
+        internal static ISymbolAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges, out _);
 
-        private static T? FindItem<T>(long address, List<(long start, long end, T value)> list)
+        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalAccessorRanges, out _)?.HasLengthPrefixedStrings ?? false;
+
+        private static ISymbolAccessor? FindItem(
+            long address,
+            List<(long start, long end, ISymbolAccessor? value)> list,
+            out long start)
         {
             if (address == 0)
                 throw new InvalidOperationException("Cannot search for a value with address 0");
@@ -142,6 +151,7 @@ namespace PESpy
                         if (address <= item.end)
                         {
                             //It's a match
+                            start = item.start;
                             return item.value;
                         }
                         else
@@ -157,11 +167,15 @@ namespace PESpy
             }
 
             Debug.Assert(false, "Attempted to query data in an unregistered memory address");
+            start = default;
             return default; //Assume it's a modern file with non-length prefixed strings
         }
 
         internal static void ClearSymbolMemory(ISymbolMemoryBlock block)
         {
+            if (Environment.HasShutdownStarted)
+                return; //Don't bother cleaning up
+
             lock (globalMemoryRangesLock)
             {
                 globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));

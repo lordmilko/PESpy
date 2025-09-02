@@ -72,7 +72,9 @@ namespace PESpy
             }
         }
 
-        public IEnumerator<Entry> GetEnumerator() => new Enumerator(Count, metadataSize, chunk);
+        public Enumerator GetEnumerator() => new Enumerator(Count, metadataSize, chunk);
+
+        IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

@@ -542,7 +542,10 @@ namespace PESpy
                         builder.Append($"[{Ordinal}]");
 
                     if (ForwardOrAddress.IsForward)
-                        builder.Append(" -> ").Append(ForwardOrAddress);
+                    {
+                        builder.Append(" -> ");
+                        builder.Append(ForwardOrAddress.ToString());
+                    }
 
                     return builder.ToString();
                 }

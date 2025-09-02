@@ -24,10 +24,18 @@ namespace PESpy.PDB
         public int pEnd => value->pEnd;
 
         /// <inheritdoc cref="INLINESITESYM2.inlinee"/>
-        public CV_ItemId inlinee => value->inlinee;
+        public TypOrEnumType inlinee => new TypOrEnumType((byte*) value, value->inlinee);
 
         /// <inheritdoc cref="INLINESITESYM2.invocations"/>
         public int invocations => value->invocations;
+
+        public BinaryAnnotationList binaryAnnotations => new BinaryAnnotationList(((byte*) value) + FixedStructSize, (reclen + 2) - FixedStructSize);
+
+        #region PESpy
+
+        public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
@@ -40,7 +48,11 @@ namespace PESpy.PDB
         internal InlineSiteSym2(INLINESITESYM2* value)
         {
             this.value = value;
-            //Debug.Assert(false, "binaryAnnotations. See InlineSiteSym for more info");
+        }
+
+        public override string ToString()
+        {
+            return inlinee.ToString();
         }
     }
 }

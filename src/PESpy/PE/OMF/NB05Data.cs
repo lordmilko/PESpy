@@ -7,7 +7,7 @@ namespace PESpy
     {
         public int LfoDir { get; }
 
-        public CodeViewSig Sig { get; }
+        public CodeViewSig Signature { get; }
 
         public int LfoBase { get; }
 
@@ -17,26 +17,50 @@ namespace PESpy
 
         public OMFDirEntry[] DirEntries { get; }
 
-        public object?[] TableData { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
-        public int Offset { get; }
+        private readonly MemoryChunk chunk;
 
-        internal NB05Data(int offset, CodeViewSig sig, int lfoBase, int lfoDir, in OMFDirHeader dirHeader, OMFDirEntry[] dirEntries, object?[] tableData)
+        internal NB05Data(in MemoryChunk chunk, CodeViewSig sig, int lfoBase, int lfoDir, in OMFDirHeader dirHeader, OMFDirEntry[] dirEntries)
         {
-            Offset = offset;
+            this.chunk = chunk;
             LfoDir = lfoDir;
-            Sig = sig;
+            Signature = sig;
             LfoBase = lfoBase;
             this.dirHeader = dirHeader;
             DirEntries = dirEntries;
-            TableData = tableData;
+        }
+
+        public bool TryGetSegName(int offset, out AnsiString str)
+        {
+            var dirEntries = DirEntries;
+
+            for (var i = dirEntries.Length - 1; i >= 0; i--)
+            {
+                ref var entry = ref dirEntries[i];
+
+                if (entry.iMod != ushort.MaxValue)
+                {
+                    str = default;
+                    return false;
+                }
+
+                if (entry.SubSection == ClrDebug.OMF.SST.sstSegName)
+                {
+                    str = chunk.PeekAnsiNullTerminatedString(entry.lfo + offset);
+                    return true;
+                }
+            }
+
+            str = default;
+            return false;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //The merger will wrap this all up in a region
 
-            writer.WriteGlobal(Offset, Sig, sizeof(int), ViewKind.CodeViewSig);
+            writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, "lfoDir", LfoDir, sizeof(int));
 
             //Data comes before the header

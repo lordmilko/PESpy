@@ -153,7 +153,7 @@ namespace PESpy
 
             //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
             //from regular import names
-            using var _ = writer.EnterTag(ViewTag.DelayImport);
+            using var _ = viewWriter.EnterTag(ViewTag.DelayImport);
 
             s.WriteField(nameof(Attributes), Attributes);
             s.WriteRVAAnsiNullTerminatedField(nameof(DllNameRVA), DllNameRVA);
@@ -166,21 +166,21 @@ namespace PESpy
 
             if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
             {
-                using var r = writer.CreateScopedRegion(ImportAddressTableRVA.ActualOffset, $"[DelayImportAddressTable] {DllNameRVA}", ViewKind.DelayImportAddressTable, ViewKind.ImageThunkData);
+                using var r = viewWriter.CreateScopedRegion(ImportAddressTableRVA.ActualOffset, $"[DelayImportAddressTable] {DllNameRVA}", ViewKind.DelayImportAddressTable, ViewKind.ImageThunkData);
 
                 r.WriteValues(ImportAddressTableRVA.Value);
             }
 
             if (ImportNameTableRVA.IsValid && ImportNameTableRVA.ListedOffset != 0)
             {
-                using var r = writer.CreateScopedRegion(ImportNameTableRVA.ActualOffset, $"[DelayImportLookupTable] {DllNameRVA}", ViewKind.DelayImportLookupTable, ViewKind.ImageThunkData);
+                using var r = viewWriter.CreateScopedRegion(ImportNameTableRVA.ActualOffset, $"[DelayImportLookupTable] {DllNameRVA}", ViewKind.DelayImportLookupTable, ViewKind.ImageThunkData);
 
                 r.WriteValues(ImportNameTableRVA.Value);
             }
 
             if (UnloadInformationTable.IsValid && UnloadInformationTable.ListedOffset != 0)
             {
-                using var r = writer.CreateScopedRegion(UnloadInformationTable.ActualOffset, $"[DelayUnloadInformationTable] {DllNameRVA}", ViewKind.DelayUnloadInformationTable, ViewKind.ImageThunkData);
+                using var r = viewWriter.CreateScopedRegion(UnloadInformationTable.ActualOffset, $"[DelayUnloadInformationTable] {DllNameRVA}", ViewKind.DelayUnloadInformationTable, ViewKind.ImageThunkData);
 
                 r.WriteValues(UnloadInformationTable.Value);
             }

@@ -15,7 +15,7 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public CV_ItemId id => value->id;
+        public TypOrEnumType id => new TypOrEnumType((byte*) value, value->id);
 
         public FixedUtf8String Name => TypType.ReadString(value->name);
 

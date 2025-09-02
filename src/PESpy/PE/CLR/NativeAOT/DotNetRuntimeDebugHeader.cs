@@ -145,11 +145,59 @@ namespace PESpy
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal int StructSize => FixedStructSize + (2 * chunk.PointerSize);
+
+        internal const int FixedStructSize =
+            sizeof(int) + //AotSignature
+            sizeof(int) + //Cookie
+            sizeof(short) + //MajorVersion
+            sizeof(short) + //MinorVersion
+            sizeof(int) + //Flags
+            sizeof(int); //ReservePadding1
+
         private readonly MemoryChunk chunk;
 
         internal DotNetRuntimeDebugHeader(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteVAPointerField(DebugTypeEntries, FixedStructSize);
+            writer.WriteVAPointerField(GlobalValueEntries, FixedStructSize + chunk.PointerSize);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.DotNetRuntimeDebugHeader, this, ViewKind.DotNetRuntimeDebugHeader, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(Cookie), Cookie);
+            s.WriteField(nameof(MajorVersion), MajorVersion);
+            s.WriteField(nameof(MinorVersion), MinorVersion);
+            s.WriteField(nameof(Flags), Flags);
+            s.WriteField(nameof(ReservedPadding1), ReservedPadding1);
+            s.WritePointerField(nameof(DebugTypeEntries), DebugTypeEntries.ListedAddress);
+            s.WritePointerField(nameof(GlobalValueEntries), GlobalValueEntries.ListedAddress);
+
+            if (DebugTypeEntries.IsValid)
+            {
+                using var r = viewWriter.CreateRegion(DebugTypeEntries.ActualOffset, "DebugTypeEntries", ViewKind.DebugTypeEntries);
+
+                r.WriteValues(DebugTypeEntries.Value);
+            }
+
+            if (GlobalValueEntries.IsValid)
+            {
+                using var r = viewWriter.CreateRegion(GlobalValueEntries.ActualOffset, "GlobalValueEntries", ViewKind.GlobalValueEntries);
+
+                r.WriteValues(GlobalValueEntries.Value);
+            }
+
+            return s.ToArray();
         }
     }
 }

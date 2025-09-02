@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using PESpy.PDB;
 using PESpy.View;
 

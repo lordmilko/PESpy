@@ -1,4 +1,5 @@
 ﻿using System;
+using Roslyn.Utilities;
 
 namespace PESpy
 {
@@ -15,7 +16,13 @@ namespace PESpy
 
         public static explicit operator FixedUtf8String(FixedAnsiString value) => new FixedUtf8String(value.Value, value.Length);
 
-        public bool Equals(FixedAnsiString other) => this.Value == other.Value;
+        public bool Equals(FixedAnsiString other)
+        {
+            if (Value == other.Value)
+                return true;
+
+            return AsSpan().SequenceEqual(other.AsSpan());
+        }
 
         public bool Equals(string? other)
         {
@@ -58,7 +65,9 @@ namespace PESpy
             return false;
         }
 
-        public override int GetHashCode() => unchecked((int) this.Value);
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
+
+        public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
         /// <summary>
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.

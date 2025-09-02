@@ -34,7 +34,7 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var pages = new List<DirectoryInfo>();
+            using var pages = new PooledList<DirectoryInfo>();
 
             var streamIndexToNameMap = new Dictionary<int, string>();
 
@@ -342,9 +342,9 @@ namespace PESpy.View
                 pages.Add(new DirectoryInfo(nameBuilder.ToString(), i * pdbFile.PageSize, pdbFile.PageSize));
             }
 
-            var merger = new PdbMsfMerger(pdbFile, structs, pages, extension);
+            using var merger = new Merger(pdbFile, structs, default, pages, extension);
 
-            var results = merger.Merge();
+            var results = merger.MergePDB();
 
             return new FileView(ViewMode.Physical, results, ViewKind.PDBFile);
         }

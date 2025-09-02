@@ -31,8 +31,6 @@ namespace PESpy.PDB
         public static implicit operator ushort(SN value) => value.value;
         public static implicit operator SN(ushort value) => new SN(value);
 
-        public override int GetHashCode() => value.GetHashCode();
-
         public override bool Equals(object obj)
         {
             if (obj is SN sn)
@@ -51,6 +49,8 @@ namespace PESpy.PDB
         }
 
         public bool Equals(SN other) => value == other.value;
+
+        public override int GetHashCode() => value.GetHashCode();
 
         public override string ToString()
         {

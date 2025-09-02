@@ -29,7 +29,7 @@ namespace PESpy
                 {
                     var entry = Entries[i];
 
-                    builder.Append(entry.NameOrId);
+                    builder.Append(entry.NameOrId.ToString());
 
                     if (i < Entries.Length - 1)
                         builder.Append(", ");

@@ -49,11 +49,13 @@ namespace PESpy.Ecma335
 
         protected abstract T GetRow(int index);
 
-        public IEnumerator<T> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private struct Enumerator : IEnumerator<T>
+        public struct Enumerator : IEnumerator<T>
         {
             public T Current { get; private set; }
 

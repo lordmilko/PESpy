@@ -18,7 +18,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="BUILDINFOSYM.id"/>
-        public CV_ItemId id => value->id;
+        public TypOrEnumType id => new TypOrEnumType((byte*) value, value->id);
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

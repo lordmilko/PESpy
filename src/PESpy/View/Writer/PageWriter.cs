@@ -46,6 +46,9 @@ namespace PESpy.View
 
             public void WriteValue<T>(in T value, int size, ViewKind kind)
             {
+                if (end)
+                    throw new InvalidOperationException("Can't write beyond the end of a stream");
+
                 //If we overflow the end of the page, merger will split us
                 items.Add(new ValueView<T>(pageStart + relativeOffset, value, size, kind));
                 relativeOffset += size;
