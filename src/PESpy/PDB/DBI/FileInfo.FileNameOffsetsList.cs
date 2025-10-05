@@ -52,6 +52,21 @@ namespace PESpy.PDB
                 }
             }
 
+            /// <summary>
+            /// Gets a flat span of all of the offsets contained in this jagged array.
+            /// </summary>
+            /// <returns>A flat span of all of the offsets contained in this jagged array.</returns>
+            public NativeSpan<int> AsFlat()
+            {
+                //NumSourceFiles is only 16-bit; to get the real number of source files you have to manually count them
+                var numSourceFiles = 0;
+
+                foreach (var item in info.ModuleFileCounts)
+                    numSourceFiles += item;
+
+                return info.chunk.PeekNativeSpan<int>(4 + (info.NumModules * 4), numSourceFiles);
+            }
+
             public Enumerator GetEnumerator() => new Enumerator(info, baseOffset);
 
             IEnumerator<NativeSpan<int>> IEnumerable<NativeSpan<int>>.GetEnumerator() => GetEnumerator();

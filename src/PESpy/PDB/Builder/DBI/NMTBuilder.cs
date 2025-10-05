@@ -2,6 +2,17 @@
 {
     public class NMTBuilder
     {
+        private NMT? _existing;
+
+        public NMTBuilder()
+        {
+        }
+
+        internal NMTBuilder(NMT? existing)
+        {
+            _existing = existing;
+        }
+
         internal int Measure()
         {
             throw new System.NotImplementedException();

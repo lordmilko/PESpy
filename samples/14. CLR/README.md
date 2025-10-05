@@ -44,3 +44,53 @@ dotnet publish -c Release -r win-x64 -p:PublishReadyToRun=true
 Output files are in `C:\TestApp\bin\Release\net9.0\win-x64\publish`
 * `TestApp.exe` is a single file host
 * `TestApp.dll` is our actual R2R library that gets executed by the single file host
+
+## Single File App
+
+```
+dotnet new console -f net9.0
+dotnet publish /p:PublishSingleFile=true /p:PublishTrimmed=true
+```
+
+### NativeAOT
+
+```
+dotnet new console --aot -f net9.0
+dotnet publish
+```
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>
+```
+```c#
+using System.Diagnostics;
+
+BindLifetimeToParentProcess();
+
+while (true)
+    Thread.Sleep(1);
+
+static void BindLifetimeToParentProcess()
+{
+    var str = Environment.GetEnvironmentVariable("PESPY_TEST_PARENT_PID");
+
+    if (!string.IsNullOrEmpty(str) && int.TryParse(str, out var val))
+    {
+        var parent = Process.GetProcessById(val);
+
+        parent.EnableRaisingEvents = true;
+        parent.Exited += (s, o) => Process.GetCurrentProcess().Kill();
+    }
+}
+```

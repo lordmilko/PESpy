@@ -113,7 +113,7 @@ namespace PESpy
             }
         }
 
-        public uint TimeDateStamp => chunk.PeekUInt32(28);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(28);
 
         public int Offset => chunk.AbsoluteOffset;
 

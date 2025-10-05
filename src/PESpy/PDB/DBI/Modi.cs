@@ -59,6 +59,29 @@ namespace PESpy.PDB
 
         public PDBModuleSymbols? Symbols => GetSymbols(ref symbols, this, chunk);
 
+        #region C11Lines
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private C11Lines? c11Lines;
+
+        public C11Lines? C11Lines
+        {
+            get
+            {
+                if (cbLines > 0 && c11Lines == null)
+                {
+                    var pdbFile = chunk.PDBFile();
+
+                    if (pdbFile.TryGetStreamChunk(sn, out var moduleChunk))
+                        c11Lines = new C11Lines(moduleChunk.Slice(cbSyms));
+                }
+
+                return c11Lines;
+            }
+        }
+
+        #endregion
+
         internal static unsafe PDBModuleSymbols? GetSymbols(ref PDBModuleSymbols? field, IModi modi, in MemoryChunk chunk)
         {
             if (field == null && modi.cbSyms > 0)
@@ -102,6 +125,7 @@ namespace PESpy.PDB
 
         private readonly MemoryChunk chunk;
 
+        //e.g. VC40
         internal Modi(in MemoryChunk chunk, out int read)
         {
             this.chunk = chunk;

@@ -18,7 +18,10 @@ namespace PESpy.View
                 builder.Append(EndOffset.ToString("X"));
 
                 if (Name != null)
-                    builder.Append(" ").Append(Name);
+                {
+                    builder.Append(" ");
+                    builder.Append(Name);
+                }
 
                 return builder.ToString();
             }

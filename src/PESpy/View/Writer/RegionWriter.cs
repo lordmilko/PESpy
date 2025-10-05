@@ -152,7 +152,11 @@ namespace PESpy.View
 
             private void WriteValueInternal<T>(T value, int size, ViewKind kind = ViewKind.Value)
             {
-                viewWriter.NewValue(currentOffset, value, size, kind);
+                var result = viewWriter.NewValue(currentOffset, value, size, kind);
+
+                if (result != null)
+                    views.Add(result);
+
                 currentOffset += size;
             }
 

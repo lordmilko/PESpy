@@ -37,7 +37,7 @@ namespace PESpy
         /// </summary>
         public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(6);
 
-        public uint TimeDateStamp => chunk.PeekUInt32(8);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(8);
 
         /// <summary>
         /// <see cref="EXTENDED_COFF_OBJ_GUID"/> {D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8}

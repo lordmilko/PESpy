@@ -8,7 +8,7 @@ namespace PESpy
     /// </summary>
     public struct ImageBoundForwarderRef : IValue, IViewable
     {
-        public uint TimeDateStamp => chunk.PeekUInt32(0);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(0);
 
         public ushort OffsetModuleName => chunk.PeekUInt16(4);
 

@@ -21,6 +21,11 @@ namespace PESpy.PDB
             LargestNameIndex = 0;
         }
 
+        internal NMTNIBuilder(NMTNI nmtni)
+        {
+            throw new NotImplementedException();
+        }
+
         internal int Measure()
         {
             var size = sizeof(int) + NameOffsetToStreamIndexMap.Measure() + sizeof(int);

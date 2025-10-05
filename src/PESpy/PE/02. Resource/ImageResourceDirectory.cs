@@ -49,7 +49,7 @@ namespace PESpy
         /// <summary>
         /// The time that the resource data was created by the resource compiler.
         /// </summary>
-        public uint TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
 
         /// <summary>
         /// The major version number, set by the user.

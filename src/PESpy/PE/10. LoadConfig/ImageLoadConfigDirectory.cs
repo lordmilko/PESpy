@@ -43,7 +43,7 @@ namespace PESpy
         /// (00:00:00), January 1, 1970, Universal Coordinated Time, according to the system clock. The time stamp can be
         /// printed by using the C runtime (CRT) time function.
         /// </summary>
-        public uint TimeDateStamp => chunk.TryPeekUInt32(4, Size);
+        public Timestamp TimeDateStamp => chunk.TryPeekUInt32(4, Size);
 
         /// <summary>
         /// Major version number.

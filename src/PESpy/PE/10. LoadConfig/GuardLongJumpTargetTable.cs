@@ -38,7 +38,7 @@ namespace PESpy
             Count = (int) entryCount;
 
             //See GuardCFFunctionTable for info
-            var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
+            var metadataSize = (byte) ((int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
         }
 
         public Entry this[int index]
@@ -72,7 +72,7 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteInline(this);
+            s.WriteInline<GuardLongJumpTargetTable, Entry>(this);
 
             return s.ToArray();
         }

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Text;
-using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy

@@ -55,7 +55,7 @@ namespace PESpy
              *     targets have metadata
              */
 
-            var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
+            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
         }
 
         public Entry this[int index]
@@ -92,7 +92,7 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteInline(this);
+            s.WriteInline<GuardCFFunctionTable, Entry>(this);
 
             return s.ToArray();
         }
@@ -150,8 +150,6 @@ namespace PESpy
                         Flags = null;
                         break;
                 }
-
-                XFG = null;
             }
 
             void IViewable.WriteGlobals(ViewWriter writer)

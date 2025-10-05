@@ -2,6 +2,17 @@
 {
     public class DbgDataHdrBuilder
     {
+        private DbgDataHdr? _existing;
+
+        public DbgDataHdrBuilder()
+        {
+        }
+
+        internal DbgDataHdrBuilder(DbgDataHdr existing)
+        {
+            _existing = existing;
+        }
+
         internal int Measure()
         {
             throw new System.NotImplementedException();

@@ -100,6 +100,31 @@ namespace PESpy.PDB
 
         public unsafe PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, chunk);
 
+        #region C11Lines
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private C11Lines? c11Lines;
+
+        //VC60 has C11 lines
+        public C11Lines? C11Lines
+        {
+            get
+            {
+                if (cbLines > 0 && c11Lines == null)
+                {
+                    var pdbFile = chunk.PDBFile();
+
+                    if (pdbFile.TryGetStreamChunk(sn, out var moduleChunk))
+                        c11Lines = new C11Lines(moduleChunk.Slice(cbSyms));
+                }
+
+                return c11Lines;
+            }
+        }
+
+        #endregion
+        #region C13Lines
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private CvDebugSSubsectionHeader[]? c13Lines;
 
@@ -135,6 +160,8 @@ namespace PESpy.PDB
                 return c13Lines;
             }
         }
+
+        #endregion
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -176,9 +203,6 @@ namespace PESpy.PDB
 
             symbols = default;
             c13Lines = default;
-
-            if (cbLines > 0)
-                Debug.Assert(false, "Reading C11 lines is not implemented"); //microsoft-pdb calls these C11 lines, they're not called C7 lines
 
 #if STRESS_TEST
             _ = Symbols;

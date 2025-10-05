@@ -25,7 +25,7 @@ namespace PESpy
         /// If this <see cref="PEFile"/> has an <see cref="ImageDebugDirectory"/> whose type is <see cref="ImageDebugType.Reproducible"/>, this value is not a TimeDateStamp, but rather a
         /// checksum derived from the executable's file contents, whose algorithm is an implementation detail of the tool that produced the file.
         /// </summary>
-        public uint TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
 
         /// <summary>
         /// The major version number. The major and minor version numbers can be set by the user.

@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Diagnostics;
-#if !DEBUG_POSITION
-using RawOffset = System.Int32;
-#endif
 
 namespace PESpy.View
 {
+    public interface IStructView : IContainerView
+    {
+        FixedUtf8String Name { get; }
+
+        bool TryGetEnhancedName(out string name);
+    }
+
     /// <summary>
     /// Provides a view over a structure and the data contained within its bounds.
     /// </summary>
     [DebuggerDisplay("{ViewDebuggerDisplay.Struct(this),nq}")]
-    public class StructView : IContainerView, ISplittableView
+    public class StructView<TValue> : IStructView, IContainerView, ISplittableView
     {
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
@@ -20,13 +24,19 @@ namespace PESpy.View
         /// <summary>
         /// Gets the native name of the type that this structure represents.
         /// </summary>
-        public string Name { get; }
+        public FixedUtf8String Name { get; }
+
+        private IView[] children;
 
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children { get; private set; }
+        public IView[] Children
+        {
+            get => children ??= ((IViewable) value).GetChildren(this, viewWriter);
+            private set => children = value;
+        }
 
         /// <summary>
         /// Gets the total number of bytes that this struct occupies.
@@ -39,14 +49,18 @@ namespace PESpy.View
 
         public void Accept(ViewVisitor visitor) => visitor.VisitStruct(this);
 
-        public StructView(RawOffset offset, string name, IView[] children, int size, ViewKind kind)
+        private readonly TValue value;
+        private readonly ViewWriter viewWriter;
+
+        public StructView(int offset, FixedUtf8String name, TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter)
         {
             Offset = offset;
             Name = name;
-            Children = children;
-            Debug.Assert(children[0] != null);
+            this.value = value;
+            this.children = children;
             Size = size;
             Kind = kind;
+            this.viewWriter = viewWriter;
         }
 
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
@@ -179,17 +193,54 @@ namespace PESpy.View
                 throw new NotImplementedException(); //todo: what to do about previous and next?
             }
 
-            return new StructView(newOffset, Name, newChildren, Size, Kind);
+            return new StructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);
+        }
+
+        public bool TryGetEnhancedName(out string name)
+        {
+            if (value is ImageImportDescriptor i)
+            {
+                if (i.Name.IsValid)
+                {
+                    name = i.Name.Value.ToString();
+                    return true;
+                }
+            }
+            else if (value is ImageDelayLoadDescriptor l)
+            {
+                if (l.DllNameRVA.IsValid)
+                {
+                    name = l.DllNameRVA.Value.ToString();
+                    return true;
+                }
+            }
+            else if (value is DebugTypeEntry d)
+            {
+                if (!d.FieldName.IsValid)
+                {
+                    if (d.TypeName.IsValid)
+                        name = d.TypeName.Value.ToString();
+                }
+                else
+                {
+                    //We have a FieldName
+                    if (d.TypeName.IsValid)
+                        name = $"{d.TypeName}.{d.FieldName}";
+                }
+            }
+
+            name = default;
+            return false;
         }
     }
 
-    class SplitStructView : StructView, ISplitView
+    class SplitStructView<TValue> : StructView<TValue>, ISplitView
     {
         public ISplitView? Previous { get; internal set; }
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructView(RawOffset offset, string name, IView[] children, int size, ViewKind kind) : base(offset, name, children, size, kind)
+        public SplitStructView(int offset, FixedUtf8String name, TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, value, children, size, kind, viewWriter)
         {
         }
     }

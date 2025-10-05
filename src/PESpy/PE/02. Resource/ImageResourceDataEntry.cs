@@ -117,7 +117,7 @@ namespace PESpy
 
                                 case ResourceType.Manifest:
                                     //Note that the manifest may start with a UTF-8 BOM
-                                    value = new RawValue<FixedUtf8String>(valueChunk.AbsoluteOffset, new FixedUtf8String(valueChunk.Pointer, valueChunk.Remaining));
+                                    value = new RawValue<FixedUtf8String>(valueChunk.AbsoluteOffset, new FixedUtf8String(valueChunk.Pointer, Size));
                                     break;
 
                                 default:

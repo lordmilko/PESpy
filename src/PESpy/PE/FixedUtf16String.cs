@@ -46,6 +46,9 @@ namespace PESpy
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool StartsWith(string value) => AsSpan().StartsWith(value.AsSpan());
+
         public static bool operator ==(FixedUtf16String left, string right) => left.Equals(right);
         public static bool operator !=(FixedUtf16String left, string right) => !left.Equals(right);
 

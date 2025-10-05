@@ -29,7 +29,7 @@ namespace PESpy.View.Builder
                     if (objFile.AnonObjectHeader != null)
                         start += objFile.FileHeader.Offset;
 
-                    ProcessSectionHeader(section, start, size, lastSectionEnd, this, ref results);
+                    ProcessSectionHeader(section, start, size, lastSectionEnd, ref this, ref results);
 
                     lastSectionEnd = start + size;
                 }
@@ -54,7 +54,7 @@ namespace PESpy.View.Builder
             int start,
             int size,
             int lastSectionEnd,
-            Merger merger,
+            ref Merger merger,
             ref PooledList<IView> results)
         {
             //You can have data in between sections

@@ -41,7 +41,7 @@ namespace PESpy
 
             //See GuardCFFunctionTable for info
             //https://windows-internals.com/cet-on-windows/
-            var metadataSize = (int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT;
+            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
         }
 
         public Entry this[int index]
@@ -75,7 +75,7 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteInline(this);
+            s.WriteInline<GuardEHContinuationTable, Entry>(this);
 
             return s.ToArray();
         }

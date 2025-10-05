@@ -104,8 +104,10 @@ namespace PESpy.PDB
             {
                 PDB = new MsfStreamBuilder.PDB(this, guid);
 
+#if PDB1_COMPATIBILITY
                 //PDB1 commits the PDB immediately
                 Commit(PDBCommitFlags.PDB);
+#endif
             }
 
             return PDB;
@@ -495,7 +497,7 @@ namespace PESpy.PDB
 
                 var pageSize = PageSize;
 
-                if (kv.Value.ownsMemory)
+                if (kv.Value.OwnsMemory)
                 {
                     for (var i = 0; i < kv.Key.Length; i++)
                     {

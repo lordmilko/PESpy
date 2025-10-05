@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PESpy
 {
@@ -11,7 +14,7 @@ namespace PESpy
             DirectoryName = directoryName;
         }
 
-        protected override (SymStoreFile file, Stream stream)? GetFile(SymStoreKey key)
+        protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, CancellationToken cancellationToken)
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 
@@ -24,26 +27,30 @@ namespace PESpy
                 if (fs.Length == 0)
                 {
                     fs.Dispose();
-                    return null;
+                    return default;
                 }
 
-                return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs);
+                return new ValueTask<(SymStoreFile file, Stream stream)?>((new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), fs));
             }
 
-            return null;
+            return default;
         }
 
-        protected override (SymStoreFile file, Stream stream)? SaveFile(SymStoreKey key, SymStoreFile file, Stream stream)
+        protected override async ValueTask<(SymStoreFile file, Stream stream)?> SaveFileAsync(SymStoreKey key, SymStoreFile file, Stream stream, CancellationToken cancellationToken)
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
 
-            var fs = File.OpenWrite(fileName);
+            //We don't want to download to the final file, because if the download is interrupted we'll trip over the file
+            //when we next attempt to read the file, since it will now already exist
 
-            try
+            //Per symsrv!GetTempDownloadFIleName
+            var tempFile = Path.Combine(DirectoryName, $"download{Guid.NewGuid().ToString("N").ToUpperInvariant()}.error");
+
+            using (var fs = File.OpenWrite(tempFile))
             {
-                stream.CopyTo(fs);
+                await stream.CopyToAsync(fs, 81920, cancellationToken).ConfigureAwait(false);
             }
 
             File.Move(tempFile, fileName);

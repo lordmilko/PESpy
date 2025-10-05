@@ -25,7 +25,7 @@ namespace PESpy
         /// The algorithm used to calculate this value is an implementation
         /// detail of the tool that produced the file.
         /// </remarks>
-        public uint TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
 
         /// <summary>
         /// The major version number of the debug data format.

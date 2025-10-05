@@ -9,7 +9,11 @@ using PESpy.View;
 
 namespace PESpy
 {
-    //Also represents EXP files
+    /// <summary>
+    /// Represents a file in the Common Object File Format that is not better described
+    /// by a more specific type (such as <see cref="PEFile"/>).<para/>
+    /// File types commonly used with this type include *.exp and non-OMF *.obj files.
+    /// </summary>
     public class OBJFile : IFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)

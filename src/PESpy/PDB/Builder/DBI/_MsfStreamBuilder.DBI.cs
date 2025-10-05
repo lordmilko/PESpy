@@ -10,37 +10,100 @@ namespace PESpy.PDB
         {
             internal bool Changed;
 
-            private readonly PDBFileBuilder pdbFileBuilder;
+            private readonly PDBFileBuilder _pdbFileBuilder;
 
             internal DBI(PDBFileBuilder pdbFileBuilder)
             {
-                this.pdbFileBuilder = pdbFileBuilder;
+                _pdbFileBuilder = pdbFileBuilder;
 
-                verSignature = NewDBIHdr.hdrSignature;
-                verHdr = DBIImpv.DBIImpvV70;
-                snGSSyms = SN.Nil;
-                snPSSyms = SN.Nil;
-                snSymRecs = SN.Nil;
+                _verSignature = NewDBIHdr.hdrSignature;
+                _verHdr = DBIImpv.DBIImpvV70;
+                _snGSSyms = SN.Nil;
+                _snPSSyms = SN.Nil;
+                _snSymRecs = SN.Nil;
+            }
+
+            internal DBI(MsfStream.DBI dbi, PDBFileBuilder pdbFileBuilder)
+            {
+                _pdbFileBuilder = pdbFileBuilder;
+
+                //NewDBIHdr
+                var newDbiHdr = (NewDBIHdr) dbi.DbiHdr;
+
+                _verSignature = newDbiHdr.verSignature;
+                _verHdr = newDbiHdr.verHdr;
+                _age = newDbiHdr.age;
+                _snGSSyms = newDbiHdr.snGSSyms;
+                _usVerAll = newDbiHdr.usVerAll;
+                _snPSSyms = newDbiHdr.snPSSyms;
+                _usVerPdbDllBuild = newDbiHdr.usVerPdbDllBuild;
+                _snSymRecs = newDbiHdr.snSymRecs;
+                _usVerPdbDllRBld = newDbiHdr.usVerPdbDllRBld;
+                _cbGpModi = newDbiHdr.cbGpModi;
+                _cbSC = newDbiHdr.cbSC;
+                _cbSecMap = newDbiHdr.cbSecMap;
+                _cbFileInfo = newDbiHdr.cbFileInfo;
+                _cbTSMap = newDbiHdr.cbTSMap;
+                _iMFC = newDbiHdr.iMFC;
+                _cbDbgHdr = newDbiHdr.cbDbgHdr;
+                _cbECInfo = newDbiHdr.cbECInfo;
+                _flags = newDbiHdr.flags;
+                _wMachine = newDbiHdr.wMachine;
+                _rgulReserved = newDbiHdr.rgulReserved;
+
+                var modules = dbi.Modules;
+
+                if (modules != null)
+                    _modules = new ModiBuilderList(modules);
+
+                var sectionContribs = dbi.SectionContribs;
+
+                if (sectionContribs != null)
+                    _sectionContribs = new SectionContribsBuilder(sectionContribs);
+
+                var sectionMap = dbi.SectionMap;
+
+                if (sectionMap != null)
+                    _sectionMap = new OMFSegMapBuilder(sectionMap);
+
+                var fileInfo = dbi.FileInfo;
+
+                if (fileInfo != null)
+                    _fileInfo = new FileInfoBuilder(fileInfo);
+
+                //Type Server
+
+                var nameTableEC = dbi.NameTableEC;
+
+                if (nameTableEC != null)
+                    _nameTableEC = new NMTBuilder(nameTableEC);
+
+                var dbgHdr = dbi.DbgHdr;
+
+                if (dbgHdr != null)
+                    _dbgHdr = new DbgDataHdrBuilder(dbgHdr);
             }
 
             internal void Init()
             {
                 //DBI1::fInit seems to clear the DBI when you're creating it.
                 //It deletes and recreates the stream. It also deletes all sub-streams of the DBI
-                pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
-                pdbFileBuilder.Commit(PDBCommitFlags.None);
-                pdbFileBuilder.StreamTable[SN.DBI].ByteCount = 0;
+                _pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
+                _pdbFileBuilder.Commit(PDBCommitFlags.None);
+                _pdbFileBuilder.StreamTable[SN.DBI].ByteCount = 0;
 
+#if PDB1_COMPATIBILITY
                 //mspdbcore.dll has implemented logic not in microsoft-pdb wherein the NewDBIHdr is immediately inserted
                 //back into the file, and it is committed
                 pdbFileBuilder.Commit(PDBCommitFlags.DBI);
+#endif
 
                 //Creating DBI also creates TPI, IPI, Publics and Globals
-                pdbFileBuilder.AcquireGSI();
-                pdbFileBuilder.AcquirePSGSI();
+                _pdbFileBuilder.AcquireGSI();
+                _pdbFileBuilder.AcquirePSGSI();
 
-                pdbFileBuilder.AcquireTPI();
-                pdbFileBuilder.AcquireIPI();
+                _pdbFileBuilder.AcquireTPI();
+                _pdbFileBuilder.AcquireIPI();
 
                 //When DBI1::clearDBI calls PDB1::OpenStreamEx to see if the /LinkInfo stream exists, this causes it to be cleared
                 //At the end of DBI1::fInit it calls fInitializeTMCacheInfo which adds the /TMCache stream
@@ -337,70 +400,70 @@ namespace PESpy.PDB
             #endregion
             #region Modules
 
-            private ModiBuilderList? modules;
+            private ModiBuilderList? _modules;
 
             public ModiBuilderList? Modules
             {
-                get => modules;
-                set => SetValue(ref modules, value, ref Changed);
+                get => _modules;
+                set => SetValue(ref _modules, value, ref Changed);
             }
 
             #endregion
             #region Section Contribs
 
-            private SectionContribsBuilder? sectionContribs;
+            private SectionContribsBuilder? _sectionContribs;
 
             public SectionContribsBuilder? SectionContribs
             {
-                get => sectionContribs;
-                set => SetValue(ref sectionContribs, value, ref Changed);
+                get => _sectionContribs;
+                set => SetValue(ref _sectionContribs, value, ref Changed);
             }
 
             #endregion
             #region Section Map
 
-            private OMFSegMapBuilder? sectionMap;
+            private OMFSegMapBuilder? _sectionMap;
 
             public OMFSegMapBuilder? SectionMap
             {
-                get => sectionMap;
-                set => SetValue(ref sectionMap, value, ref Changed);
+                get => _sectionMap;
+                set => SetValue(ref _sectionMap, value, ref Changed);
             }
 
             #endregion
             #region File Info
 
-            private FileInfoBuilder? fileInfo;
+            private FileInfoBuilder? _fileInfo;
 
             public FileInfoBuilder? FileInfo
             {
-                get => fileInfo;
-                set => SetValue(ref fileInfo, value, ref Changed);
+                get => _fileInfo;
+                set => SetValue(ref _fileInfo, value, ref Changed);
             }
 
             #endregion
-            
+
             //Type Server
 
-            #region Modules
+            #region Edit and Continue Info
 
-            private NMTBuilder? nameTableEC;
+            private NMTBuilder? _nameTableEC;
 
             public NMTBuilder? NameTableEC
             {
-                get => nameTableEC;
-                set => SetValue(ref nameTableEC, value, ref Changed);
+                get => _nameTableEC;
+                set => SetValue(ref _nameTableEC, value, ref Changed);
             }
 
             #endregion
             #region Optional Debug Header
 
-            private DbgDataHdrBuilder? dbgHdr;
+            private DbgDataHdrBuilder? _dbgHdr;
 
             public DbgDataHdrBuilder? DbgHdr
             {
-                get => dbgHdr;
-                set => SetValue(ref dbgHdr, value, ref Changed);
+                get => _dbgHdr;
+                set => SetValue(ref _dbgHdr, value, ref Changed);
             }
 
             #endregion
@@ -418,9 +481,9 @@ namespace PESpy.PDB
                 var size = NewDBIHdr.StructSize + cbGpModi + cbSC + cbSecMap + cbFileInfo + cbECInfo + cbDbgHdr;
 
                 //The PDB stream is saved by "replacing" it, which means that the previous stream gets deleted
-                pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
+                _pdbFileBuilder.StreamTable.DeleteStream(SN.DBI);
 
-                pdbFileBuilder.AllocPages(SN.DBI, size);
+                _pdbFileBuilder.AllocPages(SN.DBI, size);
             }
 
             internal void Serialize()
@@ -428,7 +491,7 @@ namespace PESpy.PDB
                 if (!Changed)
                     return;
 
-                var chunk = pdbFileBuilder.SlicePaged(SN.DBI);
+                var chunk = _pdbFileBuilder.SlicePaged(SN.DBI);
 
                 _ = new NewDBIHdr(chunk)
                 {

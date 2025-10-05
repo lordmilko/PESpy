@@ -40,7 +40,7 @@ namespace PESpy
         /// <summary>
         /// The stamp that is set to zero until the image is bound. After the image is bound, this field is set to the time/data stamp of the DLL.
         /// </summary>
-        public uint TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
 
         /// <summary>
         /// The index of the first forwarder reference.

@@ -123,7 +123,7 @@ namespace PESpy.PDB
 
 #if DEBUG
                     //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                    SymTypeProxy.GetValue(Current);
+                    //SymTypeProxy.GetValue(Current);
 #endif
 
                     ptr += SymType.GetSymbolLength(Current);

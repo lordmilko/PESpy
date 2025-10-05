@@ -294,7 +294,7 @@ namespace PESpy.View
 
             for (var i = 0; i < pdbFile.NumPages; i++)
             {
-                var nameBuilder = new StringBuilder();
+                using var nameBuilder = new ValueStringBuilder();
 
                 nameBuilder.Append(i);
 
@@ -330,7 +330,12 @@ namespace PESpy.View
                             name = $"{specialName} / {name}";
                     }
 
-                    nameBuilder.Append(" | " + name).Append(" (").Append(match.pageIndex + 1).Append("/").Append(match.si.PageList.Length).Append(")");
+                    nameBuilder.Append(" | " + name);
+                    nameBuilder.Append(" (");
+                    nameBuilder.Append(match.pageIndex + 1);
+                    nameBuilder.Append("/");
+                    nameBuilder.Append(match.si.PageList.Length);
+                    nameBuilder.Append(")");
                 }
                 else if (specialPageMap.TryGetValue(i, out var name))
                 {

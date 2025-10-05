@@ -50,7 +50,7 @@ namespace PESpy.View.Builder
 
                             var nextStructIndexToInsertAt = nextStructIndex;
 
-                            ProcessSectionHeader(section, start, size, lastSectionEnd, this, ref nestedObjRegions);
+                            ProcessSectionHeader(section, start, size, lastSectionEnd, ref this, ref nestedObjRegions);
 
                             var endNextStructIndex = nextStructIndex;
 

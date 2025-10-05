@@ -97,7 +97,7 @@ namespace PESpy
         public unsafe struct ModuleIndex : IViewable
         {
             public byte Size;
-            public uint TimeStamp;
+            public Timestamp TimeStamp;
             public int ImageSize;
             public fixed byte Extra[15];
 

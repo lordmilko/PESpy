@@ -1,11 +1,17 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PESpy
 {
     internal abstract class SymStore
     {
-        public static bool TryGetFile(ReadOnlySpan<char> searchPath, SymStoreKey key, out string? filePath)
+        public static ValueTask<string?> GetFileAsync(
+            ReadOnlySpan<char> searchPath,
+            SymStoreKey key,
+            SymStoreKey? altKey,
+            CancellationToken cancellationToken)
         {
             //Construct a SymStore chain
 
@@ -44,17 +50,23 @@ namespace PESpy
                 }
             }
 
-            var fileAndStream = store!.Cascade(key);
+            return CascadeStoreAsync(key, altKey, store, cancellationToken);
+        }
+
+        private static async ValueTask<string?> CascadeStoreAsync(SymStoreKey key, SymStoreKey? altKey, SymStore store, CancellationToken cancellationToken)
+        {
+            var fileAndStream = await store!.CascadeAsync(key, cancellationToken).ConfigureAwait(false);
+
+            if (fileAndStream == null && altKey != null)
+                fileAndStream = await store!.CascadeAsync(altKey.Value, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream != null)
             {
                 fileAndStream.Value.stream.Dispose();
-                filePath = fileAndStream.Value.file.FileName;
-                return true;
+                return fileAndStream.Value.file.FileName;
             }
 
-            filePath = default;
-            return false;
+            return null;
         }
 
         public SymStore? BackingStore { get; }
@@ -64,15 +76,15 @@ namespace PESpy
             BackingStore = backingStore;
         }
 
-        public (SymStoreFile file, Stream stream)? Cascade(SymStoreKey key)
+        public async ValueTask<(SymStoreFile file, Stream stream)?> CascadeAsync(SymStoreKey key, CancellationToken cancellationToken)
         {
-            var fileAndStream = GetFile(key);
+            var fileAndStream = await GetFileAsync(key, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    fileAndStream = BackingStore.Cascade(key);
+                    fileAndStream = await BackingStore.CascadeAsync(key, cancellationToken).ConfigureAwait(false);
 
                     if (fileAndStream != null)
                     {
@@ -80,7 +92,7 @@ namespace PESpy
 
                         try
                         {
-                            fileAndStream = SaveFile(key, fileAndStream.Value.file, fileAndStream.Value.stream);
+                            fileAndStream = await SaveFileAsync(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -93,8 +105,8 @@ namespace PESpy
             return fileAndStream;
         }
 
-        protected abstract (SymStoreFile file, Stream stream)? GetFile(SymStoreKey key);
+        protected abstract ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, CancellationToken cancellationToken);
 
-        protected abstract (SymStoreFile file, Stream stream)? SaveFile(SymStoreKey key, SymStoreFile file, Stream stream);
+        protected abstract ValueTask<(SymStoreFile file, Stream stream)?> SaveFileAsync(SymStoreKey key, SymStoreFile file, Stream stream, CancellationToken cancellationToken);
     }
 }
