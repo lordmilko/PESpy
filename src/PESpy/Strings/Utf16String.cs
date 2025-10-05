@@ -33,21 +33,7 @@ namespace PESpy
             if (other == null)
                 return false;
 
-            var length = Length;
-
-            if (other.Length != length)
-                return false;
-
-            fixed (char* p = other)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    if ((byte) p[i] != Value[i])
-                        return false;
-                }
-            }
-
-            return true;
+            return AsSpan().SequenceEqual(other.AsSpan());
         }
 
         public static bool operator ==(Utf16String left, string right) => left.Equals(right);

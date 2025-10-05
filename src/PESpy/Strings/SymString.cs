@@ -3,15 +3,26 @@ using Roslyn.Utilities;
 
 namespace PESpy
 {
-    public readonly unsafe struct FixedUtf8String
+    public readonly unsafe struct SymString
     {
         public readonly byte* Value;
-        public readonly int Length;
+        public readonly bool IsLengthPrefixed;
 
-        public FixedUtf8String(byte* value, int length)
+        internal SymString(byte* value, bool isLengthPrefixed)
         {
             Value = value;
-            Length = length;
+            IsLengthPrefixed = isLengthPrefixed;
+        }
+
+        public int Length
+        {
+            get
+            {
+                if (IsLengthPrefixed)
+                    return *(Value - 1);
+
+                return StringHelpers.GetStringLength(Value);
+            }
         }
 
         public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
@@ -24,7 +35,7 @@ namespace PESpy
                 array[i] = (char) value[i];
         }
 
-        public bool Equals(FixedUtf8String other)
+        public bool Equals(SymString other)
         {
             if (Value == other.Value)
                 return true;
@@ -37,33 +48,23 @@ namespace PESpy
             if (other == null)
                 return Value == default;
 
-            var length = Length;
-
-            if (other.Length != length)
-                return false;
-
-            fixed (char* p = other)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    if ((byte) p[i] != Value[i])
-                        return false;
-                }
-            }
-
-            return true;
+            return StringHelpers.Equals(Value, other);
         }
 
-        public static bool operator ==(FixedUtf8String left, string? right) => left.Equals(right);
-        public static bool operator !=(FixedUtf8String left, string? right) => !left.Equals(right);
+        public static implicit operator SymString(Utf8String value) => new SymString(value.Value, isLengthPrefixed: false);
 
-        public static bool operator ==(string? left, FixedUtf8String right) => right.Equals(left);
-        public static bool operator !=(string? left, FixedUtf8String right) => !right.Equals(left);
+        public static implicit operator SymString(AnsiString value) => new SymString(value.Value, isLengthPrefixed: false);
 
-        public static bool operator ==(FixedUtf8String left, FixedUtf8String right) => Equals(left, right);
-        public static bool operator !=(FixedUtf8String left, FixedUtf8String right) => !Equals(left, right);
+        public static bool operator ==(SymString left, string? right) => left.Equals(right);
+        public static bool operator !=(SymString left, string? right) => !left.Equals(right);
 
-        public override bool Equals(object obj)
+        public static bool operator ==(string? left, SymString right) => right.Equals(left);
+        public static bool operator !=(string? left, SymString right) => !right.Equals(left);
+
+        public static bool operator ==(SymString left, SymString right) => Equals(left, right);
+        public static bool operator !=(SymString left, SymString right) => !Equals(left, right);
+
+        public override bool Equals(object? obj)
         {
             if (obj is FixedUtf8String p)
                 return Equals(p);
@@ -90,7 +91,8 @@ namespace PESpy
             return true;
         }
 
-        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
+        public Span<byte> AsSpan() =>
+            new Span<byte>(Value, IsLengthPrefixed ? *(Value - 1) : StringHelpers.GetStringLength(Value));
 
         public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
@@ -99,6 +101,11 @@ namespace PESpy
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
         public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, System.Text.Encoding.UTF8);
+
+        //todo: implement icomparable for all of our other string types
+        public int CompareTo(SymString other) => AsSpan().SequenceCompareTo(other.AsSpan());
+
+        public int CompareTo(string other) => throw new NotImplementedException();
 
         private string DebuggerDisplay => this.ToString();
     }

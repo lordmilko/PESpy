@@ -36,7 +36,7 @@ namespace PESpy.PDB
             }
         }
 
-        public FixedUtf8String name
+        public SymString name
         {
             get
             {

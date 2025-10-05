@@ -21,7 +21,13 @@ namespace PESpy.PDB
 
         public int signature => value->signature;
 
-        public FixedUtf8String Name => TypType.ReadString(value->name);
+        public SymString Name => TypType.ReadString(value->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

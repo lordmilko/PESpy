@@ -39,7 +39,7 @@ namespace PESpy.PDB
         public short regType => value->regType;
 
         /// <inheritdoc cref="DATASYMHLSL32.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

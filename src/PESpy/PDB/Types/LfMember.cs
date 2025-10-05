@@ -33,15 +33,17 @@ namespace PESpy.PDB
             }
         }
 
-        public FixedUtf8String name
-        {
-            get
-            {
-                //I am assuming I need to use normal ST/UTF parsing logic
-                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+        public SymString name => GetName(null);
 
-                return TypType.ReadString(value->offset + bytesRead);
-            }
+        #endregion
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        {
+            //I am assuming I need to use normal ST/UTF parsing logic
+            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+
+            return TypType.ReadString(value->offset + bytesRead, symbolAccessor);
         }
 
         #endregion

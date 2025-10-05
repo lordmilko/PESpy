@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -21,7 +22,7 @@ namespace PESpy.PDB
         public int cb => value->cb;
 
         /// <inheritdoc cref="COFFGROUPSYM.characteristics"/>
-        public int characteristics => value->characteristics;
+        public IMAGE_SCN characteristics => value->characteristics;
 
         /// <inheritdoc cref="COFFGROUPSYM.off"/>
         public CV_uoff32_t off => value->off;
@@ -30,11 +31,13 @@ namespace PESpy.PDB
         public ushort seg => value->seg;
 
         /// <inheritdoc cref="COFFGROUPSYM.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 

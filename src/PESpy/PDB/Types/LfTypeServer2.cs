@@ -20,7 +20,13 @@ namespace PESpy.PDB
 
         public int age => value->age;
 
-        public FixedUtf8String name => TypType.ReadString(value->name);
+        public SymString name => TypType.ReadString(value->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

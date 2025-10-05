@@ -26,7 +26,13 @@ namespace PESpy.PDB
         //Note: according to dumpsym7.cpp!C7ConSym, name does not actually contain name; you have to skip over a type encoded value indicated by "value"
 
         /// <inheritdoc cref="CONSTSYM.name"/>
-        public FixedUtf8String name => SymType.ReadString(raw, raw->name);
+        public SymString name => SymType.ReadString(raw, raw->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(raw, raw->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

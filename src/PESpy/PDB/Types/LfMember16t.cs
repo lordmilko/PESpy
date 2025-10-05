@@ -19,6 +19,12 @@ namespace PESpy.PDB
 
         public CV_fldattr_t attr => value->attr;
 
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => throw new System.NotImplementedException(); //TypType.ReadString(value->name, symbolAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(short)  + //index

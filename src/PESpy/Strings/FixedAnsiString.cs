@@ -3,20 +3,20 @@ using Roslyn.Utilities;
 
 namespace PESpy
 {
-    public readonly unsafe struct FixedUtf16String
+    public readonly unsafe struct FixedAnsiString
     {
-        public readonly char* Value;
+        public readonly byte* Value;
         public readonly int Length;
 
-        public FixedUtf16String(char* value, int length)
+        public FixedAnsiString(byte* value, int length)
         {
             Value = value;
             Length = length;
         }
 
-        public void CopyTo(Span<char> destination) => new Span<char>(Value, Length).CopyTo(destination);
+        public static explicit operator FixedUtf8String(FixedAnsiString value) => new FixedUtf8String(value.Value, value.Length);
 
-        public bool Equals(FixedUtf16String other)
+        public bool Equals(FixedAnsiString other)
         {
             if (Value == other.Value)
                 return true;
@@ -46,18 +46,17 @@ namespace PESpy
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool StartsWith(string value) => AsSpan().StartsWith(value.AsSpan());
+        public static implicit operator Span<byte>(FixedAnsiString value) => new Span<byte>(value.Value, value.Length);
 
-        public static bool operator ==(FixedUtf16String left, string right) => left.Equals(right);
-        public static bool operator !=(FixedUtf16String left, string right) => !left.Equals(right);
+        public static bool operator ==(FixedAnsiString left, string right) => left.Equals(right);
+        public static bool operator !=(FixedAnsiString left, string right) => !left.Equals(right);
 
-        public static bool operator ==(string left, FixedUtf16String right) => right.Equals(left);
-        public static bool operator !=(string left, FixedUtf16String right) => !right.Equals(left);
+        public static bool operator ==(string left, FixedAnsiString right) => right.Equals(left);
+        public static bool operator !=(string left, FixedAnsiString right) => !right.Equals(left);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj is AnsiString p)
+            if (obj is FixedAnsiString p)
                 return Equals(p);
 
             if (obj is string s)
@@ -66,7 +65,7 @@ namespace PESpy
             return false;
         }
 
-        public Span<char> AsSpan() => new Span<char>(Value, Length);
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
 
         public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
@@ -74,7 +73,7 @@ namespace PESpy
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
-        public override string ToString() => this.Value is null ? null! : new string(this.Value, 0, Length);
+        public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, global::System.Text.Encoding.Default);
 
         private string DebuggerDisplay => this.ToString();
     }

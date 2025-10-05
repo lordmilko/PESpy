@@ -35,21 +35,7 @@ namespace PESpy
             if (other == null)
                 return false;
 
-            var length = Length;
-
-            if (other.Length != length)
-                return false;
-
-            fixed (char* p = other)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    if ((byte) p[i] != Value[i])
-                        return false;
-                }
-            }
-
-            return true;
+            return StringHelpers.Equals(Value, other);
         }
 
         public static bool operator ==(Utf8String left, string right) => left.Equals(right);
@@ -58,7 +44,7 @@ namespace PESpy
         public static bool operator ==(string left, Utf8String right) => right.Equals(left);
         public static bool operator !=(string left, Utf8String right) => !right.Equals(left);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Utf8String p)
                 return Equals(p);
@@ -73,21 +59,7 @@ namespace PESpy
 
         public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
-        public int Length
-        {
-            get
-            {
-                byte* p = this.Value;
-
-                if (p is null)
-                    return 0;
-
-                while (*p != 0)
-                    p++;
-
-                return checked((int) (p - this.Value));
-            }
-        }
+        public int Length => StringHelpers.GetStringLength(Value);
 
         /// <summary>
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.

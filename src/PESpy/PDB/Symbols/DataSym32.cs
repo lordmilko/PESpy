@@ -27,12 +27,14 @@ namespace PESpy.PDB
         public ushort seg => value->seg;
 
         /// <inheritdoc cref="DATASYM32.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         //If seg is 0, there's no RVA
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 

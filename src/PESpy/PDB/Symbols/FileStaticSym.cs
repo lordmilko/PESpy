@@ -27,7 +27,13 @@ namespace PESpy.PDB
         public CV_LVARFLAGS flags => value->flags;
 
         /// <inheritdoc cref="FILESTATICSYM.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

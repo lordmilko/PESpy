@@ -40,13 +40,15 @@ namespace PESpy.PDB
         public THUNK_ORDINAL ord => (THUNK_ORDINAL) value->ord;
 
         /// <inheritdoc cref="THUNKSYM32.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -21,13 +22,19 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="REGREL32_16t.reg"/>
-        public short reg => value->reg;
+        public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
         /// <inheritdoc cref="REGREL32_16t.typind"/>
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="REGREL32_16t.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

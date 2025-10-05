@@ -15,7 +15,13 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public FixedUtf8String Name => TypType.ReadString(value->Name);
+        public SymString Name => TypType.ReadString(value->Name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->Name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf

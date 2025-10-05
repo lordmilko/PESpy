@@ -46,7 +46,7 @@ namespace PESpy.PDB
         public byte pad => value->pad;
 
         /// <inheritdoc cref="CFLAGSYM.ver"/>
-        public FixedUtf8String ver => SymType.ReadString(value, value->ver);
+        public SymString ver => SymType.ReadString(value, value->ver);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

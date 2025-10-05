@@ -48,11 +48,13 @@ namespace PESpy.PDB
         public CV_PROCFLAGS flags => value->flags;
 
         /// <inheritdoc cref="PROCSYM16.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 

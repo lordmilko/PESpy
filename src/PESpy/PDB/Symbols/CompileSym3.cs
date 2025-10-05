@@ -88,7 +88,7 @@ namespace PESpy.PDB
         public short verQFE => value->verQFE;
 
         /// <inheritdoc cref="COMPILESYM3.verSz"/>
-        public FixedUtf8String verSz => SymType.ReadString(value, value->verSz);
+        public SymString verSz => SymType.ReadString(value, value->verSz);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

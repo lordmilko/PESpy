@@ -17,7 +17,13 @@ namespace PESpy.PDB
 
         public TypOrEnumType utype => new TypOrEnumType((byte*) value, value->utype);
 
-        public FixedUtf8String Name => TypType.ReadString(value->Name);
+        public SymString Name => TypType.ReadString(value->Name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->Name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

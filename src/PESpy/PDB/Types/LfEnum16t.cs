@@ -23,7 +23,13 @@ namespace PESpy.PDB
 
         public CV_prop_t property => value->property;
 
-        public FixedUtf8String Name => TypType.ReadString(value->Name);
+        public SymString Name => TypType.ReadString(value->Name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->Name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

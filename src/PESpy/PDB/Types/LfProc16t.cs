@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -17,7 +18,7 @@ namespace PESpy.PDB
 
         public TypOrEnumType rvtype => new TypOrEnumType((byte*) value, value->rvtype);
 
-        public byte calltype => value->calltype;
+        public CV_call_e calltype => (CV_call_e) value->calltype;
 
         public CV_funcattr_t funcattr => value->funcattr;
 

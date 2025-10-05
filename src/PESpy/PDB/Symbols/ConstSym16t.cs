@@ -24,7 +24,13 @@ namespace PESpy.PDB
         public short value => raw->value;
 
         /// <inheritdoc cref="CONSTSYM_16t.name"/>
-        public FixedUtf8String name => SymType.ReadString(raw, raw->name);
+        public SymString name => SymType.ReadString(raw, raw->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(raw, raw->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

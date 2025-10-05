@@ -1,0 +1,96 @@
+﻿using System;
+using Roslyn.Utilities;
+
+namespace PESpy
+{
+    public readonly unsafe struct FixedUtf8String : IComparable<FixedUtf8String>
+    {
+        public readonly byte* Value;
+        public readonly int Length;
+
+        public FixedUtf8String(byte* value, int length)
+        {
+            Value = value;
+            Length = length;
+        }
+
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
+
+        public void CopyTo(char[] array)
+        {
+            var value = Value;
+
+            for (var i = 0; i < Length; i++)
+                array[i] = (char) value[i];
+        }
+
+        public bool Equals(FixedUtf8String other)
+        {
+            if (Value == other.Value)
+                return true;
+
+            return AsSpan().SequenceEqual(other.AsSpan());
+        }
+
+        public bool Equals(string? other)
+        {
+            if (other == null)
+                return Value == default;
+
+            return StringHelpers.Equals(Value, other);
+        }
+
+        public static bool operator ==(FixedUtf8String left, string? right) => left.Equals(right);
+        public static bool operator !=(FixedUtf8String left, string? right) => !left.Equals(right);
+
+        public static bool operator ==(string? left, FixedUtf8String right) => right.Equals(left);
+        public static bool operator !=(string? left, FixedUtf8String right) => !right.Equals(left);
+
+        public static bool operator ==(FixedUtf8String left, FixedUtf8String right) => Equals(left, right);
+        public static bool operator !=(FixedUtf8String left, FixedUtf8String right) => !Equals(left, right);
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is FixedUtf8String p)
+                return Equals(p);
+
+            if (obj is string s)
+                return Equals(s);
+
+            return false;
+        }
+
+        public bool StartsWith(string value)
+        {
+            if (value.Length > Length)
+                return false;
+
+            //We currently only support ANSI values
+
+            for (var i = 0; i < value.Length; i++)
+            {
+                if ((byte) value[i] != Value[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
+
+        public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
+
+        /// <summary>
+        /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.
+        /// </summary>
+        /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
+        public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, System.Text.Encoding.UTF8);
+
+        //todo: implement icomparable for all of our other string types
+        public int CompareTo(FixedUtf8String other) => AsSpan().SequenceCompareTo(other.AsSpan());
+
+        public int CompareTo(string other) => throw new NotImplementedException();
+
+        private string DebuggerDisplay => this.ToString();
+    }
+}

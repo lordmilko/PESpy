@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ClrDebug;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -33,10 +34,16 @@ namespace PESpy.PDB
         public int cb => value->cb;
 
         /// <inheritdoc cref="SECTIONSYM.characteristics"/>
-        public int characteristics => value->characteristics;
+        public IMAGE_SCN characteristics => value->characteristics;
 
         /// <inheritdoc cref="SECTIONSYM.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
+
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

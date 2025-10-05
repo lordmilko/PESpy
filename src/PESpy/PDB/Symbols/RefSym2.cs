@@ -27,11 +27,13 @@ namespace PESpy.PDB
         public ushort imod => value->imod;
 
         /// <inheritdoc cref="REFSYM2.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 

@@ -3,6 +3,8 @@ using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
+    //Pointed to by LfMethod.mList?
+
     /// <summary>
     /// Represents the <see cref="lfMethodList"/> structure.
     /// </summary>

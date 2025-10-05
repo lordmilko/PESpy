@@ -30,23 +30,22 @@ namespace PESpy.PDB
         public short usFill => value->usFill;
 
         //RefSym is the symbol type used by old ST symbols. These symbols have a hidden name after them not accounted for in their lengths
-        public FixedUtf8String name
-        {
-            get
-            {
-                //If we're NB11, there isn't a hidden name after us
-                var accessor = SymbolMemoryTracker.GetAccessor((long) value);
-
-                if (accessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
-                    return default;
-
-                return SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort));
-            }
-        }
+        public SymString name => GetName(null);
 
         #region PESpy
 
         public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        {
+            symbolAccessor ??= SymbolMemoryTracker.GetAccessor((long) value);
+
+            //If we're NB11, there isn't a hidden name after us
+            if (symbolAccessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
+                return default;
+
+            return SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort), symbolAccessor);
+        }
 
         #endregion
 

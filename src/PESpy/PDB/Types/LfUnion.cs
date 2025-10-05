@@ -21,6 +21,36 @@ namespace PESpy.PDB
 
         public TypOrEnumType field => new TypOrEnumType((byte*) value, value->field);
 
+        #region data
+
+        //"data" describes the length of the structure in bytes, and name
+
+        public int length
+        {
+            get
+            {
+                //Length may be 0, this is normal
+                TypType.ExtractNumericData(value->data, out var length, out var bytesRead);
+
+                return (int) length;
+            }
+        }
+
+        public SymString name => GetName(null);
+
+        #endregion
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        {
+            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+            //I am assuming I need to use normal ST/UTF parsing logic
+            return TypType.ReadString(value->data + bytesRead, symbolAccessor);
+        }
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(short)  + //count
@@ -30,8 +60,11 @@ namespace PESpy.PDB
         internal LfUnion(lfUnion* value)
         {
             this.value = value;
+        }
 
-            TypType.AssertMissing(false, "Read data");
+        public override string ToString()
+        {
+            return name.ToString();
         }
     }
 }

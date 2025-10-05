@@ -25,6 +25,12 @@ namespace PESpy.PDB
 
         public TypOrEnumType vshape => new TypOrEnumType((byte*) value, value->vshape);
 
+        #region PESpy
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => throw new System.NotImplementedException(); //TypType.ReadString(value->name, symbolAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(short)  + //count

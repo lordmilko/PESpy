@@ -77,7 +77,7 @@ namespace PESpy.PDB
         public short verBuild => value->verBuild;
 
         /// <inheritdoc cref="COMPILESYM.verSt"/>
-        public FixedUtf8String verSt => SymType.ReadString(value, value->verSt);
+        public SymString verSt => SymType.ReadString(value, value->verSt);
 
         //Following vertSt may be an optional block of zero terminated environment strings terminated with a double zero.
         //todo: read these. theyre in coreclr.pdb for example

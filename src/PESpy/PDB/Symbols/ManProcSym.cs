@@ -52,13 +52,15 @@ namespace PESpy.PDB
         public short retReg => value->retReg;
 
         /// <inheritdoc cref="MANPROCSYM.name"/>
-        public FixedUtf8String name => SymType.ReadString(value, value->name);
+        public SymString name => SymType.ReadString(value, value->name);
 
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+
+        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
         #endregion
 
