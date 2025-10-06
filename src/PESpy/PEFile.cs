@@ -69,7 +69,7 @@ namespace PESpy
 
         public object? Cor20CodeManagerTable => peFile.Cor20CodeManagerTable;
 
-        public object? Cor20VTableFixups => peFile.Cor20VTableFixups;
+        public ImageCorVTableFixup[]? Cor20VTableFixups => peFile.Cor20VTableFixups;
 
         public object? Cor20ExportAddressTableJumps => peFile.Cor20ExportAddressTableJumps;
 
@@ -156,6 +156,29 @@ namespace PESpy
         }
 
         /// <summary>
+        /// Locates a file on the symbol server and opens it as a <see cref="PEFile"/>.
+        /// </summary>
+        /// <param name="symStoreKey">The <see cref="SymStoreKey"/> describing the file that should be located and opened.</param>
+        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified file.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="SymStoreKey"/> cannot be opened as a <see cref="PEFile"/>.</exception>
+        public static PEFile FromKey(SymStoreKey symStoreKey)
+        {
+            switch (symStoreKey.Kind)
+            {
+                case SymStoreKeyKind.PE:
+                case SymStoreKeyKind.CLR:
+                case SymStoreKeyKind.DAC:
+                case SymStoreKeyKind.DBI:
+                    var path = Locator.Locate(symStoreKey);
+
+                    return FromFile(path);
+
+                default:
+                    throw new ArgumentException($"{nameof(SymStoreKey)} '{symStoreKey}' of type '{symStoreKey.Kind}' cannot be opened as a {nameof(PEFile)}");
+            }
+        }
+
+        /// <summary>
         /// Reads a <see cref="PEFile"/> from a module contained in a remote process.
         /// </summary>
         /// <param name="hProcess">A handle to the process containing the module that should be read.</param>
@@ -229,8 +252,18 @@ namespace PESpy
                                         switch (data.Signature)
                                         {
                                             case CodeViewSig.RSDS:
-                                                results.Add(SymStoreKey.FromRSDSI((RSDSI) data));
-                                                break;
+                                            {
+                                                var rsdsPath = data.Path.ToString();
+                                                var rsds = (RSDSI) data;
+
+                                                results.Add(SymStoreKey.FromRSDSI(rsdsPath, rsds.Guid, data.Age));
+
+                                                //If the debug directory indicates that it may correspond to a Portable PDB, there may be a PDB on the server with an age of -1
+                                                //(potentially in addition to a PDB with the real age too!)
+                                                if (debugDirectory.IsPortablePDB)
+                                                    results.Add(SymStoreKey.FromRSDSI(rsdsPath, rsds.Guid, -1, SymStoreKeyKind.PortablePDB));
+                                            }
+                                            break;
 
                                             case CodeViewSig.NB10:
                                                 results.Add(SymStoreKey.FromNB10((NB10I) data));
@@ -296,11 +329,19 @@ namespace PESpy
                     return true;
 
                 case SymStoreKeyKind.PDB:
+                case SymStoreKeyKind.PortablePDB:
                     {
                         var debugTable = DebugTable;
 
                         if (debugTable == null)
                             return false;
+
+                        var name = Name;
+
+                        bool isNGENImage = false;
+
+                        if (name != null)
+                            isNGENImage = name.EndsWith(".ni.exe") || name.EndsWith(".ni.dll");
 
                         for (var i = 0; i < debugTable.Length; i++)
                         {
@@ -313,12 +354,63 @@ namespace PESpy
                                     switch (p.Signature)
                                     {
                                         case CodeViewSig.NB10:
+                                            if (kind == SymStoreKeyKind.PortablePDB)
+                                                continue; //We don't expect that NB10 CodeView records should support Portable PDBs
+
                                             key = SymStoreKey.FromNB10((NB10I) p);
                                             return true;
 
                                         case CodeViewSig.RSDS:
-                                            key = SymStoreKey.FromRSDSI((RSDSI) p);
-                                            return true;
+                                            if (kind == SymStoreKeyKind.PortablePDB)
+                                            {
+                                                if (debugDir.IsPortablePDB)
+                                                {
+                                                    var rsds = (RSDSI) p;
+                                                    key = SymStoreKey.FromRSDSI(rsds.Path.ToString(), rsds.Guid, -1, SymStoreKeyKind.PortablePDB);
+                                                    return true;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                var checkForBetterPDBs = false;
+                                                var anyBetterPDB = false;
+
+                                                //If we're an NGEN image, prefer the NGEN PDB. Otherwise, prefer the non-NGEN PDB
+                                                if (p.Path.EndsWith(".ni.pdb"))
+                                                {
+                                                    if (!isNGENImage)
+                                                        checkForBetterPDBs = true;
+                                                }
+                                                else
+                                                {
+                                                    //Not an NGEN PDB
+                                                    if (isNGENImage)
+                                                        checkForBetterPDBs = true;
+                                                }
+
+                                                if (checkForBetterPDBs)
+                                                {
+                                                    //Are any better PDBs coming up?
+                                                    for (var j = i + 1; j < debugTable.Length; j++)
+                                                    {
+                                                        debugDir = ref debugTable[j];
+
+                                                        if (debugDir.Type == ImageDebugType.CodeView)
+                                                        {
+                                                            anyBetterPDB = true;
+                                                            i = j - 1; //Skip ahead to it (i is about to be incremented to j after this loop ends)
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+
+                                                if (!anyBetterPDB)
+                                                {
+                                                    key = SymStoreKey.FromRSDSI((RSDSI) p);
+                                                    return true;
+                                                }
+                                            }
+                                            break;
 
                                         default:
                                             throw new NotImplementedException($"Don't know how to handle {nameof(CodeViewSig)} '{p.Signature}'");
@@ -562,7 +654,7 @@ namespace PESpy
                 {
                     var exportTableDirectory = OptionalHeader.ExportTableDirectory;
 
-                    if (exportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(exportTableDirectory, out var chunk))
+                    if (exportTableDirectory.HasData && TryGetDirectoryChunk(exportTableDirectory, out var chunk))
                     {
                         var local = new ImageExportDirectory(chunk);
 
@@ -592,7 +684,7 @@ namespace PESpy
                 {
                     var importTableDirectory = OptionalHeader.ImportTableDirectory;
 
-                    if (importTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(importTableDirectory, out var chunk))
+                    if (importTableDirectory.HasData && TryGetDirectoryChunk(importTableDirectory, out var chunk))
                     {
                         //I don't know if we're guaranteed to fill up the entire ImportTableDirectory with
                         //ImageImportDescriptor objects, or if there's other stuff in there too. I feel like
@@ -644,7 +736,7 @@ namespace PESpy
                 {
                     var resourceTableDirectory = OptionalHeader.ResourceTableDirectory;
 
-                    if (resourceTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(resourceTableDirectory, out var chunk))
+                    if (resourceTableDirectory.HasData && TryGetDirectoryChunk(resourceTableDirectory, out var chunk))
                     {
                         var local = new ImageResourceDirectory(chunk, resourceTableDirectory.VirtualAddress, null);
 
@@ -674,7 +766,7 @@ namespace PESpy
             {
                 var exceptionTableDirectory = OptionalHeader.ExceptionTableDirectory;
 
-                if (exceptionTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(exceptionTableDirectory, out var chunk))
+                if (exceptionTableDirectory.HasData && TryGetDirectoryChunk(exceptionTableDirectory, out var chunk))
                 {
                     var numEntries = OptionalHeader.ExceptionTableDirectory.Size / RuntimeFunction.StructSize;
 
@@ -706,7 +798,7 @@ namespace PESpy
 
                     //SecurityTable uses an absolute address, and should be in the overlay. We will make a best effort attempt to resolve the physical
                     //location of this value regardless of whether we are a loaded image or not
-                    if (securityTableDirectory.VirtualAddress != 0 && TryGetValueChunkFromPhysicalOffset(securityTableDirectory.VirtualAddress, out var chunk))
+                    if (securityTableDirectory.HasData && TryGetValueChunkFromPhysicalOffset(securityTableDirectory.VirtualAddress, out var chunk))
                     {
                         //https://blog.trailofbits.com/2020/05/27/verifying-windows-binaries-without-windows/
                         //https://github.com/trailofbits/uthenticode
@@ -753,7 +845,7 @@ namespace PESpy
             {
                 var baseRelocationTableDirectory = OptionalHeader.BaseRelocationTableDirectory;
 
-                if (baseRelocationTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(baseRelocationTableDirectory, out var chunk))
+                if (baseRelocationTableDirectory.HasData && TryGetDirectoryChunk(baseRelocationTableDirectory, out var chunk))
                 {
                     var end = OptionalHeader.BaseRelocationTableDirectory.Size;
 
@@ -798,7 +890,7 @@ namespace PESpy
                 {
                     var debugTableDirectory = OptionalHeader.DebugTableDirectory;
 
-                    if (debugTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(debugTableDirectory, out var chunk))
+                    if (debugTableDirectory.HasData && TryGetDirectoryChunk(debugTableDirectory, out var chunk))
                     {
                         var entryCount = OptionalHeader.DebugTableDirectory.Size / ImageDebugDirectory.StructSize;
 
@@ -839,10 +931,8 @@ namespace PESpy
                 {
                     var threadLocalStorageTableDirectory = OptionalHeader.ThreadLocalStorageTableDirectory;
 
-                    if (threadLocalStorageTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(threadLocalStorageTableDirectory, out var chunk))
+                    if (threadLocalStorageTableDirectory.HasData && TryGetDirectoryChunk(threadLocalStorageTableDirectory, out var chunk))
                     {
-                        chunk.Demand(threadLocalStorageTableDirectory.VirtualAddress, ImageTlsDirectory.StructSize(chunk.Is32Bit));
-
                         var local = new ImageTlsDirectory(chunk);
 
                         //Since this property returns a reference, we should always return the same object
@@ -872,10 +962,8 @@ namespace PESpy
                 {
                     var loadConfigTableDirectory = OptionalHeader.LoadConfigTableDirectory;
 
-                    if (loadConfigTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(loadConfigTableDirectory, out var chunk))
+                    if (loadConfigTableDirectory.HasData && TryGetDirectoryChunk(loadConfigTableDirectory, out var chunk))
                     {
-                        chunk.Demand(loadConfigTableDirectory.VirtualAddress, loadConfigTableDirectory.Size);
-
                         var local = new ImageLoadConfigDirectory(chunk);
 
                         //Since this property returns a reference, we should always return the same object
@@ -908,7 +996,7 @@ namespace PESpy
 
                     var boundImportTableDirectory = OptionalHeader.BoundImportTableDirectory;
 
-                    if (boundImportTableDirectory.VirtualAddress != 0 && TryGetValueChunkFromPhysicalOffset(boundImportTableDirectory.VirtualAddress, out var chunk))
+                    if (boundImportTableDirectory.HasData && TryGetValueChunkFromPhysicalOffset(boundImportTableDirectory.VirtualAddress, out var chunk))
                     {
                         var end = boundImportTableDirectory.Size;
 
@@ -954,7 +1042,7 @@ namespace PESpy
                 {
                     var directory = OptionalHeader.ImportAddressTableDirectory;
 
-                    if (directory.VirtualAddress != 0 && TryGetDirectoryChunk(directory, out var chunk))
+                    if (directory.HasData && TryGetDirectoryChunk(directory, out var chunk))
                         importAddressTable = ImageImportDescriptor.ParseThunks(0, chunk, true).Value;
                 }
 
@@ -980,7 +1068,7 @@ namespace PESpy
                 {
                     var delayImportTableDirectory = OptionalHeader.DelayImportTableDirectory;
 
-                    if (delayImportTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(delayImportTableDirectory, out var chunk))
+                    if (delayImportTableDirectory.HasData && TryGetDirectoryChunk(delayImportTableDirectory, out var chunk))
                     {
                         using var results = new PooledList<ImageDelayLoadDescriptor>();
 
@@ -1025,10 +1113,8 @@ namespace PESpy
                 {
                     var corHeaderTableDirectory = OptionalHeader.CorHeaderTableDirectory;
 
-                    if (corHeaderTableDirectory.VirtualAddress != 0 && TryGetDirectoryChunk(corHeaderTableDirectory, out var chunk))
+                    if (corHeaderTableDirectory.HasData && TryGetDirectoryChunk(corHeaderTableDirectory, out var chunk))
                     {
-                        chunk.Demand(corHeaderTableDirectory.VirtualAddress, ImageExportDirectory.StructSize);
-
                         var local = new ImageCor20Header(chunk);
 
                         //Since this property returns a reference, we should always return the same object
@@ -1060,7 +1146,7 @@ namespace PESpy
                     {
                         var table = cor20.Metadata;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ecmaMetadata = new EcmaMetadata(chunk);
                         }
@@ -1079,7 +1165,7 @@ namespace PESpy
             {
                 var table = cor20.Metadata;
 
-                if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                 {
                     metadata = chunk.Pointer;
                     length = table.Size;
@@ -1109,7 +1195,7 @@ namespace PESpy
                     {
                         var table = cor20.Resources;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             cor20Resources = null;
                             throw new NotImplementedException();
@@ -1124,9 +1210,9 @@ namespace PESpy
         #endregion
         #region Cor20StrongNameSignature
 
-        private object? cor20StrongNameSignature;
+        private ByteBlob? cor20StrongNameSignature;
 
-        public object? Cor20StrongNameSignature
+        public ByteBlob? Cor20StrongNameSignature
         {
             get
             {
@@ -1138,10 +1224,9 @@ namespace PESpy
                     {
                         var table = cor20.StrongNameSignature;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            cor20StrongNameSignature = null;
-                            throw new NotImplementedException();
+                            cor20StrongNameSignature = new ByteBlob(chunk, table.Size);
                         }
                     }
                 }
@@ -1167,7 +1252,7 @@ namespace PESpy
                     {
                         var table = cor20.CodeManagerTable;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             cor20CodeManagerTable = null;
                             throw new NotImplementedException();
@@ -1182,9 +1267,9 @@ namespace PESpy
         #endregion
         #region Cor20VTableFixups
 
-        private object? cor20VTableFixups;
+        private ImageCorVTableFixup[]? cor20VTableFixups;
 
-        public object? Cor20VTableFixups
+        public ImageCorVTableFixup[]? Cor20VTableFixups
         {
             get
             {
@@ -1196,10 +1281,14 @@ namespace PESpy
                     {
                         var table = cor20.VTableFixups;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            cor20VTableFixups = null;
-                            throw new NotImplementedException();
+                            var results = new ImageCorVTableFixup[table.Size / ImageCorVTableFixup.StructSize];
+
+                            for (var i = 0; i < results.Length; i++)
+                                results[i] = new ImageCorVTableFixup(chunk.Slice(i * ImageCorVTableFixup.StructSize));
+
+                            cor20VTableFixups = results;
                         }
                     }
                 }
@@ -1225,7 +1314,7 @@ namespace PESpy
                     {
                         var table = cor20.ExportAddressTableJumps;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             cor20ExportAddressTableJumps = null;
                             throw new NotImplementedException();
@@ -1260,7 +1349,7 @@ namespace PESpy
                     {
                         var table = cor20.ManagedNativeHeader;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             var sig = chunk.PeekUInt32(0);
 
@@ -1306,9 +1395,7 @@ namespace PESpy
                         //Certain methods (such as interface methods) have an RVA of 0, and so do not
                         //have an IL method
 
-                        var rva = methodDef.RVA;
-
-                        if (rva == 0 || !TryGetValueChunkFromSection(rva, out var valueChunk))
+                        if (!TryGetILValueChunk(methodDef, out var valueChunk))
                             continue;
 
                         var ilMethod = new ImageCorILMethod(valueChunk, out var isValid);
@@ -1344,9 +1431,7 @@ namespace PESpy
 
             var row = methodDefs[methodDef.Rid];
 
-            var rva = row.RVA;
-
-            if (rva == 0 || !TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (!TryGetILValueChunk(row, out var valueChunk))
                 return false;
 
             ilMethod = new ImageCorILMethod(valueChunk, out var isValid);
@@ -1357,6 +1442,14 @@ namespace PESpy
             //You can have P/Invokes that say they have RVAs but these don't point to valid data
             ilMethod = default;
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetILValueChunk(in Ecma335.MethodDefRow row, out MemoryChunk valueChunk)
+        {
+            var rva = row.RVA;valueChunk = default;
+
+            return rva != 0 && (row.ImplFlags & CorMethodImpl.miNative) == 0 && TryGetValueChunkFromSection(rva, out valueChunk);
         }
 
         #endregion
@@ -1381,7 +1474,7 @@ namespace PESpy
                     {
                         var table = ngen.HelperTable;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenHelperTable = null;
                             throw new NotImplementedException();
@@ -1410,7 +1503,7 @@ namespace PESpy
                     {
                         var table = ngen.ImportSections;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenImportSections = null;
                             throw new NotImplementedException();
@@ -1439,7 +1532,7 @@ namespace PESpy
                     {
                         var table = ngen.StubsData;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenStubsData = null;
                             throw new NotImplementedException();
@@ -1468,7 +1561,7 @@ namespace PESpy
                     {
                         var table = ngen.VersionInfo;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenVersionInfo = null;
                             throw new NotImplementedException();
@@ -1497,7 +1590,7 @@ namespace PESpy
                     {
                         var table = ngen.Dependencies;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenDependencies = null;
                             throw new NotImplementedException();
@@ -1526,7 +1619,7 @@ namespace PESpy
                     {
                         var table = ngen.DebugMap;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenDebugMap = null;
                             throw new NotImplementedException();
@@ -1555,7 +1648,7 @@ namespace PESpy
                     {
                         var table = ngen.ModuleImage;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenModuleImage = null;
                             throw new NotImplementedException();
@@ -1584,7 +1677,7 @@ namespace PESpy
                     {
                         var table = ngen.CodeManagerTable;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenCodeManagerTable = null;
                             throw new NotImplementedException();
@@ -1613,7 +1706,7 @@ namespace PESpy
                     {
                         var table = ngen.ProfileDataList;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenProfileDataList = null;
                             throw new NotImplementedException();
@@ -1642,7 +1735,7 @@ namespace PESpy
                     {
                         var table = ngen.ManifestMetaData;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenManifestMetaData = null;
                             throw new NotImplementedException();
@@ -1671,7 +1764,7 @@ namespace PESpy
                     {
                         var table = ngen.VirtualSectionsTable;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenVirtualSectionsTable = null;
                             throw new NotImplementedException();
@@ -1700,7 +1793,7 @@ namespace PESpy
                     {
                         var table = ngen.EEInfoTable;
 
-                        if (table.VirtualAddress != 0 && TryGetDirectoryChunk(table, out var chunk))
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
                             ngenEEInfoTable = null;
                             throw new NotImplementedException();
@@ -1805,7 +1898,7 @@ namespace PESpy
                         {
                             runtimeInfo = new RuntimeInfo(valueChunk);
 
-                            if (runtimeInfo.Signature != "DotnetRuntimeInfo")
+                            if (runtimeInfo.Signature != "DotNetRuntimeInfo")
                                 runtimeInfo = default;
                         }
                     }
@@ -1847,13 +1940,15 @@ namespace PESpy
 
         #endregion
 
+        public FileView GetView() => GetView(ViewMode.Default);
+
         /// <summary>
         /// Gets a <see cref="FileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
         /// </summary>
         /// <param name="mode">Specifies the addressing mode that should be used in the returned view. If this value is <see cref="ViewMode.Default"/>,
         /// <see cref="ViewMode.Virtual"/> or <see cref="ViewMode.Physical"/> will automatically be selected based on the value of <see cref="IsLoadedImage"/>.</param>
         /// <returns>A <see cref="FileView"/> that provides a view over the structure of the PE File.</returns>
-        public FileView GetView(ViewMode mode = ViewMode.Default)
+        public FileView GetView(ViewMode mode)
         {
             var writer = GetViewWriter(mode, null);
             ((IViewable) this).WriteGlobals(writer);
@@ -2223,6 +2318,12 @@ namespace PESpy
             //IsLoadedImage can be false for in-memory modules
             if (headerBlock is LocalHeaderMemoryBlock)
             {
+                if (offset > headerBlock.Length)
+                {
+                    chunk = default;
+                    return false;
+                }
+
                 //In an unloaded image, our header block technically provides access to the entire module
                 chunk = new MemoryChunk(headerBlock, offset);
                 return true;
@@ -2251,14 +2352,22 @@ namespace PESpy
                 return false;
             }
 
-            block = GetSectionBlock(sectionIndex, section);
-
-            //When it's a loaded image, block.Address is the section.VirtualAddress.
-            //Otherwise, its the PointerToRawData. But this is an issue, because we need to calculate
-            //the reltive offset into the section, which involves looking at the VirtualAddress, so we must
-            //do that calculation here
+            /* When we have a loaded image, block.Address is the section.VirtualAddress.
+             * Otherwise, its the PointerToRawData. But this is an issue, because we need to calculate
+             * the reltive offset into the section, which involves looking at the VirtualAddress, so we must
+             * do that calculation here above using the section VirtualAddress */
             relativeOffset = rva - section.VirtualAddress;
 
+            //Certain RVAs only exist within the address space of the section as it is when it's laid out in memory.
+            //The size of the section on disk may be smaller, in which case it's not going to be possible for us to
+            //provide access to the value that this RVA points to
+            if (!IsLoadedImage && relativeOffset >= section.SizeOfRawData)
+            {
+                block = null;
+                return false;
+            }
+
+            block = GetSectionBlock(sectionIndex, section);
             return true;
         }
 

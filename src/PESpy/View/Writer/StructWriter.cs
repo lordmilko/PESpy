@@ -78,6 +78,10 @@ namespace PESpy.View
                 WriteFieldInternal(name, value, sizeof(int));
 
             /// <inheritdoc cref="WriteField(string, short)"/>
+            public void WriteField(string name, Timestamp value) =>
+                WriteFieldInternal(name, value, sizeof(int));
+
+            /// <inheritdoc cref="WriteField(string, short)"/>
             public void WriteField(string name, long value) =>
                 WriteFieldInternal(name, value, sizeof(long));
 
@@ -90,6 +94,9 @@ namespace PESpy.View
 
             public void WriteField(string name, SN value) =>
                 WriteFieldInternal(name, value, sizeof(ushort));
+
+            public void WriteField(string name, SN value, int size) =>
+                WriteFieldInternal(name, value, size);
 
             public void WriteField(string name, IMOD value) =>
                 WriteFieldInternal(name, value, sizeof(ushort));
@@ -283,7 +290,19 @@ namespace PESpy.View
 #endif
             }
 
-            public void WriteVAPointerField(string name, VA<long[]> value, ViewKind valueKind)
+            public void WriteVAPointerField(string name, VA<ulong[]> value, ViewKind valueKind)
+            {
+                WriteField(name, value.ListedAddress);
+
+#if DEBUG
+                if (value.IsValid)
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
+            }
+
+            public void WriteVAPointerField(string name, VA<int[]> value, ViewKind valueKind)
             {
                 WriteField(name, value.ListedAddress);
 
@@ -471,6 +490,12 @@ namespace PESpy.View
 
             #endregion
 
+            public void WriteByteBlob(int offset, int size)
+            {
+                fields.AddRange(viewWriter.CreateByteBlob(ref offset, size));
+                currentOffset += size;
+            }
+
             public void WriteField(string name, Guid guid) =>
                 WriteFieldInternal(name, guid, 16);
 
@@ -486,7 +511,7 @@ namespace PESpy.View
             {
                 var oldOffset = viewWriter.UnmanagedOffset;
                 viewWriter.UnmanagedOffset = currentOffset;
-                var view = (IStructView) viewWriter.WriteIntercepted(value);
+                var view = (IStructView) value.WriteStruct(viewWriter)!;
                 viewWriter.UnmanagedOffset = oldOffset;
 
                 WriteFieldInternal(name, view, view.Size);
@@ -613,6 +638,12 @@ namespace PESpy.View
                 currentOffset += size;
             }
 
+            public void WriteInlineUtf16NullTerminated(FixedUtf16String value, int size)
+            {
+                fields.Add(new ValueView<FixedUtf16String>(currentOffset, value, size, ViewKind.String));
+                currentOffset += size;
+            }
+
             //We're pretending we're UTF8 because a newer version uses UTF8 but we're actually ANSI
             public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value)
             {
@@ -701,7 +732,7 @@ namespace PESpy.View
                 using var p = viewWriter.CreatePagedWriter(startRelativeOffset, block, false);
 
                 foreach (var item in value)
-                    p.WriteValue(item, SymType.GetSymbolLength(item), ViewKind.SymType);
+                    p.WriteValue(item, SymType.GetSymbolLength(item, value.symbolAccessor), ViewKind.SymType);
             }
 
             #endregion
@@ -713,7 +744,7 @@ namespace PESpy.View
 
                 foreach (var item in value)
                 {
-                    var totalLength = SymType.GetSymbolLength(item);
+                    var totalLength = SymType.GetSymbolLength(item, value.symbolAccessor);
                     fields.Add(new ValueView<SymType>(offset + written, item, totalLength, ViewKind.SymType));
                     written += totalLength;
                 }
@@ -733,6 +764,18 @@ namespace PESpy.View
             {
                 if (NeedAlignment(target, out var required))
                 {
+                    var views = viewWriter.CreateByteBlob(ref currentOffset, required);
+                    fields.AddRange(views);
+                }
+            }
+
+            public void AlignMax(int target, int structLength)
+            {
+                //The length may or may not be aligned, the nature of that alignment may or may not be even.
+                //e.g. the length couldbe 59 bytes and 58 were used, so if you align to 60 you've now overcorrected!
+                if (NeedAlignment(target, out var required))
+                {
+                    required = Math.Min(required, structLength - Size);
                     var views = viewWriter.CreateByteBlob(ref currentOffset, required);
                     fields.AddRange(views);
                 }

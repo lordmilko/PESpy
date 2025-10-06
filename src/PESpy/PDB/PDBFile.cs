@@ -180,7 +180,7 @@ namespace PESpy
                         else
                             offset = sizeof(int) + (numStreams * SI_PERSIST.StructSize);
 
-                        if (offset > chunk.Remaining)
+                        if (offset < 0 || offset > chunk.Remaining)
                             return null; //The stream contains garbage
 
                         previousStreamTable = CreateStreamTable(chunk, PageSize);
@@ -290,6 +290,11 @@ namespace PESpy
         #endregion
 
         public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+        public TypType GetTypTypeFromIndex(CV_typ_t typeIndex) => GetTypTypeFromIndex(typeIndex, TPI, "TPI");
+
+        public TypType GetTypTypeFromIndex(CV_ItemId typeIndex) => GetTypTypeFromIndex((int) (uint) typeIndex, IPI, "IPI");
+
+        private TypType GetTypTypeFromIndex(CV_typ_t typeIndex, MsfStream.TPI? stream, string streamName)
         {
             if (typeIndex.CV_IS_PRIMITIVE())
                 throw new ArgumentException($"Cannot resolve TypType for {nameof(CV_typ_t)} {typeIndex}: type is a primitive type");
@@ -524,6 +529,9 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         internal PDBGlobalMemoryBlock globalBlock;
+
+        private readonly object c13SymbolMemoryLock = new object();
+        private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
 
         //Open an existing file
         internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
@@ -879,16 +887,17 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetModuleBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IModi modi)
+        public bool TryGetModuleBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IModi modi, out SC40 sc)
         {
             modi = default;
+            sc = default;
 
             var modules = DBI?.Modules;
 
             if (modules == null)
                 return false;
 
-            if (TryGetModuleIndexBySectionAndOffset(sectionNumber, sectionOffset, out var imod))
+            if (TryGetModuleIndexBySectionAndOffset(sectionNumber, sectionOffset, out var imod, out sc))
             {
                 //Module numbers are 1 based
                 if (imod > modules.Length)
@@ -904,12 +913,13 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetModuleIndexBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IMOD imod)
+        public bool TryGetModuleIndexBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IMOD imod, out SC40 sc)
         {
             //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
 
             var dbi = DBI;
             imod = default;
+            sc = default;
 
             if (dbi == null)
                 return false;
@@ -925,7 +935,7 @@ namespace PESpy
                 return false;
 
             //Getting the section is easy; the hard part is identifying the module
-            if (!sectionContribs.TryGetSection(sectionNumber, sectionOffset, out var sc))
+            if (!sectionContribs.TryGetSection(sectionNumber, sectionOffset, out sc))
                 return false;
 
             //It's up to the caller to validate that the imod is within range; we're just telling them
@@ -943,7 +953,7 @@ namespace PESpy
                 return false;
             }
 
-            return TryGetModuleIndexBySectionAndOffset(seg, off, out imod);
+            return TryGetModuleIndexBySectionAndOffset(seg, off, out imod, out _);
         }
 
         #region ISymbolAccessor
@@ -1030,6 +1040,15 @@ namespace PESpy
         }
 
         #endregion
+
+        internal void RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        {
+            lock (c13SymbolMemoryLock)
+            {
+                if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
+                    SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+            }
+        }
 
         public void Dispose()
         {

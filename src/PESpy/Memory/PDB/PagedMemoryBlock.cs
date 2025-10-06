@@ -134,6 +134,7 @@ namespace PESpy
                         //adds a bit of overhead
                         mma.SafeMemoryMappedViewHandle.AcquirePointer(ref destAddress);
                     }
+
                     for (var i = 0; i < pageList.Length; i++)
                     {
                         var source = new Span<byte>(sourceAddress + (pageList[i] * pageSize), pageSize);

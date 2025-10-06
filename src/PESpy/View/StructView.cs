@@ -63,6 +63,8 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        //newBaseOffset is the start address of the next page.
+        //cutoff is the end of the current page
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
         {
             var currentEnd = Offset + Size;
@@ -75,6 +77,7 @@ namespace PESpy.View
 
                 var childEnd = child.Offset + child.Size;
 
+                //Does this child value extend past the end of the current page?
                 if (childEnd > cutoff)
                 {
                     IView? firstChild;
@@ -92,7 +95,7 @@ namespace PESpy.View
                         secondChild = child;
                     }
                     else
-                        (firstChild, secondChild) = child.Split(newBaseOffset, cutoff);
+                        (firstChild, secondChild) = child.Split(newBaseOffset, cutoff); //The child overlaps the start and end of the page. When we split the parent, we'll also need to divvy up the parent's children
 
                     SplitStructView<TValue> first;
                     var originalChildren = Children;

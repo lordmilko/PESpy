@@ -84,9 +84,9 @@ namespace PESpy
         /// [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP
         /// on single processor machines.
         /// </summary>
-        private VA<long[]> lockPrefixTable;
+        private VA<ulong[]> lockPrefixTable;
 
-        public VA<long[]> LockPrefixTable
+        public VA<ulong[]> LockPrefixTable
         {
             get
             {
@@ -102,7 +102,7 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            using var entries = new PooledList<long>();
+                            using var entries = new PooledList<ulong>();
 
                             var pointerSize = chunk.PointerSize;
 
@@ -110,19 +110,19 @@ namespace PESpy
 
                             while (true)
                             {
-                                var entry = chunk.PeekPointer(read);
+                                var entry = valueChunk.PeekPointer(read);
                                 read += pointerSize;
 
-                                entries.Add(value);
+                                entries.Add(entry);
 
-                                if (value == 0)
+                                if (entry == 0)
                                     break;
                             }
 
-                            lockPrefixTable = new VA<long[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
+                            lockPrefixTable = new VA<ulong[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
                         }
                         else
-                            lockPrefixTable = new VA<long[]>(value);
+                            lockPrefixTable = new VA<ulong[]>(value);
                     }
                 }
 
@@ -216,9 +216,10 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            //8 bytes in x86 and x64
+                            //I previously remarked that this is 8 bytes in x86 and x64, but in stress testing this caused conflicts with the value that comes after it,
+                            //so we're back to treating it like a pointer
 
-                            var cookie = valueChunk.PeekUInt64(0);
+                            var cookie = valueChunk.PeekPointer(0);
 
                             securityCookie = new VA<ulong>(value, valueChunk.AbsoluteOffset, cookie);
                         }
@@ -234,9 +235,9 @@ namespace PESpy
         /// <summary>
         /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.
         /// </summary>
-        private VA<long[]> seHandlerTable;
+        private VA<int[]> seHandlerTable;
 
-        public VA<long[]> SEHandlerTable
+        public VA<int[]> SEHandlerTable
         {
             get
             {
@@ -252,15 +253,15 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            var entries = new long[SEHandlerCount];
+                            var entries = new int[SEHandlerCount];
 
                             for (var i = 0; i < SEHandlerCount; i++)
                                 entries[i] = valueChunk.PeekInt32(i * 4);
 
-                            seHandlerTable = new VA<long[]>(value, valueChunk.AbsoluteOffset, entries);
+                            seHandlerTable = new VA<int[]>(value, valueChunk.AbsoluteOffset, entries);
                         }
                         else
-                            seHandlerTable = new VA<long[]>(value);
+                            seHandlerTable = new VA<int[]>(value);
                     }
                 }
 
@@ -913,12 +914,6 @@ namespace PESpy
                         break;
 
                     #endregion
-
-#if !PEFAST
-                    default:
-                        s.WriteField("<UnknownBytes>", UnknownBytes);
-                        break;
-#endif
                 }
             }
 

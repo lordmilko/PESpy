@@ -304,6 +304,8 @@ namespace PESpy
                 this.count = count;
                 this.metadataSize = metadataSize;
                 index = default;
+
+                Current = default;
             }
 
             public Entry Current { get; private set; }

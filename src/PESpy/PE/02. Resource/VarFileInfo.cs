@@ -114,6 +114,9 @@ namespace PESpy
                         if (i < Children.Length - 1)
                             s.Align(4);
                     }
+
+                    if (s.Size < Length)
+                        s.AlignMax(4, Length);
                 }
 
                 s.VerifyLength(Length);

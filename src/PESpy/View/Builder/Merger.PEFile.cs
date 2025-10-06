@@ -17,6 +17,8 @@ namespace PESpy.View.Builder
 
                 var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v));
                 results.Add(headerMetadata);
+                
+                var lastSectionEnd = sizeOfHeaders;
 
                 var isVirtualMode = (mode == ViewMode.Default && peFile.IsLoadedImage) || mode == ViewMode.Virtual;
             
@@ -26,6 +28,25 @@ namespace PESpy.View.Builder
 
                     int start;
                     int size;
+
+                    //Note: we don't have to worry about potentially changing the size of a DirectoryInfo, because directories exist _inside_ sections
+                    if (isVirtualMode)
+                    {
+                        start = (Int32) section.VirtualAddress;
+                        size = section.VirtualSize;
+                    }
+                    else
+                    {
+                        start = section.PointerToRawData;
+                        size = section.SizeOfRawData;
+                    }
+
+                    if (size == 0)
+                        continue;
+
+                    //You can have extra padding in-between the header and the start of the first section; this logic is general purpose enough to also handle the possibility
+                    //of padding also existing between other physical sections
+                    ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
                     Func<int, int>? getRealOffset = null;
 
@@ -112,20 +133,11 @@ namespace PESpy.View.Builder
                     if (getRealOffset == null)
                         getRealOffset = v => v; //The real mode is the same as our merged mode. No conversion for reading bytes necessary
 
-                    if (isVirtualMode)
-                    {
-                        start = (Int32) section.VirtualAddress;
-                        size = section.VirtualSize;
-                    }
-                    else
-                    {
-                        start = section.PointerToRawData;
-                        size = section.SizeOfRawData;
-                    }
-
                     var data = BuildSection(start, start + size, getRealOffset, getRVA);
 
                     results.Add(new SectionView(start, section.Name.ToString(), data, size));
+
+                    lastSectionEnd = start + size;
                 }
 
                 //Overlay data is not loaded in virtual modules, and perhaps more importantly: it uses physical addressing, which could overlap with any virtual addresses we might be using!
@@ -134,8 +146,7 @@ namespace PESpy.View.Builder
                     //Add any remaining data listed after all sections and the end of the file. This is a bit tricky, because SizeOfImage describes the size
                     //when loaded into memory, which is not the same as the size on disk. Overlay data does not get loaded into memory, which also means
                     //this data might not exist when reading a loaded image
-                    var lastResult = results[results.Count - 1];
-                    var overlayStart = lastResult.Offset + lastResult.Size;
+                    var overlayStart = lastSectionEnd;
                     var fileEnd = (int) extension.GetInputLength();
 
                     TryCreateOMFRegion(peFile, ref results);

@@ -80,6 +80,11 @@ namespace PESpy
             Dispose(false);
         }
 
+        public FileView GetView()
+        {
+            throw new NotImplementedException();
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(EcmaMetadata);

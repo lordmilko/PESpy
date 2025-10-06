@@ -401,6 +401,10 @@ namespace PESpy.PDB
 
                 //Known unsupported types
 
+                //We can't return SymType to the caller, as that will cause
+                //the Visual Studio debugger to want to try and calculate the debug proxy
+                //for the value again
+
                 case SYM_ENUM_e.S_FRAMEREG:
                 case SYM_ENUM_e.S_REF_MINIPDB2:
                 case SYM_ENUM_e.S_INLINEES:
@@ -445,7 +449,7 @@ namespace PESpy.PDB
             var builder = new StringBuilder();
             builder.Append("[").Append(symType.rectyp).Append("]");
 
-            static void AppendPublicName(FixedUtf8String name, StringBuilder builder)
+            static void AppendPublicName(SymString name, StringBuilder builder)
             {
                 var demangled = Demangler.ParseString(name);
 

@@ -323,6 +323,8 @@ namespace PESpy
                     writer.WriteGlobal(r.Offset, r.Value, sizeof(int), ViewKind.ExDllCharacteristics);
                 else if (Data is FpoData[] f)
                     writer.WriteGlobal(f);
+                else if (Data is XFixupData[] x)
+                    writer.WriteGlobal(x);
                 else
                     throw new NotImplementedException($"Don't know how to write a value of type {Data.GetType().Name}");
             }

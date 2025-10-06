@@ -146,46 +146,79 @@ namespace PESpy.PDB
                     return (LfVBClass) typType;
 
                 case LEAF_ENUM_e.LF_IVBCLASS:
-                case LEAF_ENUM_e.LF_FRIENDFCN_ST:
                     throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
                 case LEAF_ENUM_e.LF_INDEX: return (LfIndex) typType;
 
-                case LEAF_ENUM_e.LF_MEMBER_ST:
-                case LEAF_ENUM_e.LF_STMEMBER_ST:
-                case LEAF_ENUM_e.LF_METHOD_ST:
-                case LEAF_ENUM_e.LF_NESTTYPE_ST:
-                    throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
+                case LEAF_ENUM_e.LF_VFUNCTAB:
+                    return (LfVFuncTab) typType;
 
-                case LEAF_ENUM_e.LF_VFUNCTAB:     return (LfVFuncTab) typType;
-                case LEAF_ENUM_e.LF_FRIENDCLS:    return (LfFriendCls) typType;
-                case LEAF_ENUM_e.LF_ONEMETHOD_ST: throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
-                case LEAF_ENUM_e.LF_VFUNCOFF:     return (LfVFuncOff) typType;
+                case LEAF_ENUM_e.LF_FRIENDCLS:
+                    return (LfFriendCls) typType;
 
-                case LEAF_ENUM_e.LF_NESTTYPEEX_ST:
-                case LEAF_ENUM_e.LF_MEMBERMODIFY_ST:
-                case LEAF_ENUM_e.LF_MANAGED_ST:
-                    throw new NotImplementedException(); //This type is only ever referenced from other records and so does not have a TYPTYPE.len
+                case LEAF_ENUM_e.LF_VFUNCOFF:
+                    return (LfVFuncOff) typType;
 
                 case LEAF_ENUM_e.LF_TYPESERVER:
                 case LEAF_ENUM_e.LF_TYPESERVER_ST:
                     return (LfTypeServer) typType;
 
-                case LEAF_ENUM_e.LF_ENUMERATE:        return (LfEnumerate) typType;
+                case LEAF_ENUM_e.LF_ENUMERATE:
+                case LEAF_ENUM_e.LF_ENUMERATE_ST:
+                    return (LfEnumerate) typType;
 
-                case LEAF_ENUM_e.LF_DIMARRAY:         return (LfDimArray) typType;
-                case LEAF_ENUM_e.LF_PRECOMP:          return (LfPreComp) typType;
-                case LEAF_ENUM_e.LF_ALIAS:            return (LfAlias) typType;
-                case LEAF_ENUM_e.LF_DEFARG:           return (LfDefArg) typType;
-                case LEAF_ENUM_e.LF_FRIENDFCN:        return (LfFriendFcn) typType;
-                case LEAF_ENUM_e.LF_MEMBER:           return (LfMember) typType;
-                case LEAF_ENUM_e.LF_STMEMBER:         return (LfSTMember) typType;
-                case LEAF_ENUM_e.LF_METHOD:           return (LfMethod) typType;
-                case LEAF_ENUM_e.LF_NESTTYPE:         return (LfNestType) typType;
-                case LEAF_ENUM_e.LF_ONEMETHOD:        return (LfOneMethod) typType;
-                case LEAF_ENUM_e.LF_NESTTYPEEX:       return (LfNestTypeEx) typType;
-                case LEAF_ENUM_e.LF_MEMBERMODIFY:     return (LfMemberModify) typType;
-                case LEAF_ENUM_e.LF_MANAGED:          return (LfManaged) typType;
+                case LEAF_ENUM_e.LF_DIMARRAY:
+                case LEAF_ENUM_e.LF_DIMARRAY_ST:
+                    return (LfDimArray) typType;
+
+                case LEAF_ENUM_e.LF_PRECOMP:
+                case LEAF_ENUM_e.LF_PRECOMP_ST:
+                    return (LfPreComp) typType;
+
+                case LEAF_ENUM_e.LF_ALIAS:
+                case LEAF_ENUM_e.LF_ALIAS_ST:
+                    return (LfAlias) typType;
+
+                case LEAF_ENUM_e.LF_DEFARG:
+                case LEAF_ENUM_e.LF_DEFARG_ST:
+                    return (LfDefArg) typType;
+
+                case LEAF_ENUM_e.LF_FRIENDFCN:
+                case LEAF_ENUM_e.LF_FRIENDFCN_ST:
+                    return (LfFriendFcn) typType;
+
+                case LEAF_ENUM_e.LF_MEMBER:
+                case LEAF_ENUM_e.LF_MEMBER_ST:
+                    return (LfMember) typType;
+
+                case LEAF_ENUM_e.LF_STMEMBER:
+                case LEAF_ENUM_e.LF_STMEMBER_ST:
+                    return (LfSTMember) typType;
+
+                case LEAF_ENUM_e.LF_METHOD:
+                case LEAF_ENUM_e.LF_METHOD_ST:
+                    return (LfMethod) typType;
+
+                case LEAF_ENUM_e.LF_NESTTYPE:
+                case LEAF_ENUM_e.LF_NESTTYPE_ST:
+                    return (LfNestType) typType;
+
+                case LEAF_ENUM_e.LF_ONEMETHOD:
+                case LEAF_ENUM_e.LF_ONEMETHOD_ST:
+                    return (LfOneMethod) typType;
+
+                case LEAF_ENUM_e.LF_NESTTYPEEX:
+                case LEAF_ENUM_e.LF_NESTTYPEEX_ST:
+                    return (LfNestTypeEx) typType;
+
+                case LEAF_ENUM_e.LF_MEMBERMODIFY:
+                case LEAF_ENUM_e.LF_MEMBERMODIFY_ST:
+                    return (LfMemberModify) typType;
+
+                case LEAF_ENUM_e.LF_MANAGED:
+                case LEAF_ENUM_e.LF_MANAGED_ST:
+                    return (LfManaged) typType;
+
                 case LEAF_ENUM_e.LF_TYPESERVER2:      return (LfTypeServer2) typType;
                 case LEAF_ENUM_e.LF_STRIDED_ARRAY:    throw new NotImplementedException();
                 case LEAF_ENUM_e.LF_HLSL:             return (LfHLSL) typType;
@@ -278,7 +311,10 @@ namespace PESpy.PDB
             var str = value.ToString();
 
             if (defaultStr != str)
-                builder.Append(" ").Append(str);
+            {
+                builder.Append(" ");
+                builder.Append(str);
+            }
 
             return builder.ToString();
         }

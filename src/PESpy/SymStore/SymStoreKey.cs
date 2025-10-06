@@ -55,7 +55,7 @@ namespace PESpy
     /// Represents the relative path to a file on a symbol store.
     /// </summary>
     [DebuggerDisplay("[{Kind}] {Index.ToString(),nq}")]
-    public readonly struct SymStoreKey
+    public readonly struct SymStoreKey : IEquatable<SymStoreKey>
     {
         /// <summary>
         /// Creates a <see cref="SymStoreKey"/> around the identity of a PE File.
@@ -135,6 +135,29 @@ namespace PESpy
         {
             Index = index;
             Kind = kind;
+        }
+
+        public static bool operator ==(SymStoreKey left, SymStoreKey right) => left.Index == right.Index;
+
+        public static bool operator !=(SymStoreKey left, SymStoreKey right) => left.Index != right.Index;
+
+        public bool Equals(SymStoreKey other)
+        {
+            //The key kind is just informational; if the index is the same, they match
+            return Index.Equals(other.Index);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not SymStoreKey key)
+                return false;
+
+            return Equals(key);
+        }
+
+        public override int GetHashCode()
+        {
+            return Index.GetHashCode();
         }
 
         public override string ToString()

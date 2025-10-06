@@ -28,6 +28,7 @@ namespace PESpy.PDB
         private readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before the CV_SIGNATURE begins
         private readonly byte* ptr;
         private readonly byte* end;
+        internal readonly ISymbolAccessor? symbolAccessor;
 
         private int? count;
 
@@ -47,7 +48,7 @@ namespace PESpy.PDB
                         var s = (SYMTYPE*) p;
 
                         c++;
-                        p += SymType.GetSymbolLength(s);
+                        p += SymType.GetSymbolLength(s, symbolAccessor);
                     }
 
                     count = c;
@@ -57,14 +58,15 @@ namespace PESpy.PDB
             }
         }
 
-        public SymTypeList(byte* start, int dataOffset, int length)
+        internal SymTypeList(byte* start, int dataOffset, int length, ISymbolAccessor? symbolAccessor)
         {
             this.start = start;
             this.ptr = start + dataOffset;
             this.end = ptr + length;
+            this.symbolAccessor = symbolAccessor;
         }
 
-        public TopLevel GetTopLevel() => new TopLevel(start, ptr, end);
+        public TopLevel GetTopLevel() => new TopLevel(start, ptr, end, symbolAccessor);
 
         //Copies all symbols (does not include any CV_SIGNATURE) to the destination buffer
         public void CopyTo(Span<byte> destination)
@@ -90,14 +92,14 @@ namespace PESpy.PDB
                         return s;
 
                     i++;
-                    p += SymType.GetSymbolLength(s);
+                    p += SymType.GetSymbolLength(s, symbolAccessor);
                 }
 
                 throw new IndexOutOfRangeException();
             }
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(ptr, end);
+        public Enumerator GetEnumerator() => new Enumerator(ptr, end, symbolAccessor);
 
         IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
@@ -107,12 +109,14 @@ namespace PESpy.PDB
         {
             private byte* ptr;
             private readonly byte* end;
+            private readonly ISymbolAccessor symbolAccessor;
 
-            internal Enumerator(byte* ptr, byte* end)
+            internal Enumerator(byte* ptr, byte* end, ISymbolAccessor symbolAccessor)
             {
                 this.ptr = ptr;
                 this.end = end;
                 Current = default;
+                this.symbolAccessor = symbolAccessor;
             }
 
             public bool MoveNext()
@@ -126,7 +130,7 @@ namespace PESpy.PDB
                     //SymTypeProxy.GetValue(Current);
 #endif
 
-                    ptr += SymType.GetSymbolLength(Current);
+                    ptr += SymType.GetSymbolLength(Current, symbolAccessor);
 
                     return true;
                 }

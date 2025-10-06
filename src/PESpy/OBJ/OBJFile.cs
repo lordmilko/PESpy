@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -183,6 +183,9 @@ namespace PESpy
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
 
+        private readonly object c13SymbolMemoryLock = new object();
+        private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
+
         private bool disposed;
 
         internal unsafe OBJFile(string fileName, in MemoryMappedFileHolder mmf)
@@ -307,6 +310,24 @@ namespace PESpy
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
 
+        internal ISymbolAccessor RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        {
+            lock (c13SymbolMemoryLock)
+            {
+                if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
+                {
+                    var symbolAccessor = new OBJSymbolAccessor(this, false);
+
+                    //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(dataChunk, symbolAccessor);
+
+                    return symbolAccessor;
+                }
+
+                return null;
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -320,6 +341,7 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
+            globalBlock.Dispose();
             mmf.Dispose();
 
             disposed = true;

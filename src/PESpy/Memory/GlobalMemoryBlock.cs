@@ -22,7 +22,7 @@ namespace PESpy
 
         public override bool Contains(int offset)
         {
-            return offset < Length;
+            return offset <= Length;
         }
 
         public override void Dispose(bool disposing)

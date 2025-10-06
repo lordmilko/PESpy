@@ -45,7 +45,7 @@ namespace PESpy
 
         internal ImageCorILMethodSectEHClause(in MemoryChunk chunk, bool isFat, ref int read)
         {
-            Offset = chunk.AbsoluteOffset;
+            Offset = chunk.AbsoluteOffset + read;
             this.isFat = isFat;
 
             if (isFat)
@@ -103,8 +103,6 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer)
         {
-            var isFat = writer.CurrentTag == ViewTag.FatEH;
-
             return writer.NewStruct(
                 isFat ? Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT : Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL,
                 this,
@@ -115,8 +113,6 @@ namespace PESpy
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
-            var isFat = viewWriter.CurrentTag == ViewTag.FatEH;
-
             using var s = viewWriter.CreateStruct(parent);
 
             if (isFat)

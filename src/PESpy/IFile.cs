@@ -1,4 +1,5 @@
 ﻿using System;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -79,10 +80,12 @@ namespace PESpy
         FileKind Kind { get; }
 
         int Length { get; }
+
+        FileView GetView();
     }
 
     internal interface IFileWithCodeViewData
     {
-        ICodeView CodeViewData { get; }
+        ICodeView? CodeViewData { get; }
     }
 }

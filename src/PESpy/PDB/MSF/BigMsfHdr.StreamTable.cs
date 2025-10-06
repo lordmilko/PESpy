@@ -97,8 +97,8 @@ namespace PESpy.PDB
                 writer.NewStruct(Strings.StreamTable, this, ViewKind.StreamTable, StructSize);
 
             IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+            {
+                using var s = viewWriter.CreateStruct(parent);
 
                 s.WriteField("NumStreams", NumStreams);
                 s.WriteField("StreamSizes", StreamSizes.ToArray());

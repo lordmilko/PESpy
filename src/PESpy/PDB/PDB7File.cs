@@ -102,8 +102,8 @@ namespace PESpy
             //We don't need to do any temporary slicing prior to constructing a paged memory block.
             //The pages in the block could be all over the place; it's up to the paged block to seek X bytes
             //into the PDB to read the correct data
-            fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock, isBig: true);
-            fpm1 = new FPM(2, msfHeader.PageSize, msfHeader.NumPages, globalBlock, isBig: true);
+            fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock);
+            fpm1 = new FPM(2, msfHeader.PageSize, msfHeader.NumPages, globalBlock);
 
             /* TLDR: In order to know what streams exist in the PDB, and which pages those streams span across, we need to read the Stream Table.
              * And the Stream Table _itself_ could potentially be very big, and span multiple pages! So first, we must read the list of pages

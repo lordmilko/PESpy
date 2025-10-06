@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
@@ -72,9 +73,30 @@ namespace PESpy
                             }
                             else
                             {
-                                Debug.Assert(false);
+                                /* The spec for version info is https://learn.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource
+                                 *
+                                 * It doesn't say it, but it's possible to have "custom" sections, e.g. Adobe files can have a "LanguageInfo" section
+                                 * Unlike StringFileInfo and VarFileInfo, with these entries it seems like we skip right to the underlying data. So there's
+                                 * no StringFileInfo, we just go straight to the StringTable. Or at least, that's how it was for Adobe
+                                 */
+
+                                var type = chunk.PeekUInt16(read + 4);
+
+                                if (type == 1)
+                                {
+                                    //It's text
+                                    var item = new StringTable(chunk.Slice(read));
+                                    read += item.Length;
+                                    results.Add(item);
+                                }
+                                else
+                                {
+                                    //It's variable. But is it VarFileInfo or Var? What do we do?
+                                    throw new NotImplementedException();
+                                }
                             }
 
+                            //Attempting to align can push us over the length; that's OK
                             read = (read + 3) & ~3;
                         } while (read < length);                        
 

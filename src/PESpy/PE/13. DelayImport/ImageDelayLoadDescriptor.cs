@@ -9,6 +9,12 @@ namespace PESpy
     /// </summary>
     public struct ImageDelayLoadDescriptor : IValue, IViewable
     {
+        private const int DllNameRVAOffset = 4;
+        private const int ModuleHandleRVAOffset = 8;
+        private const int ImportAddressTableRVAOffset = 12;
+        private const int ImportNameTableRVAOffset = 16;
+        private const int UnloadInformationTableOffset = 24;
+
         public int Attributes => chunk.PeekInt32(0);
 
         private RVA<AnsiString> dllNameRVA;
@@ -40,7 +46,7 @@ namespace PESpy
             {
                 if (moduleHandleRVA.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(8);
+                    var rva = chunk.PeekInt32(ModuleHandleRVAOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -61,7 +67,7 @@ namespace PESpy
             {
                 if (importAddressTableRVA.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(12);
+                    var rva = chunk.PeekInt32(ImportAddressTableRVAOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         importAddressTableRVA = ImageImportDescriptor.ParseThunks(rva, valueChunk, true);
@@ -79,7 +85,7 @@ namespace PESpy
             {
                 if (importNameTableRVA.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(16);
+                    var rva = chunk.PeekInt32(ImportNameTableRVAOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         importNameTableRVA = ImageImportDescriptor.ParseThunks(rva, valueChunk, false);
@@ -99,7 +105,7 @@ namespace PESpy
             {
                 if (unloadInformationTable.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(24);
+                    var rva = chunk.PeekInt32(UnloadInformationTableOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -141,7 +147,15 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
+            //from regular import names
+            using var _ = writer.EnterTag(ViewTag.DelayImport);
+
+            writer.WriteRVAAnsiNullTerminatedField(DllNameRVA, ViewKind.ImageDelayLoadDescriptor_DllNameRVA, fieldOffset: DllNameRVAOffset);
+            writer.WriteRVAPointerField(ModuleHandleRVA, ModuleHandleRVAOffset);
+            writer.WriteRVAField(ImportAddressTableRVA, ImportAddressTableRVAOffset);
+            writer.WriteRVAField(ImportNameTableRVA, ImportNameTableRVAOffset);
+            writer.WriteRVAField(UnloadInformationTable, UnloadInformationTableOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -158,10 +172,10 @@ namespace PESpy
             s.WriteField(nameof(Attributes), Attributes);
             s.WriteRVAAnsiNullTerminatedField(nameof(DllNameRVA), DllNameRVA);
             s.WriteRVAPointerField(nameof(ModuleHandleRVA), ModuleHandleRVA);
-            s.WriteField(nameof(ImportAddressTableRVA), (int) ImportAddressTableRVA.ListedOffset);
-            s.WriteField(nameof(ImportNameTableRVA), (int) ImportNameTableRVA.ListedOffset);
-            s.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVA);
-            s.WriteField(nameof(UnloadInformationTable), (int) UnloadInformationTable.ListedOffset);
+            s.WriteRVAField(nameof(ImportAddressTableRVA), ImportAddressTableRVA);
+            s.WriteRVAField(nameof(ImportNameTableRVA), ImportNameTableRVA);
+            s.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVA); //Should be WriteRVAField but we don't yet know what it points to
+            s.WriteRVAField(nameof(UnloadInformationTable), UnloadInformationTable);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
 
             if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)

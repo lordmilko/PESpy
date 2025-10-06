@@ -5,19 +5,21 @@ namespace PESpy.LIB
 {
     public class LongNamesMember : IValue, IViewable
     {
-        private ImageArchiveMemberHeader archiveHeader;
+        private readonly ImageArchiveMemberHeader archiveHeader;
 
         public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
 
         public AnsiString[] Names { get; }
 
-        public int Offset { get; }
+        public int Offset => chunk.AbsoluteOffset;
 
         public int StructSize => ImageArchiveMemberHeader.StructSize + ArchiveHeader.Size;
 
+        private readonly MemoryChunk chunk;
+
         internal LongNamesMember(in MemoryChunk chunk)
         {
-            Offset = chunk.AbsoluteOffset;
+            this.chunk = chunk;
             archiveHeader = new ImageArchiveMemberHeader(chunk);
 
             var read = ImageArchiveMemberHeader.StructSize;
@@ -34,6 +36,14 @@ namespace PESpy.LIB
             }
 
             Names = names.ToArray();
+        }
+
+        public AnsiString GetName(int offset)
+        {
+            if (offset < archiveHeader.Size)
+                return chunk.PeekAnsiNullTerminatedString(ImageArchiveMemberHeader.StructSize + offset);
+
+            return default;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

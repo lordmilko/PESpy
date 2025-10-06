@@ -70,6 +70,60 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
+        public AnsiString GetStringFromNI(NI ni) => chunk.PeekAnsiNullTerminatedString(VHdr.StructSize + sizeof(int) + ni);
+
+        public unsafe NI Hash(string str)
+        {
+            var length = Encoding.UTF8.GetByteCount(str);
+
+            var buffer = ArrayPool<byte>.Shared.Rent(length); //We don't need to worry about the \0, it's not hashed
+
+            Encoding.UTF8.GetBytes(str, 0, str.Length, buffer, 0);
+
+            try
+            {
+                fixed (byte* p = buffer)
+                    return Hash(new FixedUtf8String(p, length));
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        public NI Hash(FixedUtf8String str)
+        {
+            //This isn't 100% the same as NMT
+
+            //From nmt::reload, if the vhdr does not have known "allowed" values, the whole thing apparently needs to be rehashed
+            var v = vhdr;
+
+            if (v.ulHdr != VHdr.Hdr.verHdr || v.ulVer == 0)
+            var n = NumOffsets;
+
+            var i = (int) (hashSz(str, v.ulVer) % n);
+
+            var offsets = Offsets;
+            var @base = VHdr.StructSize + sizeof(int);
+
+            while (true)
+            {
+                var ni = offsets[i];
+
+                if (ni == 0)
+                    return 0;
+
+                var result = (FixedUtf8String) chunk.PeekUtf8NullTerminatedString(@base + ni);
+
+                //Check if this string actually matches. I think this relates to collisions?
+                if (result == str)
+                {
+                    return ni;
+                }
+
+                i = (i + 1 < n) ? (i + 1) : 0;
+            }
+        }
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

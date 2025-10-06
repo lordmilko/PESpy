@@ -98,7 +98,7 @@ namespace PESpy.PDB
                     var ptr = symbolsChunk.Pointer;
                     Debug.Assert(symbolsChunk.RelativeOffset == 0);
 
-                    var results = new SymTypeList(ptr, sizeof(int), modi.cbSyms - 4);
+                    var results = new SymTypeList(ptr, sizeof(int), modi.cbSyms - 4, pdbFile);
 
                     field = new PDBModuleSymbols(symbolsChunk, signature, results);
                 }
@@ -177,6 +177,7 @@ namespace PESpy.PDB
             s.WriteAnsiNullTerminatedField(nameof(szModule), szModule);
             s.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFile);
 
+            s.Align(4);
             return s.ToArray();
         }
 

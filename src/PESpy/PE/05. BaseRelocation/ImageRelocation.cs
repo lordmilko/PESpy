@@ -51,7 +51,7 @@ namespace PESpy
             s.WriteField(nameof(VirtualAddress), VirtualAddress);
             s.WriteField(nameof(SymbolTableIndex), SymbolTableIndex);
 
-            var machine = ((IMachineWriter) viewWriter).Machine;
+            var machine = ((IMachineWriter) viewWriter).GetMachine(chunk);
 
             //Unknown:
             //ImageRelAm

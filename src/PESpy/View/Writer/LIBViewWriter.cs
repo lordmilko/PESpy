@@ -10,9 +10,10 @@ namespace PESpy.View
     {
         private LIBFile libFile;
 
-        internal IMAGE_FILE_MACHINE? Machine { get; set; }
-
-        IMAGE_FILE_MACHINE IMachineWriter.Machine => Machine!.Value;
+        IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk)
+        {
+            return ((LongImportLibraryMember) ((GlobalSubMemoryBlock) chunk.block).Owner).FileHeader.Machine;
+        }
 
         protected unsafe LIBViewWriter(LIBFile libFile) : this(libFile, (byte*) 1, 1)
         {

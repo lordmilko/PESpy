@@ -5,9 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using ClrDebug;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
 using PESpy.Tests.SymStore;
@@ -766,7 +768,7 @@ namespace PESpy.Tests
                     v => { }, //ImportAddressTable region
 
                     v => v.VerifyStruct(
-                        name: "IMAGE_IMPORT_DESCRIPTOR ucrtbase_enclave.dll", offset: 236888, size: 20,
+                        name: "IMAGE_IMPORT_DESCRIPTOR", offset: 236888, size: 20,
                         c => c.VerifyField(name: "OriginalFirstThunk", value: 237080),
                         c => c.VerifyField(name: "TimeDateStamp", value: (uint) 0),
                         c => c.VerifyField(name: "ForwarderChain", value: 0),
@@ -795,7 +797,7 @@ namespace PESpy.Tests
                 WithIgnores(
                     before: 1,
                     v => v.VerifyStruct(
-                        name: "IMAGE_IMPORT_DESCRIPTOR ucrtbase_enclave.dll", offset: 236888, size: 20,
+                        name: "IMAGE_IMPORT_DESCRIPTOR", offset: 236888, size: 20,
                         c => c.VerifyField(name: "OriginalFirstThunk", value: 237080),
                         c => c.VerifyField(name: "TimeDateStamp", value: (uint) 0),
                         c => c.VerifyField(name: "ForwarderChain", value: 0),
@@ -1661,7 +1663,7 @@ namespace PESpy.Tests
                     name: "NB10I", offset: 148992, size: 27,
                     c => c.VerifyField(name: "dwSig", value: CodeViewSig.NB10),
                     c => c.VerifyField(name: "dwOffset", value: 0),
-                    c => c.VerifyField(name: "sig", value: 988769516),
+                    c => c.VerifyField(name: "sig", value: (uint) 988769516),
                     c => c.VerifyField(name: "age", value: 1),
                     c => c.VerifyField(name: "szPdb", value: "crtdll.pdb")
                 )
@@ -2915,49 +2917,49 @@ namespace PESpy.Tests
                 v => v.Signature == "DotNetRuntimeInfo",
                 v => v.Version == 2,
                 v => v.RuntimeModuleIndex.Size == 8,
-                v => v.RuntimeModuleIndex.TimeStamp == 1739315076,
-                v => v.RuntimeModuleIndex.ImageSize == 4890624,
+                v => v.RuntimeModuleIndex.TimeStamp == 1747419391,
+                v => v.RuntimeModuleIndex.ImageSize == 4902912,
 
                 v => v.DacModuleIndex.Size == 8,
-                v => v.DacModuleIndex.TimeStamp == 1739314892,
+                v => v.DacModuleIndex.TimeStamp == 1747419262,
                 v => v.DacModuleIndex.ImageSize == 1368064,
 
                 v => v.DbiModuleIndex.Size == 8,
-                v => v.DbiModuleIndex.TimeStamp == 1739314885,
+                v => v.DbiModuleIndex.TimeStamp == 1747419253,
                 v => v.DbiModuleIndex.ImageSize == 1249280,
 
-                v => v.RuntimeVersion.ToString() == "9.0.325.11113"
+                v => v.RuntimeVersion.ToString() == "9.0.625.26613"
             );
 
             TestView<RuntimeInfo>(
                 v => v.VerifyStruct(
-                    name: "RuntimeInfo", offset: 8204944, size: 112,
+                    name: "RuntimeInfo", offset: 8215696, size: 112,
                     c => c.VerifyField(name: "Signature", value: "DotNetRuntimeInfo"),
-                    c => c.VerifyByteBlob(offset: 0x007d32a2, new byte[] {0, 0}),
+                    c => c.VerifyByteBlob(offset: 0x7D5CA2, new byte[] {0, 0}),
                     c => c.VerifyField(name: "Version", value: 2),
 
-                    c => c.VerifyStructField(name: "RuntimeModuleIndex", type: "Module Index", offset: 8204968, size: 24,
+                    c => c.VerifyStructField(name: "RuntimeModuleIndex", type: "Module Index", offset: 8215720, size: 24,
                         c1 => c1.VerifyField(name: "Size", value: (byte) 8),
-                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739315076),
-                        c1 => c1.VerifyField(name: "ImageSize", value: 4890624),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1747419391),
+                        c1 => c1.VerifyField(name: "ImageSize", value: 4902912),
                         c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
                     ),
 
-                    c => c.VerifyStructField(name: "DacModuleIndex", type: "Module Index", offset: 8204992, size: 24,
+                    c => c.VerifyStructField(name: "DacModuleIndex", type: "Module Index", offset: 8215744, size: 24,
                         c1 => c1.VerifyField(name: "Size", value: (byte) 8),
-                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739314892),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1747419262),
                         c1 => c1.VerifyField(name: "ImageSize", value: 1368064),
                         c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
                     ),
 
-                    c => c.VerifyStructField(name: "DbiModuleIndex", type: "Module Index", offset: 8205016, size: 24,
+                    c => c.VerifyStructField(name: "DbiModuleIndex", type: "Module Index", offset: 8215768, size: 24,
                         c1 => c1.VerifyField(name: "Size", value: (byte) 8),
-                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1739314885),
+                        c1 => c1.VerifyField(name: "TimeStamp", value: (uint) 1747419253),
                         c1 => c1.VerifyField(name: "ImageSize", value: 1249280),
                         c1 => c1.VerifyField(name: "Extra", value: new byte[] {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0})
                     ),
 
-                    c => c.VerifyField(name: "RuntimeVersion", value: new[]{9, 0, 325, 11113})
+                    c => c.VerifyField(name: "RuntimeVersion", value: new[]{9, 0, 625, 26613})
                 )
             );
         }
@@ -3011,6 +3013,206 @@ namespace PESpy.Tests
 
             //Get all IViewable items and check that we have a method here that starts with their name
             throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void AssertWriteGlobalsFollowRules()
+        {
+            //Get all types that inherit from IViewable
+            //For each type, get all fields that are either IViewable or an array of something IViewable
+            //Assert that those fields are relayed to in WriteGlobals
+
+            var missingProperties = new List<string>();
+            var erroneousIsValid = new List<string>();
+
+            WithSemanticModels(semanticModel =>
+            {
+                var types = semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>().ToArray();
+
+                foreach (var type in types)
+                {
+                    var typeSymbol = (ITypeSymbol) semanticModel.GetDeclaredSymbol(type);
+
+                    if (typeSymbol.TypeKind == TypeKind.Interface)
+                        continue;
+
+                    foreach (var iface in typeSymbol.AllInterfaces)
+                    {
+                        if (iface.Name == "IViewable")
+                        {
+                            //We should not be doing things like writing the address of an RVA or checking whether the RVA is valid
+                            //prior to writing the value that it points to in WriteGlobals. This ensures that all xrefs are properly captured
+
+                            var ourWriteGlobals = type.Members.OfType<MethodDeclarationSyntax>().Where(m => m.Identifier.Text.EndsWith("WriteGlobals")).ToArray();
+
+                            if (ourWriteGlobals.Length > 0)
+                            {
+                                foreach (var method in ourWriteGlobals)
+                                {
+                                    var propertyReferences = method.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
+
+                                    foreach (var propertyReference in propertyReferences)
+                                    {
+                                        if (propertyReference.Name.Identifier.Text == "IsValid")
+                                            erroneousIsValid.Add(type.Identifier.Text + "." + propertyReference.Expression.ToString());
+                                    }
+                                }
+                            }
+
+                            var members = typeSymbol.GetMembers();
+
+                            foreach (var member in members)
+                            {
+                                ITypeSymbol memberType;
+
+                                //Don't care about fields; all fields should be exposed as properties
+                                if (member is IPropertySymbol p)
+                                {
+                                    memberType = p.Type;
+                                }
+                                else
+                                    continue;
+
+                                if (member.Name == "this[]")
+                                    continue;
+
+                                if (memberType.NullableAnnotation != NullableAnnotation.None)
+                                    memberType = memberType.OriginalDefinition;
+
+                                if (memberType is IArrayTypeSymbol a)
+                                    memberType = a.ElementType;
+
+
+                                //Check that viewable fields are forwarded
+                                foreach (var memberIface in memberType.AllInterfaces)
+                                {
+                                    if (memberIface.Name == "IViewable")
+                                    {
+                                        //The member type is IViewable, however if the type does not do anything in their own WriteGlobals, we don't need to waste time calling them
+                                        var memberTypeWriteGlobals = memberType.GetMembers("PESpy.View.IViewable.WriteGlobals");
+
+                                        if (memberTypeWriteGlobals.Length == 1)
+                                        {
+                                            var memberTypeWriteGlobalsMethodSyntax = (MethodDeclarationSyntax) memberTypeWriteGlobals[0].DeclaringSyntaxReferences.Single().GetSyntax();
+
+                                            if (memberTypeWriteGlobalsMethodSyntax.ExpressionBody == null && memberTypeWriteGlobalsMethodSyntax.Body.Statements.Count == 0)
+                                                continue; //No need to forward WriteGlobals, the target doesn't do anything!
+                                        }
+
+                                        //Get our WriteGlobals method, and assert that this member is referenced within it
+
+                                        //WriteGlobals may be explicitly implemented, or may defer to a virtual implementation
+                                        var writeGlobals = members.Where(m => m.Name.EndsWith("WriteGlobals")).ToArray();
+
+                                        var isMemberWritten = false;
+
+                                        if (writeGlobals.Length == 0)
+                                            throw new NotImplementedException();
+
+                                        foreach (IMethodSymbol method in writeGlobals)
+                                        {
+                                            var methodSyntax = (MethodDeclarationSyntax) method.DeclaringSyntaxReferences.Single().GetSyntax();
+
+                                            //BigMsfHdr.StreamTable technically has two types in it: the outer BigMsfHdr, and the inner StreamTable type.
+                                            //Only the StreamTable type's members will exist in the syntax tree for BigMsfHdr.StreamTable.cs
+                                            if (methodSyntax.SyntaxTree != semanticModel.SyntaxTree)
+                                                continue;
+
+                                            var identifiers = methodSyntax.DescendantNodes().OfType<IdentifierNameSyntax>();
+
+                                            foreach (var identifier in identifiers)
+                                            {
+                                                var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
+
+                                                if (SymbolEqualityComparer.Default.Equals(member, symbol))
+                                                {
+                                                    isMemberWritten = true;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (isMemberWritten)
+                                                break;
+                                        }
+
+                                        if (!isMemberWritten)
+                                            missingProperties.Add(typeSymbol.Name + " -> " + member.Name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            var excluded = new[]
+            {
+                //These are forwarded from ImageNtHeaders
+                "PEFile -> FileHeader",
+                "PEFile -> OptionalHeader",
+
+                //Virtual only
+                "ImageResourceDataEntry -> Parent",
+                "ImageResourceDirectoryEntry -> Parent",
+                "StreamTable -> StreamInfos",
+
+                //Handled by PDB2File / PDB7File
+                "PDBFile -> StreamTable",
+                "PDBFile -> PreviousStreamTable",
+                "PDBFile -> PDB",
+                "PDBFile -> TPI",
+                "PDBFile -> DBI",
+                "PDBFile -> IPI",
+                "PDBFile -> GSI",
+                "PDBFile -> PSGSI",
+
+                "EcmaMetadata -> CompressedModelHeap"
+            };
+
+            missingProperties.RemoveAll(v => excluded.Contains(v));
+
+            if (missingProperties.Count > 0)
+            {                
+                Assert.Fail($"{missingProperties.Count} properties are not being forwarded in IViewable.WriteGlobals:" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
+            }
+
+            if (erroneousIsValid.Count > 0)
+            {
+                Assert.Fail($"{erroneousIsValid.Count} properties are not forwarding xrefs in IViewable.WriteGlobals:" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, erroneousIsValid));
+            }
+        }
+
+        private void WithSemanticModels(Action<SemanticModel> action)
+        {
+            var solutionDir = Path.GetFullPath(Path.Combine(typeof(FastRewriter).Assembly.Location, "..\\..\\..\\..\\..\\"));
+
+            var files = Directory.EnumerateFiles(Path.Combine(solutionDir, "PESpy"), "*.cs", SearchOption.AllDirectories);
+
+            var syntaxTrees = files.Where(f => !f.Contains("\\obj\\") && !f.Contains("\\Native\\")).Select(f => CSharpSyntaxTree.ParseText(File.ReadAllText(f))).ToArray();
+
+            var compilation = CSharpCompilation.Create("PESpy", syntaxTrees);
+
+            foreach (var syntaxTree in compilation.SyntaxTrees)
+            {
+                var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
+                action(semanticModel);
+            }
+        }
+
+        [TestMethod]
+        public void AssertAllPEFilePropertiesAreInDebugView()
+        {
+            var expectedProperties = typeof(PEFile).GetProperties().Select(v => v.Name);
+            var actualProperties = typeof(PEFileDebugView).GetProperties().Select(v => v.Name);
+
+            var missing = expectedProperties.Except(actualProperties).ToArray();
+
+            if (missing.Length > 0)
+            {
+                var str = string.Join(", ", missing);
+                Assert.Fail($"{nameof(PEFileDebugView)} is missing the following properties: {str}");
+            }
         }
 
         private void TestStruct<T>(params Expression<Func<T, bool>>[] asserts) =>
@@ -3171,15 +3373,20 @@ namespace PESpy.Tests
                         memberType = mm1.Type;
                 }
 
-                var underlying = Nullable.GetUnderlyingType(memberType);
-
-                if (underlying != null)
-                    memberType = underlying;
-
                 var expectedValue = GetConstantValue(body.Right, memberType);
 
                 if (!IsEqual(expectedValue, actual))
-                    results.Add($"[{body.Left.ToString().Substring(2)}] Expected: {expectedValue} ({expectedValue?.GetType().Name ?? "null"}), Actual: {actual} ({actual?.GetType().Name ?? "null"})");
+                {
+                    static Expression Unwrap(Expression e)
+                    {
+                        while (e.NodeType == ExpressionType.Convert)
+                            e = ((UnaryExpression) e).Operand;
+
+                        return e;
+                    }
+
+                    results.Add($"[{Unwrap(body.Left).ToString().Substring(2)}] Expected: {expectedValue} ({expectedValue?.GetType().Name ?? "null"}), Actual: {actual} ({actual?.GetType().Name ?? "null"})");
+                }
 
                 propertiesAndFieldsTouched.Add(memberInfo);
             }
@@ -3216,7 +3423,6 @@ namespace PESpy.Tests
                 stream.Seek(0, SeekOrigin.Begin);
                 var peFile = PEFile.FromStream(stream, false);
 
-#if PEFAST
                 byte* pData;
                 int length;
 
@@ -3230,17 +3436,28 @@ namespace PESpy.Tests
                 {
                     throw new NotImplementedException();
                 }
-#endif
 
-#if PEFAST
                 var viewWriter = new PEViewWriter(peFile, pData, length, null, ViewMode.Default);
-#else
-                var reader = new StreamFileReader(stream, false);
 
-                var viewWriter = new PEViewWriter(peFile, reader, null, ViewMode.Default);
-#endif
-                ((IViewable) rawValue).WriteView(viewWriter);
-                var current = viewWriter.Current.OrderBy(v => v.Offset).ToArray();
+                ((IViewable) rawValue).WriteGlobals(viewWriter);
+
+                var result = ((IViewable) rawValue).WriteStruct(viewWriter);
+
+                if (result is IContainerView c)
+                {
+                    //All globals should be written in WriteGlobals. If the ViewWriter current count was modified after a call
+                    //to Children, this means a global was erroneously written in Children instead of WriteGlobals
+                    var preWriteCount = viewWriter.Current.Count;
+
+                    _ = c.Children;
+
+                    var postWriteCount = viewWriter.Current.Count;
+
+                    Assert.AreEqual(preWriteCount, postWriteCount, "Globals were erroneously written inside Children");
+                }
+                
+                //Combine the struct + any globals into one big list
+                var current = viewWriter.Current.Concat(new[] {result}).OrderBy(v => v.Offset).ToArray();
 
                 if (assertChildCount)
                     Assert.AreEqual(verify.Length, current.Length, "Number of views was different from expected");
@@ -3597,9 +3814,9 @@ namespace PESpy.Tests
                 //nameof(GuardAddressTakenIatEntryTable) => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardAddressTakenIatEntryTable.Value,
                 //"GuardAddressTakenIatEntryTable.Entry" => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardAddressTakenIatEntryTable.Value.Entries[0],
                 nameof(GuardCFFunctionTable)           => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardCFFunctionTable.Value,
-                "GuardCFFunctionTable.Entry"           => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardCFFunctionTable.Value.Entries[0],
+                "GuardCFFunctionTable.Entry"           => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardCFFunctionTable.Value[0],
                 nameof(GuardEHContinuationTable)       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardEHContinuationTable.Value,
-                "GuardEHContinuationTable.Entry"       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardEHContinuationTable.Value.Entries[0],
+                "GuardEHContinuationTable.Entry"       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardEHContinuationTable.Value[0],
                 //nameof(GuardLongJumpTargetTable)       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardLongJumpTargetTable.Value,
                 //"ameof(GuardLongJumpTargetTable.Entry" => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardLongJumpTargetTable.Value.Entries[0],
 
@@ -3660,11 +3877,11 @@ namespace PESpy.Tests
 
                 nameof(ReadyToRunHeader)         => GetSampleFile(Sample.R2R_DLL, out fs).ReadyToRunHeader,
 
-                nameof(RuntimeInfo)              => GetLocalFile(TestProcessKind.SingleFile, out fs).RuntimeInfo,
+                nameof(RuntimeInfo)              => GetSampleFile(Sample.SingleFileApp, out fs).RuntimeInfo,
 
-                nameof(DotNetRuntimeDebugHeader) => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader,
-                nameof(DebugTypeEntry)           => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
-                nameof(GlobalValueEntry)         => GetTestProcess(TestProcessKind.NativeAOT, out fs).DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0],
+                nameof(DotNetRuntimeDebugHeader) => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader,
+                nameof(DebugTypeEntry)           => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
+                nameof(GlobalValueEntry)         => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0],
 
                 #endregion
                 //_ => throw new NotImplementedException($"Don't know how to handle type '{typeof(T).Name}'")
@@ -3697,34 +3914,9 @@ namespace PESpy.Tests
             return peFile;
         }
 
-        private static PEFile GetLocalFile(TestProcessKind kind, out Stream fs)
+        private static PEFile GetNativeAOTProcessStream(out Stream stream)
         {
-#pragma warning disable CS8524
-            var path = kind switch
-#pragma warning restore CS8524
-            {
-                TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
-                TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
-            };
-
-            fs = File.OpenRead(path);
-
-            var peFile = PEFile.FromStream(fs, false);
-
-            return peFile;
-        }
-
-        private static PEFile GetTestProcess(TestProcessKind kind, out Stream stream)
-        {
-#pragma warning disable CS8524
-            var path = kind switch
-#pragma warning restore CS8524
-            {
-                TestProcessKind.SingleFile => ProjectBuilder.GetOrCreateSingleFile(),
-                TestProcessKind.NativeAOT => ProjectBuilder.GetOrCreateNativeAOT()
-            };
-
-            stream = ProcessHolderStream.New(path);
+            stream = ProcessHolderStream.New(Sample.NativeAOT);
 
             var peFile = PEFile.FromStream(stream, true);
 
@@ -3802,6 +3994,17 @@ namespace PESpy.Tests
                 value = Expression.Lambda(expression).Compile().DynamicInvoke();
             }
 
+            var underlying = Nullable.GetUnderlyingType(type);
+
+            if (underlying != null)
+            {
+                //If the expression is null, use null
+                if (value == null)
+                    return null;
+
+                type = underlying;
+            }
+
             var typeCode = Type.GetTypeCode(type);
 
             value = typeCode switch
@@ -3815,6 +4018,9 @@ namespace PESpy.Tests
 
             if (type.IsEnum && value != null)
                 value = Enum.Parse(type, value.ToString());
+
+            if (type == typeof(Timestamp) && value is uint u)
+                value = (Timestamp) u;
 
             return value;
         }

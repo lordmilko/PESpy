@@ -22,6 +22,8 @@ namespace PESpy
         /// </summary>
         public int Size => chunk.PeekInt32(4);
 
+        internal bool HasData => VirtualAddress != 0 && Size != 0;
+
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =

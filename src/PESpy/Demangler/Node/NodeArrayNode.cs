@@ -64,6 +64,22 @@ namespace PESpy
                 }
             }
 
+            internal void Output(ref Utf8StringBuilder builder, UNDNAME flags, string separator, int count)
+            {
+                count = Math.Min(count, Count);
+
+                if (count == 0)
+                    return;
+
+                rentedNodes[0].Output(ref builder, flags);
+
+                for (var i = 1; i < count; i++)
+                {
+                    builder.Append(separator);
+                    rentedNodes[i].Output(ref builder, flags);
+                }
+            }
+
             public override void Reset()
             {
                 //If Count == 0 then the array we got from the PooledList was null, and we substituted it with Array.Empty<T>(),

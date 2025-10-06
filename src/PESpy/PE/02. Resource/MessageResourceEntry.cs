@@ -41,6 +41,9 @@ namespace PESpy
             s.WriteField(nameof(Flags), Flags, sizeof(short));
             s.WriteNullTerminatedField(nameof(Text), Text);
 
+            //I can't find any documentation that says this should be aligned, but I've found that the length can be 2 less than what it's stated it should be
+            if (s.Size < Length)
+                s.Align(4);
             return s.ToArray();
         }
 

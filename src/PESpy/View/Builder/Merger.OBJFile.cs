@@ -38,7 +38,7 @@ namespace PESpy.View.Builder
 
                 if (length > lastSectionEnd)
                 {
-                    ProcessOverlay(lastSectionEnd, length, this, ref results);
+                    ProcessOverlay(lastSectionEnd, length, ref this, ref results);
                 }
 
                 return results.ToArray();
@@ -88,7 +88,7 @@ namespace PESpy.View.Builder
             results.Add(new SectionView(start, section.Name.ToString(), data, size));
         }
 
-        internal static void ProcessOverlay(int lastSectionEnd, int end, Merger merger, ref PooledList<IView> results)
+        internal static void ProcessOverlay(int lastSectionEnd, int end, ref Merger merger, ref PooledList<IView> results)
         {
             var overlayData = merger.BuildSection(lastSectionEnd, end, v => v, v => v, true);
 

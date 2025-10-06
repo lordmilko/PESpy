@@ -55,7 +55,7 @@ namespace PESpy.Tests
 
             var structView = (IStructView) view;
 
-            Assert.AreEqual(name, structView.Name, "Name was incorrect");
+            Assert.AreEqual(name, structView.Name.ToString(), "Name was incorrect");
             Assert.AreEqual(offset, structView.Offset, $"Offset of {name} was incorrect. Also size is {structView.Size}");
             Assert.AreEqual(size, structView.Size, $"Size of {name} was incorrect");
 
@@ -71,7 +71,7 @@ namespace PESpy.Tests
 
             var structView = (IStructView) view;
 
-            Assert.AreEqual(name, structView.Name, "Name was incorrect");
+            Assert.AreEqual(name, structView.Name.ToString(), "Name was incorrect");
             Assert.AreEqual(offset, structView.Offset, $"Offset of {name} was incorrect. Also, size is {structView.Size}");
             Assert.AreEqual(size, structView.Size, $"Size of {name} was incorrect");
         }
@@ -108,6 +108,8 @@ namespace PESpy.Tests
                     fieldValue = b2.ToArray();
                 else if (fieldValue is NativeSpan<byte> b3)
                     fieldValue = b3.ToArray();
+                else if (fieldValue is NativeSpan<PN> b4)
+                    fieldValue = b4.ToArray();
                 else
                     throw new NotImplementedException();
 
@@ -132,6 +134,9 @@ namespace PESpy.Tests
 
                 if (value is string s) //Could be PCSTR
                     fieldValue = fieldValue.ToString();
+
+                if (fieldValue is Timestamp && value is uint u)
+                    value = (Timestamp) u;
 
                 Assert.AreEqual(value, fieldValue, $"Value of field {name} was incorrect");
             }

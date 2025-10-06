@@ -224,7 +224,7 @@ namespace PESpy.View
         VsFixedFileInfo,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.StringFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VsVersionInfo.StringFileInfo"/>.
         /// </summary>
         StringFileInfo,
 
@@ -239,12 +239,12 @@ namespace PESpy.View
         StringTable_String,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.VarFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VsVersionInfo.VarFileInfo"/>.
         /// </summary>
         VarFileInfo,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="VsVersionInfo.Var"/> contained in a <see cref="VsVersionInfo.VarFileInfo"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VsVersionInfo.Var"/> contained in a <see cref="PESpy.VsVersionInfo.VarFileInfo"/>.
         /// </summary>
         VarFileInfo_Var,
 
@@ -311,6 +311,7 @@ namespace PESpy.View
         NB10I,
         RSDSI,
         FpoData,
+        XFixupData,
         ImageDebugMisc,
         ImageCoffSymbolsHeader,
         Omap,
@@ -384,9 +385,8 @@ namespace PESpy.View
         #region Bound Import Table (11)
 
         ImageBoundImportDescriptor,
-        ImageBoundImportDescriptor_Name,
+        ImageBoundImportName,
         ImageBoundForwarderRef,
-        ImageBoundForwarderRef_Name,
 
         #endregion
         #region Import Address Table (12)
@@ -395,6 +395,8 @@ namespace PESpy.View
         #region Delay Import Table (13)
 
         ImageDelayLoadDescriptor,
+
+        ImageDelayLoadDescriptor_DllNameRVA,
 
         /// <summary>
         /// A <see cref="LogicalRegionView"/> that encapsulates the <see cref="ImageDelayLoadDescriptor.ImportNameTableRVA"/> region.
@@ -551,6 +553,7 @@ namespace PESpy.View
         PDBStream,
         PDBStream70,
         StreamNameTable,
+        Map,
 
         //snTpi
         Hdr,
@@ -562,6 +565,7 @@ namespace PESpy.View
         DbiHdr,
         NewDbiHdr,
         Modi,
+        Modi50,
         Modi60Persist,
         ECInfo,
         SC40,
@@ -631,7 +635,15 @@ namespace PESpy.View
         OMFDirEntry,
         CodeViewSig,
         OMFModule,
+        OMFSegDesc,
         OMFSymHash,
+
+        //NB02
+        dnt,
+        nsg,
+        nsg32,
+        pbi,
+        smd,
 
         //DOS
         DOSFile

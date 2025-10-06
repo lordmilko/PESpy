@@ -102,6 +102,7 @@ var strings = new[]{
     "NB10I",
     "RSDSI",
     "FPO_DATA",
+    "XFIXUP_DATA",
     "IMAGE_DEBUG_MISC",
     "IMAGE_COFF_SYMBOLS_HEADER",
     "VCFeature",
@@ -148,6 +149,12 @@ var strings = new[]{
     "IMAGE_COR20_HEADER",
     "IMAGE_COR_ILMETHOD_TINY",
     "IMAGE_COR_ILMETHOD_FAT",
+    "IMAGE_COR_ILMETHOD_SECT_FAT",
+    "IMAGE_COR_ILMETHOD_SECT_SMALL",
+    "IMAGE_COR_ILMETHOD_SECT_EH_FAT",
+    "IMAGE_COR_ILMETHOD_SECT_EH_SMALL",
+    "IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT",
+    "IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL",
     "STORAGESIGNATURE",
     "STORAGEHEADER",
     "STORAGESTREAM",
@@ -212,7 +219,9 @@ var strings = new[]{
     "RuntimeInfo",
     "Module Index",
     "CLR_ENGINE_METRICS",
-    //$"{"GlobalValueEntry"} {Name}",
+    "DotNetRuntimeDebugHeader",
+    "DebugTypeEntry",
+    "GlobalValueEntry",
 
     //NE
     "IMAGE_OS2_HEADER",
@@ -233,16 +242,19 @@ var strings = new[]{
     "PDBStream",
     "PDBStream70",
     "Stream Name Table",
+    "Map",
 
     //snTpi
     "HDR",
     "HDR_16t",
     "TpiHash",
+    "OffCb",
 
     //snDbi
     "DBIHdr",
     "NewDBIHdr",
     "MODI",
+    "MODI50",
     "MODI_60_Persist",
     "ECInfo",
     "SC40",

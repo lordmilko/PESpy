@@ -102,7 +102,7 @@ namespace PESpy
 
         internal int StructSize =>
             numberOfSymbols * ImageSymbol.StructSize + //Will include regular and aux symbols
-            StringTableSize; //StringTableSize includes its own length (4) in its total size
+            (StringTableSize == 0 ? sizeof(int) : StringTableSize); //Ordinarily, StringTableSize should include its own length (4) in its total size. However, sometimes it can be 0, in which case we need to bump the total size by 4
 
         private readonly MemoryChunk chunk;
         private readonly int numberOfSymbols;
@@ -130,7 +130,20 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
+#if DEBUG
+            var beforeSymbols = s.Size;
+#endif
             s.WriteInline(Symbols);
+
+#if DEBUG
+            var afterSymbols = s.Size;
+            var symbolsWritten = afterSymbols - beforeSymbols;
+            var expectedWritten = numberOfSymbols * ImageSymbol.StructSize;
+            Debug.Assert(expectedWritten == symbolsWritten);
+#endif
+
+            //Ordinarily, StringTableSize should include its own size (4) in its length. However, sometimes this is not the case, in which case
+            //StructSize above needs to detect this and bump the size by 4
             s.WriteField("String Table Size", StringTableSize);
             s.WriteInlineAnsiNullTerminated(Strings);
 

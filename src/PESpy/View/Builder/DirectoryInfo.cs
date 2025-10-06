@@ -7,7 +7,7 @@ namespace PESpy.View.Builder
     {
         public string Name { get; }
         public int Start { get; }
-        public int End { get; }
+        public int End { get; set; }
 
         public DirectoryInfo(string name, int start, int size)
         {

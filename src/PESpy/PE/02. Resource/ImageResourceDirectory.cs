@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using PESpy.Native;
 using PESpy.View;
@@ -124,6 +125,8 @@ namespace PESpy
             _ = Entries;
 #endif
         }
+
+        public IValue[] Resources => EnumerateResources().ToArray();
 
         public IEnumerable<IValue> EnumerateResources() => EnumerateResources<IValue>();
 

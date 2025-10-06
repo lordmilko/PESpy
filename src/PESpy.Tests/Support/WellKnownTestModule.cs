@@ -23,6 +23,12 @@ namespace PESpy.Tests
         public static SymbolStoreKey mscorlib = new SymbolStoreKey("mscorlib.dll/66D13820576000/mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\mscorlib.dll");
         public static SymbolStoreKey ShoulderTapView = new SymbolStoreKey("shouldertapview.dll/1456661987000/shouldertapview.dll", "C:\\Windows\\ShellExperiences\\ShoulderTapView.dll");
 
+        //This module is notable in that it provides both PDBv7 and Portable PDB symbols on the symbol server, depending on whether you
+        //use the age 1 or -1
+        public static SymStoreKey WinForms = new SymStoreKey("System.Windows.Forms.dll/AF8023C9d20000/System.Windows.Forms.dll", SymStoreKeyKind.PE);
+        public static SymStoreKey WinFormsFullPDB = new SymStoreKey("System.Windows.Forms.pdb/1A553F89CEB44D2B91047C5262E602571/System.Windows.Forms.pdb", SymStoreKeyKind.PDB);
+        public static SymStoreKey WinFormsPortablePDB = new SymStoreKey("System.Windows.Forms.pdb/1A553F89CEB44D2B91047C5262E60257FFFFFFFF/System.Windows.Forms.pdb", SymStoreKeyKind.PortablePDB);
+
         public static string CreateKey(string modulePath)
         {
             var symbolClient = new SymbolClient(new NullSymStoreLogger());

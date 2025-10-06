@@ -5,6 +5,8 @@ namespace PESpy.LIB
 {
     public class ShortImportLibraryMember : IImportLibraryMember, IValue,IViewable
     {
+        public AnsiString Name { get; }
+
         public ImageArchiveMemberHeader ArchiveHeader => new ImageArchiveMemberHeader(chunk);
 
         public ImportObjectHeader ImportHeader => new ImportObjectHeader(chunk.Slice(ImageArchiveMemberHeader.StructSize));
@@ -17,9 +19,10 @@ namespace PESpy.LIB
 
         private readonly MemoryChunk chunk;
 
-        internal ShortImportLibraryMember(in MemoryChunk chunk)
+        internal ShortImportLibraryMember(in MemoryChunk chunk, AnsiString name)
         {
             this.chunk = chunk;
+            Name = name;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

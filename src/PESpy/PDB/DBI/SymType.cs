@@ -50,7 +50,7 @@ namespace PESpy.PDB
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int GetSymbolLength(SYMTYPE* symType)
+        internal static int GetSymbolLength(SYMTYPE* symType, ISymbolAccessor? symbolAccessor)
         {
             //Huge gotcha incoming: certain legacy symbols (S_DATAREF_ST, S_PROCREF_ST and S_LPROCREF_ST) may have a hidden
             //name after them, not included in their lengths. You need to account for this when calculating how big the symbol is!
@@ -65,7 +65,7 @@ namespace PESpy.PDB
                      * NB11 (whether the data is in the original PE File or if it's been split out to a DBG File) there _isn't_ any
                      * name at the end of the symbol. And in fact, by pretending that there is, we're effectively _skipping over_
                      * the symbol that comes after us! */
-                    var accessor = SymbolMemoryTracker.GetAccessor((long) symType);
+                    var accessor = symbolAccessor ?? SymbolMemoryTracker.GetAccessor((long) symType);
 
                     if (accessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
                         goto default;
@@ -84,12 +84,17 @@ namespace PESpy.PDB
             }
         }
 
-        public static SymType NextSymbol(in SymType symType) => (SymType) (SYMTYPE*) (((byte*) (SYMTYPE*) symType) + GetSymbolLength(symType));
+        public static SymType NextSymbol(in SymType symType) => (SymType) (SYMTYPE*) (((byte*) (SYMTYPE*) symType) + GetSymbolLength(symType, null));
 
-        internal static FixedUtf8String ReadString<T>(T* symType, byte* start) where T : unmanaged
+        internal static SymString ReadString<T>(T* symType, byte* start, ISymbolAccessor? symbolAccessor = null) where T : unmanaged
         {
+            bool isLengthPrefixedData;
+
             //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
-            var isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) symType);
+            if (symbolAccessor != null)
+                isLengthPrefixedData = symbolAccessor.HasLengthPrefixedStrings;
+            else
+                isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) symType);
 
             /* PDB files have two different ways of encoding strings
              * - ST, which means the string is length prefixed
@@ -108,30 +113,20 @@ namespace PESpy.PDB
 
             var raw = (SYMTYPE*) symType;
 
-            if (isLengthPrefixedData && raw->rectyp < SYM_ENUM_e.S_ST_MAX)
-            {
-                byte length = *start;
-
-                var pdbString = new FixedUtf8String(start + 1, length);
-
-                return pdbString;
-            }
+            if (isLengthPrefixedData && raw->rectyp < S_ST_MAX)
+                return new SymString(start + 1, isLengthPrefixed: true);
             else
-            {
-                var utf8 = new Utf8String(start);
-
-                return new FixedUtf8String(start, utf8.Length);
-            }
+                return new SymString(start, isLengthPrefixed: false);
         }
 
-        internal static int? GetRelativeVirtualAddress<T>(T* symType, ushort seg, int off) where T : unmanaged
+        internal static int? GetRelativeVirtualAddress<T>(T* symType, ushort seg, int off, ISymbolAccessor? accessor = null) where T : unmanaged
         {
             //DataSym32 items may have a section number of 0, e.g. IID_IClassFactory in mscordbi. These also don't have an offset,
             //and so therefore don't have an RVA
             if (seg == 0)
                 return null;
 
-            var accessor = SymbolMemoryTracker.GetAccessor((long) symType);
+            accessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
 
             return accessor?.GetRelativeVirtualAddress(seg, off);
         }
@@ -172,9 +167,9 @@ namespace PESpy.PDB
             return TryPDBGetSectionContribInternal(pdbFile, seg, off, out sc);
         }
 
-        internal static bool TryGetSectionCharacteristics(SYMTYPE* symType, ushort seg, int off, out IMAGE_SCN characteristics)
+        internal static bool TryGetSectionCharacteristics(SYMTYPE* symType, ushort seg, int off, ISymbolAccessor? accessor, out IMAGE_SCN characteristics)
         {
-            var accessor = SymbolMemoryTracker.GetAccessor((long) symType);
+            accessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
 
             if (accessor is PDBFile pdbFile)
             {

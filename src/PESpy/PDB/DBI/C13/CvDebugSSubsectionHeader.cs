@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
+using PESpy.LIB;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     //CV_DebugSSubsectionHeader_t
-    public class CvDebugSSubsectionHeader : IValue, IViewable //A class to ensure that symbol memory is only registered once
+    public readonly struct CvDebugSSubsectionHeader : IValue, IViewable
     {
         //type
         public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(0);
@@ -14,44 +16,53 @@ namespace PESpy.PDB
         //cbLen
         public CV_off32_t Length => chunk.PeekInt32(4);
 
-        private object? data;
+        public unsafe object Data => GetData<object>();
 
-        public unsafe object Data
+        public int Offset => chunk.AbsoluteOffset;
+
+        internal int StructSize =>
+            sizeof(int) + //Type
+            Length;
+
+        private MemoryChunk DataChunk => chunk.Slice(8);
+
+        private readonly MemoryChunk chunk;
+
+        internal CvDebugSSubsectionHeader(in MemoryChunk chunk)
         {
             get
             {
-                if (data == null)
-                {
-                    var dataChunk = chunk.Slice(8);
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
+                    var symbols = GetSymbols();
+                    return Unsafe.As<SymTypeList, T>(ref symbols);
 
-                    switch (Type)
-                    {
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
+                    var lines = GetLines();
+                    return Unsafe.As<CvDebugSLinesHeader, T>(ref lines);
 
-                            //CV_DebugSSubsectionHeader_t is implicitly C13 data, but we still have to register ourselves in any case
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE:
+                    var stringTable = GetStringTable();
+                    return Unsafe.As<Utf8StringCollection, T>(ref stringTable);
 
-                            if (dataChunk.block is PagedMemoryBlock)
-                                SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
-                            else
-                            {
-                                //OBJ or LIB. We're C13, which means UTF8
-                                SymbolMemoryTracker.RegisterCVSymbolMemory(CV_SIGNATURE.C13, dataChunk); //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
-                            }
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
+                    var fileChecksums = GetFileChecksums();
+                    return Unsafe.As<CvFileCheckSum[], T>(ref fileChecksums);
 
-                            data = new SymTypeList(dataChunk.Pointer, Length);
-                            break;
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:
+                    var frameData = GetFrameData();
+                    return Unsafe.As<RvaAndFrameData, T>(ref frameData);
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
-                            data = new CvDebugSLinesHeader(dataChunk, Length);
-                            break;
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES:
+                    var inlineeLines = GetInlineeLines();
+                    return Unsafe.As<InlineeSigAndLines, T>(ref inlineeLines);
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE:
-                            data = ParseStringTable(dataChunk);
-                            break;
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS: //CrossScopeReferences (see DumpModCrossScopeRefs)
+                    var crossScopeImports = GetCrossScopeImports();
+                    return Unsafe.As<CrossScopeReferencesCollection, T>(ref crossScopeImports);
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
-                            {
-                                using var results = new PooledList<CvFileCheckSum>();
+                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS:
+                    var crossScopeExports = GetCrossScopeExports();
+                    return Unsafe.As<LocalIdAndGlobalIdPairList, T>(ref crossScopeExports);
 
                                 var read = 0;
                                 var length = Length;
@@ -75,65 +86,116 @@ namespace PESpy.PDB
                             data = new RvaAndFrameData(dataChunk.Slice(8), Length);
                             break;
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES:
-                            data = ParseInlineeLines(dataChunk);
-                            break;
+        public unsafe SymTypeList GetSymbols()
+        {
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS);
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS: //CrossScopeReferences (see DumpModCrossScopeRefs)
-                            data = ParseCrossScopeImports(dataChunk);
-                            break;
+            //CV_DebugSSubsectionHeader_t is implicitly C13 data, but we still have to register ourselves in any case
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS:
-                            data = ParseCrossScopeExports(dataChunk);
-                            break;
+            /* We need to make sure that we register this memory only once. Having the CvDebugSSubsectionHeader type
+             * be a class is one way to do that, but that allocates a bunch of memory. So Plan B: have the owner of the memory
+             * check whether this chunk has been registered before. This also saves us from doing expensive lookups against
+             * the global SymbolMemoryTracker table */
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES: //? (DumpObjFileSections calls DumpModILLines)
-                            throw new NotImplementedException();
+            var dataChunk = DataChunk;
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP: //? (DumpObjFileSections calls DumpModFuncTokenMap)
-                            throw new NotImplementedException();
+            ISymbolAccessor? symbolAccessor;
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP: //? (DumpObjFileSections calls DumpModTypeTokenMap)
-                            throw new NotImplementedException();
+            if (dataChunk.block is PagedMemoryBlock block)
+            {
+                block.PDBFile!.RegisterC13SymbolMemory(dataChunk);
+                symbolAccessor = block.PDBFile;
+            }
+            else
+            {
+                //OBJ or LIB. We're C13, which means UTF8
 
-                        case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT: //? (see DumpModMergedAssemblyInput)
-                            throw new NotImplementedException();
+                if (dataChunk.block is GlobalMemoryBlock b)
+                {
+                    var objFile = (OBJFile) b.File;
+                    symbolAccessor = objFile.RegisterC13SymbolMemory(dataChunk);
+                }
+                else
+                {
+                    var s = (GlobalSubMemoryBlock) dataChunk.block;
+                    var member = (LongImportLibraryMember) s.Owner;
+                    symbolAccessor = member.RegisterC13SymbolMemory(dataChunk);
+                }
+            }
+
+            //Don't need to adjust the data + length to account for the header
+            return new SymTypeList(dataChunk.Pointer, 0, Length, symbolAccessor);
+        }
+
+        public CvDebugSLinesHeader GetLines()
+        {
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES);
+
+            return new CvDebugSLinesHeader(DataChunk, Length);
+        }
+
+        public Utf8StringCollection GetStringTable()
+        {
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE);
+
+            var read = 0;
+
+            var end = Length;
 
                         case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_COFF_SYMBOL_RVA:
                             throw new NotImplementedException();
 
-                        default:
-                            throw new NotImplementedException();
-                    }
-                }
+            var dataChunk = DataChunk;
 
-                return data;
+            while (read < end)
+            {
+                var str = dataChunk.PeekUtf8NullTerminatedString(read);
+                results.Add(new RawValue<Utf8String>(dataChunk.AbsoluteOffset + read, str));
+                read += str.Length + 1;
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
-
-        internal int StructSize =>
-            sizeof(int) + //Type
-            Length;
-
-        private readonly MemoryChunk chunk;
-
-        internal CvDebugSSubsectionHeader(in MemoryChunk chunk)
+        //I tried to have a non-allocating collection type for this, but it's just too hard working with it,
+        //because you need to be able to binary search and index into it all the time and everything. As such,
+        //we'll have to settle for not storing the checksum array so we don't balloon our memory usage
+        public CvFileCheckSum[] GetFileChecksums()
         {
-            this.chunk = chunk;
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS);
 
-            if ((Type & DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IGNORE) != 0)
-                throw new System.NotImplementedException(); //you're meant to ignore the contents when this bit is set, but is the data actually valid?
+            using var results = new PooledList<CvFileCheckSum>();
 
-#if STRESS_TEST
-            _ = Data;
-#endif
+            var read = 0;
+            var length = Length;
+
+            var dataChunk = DataChunk;
+
+            while (read < length)
+            {
+                var item = new CvFileCheckSum(dataChunk.Slice(read));
+                read += item.StructSize;
+
+                read = (read + 3) & ~3; //Checksums are 32-bit aligned
+
+                results.Add(item);
+            }
+
+            Debug.Assert(read == length);
+            return results.ToArray();
         }
 
         private object ParseInlineeLines(in MemoryChunk dataChunk)
         {
-            SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES);
+
+            var dataChunk = DataChunk;
+
+            var pdbFile = dataChunk.PDBFile();
+
+            pdbFile.RegisterC13SymbolMemory(dataChunk);
+
+            var sig = (CV_INLINEELINES_SIGNATURE) dataChunk.PeekUInt32(0);
+
+            if (sig == CV_INLINEELINES_SIGNATURE.CV_INLINEE_SOURCE_LINE_SIGNATURE)
 
             var entries = new LocalIdAndGlobalIdPair[Length / LocalIdAndGlobalIdPair.StructSize];
 
@@ -153,12 +215,26 @@ namespace PESpy.PDB
 
             while (read < end)
             {
-                var str = dataChunk.PeekUtf8NullTerminatedString(read);
-                results.Add(new RawValue<Utf8String>(dataChunk.AbsoluteOffset + read, str));
-                read += str.Length + 1;
+                var entry = new CrossScopeReferences(dataChunk.Slice(read));
+
+                list.Add(entry);
+
+                read += CrossScopeReferences.FixedStructSize + (entry.countOfCrossReferences * sizeof(int));
             }
 
             return results.ToArray();
+        public LocalIdAndGlobalIdPairList GetCrossScopeExports()
+        {
+            VerifyType(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS);
+
+            var dataChunk = DataChunk;
+
+            SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+
+            var entries = new LocalIdAndGlobalIdPair[Length / LocalIdAndGlobalIdPair.StructSize];
+
+            for (var i = 0; i < entries.Length; i++)
+                entries[i] = new LocalIdAndGlobalIdPair(dataChunk.Slice(i * LocalIdAndGlobalIdPair.StructSize));
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -194,7 +270,7 @@ namespace PESpy.PDB
                     break;
 
                 case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
-                    s.WriteInline((CvFileCheckSum) Data);
+                    s.WriteInline((CvFileCheckSum[]) Data);
                     break;
 
                 case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:

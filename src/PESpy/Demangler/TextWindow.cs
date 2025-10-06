@@ -39,6 +39,10 @@ namespace PESpy
                 this.length = length;
                 Position = 0;
                 this.arena = Interlocked.Exchange(ref cachedArena, null);
+
+                BackRefNames = default;
+                BackRefFunctionParams = default;
+                strings = default;
             }
 
             /// <summary>

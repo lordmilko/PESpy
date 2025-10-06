@@ -61,17 +61,60 @@ namespace PESpy
                 }
             }
 
-            //todo: but you can have null terminators inside the value? so should we make it a fixed length string instead?
-
             /// <summary>
             /// A zero-terminated string. See the szKey member description for more information.
             /// </summary>
-            public Utf16String Value => chunk.PeekUtf16NullTerminatedString((FixedStructSize + ((Key.Length + 1) * 2) + 3) & ~3);
+            public Utf16String Value
+            {
+                get
+                {
+                    /* The Value can be a bit of a mess
+                     * - If the ValueLength is 0, there isn't a Value
+                     * - When there is a value, its actual length can be less than the length listed! Which means you
+                     *   should perhaps be looking for a null terminator instead of looking at the ValueLength
+                     * - Except I apparently saw embedded null terminators once! So what am I supposed to do!
+                     *
+                     * Well, in the case where the ValueLength lied to us, the Length did not, so I _was_ supposed
+                     * to just read up to the null terminator
+                     */
+                    if (ValueLength == 0)
+                        return default;
+
+                    return chunk.PeekUtf16NullTerminatedString(ValueStart);
+                }
+            }
+
+            //Sometimes the ValueLength does not account for all of the remaining bytes in the String. I've seen cases, for instance, where the rest of the bytes
+            //were padded with X's
+            public FixedUtf16String Extra
+            {
+                get
+                {
+                    if (ValueLength == 0)
+                        return default;
+
+                    //ValueLength is meaningless; Value.Length might be more
+                    var start = ValueStart + ((Value.Length + 1) * 2);
+
+                    var remaining = Length - start;
+
+                    if (remaining > 0)
+                    {
+                        var extra = chunk.PeekUtf16FixedLength(start, (remaining / 2) - 1);
+
+                        return extra;
+                    }
+
+                    return default;
+                }
+            }
+
+            private int ValueStart => (FixedStructSize + ((Key.Length + 1) * 2) + 3) & ~3;
 
             internal const int FixedStructSize =
-            sizeof(short) + //Length
-            sizeof(short) + //ValueLength
-            sizeof(short);  //Type
+                sizeof(short) + //Length
+                sizeof(short) + //ValueLength
+                sizeof(short);  //Type
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -105,13 +148,24 @@ namespace PESpy
                     s.WriteField(nameof(Padding), Padding);
                 }
 
-                s.WriteUTF16NullTerminatedField(nameof(Value), Value);
+                if (ValueLength > 0)
+                {
+                    s.WriteUTF16NullTerminatedField(nameof(Value), Value);
+
+                    var extra = Extra;
+
+                    if (extra.Length > 0)
+                    {
+                        s.WriteInlineUtf16NullTerminated(extra, (extra.Length + 1) * 2);
+                    }
+                }
 
                 if (s.Size < Length)
-                    s.Align(4);
+                    s.AlignMax(4, Length);
 
                 s.VerifyLength(Length);
 
+                Debug.Assert(parent.Size == s.Size, "Size was not correct");
                 return s.ToArray();
             }
         }

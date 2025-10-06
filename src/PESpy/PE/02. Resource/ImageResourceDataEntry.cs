@@ -83,7 +83,7 @@ namespace PESpy
                                 case ResourceType.Icon:
                                 case ResourceType.Menu:
                                 case ResourceType.Dialog:
-                                case ResourceType.String:
+                                case ResourceType.String: //https://devblogs.microsoft.com/oldnewthing/20040130-00/?p=40813
                                 case ResourceType.FontDir:
                                 case ResourceType.Font:
                                 case ResourceType.Accelerator:

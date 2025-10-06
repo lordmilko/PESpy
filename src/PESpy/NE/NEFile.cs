@@ -334,6 +334,7 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
+            globalBlock.Dispose();
             mmf.Dispose();
 
             disposed = true;

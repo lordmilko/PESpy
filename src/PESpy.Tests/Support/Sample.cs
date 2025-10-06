@@ -191,6 +191,8 @@ namespace PESpy.Tests
         #region 14. CLR
 
         public static readonly string R2R_DLL;
+        public static readonly string SingleFileApp;
+        public static readonly string NativeAOT;
 
         #endregion
 
@@ -314,6 +316,8 @@ namespace PESpy.Tests
             #region 14. CLR
 
             R2R_DLL = MakePath("14. CLR\\R2R\\TestApp.dll");
+            SingleFileApp = MakePath("14. CLR\\SingleFileApp\\TestApp.exe");
+            NativeAOT = MakePath("14. CLR\\NativeAOT\\TestApp.exe");
 
             #endregion
         }

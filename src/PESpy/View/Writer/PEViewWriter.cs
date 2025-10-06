@@ -11,7 +11,7 @@ namespace PESpy.View
 {
     interface IMachineWriter
     {
-        IMAGE_FILE_MACHINE Machine { get; }
+        IMAGE_FILE_MACHINE GetMachine(in MemoryChunk chunk);
     }
 
     public class PEViewWriter : ViewWriter, IMachineWriter
@@ -20,7 +20,7 @@ namespace PESpy.View
 
         public bool Is32Bit => peFile.OptionalHeader.Magic == PEMagic.PE32;
 
-        public IMAGE_FILE_MACHINE Machine => peFile.FileHeader.Machine;
+        IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk) => peFile.FileHeader.Machine;
 
         private MetadataSizes metadataSizes;
         private bool hasMetadataSizes;

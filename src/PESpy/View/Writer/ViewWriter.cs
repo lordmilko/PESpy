@@ -195,7 +195,7 @@ namespace PESpy.View
         {
             foreach (var item in value)
             {
-                var size = SymType.GetSymbolLength(item);
+                var size = SymType.GetSymbolLength(item, value.symbolAccessor);
                 WriteGlobal(offset, item, size, ViewKind.SymType);
                 offset += size;
             }
@@ -233,7 +233,7 @@ namespace PESpy.View
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
-                p.WriteValue(item, SymType.GetSymbolLength(item), ViewKind.SymType);
+                p.WriteValue(item, SymType.GetSymbolLength(item, value.symbolAccessor), ViewKind.SymType);
         }
 
         internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypTypeList value)
@@ -323,7 +323,7 @@ namespace PESpy.View
             if (currentTag == 0)
                 throw new NotImplementedException();
 
-            var view = WriteIntercepted(value);
+            var view = value.WriteStruct(this);
 
             if (view != null)
             {
@@ -344,6 +344,34 @@ namespace PESpy.View
         #region Pointer
 
         public void WriteVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteGlobal(value.Value);
+            }
+        }
+
+        public void WriteUniqueVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                WriteUniqueGlobal(value.Value);
+            }
+        }
+
+        public void WriteVAPointerField<T>(VA<T[]> value, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid)
             {
@@ -395,7 +423,10 @@ namespace PESpy.View
                 globalFields.Add(value.ListedAddress);
 #endif
 
-                WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+                if (((PEViewWriter) this).Is32Bit)
+                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), valueKind);
+                else
+                    WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
             }
         }
 
@@ -409,11 +440,30 @@ namespace PESpy.View
                 globalFields.Add(value.ListedAddress);
 #endif
 
-                WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
+                if (((PEViewWriter) this).Is32Bit)
+                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), valueKind);
+                else
+                    WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
             }
         }
 
-        public void WriteVAPointerField(VA<long[]> value, ViewKind valueKind, int fieldOffset)
+        public void WriteVAPointerField(VA<ulong[]> value, ViewKind valueKind, int fieldOffset)
+        {
+            if (value.IsValid)
+            {
+                WriteXRef(fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+                if (((PEViewWriter) this).Is32Bit)
+                    WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(int), valueKind);
+                else
+                    WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), valueKind);
+            }
+        }
+
+        public void WriteVAPointerField(VA<int[]> value, ViewKind valueKind, int fieldOffset)
         {
             if (value.IsValid)
             {
@@ -423,7 +473,7 @@ namespace PESpy.View
                 globalFields.Add(value.ListedAddress);
 #endif
 
-                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), valueKind);
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(int), valueKind);
             }
         }
 
@@ -694,35 +744,6 @@ namespace PESpy.View
                 globalList.AddRange(views);
             else
                 viewStack.Peek().AddRange(views);
-        }
-
-        /// <summary>
-        /// Creates an <see cref="IView"/> from a specified <paramref name="value"/> however intercepts the <see cref="IView"/>
-        /// without adding it to a list and returns it to the caller.
-        /// </summary>
-        /// <typeparam name="T">The type of value to write.</typeparam>
-        /// <param name="value">The value to write.</param>
-        /// <returns>The <see cref="IView"/> that represents the <paramref name="value"/> value.</returns>
-        private IView WriteIntercepted<T>(T value) where T : IViewable
-        {
-            if (interceptionList == null)
-                interceptionList = new List<IView>();
-
-            Debug.Assert(interceptionList.Count == 0);
-
-            Push(interceptionList);
-
-            value.WriteView(this);
-
-            if (interceptionList.Count != 1)
-                throw new InvalidOperationException("Expected interception list to contain only a single item after writing");
-
-            Pop();
-
-            var result = interceptionList[0];
-            interceptionList.Clear();
-
-            return result;
         }
 
         internal List<IView> RentList()

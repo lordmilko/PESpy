@@ -66,6 +66,13 @@ namespace PESpy
                      * the absolute position within the file that that section begins at. The meanings of each section
                      * is currently unknown
                      */
+
+                    //We expect that this value should be the same value as the start of the overlay
+                    var dataStart = endSig->filepos;
+                    var dataLength = length - dataStart;
+
+                    ReadDNRB(new MemoryChunk(globalBlock, dataStart), length - dataStart);
+
                     throw new NotImplementedException("DNRB not yet implemented");
 
                 case CodeViewSig.NB00:
@@ -113,6 +120,57 @@ namespace PESpy
             return true;
         }
 
+        private static void ReadDNRBModules(in MemoryChunk chunk, NativeSpan<int> secOffset)
+        {
+            //The first section appears to contain names of lib files and symbols that are associated with them.
+            //Each symbol contains 30 unknown bytes prior to it. Seems similar to sstModules?
+
+            var read = 0;
+            var toRead = secOffset[1] - secOffset[0];
+            var moduleReader = chunk.Slice(secOffset[0] - chunk.AbsoluteOffset);
+
+            var modules = new List<(NativeSpan<byte> bytes, FixedAnsiString name)>();
+
+            while (read < toRead)
+            {
+                var leadingBytes = moduleReader.PeekNativeSpan<byte>(read, 30);
+                read += 30;
+                var length = moduleReader.PeekByte(read);
+                var str = moduleReader.PeekAnsiFixedLength(read + 1, length);
+                read += length + 1;
+
+                modules.Add((leadingBytes, str));
+            }
+        }
+
+        private static void ReadDNRBPublics(in MemoryChunk chunk, NativeSpan<int> secOffset)
+        {
+            //Next is a list of function names. Seems similar to sstPublics?
+            //Each item consists of 6 bytes, followed by a length prefixed string.
+            //This is literally the same as sstPublics
+
+            var read = 0;
+            var toRead = secOffset[2] - secOffset[1];
+            var publicsReader = chunk.Slice(secOffset[1] - chunk.AbsoluteOffset);
+
+            //Offset is definitely offset, and I've also observed that segment seems to match what we see in the relocations
+            var publics = new List<(ushort moffset, ushort segment, ushort maybeTypeIndex, FixedAnsiString name)>();
+
+            //The entry point is called "_astart" and is listed in publics
+            while (read < toRead)
+            {
+                var offset = publicsReader.PeekUInt16(read);
+                var segment = publicsReader.PeekUInt16(read + 2);
+                var maybeTypeIndex = publicsReader.PeekUInt16(read + 4);
+
+                read += 6;
+                var length = publicsReader.PeekByte(read);
+                var str = publicsReader.PeekAnsiFixedLength(read + 1, length);
+                read += length + 1;
+
+                publics.Add((offset, segment, maybeTypeIndex, str));
+            }
+        }
         #region NB00 -> NB02
 
         internal static void ReadNB02(in MemoryChunk chunk, int sizeOfData)
@@ -174,7 +232,7 @@ namespace PESpy
             var cDir = chunk.PeekUInt16(lfoDir);
 
             //Instead of OMFDirEntry, we have DirEntry items. They are basically the same as OMFDirEntry except the size is 16-bit
-            var entries = new DirEntry[cDir];
+            var entries = new dnt[cDir];
             var tableData = new object[cDir];
 
             //This is the table in section 7.3
@@ -185,72 +243,31 @@ namespace PESpy
 
             for (var i = 0; i < cDir; i++)
             {
-                var entry = new DirEntry(chunk.Slice(offset));
-
                 //cvdump.cpp collects info about sections and then calls various dump methods for each type.
                 //e.g. DumpPub retrieves the individual fields of a public
 
-                entries[i] = entry;
+                entries[i] = new dnt(chunk.Slice(offset), chunk);
 
-                switch (entry.SubSectionType)
-                {
-                    case SST.SSTMODULE:
-                        throw new NotImplementedException();
-
-                    case SST.SSTPUBLIC:
-                        throw new NotImplementedException();
-
-                    case SST.SSTTYPES:
-                        throw new NotImplementedException();
-
-                    case SST.SSTSYMBOLS:
-                        tableData[i] = ReadNB02Symbols(chunk.Slice(entry.lfoStart), entry.Size);
-                        break;
-
-                    case SST.SSTSRCLINES:
-                        throw new NotImplementedException();
-
-                    case SST.SSTLIBRARIES:
-                        throw new NotImplementedException();
-
-                    case SST.SSTIMPORTS:
-                        throw new NotImplementedException();
-
-                    case SST.SSTCOMPACTED:
-                        throw new NotImplementedException();
-
-                    case SST.SSTSRCLNSEG:
-                        throw new NotImplementedException();
-                }
-
-                offset += DirEntry.StructSize;
+                offset += dnt.StructSize;
             }
         }
 
-        private static object ReadNB02Symbols(in MemoryChunk symbolsChunk, int size)
+        internal static OldSymType[] ReadNB02Symbols(in MemoryChunk symbolsChunk, int size)
         {
             var read = 0;
 
+            using var list = new PooledList<OldSymType>();
+
             while (read < size)
             {
-                //The length is only 1 byte
-                var cbRec = symbolsChunk.PeekByte(read);
-                var rawType = symbolsChunk.PeekUInt16(read + 1);
+                var ptr = new OldSymType(symbolsChunk.Pointer + read);
 
-                if ((rawType & 0x80) != 0)
-                {
-                    //It's a 32-bit symbol
+                list.Add(ptr);
 
-                    rawType = (ushort) (rawType & ~0x80);
-                    throw new NotImplementedException();
-                }
-
-                var type = (OLDSYM) rawType;
-
-                read += cbRec + 1;
+                read += ptr.reclen + 1;
             }
 
-            throw new NotImplementedException();
+            return list.ToArray();
         }
 
         #endregion
@@ -282,149 +299,66 @@ namespace PESpy
             var dirHeader = new OMFDirHeader(chunk.Slice(lfoDir));
 
             var entries = new OMFDirEntry[dirHeader.cDir];
-            var tableData = new object[dirHeader.cDir];
+
+            NB05SymbolAccessor symbolAccessor = null;
+            var file = chunk.File();
+
+            switch (sig)
+            {
+                case CodeViewSig.NB05:
+                {
+                    if (file is DOSFile d)
+                        symbolAccessor = new DOSNB05SymbolAccessor(d);
+                    else
+                        symbolAccessor = new NB05SymbolAccessor(file);
+                }
+                break;
+
+                case CodeViewSig.NB06:
+                case CodeViewSig.NB07:
+                case CodeViewSig.NB08:
+                case CodeViewSig.NB09:
+                //case CodeViewSig.NB10: //NB10 is used for PDBs, and should not be found in an OMFSignature
+                case CodeViewSig.NB11:
+                {
+                    if (file is DOSFile d)
+                        symbolAccessor = new DOSNB09SymbolAccessor(d);
+                    else
+                        symbolAccessor = new NB09SymbolAccessor(file);
+                }
+                break;
+            }
 
             //The subsection directory entries are immediately after the header. This is the table in section 7.3.
             //It is _not_ the table in section 7.2
             var offset = lfoDir + OMFDirHeader.StructSize;
 
+            CV_SIGNATURE lastSignature = default;
+
             for (var i = 0; i < dirHeader.cDir; i++)
             {
-                var entry = new OMFDirEntry(chunk.Slice(offset));
-
-                entries[i] = entry;
-
-                switch (entry.SubSection)
-                {
-                    case SST.sstModule:
-                        tableData[i] = new OMFModule(chunk.Slice(entry.lfo));
-                        break;
-
-                    case SST.sstTypes:
-                    case SST.sstPublic:
-                    case SST.sstPublicSym:
-                    case SST.sstSymbols:
-                        throw new NotImplementedException();
-
-                    case SST.sstAlignSym:
-                    {
-                        var symbolsChunk = chunk.Slice(entry.lfo);
-
-#if FALSE
-
-                        throw new NotImplementedException("Need to register symbol memory with symbol tracker. Needs to work for global, local and remote memory blocks");
-
-                        //var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
-
-                        //switch (signature)
-                        //{
-                        //    case CV_SIGNATURE.C7:
-                        //    case CV_SIGNATURE.C11:
-                        //        SymbolMemoryTracker.RegisterCVSymbolMemory(signature, symbolsChunk);
-                        //        tableData[i] = new PDBModuleSymbols(symbolsChunk, signature, new SymTypeList(symbolsChunk.Pointer + 4, entry.cb - 4));
-                        //        break;
-
-                        //    case CV_SIGNATURE.C13:
-                        //    default:
-                        //        throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
-                        //}
-#endif
-
-                        break;
-                    }
-
-                    case SST.sstSrcLnSeg:
-                        throw new NotImplementedException();
-
-                    case SST.sstSrcModule:
-                        tableData[i] = new OMFSourceModule(chunk.Slice(entry.lfo));
-                        break;
-
-                    case SST.sstLibraries:
-                    {
-                        var valueChunk = chunk.Slice(entry.lfo);
-
-                        //The first entry is an empty string, because library indices are 1-based
-                        var read = 0;
-
-                        using var libraries = new PooledList<FixedAnsiString>();
-
-                        while (read < entry.cb)
-                        {
-                            var length = valueChunk.PeekByte(read);
-                            read++;
-
-                            var str = valueChunk.PeekAnsiFixedLength(read, length);
-                            read += length;
-                            libraries.Add(str);
-                        }
-
-                        tableData[i] = libraries.ToArray();
-
-                        break;
-                    }
-
-                    case SST.sstGlobalSym:
-                    case SST.sstGlobalPub:
-                    case SST.sstStaticSym:
-                    {
-                        var valueChunk = chunk.Slice(entry.lfo);
-
-                        var hash = new OMFSymHash(valueChunk);
-
-                        //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11 
-                        SymbolMemoryTracker.RegisterCVSymbolMemory(CV_SIGNATURE.C11, valueChunk);
-
-                        var symbols = new SymTypeList(valueChunk.Pointer + OMFSymHash.StructSize, hash.cbSymbol);
-
-                        //Following this, are the symbol hash and address hash tables. These seem kind of complicated (see cvdump.cpp) so for now we don't include these
-                        break;
-                    }
-
-                    case SST.sstGlobalTypes:
-                        AssertNotImplemented();
-                        break;
-
-                    case SST.sstMPC:
-                        throw new NotImplementedException();
-
-                    case SST.sstSegMap:
-                        AssertNotImplemented();
-                        break;
-
-                    case SST.sstSegName:
-                    case SST.sstPreComp:
-                    case SST.sstPreCompMap:
-                    case SST.sstOffsetMap16:
-                    case SST.sstOffsetMap32:
-                        AssertNotImplemented();
-                        break;
-
-                    case SST.sstFileIndex:
-                        AssertNotImplemented();
-                        break;
-
-                    default:
-                        throw new NotImplementedException($"Don't know how to handle {nameof(SST)} '{entry.SubSection}'");
-                }
+                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);                
 
                 offset += OMFDirEntry.StructSize;
             }
 
-            return new NB05Data(
-                chunk.AbsoluteOffset,
+            var data = new NB05Data(
+                chunk,
                 sig,
                 lfoBaseOff,
                 lfoDir,
                 dirHeader,
-                entries,
-                tableData
+                entries
             );
-        }
 
-        private static void AssertNotImplemented()
-        {
-            throw new NotImplementedException();
+            symbolAccessor.data = data;
+
+            Debug.Assert(lastSignature != default);
+            symbolAccessor.CvSignature = lastSignature;
+            //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
+            symbolAccessor.HasLengthPrefixedStrings = lastSignature != CV_SIGNATURE.C13;
+
+            return data;
         }
 
         #endregion

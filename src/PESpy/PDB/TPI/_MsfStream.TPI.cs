@@ -66,7 +66,55 @@ namespace PESpy.PDB
                 Types = new TypTypeList(ptr, Hdr.cbGprec);
             }
 
-            void IViewable.WriteView(ViewWriter writer)
+            private int[] indexToOffsetMap;
+
+            internal unsafe TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+            {
+                //See the comments in PDBFile.GetTypTypeFromIndex as to why tthe TpiHash seems to be no good
+
+                if (indexToOffsetMap == null)
+                {
+                    if (Hdr is HDR h)
+                    {
+                        var numRecords = h.tiMac - h.tiMin;
+
+                        var arr = new int[numRecords];
+
+                        var p = chunk.Pointer + HDR.StructSize;
+                        var l = h.cbGprec;
+
+                        var i = 0;
+                        var off = 0;
+
+                        while (off < l)
+                        {
+                            var t = (TYPTYPE*) (p + off);
+
+                            arr[i] = off;
+
+                            i++;
+                            off += t->len + 2;
+                        }
+
+                        indexToOffsetMap = arr;
+                    }
+                    else
+                    {
+                    }
+                }
+
+                var min = 0;
+
+                if (Hdr is HDR)
+                    min = ((HDR) Hdr).tiMin;
+                else
+                    min = ((HDR_16t) Hdr).tiMin;
+
+                var offset = indexToOffsetMap[typeIndex - min];
+
+                return Types.GetTypeFromOffset(offset);
+            }
+
             void IViewable.WriteGlobals(ViewWriter writer)
             {
                 writer.WriteGlobal(Hdr);

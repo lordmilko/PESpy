@@ -56,7 +56,9 @@ namespace PESpy.View
                 if (relativeOffset >= pageSize)
                 {
                     //Move onto the next page
-                    pageIndex++;
+                    var pagesRead = relativeOffset / pageSize;
+
+                    pageIndex += pagesRead; //A really big value might span more than 1 page
 
                     if (pageIndex >= pageList.Length)
                     {
@@ -67,7 +69,7 @@ namespace PESpy.View
                     pageStart = pageList[pageIndex] * pageSize;
 
                     //Adjust for any overflow
-                    relativeOffset -= pageSize;
+                    relativeOffset = relativeOffset % pageSize;
                 }
             }
 

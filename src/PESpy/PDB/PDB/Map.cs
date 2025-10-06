@@ -1,10 +1,17 @@
 ﻿using System;
 using System.Collections;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct Map : IValue, IViewable
+    //D = domain (key)
+    //R = range (value)
+    //H = hasher
+    public readonly struct Map<D, R, H> : IValue, IViewable
+        where D : unmanaged, IEquatable<D>
+        where H : HashClass<D>
     {
         public int Size => chunk.PeekInt32(0);
 
@@ -18,27 +25,36 @@ namespace PESpy.PDB
 
         public NativeSpan<int> DeletedWords => chunk.PeekNativeSpan<int>(16 + (PresentWordCount * 4), DeletedWordCount);
 
+        //The physical entries that exist on disk
         public Entry[] Entries { get; }
+
+        //The virtual entries that exist in memory. Entries are spread out according to whether each slot has a value or not
+        private readonly int[] virtualEntries;
 
         public int Offset => chunk.AbsoluteOffset;
 
-        public int StructSize
+        public unsafe int StructSize
         {
             get
             {
-                var size = 16 + (PresentWordCount * 4) + (DeletedWordCount * 4);
+                var size = 16 + (PresentWordCount * sizeof(int)) + (DeletedWordCount * sizeof(int));
 
-                size += (Entries.Length * 8);
+                size += (Entries.Length * (sizeof(D) + valueSize));
 
                 return size;
             }
         }
 
         private readonly MemoryChunk chunk;
+        private readonly H hasher;
+        private readonly int valueSize;
 
-        internal Map(in MemoryChunk chunk)
+        internal unsafe Map(in MemoryChunk chunk, Func<MemoryChunk, R> getValue, int valueSize, H hasher)
         {
             this.chunk = chunk;
+            this.valueSize = valueSize;
+            this.hasher = hasher;
+            this.virtualEntries = default;
 
             var bucketIndex = 0;
 
@@ -48,7 +64,22 @@ namespace PESpy.PDB
             var capacity = Capacity;
             var presentBits = new BitArray(PresentWords.ToArray());
 
-            var entries = size == 0 ? Array.Empty<Entry>() : new Entry[size];
+            Entry[] entries;
+            int[] virtualEntries;
+
+            if (size == 0)
+            {
+                entries = Array.Empty<Entry>();
+                virtualEntries = Array.Empty<int>();
+            }
+            else
+            {
+                entries = new Entry[size];
+                virtualEntries = new int[capacity];
+
+                fixed (int* b = virtualEntries)
+                    Unsafe.InitBlockUnaligned((byte*) b, byte.MaxValue, (uint) capacity * sizeof(int));
+            }
 
             var entryChunk = chunk.Slice(16 + (PresentWordCount * 4) + (DeletedWordCount * 4));
 
@@ -59,13 +90,39 @@ namespace PESpy.PDB
                 //bits. All of the other bits in the BitArray after the capacity should be false and can be ignored
                 if (i < presentBits.Length && presentBits[i]) //In Visual C++ 4, you can have an empty PresentWords
                 {
-                    entries[bucketIndex] = new Entry(entryChunk);
+                    entries[bucketIndex] = new Entry(entryChunk, getValue);
+                    virtualEntries[i] = bucketIndex;
                     bucketIndex++;
-                    entryChunk = entryChunk.Slice(Entry.StructSize);
+                    entryChunk = entryChunk.Slice(sizeof(D) + valueSize);
                 }
             }
 
             Entries = entries;
+            this.virtualEntries = virtualEntries;
+        }
+
+                    var j = virtualEntries[i];
+                    var entry = Entries[j];
+
+                    if (hasher.Equals(entry.Key, key))
+                    {
+                        value = entry.Value;
+                        physicalEntryIndex = j;
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (i >= deletedBits.Length || !deletedBits[i])
+                        break;
+                }
+
+                i = (i + 1 < n) ? i + 1 : 0;
+            } while (i != h);
+
+            value = default;
+            physicalEntryIndex = default;
+            return false;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -74,7 +131,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct("Map", this, default, StructSize);
+            writer.NewStruct(Strings.Map, this, ViewKind.Map, StructSize);
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
@@ -92,11 +149,12 @@ namespace PESpy.PDB
             return s.ToArray();
         }
 
+        [DebuggerDisplay("{Key} -> {Value}")]
         public readonly struct Entry : IValue, IViewable
         {
-            public int Key => chunk.PeekInt32(0);
+            public D Key => chunk.PeekUnmanaged<D>(0);
 
-            public int Value => chunk.PeekInt32(4);
+            public unsafe R Value => getValue(chunk.Slice(sizeof(D)));
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -105,10 +163,12 @@ namespace PESpy.PDB
                 sizeof(int);  //Value
 
             private readonly MemoryChunk chunk;
+            private readonly Func<MemoryChunk, R> getValue;
 
-            internal Entry(in MemoryChunk chunk)
+            internal Entry(in MemoryChunk chunk, Func<MemoryChunk, R> getValue)
             {
                 this.chunk = chunk;
+                this.getValue = getValue;
             }
 
             void IViewable.WriteGlobals(ViewWriter writer)

@@ -116,6 +116,7 @@ namespace PESpy
                 Offset = (int) chunk.AbsoluteOffset;
 
                 Function = chunk.PeekInt32(0);
+                XFG = default;
 
                 switch (metadataSize)
                 {
@@ -191,6 +192,8 @@ namespace PESpy
                 this.metadataSize = metadataSize;
                 peFile = chunk.PEFile();
                 index = default;
+
+                Current = default;
             }
 
             public Entry Current { get; private set; }

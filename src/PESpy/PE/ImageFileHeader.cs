@@ -19,7 +19,7 @@ namespace PESpy
         /// <summary>
         /// The number of sections. This indicates the size of the section table, which immediately follows the headers.
         /// </summary>
-        public short NumberOfSections => chunk.PeekInt16(2);
+        public ushort NumberOfSections => chunk.PeekUInt16(2);
 
         /// <summary>
         /// The low 32 bits of the number of seconds since 00:00 January 1, 1970, that indicates when the file was created.

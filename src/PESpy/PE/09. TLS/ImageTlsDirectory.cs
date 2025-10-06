@@ -25,9 +25,9 @@ namespace PESpy
         public int Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
-            is32Bit
+            (is32Bit
                 ? (4 * 4)
-                : (4 * 8) + //StartAddressOfRawData, EndAddressOfRawData, AddressOfIndex, AddressOfCallBacks
+                : (4 * 8)) + //StartAddressOfRawData, EndAddressOfRawData, AddressOfIndex, AddressOfCallBacks
             sizeof(int) + //SizeOfZeroFill
             sizeof(int); //Characteristics
 

@@ -39,7 +39,7 @@ namespace PESpy
                     while (read < end)
                     {
                         var item = new PogoItem(chunk.Slice(read));
-                        read += PogoItem.FixedStructSize + item.Name.Length + 1;
+                        read += item.StructSize;
 
                         //Each entry should be aligned to 4 bytes
                         read = (read + 3) & ~3;
@@ -79,7 +79,16 @@ namespace PESpy
             using var s = viewWriter.CreateStruct(parent);
 
             s.WriteField(nameof(Signature), Signature, sizeof(int));
-            s.WriteInline(Entries);
+
+            //Each value must be 4-byte aligned
+            var entries = Entries;
+
+            foreach (var item in entries)
+            {
+                s.WriteInline(item);
+
+                s.Align(4);
+            }
 
             return s.ToArray();
         }

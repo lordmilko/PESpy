@@ -95,6 +95,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(cbHdr), cbHdr);
             s.WriteField(nameof(tiMin), tiMin);
             s.WriteField(nameof(tiMac), tiMac);
+            s.WriteField(nameof(cbGprec), cbGprec);
             s.WriteStructField(nameof(tpihash), tpihash);
 
             return s.ToArray();

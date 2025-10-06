@@ -51,6 +51,11 @@ namespace PESpy.Tests
             return pdbCore.PDBOpen2W(fileName, PdbOpenMode.pdbRead);
         }
 
+        public static NameMap OpenNameMap(PDB1 pdb1)
+        {
+            return pdbCore.NameMapOpen(pdb1.Raw, false);
+        }
+
         public string FileName { get; }
 
         public MSF MSF { get; private set; }

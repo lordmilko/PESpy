@@ -8,7 +8,7 @@ namespace PESpy.View
     {
         private readonly OBJFile objFile;
 
-        public IMAGE_FILE_MACHINE Machine => objFile.FileHeader.Machine;
+        IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk) => objFile.FileHeader.Machine;
 
         protected unsafe OBJViewWriter(OBJFile objFile) : this(objFile, (byte*) 1, 1)
         {

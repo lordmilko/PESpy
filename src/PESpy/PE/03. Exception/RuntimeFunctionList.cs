@@ -85,6 +85,8 @@ namespace PESpy
                 this.chunk = chunk;
                 this.count = count;
                 index = default;
+
+                Current = default;
             }
 
             public RuntimeFunction Current { get; private set; }

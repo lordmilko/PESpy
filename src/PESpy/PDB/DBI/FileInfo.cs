@@ -1,44 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ClrDebug.OMF;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public class FileInfo : IValue, IViewable
+    //Name is made up. Format is described as a blob
+    //in DBI1::QueryFileInfo. This is the same format as sstFileIndex (as is noted in dbi.cpp)
+
+    /// <summary>
+    /// Represents the file information pointed to by <see cref="NewDBIHdr.cbFileInfo"/>.
+    /// The name of this data structure is made up; the actual format is described as a blob in DBI1::QueryFileInfo,
+    /// however dbi.cpp also notes that this is the same format as <see cref="SST.sstFileIndex"/>.
+    /// </summary>
     {
         //cMods
-        public short NumModules => chunk.PeekInt16(0);
+        public ushort NumModules => chunk.PeekUInt16(0);
 
         //cRefs
-        public short NumSourceFiles => chunk.PeekInt16(2);
+        public ushort NumSourceFiles => chunk.PeekUInt16(2);
 
-        public NativeSpan<short> ModuleIndices => chunk.PeekNativeSpan<short>(4, NumModules);
+        /// <summary>
+        /// For each module, describes the position in <see cref="FileNameOffsets"/> where the given module's file names start (by treating <see cref="FileNameOffsets"/> like a flat array)<para/>
+        /// For example, if <see cref="ModuleIndices"/> is 0, 3, 9, 11, then module 0's files occupy FileNameOffsets[0-2], module 1's files are in FileNameoffsets[3-8], etc. You don't need to
+        /// explicitly deduce the number of files in each module however; this is told to you by <see cref="ModuleFileCounts"/>.<para/>
+        /// Corresponds to /ushort iRefModStart[cMods]
+        /// </summary>
+        public NativeSpan<ushort> ModuleIndices => chunk.PeekNativeSpan<ushort>(4, NumModules);
 
-        public NativeSpan<short> ModuleFileCounts => chunk.PeekNativeSpan<short>(4 + (NumModules * 2), NumModules);
+        /// <summary>
+        /// Gets the number of files contained in each module.<para/>
+        /// Used by <see cref="FileNameOffsets"/> to calculate how many file names to read for a given module from the location pointed to by <see cref="ModuleIndices"/>.
+        /// Corresponds to ushort cRefsForMod[cMods]
+        /// </summary>
+        public NativeSpan<ushort> ModuleFileCounts => chunk.PeekNativeSpan<ushort>(4 + (NumModules * 2), NumModules);
 
-        public NativeSpan<int> FileNameOffsets
-        {
-            get
-            {
-                //NumSourceFiles is only 16-bit; to get the real number of source files you have to manually count them
-                var numSourceFiles = 0;
+        /// <summary>
+        /// Gets the jagged array of file name offsets for the files referenced by the PDB. There is one element in the outer array for each
+        /// module in the PDB, with each of those modules containing a number of elements equal to the file count indicated by <see cref="ModuleFileCounts"/>.<para/>
+        /// When indexing into this member, the list of file name offsets is treated like a flat array, and <see cref="ModuleIndices"/> is then used to jump straight to the location
+        /// where the given module's file name offsets start. <see cref="ModuleFileCounts"/> is then used to determine how many offsets to read from this location.<para/>
+        /// Corresponds to ICH rgICH[cMods][cRefsForMod(iMod)]
+        /// </summary>
+        public FileNameOffsetsList FileNameOffsets => new FileNameOffsetsList(this);
 
-                foreach (var item in ModuleFileCounts)
-                    numSourceFiles += item;
-
-                return chunk.PeekNativeSpan<int>(4 + (NumModules * 4), numSourceFiles);
-            }
-        }
-
-        public RawValue<FixedUtf8String>[] Names { get; }
+        /// <summary>
+        /// Provides access to the file names pointed to by <see cref="FileNameOffsets"/> within the "names" data region of this <see cref="FileInfo"/> record.
+        /// There is one element in the outer array for each module in the PDB, with each module then containing a file name for each file name offset pointed to by
+        /// <see cref="FileNameOffsets"/>.
+        /// </summary>
+        public FileNameNamesList FileNames { get; }
 
         public int Offset => chunk.AbsoluteOffset;
+
+        public static unsafe FileInfo FromMemory(IntPtr pFileInfo, int length, bool isLengthPrefixedString)
+        {
+            var globalBlock = new GlobalMemoryBlock((byte*) pFileInfo, length, null);
+
+            return new FileInfo(new MemoryChunk(globalBlock, 0), length, isLengthPrefixedString);
+        }
 
         private readonly MemoryChunk chunk;
         private readonly int length;
 
-        internal unsafe FileInfo(in MemoryChunk chunk, int length)
+        internal unsafe FileInfo(in MemoryChunk chunk, int length, bool isLengthPrefixedString)
         {
             this.chunk = chunk;
             this.length = length;
@@ -53,62 +79,13 @@ namespace PESpy.PDB
             foreach (var item in ModuleFileCounts)
                 numSourceFiles += item;
 
-            var startPos = 4 + (NumModules * 4);
+            var startPos = 4 + (NumModules * sizeof(int));
             var fileNameOffsets = chunk.PeekSpan<int>(startPos, numSourceFiles);
-            startPos += (fileNameOffsets.Length * 4);
+            startPos += (fileNameOffsets.Length * sizeof(int));
 
             var namesChunk = chunk.Slice(startPos);
 
-            RawValue<FixedUtf8String>[] names;
-
-            if (fileNameOffsets.Length > 0)
-            {
-                //Multiple entries can map to the same offset. If the PDB version is <= vc98 the strings are length prefixed.
-                //Counting the length of strings isn't free, so I think we need to cache each string's offset
-                //to worry about caching anything
-                names = new RawValue<FixedUtf8String>[fileNameOffsets.Length];
-
-                var pdb = chunk.PDBFile();
-
-                if (pdb.PDB!.PDBHeader.ImplementationVersion <= ClrDebug.PDB.PDBIMPV.PDBImpvVC98)
-                {
-                    //The strings are length prefixed. I feel like doing dictionary lookups would be more expensive than not,
-                    //so just read the ST strings as is
-
-                    //These strings are ANSI not UTF8, but I feel like UTF8 encompasses ANSI
-                    for (var i = 0; i < fileNameOffsets.Length; i++)
-                    {
-                        var offset = fileNameOffsets[i];
-
-                        var strLen = namesChunk.PeekByte(offset);
-                        var str = namesChunk.PeekUtf8FixedLength(offset + 1, strLen);
-                        names[i] = new RawValue<FixedUtf8String>(namesChunk.AbsoluteOffset + offset, str);
-                    }
-                }
-                else
-                {
-                    //The strings are null terminated. We need to do strlen in this case, so we cache
-                    var dict = new Dictionary<int, RawValue<FixedUtf8String>>();
-
-                    for (var i = 0; i < fileNameOffsets.Length; i++)
-                    {
-                        var offset = fileNameOffsets[i];
-
-                        if (!dict.TryGetValue(offset, out var existing))
-                        {
-                            var str = namesChunk.PeekAnsiNullTerminatedString(offset);
-
-                            existing = new RawValue<FixedUtf8String>(namesChunk.AbsoluteOffset + offset, new FixedUtf8String(str, str.Length));
-                        }
-
-                        names[i] = existing;
-                    }
-                }
-            }
-            else
-                names = Array.Empty<RawValue<FixedUtf8String>>();
-
-            Names = names;
+            FileNames = new FileNameNamesList(namesChunk, this, isLengthPrefixedString);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -123,11 +100,11 @@ namespace PESpy.PDB
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteField(nameof(NumModules), NumModules);
-            s.WriteField(nameof(NumSourceFiles), NumSourceFiles);
-            s.WriteField(nameof(ModuleIndices), ModuleIndices);
-            s.WriteField(nameof(ModuleFileCounts), ModuleFileCounts);
-            s.WriteField(nameof(FileNameOffsets), FileNameOffsets);
+            s.WriteField("cMods", NumModules);
+            s.WriteField("cRefs", NumSourceFiles);
+            s.WriteField("iRefModStart", ModuleIndices);
+            s.WriteField("cRefsForMod", ModuleFileCounts);
+            s.WriteField("rgICH", FileNameOffsets.AsFlat());
 
             //FileNameOffsets contains a list of relative offsets to each name. However, there could be multiple entries
             //pointing to the same name
@@ -139,7 +116,7 @@ namespace PESpy.PDB
             if (pdb.PDB!.PDBHeader.ImplementationVersion <= ClrDebug.PDB.PDBIMPV.PDBImpvVC98)
             {
                 //Write inline ST strings
-                foreach (var name in Names.OrderBy(v => v.Offset))
+                foreach (var name in FileNames.AsFlat().OrderBy(v => v.Offset))
                 {
                     if (seenAddress.Add(name.Offset))
                         s.WriteInlineLengthPrefixedAnsiString(name);
@@ -147,13 +124,15 @@ namespace PESpy.PDB
             }
             else
             {
-                foreach (var name in Names.OrderBy(v => v.Offset))
+                foreach (var name in FileNames.AsFlat().OrderBy(v => v.Offset))
                 {
                     if (seenAddress.Add(name.Offset))
                         s.WriteInlineUtf8NullTerminated(name);
                 }
             }
 
+            //microsoft-pdb shows it should be aligned
+            s.Align(4);
             return s.ToArray();
         }
     }

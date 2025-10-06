@@ -198,7 +198,7 @@ namespace PESpy
             public ushort StackOffset { get; }
 
             public override int StructSize =>
-                sizeof(int) + //StackOffset
+                sizeof(ushort) + //StackOffset
                 base.StructSize;
 
             public SaveXmm128(int offset, byte codeOffset, UnwindInfo.X64Register register, ushort stackOffset) : base(offset, codeOffset, UWOP.SAVE_XMM128)

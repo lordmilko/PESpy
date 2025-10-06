@@ -33,7 +33,6 @@ namespace PESpy.PDB
         internal OemSymbol(OEMSYMBOL* value)
         {
             this.value = value;
-            Debug.Assert(false, "Read rgl");
         }
     }
 }

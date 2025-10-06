@@ -31,13 +31,14 @@ namespace PESpy.PDB
 
                         if (DbiHdr is NewDBIHdr n)
                         {
-                            if (n.verHdr < DBIImpv.DBIImpvV60)
+                            /* NT 4 says that if it's a PDBImpvVC2 PDB, it's a MODI v2 and it needs to be upgraded to a MODI v4
+                             * (these use the old DBI header). v4 MODI seems to be the same as v5 MODI, except the only flag present
+                             * is fWritten. v5 MODI has iTSM */
+
+                            if (n.verHdr >= DBIImpv.DBIImpvV60)
                             {
-                                //MODI50
-                                throw new NotImplementedException("Processing MODI50 and earlier is not implemented");
-                            }
-                            else
-                            {
+                                //All we can do is assume MODI 60
+
                                 int totalRead = 0;
 
                                 while (totalRead < end)
@@ -48,6 +49,29 @@ namespace PESpy.PDB
                                 }
 
                                 Debug.Assert(totalRead == end);
+                            }
+                            else
+                            {
+                                switch (n.verHdr)
+                                {
+                                    case DBIImpv.DBIImpvV50:
+                                    {
+                                        int totalRead = 0;
+
+                                        while (totalRead < end)
+                                        {
+                                            var module = new Modi50(moduleChunk.Slice(totalRead), out var read);
+                                            results.Add(module);
+                                            totalRead += read;
+                                        }
+
+                                        Debug.Assert(totalRead == end);
+                                    }
+                                    break;
+
+                                    default:
+                                        throw new NotImplementedException($"Processing {n.verHdr} and earlier is not implemented");
+                                }
                             }
                         }
                         else
@@ -145,7 +169,7 @@ namespace PESpy.PDB
             {
                 get
                 {
-                    if (fileInfo == null)
+                    if (fileInfo == null && DbiHdr.cbFileInfo > 0)
                     {
                         var length = DbiHdr.cbFileInfo;
 
@@ -315,7 +339,7 @@ namespace PESpy.PDB
                         {
                             SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk);
                             Debug.Assert(symRecChunk.RelativeOffset == 0);
-                            symbols = new SymTypeList(symRecChunk.Pointer, 0, symRecChunk.Remaining);
+                            symbols = new SymTypeList(symRecChunk.Pointer, 0, symRecChunk.Remaining, pdbFile);
                         }
                     }
 

@@ -114,7 +114,8 @@ namespace PESpy
                     }
                     else
                     {
-                        if (TryGetHeaderChunk(chunk, offset, out var valueChunk))
+                        //This can point beyond the end of the file, or the section can claim to have more line numbers than would fit in the file
+                        if (TryGetHeaderChunk(chunk, offset, out var valueChunk) && valueChunk.Remaining >= (NumberOfLineNumbers * ImageLineNumber.StructSize))
                         {
                             var lineNumbers = new ImageLineNumber[NumberOfLineNumbers];
 

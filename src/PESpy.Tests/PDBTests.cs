@@ -11,6 +11,7 @@ using DBI1 = ClrDebug.PDB.DBI1;
 using PDB1 = ClrDebug.PDB.PDB1;
 using SN = PESpy.PDB.SN;
 using static PESpy.Tests.PEFileTests;
+using ChaosLib;
 
 namespace PESpy.Tests
 {
@@ -106,7 +107,7 @@ namespace PESpy.Tests
                             c2 => c2.VerifyField(name: "cb", value: 16), //After our commit, this changed from 4 -> 16
                             c2 => c2.VerifyField(name: "mpspnpn", value: 0)
                         ),
-                        c1 => c1.VerifyField(name: "mpspnpnSt", (PN) 6) //After our commit, changed from 4 -> 6
+                        c1 => c1.VerifyField(name: "mpspnpnSt", new[] { (PN) 6 }) //After our commit, changed from 4 -> 6
                     ),
                     c => c.VerifyByteBlob(offset: 56, value: new byte[968])
                 ),
@@ -143,10 +144,8 @@ namespace PESpy.Tests
                     c => c.VerifyByteBlob(offset: 0x1410, new byte[1008]) //Padding
                 ),
 
-                v => v.VerifyLogicalRegion(name: "6 | Stream Table Page List", offset: 0x1800, size: 0x400,
-                    c => c.VerifyLogicalRegion(name: "SI Pages", offset: 0x1800, size: 4,
-                        c1 => c1.VerifyValue(offset: 0x1800, value: (PN) 5)
-                    ),
+                v => v.VerifyLogicalRegion(name: "6 | Stream Table Page List (1/1)", offset: 0x1800, size: 0x400,
+                    c => c.VerifyValue(offset: 0x1800, value: (PN) 5),
                     c => c.VerifyByteBlob(offset: 0x1804, new byte[1020])
                 ),
 
@@ -355,7 +354,7 @@ namespace PESpy.Tests
                                 c1 => c1.VerifyField(name: "age", value: 1),
                                 c1 => c1.VerifyFieldIgnoreValue(name: "sig70") //sig70 is a random GUID when fRepro is not specified
                             ),
-                            c => c.VerifyStruct(name: "Stream Name Table", offset: 0x141C, size: 24,
+                            c => c.VerifyStruct(name: "Stream Name Table", offset: 0x141C, size: 28,
                                 c1 => c1.VerifyField(name: "Name Buffer Size", value: 0),
                                 c1 => c1.VerifyStruct(name: "Map", offset: 0x1420, size: 20,
                                     c2 => c2.VerifyField(name: "Size", value: 0),
@@ -365,7 +364,6 @@ namespace PESpy.Tests
                                     c2 => c2.VerifyField(name: "Deleted Word Count", value: 0)
                                 )
                             ),
-                            c => c.VerifyValue(offset: 0x1434, (PdbFeature) 0),
                             c => c.VerifyValue(offset: 0x1438, PdbFeature.impvVC140),
                             c => c.VerifyByteBlob(offset: 0x143C, value: new byte[964])
                         ),
@@ -433,7 +431,7 @@ namespace PESpy.Tests
                                         )
                                     ),
                                 },
-                                after: 3
+                                after: 2
                             )
                         )
                     },
@@ -882,9 +880,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void PDB_DBIStream_DbgHdr_SectionHdr()
         {
-            var bytes = new byte[0x400];
-            bytes[8] = 1;
-            bytes[39] = 32;
+            var bytes = new byte[984];
 
             TestDBIDbgHdr(
                 DBGTYPE.dbgtypeSectionHdr,
@@ -894,7 +890,19 @@ namespace PESpy.Tests
                     Characteristics = IMAGE_SCN.MEM_EXECUTE
                 },
                 v => v.VerifyLogicalRegion(name: "9 | 'SectionHdr (7)' (1/1)", offset: 0x2400, size: 0x400,
-                    c => c.VerifyByteBlob(offset: 0x2400, bytes)
+                    c => c.VerifyStruct(name: "IMAGE_SECTION_HEADER", offset: 0x2400, size: 40,
+                        c1 => c1.VerifyField("Name", string.Empty),
+                        c1 => c1.VerifyField("VirtualSize", 1),
+                        c1 => c1.VerifyField("VirtualAddress", 0),
+                        c1 => c1.VerifyField("SizeOfRawData", 0),
+                        c1 => c1.VerifyField("PointerToRawData", 0),
+                        c1 => c1.VerifyField("PointerToRelocations", 0),
+                        c1 => c1.VerifyField("PointerToLineNumbers", 0),
+                        c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
+                        c1 => c1.VerifyField("NumberOfLineNumbers", (short) 0),
+                        c1 => c1.VerifyField("Characteristics", IMAGE_SCN.MEM_EXECUTE)
+                    ),
+                    c => c.VerifyByteBlob(offset: 0x2428, bytes)
                 )
             );
         }
@@ -973,9 +981,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void PDB_DBIStream_DbgHdr_SectionHdrOrig()
         {
-            var bytes = new byte[0x400];
-            bytes[8] = 1;
-            bytes[39] = 32;
+            var bytes = new byte[984];
 
             TestDBIDbgHdr(
                 DBGTYPE.dbgtypeSectionHdrOrig,
@@ -985,7 +991,19 @@ namespace PESpy.Tests
                     Characteristics = IMAGE_SCN.MEM_EXECUTE
                 },
                 v => v.VerifyLogicalRegion(name: "9 | 'SectionHdrOrig (7)' (1/1)", offset: 0x2400, size: 0x400,
-                    c => c.VerifyByteBlob(offset: 0x2400, bytes)
+                    c => c.VerifyStruct(name: "IMAGE_SECTION_HEADER", offset: 0x2400, size: 40,
+                        c1 => c1.VerifyField("Name", string.Empty),
+                        c1 => c1.VerifyField("VirtualSize", 1),
+                        c1 => c1.VerifyField("VirtualAddress", 0),
+                        c1 => c1.VerifyField("SizeOfRawData", 0),
+                        c1 => c1.VerifyField("PointerToRawData", 0),
+                        c1 => c1.VerifyField("PointerToRelocations", 0),
+                        c1 => c1.VerifyField("PointerToLineNumbers", 0),
+                        c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
+                        c1 => c1.VerifyField("NumberOfLineNumbers", (short) 0),
+                        c1 => c1.VerifyField("Characteristics", IMAGE_SCN.MEM_EXECUTE)
+                    ),
+                    c => c.VerifyByteBlob(offset: 0x2428, bytes)
                 )
             );
         }
@@ -1114,18 +1132,24 @@ namespace PESpy.Tests
         [TestMethod]
         public void PDB_V2_VC40()
         {
+            //We don't currently check anything in particular
+            var verifiers = Enumerable.Range(0, 329).Select(v => (Action<IView>) (v => { })).ToArray();
+
             TestPDBSample(
                 Sample.VC40_PDB,
-                null
+                verifiers
             );
         }
 
         [TestMethod]
         public void PDB_V2_VC60()
         {
+            //We don't currently check anything in particular
+            var verifiers = Enumerable.Range(0, 305).Select(v => (Action<IView>) (v => { })).ToArray();
+
             TestPDBSample(
                 Sample.VC60_PDB,
-                null
+                verifiers
             );
         }
 

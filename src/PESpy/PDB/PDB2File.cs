@@ -44,13 +44,15 @@ namespace PESpy
 
             //PDBs have two Free Page Maps. In V2 PDBs, their locations are determined based on the page size
 
+            var msfParms = MSFParms.FromPageSize(PageSize);
+
             //The first FPM is always page 1
-            fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock, isBig: false);
+            fpm0 = new FPM(1, msfHeader.PageSize, msfHeader.NumPages, globalBlock, msfParms);
 
             //The page of the second FPM depends on our page size
-            var secondFPM = MSFParms.FromPageSize(PageSize).Fpm1PageNo;
+            var secondFPM = msfParms.Fpm1PageNo;
 
-            fpm1 = new FPM(secondFPM, msfHeader.PageSize, msfHeader.NumPages, globalBlock, isBig: false);
+            fpm1 = new FPM(secondFPM, msfHeader.PageSize, msfHeader.NumPages, globalBlock, msfParms);
 
             /* In PDB v7, the MSF Header describes the location of a set of pages that can be read to find the location of the stream table
              * But in PDB v2, the MSF Header contains the set of pages of the stream table directly. More than that however, the actual

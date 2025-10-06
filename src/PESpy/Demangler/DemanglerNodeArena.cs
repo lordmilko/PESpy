@@ -130,6 +130,9 @@ namespace PESpy
                 _items = default;
                 _position = default;
                 this.alloc = alloc;
+#if MONITOR_NODE_CACHE
+                misses = default;
+#endif
             }
 
             public T Allocate()

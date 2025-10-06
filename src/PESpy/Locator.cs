@@ -1,8 +1,9 @@
-﻿#if PEFAST
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PESpy
 {
@@ -85,12 +86,65 @@ namespace PESpy
             "SystemRoot"
         };
 
-        //Locate all artifacts associated with a given *.exe or *.dbg file
-        public static bool TryLocate(string exeOrDbgPath, out Artifacts result, string? searchPath = null) =>
-            LocateInternal(exeOrDbgPath, SearchFlags.All, searchPath, out result);
+        #region String -> Artifacts
 
+        //Locate all artifacts associated with a given *.exe or *.dbg file
+        public static bool TryLocate(string exeOrDbgPath, out Artifacts result, out SymStoreKey? symStoreKey, string? searchPath = null)
+        {
+            Artifacts? artifacts;
+            (artifacts, symStoreKey) = TryLocateAsync(exeOrDbgPath, searchPath).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            if (artifacts != null)
+            {
+                result = artifacts.Value;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        public static ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> TryLocateAsync(string exeOrDbgPath, string? searchPath = null, CancellationToken cancellationToken = default) =>
+            LocateInternalAsync(exeOrDbgPath, null, SearchFlags.All, searchPath, cancellationToken);
+
+        #endregion
+        #region IFile -> Artifacts
+
+        public static bool TryLocate(
+            IFile exeOrDbgFile,
+            out Artifacts result,
+            out SymStoreKey? symStoreKey, //If the file was found on the symbol store, contains the key that was used to identify the file
+            string? searchPath = null)
+        {
+            Artifacts? artifacts;
+            (artifacts, symStoreKey) = TryLocateAsync(exeOrDbgFile, searchPath).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            if (artifacts != null)
+            {
+                result = artifacts.Value;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        public static ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> TryLocateAsync(IFile exeOrDbgFile, string? searchPath = null, CancellationToken cancellationToken = default)
+        {
+            if (exeOrDbgFile == null)
+                throw new ArgumentNullException(nameof(exeOrDbgFile));
+
+            return LocateInternalAsync(null, exeOrDbgFile, SearchFlags.All, searchPath, cancellationToken);
+        }
         //Locate a file with a given key from the symbol server
         public static bool TryLocate(SymStoreKey key, out string? result)
+        {
+            result = TryLocateAsync(key).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            return result != null;
+        }
+
+        public static async ValueTask<string?> TryLocateAsync(SymStoreKey key, CancellationToken cancellationToken = default)
         {
             var nameToLocate = Path.GetFileNameWithoutExtension(key.Index);
             var extToUse = Path.GetExtension(key.Index);
@@ -99,47 +153,92 @@ namespace PESpy
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                if (LocateFileInPath(nameToLocate, environmentPath, extToUse, key, out result))
-                    return true;
+                var result = await LocateFileInPathAsync(nameToLocate, environmentPath, extToUse, key, null, cancellationToken).ConfigureAwait(false);
+
+                if (result.fileInPath != null)
+                    return result.fileInPath;
             }
 
-            result = default;
-            return false;
+            return default;
         }
+
+        #endregion
+        #region String -> String (DBG)
 
         //Locate the *.dbg file associated with a given *.exe, or returns the *.dbg file itself
-        public static bool TryLocateDBG(string exeOrDbgPath, out string? result, string? searchPath = null)
+        public static bool TryLocateDBG(string exeOrDbgPath, out string? result, string? searchPath = null, CancellationToken cancellationToken = default)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.DBG, searchPath, out var rawResult))
-            {
-                result = rawResult.DBGPath;
-                return result != null;
-            }
+            result = TryLocateDBGAsync(exeOrDbgPath, searchPath, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 
-            result = default;
-            return false;
+            return result != null;
         }
+
+        public static async ValueTask<string?> TryLocateDBGAsync(string exeOrDbgPath, string? searchPath = null, CancellationToken cancellationToken = default)
+        {
+            var (artifacts, _) = await LocateInternalAsync(exeOrDbgPath, null, SearchFlags.DBG, searchPath, cancellationToken).ConfigureAwait(false);
+
+            if (artifacts != null)
+                return artifacts.Value.DBGPath;
+
+            return default;
+        }
+
+        #endregion
+        #region String -> String (PDB)
 
         //Locate the *.pdb associated with a given *.exe or *.dbg file
         public static bool TryLocatePDB(string exeOrDbgPath, out string? result, string? searchPath = null)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.PDB, searchPath, out var rawResult))
-            {
-                result = rawResult.PDBPath;
-                return result != null;
-            }
+            result = TryLocatePDBAsync(exeOrDbgPath, searchPath).ConfigureAwait(false).GetAwaiter().GetResult();
 
-            result = default;
-            return false;
+            return result != null;
         }
+
+        public static async ValueTask<string?> TryLocatePDBAsync(string exeOrDbgPath, string? searchPath = null, CancellationToken cancellationToken = default)
+        {
+            var (artifacts, _) = await LocateInternalAsync(exeOrDbgPath, null, SearchFlags.PDB, searchPath, cancellationToken).ConfigureAwait(false);
+
+            if (artifacts != null)
+                return artifacts.Value.PDBPath;
+
+            return default;
+        }
+
+        #endregion
+        #region String -> IFile (PDB)
+
+        public static bool TryLocatePDB(IFile exeOrDbgFile, out string? result, string? searchPath = null)
+        {
+            result = TryLocatePDBAsync(exeOrDbgFile, searchPath).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            return result != null;
+        }
+
+        public static async ValueTask<string?> TryLocatePDBAsync(IFile exeOrDbgFile, string? searchPath = null, CancellationToken cancellationToken = default)
+        {
+            if (exeOrDbgFile == null)
+                throw new ArgumentNullException(nameof(exeOrDbgFile));
+
+            var (artifacts, _) = await LocateInternalAsync(null, exeOrDbgFile, SearchFlags.PDB, searchPath, cancellationToken).ConfigureAwait(false);
+
+            if (artifacts != null)
+                return artifacts.Value.PDBPath;
+
+            return default;
+        }
+
+        #endregion
+        #region String -> EmbeddedPortablePdb
 
         //Locate the embedded portable PDB associated with a given *.exe or *.dbg file. Realistically,
         //it should not be possible to have an Embedded Portable PDB inside a *.dbg file (since *.dbg files predate MPDB's)
-        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out EmbeddedPortablePdb? result, string? searchPath = null)
+        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out EmbeddedPortablePdb? result, string? searchPath = null, CancellationToken cancellationToken = default)
         {
-            if (LocateInternal(exeOrDbgPath, SearchFlags.MPDB, searchPath, out var rawResult))
+            var (artifacts, _) = LocateInternalAsync(exeOrDbgPath, null, SearchFlags.MPDB, searchPath, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            if (artifacts != null)
             {
-                result = rawResult.EmbeddedPortablePdb;
+                result = artifacts.Value.EmbeddedPortablePdb;
                 return result != null;
             }
 
@@ -147,7 +246,9 @@ namespace PESpy
             return false;
         }
 
-        struct LocatorContext
+        #endregion
+
+        class LocatorContext
         {
             public ImageDebugDirectory[]? DebugTable;
             public SearchFlags Flags;
@@ -160,16 +261,35 @@ namespace PESpy
             public uint PETimeDateStamp;
             public int PESizeOfImage;
 
+            //If a file was ultimately located using a key, stores the key that was used in the locating
+            public SymStoreKey? SymStoreKey;
+
             public string? DBGFilePath;
             public string? PDBFilePath;
             public EmbeddedPortablePdb? MPDB;
         }
 
-        private static bool LocateInternal(string exeOrDbgPath, SearchFlags flags, string? searchPath, out Artifacts result)
+        private static async ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> LocateInternalAsync(
+            string? exeOrDbgPath,
+            IFile? file,
+            SearchFlags flags,
+            string? searchPath,
+            CancellationToken cancellationToken)
         {
-            if (exeOrDbgPath == null)
+            if (exeOrDbgPath == null && file == null)
                 throw new ArgumentNullException(nameof(exeOrDbgPath));
 
+            var ownsPEFile = true;
+
+            if (file != null)
+            {
+                ownsPEFile = false;
+                exeOrDbgPath = file.FileName;
+
+                if (exeOrDbgPath == null)
+                    throw new ArgumentException("The specifid file does not have a FileName");
+            }
+            
             var state = State.None;
 
             var ctx = new LocatorContext
@@ -177,8 +297,6 @@ namespace PESpy
                 Flags = flags,
                 SearchPath = searchPath,
             };
-
-            result = default;
 
             var run = true;
 
@@ -189,7 +307,7 @@ namespace PESpy
                     switch (state)
                     {
                         case State.None:
-                            if (Detector.TryOpenFile(exeOrDbgPath, out ctx.File))
+                            if ((ctx.File = file!) != null || Detector.TryOpenFile(exeOrDbgPath, out ctx.File))
                             {
                                 switch (ctx.File.Kind)
                                 {
@@ -202,7 +320,7 @@ namespace PESpy
                                         ctx.PETimeDateStamp = peFile.FileHeader.TimeDateStamp;
                                         ctx.PESizeOfImage = peFile.OptionalHeader.SizeOfImage;
 
-                                        if (exeOrDbgPath.EndsWith(".ni.exe") || exeOrDbgPath.EndsWith(".ni.dll"))
+                                        if (exeOrDbgPath!.EndsWith(".ni.exe") || exeOrDbgPath.EndsWith(".ni.dll"))
                                         {
                                             //Possible NGEN file
                                             if (peFile.NgenHeader != null)
@@ -218,7 +336,7 @@ namespace PESpy
                                         break;
 
                                     default:
-                                        return false;
+                                        return default;
                                 }
                             }
                             else
@@ -226,9 +344,7 @@ namespace PESpy
                             break;
 
                         case State.ReadDebugTable:
-                            if (!ReadDebugTable(
-                                    ref ctx,
-                                    out state))
+                            if ((state = await ReadDebugTableAsync(ctx, cancellationToken).ConfigureAwait(false)) == State.None)
                                 run = false;
                             break;
 
@@ -237,7 +353,11 @@ namespace PESpy
 
                             if (Detector.TryOpenFile(ctx.DBGFilePath, out var dbgFile) && dbgFile is DBGFile d)
                             {
-                                ctx.File!.Dispose();
+                                if (!ownsPEFile)
+                                {
+                                    //We're replacing the file with the DBGFile, so we _will_ need to dispose that when we're done
+                                    ownsPEFile = false;
+                                }
                                 ctx.File = d;
 
                                 ctx.Stripped = false;
@@ -263,7 +383,7 @@ namespace PESpy
 
                 //Success is dictated by whether we found anything
                 if (ctx.DBGFilePath == null && ctx.PDBFilePath == null && ctx.MPDB == null)
-                    return false;
+                    return default;
 
                 ArtifactKind bestKind;
 
@@ -277,25 +397,19 @@ namespace PESpy
                     bestKind = ArtifactKind.DBG;
                 }
 
-                result = new Artifacts(bestKind, ctx.DBGFilePath, ctx.PDBFilePath, ctx.MPDB);
-                return true;
+               return (new Artifacts(bestKind, ctx.DBGFilePath, ctx.PDBFilePath, ctx.MPDB), ctx.SymStoreKey);
             }
             finally
             {
-                ctx.File?.Dispose();
+                if (ownsPEFile)
+                    ctx.File?.Dispose();
             }
         }
 
-        private static bool ReadDebugTable(
-            ref LocatorContext ctx,
-            out State state)
+        private static async ValueTask<State> ReadDebugTableAsync(LocatorContext ctx, CancellationToken cancellationToken)
         {
-            state = State.None;
-
             if (ctx.DebugTable == null)
-                return false;
-
-            var success = false;
+                return default;
 
             foreach (var debugDir in ctx.DebugTable)
             {
@@ -306,16 +420,18 @@ namespace PESpy
                         //meaning we're processing the original PE file
                         if (ctx.Stripped && (ctx.Flags & SearchFlags.DBG) != 0 && debugDir.Data is ImageDebugMisc m)
                         {
-                            var symSrvIndex = SymStoreKey.FromMisc(m.Data, ctx.PETimeDateStamp, ctx.PESizeOfImage);
+                            var str = m.Data.ToString();
 
-                            var path = LocateDBGFile(ctx.File.FileName!, m.Data, ctx.SearchPath, ctx.PEFileExt, symSrvIndex);
+                            var symSrvIndex = SymStoreKey.FromMisc(str, ctx.PETimeDateStamp, ctx.PESizeOfImage);
+
+                            var path = await LocateDBGFileAsync(ctx.File.FileName!, str, ctx.SearchPath, ctx.PEFileExt, symSrvIndex, cancellationToken).ConfigureAwait(false);
 
                             //If we've already found a file in another record, don't blow it away because we didn't find one in this one
-                            if (path != null)
+                            if (path.filePath != null)
                             {
-                                ctx.DBGFilePath = path;
-                                state = State.ReadMiscDebugTable;
-                                success = true;
+                                ctx.DBGFilePath = path.filePath;
+                                ctx.SymStoreKey = path.keyUsed;
+                                return State.ReadMiscDebugTable;
                             }
                         }
                         break;
@@ -336,21 +452,37 @@ namespace PESpy
                                     continue;
                             }
 
+                            /* Per LOCATOR::FLocatePdb, if the debug directory's minor version is PORTABLE_PDB_MINOR_VERSION (20557) then
+                             * this indicates that the PDB may in fact be a portable PDB, which can be resolved on the symbol server by
+                             * specifying an age of -1. LOCATOR::FLocatePdb tries for a normal PDB first, and if that fails tries for
+                             * a portable one. Visual Studio does not use LOCATOR, and if it sees that PORTABLE_PDB_MINOR_VERSION is present,
+                             * it may attempt to do a direct lookup with a negative age specified */
                             SymStoreKey symSrvIndex;
+                            SymStoreKey? altSymSrvIndex = null;
 
                             if (c is RSDSI r)
-                                symSrvIndex = SymStoreKey.FromRSDSI(r);
-                            else
-                                symSrvIndex = SymStoreKey.FromNB10((NB10I) c);
+                            {
+                                var rsdsPath = r.Path.ToString();
 
-                            var path = LocatePDBFile(ctx.File.FileName!, pdbName, ctx.SearchPath, ctx.PEFileExt, symSrvIndex);
+                                symSrvIndex = SymStoreKey.FromRSDSI(rsdsPath, r.Guid, r.Age);
+
+                                if (debugDir.IsPortablePDB)
+                                    altSymSrvIndex = SymStoreKey.FromRSDSI(rsdsPath, r.Guid, -1);
+                            }
+                            else
+                            {
+                                //I would not expect anything using NB10 to be using portable PDBs
+                                symSrvIndex = SymStoreKey.FromNB10((NB10I) c);
+                            }
+
+                            var path = await LocatePDBFileAsync(ctx.File.FileName!, pdbName, ctx.SearchPath, ctx.PEFileExt, symSrvIndex, altSymSrvIndex, cancellationToken).ConfigureAwait(false);
 
                             //If we've already found a file in another record, don't blow it away because we didn't find one in this one
-                            if (path != null)
+                            if (path.fileInPath != null)
                             {
-                                ctx.PDBFilePath = path;
-                                state = State.End;
-                                success = true;
+                                ctx.PDBFilePath = path.fileInPath;
+                                ctx.SymStoreKey = path.keyUsed;
+                                return State.End;
                             }
                         }
                         break;
@@ -359,18 +491,23 @@ namespace PESpy
                         if ((ctx.Flags & SearchFlags.MPDB) != 0 && debugDir.Data is EmbeddedPortablePdb e)
                         {
                             ctx.MPDB = e;
-                            state = State.End;
-                            success = true;
+                            return State.End;
                         }
                         break;
                 }
             }
 
-            return success;
+            return default;
         }
 
         //This method is only called when we have an IMAGE_DEBUG_MISC entry, and a *.dbg file should not have an IMAGE_DEBUG_MISC pointing to another file
-        private static string? LocateDBGFile(string parentFullName, string rawDbgName, string? searchPath, string? peFileExt, SymStoreKey symSrvIndex)
+        private static async ValueTask<(string? filePath, SymStoreKey? keyUsed)> LocateDBGFileAsync(
+            string parentFullName,
+            string rawDbgName,
+            string? searchPath,
+            string? peFileExt,
+            SymStoreKey symSrvIndex,
+            CancellationToken cancellationToken)
         {
             //First, check for a file with the PE file name + ".dbg" in the same directory as the parent *.exe file
             var peBaseName = Path.GetFileNameWithoutExtension(parentFullName);
@@ -382,7 +519,7 @@ namespace PESpy
             var candidateDbgPath = Path.Combine(parentDir, syntheticDbgName);
 
             if (File.Exists(candidateDbgPath))
-                return candidateDbgPath;
+                return (candidateDbgPath, null);
 
             //We don't try string specified in the IMAGE_DEBUG_MISC directly; unlike with PDBs, it's never the full path to the *.dbg file
 
@@ -413,19 +550,23 @@ namespace PESpy
              * D:\MySymbols;srv*c:\symbols*http://msdl.microsoft.com/download/symbols
              */
 
-            if (LocateFileInPath(nameToLocate, searchPath, extToUse, symSrvIndex, out var fileInPath))
-                return fileInPath;
+            var result = await LocateFileInPathAsync(nameToLocate, searchPath, extToUse, symSrvIndex, null, cancellationToken).ConfigureAwait(false);
+
+            if (result.fileInPath != null)
+                return result;
 
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                if (LocateFileInPath(nameToLocate, environmentPath, extToUse, symSrvIndex, out fileInPath))
-                    return fileInPath;
+                result = await LocateFileInPathAsync(nameToLocate, environmentPath, extToUse, symSrvIndex, null, cancellationToken).ConfigureAwait(false);
+
+                if (result.fileInPath != null)
+                    return result;
             }
 
             //File was not found in any search path
-            return null;
+            return default;
         }
 
         /// <summary>
@@ -436,8 +577,17 @@ namespace PESpy
         /// <param name="searchPath">A semicolon delimited list of search paths to search for the PDB in.</param>
         /// <param name="peFileExt">If the original file we were asked to locate was a PE file, the file extension of that file.</param>
         /// <param name="symSrvIndex">The index of the PDB file on the symbol server.</param>
+        /// <param name="altSymSrvIndex">The index of an alternate PDB file to locate on the symbol server if <paramref name="symSrvIndex"/> can't be found</param>
+        /// <param name="cancellationToken">A token that can be used to receive notice of cancellation.</param>
         /// <returns>The path to the PDB file on the search path, or <see langword="null"/> if a PDB was not found.</returns>
-        private static string? LocatePDBFile(string parentFullName, string rawPdbName, string? searchPath, string? peFileExt, SymStoreKey symSrvIndex)
+        private static async ValueTask<(string? fileInPath, SymStoreKey? keyUsed)> LocatePDBFileAsync(
+            string parentFullName,
+            string rawPdbName,
+            string? searchPath,
+            string? peFileExt,
+            SymStoreKey symSrvIndex,
+            SymStoreKey? altSymSrvIndex,
+            CancellationToken cancellationToken)
         {
             //First, check for a file with the base name + extension of the file listed in the IMAGE_DEBUG_TYPE_CODEVIEW record
             //in the same directory as the parent *.exe or *.dbg file
@@ -448,11 +598,11 @@ namespace PESpy
             var candidatePdbPath = Path.Combine(parentDir, pdbNameWithoutDir);
 
             if (File.Exists(candidatePdbPath))
-                return candidatePdbPath;
+                return (candidatePdbPath, null);
 
             //Next, try the original path listed in the IMAGE_DEBUG_TYPE_CODEVIEW record. Sometimes PDBs embed an absolute path
             if (File.Exists(rawPdbName))
-                return rawPdbName;
+                return (rawPdbName, null);
 
             /* Now try search paths. There are four paths we try:
              * - the user supplied search path
@@ -466,31 +616,39 @@ namespace PESpy
              * D:\MySymbols;srv*c:\symbols*http://msdl.microsoft.com/download/symbols
              */
 
-            if (LocateFileInPath(pdbNameWithoutDir, searchPath, peFileExt, symSrvIndex, out var fileInPath))
-                return fileInPath;
+            var result = await LocateFileInPathAsync(pdbNameWithoutDir, searchPath, peFileExt, symSrvIndex, altSymSrvIndex, cancellationToken).ConfigureAwait(false);
+
+            if (result.fileInPath != null)
+                return result;
 
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                if (LocateFileInPath(pdbNameWithoutDir, environmentPath, peFileExt, symSrvIndex, out fileInPath))
-                    return fileInPath;
+                result = await LocateFileInPathAsync(pdbNameWithoutDir, environmentPath, peFileExt, symSrvIndex, altSymSrvIndex, cancellationToken).ConfigureAwait(false);
+
+                if (result.fileInPath != null)
+                    return result;
             }
 
             //File was not found in any search path
-            return null;
+            return default;
         }
 
-        private static bool LocateFileInPath(string nameAndExt, string? searchPath, string? peFileExt, SymStoreKey symSrvIndex, out string? fileInPath)
+        private static ValueTask<(string? fileInPath, SymStoreKey? keyUsed)> LocateFileInPathAsync(
+            string nameAndExt,
+            string? searchPath,
+            string? peFileExt,
+            SymStoreKey symSrvIndex,
+            SymStoreKey? altSymSrvIndex,
+            CancellationToken cancellationToken)
         {
-            fileInPath = default;
-
             if (searchPath == null)
-                return false;
+                return default;
 
             var remainingSearchPath = searchPath.AsSpan();
 
-            StringBuilder? builder = null;
+            using var builder = new ValueStringBuilder();
 
             var run = true;
 
@@ -527,7 +685,7 @@ namespace PESpy
                 {
                     //Only symsrv.dll is supported
                     if (!currentPath.StartsWith("symsrv*symsrv.dll*".AsSpan(), StringComparison.OrdinalIgnoreCase))
-                        return false;
+                        return default;
 
                     symSrv = true;
                     currentPath = currentPath.Slice(18);
@@ -535,16 +693,13 @@ namespace PESpy
 
                 if (symSrv || cache)
                 {
-                    return SymStore.TryGetFile(currentPath, symSrvIndex, out fileInPath);
+                    return SymStore.GetFileAsync(currentPath, symSrvIndex, altSymSrvIndex, cancellationToken);
                 }
                 else
                 {
-                    if (builder == null)
-                        builder = new StringBuilder();
-                    else
-                        builder.Clear();
+                    builder.Clear();
 
-                    builder.Append(currentPath.ToString());
+                    builder.Append(currentPath);
 
                     if (!currentPath.EndsWith("\\".AsSpan()) && !currentPath.EndsWith("/".AsSpan()))
                         builder.Append("\\");
@@ -556,7 +711,10 @@ namespace PESpy
                     builder.Append(symbolsPrefix);
 
                     if (peFileExt != null)
-                        builder.Append(peFileExt).Append('\\');
+                    {
+                        builder.Append(peFileExt);
+                        builder.Append('\\');
+                    }
 
                     builder.Append(nameAndExt);
 
@@ -564,8 +722,7 @@ namespace PESpy
 
                     if (File.Exists(str))
                     {
-                        fileInPath = str;
-                        return true;
+                        return new ValueTask<(string?, SymStoreKey?)>((str, null));
                     }
 
                     //Try without symbols\ prefix
@@ -575,8 +732,7 @@ namespace PESpy
 
                     if (File.Exists(str))
                     {
-                        fileInPath = str;
-                        return true;
+                        return new ValueTask<(string?, SymStoreKey?)>((str, null));
                     }
 
                     if (peFileExt != null)
@@ -587,14 +743,13 @@ namespace PESpy
 
                         if (File.Exists(str))
                         {
-                            fileInPath = str;
-                            return true;
+                            return new ValueTask<(string?, SymStoreKey?)>((str, null));
                         }
                     }
                 }
             }
 
-            return false;
+            return default;
         }
 
         [Flags]
@@ -647,4 +802,3 @@ namespace PESpy
         }
     }
 }
-#endif

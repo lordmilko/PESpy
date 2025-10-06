@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using Roslyn.Utilities;
 
 namespace PESpy
 {
@@ -53,6 +54,30 @@ namespace PESpy
         public static bool operator ==(string left, AnsiString right) => right.Equals(left);
         public static bool operator !=(string left, AnsiString right) => !right.Equals(left);
 
+        public bool EndsWith(string value)
+        {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            var length = Length;
+
+            if (value.Length > length)
+                return false;
+
+            var span = new Span<byte>(Value + (length - value.Length), value.Length);
+
+            fixed (char* p = value)
+            {
+                for (var i = 0; i < value.Length; i++)
+                {
+                    if ((byte) p[i] != span[i])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is AnsiString p)
@@ -64,7 +89,9 @@ namespace PESpy
             return false;
         }
 
-        public override int GetHashCode() => unchecked((int) this.Value);
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
+
+        public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
         public int Length
         {

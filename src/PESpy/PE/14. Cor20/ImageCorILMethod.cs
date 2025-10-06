@@ -186,7 +186,7 @@ namespace PESpy
                 {
                     ref var ehSection = ref ehSections[i];
 
-                    size += ehSection.Sect.DataSize;
+                    size += ehSection.StructSize;
                 }
             }
 

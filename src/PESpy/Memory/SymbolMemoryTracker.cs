@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace PESpy
 {
@@ -16,14 +17,16 @@ namespace PESpy
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
         private static readonly List<(long start, long end, ISymbolAccessor? file)> globalAccessorRanges = new();
-        private static readonly object globalMemoryRangesLock = new object();
+        private static readonly ReaderWriterLockSlim globalMemoryRangesLock = new ReaderWriterLockSlim();
 
         internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
 
-            lock (globalMemoryRangesLock)
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
             {
                 if (rangeOwner.SymbolMemory.Add((long) block.LocalPointer))
                 {
@@ -33,13 +36,19 @@ namespace PESpy
                     InsertEntry(block, globalAccessorRanges, pdb);
                 }
             }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
+            }
         }
 
         internal static unsafe void RegisterPDBSymbolMemory(PDBGlobalMemoryBlock globalBlock, byte* memory, int length)
         {
             var rangeOwner = (ISymbolMemoryBlock) globalBlock;
 
-            lock (globalMemoryRangesLock)
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
             {
                 if (rangeOwner.SymbolMemory.Add((long) memory))
                 {
@@ -49,6 +58,10 @@ namespace PESpy
                     InsertEntry(memory, length, globalAccessorRanges, pdb);
                 }
             }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
+            }
         }
 
         internal static unsafe void RegisterCVSymbolMemory(in MemoryChunk chunk, ISymbolAccessor symbolAccessor)
@@ -56,7 +69,9 @@ namespace PESpy
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
 
-            lock (globalMemoryRangesLock)
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
             {
                 if (rangeOwner.SymbolMemory.Add((long) block.LocalPointer))
                 {
@@ -64,6 +79,10 @@ namespace PESpy
 
                     InsertEntry(block, globalAccessorRanges, symbolAccessor);
                 }
+            }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
             }
         }
 
@@ -134,7 +153,9 @@ namespace PESpy
             if (address == 0)
                 throw new InvalidOperationException("Cannot search for a value with address 0");
 
-            lock (globalMemoryRangesLock)
+            globalMemoryRangesLock.EnterReadLock();
+
+            try
             {
                 //We ensure our ranges are sorted; we should be able to binary search
 
@@ -165,6 +186,10 @@ namespace PESpy
                     }
                 }
             }
+            finally
+            {
+                globalMemoryRangesLock.ExitReadLock();
+            }
 
             Debug.Assert(false, "Attempted to query data in an unregistered memory address");
             start = default;
@@ -176,11 +201,22 @@ namespace PESpy
             if (Environment.HasShutdownStarted)
                 return; //Don't bother cleaning up
 
-            lock (globalMemoryRangesLock)
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
             {
                 globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
                 block.SymbolMemory.Clear();
             }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
+            }
+        }
+
+        internal static void AssertNoRanges()
+        {
+            Debug.Assert(globalAccessorRanges.Count == 0, "All accessor ranges have not been cleaned up");
         }
     }
 }

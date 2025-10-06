@@ -36,15 +36,13 @@ namespace PESpy
 
         public ref T this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (index >= length)
+                if (index < 0 || index >= length)
                     throw new IndexOutOfRangeException();
 
-                //From my initial testing it seems like this ref isn't to the current stack frame. Need more testing
-                ref T reference = ref *pointer;
-
-                return ref Unsafe.Add(ref reference, (nint)(uint) index);
+                return ref Unsafe.AsRef<T>(pointer + index);
             }
         }
 
@@ -88,6 +86,8 @@ namespace PESpy
             new ReadOnlySpan<T>(span.pointer, span.length);
 
         public static implicit operator T*(NativeSpan<T> span) => span.pointer;
+
+        public static implicit operator IntPtr(NativeSpan<T> span) => (IntPtr) span.pointer;
 
         public NativeSpan<T> Slice(int start)
         {
@@ -137,19 +137,38 @@ namespace PESpy
 
         public NativeSpan<T> Skip(int count)
         {
-            throw new NotImplementedException();
+            if (count > Length)
+                throw new NotImplementedException();
+
+            return new NativeSpan<T>(pointer + count, Length - count);
         }
 
         public NativeSpan<T> Take(int count)
         {
-            throw new NotImplementedException();
+            if (count > length)
+                throw new NotImplementedException();
+
+            return new NativeSpan<T>(pointer, count);
         }
 
         #endregion
 
-        public override bool Equals(object obj)
+        public override unsafe bool Equals(object? obj)
         {
-            throw new NotSupportedException();
+            if (obj is NativeSpan<T> s)
+            {
+                return new Span<byte>(pointer, length * sizeof(T)).SequenceEqual(new Span<byte>(s.pointer, s.length * sizeof(T)));
+            }
+
+            if (obj is T[] a)
+            {
+                fixed (T* p = a.AsSpan())
+                {
+                    return new Span<byte>(pointer, length * sizeof(T)).SequenceEqual(new Span<byte>((void*) p, a.Length * sizeof(T)));
+                }
+            }
+
+            return false;
         }
 
         public override int GetHashCode()

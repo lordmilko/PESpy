@@ -43,7 +43,7 @@ namespace PESpy.OBJ
                         case CV_SIGNATURE.C7:
                         case CV_SIGNATURE.C11:
                         case CV_SIGNATURE.C13:
-                            break;
+                            return null;
                     }
 
                     //Garbage; must be C6
@@ -64,7 +64,7 @@ namespace PESpy.OBJ
                     }
 
                     SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c6Symbols = new SymTypeList(chunk.Pointer, 0, Length);
+                    c6Symbols = new SymTypeList(chunk.Pointer, 0, Length, symbolAccessor);
                 }
 
                 return c6Symbols;
@@ -98,7 +98,7 @@ namespace PESpy.OBJ
                     }
 
                     SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4);
+                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4, symbolAccessor);
                 }
 
                 return c7Symbols;

@@ -4,11 +4,41 @@ using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
+    /* cvinfo.h contains the following text (which I have split up and annotated)
+     * 
+     *     No leaf index can have a value of 0x0000.
+     *     
+     *     The leaf indices are separated into ranges depending upon the use of the type record.
+     *     - The first range is for type records that are not referenced by symbols but instead are referenced by other type records.
+     *     - The second range is for the type records that are directly referenced in symbols.
+     * 
+     *     All type records must have a starting leaf index in these first two ranges.
+     *     
+     *     - The third range of leaf indices are used to build up complex lists such as the field list of a class type record.
+     *       No type record can begin with one of the leaf indices.
+     *     - The fourth ranges of type indices are used to represent numeric data in a symbol or type record.
+     *       These leaf indices are greater than 0x8000.
+     *
+     *     At the point that type or symbol processor is expecting a numeric field
+     *     1. the next two bytes in the type record are examined.
+     *     2. If the value is less than 0x8000, then the two bytes contain the numeric value.
+     *     3. If the value is greater than 0x8000, then the data follows the leaf index in a format specified by the leaf index.
+     *     
+     *     The final range of leaf indices are used to force alignment of subfields within a complex type record.
+     * 
+     * 0x0001 -> 0x0016: leaf indices starting records but referenced from symbol records
+     * 0x0200 -> 0x040d: leaf indices starting records but referenced only from type records
+     * 
+     * 0x1000 -> 0x1011: 32-bit type index versions of leaves, all have the 0x1000 bit set
+     * 1200   -> LF_ID_MAX: leaf indices starting records but referenced only from type records
+     * 
+     * There are then special kinds in the range 0x8000 -> 0x801c
+     */
+
     [DebuggerTypeProxy(typeof(TypTypeProxy))]
     [DebuggerDisplay("{TypTypeProxy.DebuggerDisplay(this),nq}")]
     public readonly unsafe struct TypType : IEquatable<TypType>
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly TYPTYPE* value;
 
         public ushort len => value->len;
@@ -51,21 +81,82 @@ namespace PESpy.PDB
             //Debug.Assert(condition, message);
         }
 
-        internal static FixedUtf8String ReadString(byte* ptr)
+        internal static SymString ReadString(byte* ptr, ISymbolAccessor? symbolAccessor = null)
         {
             //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
-            var isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) ptr);
+            bool isLengthPrefixedData;
+
+            if (symbolAccessor != null)
+                isLengthPrefixedData = symbolAccessor.HasLengthPrefixedStrings;
+            else
+                isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) ptr);
 
             if (isLengthPrefixedData)
+                return new SymString(ptr + 1, isLengthPrefixed: true);
+
+            return new SymString(ptr, isLengthPrefixed: false);
+        }
+
+        internal static void ExtractNumericData(byte* ptr, out ulong value, out int bytesRead)
+        {
+            /* Types are divided into a series of ranges (see the comments at the top of this file). When
+             * there is data hanging off the end of a leaf type, that data may be encoded using a LF value in the 0x8000
+             * e.g. if the data starts with LF_CHAR, that means that there's a char in the data, so after the LF_CHAR
+             * enum value is an actual char
+             */
+
+            var leaf = *(LEAF_ENUM_e*) ptr;
+
+            if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
             {
-                byte length = *ptr;
-
-                var pdbString = new FixedUtf8String(ptr + 1, length);
-
-                return pdbString;
+                //The data does not contain a special leaf
+                value = (ushort) leaf;
+                bytesRead = sizeof(short);
+                return;
             }
 
-            var utf8 = new Utf8String(ptr);
+            switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
+            {
+                case LEAF_ENUM_e.LF_CHAR:
+                    value = *(byte*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(byte);
+                    break;
+
+                case LEAF_ENUM_e.LF_SHORT:
+                case LEAF_ENUM_e.LF_USHORT:
+                    value = *(ushort*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(ushort);
+                    break;
+
+                case LEAF_ENUM_e.LF_LONG:
+                case LEAF_ENUM_e.LF_ULONG:
+                    value = *(uint*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(uint);
+                    break;
+
+                case LEAF_ENUM_e.LF_REAL32:
+                case LEAF_ENUM_e.LF_REAL64:
+                case LEAF_ENUM_e.LF_REAL80:
+                case LEAF_ENUM_e.LF_REAL128:
+
+                case LEAF_ENUM_e.LF_QUADWORD:
+                case LEAF_ENUM_e.LF_UQUADWORD:
+                    value = *(ulong*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(ulong);
+                    break;
+
+                case LEAF_ENUM_e.LF_REAL48:
+                case LEAF_ENUM_e.LF_COMPLEX32:
+                case LEAF_ENUM_e.LF_COMPLEX64:
+                case LEAF_ENUM_e.LF_COMPLEX80:
+                case LEAF_ENUM_e.LF_COMPLEX128:
+                case LEAF_ENUM_e.LF_VARSTRING:
+                case LEAF_ENUM_e.LF_OCTWORD:
+                case LEAF_ENUM_e.LF_UOCTWORD:
+                case LEAF_ENUM_e.LF_DECIMAL:
+                case LEAF_ENUM_e.LF_DATE:
+                case LEAF_ENUM_e.LF_UTF8STRING:
+                case LEAF_ENUM_e.LF_REAL16:
 
             return new FixedUtf8String(ptr, utf8.Length);
         }

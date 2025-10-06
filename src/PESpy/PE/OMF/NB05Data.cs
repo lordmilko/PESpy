@@ -3,7 +3,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public class NB05Data : IValue, IViewable
+    public class NB05Data : ICodeView, IViewable
     {
         public int LfoDir { get; }
 
@@ -65,16 +65,19 @@ namespace PESpy
 
             //Data comes before the header
 
-            //foreach (var item in TableData)
-            //{
-            //    if (item == null)
-            //        continue;
-            //
-            //    if (item is IValue v)
-            //        writer.WriteGlobal((IViewable) v);
-            //    else
-            //        throw new NotImplementedException();
-            //}
+            for (var i = 0; i < DirEntries.Length; i++)
+            {
+                ref var entry = ref DirEntries[i];
+
+                var data = entry.Data;
+
+                if (data is IValue v)
+                    writer.WriteGlobal((IViewable) v);
+                else if (data is OMFHashedSymbols s)
+                {
+                    writer.WriteGlobal(s.Hash);
+                    writer.WriteGlobal(s.Hash.Offset + OMFSymHash.StructSize, s.Symbols);
+                }
 
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);

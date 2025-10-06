@@ -14,7 +14,22 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal int StructSize => Sect.DataSize;
+        internal int StructSize
+        {
+            get
+            {
+                //Ordinarily, DataSize should be the true size, but as described below sometimes it doesn't account for the header. Both fat and thin are divisible by 12, so we can use this
+                //check to see whether we're new style or old style
+                var remainder = Sect.DataSize % 12;
+
+                //If we have a remainder, we're new style
+                if (remainder != 0)
+                    return Sect.DataSize;
+
+                //DataSize was something like 12 or 24. Actual size is 16 or 28
+                return Sect.DataSize + 4;
+            }
+        }
 
         internal ImageCorILMethodSectEH(CorILMethodSect kind, in MemoryChunk chunk)
         {
@@ -30,15 +45,16 @@ namespace PESpy
             //ECMA 335 II.25.4.5
             if (isFat)
             {
-                //DataSize is n*24+4
-                numItems = (Sect.DataSize - 4) / 24;
+                //Ordinarily, DataSize should be n*24+4. However, in older assemblies DataSize can just be n*12. We can handle both
+                //scenarios by evaluating DataSize / 24
+                numItems = Sect.DataSize / 24;
 
                 Reserved = 0;
             }
             else
             {
-                //DataSize is n*12+4
-                numItems = (Sect.DataSize - 4) / 12;
+                //Ostensibly, DataSize is n*12+4, but given what we saw with the isFat scenario, we can posit that the same issue could occur for thin modules as well
+                numItems = Sect.DataSize / 12;
 
                 Reserved = chunk.PeekInt16(read);
                 read += 2;
@@ -77,8 +93,6 @@ namespace PESpy
 
             if (isFat)
             {
-                using var _ = viewWriter.EnterTag(ViewTag.FatEH);
-
                 s.WriteInline(Sect);
                 s.WriteInline(Clauses);
             }

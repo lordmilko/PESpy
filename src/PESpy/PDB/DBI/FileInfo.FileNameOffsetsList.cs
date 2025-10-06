@@ -31,6 +31,7 @@ namespace PESpy.PDB
             internal FileNameOffsetsList(FileInfo info)
             {
                 this.info = info;
+                baseOffset = default;
 
                 //Skip over NumModules (2, NumSourceFiles (2), ModuleIndices (Count * 2) and ModuleFileCounts (Count * 2)
                 baseOffset = 4 + (Count * 4);
@@ -90,6 +91,8 @@ namespace PESpy.PDB
                     moduleIndex = 0;
                     chunk = info.chunk;
                     this.baseOffset = baseOffset;
+
+                    Current = default;
                 }
 
                 public bool MoveNext()

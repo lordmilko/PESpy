@@ -17,6 +17,31 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
+        public CV_VTS_desc_e[] desc
+        {
+            get
+            {
+                var results = new CV_VTS_desc_e[count];
+
+                var pDescs = ((byte*) value) + 4; //The pointer starts from after the length
+
+                //e.g. you might have 55 55 50
+                for (var i = 0; i < count; i++)
+                {
+                    var nibble = (i & 1) == 0
+                        ? (*pDescs >> 4) & 0xF
+                        : (*pDescs & 0xF);
+
+                    results[i] = (CV_VTS_desc_e) nibble;
+
+                    if ((i & 1) != 0)            // after using high nibble
+                        pDescs++;
+                }
+
+                return results;
+            }
+        }
+
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(short);   //count

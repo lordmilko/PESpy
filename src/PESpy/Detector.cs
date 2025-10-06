@@ -171,8 +171,20 @@ namespace PESpy
             }
             else if (length >= ImageSeparateDebugHeader.StructSize && twoLetterSignature == ImageSeparateDebugHeader.IMAGE_SEPARATE_DEBUG_SIGNATURE) //DI
             {
-                fileKind = FileKind.DBG;
-                return true;
+                //A file that simply starts with "DI" is insufficient grounds for saying something is a *.dbg file. Sanity check the IMAGE_FILE_MACHINE and
+                //number of sections
+
+                if (IsValidMachine(*(IMAGE_FILE_MACHINE*) (mmf.Address + 4)))
+                {
+                    var numberOfSections = *(int*) (mmf.Address + 24);
+                    var minNumBytes = ImageSeparateDebugHeader.StructSize + numberOfSections * ImageSectionHeader.StructSize;
+
+                    if (minNumBytes < length)
+                    {
+                        fileKind = FileKind.DBG;
+                        return true;
+                    }
+                }
             }
             else if (length >= 4 && *(uint*) mmf.Address == StorageSignature.STORAGE_MAGIC_SIG)
             {
@@ -267,8 +279,22 @@ namespace PESpy
                 case IMAGE_FILE_MACHINE.M32R:
                 case IMAGE_FILE_MACHINE.ARM64:
                 case IMAGE_FILE_MACHINE.CEE:
-                    fileKind = FileKind.OBJ;
-                    return true;
+                    if (length >= ImageFileHeader.StructSize)
+                    {
+                        var numSections = (*(ushort*) (mmf.Address + 2));
+
+                        //If NumberOfSections is garbage, it may indicate that there are more sections than the size of the file.
+                        //We'll also have an additional sanity check that there's at least 1 section (in case we've got a random file with 0 in the number of sections slot)
+                        var minNumBytes = ImageFileHeader.StructSize + (numSections * ImageSectionHeader.StructSize);
+
+                        if (numSections > 0 && minNumBytes <= length)
+                        {
+                            fileKind = FileKind.OBJ;
+                            return true;
+                        }
+                    }
+
+                    break;
             }
 
             //Maybe an OMF file? Only the first byte is used, so it's important that this is after all other kinds that use
@@ -297,6 +323,47 @@ namespace PESpy
 
             //Unknown value. Not a valid file
             return false;
+        }
+
+        private static bool IsValidMachine(IMAGE_FILE_MACHINE machine)
+        {
+            switch (machine)
+            {
+                case IMAGE_FILE_MACHINE.UNKNOWN:
+                case IMAGE_FILE_MACHINE.I386:
+                case IMAGE_FILE_MACHINE.R3000:
+                case IMAGE_FILE_MACHINE.R4000:
+                case IMAGE_FILE_MACHINE.R10000:
+                case IMAGE_FILE_MACHINE.WCEMIPSV2:
+                case IMAGE_FILE_MACHINE.ALPHA:
+                case IMAGE_FILE_MACHINE.SH3:
+                case IMAGE_FILE_MACHINE.SH3DSP:
+                case IMAGE_FILE_MACHINE.SH3E:
+                case IMAGE_FILE_MACHINE.SH4:
+                case IMAGE_FILE_MACHINE.SH5:
+                case IMAGE_FILE_MACHINE.ARM:
+                case IMAGE_FILE_MACHINE.THUMB:
+                case IMAGE_FILE_MACHINE.ARMNT:
+                case IMAGE_FILE_MACHINE.AM33:
+                case IMAGE_FILE_MACHINE.POWERPC:
+                case IMAGE_FILE_MACHINE.POWERPCFP:
+                case IMAGE_FILE_MACHINE.IA64:
+                case IMAGE_FILE_MACHINE.MIPS16:
+                case IMAGE_FILE_MACHINE.ALPHA64: //Same value as AXP64
+                case IMAGE_FILE_MACHINE.MIPSFPU:
+                case IMAGE_FILE_MACHINE.MIPSFPU16:
+                case IMAGE_FILE_MACHINE.TRICORE:
+                case IMAGE_FILE_MACHINE.CEF:
+                case IMAGE_FILE_MACHINE.EBC:
+                case IMAGE_FILE_MACHINE.AMD64:
+                case IMAGE_FILE_MACHINE.M32R:
+                case IMAGE_FILE_MACHINE.ARM64:
+                case IMAGE_FILE_MACHINE.CEE:
+                    return true;
+
+                default:
+                    return false;
+            }
         }
     }
 }

@@ -59,6 +59,8 @@ namespace PESpy.PDB
             {
                 this.items = items;
                 index = 0;
+
+                Current = default;
             }
 
             public bool MoveNext()

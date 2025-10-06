@@ -33,7 +33,7 @@ namespace PESpy
 
         public byte NumberOfAuxSymbols => chunk.PeekByte(17);
 
-public ImageAuxSymbol[] AuxSymbols { get; }
+        public ImageAuxSymbol[] AuxSymbols { get; }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -87,7 +87,7 @@ public ImageAuxSymbol[] AuxSymbols { get; }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_SYMBOL, this, ViewKind.ImageSymbol, StructSize);
+            writer.NewStruct(Strings.IMAGE_SYMBOL, this, ViewKind.ImageSymbol, StructSize + (NumberOfAuxSymbols * ImageAuxSymbol.StructSize));
 
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {

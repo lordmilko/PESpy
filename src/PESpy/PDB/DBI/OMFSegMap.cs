@@ -35,7 +35,7 @@ namespace PESpy.PDB
         internal int StructSize =>
             sizeof(short) + //cSeg
             sizeof(short) + //cSegLog
-            (OMFSegDesc.StructSize * cSeg);
+            (OMFSegMapDesc.StructSize * cSeg);
 
         private readonly MemoryChunk chunk;
 

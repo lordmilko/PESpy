@@ -59,6 +59,7 @@ namespace PESpy.PDB
         {
             this.pStart = pStart;
             this.length = length;
+            this.count = default;
         }
 
         public Enumerator GetEnumerator() => new Enumerator(pStart, length);
@@ -76,6 +77,8 @@ namespace PESpy.PDB
             {
                 this.pStart = pStart;
                 pEnd = pStart + length;
+
+                Current = default;
             }
 
             public bool MoveNext()

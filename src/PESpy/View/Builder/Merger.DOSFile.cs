@@ -26,7 +26,7 @@
                 var length = (int) extension.GetInputLength();
 
                 if (startOfOverlay < length)
-                    ProcessOverlay(startOfOverlay, length, this, ref results);
+                    ProcessOverlay(startOfOverlay, length, ref this, ref results);
 
                 return results.ToArray();
             }

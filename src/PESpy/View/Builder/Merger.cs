@@ -17,6 +17,7 @@ namespace PESpy.View.Builder
 
         private PooledList<IView> sortedStructs;
         private HashSet<IView>? delayNameViews;
+
         private PooledList<DirectoryInfo> discoveredDataDirectories;
 
         private int nextStructIndex;
@@ -26,9 +27,9 @@ namespace PESpy.View.Builder
         private Extension extension;
         private RepeatingGroupMode repeatingGroupMode;
 
-        private PooledList<IView> masterList = new PooledList<IView>();
-        private PooledList<IView> currentList = new PooledList<IView>();
-        private PooledList<IView> repeatingTypeList = new PooledList<IView>();
+        private PooledList<IView> masterList;
+        private PooledList<IView> currentList;
+        private PooledList<IView> repeatingTypeList;
 
         internal Merger(IFile file, List<IView> sortedStructs, Extension extension) : this(file, sortedStructs, default, default, extension)
         {
@@ -52,6 +53,11 @@ namespace PESpy.View.Builder
             nextValue = default;
             directory = default;
             repeatingGroupMode = default;
+
+            masterList = default;
+            currentList = default;
+            pageNumberToSIIndex = default;
+            repeatingTypeList = default;
         }
 
         public void Dispose()
@@ -153,6 +159,8 @@ namespace PESpy.View.Builder
 
                     var previous = sortedStructs[nextStructIndex - 1];
 
+                    ref var nextValue = ref this.nextValue;
+
                     while (previous.Kind == nextValue.Kind && previous.Offset == nextValue.Offset && previous.Size == nextValue.Size)
                     {
                         nextStructIndex++;
@@ -163,7 +171,12 @@ namespace PESpy.View.Builder
                             break; //Something has gone seriously wrong and we've run out of structs
                     }
 
+#if DEBUG
+                    if (previous.Offset == nextValue.Offset)
+                        Debug.Assert(false, $"Two values have been written at RVA 0x{rva:X}: {previous}, {nextValue}");
+
                     Debug.Assert(rva <= nextValue.Offset);
+#endif
                 }
 
                 if (nextValue.Offset == rva)
@@ -242,6 +255,24 @@ namespace PESpy.View.Builder
                     //about the number of pages the values within those pages span
                     if (nextValueEnd > currentDirectory.End)
                     {
+                        if (file is not PDBFile)
+                        {
+                            /* It seems like it's possible to have PE Files under-report how big their directories are, and then have data that expands beyond the end of that directory.
+                             * This is very common with the load config table directory. If we hit a scenario like this, expand the size of the directory to fit the value
+                             * we're trying to process, but also assert on this for unknown scenarios so we can catch any issues that might actually be bugs.
+                             *
+                             * Also observed this happening with resources. There resource directory is inside the .rsrc section; there was a gap after the reported
+                             * end of the resource table and the beginning of the .reloc section which would follow it; therefore, there was plenty of free room
+                             * within the .rsrc section to fit the under reported data */
+                            Debug.Assert(currentDirectory.Name == "LoadConfigTableDirectory" || currentDirectory.Name == "ResourceTableDirectory");
+
+                            currentDirectory.End = nextValueEnd;
+                            Debug.Assert(directory.Value.Start == currentDirectory.Start);
+                            directory = currentDirectory;
+
+                            goto end;
+                        }
+
                         //We need to split this value in two. If it's a structure, it becomes a SplitStructure.
                         //If the value that goes past the ends of the current directory's bounds is also a struct,
                         //it becomes a SplitStructure too. Ultimately, we'll get down to the individual overlapping value.
@@ -363,6 +394,7 @@ namespace PESpy.View.Builder
                     }
                 }
 
+end:
                 currentList.Add(nextValue!);
             }
         }
@@ -412,7 +444,7 @@ namespace PESpy.View.Builder
                             {
                                 var endChild = directory.Children[k];
 
-                                if (endChild.Offset > replacementEnd)
+                                if (endChild.Offset >= replacementEnd)
                                     break;
 
                                 //endChild is marked for deletion. Let's double check that it's indeed safe to delete

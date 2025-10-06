@@ -23,7 +23,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Machine", IMAGE_FILE_MACHINE.I386),
                         c1 => c1.VerifyField("NumberOfSections", (short) 5),
                         c1 => c1.VerifyFieldIgnoreValue("TimeDateStamp"),
-                        c1 => c1.VerifyField("PointerToSymbolTable", 1108),
+                        c1 => c1.VerifyField("PointerToSymbolTable", 982),
                         c1 => c1.VerifyField("NumberOfSymbols", 14),
                         c1 => c1.VerifyField("SizeOfOptionalHeader", (short) 0),
                         c1 => c1.VerifyField("Characteristics", (ImageFile) 0)
@@ -32,7 +32,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".drectve"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 47),
+                        c1 => c1.VerifyField("SizeOfRawData", 61),
                         c1 => c1.VerifyField("PointerToRawData", 0xDC),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
@@ -44,9 +44,9 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".debug$S"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 632),
-                        c1 => c1.VerifyField("PointerToRawData", 0x10B),
-                        c1 => c1.VerifyField("PointerToRelocations", 0x383),
+                        c1 => c1.VerifyField("SizeOfRawData", 536),
+                        c1 => c1.VerifyField("PointerToRawData", 281),
+                        c1 => c1.VerifyField("PointerToRelocations", 817),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 7),
                         c1 => c1.VerifyField("NumberOfLineNumbers", (short) 0),
@@ -57,7 +57,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
                         c1 => c1.VerifyField("SizeOfRawData", 3),
-                        c1 => c1.VerifyField("PointerToRawData", 0x3C9),
+                        c1 => c1.VerifyField("PointerToRawData", 887),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -68,8 +68,8 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".debug$T"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 68),
-                        c1 => c1.VerifyField("PointerToRawData", 0x3CC),
+                        c1 => c1.VerifyField("SizeOfRawData", 52),
+                        c1 => c1.VerifyField("PointerToRawData", 890),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -81,7 +81,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
                         c1 => c1.VerifyField("SizeOfRawData", 40),
-                        c1 => c1.VerifyField("PointerToRawData", 0x410),
+                        c1 => c1.VerifyField("PointerToRawData", 942),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -90,11 +90,11 @@ namespace PESpy.Tests
                     )
                 ),
             #endregion
-                v => v.VerifySection(name: ".drectve", offset: 0xDC, size: 47,
-                    c => c.VerifyValue(offset: 0xDC, "   /DEFAULTLIB:\"MSVCRT\" /DEFAULTLIB:\"OLDNAMES\" ")
+                v => v.VerifySection(name: ".drectve", offset: 0xDC, size: 61,
+                    c => c.VerifyValue(offset: 0xDC, "   /DEFAULTLIB:\"MSVCRT\" /DEFAULTLIB:\"OLDNAMES\" /EXPORT:_main ")
                 ),
             #region .debug$S
-                v => v.VerifySection(name: ".debug$S", offset: 0x10B, size: 632,
+                v => v.VerifySection(name: ".debug$S", offset: 281, size: 536,
                     c => c.VerifyValue(offset: 0x10B, value: CV_SIGNATURE.C13),
                     c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x10F, size: 208, //DEBUG_S_SYMBOLS
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS),
@@ -591,7 +591,7 @@ namespace PESpy.Tests
             var subSection = symbolTable.C13SubSections.First();
             Assert.AreEqual(DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS, subSection.Type);
 
-            var symbols = (SymType[]) subSection.Data;
+            var symbols = (SymTypeList) subSection.Data;
 
             Assert.AreEqual("C:\\TestApp\\TestApp.obj", symbols[0].ToString());
         }
@@ -651,8 +651,7 @@ int main(int a)
 {
     return 0;
 }";
-            var msvc = new MSVC(testName, str, ltcg);
-            var objFile = msvc.Compile();
+            var objFile = ltcg ? Sample.VS22_LTCG_OBJ : Sample.VS22_OBJ;
 
             using var obj = OBJFile.FromFile(objFile);
 

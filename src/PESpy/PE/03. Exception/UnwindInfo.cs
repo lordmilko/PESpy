@@ -145,6 +145,10 @@ namespace PESpy
         internal UnwindInfo(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+            unwindCode = default;
+            ExceptionHandler = default;
+            FunctionEntry = default;
+            ExceptionData = default;
 
             Debug.Assert(Version is 1 or 2 or 3);
 
@@ -339,7 +343,7 @@ namespace PESpy
                     //Contrary to what https://www.winehq.org/pipermail/wine-devel/2019-August/149669.html says,
                     //regardless of whether opInfo was 0 or 1 it didn't seem like there was another slot after this one
                     //that needed to be read
-                    if (Version == 2)
+                    if (Version == 1 || Version == 2)
                         return new UnwindCode.Epilog(absoluteOffset, codeOffset, opInfo);
                     else
                         throw new InvalidOperationException($"Don't know how to handle UWOP_EPILOG when using version {Version}");

@@ -58,8 +58,6 @@ namespace PESpy
 
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteField(nameof(Kind), Kind, sizeof(byte));
-
             if (isFat)
             {
                 using (var b = s.WriteBitFields<int>())
@@ -69,7 +67,10 @@ namespace PESpy
                 }
             }
             else
+            {
+                s.WriteField(nameof(Kind), Kind, sizeof(byte));
                 s.WriteField(nameof(DataSize), (byte) DataSize);
+            }
 
             return s.ToArray();
         }

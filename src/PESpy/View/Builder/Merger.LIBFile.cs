@@ -32,6 +32,10 @@ namespace PESpy.View.Builder
                             ref var section = ref l.SectionHeaders[i];
 
                             var start = section.PointerToRawData;
+
+                            if (start == 0)
+                                continue; //You can have a section like .bss which says it has a length of 8 but the PointerToRawData is0
+
                             var size = section.SizeOfRawData;
 
                             start += l.FileHeader.Offset;
@@ -56,6 +60,18 @@ namespace PESpy.View.Builder
 
                             var numStructsInserted = endNextStructIndex - nextStructIndexToInsertAt;
 
+#if DEBUG
+                            //Assert that we're inserting these in order
+                            var itemBeforeInsert = sortedStructs[nextStructIndexToInsertAt - 1];
+                            var itemAfterInsert = sortedStructs[nextStructIndexToInsertAt + numStructsInserted];
+
+                            var firstItemToInsert = nestedObjRegions[0];
+                            var lastItemToInsert = nestedObjRegions[nestedObjRegions.Count - 1];
+
+                            Debug.Assert(firstItemToInsert.Offset > itemBeforeInsert.Offset);
+                            Debug.Assert(lastItemToInsert.Offset < itemAfterInsert.Offset);
+#endif
+
                             sortedStructs.RemoveRange(nextStructIndexToInsertAt, numStructsInserted);
 
                             sortedStructs.InsertRange(nextStructIndexToInsertAt, nestedObjRegions);
@@ -75,7 +91,7 @@ namespace PESpy.View.Builder
                         {
                             var originalNextStructIndex = nextStructIndex;
 
-                            ProcessOverlay(lastSectionEnd, objEnd, this, ref nestedObjRegions);
+                            ProcessOverlay(lastSectionEnd, objEnd, ref this, ref nestedObjRegions);
 
                             var endNextStructIndex = nextStructIndex;
 

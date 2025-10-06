@@ -139,35 +139,13 @@ using ClrDebug.DIA;
 
         #endregion
 
-        private static FixedUtf8String strRttiTypeDescriptor;
-        private static FixedUtf8String strRttiTypeDescriptorName;
-        private static FixedUtf8String strRttiBaseClassArray;
-        private static FixedUtf8String strRttiClassHierarchyDescriptor;
-        private static FixedUtf8String strRttiCompleteObjectLocator;
-        private static FixedUtf8String strAnonymousNamespace;
-        private static FixedUtf8String strLocalVftable;
-        private static FixedUtf8String strVftable;
-        private static FixedUtf8String strVbtable;
-
-        unsafe static Demangler()
+        public static DemangleTree Parse(string str)
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static FixedUtf8String CreateString(string text) =>
                 new FixedUtf8String((byte*) Marshal.StringToHGlobalAnsi(text), text.Length);
 
-            //We allocate all of these once and share them for all symbols that we demangle
-
-            strRttiTypeDescriptor = CreateString("`RTTI Type Descriptor'");
-            strRttiTypeDescriptorName = CreateString("`RTTI Type Descriptor Name'");
-            strRttiBaseClassArray = CreateString("`RTTI Base Class Array'");
-            strRttiClassHierarchyDescriptor = CreateString("`RTTI Class Hierarchy Descriptor'");
-            strRttiCompleteObjectLocator = CreateString("`RTTI Complete Object Locator'");
-            strAnonymousNamespace = CreateString("`anonymous namespace'");
-            strLocalVftable = CreateString("`local vftable'");
-            strVftable = CreateString("`vftable'");
-            strVbtable = CreateString("`vbtable'");
-        }
-        public static unsafe bool TryParse(FixedUtf8String str, out DemangleTree symbolTree)
+        public static unsafe bool TryParse(SymString str, out DemangleTree symbolTree)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -188,7 +166,7 @@ using ClrDebug.DIA;
             }
         }
 
-        public static unsafe void ParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
+        public static unsafe void ParseString(SymString str, ref Utf8StringBuilder builder, UNDNAME flags)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -209,7 +187,7 @@ using ClrDebug.DIA;
             }
         }
 
-        public static int ParseString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
+        public static int ParseString(SymString str, Span<byte> outputSpan, UNDNAME flags)
         {
             var builder = new Utf8StringBuilder(outputSpan);
 
@@ -265,7 +243,7 @@ using ClrDebug.DIA;
             }
         }
 
-        public static unsafe string ParseString(FixedUtf8String str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
+        public static unsafe string ParseString(SymString str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
         {
             var textWriter = new TextWindow(str.Value, str.Length);
 
@@ -282,7 +260,7 @@ using ClrDebug.DIA;
             }
         }
 
-        public static unsafe bool TryParseString(FixedUtf8String str, UNDNAME flags, out string result)
+        public static unsafe bool TryParseString(SymString str, UNDNAME flags, out string result)
         {
             var textWriter = new TextWindow(str.Value, str.Length);
 
@@ -300,6 +278,113 @@ using ClrDebug.DIA;
             finally
             {
                 textWriter.Dispose();
+            }
+        }
+
+        public static unsafe bool CrackVftable(
+            string str,
+            out string className,
+            out string targetName)
+        {
+            className = default;
+            targetName = default;
+
+            if (!str.StartsWith("??_7"))
+                return false;
+
+            var length = str.Length;
+            var maxBytes = Encoding.UTF8.GetMaxByteCount(str.Length);
+            var array = ArrayPool<byte>.Shared.Rent(maxBytes);
+
+            try
+            {
+                fixed (char* c = str)
+                fixed (byte* p = array)
+                {
+                    var actual = Encoding.UTF8.GetBytes(c, str.Length, p, maxBytes);
+
+                    var textWriter = new TextWindow(p, actual);
+
+                    try
+                    {
+                        if (!TryParseInternal(ref textWriter, out var symbolNode))
+                            return false;
+
+                        var vftableSymbol = (SpecialTableSymbolNode) symbolNode;
+
+                        //Name should be a qualified name whose last element is "vftable"
+                        var classNameComponents = vftableSymbol.Name.Components;
+
+                        var ptr = stackalloc char[MaxSymbolName];
+                        var builder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
+
+                        try
+                        {
+                            classNameComponents.Output(ref builder, UNDNAME.UNDNAME_NAME_ONLY, "::", classNameComponents.Count - 1);
+
+                            className = builder.ToString();
+                        }
+                        finally
+                        {
+                            builder.Dispose();
+                        }
+
+                        if (vftableSymbol.TargetName != null)
+                            targetName = vftableSymbol.TargetName.ToString();
+
+                        return true;
+                    }
+                    finally
+                    {
+                        textWriter.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(array);
+            }
+        }
+
+        public static unsafe void ParseFunction(
+            string str,
+            Action<FunctionSymbolNode> callback)
+        {
+            if (str.StartsWith("??_R"))
+                return; //Some type of RTTI descriptor
+
+            var length = str.Length;
+            var maxBytes = Encoding.UTF8.GetMaxByteCount(str.Length);
+            var array = ArrayPool<byte>.Shared.Rent(maxBytes);
+
+            try
+            {
+                fixed (char* c = str)
+                fixed (byte* p = array)
+                {
+                    var actual = Encoding.UTF8.GetBytes(c, str.Length, p, maxBytes);
+
+                    var textWriter = new TextWindow(p, actual);
+
+                    try
+                    {
+                        if (!TryParseInternal(ref textWriter, out var symbolNode))
+                            return;
+
+                        if (symbolNode is FunctionSymbolNode f)
+                        {
+                            callback(f);
+                        }
+                    }
+                    finally
+                    {
+                        textWriter.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(array);
             }
         }
 
@@ -2585,7 +2670,6 @@ using ClrDebug.DIA;
                     var str = builder.ToPointer();
                     textWindow.AddPointer(str);
 
-                //todo: llvm-undname seems to think we could have char8, char16 or char32's in this
                     encodedStringLiteral.DecodedString = str;
                 }
                 finally

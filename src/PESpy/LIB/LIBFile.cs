@@ -183,11 +183,23 @@ namespace PESpy
                     var sig1 = (IMAGE_FILE_MACHINE) chunk.PeekUInt16(ImageArchiveMemberHeader.StructSize + read);
                     var sig2 = chunk.PeekInt16(ImageArchiveMemberHeader.StructSize + read + 2);
 
+                    var nameOffset = chunk.PeekSpacePaddedInt32(read + 1, 16); //Skip over the slash
+
+                    //The spec says that long names should be third https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#archive-member-headers
+                    //which means it should already exist before we get to the actual members that may rely upon it
+
+                    AnsiString name;
+
+                    if (LongNamesMember != null)
+                        name = LongNamesMember.GetName(nameOffset);
+                    else
+                        name = default;
+
                     if (sig1 == IMAGE_FILE_MACHINE.UNKNOWN && sig2 == IMPORT_OBJECT_HEADER.IMPORT_OBJECT_HDR_SIG2)
                     {
                         //Short format
 
-                        var member = new ShortImportLibraryMember(chunk.Slice(read));
+                        var member = new ShortImportLibraryMember(chunk.Slice(read), name);
                         read += member.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
                         imports.Add(member);
                     }
@@ -196,7 +208,7 @@ namespace PESpy
                         //Long format. This is essentially an embedded OBJ file. References within it are relative to the beginning of its
                         //area. To facilitate this, LongImportLibraryMember will create a sub-block around its area.
 
-                        var obj = new LongImportLibraryMember(chunk.Slice(read));
+                        var obj = new LongImportLibraryMember(chunk.Slice(read), name);
                         read += obj.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
                         imports.Add(obj);
                     }
@@ -245,6 +257,7 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
+            globalBlock.Dispose();
             mmf.Dispose();
 
             disposed = true;

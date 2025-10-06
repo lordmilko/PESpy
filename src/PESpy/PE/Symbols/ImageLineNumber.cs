@@ -15,7 +15,7 @@ namespace PESpy
 
         internal const int StructSize =
             sizeof(int) + //SymbolTableIndex / VirtualAddress
-            sizeof(short);
+            sizeof(short); //Linenumber
 
         private readonly MemoryChunk chunk;
 
@@ -39,7 +39,7 @@ namespace PESpy
             if (Linenumber == 0)
                 s.WriteField(nameof(SymbolTableIndex), SymbolTableIndex);
             else
-                s.WriteField(nameof(VirtualAddress), Linenumber);
+                s.WriteField(nameof(VirtualAddress), VirtualAddress);
 
             s.WriteField(nameof(Linenumber), Linenumber);
 
