@@ -83,6 +83,7 @@ namespace PESpy
             s.WriteField(nameof(HighId), HighId);
             s.WriteRVAField(nameof(OffsetToEntries), OffsetToEntries);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

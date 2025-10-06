@@ -147,6 +147,7 @@ namespace PESpy
             s.WriteField("String Table Size", StringTableSize);
             s.WriteInlineAnsiNullTerminated(Strings);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 #if NET5_0_OR_GREATER
 using System.Runtime.InteropServices;
 #endif
@@ -151,6 +152,7 @@ namespace PESpy.PDB
             s.WriteStructField("siSt", StreamTableSizeInfo);
             s.WriteField("mpspnpnSt", PagesOfStreamTablePageList);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

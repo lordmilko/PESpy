@@ -42,6 +42,7 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(OSMajorVersion), OSMajorVersion);
             s.WriteValue(nameof(OSMinorVersion), OSMinorVersion);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

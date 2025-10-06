@@ -42,6 +42,7 @@ namespace PESpy.Ecma335
             s.WriteCustomAttributeTypeIndex(nameof(Type), (int) Type);
             s.WriteBlobHeapIndex(nameof(Value), Value);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using PESpy.Native;
 using PESpy.View;
@@ -195,6 +196,7 @@ namespace PESpy
             s.WriteField(nameof(Rich), Rich);
             s.WriteField(nameof(XorKey), XorKey);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
@@ -103,6 +104,7 @@ namespace PESpy
                 s.WriteInline(Clauses);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

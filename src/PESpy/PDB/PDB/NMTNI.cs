@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -115,6 +116,7 @@ namespace PESpy.PDB
 
             s.WriteField("niMac", LargestNameIndex);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

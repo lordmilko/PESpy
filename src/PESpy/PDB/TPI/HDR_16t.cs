@@ -1,4 +1,5 @@
-﻿using ClrDebug.PDB;
+﻿using System.Diagnostics;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -76,6 +77,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(snHash), snHash);
             s.Align(4);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

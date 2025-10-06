@@ -42,6 +42,7 @@ namespace PESpy.Ecma335
             s.WriteStringHeapIndex(nameof(Name), Name);
             s.WriteBlobHeapIndex(nameof(Signature), Signature);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

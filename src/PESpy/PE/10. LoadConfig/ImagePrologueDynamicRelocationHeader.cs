@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -37,6 +38,7 @@ namespace PESpy
             s.WriteField(nameof(PrologueByteCount), PrologueByteCount);
             s.WriteField(nameof(PrologueBytes), PrologueBytes);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

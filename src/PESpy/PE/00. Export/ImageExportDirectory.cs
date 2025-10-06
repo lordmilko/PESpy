@@ -479,6 +479,7 @@ namespace PESpy
             s.WriteField(nameof(AddressOfNames), (int) AddressOfNames.ListedOffset);
             s.WriteField(nameof(AddressOfNameOrdinals), (int) AddressOfNameOrdinals.ListedOffset);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

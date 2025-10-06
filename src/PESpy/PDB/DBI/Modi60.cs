@@ -245,6 +245,7 @@ namespace PESpy.PDB
             s.WriteAnsiNullTerminatedField(nameof(szModule), szModule);
             s.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFile);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

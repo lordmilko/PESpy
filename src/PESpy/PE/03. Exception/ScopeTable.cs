@@ -72,6 +72,7 @@ namespace PESpy
             s.WriteField(nameof(Count), Count);
             s.WriteInline(Records);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 
@@ -142,6 +143,7 @@ namespace PESpy
                 s.WriteField(nameof(HandlerAddress), HandlerAddress);
                 s.WriteField(nameof(JumpTarget), JumpTarget);
 
+                Debug.Assert(parent.Size == s.Size, "Size was not correct");
                 return s.ToArray();
             }
         }

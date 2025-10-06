@@ -182,6 +182,7 @@ namespace PESpy
                     throw new NotImplementedException($"Don't know how to handle {nameof(DataKind)} '{Kind}'");
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

@@ -52,6 +52,7 @@ namespace PESpy
             s.WriteField(nameof(VirtualAddress), (int) VirtualAddress);
             s.WriteField(nameof(Size), Size);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

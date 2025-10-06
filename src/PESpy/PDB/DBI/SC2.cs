@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -65,6 +66,7 @@ namespace PESpy.PDB
             //SC2
             s.WriteField(nameof(isectCoff), isectCoff);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

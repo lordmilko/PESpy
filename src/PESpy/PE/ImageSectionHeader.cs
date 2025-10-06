@@ -241,6 +241,7 @@ namespace PESpy
             s.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbers);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

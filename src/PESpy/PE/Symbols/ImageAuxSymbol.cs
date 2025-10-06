@@ -269,6 +269,7 @@ namespace PESpy
             Debug.Assert(Kind == AuxSymbolKind.Unknown);
             s.WriteField("Bytes", Bytes);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

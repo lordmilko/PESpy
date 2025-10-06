@@ -190,6 +190,7 @@ namespace PESpy
             s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
             s.WriteField(nameof(FirstThunk), (int) FirstThunk.ListedOffset);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

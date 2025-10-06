@@ -346,6 +346,7 @@ namespace PESpy
             s.WriteField(nameof(AddressOfRawData), AddressOfRawData);
             s.WriteField(nameof(PointerToRawData), PointerToRawData);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

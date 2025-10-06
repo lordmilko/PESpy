@@ -87,6 +87,7 @@ namespace PESpy
                 Debug.Assert(false, $"Don't know how to handle a {nameof(ImageDynamicRelocationTable)} with version {Version}");
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

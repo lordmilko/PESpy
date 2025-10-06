@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -40,6 +41,7 @@ namespace PESpy
             s.WritePointerField("spare", Spare);
             s.WriteAnsiNullTerminatedField("name", Name);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

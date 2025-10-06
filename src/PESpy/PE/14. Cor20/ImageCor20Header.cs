@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -73,6 +74,7 @@ namespace PESpy
             s.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumps);
             s.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeader);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

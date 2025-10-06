@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -51,6 +52,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(cbHr), cbHr);
             s.WriteField(nameof(cbBuckets), cbBuckets);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

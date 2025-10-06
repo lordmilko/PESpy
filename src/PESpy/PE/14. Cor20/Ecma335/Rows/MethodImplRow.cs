@@ -42,6 +42,7 @@ namespace PESpy.Ecma335
             s.WriteMethodDefOrRefIndex(nameof(MethodBody), (int) MethodBody);
             s.WriteMethodDefOrRefIndex(nameof(MethodDeclaration), (int) MethodDeclaration);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

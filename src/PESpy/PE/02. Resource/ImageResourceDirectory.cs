@@ -172,6 +172,7 @@ namespace PESpy
             s.WriteField(nameof(NumberOfNamedEntries), NumberOfNamedEntries);
             s.WriteField(nameof(NumberOfIdEntries), NumberOfIdEntries);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

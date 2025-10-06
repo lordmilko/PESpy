@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -109,6 +110,7 @@ namespace PESpy.Ecma335
             s.WriteField(nameof(Sorted), Sorted, sizeof(long));
             s.WriteField(nameof(RowCounts), RowCounts);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

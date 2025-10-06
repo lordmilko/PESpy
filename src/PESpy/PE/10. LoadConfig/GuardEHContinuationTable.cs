@@ -77,6 +77,7 @@ namespace PESpy
 
             s.WriteInline<GuardEHContinuationTable, Entry>(this);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 
@@ -132,6 +133,7 @@ namespace PESpy
             if (Flags != null)
                 s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
 
+                Debug.Assert(parent.Size == s.Size, "Size was not correct");
                 return s.ToArray();
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -90,6 +91,7 @@ namespace PESpy
                 s.Align(4);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -64,6 +64,7 @@ namespace PESpy.PDB
 
             Debug.Assert(columns.Length == 0); //todo
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

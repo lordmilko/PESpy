@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System.Diagnostics;
+using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
@@ -45,6 +46,7 @@ namespace PESpy
             s.WriteField(nameof(CatalogOffset), CatalogOffset);
             s.WriteField(nameof(Reserved), Reserved);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

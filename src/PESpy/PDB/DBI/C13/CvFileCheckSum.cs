@@ -59,6 +59,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(type), type, sizeof(byte));
             s.WriteField(nameof(hash), hash);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

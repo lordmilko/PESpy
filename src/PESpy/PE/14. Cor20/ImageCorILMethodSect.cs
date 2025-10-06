@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -72,6 +73,7 @@ namespace PESpy
                 s.WriteField(nameof(DataSize), (byte) DataSize);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

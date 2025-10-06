@@ -75,6 +75,7 @@ namespace PESpy.PDB
 
             s.WriteInline(FileBlocks);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

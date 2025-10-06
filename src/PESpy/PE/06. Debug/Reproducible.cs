@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -42,6 +43,7 @@ namespace PESpy
             s.WriteField(nameof(Size), Size);
             s.WriteField(nameof(Hash), Hash);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

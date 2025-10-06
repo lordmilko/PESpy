@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
-using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
@@ -91,6 +91,7 @@ namespace PESpy
             s.WriteField(nameof(ClassID), ClassID);
             s.WriteField(nameof(SizeOfData), SizeOfData);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

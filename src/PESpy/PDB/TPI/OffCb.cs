@@ -28,6 +28,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(off), off);
             s.WriteField(nameof(cb), cb);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

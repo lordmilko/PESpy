@@ -128,6 +128,7 @@ namespace PESpy
             s.WriteField("dwFileDateMS", FileDateMS);
             s.WriteField("dwFileDateLS", FileDateLS);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

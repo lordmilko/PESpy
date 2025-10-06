@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -110,6 +111,7 @@ namespace PESpy
             s.WriteField(nameof(NumberOfAuxSymbols), NumberOfAuxSymbols);
             s.WriteInline(AuxSymbols);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

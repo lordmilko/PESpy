@@ -39,6 +39,7 @@ namespace PESpy.Ecma335
             s.WriteSimpleIndex(nameof(Parent), (int) Parent, TableKind.TypeDef);
             s.WriteSimpleIndex(nameof(EventList), (int) EventList, TableKind.Event);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

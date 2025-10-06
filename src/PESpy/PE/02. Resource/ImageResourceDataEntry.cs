@@ -269,6 +269,7 @@ namespace PESpy
             s.WriteField(nameof(CodePage), CodePage);
             s.WriteField(nameof(Reserved), Reserved);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

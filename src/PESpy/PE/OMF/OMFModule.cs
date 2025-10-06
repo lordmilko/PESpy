@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -90,6 +91,7 @@ namespace PESpy
             s.WriteStructField(nameof(SegInfo), SegInfo);
             s.WriteAnsiFixedLengthField(nameof(Name), Name);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

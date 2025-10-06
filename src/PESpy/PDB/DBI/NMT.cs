@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using PESpy.View;
@@ -153,6 +154,7 @@ namespace PESpy.PDB
             s.WriteField("Offsets", Offsets);
             s.WriteField("Num Strings", NumStrings);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

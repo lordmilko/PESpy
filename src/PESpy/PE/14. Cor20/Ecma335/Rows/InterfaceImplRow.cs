@@ -39,6 +39,7 @@ namespace PESpy.Ecma335
             s.WriteSimpleIndex(nameof(Class), (int) Class, TableKind.TypeDef);
             s.WriteTypeDefOrRefIndex(nameof(Interface), (int) Interface);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

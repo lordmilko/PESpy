@@ -39,6 +39,7 @@ namespace PESpy.Ecma335
             s.WriteSimpleIndex(nameof(NestedClass), (int) NestedClass, TableKind.TypeDef);
             s.WriteSimpleIndex(nameof(EnclosingClass), (int) EnclosingClass, TableKind.TypeDef);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

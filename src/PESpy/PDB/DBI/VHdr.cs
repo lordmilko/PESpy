@@ -51,6 +51,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(ulHdr), ulHdr, sizeof(int));
             s.WriteField(nameof(ulVer), ulVer, sizeof(int));
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

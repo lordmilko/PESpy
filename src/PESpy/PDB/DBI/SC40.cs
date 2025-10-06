@@ -46,6 +46,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(imod), imod);
             s.WriteField(nameof(padding2), padding2);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System.Diagnostics;
+using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
@@ -59,6 +60,7 @@ namespace PESpy
             s.WriteAnsiFixedLengthField(nameof(Size), chunk.PeekAnsiFixedLength(48, 10));
             s.WriteAnsiFixedLengthField(nameof(EndHeader), EndHeader);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

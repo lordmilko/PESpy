@@ -239,6 +239,7 @@ namespace PESpy
                 }
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

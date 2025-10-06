@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
-using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
@@ -88,6 +88,7 @@ namespace PESpy
             s.WriteField(nameof(SectionAlignment), SectionAlignment);
             s.WriteField(nameof(Reserved), Reserved);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

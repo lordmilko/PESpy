@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -99,6 +100,7 @@ namespace PESpy
             s.WriteField(nameof(FieldOffset), FieldOffset);
             s.WriteField(nameof(ReservedPadding), ReservedPadding);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

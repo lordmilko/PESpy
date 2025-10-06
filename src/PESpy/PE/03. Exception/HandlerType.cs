@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -71,6 +72,7 @@ namespace PESpy
             s.WriteField("dispOfHandler", Handler);
             s.WriteField("dispFrame", Frame);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

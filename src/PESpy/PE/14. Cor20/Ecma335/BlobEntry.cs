@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -40,6 +41,7 @@ namespace PESpy.Ecma335
             s.WriteField("Size", CompressedSize);
             s.WriteField("Value", Value);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -197,6 +198,7 @@ namespace PESpy
                 r.WriteValues(GlobalValueEntries.Value);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

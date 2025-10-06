@@ -172,6 +172,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(offset), offset);
             s.WriteField(nameof(cbSeg), cbSeg);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

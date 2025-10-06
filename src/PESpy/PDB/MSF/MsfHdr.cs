@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -68,6 +69,7 @@ namespace PESpy.PDB
             s.WriteStructField("siSt", StreamTableSizeInfo);
             s.WriteField("mpspnpnSt", StreamTablePageList);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

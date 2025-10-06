@@ -58,6 +58,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(dwDataCrc), dwDataCrc);
             s.WriteField(nameof(dwRelocCrc), dwRelocCrc);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

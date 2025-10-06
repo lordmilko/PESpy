@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -61,6 +62,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(cSegLog), cSegLog);
             s.WriteInline(rgDesc);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

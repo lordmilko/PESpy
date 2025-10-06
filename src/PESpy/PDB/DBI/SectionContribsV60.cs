@@ -1,4 +1,5 @@
-﻿using ClrDebug.PDB;
+﻿using System.Diagnostics;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -62,6 +63,7 @@ namespace PESpy.PDB
             s.WriteField("Version", Version, sizeof(int));
             s.WriteInline(Entries);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

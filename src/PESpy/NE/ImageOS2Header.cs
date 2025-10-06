@@ -1,4 +1,5 @@
-﻿using PESpy.Native;
+﻿using System.Diagnostics;
+using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy.NE
@@ -279,6 +280,7 @@ namespace PESpy.NE
             s.WriteField("ne_swaparea", MinimumCodeSwapAreaSize);
             s.WriteField("ne_expver", ExpectedWindowsVersionNumber);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

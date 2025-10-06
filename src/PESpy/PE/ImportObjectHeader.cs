@@ -1,5 +1,5 @@
-﻿using ClrDebug;
-using PESpy.Native;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
@@ -74,6 +74,7 @@ namespace PESpy
                 bitField.WriteField(nameof(Reserved), Reserved, 11);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

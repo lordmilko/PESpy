@@ -186,6 +186,7 @@ namespace PESpy.PDB
                 s.WriteField("Key", Key);
                 s.WriteField("Value", Value);
 
+                Debug.Assert(parent.Size == s.Size, "Size was not correct");
                 return s.ToArray();
             }
         }

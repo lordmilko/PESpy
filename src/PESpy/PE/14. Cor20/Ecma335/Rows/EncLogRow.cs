@@ -38,6 +38,7 @@ namespace PESpy.Ecma335
             s.WriteValue(nameof(Token), Token);
             s.WriteValue(nameof(FuncCode), FuncCode, sizeof(int));
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

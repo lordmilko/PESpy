@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -58,6 +59,7 @@ namespace PESpy
             s.WriteField(nameof(Reserved), Reserved);
             s.WriteNullTerminatedField(nameof(Data), Data);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

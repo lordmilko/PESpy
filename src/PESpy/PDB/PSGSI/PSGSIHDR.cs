@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -91,6 +92,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(offThunkTable), offThunkTable);
             s.WriteField(nameof(nSects), nSects);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

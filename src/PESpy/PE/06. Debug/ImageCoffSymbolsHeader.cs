@@ -83,6 +83,7 @@ namespace PESpy
             s.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfData);
             s.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfData);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

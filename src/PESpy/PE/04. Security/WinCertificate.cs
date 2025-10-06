@@ -75,6 +75,7 @@ namespace PESpy
             s.WriteField("wCertificateType", CertificateType, sizeof(short));
             s.WriteInline((IViewable) Certificate);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

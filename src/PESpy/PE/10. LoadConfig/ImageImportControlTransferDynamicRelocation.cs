@@ -43,6 +43,7 @@ namespace PESpy
                 b.WriteField(nameof(IATIndex), IATIndex, 19);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

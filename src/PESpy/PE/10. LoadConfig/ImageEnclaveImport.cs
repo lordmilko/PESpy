@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 using static PESpy.ImageLoadConfigDirectory;
@@ -86,6 +87,7 @@ namespace PESpy
             s.WriteRVAAnsiNullTerminatedField(nameof(ImportName), ImportName);
             s.WriteField(nameof(Reserved), Reserved);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

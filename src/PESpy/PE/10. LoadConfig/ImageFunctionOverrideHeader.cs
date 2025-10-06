@@ -90,6 +90,7 @@ namespace PESpy
             s.WriteInline(FuncOverrides);
             s.WriteInline(BDDInfo);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -35,6 +36,7 @@ namespace PESpy.PDB
             s.WriteField("age", Age);
             s.WriteField("sig70", Guid);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

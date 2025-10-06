@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -53,6 +54,7 @@ namespace PESpy.Ecma335
                 s.WriteField(nameof(UnicodeByte), UnicodeByte);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

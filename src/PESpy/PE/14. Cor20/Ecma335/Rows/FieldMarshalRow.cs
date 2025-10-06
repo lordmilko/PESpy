@@ -39,6 +39,7 @@ namespace PESpy.Ecma335
             s.WriteHasFieldMarshalIndex(nameof(Parent), (int) Parent);
             s.WriteBlobHeapIndex(nameof(NativeType), NativeType);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -44,6 +45,7 @@ namespace PESpy
 
             s.WriteInline(Entries);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

@@ -85,6 +85,7 @@ namespace PESpy
             s.WriteField(nameof(EndAddress), EndAddress);
             s.WriteRVAField(nameof(UnwindData), UnwindData);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

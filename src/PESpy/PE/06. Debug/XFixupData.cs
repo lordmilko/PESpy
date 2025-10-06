@@ -47,5 +47,9 @@ namespace PESpy
             s.WriteField("wExtra", Extra);
             s.WriteField("rva", Rva);
             s.WriteField("rvaTarget", RvaTarget);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }

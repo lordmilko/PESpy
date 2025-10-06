@@ -48,6 +48,7 @@ namespace PESpy.Ecma335
             s.WriteGuidHeapIndex(nameof(EncId), EncId);
             s.WriteGuidHeapIndex(nameof(EncBaseId), EncBaseId);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

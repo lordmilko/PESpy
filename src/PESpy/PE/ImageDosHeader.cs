@@ -210,6 +210,7 @@ namespace PESpy
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_res2), ReservedWords2);
             s.WriteField(nameof(IMAGE_DOS_HEADER.e_lfanew), (int) FileAddressOfNewExeHeader);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

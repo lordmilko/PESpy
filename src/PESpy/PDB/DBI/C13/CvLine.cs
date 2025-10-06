@@ -63,6 +63,7 @@ namespace PESpy.PDB
                 bitField.WriteField(nameof(fStatement), fStatement, 1);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

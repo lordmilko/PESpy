@@ -1,4 +1,5 @@
-﻿using PESpy.LE;
+﻿using System.Diagnostics;
+using PESpy.LE;
 using PESpy.NE;
 using PESpy.View;
 
@@ -431,6 +432,7 @@ namespace PESpy
             s.WriteField("e32_devid", DeviceID);
             s.WriteField("e32_ddkver", DDKVersion);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

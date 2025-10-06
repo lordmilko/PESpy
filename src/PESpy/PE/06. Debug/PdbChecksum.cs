@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -37,6 +38,7 @@ namespace PESpy
             s.WriteUTF8NullTerminatedField(nameof(AlgorithmName), AlgorithmName);
             s.WriteField(nameof(Checksum), Checksum);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

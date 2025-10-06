@@ -45,6 +45,7 @@ namespace PESpy.Ecma335
             s.WriteBlobHeapIndex(nameof(Hash), Hash);
             s.WriteGuidHeapIndex(nameof(Language), Language);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

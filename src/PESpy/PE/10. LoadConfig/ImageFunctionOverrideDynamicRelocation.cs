@@ -98,6 +98,7 @@ namespace PESpy
             s.WriteField(nameof(RVAs), RVAs);
             s.WriteInline(BaseRelocs);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

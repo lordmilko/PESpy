@@ -89,6 +89,7 @@ namespace PESpy
                 s.WriteField(nameof(RuntimeVersion), new int[] { RuntimeVersion!.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 
@@ -126,6 +127,7 @@ namespace PESpy
                     s.WriteField(nameof(ImageSize), ImageSize);
                     s.WriteField(nameof(Extra), new NativeSpan<byte>(e, 15));
 
+                    Debug.Assert(parent.Size == s.Size, "Size was not correct");
                     return s.ToArray();
                 }
             }

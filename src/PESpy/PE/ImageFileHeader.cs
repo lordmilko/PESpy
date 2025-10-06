@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System.Diagnostics;
+using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 
@@ -113,6 +114,7 @@ namespace PESpy
             s.WriteField(nameof(SizeOfOptionalHeader), SizeOfOptionalHeader);
             s.WriteField(nameof(Characteristics), Characteristics, sizeof(short));
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

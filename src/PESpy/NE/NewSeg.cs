@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.NE
 {
@@ -73,6 +74,7 @@ namespace PESpy.NE
             s.WriteField(nameof(ns_flags), ns_flags, sizeof(short));
             s.WriteField(nameof(ns_minalloc), ns_minalloc);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }

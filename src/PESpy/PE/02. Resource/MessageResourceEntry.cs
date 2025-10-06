@@ -1,4 +1,4 @@
-﻿using PESpy.Native;
+﻿using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -44,6 +44,8 @@ namespace PESpy
             //I can't find any documentation that says this should be aligned, but I've found that the length can be 2 less than what it's stated it should be
             if (s.Size < Length)
                 s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

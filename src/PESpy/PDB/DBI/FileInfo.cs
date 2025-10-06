@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using ClrDebug.OMF;
 using PESpy.View;
@@ -133,6 +134,8 @@ namespace PESpy.PDB
 
             //microsoft-pdb shows it should be aligned
             s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
     }
