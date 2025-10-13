@@ -5,7 +5,7 @@ namespace PESpy
 {
     public struct TryBlockMapEntry : IValue, IViewable
     {
-        private const int HandlerArrayOffset = 16;
+        internal const int HandlerArrayOffset = 16;
 
         /// <summary>
         /// Lowest state index of try

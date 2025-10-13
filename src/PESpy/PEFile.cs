@@ -7,6 +7,7 @@ using System.Threading;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
+using PESpy.View.Builder;
 using Stream = System.IO.Stream;
 
 
@@ -115,7 +116,7 @@ namespace PESpy
 
         public ClrEngineMetrics? ClrEngineMetrics => peFile.ClrEngineMetrics;
 
-        public RuntimeInfo? RuntimeInfo => peFile.RuntimeInfo;
+        public RuntimeInfo? DotNetRuntimeInfo => peFile.DotNetRuntimeInfo;
 
         public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
     }
@@ -186,9 +187,9 @@ namespace PESpy
         /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.</param>
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
         public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true) =>
-            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded);
+            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded, null);
 
-        public static PEFile FromStream(Stream stream, bool isLoadedImage)
+        public static PEFile FromStream(Stream stream, bool isLoadedImage, string? fileName = null)
         {
             //If it's a FileStream, implicitly it's not a loaded image
             if (stream is FileStream fs)
@@ -207,7 +208,7 @@ namespace PESpy
                 }
             }
 
-            return new PEFile(new StreamMemoryReader(stream), stream.Position, isLoadedImage);
+            return new PEFile(new StreamMemoryReader(stream), stream.Position, isLoadedImage, fileName);
         }
 
         #endregion
@@ -220,6 +221,9 @@ namespace PESpy
 
         private SymStoreKey[]? symStoreKeys;
 
+        /// <summary>
+        /// Gets the keys of all files that this <see cref="PEFile"/> references that can be downloaded from a symbol server
+        /// </summary>
         public SymStoreKey[] SymStoreKeys
         {
             get
@@ -287,7 +291,7 @@ namespace PESpy
                         }
                     }
 
-                    var runtimeInfo = RuntimeInfo;
+                    var runtimeInfo = DotNetRuntimeInfo;
 
                     if (runtimeInfo != null)
                     {
@@ -307,6 +311,13 @@ namespace PESpy
             }
         }
 
+        /// <summary>
+        /// Gets the first <see cref="SymStoreKey"/> of a specified kind that is referenced
+        /// by this <see cref="PEFile"/>.
+        /// </summary>
+        /// <param name="kind">The kind of <see cref="SymStoreKey"/> to retrieve.</param>
+        /// <returns>A <see cref="SymStoreKey"/> of the specified kind.</returns>
+        /// <exception cref="InvalidOperationException">A <see cref="SymStoreKey"/> of the specified kind could not be found.</exception>
         public SymStoreKey GetSymStoreKey(SymStoreKeyKind kind)
         {
             if (!TryGetSymStoreKey(kind, out var key))
@@ -315,6 +326,12 @@ namespace PESpy
             return key;
         }
 
+        /// <summary>
+        /// Tries to get the first <see cref="SymStoreKey"/> of a specified kind that is referenced by this <see cref="PEFile"/>.
+        /// </summary>
+        /// <param name="kind">The kind of <see cref="SymStoreKey"/> to retrieve.</param>
+        /// <param name="key">The key of the specified kind that was found.</param>
+        /// <returns>True if any key could be found of the specified kind. Otherwise, false.</returns>
         public bool TryGetSymStoreKey(SymStoreKeyKind kind, out SymStoreKey key)
         {
             key = default;
@@ -446,7 +463,7 @@ namespace PESpy
 
                 case SymStoreKeyKind.CLR:
                 {
-                    var runtimeInfo = RuntimeInfo;
+                    var runtimeInfo = DotNetRuntimeInfo;
 
                     if (runtimeInfo == null)
                         return false;
@@ -459,7 +476,7 @@ namespace PESpy
 
                 case SymStoreKeyKind.DAC:
                 {
-                    var runtimeInfo = RuntimeInfo;
+                    var runtimeInfo = DotNetRuntimeInfo;
 
                     if (runtimeInfo == null)
                         return false;
@@ -472,7 +489,7 @@ namespace PESpy
 
                 case SymStoreKeyKind.DBI:
                 {
-                    var runtimeInfo = RuntimeInfo;
+                    var runtimeInfo = DotNetRuntimeInfo;
 
                     if (runtimeInfo == null)
                         return false;
@@ -499,6 +516,9 @@ namespace PESpy
 
         public int Length => blockProvider is LocalMemoryBlockProvider l ? (int) l.Length : (int) OptionalHeader.SizeOfImage;
 
+        /// <summary>
+        /// Gets whether this <see cref="PEFile"/> represents a 32-bit file; that is, whether <see cref="ImageOptionalHeader.Magic"/> is <see cref="PEMagic.PE32"/>.
+        /// </summary>
         public bool Is32Bit => headerBlock.Is32Bit;
 
         #region DosHeader
@@ -517,6 +537,10 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ByteBlob dosStub;
 
+        /// <summary>
+        /// Gets the bytes of the DOS Stub that represents the program that should be run in the event that the <see cref="PEFile"/>
+        /// is executed under MS-DOS.
+        /// </summary>
         public ref readonly ByteBlob DosStub
         {
             get
@@ -609,7 +633,7 @@ namespace PESpy
 
         /// <summary>
         /// Gets the section headers of the image. These values represent the <see cref="IMAGE_SECTION_HEADER"/> values (e.g. .text, .data) that immediately follow the <see cref="OptionalHeader"/>.<para/>
-        /// Each section header points to a relative location within the image at which that section actually resides.
+        /// Each section header points to a relative location within the image at which that section's data actually resides.
         /// </summary>
         public ImageSectionHeader[] SectionHeaders
         {
@@ -910,8 +934,12 @@ namespace PESpy
         #endregion
         #region Copyright Table (7)
 
+        //I haven't been able to find any examples of this section yet
+
         #endregion
         #region Global Pointer Table (8)
+
+        //I haven't been able to find any examples of this section yet
 
         #endregion
         #region Thread Local Storage Table (9)
@@ -1043,7 +1071,7 @@ namespace PESpy
                     var directory = OptionalHeader.ImportAddressTableDirectory;
 
                     if (directory.HasData && TryGetDirectoryChunk(directory, out var chunk))
-                        importAddressTable = ImageImportDescriptor.ParseThunks(0, chunk, true).Value;
+                        importAddressTable = ImageImportDescriptor.ParseIATThunks(chunk, directory.Size);
                 }
 
                 return importAddressTable;
@@ -1157,6 +1185,13 @@ namespace PESpy
             }
         }
 
+        /// <summary>
+        /// Tries to get a pointer to the raw ECMA-335 metadata pointed to by the <see cref="ImageCor20Header.Metadata"/> section,
+        /// allowing you to consume metadata using third party metadata readers, such those provided by System.Reflection.Metadata
+        /// </summary>
+        /// <param name="metadata">A pointer to the start of the ECMA-335 metadata directory</param>
+        /// <param name="length">The length of the ECMA-335 metadata directory</param>
+        /// <returns>True if ECMA-335 metadata could be found. Otherwise, false.</returns>
         public unsafe bool TryGetRawMetadata(out byte* metadata, out int length)
         {
             var cor20 = Cor20Header;
@@ -1183,6 +1218,9 @@ namespace PESpy
 
         private object? cor20Resources;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.Resources"/> directory.
+        /// </summary>
         public object? Cor20Resources
         {
             get
@@ -1212,6 +1250,9 @@ namespace PESpy
 
         private ByteBlob? cor20StrongNameSignature;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.StrongNameSignature"/> directory.
+        /// </summary>
         public ByteBlob? Cor20StrongNameSignature
         {
             get
@@ -1240,6 +1281,9 @@ namespace PESpy
 
         private object? cor20CodeManagerTable;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.CodeManagerTable"/> directory.
+        /// </summary>
         public object? Cor20CodeManagerTable
         {
             get
@@ -1269,6 +1313,9 @@ namespace PESpy
 
         private ImageCorVTableFixup[]? cor20VTableFixups;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.VTableFixups"/> directory.
+        /// </summary>
         public ImageCorVTableFixup[]? Cor20VTableFixups
         {
             get
@@ -1302,6 +1349,9 @@ namespace PESpy
 
         private object? cor20ExportAddressTableJumps;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.ExportAddressTableJumps"/> directory.
+        /// </summary>
         public object? Cor20ExportAddressTableJumps
         {
             get
@@ -1335,6 +1385,11 @@ namespace PESpy
 
         private IValue? cor20ManagedNativeHeader;
 
+        /// <summary>
+        /// Gets the data pointed to by the <see cref="ImageCor20Header.ManagedNativeHeader"/> directory.<para/>
+        /// If this assembly has been NGEN'd, this will be a <see cref="CorCompileHeader"/>. If this assembly has been R2R'd,
+        /// this will be a <see cref="PESpy.ReadyToRunHeader"/>.
+        /// </summary>
         public IValue? Cor20ManagedNativeHeader
         {
             get
@@ -1375,6 +1430,10 @@ namespace PESpy
 
         private ImageCorILMethod[]? ilMethods;
 
+        /// <summary>
+        /// Gets the IL Methods pointed to by the MethodDef table in ECMA-335 metadata. If this <see cref="PEFile"/> does not contain
+        /// any ECMA-335 metadata, or does not have a MethodDef table, this property returns <see langword="null"/>.
+        /// </summary>
         public ImageCorILMethod[]? ILMethods
         {
             get
@@ -1413,7 +1472,7 @@ namespace PESpy
         }
 
         /// <summary>
-        /// Gets the <see cref="ImageCorILMethod"/> that is associated with a given method token.
+        /// Tries to get the <see cref="ImageCorILMethod"/> that is associated with a given method token.
         /// </summary>
         /// <param name="methodDef">The <see cref="mdMethodDef"/> token of the method whose data should be retrieved.</param>
         /// <param name="ilMethod">The <see cref="ImageCorILMethod"/> that is associated with the specified method token.</param>
@@ -1456,12 +1515,18 @@ namespace PESpy
         #endregion
         #region NGEN
 
+        /// <summary>
+        /// Gets the NGEN header that is pointed to by the <see cref="ImageCor20Header.ManagedNativeHeader"/> directory.
+        /// </summary>
         public CorCompileHeader? NgenHeader => Cor20ManagedNativeHeader as CorCompileHeader;
 
         #region NgenHelperTable
 
         private object? ngenHelperTable;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.HelperTable"/> directory.
+        /// </summary>
         public object? NgenHelperTable
         {
             get
@@ -1491,6 +1556,9 @@ namespace PESpy
 
         private object? ngenImportSections;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ImportSections"/> directory.
+        /// </summary>
         public object? NgenImportSections
         {
             get
@@ -1520,6 +1588,9 @@ namespace PESpy
 
         private object? ngenStubsData;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.StubsData"/> directory.
+        /// </summary>
         public object? NgenStubsData
         {
             get
@@ -1549,6 +1620,9 @@ namespace PESpy
 
         private object? ngenVersionInfo;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.VersionInfo"/> directory.
+        /// </summary>
         public object? NgenVersionInfo
         {
             get
@@ -1578,6 +1652,9 @@ namespace PESpy
 
         private object? ngenDependencies;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.Dependencies"/> directory.
+        /// </summary>
         public object? NgenDependencies
         {
             get
@@ -1607,6 +1684,9 @@ namespace PESpy
 
         private object? ngenDebugMap;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.DebugMap"/> directory.
+        /// </summary>
         public object? NgenDebugMap
         {
             get
@@ -1636,6 +1716,9 @@ namespace PESpy
 
         private object? ngenModuleImage;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ModuleImage"/> directory.
+        /// </summary>
         public object? NgenModuleImage
         {
             get
@@ -1665,6 +1748,9 @@ namespace PESpy
 
         private object? ngenCodeManagerTable;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.CodeManagerTable"/> directory.
+        /// </summary>
         public object? NgenCodeManagerTable
         {
             get
@@ -1694,6 +1780,9 @@ namespace PESpy
 
         private object? ngenProfileDataList;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ProfileDataList"/> directory.
+        /// </summary>
         public object? NgenProfileDataList
         {
             get
@@ -1723,6 +1812,9 @@ namespace PESpy
 
         private object? ngenManifestMetaData;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ProfileDataList"/> directory.
+        /// </summary>
         public object? NgenManifestMetaData
         {
             get
@@ -1752,6 +1844,9 @@ namespace PESpy
 
         private object? ngenVirtualSectionsTable;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.VirtualSectionsTable"/> directory.
+        /// </summary>
         public object? NgenVirtualSectionsTable
         {
             get
@@ -1781,6 +1876,9 @@ namespace PESpy
 
         private object? ngenEEInfoTable;
 
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.EEInfoTable"/> directory.
+        /// </summary>
         public object? NgenEEInfoTable
         {
             get
@@ -1811,6 +1909,10 @@ namespace PESpy
 
         //Apparently it's possible that the R2R header might also be pointed to by exports. I don't know if it's possible
         //for it to _only_ be pointed to by exports
+
+        /// <summary>
+        /// Gets the R2R header that is pointed to by the <see cref="ImageCor20Header.ManagedNativeHeader"/> directory.
+        /// </summary>
         public ReadyToRunHeader? ReadyToRunHeader => Cor20ManagedNativeHeader as ReadyToRunHeader;
 
         #endregion
@@ -1821,10 +1923,27 @@ namespace PESpy
 
         private bool hasTriedAppHostSignature;
 
+        /// <summary>
+        /// Gets the signature that denotes that this <see cref="PEFile"/> was constructed from the .NET Core apphost.exe executable.<para/>
+        /// If this <see cref="PEFile"/> represents a Single File App, the AppHost Signature additionally provides access to the bundle manifest
+        /// that describes the files embedded within the app.
+        /// </summary>
         public unsafe AppHostSignature? AppHostSignature
         {
             get
             {
+                /* The way that the bundle marker gets embedded is that it is defined as static data
+                 * in a function bundle_marker_t.header_offset(), in exe_main bundle_marker_t::is_bundle() is called,
+                 * which calls into header_offset(), which then casts the byte array as a struct in order to get at the first 8 bytes
+                 * to see if they're non 0
+                 * https://github.com/dotnet/runtime/blob/e572463b5706b0509fe0c524d9d09893e7e252da/src/native/corehost/apphost/bundle_marker.h
+                 * https://github.com/dotnet/runtime/blob/e572463b5706b0509fe0c524d9d09893e7e252da/src/native/corehost/apphost/bundle_marker.cpp
+                 * 
+                 * The practical effect of this is that the bundle marker is injected into the .data section. There is no requirement that the .data
+                 * section be used. From our perspective, this basically creates a challenge for us because for a remote debug target, we essentially
+                 * have to copy the whole thing into our memory just to check whether the signature exists.
+                 */
+
                 if (appHostSignature == null && !hasTriedAppHostSignature)
                 {
                     //Scanning the entire DLL for the AppHost signature could be slow,
@@ -1832,9 +1951,36 @@ namespace PESpy
                     //because we looked at the properties of the PEFile
                     Debugger.NotifyOfCrossThreadDependency();
 
-                    GetRawPointer(out var pointer, out var length);
+                    if (blockProvider is LocalMemoryBlockProvider l)
+                    {
+                        //We can just search the whole file at once
+                        var index = AppHostSignature.FindBundleHeader(l.Pointer, l.Length);
 
-                    appHostSignature = AppHostSignature.New(pointer, length, headerBlock);
+                        if (index != -1)
+                            appHostSignature = new AppHostSignature(headerBlock, index);
+                    }
+                    else
+                    {
+                        //We need to iterate over each section one at a time
+
+                        var sections = SectionHeaders;
+
+                        for (var i = 0; i < sections.Length; i++)
+                        {
+                            ref var section = ref sections[i];
+
+                            var block = GetSectionBlock(i, section);
+
+                            var index = AppHostSignature.FindBundleHeader(block.LocalPointer, block.Length);
+
+                            if (index != -1)
+                            {
+                                appHostSignature = new AppHostSignature(block, index);
+                                break;
+                            }
+                        }
+                    }
+
                     hasTriedAppHostSignature = true;
                 }
 
@@ -1879,14 +2025,18 @@ namespace PESpy
         //If this is a single file .NET application, there should be a "DotNetRuntimeInfo" export
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private RuntimeInfo? runtimeInfo;
-        private bool hasTriedRuntimeInfo;
+        private RuntimeInfo? dotNetRuntimeInfo;
+        private bool hasTriedDotNetRuntimeInfo;
 
-        public RuntimeInfo? RuntimeInfo
+        /// <summary>
+        /// Gets the structure pointed to by the "DotNetRuntimeInfo" export that describes the CLR, DAC and DBI versions that are associated
+        /// with this executable.
+        /// </summary>
+        public RuntimeInfo? DotNetRuntimeInfo
         {
             get
             {
-                if (runtimeInfo == null && !hasTriedRuntimeInfo)
+                if (dotNetRuntimeInfo == null && !hasTriedDotNetRuntimeInfo)
                 {
                     ImageExportDirectory.Export export = default;
 
@@ -1896,17 +2046,17 @@ namespace PESpy
 
                         if (TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            runtimeInfo = new RuntimeInfo(valueChunk);
+                            dotNetRuntimeInfo = new RuntimeInfo(valueChunk);
 
-                            if (runtimeInfo.Signature != "DotNetRuntimeInfo")
-                                runtimeInfo = default;
+                            if (dotNetRuntimeInfo.Signature != "DotNetRuntimeInfo")
+                                dotNetRuntimeInfo = default;
                         }
                     }
 
-                    hasTriedRuntimeInfo = true;
+                    hasTriedDotNetRuntimeInfo = true;
                 }
 
-                return runtimeInfo;
+                return dotNetRuntimeInfo;
             }
         }
 
@@ -1915,13 +2065,16 @@ namespace PESpy
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private DotNetRuntimeDebugHeader? dotNetRuntimeDebugHeader;
-        private bool hasTriedDotnetRuntimeDebugHeader;
+        private bool hasTriedDotNetRuntimeDebugHeader;
 
+        /// <summary>
+        /// Gets the structure pointed to by the "DotNetRuntimeDebugHeader" export that provides debugging information for Native AOT executables.
+        /// </summary>
         public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
         {
             get
             {
-                if (dotNetRuntimeDebugHeader == null && !hasTriedDotnetRuntimeDebugHeader)
+                if (dotNetRuntimeDebugHeader == null && !hasTriedDotNetRuntimeDebugHeader)
                 {
                     ImageExportDirectory.Export export = default;
 
@@ -1931,7 +2084,7 @@ namespace PESpy
                             dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(chunk);
                     }
 
-                    hasTriedDotnetRuntimeDebugHeader = true;
+                    hasTriedDotNetRuntimeDebugHeader = true;
                 }
 
                 return dotNetRuntimeDebugHeader;
@@ -1978,25 +2131,19 @@ namespace PESpy
 
         private unsafe PEViewWriter GetViewWriter(ViewMode mode, IViewDisassembler? viewDisassembler)
         {
-            GetRawPointer(out var pointer, out var length);
-
-            var writer = new PEViewWriter(this, pointer, length, viewDisassembler, mode);
+            var writer = new PEViewWriter(this, CreateByteViewProvider(viewDisassembler), mode);
 
             return writer;
         }
 
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public unsafe void GetRawPointer(out byte* pointer, out int length)
+        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
         {
+            viewDisassembler?.Initialize(this);
+
             if (blockProvider is LocalMemoryBlockProvider l)
-            {
-                pointer = l.Pointer;
-                length = (int) l.Length;
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+                return new LocalByteViewProvider(l.Pointer, (int) l.Length, viewDisassembler);
+
+            return new RemoteByteViewProvider(this, SectionHeaders, viewDisassembler);
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile
@@ -2032,27 +2179,72 @@ namespace PESpy
 
             FileName = fileName;
             Name = Path.GetFileName(fileName);
-            var localProvider = new LocalMemoryBlockProvider(mmf, this);
-            blockProvider = localProvider;
-            headerBlock = new LocalHeaderMemoryBlock(localProvider);
-            InitializeHeaders();
-            localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+
+            try
+            {
+                var localProvider = new LocalMemoryBlockProvider(mmf, this);
+                blockProvider = localProvider;
+                headerBlock = new LocalHeaderMemoryBlock(localProvider);
+                InitializeHeaders();
+                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        internal PEFile(string fileName, in MemoryMappedFileHolder mmf, int startOffset)
+        {
+            IsLoadedImage = false;
+
+            FileName = fileName;
+            Name = Path.GetFileName(fileName);
+
+            try
+            {
+                var localProvider = new NestedMemoryBlockProvider(mmf, this, startOffset);
+                blockProvider = localProvider;
+                headerBlock = new LocalHeaderMemoryBlock(localProvider, startOffset);
+                InitializeHeaders();
+                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         //ctor for initializing PEFile from an IMemoryReader that reads remote memory
-        private PEFile(IMemoryReader reader, long address, bool isLoadedImage)
+        private PEFile(IMemoryReader reader, long address, bool isLoadedImage, string? fileName)
         {
-            IsLoadedImage = isLoadedImage;
+            try
+            {
+                if (fileName != null)
+                {
+                    FileName = fileName;
+                    Name = Path.GetFileName(fileName);
+                }
 
-            var remoteProvider = new RemoteMemoryBlockProvider(reader, address, this);
-            blockProvider = remoteProvider;
+                IsLoadedImage = isLoadedImage;
 
-            //Will automatically demand
-            headerBlock = new RemoteHeaderMemoryBlock(reader, address, blockProvider);
+                var remoteProvider = new RemoteMemoryBlockProvider(reader, address, this);
+                blockProvider = remoteProvider;
 
-            InitializeHeaders();
+                //Will automatically demand
+                headerBlock = new RemoteHeaderMemoryBlock(reader, address, blockProvider);
 
-            remoteProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+                InitializeHeaders();
+
+                remoteProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         private void InitializeHeaders()
@@ -2222,13 +2414,38 @@ namespace PESpy
 
             Debug.Assert(headers != null);
 
-            for (var i = 0; i < headers!.Length; i++)
-            {
-                var start = headers[i].VirtualAddress;
-                var end = headers[i].VirtualAddress + headers[i].VirtualSize;
+            /* Should we be translating RVAs to sections via linear search or binary search?
+             * 
+             * Most modules contain 10 seconds or less, so due to the improved branch prediction you would think that linear search would always win.
+             * However, all of our nonsense shuffling ImageSectionHeader records around massively slows us down, so much so that binary searching
+             * against section headers actually becomes faster on average (given a random offset anywhere in the file) than performing a linear search.
+             * 
+             * If we rework things so that instead of operating on ImageSectionHeader records we instead have arrays of start and end indices, we end
+             * up being 4x faster. Furthermore, it's actually faster having two separate start and end arrays than it is having an array of pairs that
+             * hold the start and end addresses.
+             * 
+             * So, should we perhaps start caching the start and end offsets? Further research is required as to whether
+             * it's worth the slightly slower startup cost when retrieving the section headers for th first time
+             */
 
-                if (start <= rva && rva < end)
-                    return i;
+            var lo = 0;
+            var hi = headers!.Length - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                ref var sectionHeader = ref headers[mid];
+
+                var start = sectionHeader.VirtualAddress;
+                var end = start + sectionHeader.VirtualSize;
+
+                if (rva < start)
+                    hi = mid - 1;
+                else if (rva >= end)
+                    lo = mid + 1;
+                else
+                    return mid;
             }
 
             return -1;
@@ -2243,13 +2460,25 @@ namespace PESpy
             //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
             var headers = SectionHeaders;
 
-            for (var i = 0; i < headers.Length; i++)
-            {
-                var start = headers[i].PointerToRawData;
-                var end = headers[i].PointerToRawData + headers[i].VirtualSize;
+            //See above regarding binary search vs linear
+            var lo = 0;
+            var hi = headers!.Length - 1;
 
-                if (start <= offset && offset < end)
-                    return i;
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                ref var sectionHeader = ref headers[mid];
+
+                var start = sectionHeader.PointerToRawData;
+                var end = start + sectionHeader.SizeOfRawData;
+
+                if (offset < start)
+                    hi = mid - 1;
+                else if (offset >= end)
+                    lo = mid + 1;
+                else
+                    return mid;
             }
 
             return -1;
@@ -2309,6 +2538,12 @@ namespace PESpy
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {
+            if (offset == 0)
+            {
+                chunk = default;
+                return false;
+            }
+
             if (TryGetSectionBlockFromOffset(offset, out var block, out var relativeOffset))
             {
                 chunk = new MemoryChunk(block!, relativeOffset);
@@ -2428,6 +2663,69 @@ namespace PESpy
             }
 
             return block;
+        }
+
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
+        {
+            ptr = headerBlock.LocalPointer;
+            remainingLength = headerBlock.Length;
+        }
+
+        public unsafe bool TryGetRawOverlayData(out byte* ptr, out int remainingLength)
+        {
+            if (blockProvider is LocalMemoryBlockProvider l)
+            {
+                var sectionHeaders = SectionHeaders;
+
+                int overlayLength;
+
+                //Get the last section with data
+                for (var i = sectionHeaders.Length - 1; i >= 0; i--)
+                {
+                    ref var lastSection = ref sectionHeaders[i];
+
+                    if (lastSection.PointerToRawData != 0 && lastSection.SizeOfRawData != 0)
+                    {
+                        var lastSectionEnd = lastSection.PointerToRawData + lastSection.SizeOfRawData;
+
+                        overlayLength = (int) l.Length - lastSectionEnd;
+
+                        if (overlayLength > 0)
+                        {
+                            ptr = l.Pointer + lastSectionEnd;
+                            remainingLength = overlayLength;
+                            return true;
+                        }
+
+                        ptr = default;
+                        remainingLength = default;
+                        return false;
+                    }
+                }
+
+                overlayLength = (int) l.Length - OptionalHeader.SizeOfImage;
+
+                overlayLength = (int) l.Length - OptionalHeader.SizeOfImage;
+
+                if (overlayLength > 0)
+                {
+                    ptr = l.Pointer + OptionalHeader.SizeOfHeaders;
+                    remainingLength = overlayLength;
+                    return true;
+                }
+
+                ptr = default;
+                remainingLength = default;
+                return false;
+            }
+            else
+            {
+                //It's a RemoteMemoryBlockProvider. If it's backed by a StreamMemoryReader, and we're not loaded, for supported stream types
+                //we could potentially have a go at trying to get a length out of it
+                ptr = default;
+                remainingLength = default;
+                return false;
+            }
         }
 
         public unsafe void GetRawSectionDataFromRVA(int rva, out byte* ptr, out int remainingLength)
@@ -2560,8 +2858,8 @@ namespace PESpy
 
             writer.WriteGlobal(ExportTable);
 
-            writer.WriteUniqueGlobal(ImportAddressTable); //Write this before the Import Table as we want IAT entries to be in a data directory, not a logical region
             writer.WriteGlobal(ImportTable);
+            writer.WriteUniqueGlobal(ImportAddressTable); //The default logic of the merger will be to create an ImportAddressTable region around the ImportAddressTable sub-regions, which will be redundant because all of these will be wrapped in an ImportAddressTableDirectory anyway. As such, we'll block that from happening
             writer.WriteGlobal(ResourceDirectory);
             writer.WriteGlobal(ExceptionTable);
             writer.WriteGlobal(SecurityTable);
@@ -2579,11 +2877,11 @@ namespace PESpy
 
             writer.WriteGlobal(EcmaMetadata);
 
-            //writer.WriteGlobal(ReadyToRunHeader);
+            writer.WriteGlobal(ReadyToRunHeader);
 
             writer.WriteGlobal(AppHostSignature);
             writer.WriteGlobal(ClrEngineMetrics);
-            writer.WriteGlobal(RuntimeInfo);
+            writer.WriteGlobal(DotNetRuntimeInfo);
             writer.WriteGlobal(DotNetRuntimeDebugHeader);
         }
 

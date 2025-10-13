@@ -90,7 +90,7 @@ namespace PESpy.PDB
                 //bits. All of the other bits in the BitArray after the capacity should be false and can be ignored
                 if (i < presentBits.Length && presentBits[i]) //In Visual C++ 4, you can have an empty PresentWords
                 {
-                    entries[bucketIndex] = new Entry(entryChunk, getValue);
+                    entries[bucketIndex] = new Entry(entryChunk, getValue, valueSize);
                     virtualEntries[i] = bucketIndex;
                     bucketIndex++;
                     entryChunk = entryChunk.Slice(sizeof(D) + valueSize);
@@ -146,11 +146,12 @@ namespace PESpy.PDB
 
             s.WriteInline(Entries);
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 
         [DebuggerDisplay("{Key} -> {Value}")]
-        public readonly struct Entry : IValue, IViewable
+        public readonly unsafe struct Entry : IValue, IViewable
         {
             public D Key => chunk.PeekUnmanaged<D>(0);
 
@@ -158,17 +159,19 @@ namespace PESpy.PDB
 
             public int Offset => chunk.AbsoluteOffset;
 
-            internal const int StructSize =
-                sizeof(int) + //Key
-                sizeof(int);  //Value
+            internal int StructSize =>
+                sizeof(D) +
+                valueSize;
 
             private readonly MemoryChunk chunk;
             private readonly Func<MemoryChunk, R> getValue;
+            private readonly int valueSize;
 
-            internal Entry(in MemoryChunk chunk, Func<MemoryChunk, R> getValue)
+            internal Entry(in MemoryChunk chunk, Func<MemoryChunk, R> getValue, int valueSize)
             {
                 this.chunk = chunk;
                 this.getValue = getValue;
+                this.valueSize = valueSize;
             }
 
             void IViewable.WriteGlobals(ViewWriter writer)
@@ -183,8 +186,21 @@ namespace PESpy.PDB
             {
                 using var s = viewWriter.CreateStruct(parent);
 
-                s.WriteField("Key", Key);
-                s.WriteField("Value", Value);
+                var key = Key;
+
+                if (typeof(D) == typeof(int))
+                    s.WriteField("Key", Unsafe.As<D, int>(ref key));
+                else if (typeof(D) == typeof(NI))
+                    s.WriteField("Key", Unsafe.As<D, NI>(ref key));
+                else
+                    Debug.Assert(false);
+
+                var value = Value;
+
+                if (typeof(R) == typeof(SN))
+                    s.WriteField("Value", Unsafe.As<D, SN>(ref key), valueSize);
+                else if (typeof(R) == typeof(SrcHeaderOut))
+                    s.WriteStructField("Value", Unsafe.As<D, SrcHeaderOut>(ref key));
 
                 Debug.Assert(parent.Size == s.Size, "Size was not correct");
                 return s.ToArray();

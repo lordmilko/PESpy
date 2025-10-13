@@ -52,7 +52,7 @@ namespace PESpy
             s.WriteField(nameof(off), off);
             s.WriteField(nameof(seg), seg);
             s.WriteField(nameof(type), type);
-            s.WriteAnsiFixedLengthField(nameof(name), name);
+            s.WriteLengthPrefixedAnsiField(nameof(name), name);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

@@ -7,5 +7,8 @@
 
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
+
+    <UseLatestTargetFramework Condition="'$(VisualStudioVersion)' != '15.0' And '$(VisualStudioVersion)' != '16.0'">true</UseLatestTargetFramework>
+    <UseLatestTargetFramework Condition="'$(UseLatestTargetFramework)' == ''">false</UseLatestTargetFramework>
   </PropertyGroup>
 </Project>

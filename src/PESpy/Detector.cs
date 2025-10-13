@@ -1,3 +1,4 @@
+﻿using System;
 using System.IO;
 using ClrDebug;
 using PESpy.Native;
@@ -13,6 +14,14 @@ namespace PESpy
 {
     public static class Detector
     {
+        public static IFile OpenFile(string path)
+        {
+            if (!TryOpenFile(path, out var file))
+                throw new InvalidOperationException($"Failed to detect the type of file '{file}'");
+
+            return file;
+        }
+
         public static unsafe bool TryOpenFile(string path, out IFile file)
         {
             file = default;
@@ -43,6 +52,10 @@ namespace PESpy
                             file = new NEFile(fs.Name, mmf);
                             return true;
 
+                        case FileKind.LE:
+                            file = new LEFile(fs.Name, mmf);
+                            return true;
+
                         case FileKind.DOS:
                             file = new DOSFile(fs.Name, mmf);
                             return true;
@@ -69,7 +82,11 @@ namespace PESpy
                                 case PDBFileKind.V7:
                                     file = new PDB7File(fs.Name, mmf);
                                     return true;
-                        return true;
+
+                                default:
+                                    throw new NotImplementedException($"Don't know how to handle a PDB of sub-type '{(PDBFileKind) subKind}'");
+                            }
+
                         case FileKind.PortablePDB:
                             file = new PortablePDBFile(fs.Name, mmf);
                             return true;
@@ -148,7 +165,11 @@ namespace PESpy
                 var fileAddressOfNewExeHeader = *(int*) (mmf.Address + 60);
 
                 if (fileAddressOfNewExeHeader >= length)
-                    return false; //Probably a DOS file
+                {
+                    //e_lfanew is garbage, indicating this is probably a DOS file
+                    fileKind = FileKind.DOS;
+                    return true;
+                }
 
                 var sig = *(uint*) (mmf.Address + fileAddressOfNewExeHeader);
 
@@ -158,12 +179,17 @@ namespace PESpy
                     return true;
                 }
 
-                sig &= 0xFFFF; //NE header is 2 bytes not 4. First two bytes will be junk due to little endian read
+                sig &= 0xFFFF; //LE/NE header is 2 bytes not 4. First two bytes will be junk due to little endian read
 
-                if (sig == ImageOS2Header.IMAGE_OS2_SIGNATURE)
+                switch (sig)
                 {
-                    fileKind = FileKind.NE;
-                    return true;
+                    case ImageOS2Header.IMAGE_OS2_SIGNATURE:
+                        fileKind = FileKind.NE;
+                        return true;
+
+                    case ImageVXDHeader.IMAGE_VXD_SIGNATURE:
+                        fileKind = FileKind.LE;
+                        return true;
                 }
 
                 fileKind = FileKind.DOS;
@@ -174,7 +200,7 @@ namespace PESpy
                 //A file that simply starts with "DI" is insufficient grounds for saying something is a *.dbg file. Sanity check the IMAGE_FILE_MACHINE and
                 //number of sections
 
-                if (IsValidMachine(*(IMAGE_FILE_MACHINE*) (mmf.Address + 4)))
+                if (IsValidMachine((IMAGE_FILE_MACHINE) (*(ushort*) (mmf.Address + 4))))
                 {
                     var numberOfSections = *(int*) (mmf.Address + 24);
                     var minNumBytes = ImageSeparateDebugHeader.StructSize + numberOfSections * ImageSectionHeader.StructSize;

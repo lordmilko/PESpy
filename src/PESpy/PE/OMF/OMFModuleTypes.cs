@@ -13,7 +13,7 @@ namespace PESpy
         public CV_SIGNATURE Signature { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public unsafe TypTypeList List { get; }
+        public TypTypeList List { get; }
 
         public int Offset { get; }
 

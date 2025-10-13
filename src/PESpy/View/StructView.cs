@@ -77,8 +77,9 @@ namespace PESpy.View
 
                 var childEnd = child.Offset + child.Size;
 
-                //Does this child value extend past the end of the current page?
-                if (childEnd > cutoff)
+                //Does this child value extend past the end of the current page, or is the new page actually before the start
+                //of the current page and we have a value right at the start of the new page?
+                if (childEnd > cutoff || child.Offset == newBaseOffset)
                 {
                     IView? firstChild;
                     IView secondChild;
@@ -86,7 +87,7 @@ namespace PESpy.View
                     var numLeftChildren = i + 1;
                     var numRightChildren = Children.Length - i;
 
-                    if (child.Offset == cutoff)
+                    if (child.Offset == cutoff || child.Offset == newBaseOffset)
                     {
                         //This child starts exactly over the edge of the cutoff boundary. We don't need to split it,
                         //we can just move it into the second half
@@ -166,7 +167,8 @@ namespace PESpy.View
 
                     var second = new SplitStructView<TValue>(newBaseOffset, Name, value, secondChildren, diff, Kind, viewWriter);
 
-                    //todo: we're not setting next and previous?
+                    second.Previous = first;
+                    first.Next = second;
 
                     return (first, second);
                 }
@@ -193,7 +195,23 @@ namespace PESpy.View
 
             if (this is SplitStructView<TValue> sv)
             {
-                throw new NotImplementedException(); //todo: what to do about previous and next?
+                //We're just rewriting ourselves to have a new offset
+                var newValue = new SplitStructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);
+                
+                if (sv.Previous != null)
+                {
+                    //We need to set the previous's next to be us
+                    ((SplitStructView<TValue>) sv.Previous).Next = newValue;
+                    newValue.Previous = sv.Previous;
+                }
+                else if (sv.Next != null)
+                {
+                    //We need to set the next's previous to be us
+                    ((SplitStructView<TValue>) sv.Next).Previous = newValue;
+                    newValue.Next = sv.Next;
+                }
+
+                return newValue;
             }
 
             return new StructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);

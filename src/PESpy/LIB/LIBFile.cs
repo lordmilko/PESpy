@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using ClrDebug;
 using PESpy.LIB;
 using PESpy.Native;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -65,8 +64,16 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            //Read the OBJ Headers
-            ReadLibHeaders();
+            try
+            {
+                //Read the OBJ Headers
+                ReadLibHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         ~LIBFile()
@@ -223,11 +230,13 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new LIBViewWriter(this, mmf.Address, (int) mmf.Length);
+            var writer = new LIBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -136,6 +136,18 @@ namespace PESpy
 
             return LocateInternalAsync(null, exeOrDbgFile, SearchFlags.All, searchPath, cancellationToken);
         }
+
+        #endregion
+        #region SymStoreKey -> String
+
+        public static string Locate(SymStoreKey key)
+        {
+            if (!TryLocate(key, out var result))
+                throw new FileNotFoundException($"Failed to locate the file associated with {nameof(SymStoreKey)} '{key}'");
+
+            return result;
+        }
+
         //Locate a file with a given key from the symbol server
         public static bool TryLocate(SymStoreKey key, out string? result)
         {
@@ -187,6 +199,22 @@ namespace PESpy
         #region String -> String (PDB)
 
         //Locate the *.pdb associated with a given *.exe or *.dbg file
+
+        public static string LocatePDB(SymStoreKey exeOrDbgKey)
+        {
+            var exeOrDbgPath = Locate(exeOrDbgKey);
+
+            return LocatePDB(exeOrDbgPath);
+        }
+
+        public static string LocatePDB(string exeOrDbgPath, string? searchPath = null)
+        {
+            if (!TryLocatePDB(exeOrDbgPath, out var result, searchPath))
+                throw new FileNotFoundException($"Failed to locate the PDB associated with file '{exeOrDbgPath}'");
+
+            return result;
+        }
+
         public static bool TryLocatePDB(string exeOrDbgPath, out string? result, string? searchPath = null)
         {
             result = TryLocatePDBAsync(exeOrDbgPath, searchPath).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -232,17 +260,17 @@ namespace PESpy
 
         //Locate the embedded portable PDB associated with a given *.exe or *.dbg file. Realistically,
         //it should not be possible to have an Embedded Portable PDB inside a *.dbg file (since *.dbg files predate MPDB's)
-        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out EmbeddedPortablePdb? result, string? searchPath = null, CancellationToken cancellationToken = default)
+        public static bool TryLocateEmbeddedPortablePDB(string exeOrDbgPath, out int? debugDirectoryIndex, string? searchPath = null, CancellationToken cancellationToken = default)
         {
             var (artifacts, _) = LocateInternalAsync(exeOrDbgPath, null, SearchFlags.MPDB, searchPath, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (artifacts != null)
             {
-                result = artifacts.Value.EmbeddedPortablePdb;
-                return result != null;
+                debugDirectoryIndex = artifacts.Value.EmbeddedPortablePdbIndex;
+                return debugDirectoryIndex != null;
             }
 
-            result = default;
+            debugDirectoryIndex = default;
             return false;
         }
 
@@ -266,7 +294,7 @@ namespace PESpy
 
             public string? DBGFilePath;
             public string? PDBFilePath;
-            public EmbeddedPortablePdb? MPDB;
+            public int? MPDBIndex;
         }
 
         private static async ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> LocateInternalAsync(
@@ -382,14 +410,14 @@ namespace PESpy
                 }
 
                 //Success is dictated by whether we found anything
-                if (ctx.DBGFilePath == null && ctx.PDBFilePath == null && ctx.MPDB == null)
+                if (ctx.DBGFilePath == null && ctx.PDBFilePath == null && ctx.MPDBIndex == null)
                     return default;
 
                 ArtifactKind bestKind;
 
                 if (ctx.PDBFilePath != null)
                     bestKind = ArtifactKind.PDB;
-                else if (ctx.MPDB != null)
+                else if (ctx.MPDBIndex != null)
                     bestKind = ArtifactKind.EmbeddedPortablePdb;
                 else
                 {
@@ -397,7 +425,7 @@ namespace PESpy
                     bestKind = ArtifactKind.DBG;
                 }
 
-               return (new Artifacts(bestKind, ctx.DBGFilePath, ctx.PDBFilePath, ctx.MPDB), ctx.SymStoreKey);
+               return (new Artifacts(bestKind, ctx.DBGFilePath, ctx.PDBFilePath, ctx.MPDBIndex), ctx.SymStoreKey);
             }
             finally
             {
@@ -411,8 +439,10 @@ namespace PESpy
             if (ctx.DebugTable == null)
                 return default;
 
-            foreach (var debugDir in ctx.DebugTable)
+            for (int i = 0; i < ctx.DebugTable.Length; i++)
             {
+                ref ImageDebugDirectory debugDir = ref ctx.DebugTable[i];
+
                 switch (debugDir.Type)
                 {
                     case ImageDebugType.Misc:
@@ -488,9 +518,9 @@ namespace PESpy
                         break;
 
                     case ImageDebugType.EmbeddedPortablePdb:
-                        if ((ctx.Flags & SearchFlags.MPDB) != 0 && debugDir.Data is EmbeddedPortablePdb e)
+                        if ((ctx.Flags & SearchFlags.MPDB) != 0 && debugDir.Data is EmbeddedPortablePdb)
                         {
-                            ctx.MPDB = e;
+                            ctx.MPDBIndex = i;
                             return State.End;
                         }
                         break;
@@ -769,14 +799,18 @@ namespace PESpy
 
             public string? PDBPath { get; }
 
-            public EmbeddedPortablePdb? EmbeddedPortablePdb { get; }
+            /// <summary>
+            /// Gets the index of the <see cref="ImageDebugDirectory"/> that contains <see cref="EmbeddedPortablePdb"/> data.<para/>
+            /// If this value is <see langword="null"/>, embedded portable PDB metadata is not available.
+            /// </summary>
+            public int? EmbeddedPortablePdbIndex { get; } //Note that this can't be the EmbeddedPortablePdb itself, because if only a path to a PEFile was passed in, we'll have opened and then closed the file
 
-            public Artifacts(ArtifactKind bestKind, string? dbgPath, string? pdbPath, EmbeddedPortablePdb? embeddedPortablePdb)
+            public Artifacts(ArtifactKind bestKind, string? dbgPath, string? pdbPath, int? embeddedPortablePdbIndex)
             {
                 BestKind = bestKind;
                 DBGPath = dbgPath;
                 PDBPath = pdbPath;
-                EmbeddedPortablePdb = embeddedPortablePdb;
+                EmbeddedPortablePdbIndex = embeddedPortablePdbIndex;
             }
         }
 

@@ -15,6 +15,8 @@ namespace PESpy
 
         internal long Length => mmf.Length;
 
+        public int StartOffset { get; protected set; }
+
         private bool disposed;
         internal bool is32Bit;
 
@@ -37,8 +39,14 @@ namespace PESpy
             Dispose(false);
         }
 
-        public MemoryBlock CreateBlock(int offsetOrRVA, int size) =>
-            new LocalMemoryBlock(this, offsetOrRVA, size, is32Bit);
+        public virtual MemoryBlock CreateBlock(int offsetOrRVA, int size)
+        {
+            //Protect against corrupt files
+            if (offsetOrRVA + size > Length)
+                throw new BadImageFormatException($"Attempted to access bytes 0x{offsetOrRVA:X}-0x{(offsetOrRVA + size):X}, however the file is only 0x{Length:X} bytes long");
+
+            return new LocalMemoryBlock(this, offsetOrRVA, size, is32Bit);
+        }
 
         public void Dispose() => Dispose(true);
 

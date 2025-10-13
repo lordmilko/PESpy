@@ -9,7 +9,7 @@ namespace PESpy
 
         public int State => chunk.PeekInt32(4);
 
-        public int Offset => chunk.PeekInt32(8);
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //Ip

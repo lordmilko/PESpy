@@ -36,12 +36,7 @@ namespace PESpy.Tests
         public void Detector_LIB() => Test(Sample.VS22_LTCG_LIB, FileKind.LIB);
 
         [TestMethod]
-        public void Detector_VXD()
-        {
-            Assert.Inconclusive();
-
-            throw new System.NotImplementedException();
-        }
+        public void Detector_VXD() => Test(Sample.MASM5_NB00_VXD, FileKind.LE);
 
         private void Test(string path, FileKind expectedKind) =>
             Test<IFile>(path, expectedKind, null);

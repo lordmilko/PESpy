@@ -42,13 +42,19 @@ namespace PESpy.PDB
                 {
                     var size = sizeof(int); //NumStreams
 
-                    var streamSizes = StreamSizes;
+                    var streamInfos = StreamInfos;
 
-                    size += streamSizes.Length + sizeof(int); //StreamSizes
+                    size += StreamInfos.Length * sizeof(int);
 
                     //StreamPages
-                    for (var i = 0; i < streamSizes.Length; i++)
-                        size += streamSizes[i] * sizeof(int);
+                    for (var i = 0; i < streamInfos.Length; i++)
+                    {
+                        ref var si = ref streamInfos[i];
+
+                        //StreamSizes contains the number of bytes in each stream; you have to divide by the page size
+                        //to get the actual number of pages
+                        size += si.PageList.Length * sizeof(int);
+                    }
 
                     return size;
                 }

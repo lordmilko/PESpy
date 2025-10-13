@@ -37,6 +37,8 @@ namespace PESpy
 
         IFile IFileMemoryBlockProvider.File => File;
 
+        public int StartOffset => 0;
+
         internal bool is32Bit;
 
         public RemoteMemoryBlockProvider(IMemoryReader reader, long baseAddress, PEFile peFile)

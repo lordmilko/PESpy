@@ -10,6 +10,8 @@ namespace PESpy
     /// </summary>
     public struct ImageDebugDirectory : IValue, IViewable
     {
+        //Supposedly the minor version is always a certain value when it's a portable PDB, however I'm not going to rely on that
+        //https://github.com/dotnet/runtime/blob/e17146d71a7e7af60e0f9320659c4677d4b68b49/src/coreclr/vm/debugdebugger.cpp#L30
         private const int PORTABLE_PDB_MINOR_VERSION = 20557; //PM
 
         /// <summary>
@@ -129,7 +131,10 @@ namespace PESpy
                                 //C:\Windows\system32\FM20.dll has this with a size of 4. Nobody knows what to do with this directory however
                                 //Format seems to be BB 00 and then two more bytes. aspnet_filter.dll had BB 03
                                 if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
+                                {
+                                    Debug.Assert(SizeOfData == 4);
                                     data = new ByteBlob(valueChunk, SizeOfData);
+                                }
                                 else
                                     data = default;
                                 break;
@@ -269,16 +274,19 @@ namespace PESpy
         {
             var sig = (CodeViewSig) chunk.PeekUInt32(0);
 
-            switch ((CodeViewSig) chunk.PeekUInt32(0))
+            switch (sig)
             {
-                case CodeViewSig.NB10: //PDB v2.0
+                //PDB v2.0
+                case CodeViewSig.NB10:
                     return new NB10I(chunk);
 
-                case CodeViewSig.NB09: //OMF
+                //OMF
+                case CodeViewSig.NB09: //Note that I don't think you can actually have NB09 in a PE file
                 case CodeViewSig.NB11:
                     return OMFReader.ReadNB05(chunk, sig, chunk.PeekInt32(sizeOfData - 4), sizeOfData); //The last 4 bytes of the data should be lfoBase, which should be the same value as sizeOfData as well
 
-                case CodeViewSig.RSDS: //PDB v7.0
+                //PDB v7.0
+                case CodeViewSig.RSDS:
                     return new RSDSI(chunk);
 
                 default:

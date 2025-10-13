@@ -1,4 +1,3 @@
-using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.View;
 
@@ -19,7 +18,7 @@ namespace PESpy.Tests
 
             fixed (byte* p = bytes)
             {
-                var strs = StringParser.GetStrings(new NativeSpan<byte>(p, bytes.Length));
+                var strs = StringParser.GetStrings(p, bytes.Length);
 
                 Assert.AreEqual(3, strs.Length);
                 Assert.AreEqual("KERNEL32.dll", strs[0].ToString());
@@ -29,9 +28,20 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void StringParser_UTF16_NullTerminated()
+        public unsafe void StringParser_UTF16_NullTerminated()
         {
-            throw new NotImplementedException();
+            var bytes = new byte[]
+            {
+                0x4b, 0x00, 0x45, 0x00, 0x52, 0x00, 0x4e, 0x00, 0x45, 0x00, 0x4c, 0x00, 0x33, 0x00, 0x32, 0x00, 0x2e, 0x00, 0x64, 0x00, 0x6c, 0x00, 0x6c, 0x00, 0x00, 0x00
+            };
+
+            fixed (byte* p = bytes)
+            {
+                var str = StringParser.GetStrings(p, bytes.Length);
+                Assert.AreEqual(1, str.Length);
+                Assert.AreEqual("KERNEL32.dll", str[0].ToString());
+                Assert.AreEqual(26, str[0].Length);
+            }
         }
 
         [TestMethod]
@@ -57,7 +67,7 @@ namespace PESpy.Tests
 
             fixed (byte* p = bytes)
             {
-                var str = StringParser.GetStrings(new NativeSpan<byte>(p, bytes.Length));
+                var str = StringParser.GetStrings(p, bytes.Length);
 
                 Assert.AreEqual(1, str.Length);
                 Assert.AreEqual("SXSManifest", str[0].ToString());

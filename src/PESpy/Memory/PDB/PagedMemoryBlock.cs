@@ -28,12 +28,15 @@ namespace PESpy
         //the data is split between non-contiguous pages
         internal bool OwnsMemory => mmf != null;
 
+        private readonly int fileLength;
+
         public PagedMemoryBlock(
             PN[] pageList,
             int byteCount,
             int pageSize,
             byte* mmfAddress,
             bool writable,
+            int fileLength,
             PDBFile? pdbFile) : base(null, writable)
         {
             if (pageList.Length == 0)
@@ -43,6 +46,7 @@ namespace PESpy
 
             this.pageList = pageList;
             this.byteCount = byteCount;
+            this.fileLength = fileLength;
 
             this.pageSize = pageSize;
             PDBFile = pdbFile;
@@ -81,6 +85,10 @@ namespace PESpy
                 //Fast path: there's only one page. Data already in the PDB should already have been zeroed
 
                 var pageStart = pageList[0] * pageSize;
+
+                if (pageStart + length > fileLength)
+                    throw new BadImageFormatException($"PDB File is corrupt: file is only {fileLength} bytes, however the Stream Table references page {pageList[pageList.Length - 1]} which requires a length of at least {pageList[pageList.Length - 1] * pageSize} bytes");
+
                 LocalPointer = sourceAddress + pageStart;
                 RemoteStartOffset = pageStart;
             }
@@ -137,7 +145,12 @@ namespace PESpy
 
                     for (var i = 0; i < pageList.Length; i++)
                     {
-                        var source = new Span<byte>(sourceAddress + (pageList[i] * pageSize), pageSize);
+                        var sourceOffset = pageList[i] * pageSize;
+
+                        if (sourceOffset + pageSize > fileLength)
+                            throw new BadImageFormatException($"PDB File is corrupt: file is only {fileLength} bytes, however the Stream Table references page {pageList[i]} which requires a length of at least {sourceOffset + pageSize} bytes");
+
+                        var source = new Span<byte>(sourceAddress + sourceOffset, pageSize);
                         var destination = new Span<byte>((byte*) (destAddress + (i * pageSize)), pageSize);
 
                         source.CopyTo(destination);

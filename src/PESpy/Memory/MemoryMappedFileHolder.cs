@@ -24,6 +24,9 @@ namespace PESpy
             else
                 Writable = false;
 
+            if (fs.Length == 0)
+                throw new BadImageFormatException("File is empty");
+
             mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, access.Value, HandleInheritability.None, false);
             mma = mmf.CreateViewAccessor(0, 0, access.Value);
 
@@ -69,7 +72,11 @@ namespace PESpy
                 }
                 finally
                 {
-                    mma.SafeMemoryMappedViewHandle.ReleasePointer();
+                    //If we encountered an exception while trying to open a file, they may have already close the handle for us
+
+                    if (!mma.SafeMemoryMappedViewHandle.IsClosed)
+                        mma.SafeMemoryMappedViewHandle.ReleasePointer();
+
                     Address = (byte*) 0;
                 }
             }

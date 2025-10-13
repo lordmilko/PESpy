@@ -56,7 +56,7 @@ namespace PESpy.View
 
     internal interface IViewDisassembler
     {
-        void Initialize(PEFile peFile);
+        void Initialize(IFile file);
 
         bool TryParseDosStub(ref int offset, ref NativeSpan<byte> bytes, List<IView> results);
 

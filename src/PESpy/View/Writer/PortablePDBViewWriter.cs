@@ -1,4 +1,5 @@
 ﻿using System;
+using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -6,15 +7,7 @@ namespace PESpy.View
     {
         private PortablePDBFile portablePDBFile;
 
-        protected unsafe PortablePDBViewWriter(PortablePDBFile portablePDBFile) : this(portablePDBFile, (byte*) 1, 1)
-        {
-            this.portablePDBFile = portablePDBFile;
-        }
-
-        internal unsafe PortablePDBViewWriter(
-            PortablePDBFile portablePDBFile,
-            byte* mmf,
-            int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe PortablePDBViewWriter(PortablePDBFile portablePDBFile) : base(portablePDBFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.portablePDBFile = portablePDBFile;
         }

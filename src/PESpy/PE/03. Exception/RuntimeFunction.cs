@@ -9,7 +9,7 @@ namespace PESpy
     [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
     public struct RuntimeFunction : IValue, IViewable
     {
-        private const int UnwindDataOffset = 8;
+        internal const int UnwindDataOffset = 8;
 
         public int BeginAddress => chunk.PeekInt32(0);
 

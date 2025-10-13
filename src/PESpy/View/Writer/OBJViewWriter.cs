@@ -10,12 +10,7 @@ namespace PESpy.View
 
         IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk) => objFile.FileHeader.Machine;
 
-        protected unsafe OBJViewWriter(OBJFile objFile) : this(objFile, (byte*) 1, 1)
-        {
-        }
-
-        internal unsafe OBJViewWriter(OBJFile objFile, byte* mmf, int length) :
-            base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe OBJViewWriter(OBJFile objFile) : base(objFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.objFile = objFile;
         }
@@ -34,11 +29,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(objFile, structs, extension);
+            using var merger = new Merger(objFile, structs, byteViewProvider);
 
             var results = merger.MergeOBJ();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.OBJFile);
+            return new FileView(ViewMode.Physical, objFile.Name, results, ViewKind.OBJFile);
         }
     }
 }

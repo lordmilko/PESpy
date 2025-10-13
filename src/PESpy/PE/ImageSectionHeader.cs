@@ -10,8 +10,8 @@ namespace PESpy
     /// </summary>
     public struct ImageSectionHeader : IValue, IViewable //Stored in an array, so can be a struct
     {
-        private const int PointerToRelocationsOffset = 24;
-        private const int PointerToLineNumbersOffset = 28;
+        internal const int PointerToRelocationsOffset = 24;
+        internal const int PointerToLineNumbersOffset = 28;
 
         /// <summary>
         /// The name of the section.

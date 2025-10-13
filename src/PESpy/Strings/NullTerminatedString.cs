@@ -1,0 +1,156 @@
+﻿using System;
+using System.Diagnostics;
+using System.Text;
+using Roslyn.Utilities;
+
+namespace PESpy
+{
+    public enum StringKind
+    {
+        ANSI = 1,
+        UTF8 = 2,
+        UTF16 = 3
+    }
+
+    /// <summary>
+    /// A pointer to a null-terminated, constant string of any kind (ANSI, UTF-8 or UTF-16)
+    /// </summary>
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
+    public readonly unsafe struct NullTerminatedString :
+        IString<NullTerminatedString, byte>,
+        IEquatable<string>,
+        IComparable<string>
+    {
+        public readonly byte* Value;
+
+        public StringKind Kind { get; }
+
+        private string DebuggerDisplay => this.ToString();
+
+        public NullTerminatedString(byte* value, StringKind kind)
+        {
+            Value = value;
+            Kind = kind;
+        }
+
+        public int Length
+        {
+            get
+            {
+                if (Kind == StringKind.UTF16)
+                    return StringHelpers.GetWideStringLength((char*) Value);
+                else
+                    return StringHelpers.GetStringLength(Value);
+            }
+        }
+
+        #region IString
+
+        public bool StartsWith(string value) => throw new NotImplementedException();
+
+        public bool EndsWith(string value) => throw new NotImplementedException();
+
+        public bool Contains(string value) => throw new NotImplementedException();
+
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
+
+        public void CopyTo(Span<char> destination)
+        {
+            if (Kind == StringKind.UTF16)
+                new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).CopyTo(destination);
+            else
+                StringHelpers.CopyTo(AsSpan(), destination);
+        }
+
+        public Span<byte> AsSpan()
+        {
+            var length = Length;
+
+            if (Kind == StringKind.UTF16)
+                length *= 2;
+
+            return new Span<byte>(Value, length);
+        }
+
+        #endregion
+        #region IEquatable / IComparable (NullTerminatedString)
+
+        public bool Equals(NullTerminatedString other) =>
+            AsSpan().SequenceEqual(other.AsSpan());
+
+        public int CompareTo(NullTerminatedString other) =>
+            AsSpan().SequenceCompareTo(other.AsSpan());
+
+        #endregion
+        #region IEquatable / IComparable (string)
+
+        public bool Equals(string? other)
+        {
+            if (other == null)
+                return Value == default;
+
+            if (Kind == StringKind.UTF16)
+                return new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).SequenceEqual(other.AsSpan());
+
+            return StringHelpers.Equals(Value, Length, other);
+        }
+
+        public int CompareTo(string other)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region Operators
+
+        //Conversions
+
+        //No implicit conversion from byte* to NullTerminatedString; you must specify a StringKind
+
+        public static implicit operator byte*(NullTerminatedString value) => value.Value;
+
+        //Equality
+
+        public static bool operator ==(NullTerminatedString left, string right) => left.Equals(right);
+        public static bool operator !=(NullTerminatedString left, string right) => !left.Equals(right);
+
+        public static bool operator ==(string left, NullTerminatedString right) => right.Equals(left);
+        public static bool operator !=(string left, NullTerminatedString right) => !right.Equals(left);
+
+        public static bool operator ==(NullTerminatedString left, NullTerminatedString right) => right.Equals(left);
+        public static bool operator !=(NullTerminatedString left, NullTerminatedString right) => !right.Equals(left);
+
+        #endregion
+
+        public override bool Equals(object obj)
+        {
+            if (obj is NullTerminatedString p)
+                return Equals(p);
+
+            if (obj is string s)
+                return Equals(s);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
+
+        public override string ToString()
+        {
+            if (Value is null)
+                return null;
+
+            switch (Kind)
+            {
+                case StringKind.UTF16:
+                    return new string((char*) Value);
+
+                case StringKind.UTF8:
+                    return new string((sbyte*) Value, 0, Length, Encoding.UTF8);
+
+                default:
+                    return new string((sbyte*) Value, 0, Length, Encoding.Default);
+            }
+        }
+    }
+}

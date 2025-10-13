@@ -2,6 +2,7 @@
 using System.IO;
 using PESpy.OMF;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -59,71 +60,79 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            var libHdr = new LIBHDR(mmf.Address);
-
-            if (libHdr.RecordType != OMFRecordType.LIBHDR)
-                throw new InvalidOperationException($"Expected the header to contain a record of type '{nameof(OMFRecordType.LIBHDR)}'. Actual type: '{libHdr.RecordType}'");
-
-            LibHdr = libHdr;
-
-            var pageSize = libHdr.PageSize;
-
-            var ptr = mmf.Address + pageSize;
-
-            var end = mmf.Address + mmf.Length;
-
-            using var modules = new PooledList<ObjectModule>();
-
-            using var results = new PooledList<OMFRecord>();
-
-            var offset = 0;
-
-            //Contrary to popular belief, in Microsoft LIB files each object file may begin with THEADR and not LHEADR
-            while (ptr < end)
+            try
             {
-                var record = new OMFRecord(ptr + offset);
-                offset += record.RecordLength + sizeof(byte) + sizeof(short); //Note: ptr begins 1 page size in, so this won't match the dictionary offset when we hit the DICHDR
+                var libHdr = new LIBHDR(mmf.Address);
 
-                if (record.RecordType == OMFRecordType.DICHDR)
+                if (libHdr.RecordType != OMFRecordType.LIBHDR)
+                    throw new InvalidOperationException($"Expected the header to contain a record of type '{nameof(OMFRecordType.LIBHDR)}'. Actual type: '{libHdr.RecordType}'");
+
+                LibHdr = libHdr;
+
+                var pageSize = libHdr.PageSize;
+
+                var ptr = mmf.Address + pageSize;
+
+                var end = mmf.Address + mmf.Length;
+
+                using var modules = new PooledList<ObjectModule>();
+
+                using var results = new PooledList<OMFRecord>();
+
+                var offset = 0;
+
+                //Contrary to popular belief, in Microsoft LIB files each object file may begin with THEADR and not LHEADR
+                while (ptr < end)
                 {
-                    Dictionary = ParseDictionary(ref offset);
-                    break;
+                    var record = new OMFRecord(ptr + offset);
+                    offset += record.RecordLength + sizeof(byte) + sizeof(short); //Note: ptr begins 1 page size in, so this won't match the dictionary offset when we hit the DICHDR
+
+                    if (record.RecordType == OMFRecordType.DICHDR)
+                    {
+                        Dictionary = ParseDictionary(ref offset);
+                        break;
+                    }
+
+    #if DEBUG
+                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
+                    ObjectOMFRecordDispatcher.Instance.Dispatch(record);
+    #endif
+
+                    results.Add(record);
+
+                    if (record.RecordType == OMFRecordType.MODEND)
+                    {
+                        modules.Add(new ObjectModule(results.ToArray()));
+                        results.Clear();
+
+                        //Align to the next page interval
+                        offset = (offset + (pageSize - 1)) & (~(pageSize - 1));
+                    }
                 }
 
+                Modules = modules.ToArray();
+
+                ptr += offset;
+
+                if (ptr < end)
+                {
+                    var omfRecord = new OMFRecord(ptr);
+
+                    if (omfRecord.RecordType == OMFRecordType.LIBEXD)
+                    {
 #if DEBUG
-                //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                OMFRecordProxy.GetValue(record);
+                        //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
+                        ObjectOMFRecordDispatcher.Instance.Dispatch(omfRecord);
 #endif
 
-                results.Add(record);
-
-                if (record.RecordType == OMFRecordType.MODEND)
-                {
-                    modules.Add(new ObjectModule(results.ToArray()));
-                    results.Clear();
-
-                    //Align to the next page interval
-                    offset = (offset + (pageSize - 1)) & (~(pageSize - 1));
+                        ExtDic = (LIBEXD) omfRecord;
+                    }
                 }
             }
-
-            Modules = modules.ToArray();
-
-            ptr += offset;
-
-            if (ptr < end)
+            catch
             {
-                var omfRecord = new OMFRecord(ptr);
-
-                if (omfRecord.RecordType == OMFRecordType.LIBEXD)
-                {
-#if DEBUG
-                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                    OMFRecordProxy.GetValue(omfRecord);
-#endif
-
-                    ExtDic = (LIBEXD) omfRecord;
-                }
+                Dispose();
+                throw;
             }
         }
 
@@ -162,6 +171,8 @@ namespace PESpy
         {
             throw new NotImplementedException();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         public void Dispose()
         {

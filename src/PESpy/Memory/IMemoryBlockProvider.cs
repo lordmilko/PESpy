@@ -2,6 +2,8 @@
 {
     interface IMemoryBlockProvider
     {
+        int StartOffset { get; }
+
         MemoryBlock CreateBlock(int offsetOrRVA, int size);
     }
 

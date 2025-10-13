@@ -151,7 +151,20 @@ namespace PESpy.View
         public static string File(FileView view)
         {
             if (view.Kind == ViewKind.PEFile)
-                return $"[{view.ViewMode}] Count = {view.Children.Length}";
+            {
+                if (view.Offset == 0)
+                {
+                    if (view.Name != null)
+                        return $"[{view.ViewMode}] {view.Name} ({view.Children.Length})";
+
+                    return $"[{view.ViewMode}] Count = {view.Children.Length}";
+                }
+
+                var builder = new StringBuilder();
+                WriteRange(builder, view);
+                builder.Append(view.Name);
+                return builder.ToString();
+            }
 
             return $"Count = {view.Children.Length}";
         }
@@ -238,7 +251,7 @@ namespace PESpy.View
                 if (needName)
                     builder.Append(" (").Append(field.Name).Append(")");
             }
-            else if (view.Name == "OMFDirEntry")
+            else if (view.Name == "OMFDirEntry" || view.Name == "dnt")
             {
                 var subSection = fields.First(f => f.Name == "SubSection");
                 builder.Append(" ").Append(subSection.Value);
@@ -249,7 +262,7 @@ namespace PESpy.View
                     builder.Append(" ").Append(enhancedName);
                 else
                 {
-                    var nameField = fields.FirstOrDefault(f => f.Name == "Name")?.Value;
+                    var nameField = fields.FirstOrDefault(f => f.Name == "Name" || f.Name == "name")?.Value;
 
                     if (nameField != null)
                     {

@@ -1,0 +1,29 @@
+﻿using PESpy.View.Builder;
+
+namespace PESpy.View
+{
+    internal class NestedPEViewWriter : PEViewWriter
+    {
+        private PEViewWriter outerWriter;
+
+        internal unsafe NestedPEViewWriter(PEViewWriter parentWriter, ByteViewProvider byteViewProvider, PEFile peFile) : base(parentWriter, peFile, byteViewProvider)
+        {
+            this.outerWriter = parentWriter;
+        }
+
+        protected internal override IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize, ViewWriter? viewWriter)
+        {
+            return outerWriter.NewStruct(name, value, kind, structSize, this);
+        }
+
+        protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)
+        {
+            return outerWriter.NewValue(offset, value, size, kind);
+        }
+
+        protected internal override void WriteXRef(int fieldOffset, int targetOffset)
+        {
+            outerWriter.WriteXRef(fieldOffset, targetOffset);
+        }
+    }
+}

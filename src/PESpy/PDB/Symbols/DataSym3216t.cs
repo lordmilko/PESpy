@@ -6,6 +6,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="DATASYM32_16t"/> structure.
     /// </summary>
+    [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")] //For S_PUB32_16t
     public readonly unsafe struct DataSym3216t
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

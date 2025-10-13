@@ -3,6 +3,8 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //NT 4 refers to this as the CV 4.0 dnthdr/DNTHDR
+    [Source(SourceKind.cvexefmt)]
     public readonly struct OMFDirHeader : IValue, IViewable
     {
         public ushort cbDirHeader => chunk.PeekUInt16(0);

@@ -7,15 +7,11 @@ namespace PESpy.View
     {
         private readonly NEFile neFile;
 
-        protected unsafe NEViewWriter(NEFile peFile) : this(peFile, (byte*) 1, 1, null)
+        protected unsafe NEViewWriter(NEFile peFile) : this(peFile, peFile.CreateByteViewProvider(null))
         {
         }
 
-        internal unsafe NEViewWriter(
-            NEFile neFile,
-            byte* mmf,
-            int length,
-            IViewDisassembler? viewDisassembler) : base(mmf, length, viewDisassembler, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe NEViewWriter(NEFile neFile, ByteViewProvider byteViewProvider) : base(byteViewProvider, ViewMode.Default, TryGetViewOffset, null)
         {
             this.neFile = neFile;
         }
@@ -34,11 +30,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(neFile, structs, extension);
+            using var merger = new Merger(neFile, structs, byteViewProvider);
 
             var results = merger.MergeNE();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.NEFile);
+            return new FileView(ViewMode.Physical, neFile.Name, results, ViewKind.NEFile);
         }
     }
 }

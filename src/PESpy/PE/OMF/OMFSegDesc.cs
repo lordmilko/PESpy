@@ -3,6 +3,7 @@ using PESpy.View;
 
 namespace PESpy
 {
+    [Source(SourceKind.cvexefmt)]
     public readonly struct OMFSegDesc : IValue, IViewable
     {
         public ushort Seg => chunk.PeekUInt16(0);

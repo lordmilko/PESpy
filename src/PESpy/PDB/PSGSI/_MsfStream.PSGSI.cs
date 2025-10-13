@@ -119,7 +119,23 @@ namespace PESpy.PDB
                 }
             }
 
-            public unsafe NativeSpan<SO> SectionMap => chunk.PeekNativeSpan<SO>(SectionMapOffset, PSGsiHdr.nSects);
+            /* The section map is read in PSGSI1::readThunkMap. This method bails out early if it sees that nThunks is 0.
+             * However, it's possible to have a dodgy PDB wherein nThunks is 0 but nSects is _not_ 0, and so many sections
+             * are listed that it takes you past the end of the PDB! Attempting to call PSGSI1::getEnumThunk on such a PDB
+             * will cause a crash, as readThunkMap still returns TRUE when nThunks is 0, which causes an AV when getEnumThunk
+             * then tries to read into bufSectMap, which is empty. The section map is tightly connected with the thunk map,
+             * with PSGSI1::pbInThunkTable calling offThunkMap followed by mapOff. As such, we'll say that if nThunks is 0,
+             * don't trust whatever is listed in nSects */
+            public unsafe NativeSpan<SO> SectionMap
+            {
+                get
+                {
+                    if (PSGsiHdr.nThunks == 0)
+                        return default; 
+
+                    return chunk.PeekNativeSpan<SO>(SectionMapOffset, PSGsiHdr.nSects);
+                }
+            }
 
             private SYMTYPE*[]? fakeThunkSymbols;
             private MemoryBuffer[]? fakeThunkStorage;
@@ -417,6 +433,8 @@ namespace PESpy.PDB
                     name[0] = (byte) (i - 1); //Set the ST string length prefix. -1 because i skipped over index 0 which will store the length
 
                 return i;
+            }
+
             public bool TryGetNearestSymbol(int relativeOffset, int sectionNumber, out SymType symType, out int displacement)
             {
                 if (AddressMapSymbols == null)

@@ -173,7 +173,7 @@ namespace PESpy.View
                 }
             }
 
-            i = j - 1;
+            i = j; //The caller will do i++ for us
         }
 
         //Don't pass NativeSpan around; it's too slow indexing into it
@@ -220,11 +220,11 @@ namespace PESpy.View
 
             if (foundEnd)
             {
-                var length = (j - i);
+                var length = (j - i) + 2;
 
                 if (length >= MinimumStringLength * 2) //4 characters
                 {
-                    var str = new FixedUtf16String((char*) (byte*) bytes + i, length / 2);
+                    var str = new FixedUtf16String((char*) (byte*) (bytes + i), (length - 2) / 2);
 
                     results.Add(new ExtractedString
                     {
@@ -235,7 +235,7 @@ namespace PESpy.View
                     });
                 }
 
-                i = j + 1;
+                i = j + 1; //This does seem to be right; don't need +2. The caller will do i++ for us
             }
         }
     }

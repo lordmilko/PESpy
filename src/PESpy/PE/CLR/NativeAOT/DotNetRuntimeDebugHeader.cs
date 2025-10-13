@@ -149,7 +149,6 @@ namespace PESpy
         internal int StructSize => FixedStructSize + (2 * chunk.PointerSize);
 
         internal const int FixedStructSize =
-            sizeof(int) + //AotSignature
             sizeof(int) + //Cookie
             sizeof(short) + //MajorVersion
             sizeof(short) + //MinorVersion
@@ -165,8 +164,37 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAPointerField(DebugTypeEntries, FixedStructSize);
-            writer.WriteVAPointerField(GlobalValueEntries, FixedStructSize + chunk.PointerSize);
+            if (DebugTypeEntries.IsValid)
+            {
+                using var r = writer.CreateRegion(
+                    DebugTypeEntries.ActualOffset,
+                    FixedStructSize,
+                    "DebugTypeEntries",
+                    ViewKind.DebugTypeEntries,
+                    false
+#if DEBUG
+                    , DebugTypeEntries.ListedAddress
+#endif
+                );
+
+                r.WriteValues(DebugTypeEntries.Value);
+            }
+
+            if (GlobalValueEntries.IsValid)
+            {
+                using var r = writer.CreateRegion(
+                    GlobalValueEntries.ActualOffset,
+                    FixedStructSize + chunk.PointerSize,
+                    "GlobalValueEntries",
+                    ViewKind.GlobalValueEntries,
+                    false
+#if DEBUG
+                    , GlobalValueEntries.ListedAddress
+#endif
+                );
+
+                r.WriteValues(GlobalValueEntries.Value);
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -181,22 +209,8 @@ namespace PESpy
             s.WriteField(nameof(MinorVersion), MinorVersion);
             s.WriteField(nameof(Flags), Flags);
             s.WriteField(nameof(ReservedPadding1), ReservedPadding1);
-            s.WritePointerField(nameof(DebugTypeEntries), DebugTypeEntries.ListedAddress);
-            s.WritePointerField(nameof(GlobalValueEntries), GlobalValueEntries.ListedAddress);
-
-            if (DebugTypeEntries.IsValid)
-            {
-                using var r = viewWriter.CreateRegion(DebugTypeEntries.ActualOffset, "DebugTypeEntries", ViewKind.DebugTypeEntries);
-
-                r.WriteValues(DebugTypeEntries.Value);
-            }
-
-            if (GlobalValueEntries.IsValid)
-            {
-                using var r = viewWriter.CreateRegion(GlobalValueEntries.ActualOffset, "GlobalValueEntries", ViewKind.GlobalValueEntries);
-
-                r.WriteValues(GlobalValueEntries.Value);
-            }
+            s.WriteVAPointerField(nameof(DebugTypeEntries), DebugTypeEntries);
+            s.WriteVAPointerField(nameof(GlobalValueEntries), GlobalValueEntries);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

@@ -14,23 +14,40 @@ namespace PESpy
         public const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
         public const int IMAGE_ENCLAVE_LONG_ID_LENGTH = 32;
 
-        private int LockPrefixTableOffset => 24 + (2 * chunk.PointerSize);
-        private int SecurityCookieOffset => 32 + (7 * chunk.PointerSize);
-        private int SEHandlerTableOffset => 32 + (8 * chunk.PointerSize);
-        private int GuardCFCheckFunctionPointerOffset => 32 + (10 * chunk.PointerSize);
-        private int GuardCFDispatchFunctionPointerOffset => 32 + (11 * chunk.PointerSize);
-        private int GuardCFFunctionTableOffset => 32 + (12 * chunk.PointerSize);
-        private int GuardAddressTakenIatEntryTableOffset => 48 + (14 * chunk.PointerSize);
-        private int GuardLongJumpTargetTableOffset => 48 + (16 * chunk.PointerSize);
-        private int GuardRFFailureRoutineFunctionPointerOffset => 48 + (21 * chunk.PointerSize);
-        private int DynamicValueRelocTableOffsetOffset => 48 + (22 * chunk.PointerSize);
-        private int GuardRFVerifyStackPointerFunctionPointerOffset => 56 + (22 * chunk.PointerSize);
-        private int EnclaveConfigurationPointerOffset => 64 + (23 * chunk.PointerSize);
-        private int GuardEHContinuationTableOffset => 64 + (25 * chunk.PointerSize);
-        private int GuardXFGCheckFunctionPointerOffset => 64 + (27 * chunk.PointerSize);
-        private int GuardXFGDispatchFunctionPointerOffset => 64 + (28 * chunk.PointerSize);
-        private int GuardXFGTableDispatchFunctionPointerOffset => 64 + (29 * chunk.PointerSize);
-        private int GuardMemcpyFunctionPointerOffset => 64 + (31 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int LockPrefixTableOffset => 24 + (2 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int SecurityCookieOffset => 32 + (7 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int SEHandlerTableOffset => 32 + (8 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardCFCheckFunctionPointerOffset => 32 + (10 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardCFDispatchFunctionPointerOffset => 32 + (11 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardCFFunctionTableOffset => 32 + (12 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardAddressTakenIatEntryTableOffset => 48 + (14 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardLongJumpTargetTableOffset => 48 + (16 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardRFFailureRoutineFunctionPointerOffset => 48 + (21 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int DynamicValueRelocTableOffsetOffset => 48 + (22 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardRFVerifyStackPointerFunctionPointerOffset => 56 + (22 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int EnclaveConfigurationPointerOffset => 64 + (23 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardEHContinuationTableOffset => 64 + (25 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardXFGCheckFunctionPointerOffset => 64 + (27 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardXFGDispatchFunctionPointerOffset => 64 + (28 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardXFGTableDispatchFunctionPointerOffset => 64 + (29 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int GuardMemcpyFunctionPointerOffset => 64 + (31 * chunk.PointerSize);
 
         /// <summary>
         /// The size of the structure. For Windows XP, the size must be specified as 64 for x86 images.
@@ -81,13 +98,13 @@ namespace PESpy
         /// </summary>
         public long DeCommitTotalFreeThreshold => chunk.TryPeekPointer(24 + chunk.PointerSize, Size);
 
+        private VA<int[]> lockPrefixTable;
+
         /// <summary>
         /// [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP
         /// on single processor machines.
         /// </summary>
-        private VA<ulong[]> lockPrefixTable;
-
-        public VA<ulong[]> LockPrefixTable
+        public VA<int[]> LockPrefixTable
         {
             get
             {
@@ -103,7 +120,7 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            using var entries = new PooledList<ulong>();
+                            using var entries = new PooledList<int>();
 
                             var pointerSize = chunk.PointerSize;
 
@@ -111,7 +128,7 @@ namespace PESpy
 
                             while (true)
                             {
-                                var entry = valueChunk.PeekPointer(read);
+                                var entry = (int) valueChunk.PeekPointer(read);
                                 read += pointerSize;
 
                                 entries.Add(entry);
@@ -120,10 +137,10 @@ namespace PESpy
                                     break;
                             }
 
-                            lockPrefixTable = new VA<ulong[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
+                            lockPrefixTable = new VA<int[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
                         }
                         else
-                            lockPrefixTable = new VA<ulong[]>(value);
+                            lockPrefixTable = new VA<int[]>(value);
                     }
                 }
 
@@ -233,11 +250,11 @@ namespace PESpy
             }
         }
 
+        private VA<int[]> seHandlerTable;
+
         /// <summary>
         /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.
         /// </summary>
-        private VA<int[]> seHandlerTable;
-
         public VA<int[]> SEHandlerTable
         {
             get
@@ -675,8 +692,7 @@ namespace PESpy
 
             writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer, fieldOffset: GuardRFFailureRoutineFunctionPointerOffset); //33
 
-            if (DynamicValueRelocTableOffset.IsValid) //34
-                writer.WriteGlobal((IViewable) DynamicValueRelocTableOffset.Value);
+            writer.WriteRVAField(DynamicValueRelocTableOffset, DynamicValueRelocTableOffsetOffset);
 
             writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer, fieldOffset: GuardRFVerifyStackPointerFunctionPointerOffset); //37
 
@@ -852,7 +868,7 @@ namespace PESpy
                         break;
 
                     case 34:
-                        s.WriteField(nameof(DynamicValueRelocTableOffset), DynamicValueRelocTableOffset.ListedOffset);
+                        s.WriteRVAField(nameof(DynamicValueRelocTableOffset), DynamicValueRelocTableOffset);
                         break;
 
                     case 35:

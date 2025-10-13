@@ -6,6 +6,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="PUBSYM32"/> structure.
     /// </summary>
+    [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")] //For S_PUB32_ST / S_PUB32
     public readonly unsafe struct PubSym32
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

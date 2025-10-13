@@ -46,7 +46,7 @@ namespace PESpy.PDB
             if (value == default)
                 return "<null>";
             
-            return SymTypeProxy.GetString(this);
+            return StringSymTypeDispatcher.Instance.Dispatch(this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

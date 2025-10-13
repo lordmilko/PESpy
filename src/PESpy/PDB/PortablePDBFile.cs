@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -84,6 +85,8 @@ namespace PESpy
         {
             throw new NotImplementedException();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

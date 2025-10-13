@@ -168,6 +168,8 @@ namespace PESpy.Tests
         public static readonly string VC60_PDB;
         public static readonly string VC60_DBG;
 
+        public static readonly string VC60_Coff_EXE;
+
         #endregion
         #region 13. Visual Studio 2022
 
@@ -190,9 +192,31 @@ namespace PESpy.Tests
         #endregion
         #region 14. CLR
 
+        public static readonly string Framework_EXE;
+        public static readonly string Framework_PDB;
+
+        public static readonly string Interop_EXE;
+        public static readonly string Interop_PDB;
+
+        public static readonly string Interop_Core_DLL;
+        public static readonly string Interop_Core_PDB;
+
+        public static readonly string MPDB_DLL;
+
+        public static readonly string NativeAOT_EXE;
+        public static readonly string NativeAOT_PDB;
+
+        public static readonly string NGEN_DLL;
+        public static readonly string NGEN_NI_DLL;
+        public static readonly string NGEN_PDB;
+        public static readonly string NGEN_NI_PDB;
+
+        public static readonly string R2R_EXE;
         public static readonly string R2R_DLL;
-        public static readonly string SingleFileApp;
-        public static readonly string NativeAOT;
+        public static readonly string R2R_PDB;
+
+        public static readonly string SingleFileApp_EXE;
+        public static readonly string SingleFileApp_PDB;
 
         #endregion
 
@@ -297,6 +321,8 @@ namespace PESpy.Tests
             VC60_PDB = MakePath("12. vc60\\CoffAndPdbSymbols_PostSplit\\TestApp.pdb");
             VC60_DBG = MakePath("12. vc60\\CoffAndPdbSymbols_PostSplit\\TestApp.dbg");
 
+            VC60_Coff_EXE = MakePath("12. vc60\\CoffSymbolsOnly\\TestApp.exe");
+
             #endregion
             #region 13. Visual Studio 2022
 
@@ -315,9 +341,31 @@ namespace PESpy.Tests
             #endregion
             #region 14. CLR
 
-            R2R_DLL = MakePath("14. CLR\\R2R\\TestApp.dll");
-            SingleFileApp = MakePath("14. CLR\\SingleFileApp\\TestApp.exe");
-            NativeAOT = MakePath("14. CLR\\NativeAOT\\TestApp.exe");
+            Framework_EXE     = MakePath("14. CLR\\framework\\TestApp.exe");
+            Framework_PDB     = MakePath("14. CLR\\framework\\TestApp.pdb");
+
+            Interop_EXE       = MakePath("14. CLR\\interop\\TestApp.exe");
+            Interop_PDB       = MakePath("14. CLR\\interop\\TestApp.pdb");
+
+            Interop_Core_DLL  = MakePath("14. CLR\\interop-core\\TestLib.dll");
+            Interop_Core_PDB  = MakePath("14. CLR\\interop-core\\TestLib.pdb");
+
+            MPDB_DLL          = MakePath("14. CLR\\MPDB\\TestLib.dll");
+
+            NativeAOT_EXE     = MakePath("14. CLR\\NativeAOT\\TestApp.exe");
+            NativeAOT_PDB     = MakePath("14. CLR\\NativeAOT\\TestApp.pdb");
+
+            NGEN_DLL          = MakePath("14. CLR\\NGEN\\TestLib.dll");
+            NGEN_NI_DLL       = MakePath("14. CLR\\NGEN\\TestLib.ni.dll");
+            NGEN_PDB          = MakePath("14. CLR\\NGEN\\TestLib.pdb");
+            NGEN_NI_PDB       = MakePath("14. CLR\\NGEN\\TestLib.ni.pdb");
+
+            R2R_EXE           = MakePath("14. CLR\\R2R\\TestApp.exe");
+            R2R_DLL           = MakePath("14. CLR\\R2R\\TestApp.dll");
+            R2R_PDB           = MakePath("14. CLR\\R2R\\TestApp.pdb");
+
+            SingleFileApp_EXE = MakePath("14. CLR\\SingleFileApp\\TestApp.exe");
+            SingleFileApp_PDB = MakePath("14. CLR\\SingleFileApp\\TestApp.pdb");
 
             #endregion
         }

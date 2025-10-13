@@ -70,20 +70,20 @@ namespace PESpy.View
 
                 var startIndex = views.Count;
 
-                Push();
-
                 for (var i = 0; i < value.Length; i++)
                 {
                     var item = value[i];
 
                     item.WriteGlobals(viewWriter);
-                    item.WriteStruct(viewWriter);
+
+                    var result = item.WriteStruct(viewWriter);
+
+                    if (result != null)
+                        views.Add(result);
                 }
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
-
-                Pop();
             }
 
             public void WriteAnsiNullTerminatedValue(RVA<string> value)

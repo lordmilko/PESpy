@@ -16,7 +16,7 @@ namespace PESpy.View.Builder
 
                 var sizeOfHeaders = leFile.DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
 
-                results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
 
                 var vxdHeader = leFile.VXDHeader;
 
@@ -104,7 +104,7 @@ namespace PESpy.View.Builder
                     return; //current == next, which means current is empty
             }
             else
-                next = (int) extension.GetInputLength() - vxdHeader.Offset;
+                next = byteViewProvider.FileOrSectionLength - vxdHeader.Offset;
 
             //Some offsets are relative to the start of the EXE file, others are relative to the beginning of the LE header
             var start = vxdHeader.Offset + current;

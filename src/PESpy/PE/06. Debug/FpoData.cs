@@ -106,6 +106,7 @@ namespace PESpy
                 bitField.WriteField(nameof(cbFrame), cbFrame, 2);
             }
 
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
         }
 

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -88,7 +89,7 @@ namespace PESpy
 
         private bool disposed;
 
-        private unsafe LEFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal unsafe LEFile(string fileName, in MemoryMappedFileHolder mmf)
         {
             this.mmf = mmf;
 
@@ -97,7 +98,15 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            ReadVXDHeaders();
+            try
+            {
+                ReadVXDHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         ~LEFile()
@@ -114,10 +123,17 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new LEViewWriter(this, mmf.Address, (int) mmf.Length, null);
+            var writer = new LEViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
+        }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
+        {
+            viewDisassembler?.Initialize(this);
+
+            return new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using PESpy.NE;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -242,7 +243,15 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            ReadNEHeaders();
+            try
+            {
+                ReadNEHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         ~NEFile()
@@ -259,10 +268,17 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new NEViewWriter(this, mmf.Address, (int) mmf.Length, null);
+            var writer = new NEViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
+        }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
+        {
+            viewDisassembler?.Initialize(this);
+
+            return new LocalByteViewProvider(mmf.Address, (int) mmf.Length, viewDisassembler);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]

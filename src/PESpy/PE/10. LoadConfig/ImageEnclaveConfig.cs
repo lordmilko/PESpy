@@ -8,7 +8,7 @@ namespace PESpy
     //IMAGE_ENCLAVE_CONFIG32 / IMAGE_ENCLAVE_CONFIG64
     public struct ImageEnclaveConfig : IValue, IViewable
     {
-        private const int ImportListOffset = 16;
+        internal const int ImportListOffset = 16;
 
         public int Size => chunk.PeekInt32(0);
         public int MinimumRequiredConfigSize => chunk.PeekInt32(4);

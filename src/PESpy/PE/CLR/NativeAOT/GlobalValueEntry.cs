@@ -5,7 +5,7 @@ namespace PESpy
 {
     public struct GlobalValueEntry : IValue, IViewable
     {
-        private const int NameOffset = 0;
+        internal const int NameOffset = 0;
 
         private VA<AnsiString> name;
 

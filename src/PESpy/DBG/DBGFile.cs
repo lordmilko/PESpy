@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -191,11 +192,13 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new DBGViewWriter(this, mmf.Address, (int) mmf.Length);
+            var writer = new DBGViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -206,7 +209,9 @@ namespace PESpy
 
             if (names != null && names.Length > 0)
             {
-                using var r = writer.CreateRegion(names[0].Offset, "Exported Names", ViewKind.ExportedNames, true);
+                var offset = names[0].Offset;
+
+                using var r = writer.CreateRegion(offset, "Exported Names", ViewKind.ExportedNames, true);
 
                 foreach (var item in names)
                     r.WriteInlineAnsiNullTerminatedValue(item);

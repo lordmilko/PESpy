@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using ClrDebug;
 using PESpy.OBJ;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -200,8 +201,16 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            //Read the OBJ Headers
-            ReadObjHeaders();
+            try
+            {
+                //Read the OBJ Headers
+                ReadObjHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         ~OBJFile()
@@ -271,11 +280,13 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new OBJViewWriter(this, mmf.Address, (int) mmf.Length);
+            var writer = new OBJViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawPointer(out byte* pointer, out int length)

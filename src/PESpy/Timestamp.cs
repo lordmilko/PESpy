@@ -42,6 +42,9 @@ namespace PESpy
 
         public override string ToString()
         {
+            if (value == 0)
+                return "0";
+
             return ((DateTime) this).ToString();
         }
     }

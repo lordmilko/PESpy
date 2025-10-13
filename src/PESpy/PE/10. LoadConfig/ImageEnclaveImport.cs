@@ -9,8 +9,8 @@ namespace PESpy
     //IMAGE_ENCLAVE_IMPORT
     public struct ImageEnclaveImport : IValue, IViewable
     {
-        private const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
-        private const int ImportNameOffset = 8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
+        internal const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
+        internal const int ImportNameOffset = 8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
 
         public IMAGE_ENCLAVE_IMPORT_MATCH MatchType => (IMAGE_ENCLAVE_IMPORT_MATCH) chunk.PeekUInt32(0);
 
@@ -69,7 +69,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAAnsiNullTerminatedField(ImportName, ViewKind.ImageEnclaveImport_ImportName, fieldOffset: ImportNameOffset);
+            //This name may also be written by ImageImportDescriptor
+            writer.WriteUniqueRVAAnsiNullTerminatedField(ImportName, ViewKind.ImportName, fieldOffset: ImportNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

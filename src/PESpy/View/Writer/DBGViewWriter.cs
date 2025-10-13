@@ -7,11 +7,7 @@ namespace PESpy.View
     {
         private DBGFile dbgFile;
 
-        protected unsafe DBGViewWriter(DBGFile dbgFile) : this(dbgFile, (byte*) 1, 1)
-        {
-        }
-
-        internal unsafe DBGViewWriter(DBGFile dbgFile, byte* mmf, int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe DBGViewWriter(DBGFile dbgFile) : base(dbgFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.dbgFile = dbgFile;
         }
@@ -30,11 +26,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(dbgFile, structs, extension);
+            using var merger = new Merger(dbgFile, structs, byteViewProvider);
 
             var results = merger.MergeDBG();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.DBGFile);
+            return new FileView(ViewMode.Physical, dbgFile.Name, results, ViewKind.DBGFile);
         }
     }
 }

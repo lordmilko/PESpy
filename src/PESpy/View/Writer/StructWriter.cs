@@ -73,6 +73,9 @@ namespace PESpy.View
             public void WriteField(string name, int value) =>
                 WriteFieldInternal(name, value, sizeof(int));
 
+            public void Write7BitField(string name, int value, int size) =>
+                WriteFieldInternal(name, value, size);
+
             /// <inheritdoc cref="WriteField(string, short)"/>
             public void WriteField(string name, uint value) =>
                 WriteFieldInternal(name, value, sizeof(int));
@@ -119,6 +122,13 @@ namespace PESpy.View
                 //A field with a length of 0 will calculate itself as having a negative size (since if it starts at 0 and is 2 large it ends at 1)
                 if (value.Length == 0)
                     return;
+
+                WriteFieldInternal(name, value, value.Length);
+            }
+
+            public void WriteField(string name, byte[] value)
+            {
+                Debug.Assert(value.Length != 0);
 
                 WriteFieldInternal(name, value, value.Length);
             }
@@ -231,7 +241,20 @@ namespace PESpy.View
 
             public void WriteVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
+
+#if DEBUG
+                //Assert that the global has already been written
+                if (value.IsValid)
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
+            }
+
+            public void WriteVAPointerField<T>(string name, VA<T[]> value) where T : IViewable, IValue
+            {
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 //Assert that the global has already been written
@@ -245,6 +268,18 @@ namespace PESpy.View
             public void WriteSmallVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
             {
                 WriteField(name, (int) value.ListedAddress);
+
+#if DEBUG
+                if (value.IsValid)
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedAddress));
+                }
+#endif
+            }
+
+            public void WriteLargeVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
+            {
+                WriteField(name, (long) value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid)
@@ -268,7 +303,7 @@ namespace PESpy.View
 
             public void WriteVAPointerField(string name, VA<long> value, ViewKind valueKind)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid)
@@ -280,7 +315,7 @@ namespace PESpy.View
 
             public void WriteVAPointerField(string name, VA<ulong> value, ViewKind valueKind)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid)
@@ -292,7 +327,7 @@ namespace PESpy.View
 
             public void WriteVAPointerField(string name, VA<ulong[]> value, ViewKind valueKind)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid)
@@ -304,7 +339,7 @@ namespace PESpy.View
 
             public void WriteVAPointerField(string name, VA<int[]> value, ViewKind valueKind)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid)
@@ -329,6 +364,12 @@ namespace PESpy.View
 
             public void WriteAnsiFixedLengthField(string name, FixedAnsiString value)
             {
+                WriteFieldInternal(name, value, value.Length);
+            }
+
+            public unsafe void WriteLengthPrefixedAnsiField(string name, FixedAnsiString value)
+            {
+                WriteValue(currentOffset, (byte) value.Length, 1, ViewKind.String);
                 WriteFieldInternal(name, value, value.Length);
             }
 
@@ -406,7 +447,7 @@ namespace PESpy.View
 
             public void WriteRVAField(string name, RVA<ulong[]> value)
             {
-                WriteField(name, (int) value.ListedOffset);
+                WritePointerField(name, (int) value.ListedOffset);
 
 #if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
@@ -418,7 +459,7 @@ namespace PESpy.View
 
             public void WriteRVAAnsiNullTerminatedField(string name, RVA<string> value)
             {
-                WriteField(name, (int) value.ListedOffset);
+                WritePointerField(name, (int) value.ListedOffset);
 
 #if DEBUG
                 if (value.IsValid && value.ListedOffset != 0)
@@ -430,7 +471,7 @@ namespace PESpy.View
 
             public void WriteVAAnsiNullTerminatedField(string name, VA<string> value)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid && value.ListedAddress != 0)
@@ -442,7 +483,7 @@ namespace PESpy.View
 
             public void WriteVAAnsiNullTerminatedField(string name, VA<AnsiString> value)
             {
-                WriteField(name, value.ListedAddress);
+                WritePointerField(name, value.ListedAddress);
 
 #if DEBUG
                 if (value.IsValid && value.ListedAddress != 0)
@@ -517,16 +558,43 @@ namespace PESpy.View
                 WriteFieldInternal(name, view, view.Size);
             }
 
-            public unsafe void WriteUnmanagedField<T>(string name, T value) where T : unmanaged
+            public void WriteStructField<T>(string name, T[] value) where T : IViewable
             {
-                WriteFieldInternal(name, value, sizeof(T));
+                var oldOffset = viewWriter.UnmanagedOffset;
+                viewWriter.UnmanagedOffset = currentOffset;
+
+                using var results = new PooledList<IView>();
+
+                var size = 0;
+
+                for (var i = 0; i < value.Length; i++)
+                {
+                    ref var item = ref value[i];
+
+                    var result = (IStructView) item.WriteStruct(viewWriter)!;
+
+                    if (result != null)
+                    {
+                        size += result.Size;
+                        results.Add(result);
+                    }
+                }
+
+                viewWriter.UnmanagedOffset = oldOffset;
+
+                WriteFieldInternal(name, results.ToArray(), size);
             }
 
             public void WriteInline<T>(T value) where T : IViewable
             {
-                var startIndex = fields.Count;
+                //If this is a PDB File, you can have an outer struct with 3 fields: A, B, C. A is an int, so uses
+                //the chunk of the parent. B. is a complex struct so gets a new chunk all of its own, and then C
+                //is also an int. If A crosses a page boundary, B's Offset will report the location of the new page,
+                //whereas C won't, because it's using the parent struct's chunk. C will only get its correct offset
+                //during splitting
+                Debug.Assert(viewWriter is PDBViewWriter || ((IValue) value).Offset == currentOffset);
 
-                viewWriter.Push(fields);
+                var startIndex = fields.Count;
 
                 var oldOffset = viewWriter.UnmanagedOffset;
                 viewWriter.UnmanagedOffset = currentOffset;
@@ -537,10 +605,12 @@ namespace PESpy.View
 
                 viewWriter.UnmanagedOffset = oldOffset;
 
-                for (var i = startIndex; i < fields.Count; i++)
-                    currentOffset += fields[i].Size;
+                var fieldsSize = 0;
 
-                viewWriter.Pop();
+                for (var i = startIndex; i < fields.Count; i++)
+                    fieldsSize += fields[i].Size;
+
+                currentOffset += fieldsSize;
             }
 
             public void WriteInline<T>(T[] value) where T : IViewable
@@ -557,6 +627,20 @@ namespace PESpy.View
                     value[i].WriteView(viewWriter);
                     currentOffset += fields[startIndex + i].Size;
             public void WriteInline(in GuardCFFunctionTable value)
+            public void WriteInline<T>(RVA<T> value, ViewKind kind) where T : IViewable, IValue
+            {
+                fields.Add(new ValueView<int>(currentOffset, value.ListedOffset, sizeof(int), kind));
+                currentOffset += sizeof(int);
+
+#if DEBUG
+                if (value.IsValid && value.ListedOffset != 0)
+                {
+                    Debug.Assert(globalFields.Contains(value.ListedOffset));
+                }
+#endif
+            }
+
+            public void WriteInline<TParent, TChild>(in TParent value) where TParent : IEnumerable<TChild> where TChild : IViewable
             {
                 var startIndex = fields.Count;
                 var oldOffset = viewWriter.UnmanagedOffset;
@@ -601,6 +685,12 @@ namespace PESpy.View
                 viewWriter.UnmanagedOffset = oldOffset;
 
                 viewWriter.Pop();
+            }
+
+            public unsafe void WriteInline<T>(RawValue<T> value, ViewKind kind) where T : unmanaged
+            {
+                fields.Add(new ValueView<T>(value.Offset, value.Value, sizeof(T), kind));
+                currentOffset += sizeof(T);
             }
 
             public void WriteInlineAnsiNullTerminated(RawValue<string> value)
@@ -779,6 +869,12 @@ namespace PESpy.View
                     var views = viewWriter.CreateByteBlob(ref currentOffset, required);
                     fields.AddRange(views);
                 }
+            }
+
+            public void Pad(int length)
+            {
+                var views = viewWriter.CreateByteBlob(ref currentOffset, length);
+                fields.AddRange(views);
             }
 
             [Conditional("DEBUG")]

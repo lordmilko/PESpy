@@ -409,7 +409,7 @@ namespace PESpy
         public MemoryChunk(MemoryBlock block, int offset)
         {
             if (!block.Contains(offset))
-                throw new InvalidOperationException($"{nameof(MemoryChunk)} does not contain offset '{offset}'");
+                throw new InvalidOperationException($"{nameof(MemoryChunk)} does not contain offset '0x{offset:X}'");
 
             this.block = block;
             RelativeOffset = offset;

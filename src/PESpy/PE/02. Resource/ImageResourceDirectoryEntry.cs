@@ -56,7 +56,7 @@ namespace PESpy
         }
 
         private const int NameOrIdOffset = 0;
-        private const int DataAndDirectoryOffset = 4;
+        internal const int DataAndDirectoryOffset = 4;
 
         /// <summary>
         /// Gets the parent directory entry of this entry, or <see langword="null"/> if this is the top level entry.<para/>

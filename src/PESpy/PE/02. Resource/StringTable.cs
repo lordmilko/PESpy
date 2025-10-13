@@ -54,7 +54,7 @@ namespace PESpy
 
                     var alignedLength = (currentLength + 3) & ~3;
 
-                    if (alignedLength == 0)
+                    if (alignedLength == currentLength)
                         return 0;
 
                     return chunk.PeekInt16(currentLength);

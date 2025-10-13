@@ -2,6 +2,7 @@
 using System.IO;
 using PESpy.OMF;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -61,32 +62,40 @@ namespace PESpy
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 
-            using var results = new PooledList<OMFRecord>();
-
-            var end = mmf.Address + mmf.Length;
-
-            var ptr = mmf.Address;
-
-            //https://www.azillionmonkeys.com/qed/Omfg.pdf
-            while (ptr < end)
+            try
             {
-                var record = new OMFRecord(ptr);
+                using var results = new PooledList<OMFRecord>();
 
-                var recordType = (byte) record.RecordType;
+                var end = mmf.Address + mmf.Length;
 
-                if (recordType < 0xCA && (recordType & 1) == 1)
-                    throw new InvalidOperationException("32-bit record types are not yet supported");
+                var ptr = mmf.Address;
+
+                //https://www.azillionmonkeys.com/qed/Omfg.pdf
+                while (ptr < end)
+                {
+                    var record = new OMFRecord(ptr);
+
+                    var recordType = (byte) record.RecordType;
+
+                    if (recordType < 0xCA && (recordType & 1) == 1)
+                        throw new InvalidOperationException("32-bit record types are not yet supported");
 
 #if DEBUG
-                //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
-                OMFRecordProxy.GetValue(record);
+                    //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
+                    ObjectOMFRecordDispatcher.Instance.Dispatch(record);
 #endif
 
-                results.Add(record);
-                ptr += record.RecordLength + sizeof(byte) + sizeof(short);
-            }
+                    results.Add(record);
+                    ptr += record.RecordLength + sizeof(byte) + sizeof(short);
+                }
 
-            Records = results.ToArray();
+                Records = results.ToArray();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         ~OMFFile()
@@ -98,6 +107,8 @@ namespace PESpy
         {
             throw new NotImplementedException();
         }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         public void Dispose()
         {

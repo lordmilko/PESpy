@@ -23,6 +23,8 @@ The first CodeView debugger was developed in 1985 and first shipped with Microso
 | NB11 | Windows 11   | Visual C++ 5           | 1997 | 11.00   | *5.00*  |        | Yes    |`vc50\`          | Not sure if there's even a way to prevent packing anymore, it's either automatic, or implied by the NB version. You have to specify No PDB in link options. CodeView 5.0. Only NB10 (PDB 2.0) and RSDS (PDB 7.0) refer to PDBs
 | RSDS | Windows 11   | Visual Studio 2022     | 2022 |         |         |        | N/A    |`vs22\`          |
 
+Symbols sometimes refer to CodeView versions: C6/C7/C11/C13. C11 is VC5.x era, C13 is VC7.x era. C6 is "pre" C7; there is no explicit signature for C6. Note that C13 does not begin immediately with C7. ImpvVC70 can be C11
+
 Packing refers to running CVPACK on the file. Some linkers run CVPACK implicitly and/or automatically
 
 Microsoft C 4.0 (1986) has cl 4.00 and LINK 3.51 but curiously does not seem to generate NB00 (either with LINK or LINK4). It generates files with a DNRB signature at the end. CV.EXE can still debug them. Unlike regular OMF files, the DNRB signature does not repeat itself when you jump back to the end of the normal data in the file

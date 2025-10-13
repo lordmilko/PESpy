@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using System;
+
+namespace PESpy
 {
     /* I can't for the life of me figure out how segments in DOS NB05 symbols are supposed to work.
      * I'm not sure if you're supposed to index into your sstSegDef as per https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
@@ -18,7 +20,7 @@
 
         public override int? GetRelativeVirtualAddress(ushort seg, int off)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException("Reading RVAs from DOS segments + offsets is not implemented");
         }
     }
 }

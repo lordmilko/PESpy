@@ -1,4 +1,5 @@
-﻿using PESpy.LIB;
+﻿using System.Diagnostics;
+using PESpy.LIB;
 
 namespace PESpy.View.Builder
 {
@@ -13,7 +14,7 @@ namespace PESpy.View.Builder
 
             try
             {
-                var length = (int) extension.GetInputLength();
+                var length = byteViewProvider.FileOrSectionLength;
 
                 //Temporarily pretend we're past all directories while trying to construct section regions
                 nextDataDirectoryIndex = discoveredDataDirectories.Count;

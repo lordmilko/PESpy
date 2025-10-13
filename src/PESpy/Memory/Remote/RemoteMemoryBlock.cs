@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PESpy
@@ -12,6 +14,9 @@ namespace PESpy
         private IMemoryReader reader;
 
         private PEFile peFile;
+
+        private MemoryMappedFile? mmf;
+        private MemoryMappedViewAccessor? mma;
 
         //baseAddress: the base address of the module in the remote process. All RVAs will be read relative to this VA
         internal RemoteMemoryBlock(
@@ -25,7 +30,28 @@ namespace PESpy
         {
             RemoteStartOffset = rva;
             this.reader = reader;
-            LocalPointer = (byte*) Marshal.AllocHGlobal(size);
+
+
+            mmf = MemoryMappedFile.CreateNew(null, size);
+            mma = mmf.CreateViewAccessor();
+
+            RuntimeHelpers.PrepareConstrainedRegions();
+
+            byte* ptr = default;
+
+            try
+            {
+                //Empty; needed to make constrained region work
+            }
+            finally
+            {
+                //While MMA does have some helper methods on it that can be used to read certain value types,
+                //it acquires/releases the pointer after each value read, inside of a try/finally block, which I feel
+                //adds a bit of overhead
+                mma.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+            }
+
+            LocalPointer = ptr;
             RemoteEndOffset = rva + size;
 
             this.peFile = peFile;
@@ -45,8 +71,23 @@ namespace PESpy
                 GC.SuppressFinalize(this);
             }
 
-            Marshal.FreeHGlobal((IntPtr) LocalPointer);
-            LocalPointer = default;
+            if (mmf != null && LocalPointer != default)
+            {
+                RuntimeHelpers.PrepareConstrainedRegions();
+
+                try
+                {
+                    //Empty
+                }
+                finally
+                {
+                    mma!.SafeMemoryMappedViewHandle.ReleasePointer();
+                }
+
+                mma!.Dispose();
+                mmf.Dispose();
+                LocalPointer = default;
+            }
 
             disposed = true;
         }

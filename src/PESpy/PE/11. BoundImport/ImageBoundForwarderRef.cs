@@ -9,9 +9,11 @@ namespace PESpy
     /// </summary>
     public struct ImageBoundForwarderRef : IValue, IViewable
     {
+        internal const int OffsetModuleNameOffset = 4;
+
         public Timestamp TimeDateStamp => chunk.PeekUInt32(0);
 
-        public ushort OffsetModuleName => chunk.PeekUInt16(4);
+        public ushort OffsetModuleName => chunk.PeekUInt16(OffsetModuleNameOffset);
 
         public ushort Reserved => chunk.PeekUInt16(6);
 
@@ -57,8 +59,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            if (Name.IsValid)
-                writer.WriteGlobal(Name.ActualOffset, Name.Value, Name.Value.Length + 1, ViewKind.ImageBoundForwarderRef_Name);
+            //The ImageBoundImportDescriptor can share the same name
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageBoundImportName, OffsetModuleNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

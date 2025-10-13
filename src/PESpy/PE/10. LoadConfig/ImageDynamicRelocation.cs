@@ -9,6 +9,36 @@ namespace PESpy
     {
         public ImageDynamicRelocationKind Symbol => (ImageDynamicRelocationKind) chunk.PeekPointer(0);
 
+        public SpecialAddressKind SpecialKind
+        {
+            get
+            {
+                //https://www.alex-ionescu.com/owning-the-image-object-file-format-the-compiler-toolchain-and-the-operating-system-solving-intractable-performance-problems-through-vertical-engineering/
+                //https://github.com/MasonLeeBack/Longhorn_SDK_And_DDK_4074/blob/c07d26bb49ecfa056d00b1dffd8981f50e11c553/SDK/Include/ntddk.h#L3604
+
+                //ntoskrnl.exe has some special values that we want to be able to represent
+
+                var kind = (SpecialAddressKind) Symbol;
+
+                switch (kind)
+                {
+                    case SpecialAddressKind.PXE_BASE:
+                    case SpecialAddressKind.PXE_SELFMAP:
+                    case SpecialAddressKind.PPE_BASE:
+                    case SpecialAddressKind.PDE_BASE:
+                    case SpecialAddressKind.PTE_BASE:
+                    case SpecialAddressKind.PXE_TOP:
+                    case SpecialAddressKind.PPE_TOP:
+                    case SpecialAddressKind.PDE_TOP:
+                    case SpecialAddressKind.PTE_TOP:
+                        return kind;
+
+                    default:
+                        return SpecialAddressKind.None;
+                }
+            }
+        }
+
         //This appears to be the size of everything that comes after this member (so doesn't include Symbol and BaseRelocSize)
         public int BaseRelocSize => chunk.PeekInt32(chunk.PointerSize);
 
@@ -228,9 +258,37 @@ namespace PESpy
             return s.ToArray();
         }
 
+        public enum SpecialAddressKind : ulong
+        {
+            None,
+
+            //Haven't been able to confirm if 0xFFFFDE0000000000 is indeed MM_PFN_DATABASE
+            //https://twitter.com/sixtyvividtails/status/1928409811671978120/photo/1
+
+            //AMD64
+            PXE_BASE = 0xFFFFF6FB7DBED000,
+            PXE_SELFMAP = 0xFFFFF6FB7DBEDF68,
+            PPE_BASE = 0xFFFFF6FB7DA00000,
+            PDE_BASE = 0xFFFFF6FB40000000,
+            PTE_BASE = 0xFFFFF68000000000,
+
+            PXE_TOP = 0xFFFFF6FB7DBEDFFF,
+            PPE_TOP = 0xFFFFF6FB7DBFFFFF,
+            PDE_TOP = 0xFFFFF6FB7FFFFFFF,
+            PTE_TOP = 0xFFFFF6FFFFFFFFFF
+        }
+
         public override string ToString()
         {
-            return Symbol.ToString();
+            if (Enum.IsDefined(typeof(ImageDynamicRelocationKind), Symbol))
+                return Symbol.ToString();
+
+            var specialKind = SpecialKind;
+
+            if (specialKind != SpecialAddressKind.None)
+                return specialKind.ToString();
+
+            return ((ulong) Symbol).ToString("X");
         }
     }
 }

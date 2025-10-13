@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -36,6 +37,31 @@ namespace PESpy
                 return chunk.PeekAnsiFixedLength(nsg.StructSize + 7, length);
             }
         }
+
+        public nsg[] arnsg
+        {
+            get
+            {
+                //The spec doesn't seem to say this, but cSeg can be 0, in which case we don't need to read any of these
+                if (cSeg == 0)
+                    return Array.Empty<nsg>();
+
+                var results = new nsg[cSeg - 1];
+
+                var read = FixedStructSize + name.Length + 1;
+
+                for (var i = 0; i < results.Length; i++)
+                {
+                    //The values we get for this seem wrong (segment 276 with a size of 2?)
+                    //but it definitely does match what the bytes say, and the total struct size lines up with what's expected
+                    results[i] = new nsg(chunk.Slice(read));
+                    read += nsg.StructSize;
+                }
+
+                return results;
+            }
+        }
+
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
@@ -45,7 +71,22 @@ namespace PESpy
             sizeof(byte) +   //cSeg
             sizeof(byte);    //reserved
 
-        internal int StructSize => FixedStructSize + name.Length + 1;
+        internal int StructSize
+        {
+            get
+            {
+                var size = FixedStructSize + name.Length + 1;
+
+                var count = this.cSeg;
+
+                //cSeg can be 0. If it's 1, it'll become 0 in the calculation, so we should only
+                //factor it in when it's above 1
+                if (count > 1)
+                    size += ((cSeg - 1) * nsg.StructSize);
+
+                return size;
+            }
+        }
 
         private readonly MemoryChunk chunk;
 
@@ -71,7 +112,12 @@ namespace PESpy
             s.WriteField(nameof(iLib), iLib);
             s.WriteField(nameof(cSeg), cSeg);
             s.WriteField(nameof(reserved), reserved);
-            s.WriteAnsiFixedLengthField(nameof(name), name);
+            s.WriteLengthPrefixedAnsiField(nameof(name), name);
+
+            var items = arnsg;
+
+            if (items.Length > 0)
+                s.WriteStructField("arnsg", items);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

@@ -1,7 +1,14 @@
-﻿namespace PESpy
+﻿using System.Diagnostics;
+using PESpy.View;
+
+namespace PESpy
 {
-    public struct FuncInfoV1 : IValue
+    public struct FuncInfoV1 : IValue, IViewable
     {
+        internal const int UnwindMapOffset = 8;
+        internal const int TryBlockMapOffset = 16;
+        internal const int IPToStateMapOffset = 24;
+
         private int magicNumberAndBBTFlags => chunk.PeekInt32(0);
 
         /// <summary>
@@ -30,7 +37,7 @@
             {
                 if (unwindMap.ListedOffset == 0)
                 {
-                    var dispUnwindMap = chunk.PeekInt32(8);
+                    var dispUnwindMap = chunk.PeekInt32(UnwindMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -67,7 +74,7 @@
             {
                 if (tryBlockMap.ListedOffset == 0)
                 {
-                    var dispTryBlockMap = chunk.PeekInt32(16);
+                    var dispTryBlockMap = chunk.PeekInt32(TryBlockMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -104,7 +111,7 @@
             {
                 if (ipToStateMap.ListedOffset == 0)
                 {
-                    var dispIPtoStateMap = chunk.PeekInt32(24);
+                    var dispIPtoStateMap = chunk.PeekInt32(IPToStateMapOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -127,6 +134,15 @@
 
         public int Offset => chunk.AbsoluteOffset;
 
+        internal const int StructSize =
+            sizeof(int) + //magicNumberAndBBTFlags
+            sizeof(int) + //MaxState
+            sizeof(int) + //UnwindMap
+            sizeof(int) + //nTryBlocks
+            sizeof(int) + //TryBlockMap
+            sizeof(int) + //nIPMapEntries
+            sizeof(int);  //IPToStateMap
+
         private readonly MemoryChunk chunk;
 
         internal FuncInfoV1(in MemoryChunk chunk)
@@ -135,6 +151,38 @@
             unwindMap = default;
             tryBlockMap = default;
             ipToStateMap = default;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteRVAField(UnwindMap, fieldOffset: UnwindMapOffset);
+            writer.WriteRVAField(TryBlockMap, fieldOffset: TryBlockMapOffset);
+            writer.WriteRVAField(IPToStateMap, fieldOffset: IPToStateMapOffset);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.FuncInfoV1, this, ViewKind.FuncInfoV1, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            using (var b = s.WriteBitFields<uint>())
+            {
+                b.WriteField("magicNumber", MagicNumber, 29);
+                b.WriteField("bbtFlags", BBTFlags, 3);
+            }
+
+            s.WriteField("maxState", MaxState);
+
+            s.WriteRVAField("dispUnwindMap", UnwindMap);
+            s.WriteField(nameof(nTryBlocks), nTryBlocks);
+            s.WriteRVAField("dispTryBlockMap", TryBlockMap);
+            s.WriteField(nameof(nIPMapEntries), nIPMapEntries);
+            s.WriteRVAField("dispIPtoStateMap", IPToStateMap);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

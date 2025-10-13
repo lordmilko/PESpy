@@ -84,6 +84,7 @@ var strings = new[]{
     "SCOPE_TABLE",
     "ScopeRecord",
     "FuncInfo",
+    "FuncInfoV1",
     "HandlerType",
     "IptoStateMapEntry",
     "TryBlockMapEntry",
@@ -219,6 +220,22 @@ var strings = new[]{
     "RuntimeInfo",
     "Module Index",
     "CLR_ENGINE_METRICS",
+
+    "IMAGE_COR_VTABLEFIXUP",
+
+    "READYTORUN_HEADER",
+    "READYTORUN_CORE_HEADER",
+    "READYTORUN_SECTION",
+    "READYTORUN_IMPORT_SECTION",
+
+    "AppHost Signature",
+    "header_fixed_t",
+    "header_fixed_v2_t",
+    "file_entry_t",
+    "file_entry_fixed_t",
+    "location_t",
+    "BundleEncodedString",
+
     "DotNetRuntimeDebugHeader",
     "DebugTypeEntry",
     "GlobalValueEntry",
@@ -263,7 +280,7 @@ var strings = new[]{
     "Section Contribs",
     "OMFSegMap",
     "OMFSegMapDesc",
-    "File Info",
+    "OMFFileIndex",
     "Name Table",
     "VHdr",
     "DbgDataHdr",
@@ -306,6 +323,10 @@ var strings = new[]{
     "nsg32",
     "pbi",
     "smd",
+    "loe",
+    "LineNumber Offset",
+
+    "DNRB Module",
 
     //Demangler
     "`RTTI Type Descriptor'",

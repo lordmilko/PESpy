@@ -1,12 +1,21 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Roslyn.Utilities;
 
 namespace PESpy
 {
-    public readonly unsafe struct FixedAnsiString
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
+    public readonly unsafe struct FixedAnsiString :
+        IString<FixedAnsiString, byte>,
+        IEquatable<string>,
+        IComparable<string>
     {
         public readonly byte* Value;
-        public readonly int Length;
+        public int Length { get; }
+
+        private string DebuggerDisplay => this.ToString();
 
         public FixedAnsiString(byte* value, int length)
         {
@@ -14,45 +23,75 @@ namespace PESpy
             Length = length;
         }
 
-        public static explicit operator FixedUtf8String(FixedAnsiString value) => new FixedUtf8String(value.Value, value.Length);
+        #region IString
 
-        public bool Equals(FixedAnsiString other)
-        {
-            if (Value == other.Value)
-                return true;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool StartsWith(string value) =>
+            StringHelpers.StartsWith(AsSpan(), value);
 
-            return AsSpan().SequenceEqual(other.AsSpan());
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EndsWith(string value) =>
+            StringHelpers.EndsWith(AsSpan(), value);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(string value) =>
+            StringHelpers.Contains(AsSpan(), value);
+
+        public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
+
+        public void CopyTo(Span<char> destination) => StringHelpers.CopyTo(AsSpan(), destination);
+
+        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
+
+        #endregion
+        #region IEquatable / IComparable (FixedAnsiString)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(FixedAnsiString other) =>
+            AsSpan().SequenceEqual(other.AsSpan());
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(FixedAnsiString other) =>
+            AsSpan().SequenceCompareTo(other.AsSpan());
+
+        #endregion
+        #region IEquatable / IComparable (string)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(string? other)
         {
             if (other == null)
                 return Value == default;
 
-            var length = Length;
-
-            if (other.Length != length)
-                return false;
-
-            fixed (char* p = other)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    if ((byte) p[i] != Value[i])
-                        return false;
-                }
-            }
-
-            return true;
+            return StringHelpers.Equals(Value, Length, other);
         }
 
+        public int CompareTo(string other)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region Operators
+
+        //Conversions
+
+        public static explicit operator FixedUtf8String(FixedAnsiString value) => new FixedUtf8String(value.Value, value.Length);
+
         public static implicit operator Span<byte>(FixedAnsiString value) => new Span<byte>(value.Value, value.Length);
+
+        //Equality
 
         public static bool operator ==(FixedAnsiString left, string right) => left.Equals(right);
         public static bool operator !=(FixedAnsiString left, string right) => !left.Equals(right);
 
         public static bool operator ==(string left, FixedAnsiString right) => right.Equals(left);
         public static bool operator !=(string left, FixedAnsiString right) => !right.Equals(left);
+
+        public static bool operator ==(FixedAnsiString left, FixedAnsiString right) => right.Equals(left);
+        public static bool operator !=(FixedAnsiString left, FixedAnsiString right) => !right.Equals(left);
+
+        #endregion
 
         public override bool Equals(object? obj)
         {
@@ -65,16 +104,12 @@ namespace PESpy
             return false;
         }
 
-        public Span<byte> AsSpan() => new Span<byte>(Value, Length);
-
         public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
         /// <summary>
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
-        public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, global::System.Text.Encoding.Default);
-
-        private string DebuggerDisplay => this.ToString();
+        public override string ToString() => Value is null ? null! : new string((sbyte*) Value, 0, Length, Encoding.Default);
     }
 }

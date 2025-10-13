@@ -35,7 +35,7 @@ namespace PESpy
 
         public UNW_FLAG Flags => (UNW_FLAG) ((versionAndFlags >> 3) & 0x1f); //top 5 bits
 
-        private int versionAndFlags => chunk.PeekByte(0);
+        private byte versionAndFlags => chunk.PeekByte(0);
 
         public byte SizeOfProlog => chunk.PeekByte(1);
 
@@ -182,7 +182,7 @@ namespace PESpy
 
                 var peFile = chunk.PEFile();
 
-                if (ByteMatcher.TryMatch(peFile, ExceptionHandler, out var kind))
+                if (ExceptionHandlerDetector.TryMatch(peFile, ExceptionHandler, out var kind))
                 {
                     var dataChunk = chunk.Slice(extraDataStart + 4);
 
@@ -191,7 +191,7 @@ namespace PESpy
 
                     switch (kind)
                     {
-                        case ByteMatchKind.__GSHandlerCheck:
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck:
                             //Data is an Int32, whose meaning is unknown. Possibly _GS_HANDLER_DATA, but GS_HANDLER_DATA seems to be at least two bytes (alignment is optional). AlignedBaseOffset would also need to be optional for that to work
                             //Maybe the data is the security cookie, or the offset to the cookie?
                             //PEAnatomist considers there to be a __GSHandlerCheck if the last 3 bits of the data value are not set
@@ -200,12 +200,12 @@ namespace PESpy
                             ExceptionData = new RawValue<int>(dataChunk.AbsoluteOffset, dataChunk.PeekInt32(0));
                             break;
 
-                        case ByteMatchKind.__C_specific_handler:
-                        case ByteMatchKind.__C_specific_handler_noexcept:
+                        case WellKnownExceptionHandlerKind.__C_specific_handler:
+                        case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
                             ExceptionData = new ScopeTable(dataChunk);
                             break;
 
-                        case ByteMatchKind.__CxxFrameHandler:
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler:
                         {
                             //Value is an RVA to the FuncInfo. Not typically right after the unwind info
                             var infoRVA = dataChunk.PeekInt32(0);
@@ -220,7 +220,7 @@ namespace PESpy
                             break;
                         }
 
-                        case ByteMatchKind.__CxxFrameHandler3:
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
                         {
                             //Value is an RVA to the FuncInfo. Not typically right after the unwind info
                             var infoRVA = dataChunk.PeekInt32(0);
@@ -235,8 +235,8 @@ namespace PESpy
                             break;
                         }
 
-                        case ByteMatchKind.__CxxFrameHandler4:
-                        case ByteMatchKind.__GSHandlerCheck_EH4:
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler4:
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4:
                         {
                             //Value is an RVA to the FuncInfo4 (which is typically right after the unwind info)
                             /*var infoRVA = (RVA) reader.ReadInt32();
@@ -253,7 +253,7 @@ namespace PESpy
                             break;
                         }
 
-                        case ByteMatchKind.__GSHandlerCheck_SEH: //Apparently it's a ScopeTable and the Int32 GS Data from GSHandlerCheck
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //Apparently it's a ScopeTable and the Int32 GS Data from GSHandlerCheck
                             //GSHandlerCheck_SEH_noexcept too?
 
                             //http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf
@@ -263,7 +263,7 @@ namespace PESpy
                         //case ByteMatch.__GSHandlerCheck_EH: //Apparently it's an RVA to a FuncInfo and the Int32 GS Data from GSHandlerCheck
 
                         default:
-                            throw new NotImplementedException($"Don't know how to handle {nameof(ByteMatchKind)} '{kind}'");
+                            throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
                     }
                 }
             }
@@ -388,7 +388,19 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
+            {
+                var fieldOffset = 4 + (((CountOfCodes + 1) & ~1) * 2) + 4; //4 fixed bytes + CountOfCodes aligned to an even number + ExceptionHandler
+
+                var data = ExceptionData;
+
+                if (data is RVA<FuncInfoV1> r1)
+                    writer.WriteRVAField(r1, fieldOffset);
+                else if (data is RVA<FuncInfo> r2)
+                    writer.WriteRVAField(r2, fieldOffset);
+                //else if (data is RVA<FuncInfo4> r4)
+                //    writer.WriteRVAField(r4, fieldOffset);
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -413,6 +425,7 @@ namespace PESpy
                 b.WriteField(nameof(FrameOffset), FrameOffset, 4);
             }
 
+            //If CountOfCodes is odd, this includes the empty one at the end
             s.WriteInline(UnwindCode);
 
             //What follows next depends on the Flags
@@ -421,8 +434,30 @@ namespace PESpy
             {
                 s.WriteField(nameof(ExceptionHandler), ExceptionHandler);
 
-                if (ExceptionData is IViewable v)
-                    s.WriteInline(v);
+                var data = ExceptionData;
+
+                if (data != null)
+                {
+                    if (data is IViewable v)
+                        s.WriteInline(v);
+                    else if (data is RawValue<int> r)
+                        s.WriteInline(r, ViewKind.Value);
+                    else if (data is RVA<FuncInfoV1> r1)
+                        s.WriteInline(r1, ViewKind.Value);
+                    else if (data is RVA<FuncInfo> r2)
+                        s.WriteInline(r2, ViewKind.Value);
+                    //else if (data is RVA<FuncInfo4> r4)
+                    //    s.WriteInline(r4, ViewKind.Value);
+                    else
+                        throw new NotImplementedException($"Don't know how to handle a value of type '{data.GetType().Name}'");
+                }
+                else
+                {
+                    var diff = parent.Size - s.Size;
+
+                    if (diff > 0)
+                        s.Pad(diff); //We don't know how to parse these bytes
+                }
             }
             else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
             {

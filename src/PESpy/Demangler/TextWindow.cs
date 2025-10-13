@@ -45,6 +45,23 @@ namespace PESpy
                 strings = default;
             }
 
+            public TextWindow(string str)
+            {
+                Position = 0;
+                this.arena = Interlocked.Exchange(ref cachedArena, null);
+
+                BackRefNames = default;
+                BackRefFunctionParams = default;
+                strings = default;
+
+                var ptr = Marshal.StringToHGlobalAnsi(str);
+
+                this.buffer = (byte*) ptr;
+                this.length = str.Length;
+
+                AddPointer(new FixedUtf8String((byte*) ptr, str.Length));
+            }
+
             /// <summary>
             /// Advance the current position by one. No guarantee that this
             /// position is valid.

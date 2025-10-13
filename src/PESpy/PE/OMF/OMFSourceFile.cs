@@ -3,7 +3,8 @@ using System.Diagnostics;
 
 namespace PESpy
 {
-    public struct OMFSourceFile
+    [Source(SourceKind.cvexefmt)]
+    public struct OMFSourceFile : IValue
     {
         public ushort cSeg => chunk.PeekUInt16(0);
 
@@ -59,6 +60,8 @@ namespace PESpy
                 return chunk.PeekAnsiFixedLength(lengthOffset + 1, length);
             }
         }
+
+        public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private readonly int rootOffset;

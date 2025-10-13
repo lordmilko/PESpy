@@ -7,15 +7,7 @@ namespace PESpy.View
     {
         private readonly LEFile leFile;
 
-        protected unsafe LEViewWriter(LEFile leFile) : this(leFile, (byte*) 1, 1, null)
-        {
-        }
-
-        internal unsafe LEViewWriter(
-            LEFile leFile,
-            byte* mmf,
-            int length,
-            IViewDisassembler? viewDisassembler) : base(mmf, length, viewDisassembler, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe LEViewWriter(LEFile leFile) : base(leFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
         {
             this.leFile = leFile;
         }
@@ -34,11 +26,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(leFile, structs, extension);
+            using var merger = new Merger(leFile, structs, byteViewProvider);
 
             var results = merger.MergeLE();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.LEFile);
+            return new FileView(ViewMode.Physical, leFile.Name, results, ViewKind.LEFile);
         }
     }
 }

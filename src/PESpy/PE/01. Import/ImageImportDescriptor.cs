@@ -12,7 +12,9 @@ namespace PESpy
     /// </summary>
     public class ImageImportDescriptor : IValue, IViewable //A class so that we don't have to keep recreating [Original]FirstThunk depending on which struct copy loaded it
     {
-        private const int NameOffset = 12;
+        internal const int OriginalFirstThunkOffset = 0;
+        internal const int NameOffset = 12;
+        internal const int FirstThunkOffset = 16;
 
         /// <summary>
         /// The RVA of the import lookup table. This table contains a name or ordinal for each import.
@@ -25,7 +27,7 @@ namespace PESpy
             {
                 if (originalFirstThunk == null)
                 {
-                    var rva = chunk.PeekInt32(0);
+                    var rva = chunk.PeekInt32(OriginalFirstThunkOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         originalFirstThunk = ParseThunks(rva, valueChunk, false);
@@ -84,7 +86,7 @@ namespace PESpy
             {
                 if (firstThunk == null)
                 {
-                    var rva = chunk.PeekInt32(16);
+                    var rva = chunk.PeekInt32(FirstThunkOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         firstThunk = ParseThunks(rva, valueChunk, true);
@@ -156,24 +158,58 @@ namespace PESpy
             return new RVA<ImageThunkData[]>(rva, valueChunk.AbsoluteOffset, results.ToArray());
         }
 
+        internal static ImageThunkData[] ParseIATThunks(in MemoryChunk valueChunk, int directorySize)
+        {
+            //Unlike when parsing thunks for a particular import descriptor, when parsing thunks for the whole IAT,
+            //we don't stop when a null thunk is hitl we stop when we reach the end
+
+            var ptrSize = valueChunk.PointerSize;
+
+            var results = new ImageThunkData[directorySize / ptrSize];
+
+            for (var i = 0; i < results.Length; i++)
+                results[i] = new ImageThunkData(valueChunk.Slice(i * ptrSize), true);
+
+            return results;
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageImportDescriptor_Name, fieldOffset: NameOffset);
-
             using var _ = writer.EnterTag(ViewTag.Import);
-
-            if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
-            {
-                using var r = writer.CreateScopedRegion(FirstThunk.ActualOffset, $"[ImportAddressTable] {Name}", ViewKind.ImportAddressTable, ViewKind.ImageThunkData);
-
-                r.WriteUnique(FirstThunk.Value);
-            }
 
             if (OriginalFirstThunk.IsValid && OriginalFirstThunk.ListedOffset != 0)
             {
-                using var r = writer.CreateScopedRegion(OriginalFirstThunk.ActualOffset, $"[ImportLookupTable] {Name}", ViewKind.ImportLookupTable, ViewKind.ImageThunkData);
+                using var r = writer.CreateScopedRegion(
+                    OriginalFirstThunk.ActualOffset,
+                    OriginalFirstThunkOffset,
+                    $"[ImportLookupTable] {Name}",
+                    ViewKind.ImportLookupTable,
+                    ViewKind.ImageThunkData
+#if DEBUG
+                    , OriginalFirstThunk.ListedOffset
+#endif
+                );
 
                 r.WriteUnique(OriginalFirstThunk.Value);
+            }
+
+            //This name may also be written by ImageEnclaveImport
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImportName, fieldOffset: NameOffset);
+
+            if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
+            {
+                using var r = writer.CreateScopedRegion(
+                    FirstThunk.ActualOffset,
+                    FirstThunkOffset,
+                    $"[ImportAddressTable] {Name}",
+                    ViewKind.ImportAddressTable,
+                    ViewKind.ImageThunkData
+#if DEBUG
+                    , FirstThunk.ListedOffset
+#endif
+                );
+
+                r.WriteUnique(FirstThunk.Value);
             }
         }
 
@@ -184,11 +220,11 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            s.WriteField(nameof(OriginalFirstThunk), (int) OriginalFirstThunk.ListedOffset);
+            s.WriteRVAField(nameof(OriginalFirstThunk), OriginalFirstThunk);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
             s.WriteField(nameof(ForwarderChain), ForwarderChain);
             s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
-            s.WriteField(nameof(FirstThunk), (int) FirstThunk.ListedOffset);
+            s.WriteRVAField(nameof(FirstThunk), FirstThunk);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

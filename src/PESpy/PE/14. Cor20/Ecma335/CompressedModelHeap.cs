@@ -964,7 +964,7 @@ namespace PESpy.Ecma335
                 if (table != null && table.Count > 0)
                 {
                     var first = table[1]; //Indices are 1 based
-                    using var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable);
+                    using var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable, false);
 
                     r.WriteValue(first);
 

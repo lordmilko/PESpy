@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 using PESpy.LIB;
 using PESpy.View;
+using static ClrDebug.PDB.DEBUG_S_SUBSECTION_TYPE;
 
 namespace PESpy.PDB
 {
@@ -31,36 +32,58 @@ namespace PESpy.PDB
         internal CvDebugSSubsectionHeader(in MemoryChunk chunk)
         {
             get
+        /// <summary>
+        /// Gets the data that is associated with this subsection. The type of <typeparamref name="T"/>
+        /// depends on the <see cref="Type"/> of data contained in the subsection:<para/>
+        /// <see cref="DEBUG_S_SYMBOLS"/> = <see cref="SymTypeList"/><para/>
+        /// <see cref="DEBUG_S_LINES"/> = <see cref="CvDebugSLinesHeader"/><para/>
+        /// <see cref="DEBUG_S_STRINGTABLE"/> = <see cref="Utf8StringCollection"/><para/>
+        /// <see cref="DEBUG_S_FILECHKSMS"/> = <see cref="CvFileCheckSum"/>[]<para/>
+        /// <see cref="DEBUG_S_FRAMEDATA"/> = <see cref="RvaAndFrameData"/><para/>
+        /// <see cref="DEBUG_S_INLINEELINES"/> = <see cref="InlineeSigAndLines"/><para/>
+        /// <see cref="DEBUG_S_CROSSSCOPEIMPORTS"/> = <see cref="CrossScopeReferencesCollection"/><para/>
+        /// <see cref="DEBUG_S_CROSSSCOPEEXPORTS"/> = <see cref="LocalIdAndGlobalIdPairList"/><para/>
+        /// <see cref="DEBUG_S_IL_LINES"/> = <see cref=""/><para/>
+        /// <see cref="DEBUG_S_FUNC_MDTOKEN_MAP"/> = <see cref=""/><para/>
+        /// <see cref="DEBUG_S_TYPE_MDTOKEN_MAP"/> = <see cref=""/><para/>
+        /// <see cref="DEBUG_S_MERGED_ASSEMBLYINPUT"/> = <see cref=""/><para/>
+        /// <see cref="DEBUG_S_COFF_SYMBOL_RVA"/> = <see cref=""/><para/>
+        /// </summary>
+        /// <typeparam name="T">The type that corresponds with the <see cref="Type"/> of the subsection</typeparam>
+        /// <returns>The data contained in the subsection.</returns>
+        public T GetData<T>()
+        {
+            switch (Type)
             {
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
+                case DEBUG_S_SYMBOLS:
                     var symbols = GetSymbols();
                     return Unsafe.As<SymTypeList, T>(ref symbols);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
+                case DEBUG_S_LINES:
                     var lines = GetLines();
                     return Unsafe.As<CvDebugSLinesHeader, T>(ref lines);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE:
+                case DEBUG_S_STRINGTABLE:
                     var stringTable = GetStringTable();
                     return Unsafe.As<Utf8StringCollection, T>(ref stringTable);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
+                case DEBUG_S_FILECHKSMS:
                     var fileChecksums = GetFileChecksums();
                     return Unsafe.As<CvFileCheckSum[], T>(ref fileChecksums);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:
+                case DEBUG_S_FRAMEDATA:
                     var frameData = GetFrameData();
                     return Unsafe.As<RvaAndFrameData, T>(ref frameData);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES:
+                case DEBUG_S_INLINEELINES:
                     var inlineeLines = GetInlineeLines();
                     return Unsafe.As<InlineeSigAndLines, T>(ref inlineeLines);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS: //CrossScopeReferences (see DumpModCrossScopeRefs)
+                case DEBUG_S_CROSSSCOPEIMPORTS: //CrossScopeReferences (see DumpModCrossScopeRefs)
                     var crossScopeImports = GetCrossScopeImports();
                     return Unsafe.As<CrossScopeReferencesCollection, T>(ref crossScopeImports);
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS:
+                case DEBUG_S_CROSSSCOPEEXPORTS:
                     var crossScopeExports = GetCrossScopeExports();
                     return Unsafe.As<LocalIdAndGlobalIdPairList, T>(ref crossScopeExports);
 

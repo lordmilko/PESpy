@@ -94,15 +94,15 @@ namespace PESpy
 
             if (isFat)
             {
-                s.WriteInline(Sect);
-                s.WriteInline(Clauses);
+                s.WriteStructField("SectFat", Sect);
             }
             else
             {
-                s.WriteInline(Sect);
+                s.WriteStructField("SectSmall", Sect);
                 s.WriteField(nameof(Reserved), Reserved);
-                s.WriteInline(Clauses);
             }
+
+            s.WriteStructField("Clauses", Clauses);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

@@ -49,7 +49,7 @@ namespace PESpy
             {
                 if (!blockCache.TryGetValue(pageList, out pagedBlock))
                 {
-                    pagedBlock = new PagedMemoryBlock(pageList, byteCount, pageSize, LocalPointer, writable, PDBFile);
+                    pagedBlock = new PagedMemoryBlock(pageList, byteCount, pageSize, LocalPointer, writable, Length, PDBFile);
                     blockCache[pageList] = pagedBlock;
                 }
             }

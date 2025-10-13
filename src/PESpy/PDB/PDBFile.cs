@@ -6,6 +6,7 @@ using System.IO.MemoryMappedFiles;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;
+using PESpy.View.Builder;
 using SN = PESpy.PDB.SN;
 
 namespace PESpy
@@ -55,7 +56,9 @@ namespace PESpy
         }
 
         /// <summary>
-        /// Locates a file on the symbol server and opens it as a <see cref="PDBFile"/>.
+        /// Locates a file on the symbol server and opens it as a <see cref="PDBFile"/>.<para/>
+        /// If a <see cref="SymStoreKey"/> of type <see cref="SymStoreKeyKind.PE"/> is specified, this method
+        /// will attempt to locate the PDB that is associated with that file.
         /// </summary>
         /// <param name="symStoreKey">The <see cref="SymStoreKey"/> describing the file that should be located and opened.</param>
         /// <returns>A <see cref="PDBFile"/> that provides access to the contents of the specified file.</returns>
@@ -68,6 +71,12 @@ namespace PESpy
                     var path = Locator.Locate(symStoreKey);
 
                     return FromFile(path);
+
+                case SymStoreKeyKind.PE:
+                    var modulePath = Locator.Locate(symStoreKey);
+                    var pdbPath = Locator.LocatePDB(modulePath);
+
+                    return FromFile(pdbPath);
 
                 default:
                     throw new ArgumentException($"{nameof(SymStoreKey)} '{symStoreKey}' of type '{symStoreKey.Kind}' cannot be opened as a {nameof(PDBFile)}");
@@ -88,6 +97,14 @@ namespace PESpy
         public FileKind Kind => FileKind.PDB;
 
         public int Length => globalBlock.Length;
+
+        /* Note that we explicitly do not have a SymStoreKey property. You may think that you can take
+         * The GUID and Age from the PDBStream70 and synthesize the original path to this file on the symbol
+         * server, however this is not the case! Files uploaded to the Microsoft Symbol Store regularly have
+         * wildly different ages from what you would think their ages should be in their path. Even assuming that
+         * the age will usually be 1 is wrong. A URL can indicate the age was 7, but the PDBStream70 says the age
+         * was 9. */
+
         #region MSF
 
         //Fields that are specific to MSF (PDB2/PDB7) files. PDB1 does not use MSF
@@ -480,6 +497,9 @@ namespace PESpy
 
         private MsfStream.GSI? gsi;
 
+        /// <summary>
+        /// Gets the globals stream pointed to by the DBI stream.
+        /// </summary>
         public MsfStream.GSI? GSI
         {
             get
@@ -504,6 +524,9 @@ namespace PESpy
 
         private MsfStream.PSGSI? psgsi;
 
+        /// <summary>
+        /// Gets the publics stream pointed to by the DBI stream.
+        /// </summary>
         public MsfStream.PSGSI? PSGSI
         {
             get
@@ -545,8 +568,16 @@ namespace PESpy
 
             globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, 0, this);
 
-            //In PDB2 and PDB7 this will read the MSF Headers. In PDB1 it will read the whole file (which just contains type information)
-            ReadHeaders();
+            try
+            {
+                //In PDB2 and PDB7 this will read the MSF Headers. In PDB1 it will read the whole file (which just contains type information)
+                ReadHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         //Create a new file
@@ -1033,11 +1064,13 @@ namespace PESpy
 
         public FileView GetView()
         {
-            var writer = new PDBViewWriter(this, mmf.Address, (int) mmf.Length);
+            var writer = new PDBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
         }
+
+        internal ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         #endregion
 

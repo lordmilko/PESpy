@@ -22,8 +22,9 @@ namespace PESpy.PDB
             {
                 var val = type.Value;
 
-                if (val is TypType t)
-                    return TypTypeProxy.GetValue(t);
+                //We might be forced to box here, but the caller needs to know what type to cast to, so we need to make it a single type
+                if (val is TypType)
+                    return val; //Don't create a new box
 
                 return (TYPE_ENUM_e) val;
             }

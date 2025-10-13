@@ -1,276 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
+﻿using System;
 using ClrDebug;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
-using PESpy.Tests.SymStore;
 using PESpy.View;
-using PInvoke;
-using static PESpy.ScopeTable;
-using static PESpy.UnwindCode;
 
 namespace PESpy.Tests
 {
-#pragma warning disable HAA0101 // Array allocation for params parameter
     [TestClass]
-    public class PEFileTests
+    public class PEFileTests : BaseTest
     {
-        private static readonly object IgnoreValue = new object();
-
-        #region PhysicalOffset
-
-        //Tests relating to resolving values indicated by fixed offsets in the PE File that may or may not lie within the bounds of an area pointed to by a IMAGE_SECTION_HEADER
-
-        #region ImageFileHeader: PointerToSymbolTable
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageFileHeader_PointerToSymbolTable()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageFileHeader_PointerToSymbolTable()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        #endregion
-        #region ImageSectionHeader: PointerToRelocations
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageSectionHeader_PointerToRelocations()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageSectionHeader_PointerToRelocations()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        #endregion
-        #region ImageSectionHeader: PointerToLineNumbers
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageSectionHeader_PointerToLineNumbers()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageSectionHeader_PointerToLineNumbers()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
-
-        #endregion
-        #region ImageDebugDirectory: DataWithinSection
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageDebugDirectory_DataWithinSection()
-        {
-            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
-
-            var debugTable = peFile.DebugTable;
-
-            Assert.IsNotNull(debugTable);
-            Assert.IsTrue(debugTable.Length > 0);
-            Assert.AreEqual(ImageDebugType.CodeView, debugTable[0].Type);
-            Assert.IsNotNull(debugTable[0].Data);
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageDebugDirectory_DataWithinSection()
-        {
-            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
-
-            var debugTable = peFile.DebugTable;
-
-            Assert.IsNotNull(debugTable);
-            Assert.IsTrue(debugTable.Length > 0);
-            Assert.AreEqual(ImageDebugType.CodeView, debugTable[0].Type);
-            Assert.IsNotNull(debugTable[0].Data);
-        }
-
-        #endregion
-        #region ImageDebugDirectory: DataOutsideSection
-
-        /* In crtdll the NB10I is outside the bounds of any known section, thereby making this data in the overlay.
-         * Visual Studio fails to locate symbols for this module, but DbgEng succeeds, even when reading a dump.
-         * This is because it calls dbghelp!DoSymbolCallback with CBA_DEFERRED_SYMBOL_LOAD_PARTIAL which causes
-         * dbgeng!SymbolCallbackFunction to call dbgeng!FindImageFile -> dbghelp!SymFindFileInPath, which downloads
-         * the file from symsrv */
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageDebugDirectory_DataOutsideSection()
-        {
-            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.crtdll));
-
-            var debugTable = peFile.DebugTable;
-
-            Assert.IsNotNull(debugTable);
-            Assert.AreEqual(1, debugTable.Length);
-            Assert.IsNotNull(debugTable[0].Data);
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageDebugDirectory_DataOutsideSection()
-        {
-            if (IntPtr.Size != 4)
-                Assert.Inconclusive("Test requires x86");
-
-            var hModule = Kernel32.LoadLibraryW(WellKnownTestModule.GetStoreFile(WellKnownTestModule.crtdll));
-
-            try
-            {
-                using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), hModule);
-
-                var debugTable = peFile.DebugTable;
-
-                Assert.IsNotNull(debugTable);
-                Assert.AreEqual(1, debugTable.Length);
-                Assert.IsNull(debugTable[0].Data);
-            }
-            finally
-            {
-                Kernel32.FreeLibrary(hModule);
-            }
-        }
-
-        #endregion
-        #region ImageResourceDirectoryEntry: UnionNameOrId.Name
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_ImageResourceDirectoryEntry_UnionNameOrId_Name()
-        {
-            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
-
-            var resourceDirectory = peFile.ResourceDirectory;
-
-            var name = resourceDirectory.Entries[0].NameOrId.NameOffset.Value.ToString();
-
-            Assert.AreEqual("MUI", name);
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_ImageResourceDirectoryEntry_UnionNameOrId_Name()
-        {
-            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
-
-            var resourceDirectory = peFile.ResourceDirectory;
-
-            var name = resourceDirectory.Entries[0].NameOrId.NameOffset.Value.ToString();
-
-            Assert.AreEqual("MUI", name);
-        }
-
-        #endregion
-        #region SecurityTable
-
-        //Certificates are stored in the overlay; as such they should not be loaded into memory
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_SecurityTable()
-        {
-            using var peFile = PEFile.FromFile("C:\\Windows\\system32\\ntdll.dll");
-
-            var securityTable = peFile.SecurityTable;
-
-            Assert.IsNotNull(securityTable);
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_SecurityTable()
-        {
-            using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), Kernel32.GetModuleHandleW("ntdll.dll"));
-
-            var securityTable = peFile.SecurityTable;
-
-            Assert.IsNull(securityTable);
-        }
-
-        #endregion
-        #region BoundImportTable
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_UnloadedImage_BoundImportTable()
-        {
-            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.mfc40u));
-
-            var boundImportTable = peFile.BoundImportTable;
-
-            Assert.AreEqual("MSVCRT40.dll", boundImportTable[0].Name.ToString());
-            Assert.AreEqual("msvcrt.DLL", boundImportTable[0].Refs[0].Name.ToString());
-        }
-
-        [TestMethod]
-        public void PEFile_PhysicalOffset_LoadedImage_BoundImportTable()
-        {
-            if (IntPtr.Size != 4)
-                Assert.Inconclusive("Test requires x86");
-
-            var hModule = Kernel32.LoadLibraryW(WellKnownTestModule.GetStoreFile(WellKnownTestModule.mfc40));
-
-            try
-            {
-                using var peFile = PEFile.FromProcess(Kernel32.GetCurrentProcess(), hModule);
-
-                var boundImportTable = peFile.BoundImportTable;
-
-                //Curiously, the BoundImportTableDirectory is listed as empty when this module is loaded
-                Assert.AreEqual(0, peFile.OptionalHeader.BoundImportTableDirectory.VirtualAddress);
-                Assert.IsNull(boundImportTable);
-            }
-            finally
-            {
-                Kernel32.FreeLibrary(hModule);
-            }
-        }
-
-        #endregion
-
-        #endregion
-
-        [TestMethod]
-        public void PEFile_OffsetFromRVA_SurpassesPhysicalThreshold()
-        {
-            /* The ImageDelayLoadDescriptor.ModuleHandleRVA points to address 0x00035248.
-             * This RVA lies within the bounds of the data section (0x34000 - 366C0). However, the catch
-             * is that the data section has a greater size at runtime than it does on disk (i.e. the SizeOfRawData
-             * is much smaller than the VirtualSize). This causes us to erroneously calculate that our physical address
-             * really is 0x00035248 when it isn't, which causes us to read a value from the pdata section (whose _physical_
-             * address begins at 0x35000) */
-
-            using var peFile = PEFile.FromFile(WellKnownTestModule.GetStoreFile(WellKnownTestModule.notepad));
-
-            var moduleHandleRva = peFile.DelayImportTable[0].ModuleHandleRVA;
-            Assert.IsFalse(moduleHandleRva.IsValid);
-            Assert.AreEqual(0x35248, moduleHandleRva.ListedOffset);
-        }
-
         #region DOS Header
 
         [TestMethod]
@@ -468,7 +206,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageFileHeader>(
                 v => v.Machine == IMAGE_FILE_MACHINE.AMD64,
-                v => v.NumberOfSections == 11,
+                v => v.NumberOfSections == (ushort) 11,
                 v => v.TimeDateStamp == 3169667970,
                 v => v.PointerToSymbolTable.ListedAddress == 0,
                 v => v.NumberOfSymbols == 0,
@@ -480,13 +218,17 @@ namespace PESpy.Tests
                 v => v.VerifyStruct(
                     name: "IMAGE_FILE_HEADER", offset: 228, size: 20,
                     c => c.VerifyField(name: "Machine", value: IMAGE_FILE_MACHINE.AMD64),
-                    c => c.VerifyField(name: "NumberOfSections", value: (short) 11),
+                    c => c.VerifyField(name: "NumberOfSections", value: (ushort) 11),
                     c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
                     c => c.VerifyField(name: "PointerToSymbolTable", value: 0),
                     c => c.VerifyField(name: "NumberOfSymbols", value: 0),
                     c => c.VerifyField(name: "SizeOfOptionalHeader", value: (short) 240),
                     c => c.VerifyField(name: "Characteristics", value: ImageFile.ExecutableImage | ImageFile.LargeAddressAware | ImageFile.Dll)
                 )
+            );
+
+            TestXRefs<ImageFileHeader>(
+                v => v.Verify(propertyName: "PointerToSymbolTable", index: 0, fieldOffset: ImageFileHeader.PointerToSymbolTableOffset, targetOffset: 61472)
             );
         }
 
@@ -596,20 +338,22 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void ImageOptionalHeader_x32_And_x64()
+        public void ImageOptionalHeader_x86_And_x64()
         {
-            Assert.Inconclusive();
+            //The layout of ImageOptionalHeader is different in x86 and x64. Test that both give expected output
 
-            throw new NotImplementedException();
+            using var pe32  = PEFile.FromFile($"C:\\Windows\\{(IntPtr.Size == 4 ? "system32" : "SysWow64")}\\ntdll.dll");
+            using var pe64  = PEFile.FromFile($"C:\\Windows\\{(IntPtr.Size == 4 ? "sysnative" : "system32")}\\ntdll.dll");
+
+            var base32 = pe32.OptionalHeader.ImageBase;
+            var base64 = pe64.OptionalHeader.ImageBase;
+
+            Assert.AreEqual(0x4b280000, base32);
+            Assert.AreEqual(0x180000000, base64);
         }
 
-        [TestMethod]
-        public void ImageOptionalHeader_LessThan16Directories()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
+        //It's theoretically possible to have an ImageOptionalHeader with less than 16 directories. In practice, I haven't ever seen this, but
+        //once we have a PEFileBuilder we should test for this
 
         [TestMethod]
         public void ImageDataDirectory_Test()
@@ -662,6 +406,13 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "Characteristics", value: (IMAGE_SCN.CNT_CODE | IMAGE_SCN.MEM_EXECUTE | IMAGE_SCN.MEM_READ))
                 )
             );
+
+            //I can't find any files (in my samples or otherwise) that have either of these, so for now I can't test them
+
+            //TestXRefs<ImageSectionHeader>(
+            //    v => v.Verify(propertyName: "PointerToRelocations", index: -1, fieldOffset: ImageSectionHeader.PointerToRelocationsOffset, targetOffset: 0),
+            //    v => v.Verify(propertyName: "PointerToLineNumbers", index: -1, fieldOffset: ImageSectionHeader.PointerToLineNumbersOffset, targetOffset: 0)
+            //);
         }
 
         #endregion
@@ -704,6 +455,13 @@ namespace PESpy.Tests
                     )
                 },
                 false
+            );
+
+            TestXRefs<ImageExportDirectory>(
+                v => v.Verify(propertyName: "Name",                  index: 0, fieldOffset: ImageExportDirectory.NameOffset,                  targetOffset: 1514622),
+                v => v.Verify(propertyName: "AddressOfFunctions",    index: 1, fieldOffset: ImageExportDirectory.AddressOfFunctionsOffset,    targetOffset: 1489768),
+                v => v.Verify(propertyName: "AddressOfNames",        index: 2, fieldOffset: ImageExportDirectory.AddressOfNamesOffset,        targetOffset: 1499712),
+                v => v.Verify(propertyName: "AddressOfNameOrdinals", index: 3, fieldOffset: ImageExportDirectory.AddressOfNameOrdinalsOffset, targetOffset: 1509652)
             );
         }
 
@@ -777,6 +535,12 @@ namespace PESpy.Tests
                     )
                 },
                 false
+            );
+
+            TestXRefs<ImageImportDescriptor>(
+                v => v.Verify(propertyName: "OriginalFirstThunk", index: 0, fieldOffset: ImageImportDescriptor.OriginalFirstThunkOffset, targetOffset: 237080),
+                v => v.Verify(propertyName: "Name",               index: 1, fieldOffset: ImageImportDescriptor.NameOffset, targetOffset: 237918),
+                v => v.Verify(propertyName: "FirstThunk",         index: 2, fieldOffset: ImageImportDescriptor.FirstThunkOffset, targetOffset: 196224)
             );
         }
 
@@ -863,7 +627,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageResourceDirectoryEntry>(
                 v => v.Parent == null,
-                v => GetStringSpan(v.NameOrId.NameOffset.Value, "NameString") == "MUI",
+                v => v.NameOrId.NameOffset.Value.NameString == "MUI",
                 v => v.OffsetToData.ListedOffset == -2147483608,
                 v => v.OffsetToDirectory.ListedOffset == 40,
                 v => v.DataIsDirectory == true,
@@ -879,6 +643,11 @@ namespace PESpy.Tests
                     ),
                     after: 7
                 )
+            );
+
+            TestXRefs<ImageResourceDirectoryEntry>(
+                v => v.Verify(propertyName: "OffsetToData", index: -1, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0),
+                v => v.Verify(propertyName: "OffsetToDirectory", index: -1, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0)
             );
         }
 
@@ -905,6 +674,10 @@ namespace PESpy.Tests
                     after: 1 //Ignore the VS_VERSIONINFO thats inside the record
                 )
             );
+
+            TestXRefs<ImageResourceDataEntry>(
+                v => v.Verify(propertyName: "OffsetToData", index: -1, fieldOffset: 0, targetOffset: 0)
+            );
         }
 
         [TestMethod]
@@ -912,7 +685,7 @@ namespace PESpy.Tests
         {
             TestStruct<ImageResourceDirStringU>(
                 v => v.Length == 3,
-                v => GetStringSpan(v, "NameString") == "MUI"
+                v => v.NameString == "MUI"
             );
 
             TestView<ImageResourceDirStringU>(
@@ -1179,6 +952,10 @@ namespace PESpy.Tests
                     )
                 )
             );
+
+            TestXRefs<RuntimeFunction>(
+                v => v.Verify(propertyName: "UnwindData", index: 0, fieldOffset: RuntimeFunction.UnwindDataOffset, targetOffset: 1424960)
+            );
         }
 
         [TestMethod]
@@ -1214,103 +991,184 @@ namespace PESpy.Tests
             );
         }
 
-        [TestMethod]
-        public void UnwindCode_Test()
-        {
-            var str = GenerateTest<UnwindCode>();
-
-            throw new NotImplementedException();
-        }
-
         #region UnwindCode Types
 
         [TestMethod]
         public void UnwindCode_PushNonVolatile_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<PushNonVolatile>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.PushNonVolatile>(
+                v => v.Register == UnwindInfo.X64Register.R15,
+                v => v.OpInfo == 15,
+                v => v.CodeOffset == 11,
+                v => v.UnwindOp == UWOP.PUSH_NONVOL,
+                v => v.StructSize == 2
+            );
+
+            TestView<UnwindCode.PushNonVolatile>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1424968, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 11),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.PUSH_NONVOL, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 15, bits: 4)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_AllocLarge_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<AllocLarge>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.AllocLarge>(
+                v => v.Size == 57353,
+                v => v.StructSize == 4,
+                v => v.CodeOffset == 26,
+                v => v.UnwindOp == UWOP.ALLOC_LARGE,
+                v => v.OpInfo == 0
+            );
+
+            TestView<UnwindCode.AllocLarge>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1424964, size: 4,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 26),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.ALLOC_LARGE, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 0, bits: 4),
+                    c => c.VerifyField(name: "Size", value: (ushort) 57353)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_AllocSmall_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<AllocSmall>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.AllocSmall>(
+                v => v.Size == 48,
+                v => v.OpInfo == 5,
+                v => v.CodeOffset == 6,
+                v => v.UnwindOp == UWOP.ALLOC_SMALL,
+                v => v.StructSize == 2
+            );
+
+            TestView<UnwindCode.AllocSmall>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1425036, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 6),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.ALLOC_SMALL, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 5, bits: 4)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_SetFpReg_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<SetFpReg>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.SetFpReg>(
+                v => v.FrameRegister == UnwindInfo.X64Register.RBP,
+                v => v.FrameOffset == 96,
+                v => v.CodeOffset == 22,
+                v => v.UnwindOp == UWOP.SET_FPREG,
+                v => v.OpInfo == 6,
+                v => v.StructSize == 2
+            );
+
+            TestView<UnwindCode.SetFpReg>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1433948, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 22),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SET_FPREG, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 6, bits: 4)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_SaveNonVolatile_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<SaveNonVolatile>();
-            throw new NotImplementedException();
-        }
+            TestStruct<UnwindCode.SaveNonVolatile>(
+                v => v.Register == UnwindInfo.X64Register.RBP,
+                v => v.OpInfo == 5,
+                v => v.StackOffset == 59,
+                v => v.StructSize == 4,
+                v => v.CodeOffset == 21,
+                v => v.UnwindOp == UWOP.SAVE_NONVOL
+            );
 
-        [TestMethod]
-        public void UnwindCode_SaveNonVolatileFar_Test()
-        {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<SaveNonVolatileFar>();
-            throw new NotImplementedException();
+            TestView<UnwindCode.SaveNonVolatile>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1425012, size: 4,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 21),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SAVE_NONVOL, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 5, bits: 4),
+                    c => c.VerifyField(name: "StackOffset", value: (ushort) 59)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_Epilog_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<Epilog>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.Epilog>(
+                v => v.CodeOffset == 12,
+                v => v.UnwindOp == UWOP.UWOP_EPILOG,
+                v => v.OpInfo == 1,
+                v => v.StructSize == 2
+            );
+
+            TestView<UnwindCode.Epilog>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1474012, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 12),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_EPILOG, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 1, bits: 4)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_SaveXmm128_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<SaveXmm128>();
-            throw new NotImplementedException();
-        }
+            TestStruct<UnwindCode.SaveXmm128>(
+                v => v.Register == UnwindInfo.X64Register.RSI,
+                v => v.OpInfo == 6,
+                v => v.StackOffset == 2,
+                v => v.StructSize == 4,
+                v => v.CodeOffset == 36,
+                v => v.UnwindOp == UWOP.SAVE_XMM128
+            );
 
-        [TestMethod]
-        public void UnwindCode_SaveXmm128Far_Test()
-        {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<SaveXmm128Far>();
-            throw new NotImplementedException();
+            TestView<UnwindCode.SaveXmm128>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1453140, size: 4,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 36),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SAVE_XMM128, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 6, bits: 4),
+                    c => c.VerifyField(name: "StackOffset", value: (ushort) 2)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindCode_PushMachFrame_Test()
         {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<PushMachFrame>();
-            throw new NotImplementedException();
+            TestStruct<UnwindCode.PushMachFrame>(
+                v => v.CodeOffset == 0,
+                v => v.UnwindOp == UWOP.PUSH_MACHFRAME,
+                v => v.OpInfo == 0,
+                v => v.StructSize == 2
+            );
+
+            TestView<UnwindCode.PushMachFrame>(
+                v => v.VerifyStruct(
+                    name: "UNWIND_CODE", offset: 1473504, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 0),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.PUSH_MACHFRAME, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 0, bits: 4)
+                )
+            );
         }
 
-        [TestMethod]
-        public void UnwindCode_NullUnwindCode_Test()
-        {
-            //todo: generate this test with non-PEFAST and then we can check that PEFAST works correctly
-            var str = GenerateTest<NullUnwindCode>();
-            throw new NotImplementedException();
-        }
+        //Various NVIDIA assemblies have SaveNonVolatileFar and SaveXmm128Far, but I didn't see it in any Microsoft
+        //assemblies in Windows 11
+
+        //Don't test the "Null" unwind code; it just represents alignment
 
         #endregion
 
@@ -1336,14 +1194,14 @@ namespace PESpy.Tests
         [TestMethod]
         public void ScopeRecord_Test()
         {
-            TestStruct<ScopeRecord>(
+            TestStruct<ScopeTable.ScopeRecord>(
                 v => v.BeginAddress == 12717,
                 v => v.EndAddress == 12744,
                 v => v.HandlerAddress == 1,
                 v => v.JumpTarget == 12744
             );
 
-            TestView<ScopeRecord>(
+            TestView<ScopeTable.ScopeRecord>(
                 v => v.VerifyStruct(
                     name: "ScopeRecord", offset: 1425944, size: 16,
                     c => c.VerifyField(name: "BeginAddress", value: 12717),
@@ -1355,15 +1213,12 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void FuncInfo_Test_x86()
+        public void FuncInfo_Test()
         {
-            //Need to assert that it's a 32-bit PE file
-            Assert.Inconclusive();
-        }
+            //The headers for FuncInfo can be conditionally compiled with pointers,
+            //so ideally we want to check if we can parse both x86 and x64, however
+            //the x86 AuthExt doesn't have an ExceptionTable! Perhaps that's expected
 
-        [TestMethod]
-        public void FuncInfo_Test_x64()
-        {
             TestStruct<FuncInfo>(
                 v => v.MagicNumber == 429065506,
                 v => v.BBTFlags == 0,
@@ -1397,63 +1252,166 @@ namespace PESpy.Tests
                     after: 5
                 )
             );
+
+            //There's 4 xrefs: the third one is the TryBlockMap.HandlerArray
+            TestXRefs<FuncInfo>(
+                v => v.Verify(propertyName: "UnwindMap",    index: 0, fieldOffset: FuncInfo.UnwindMapOffset, targetOffset: 67060),
+                v => v.Verify(propertyName: "TryBlockMap",  index: 1, fieldOffset: FuncInfo.TryBlockMapOffset, targetOffset: 67076),
+                v => v.Verify(propertyName: "IPToStateMap", index: 3, fieldOffset: FuncInfo.IPToStateMapOffset, targetOffset: 67120)
+            );
         }
 
         [TestMethod]
         public void TryBlockMapEntry_Test()
         {
-            var str = GenerateTest<TryBlockMapEntry>();
+            TestStruct<TryBlockMapEntry>(
+                v => v.TryLow == 0,
+                v => v.TryHigh == 0,
+                v => v.CatchHigh == 1,
+                v => v.nCatches == 1,
+                v => v.HandlerArray.ListedOffset == 67096
+            );
 
-            throw new NotImplementedException();
+            TestView<TryBlockMapEntry>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "TryBlockMapEntry", offset: 67076, size: 20,
+                        c => c.VerifyField(name: "tryLow", value: 0),
+                        c => c.VerifyField(name: "tryHigh", value: 0),
+                        c => c.VerifyField(name: "catchHigh", value: 1),
+                        c => c.VerifyField(name: "nCatches", value: 1),
+                        c => c.VerifyField(name: "dispHandlerArray", value: 67096)
+                    ),
+                    after: 1
+                )
+            );
+
+            TestXRefs<TryBlockMapEntry>(
+                v => v.Verify(propertyName: "HandlerArray", index: 0, fieldOffset: TryBlockMapEntry.HandlerArrayOffset, targetOffset: 1)
+            );
         }
 
         [TestMethod]
         public void HandlerType_Test()
         {
-            var str = GenerateTest<HandlerType>();
+            TestStruct<HandlerType>(
+                v => v.Adjectives == 64,
+                v => v.Type.ListedOffset == 0,
+                v => v.CatchObj == 0,
+                v => v.Handler == 39879,
+                v => v.Frame == 56
+            );
 
-            throw new NotImplementedException();
+            TestView<HandlerType>(
+                v => v.VerifyStruct(
+                    name: "HandlerType", offset: 67096, size: 20,
+                    c => c.VerifyField(name: "adjectives", value: 64),
+                    c => c.VerifyField(name: "dispType", value: 0),
+                    c => c.VerifyField(name: "dispCatchObj", value: 0),
+                    c => c.VerifyField(name: "dispOfHandler", value: 39879),
+                    c => c.VerifyField(name: "dispFrame", value: 56)
+                )
+            );
+
+            TestXRefs<HandlerType>(
+                v => v.Verify(propertyName: "Type", index: 0, fieldOffset: HandlerType.TypeOffset, targetOffset: 1527960)
+            );
         }
 
         [TestMethod]
         public void TypeDescriptor_Test()
         {
-            var str = GenerateTest<TypeDescriptor>();
+            TestStruct<TypeDescriptor>(
+                v => v.pVFTable == 269732080,
+                v => v.Spare == 0,
+                v => v.Name == ".?AUCInBufferException@@"
+            );
 
-            throw new NotImplementedException();
+            TestView<TypeDescriptor>(
+                v => v.VerifyStruct(
+                    name: "TypeDescriptor", offset: 1524376, size: 41,
+                    c => c.VerifyField(name: "pVFTable", value: (ulong) 269732080),
+                    c => c.VerifyField(name: "spare", value: (ulong) 0),
+                    c => c.VerifyField(name: "name", value: ".?AUCInBufferException@@")
+                )
+            );
         }
 
         [TestMethod]
         public void IptoStateMapEntry_Test()
         {
-            var str = GenerateTest<IptoStateMapEntry>();
+            TestStruct<IptoStateMapEntry>(
+                v => v.Ip == 15737,
+                v => v.State == 0
+            );
 
-            throw new NotImplementedException();
+            TestView<IptoStateMapEntry>(
+                v => v.VerifyStruct(
+                    name: "IptoStateMapEntry", offset: 133657, size: 8,
+                    c => c.VerifyField(name: "Ip", value: 15737),
+                    c => c.VerifyField(name: "State", value: 0)
+                )
+            );
         }
 
         [TestMethod]
         public void UnwindMapEntry_Test()
         {
-            var str = GenerateTest<UnwindMapEntry>();
+            TestStruct<UnwindMapEntry>(
+                v => v.ToState == -1,
+                v => v.Action == 0
+            );
 
-            throw new NotImplementedException();
+            TestView<UnwindMapEntry>(
+                v => v.VerifyStruct(
+                    name: "UnwindMapEntry", offset: 67060, size: 8,
+                    c => c.VerifyField(name: "toState", value: -1),
+                    c => c.VerifyField(name: "action", value: 0)
+                )
+            );
         }
 
         [TestMethod]
         public void FuncInfoV1_Test()
         {
-            Assert.Inconclusive();
+            TestStruct<FuncInfoV1>(
+                v => v.MagicNumber == 429065504,
+                v => v.BBTFlags == 0,
+                v => v.MaxState == 2,
+                v => v.UnwindMap.ListedOffset == 1297860,
+                v => v.nTryBlocks == 0,
+                v => v.TryBlockMap.ListedOffset == 0,
+                v => v.nIPMapEntries == 5,
+                v => v.IPToStateMap.ListedOffset == 1297784
+            );
 
-            throw new NotImplementedException();
+            TestView<FuncInfoV1>(
+                WithIgnores(
+                    before: 5,
+                    v => v.VerifyStruct(
+                        name: "FuncInfoV1", offset: 1198144, size: 28,
+                        c => c.VerifyBitField(name: "magicNumber", value: 429065504, bits: 29),
+                        c => c.VerifyBitField(name: "bbtFlags", value: 0, bits: 3),
+                        c => c.VerifyField(name: "maxState", value: 2),
+                        c => c.VerifyField(name: "dispUnwindMap", value: 1297860),
+                        c => c.VerifyField(name: "nTryBlocks", value: 0),
+                        c => c.VerifyField(name: "dispTryBlockMap", value: 0),
+                        c => c.VerifyField(name: "nIPMapEntries", value: 5),
+                        c => c.VerifyField(name: "dispIPtoStateMap", value: 1297784)
+                    ),
+                    after: 2
+                )
+            );
+
+            //There's xrefs; the first, second and last xrefs are ours
+            TestXRefs<FuncInfoV1>(
+                v => v.Verify(propertyName: "UnwindMap",    index: 0, fieldOffset: FuncInfoV1.UnwindMapOffset, targetOffset: 1305096),
+                v => v.Verify(propertyName: "TryBlockMap",  index: 1, fieldOffset: FuncInfoV1.TryBlockMapOffset, targetOffset: 1305016),
+                v => v.Verify(propertyName: "IPToStateMap", index: 5, fieldOffset: FuncInfoV1.IPToStateMapOffset, targetOffset: 1304840)
+            );
         }
 
-        [TestMethod]
-        public void FuncInfo4_Test()
-        {
-            Assert.Inconclusive();
-
-            throw new NotImplementedException();
-        }
+        //Parsing FuncInfo4 is not implemented
 
         #endregion
         #region Security Table (4)
@@ -1572,12 +1530,7 @@ namespace PESpy.Tests
             );
         }
 
-        [TestMethod]
-        public void ImageRelocation_Test()
-        {
-            var str = GenerateTest<ImageRelocation>();
-            throw new NotImplementedException();
-        }
+        //I haven't been able to find anything that has ImageRelocation
 
         #endregion
         #region Debug Table (6)
@@ -1618,9 +1571,37 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDebugDirectory_Coff_Test()
         {
-            var str = GenerateTest<ImageCoffSymbolsHeader>();
+            TestStruct<ImageCoffSymbolsHeader>(
+                v => v.NumberOfSymbols == 1123,
+                v => v.LvaToFirstSymbol.ListedOffset == 32,
+                v => v.NumberOfLinenumbers == 0,
+                v => v.LvaToFirstLinenumber == 0,
+                v => v.RvaToFirstByteOfCode == 4096,
+                v => v.RvaToLastByteOfCode == 49152,
+                v => v.RvaToFirstByteOfData == 49152,
+                v => v.RvaToLastByteOfData == 20480
+            );
 
-            throw new NotImplementedException();
+            TestView<ImageCoffSymbolsHeader>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "IMAGE_COFF_SYMBOLS_HEADER", offset: 61440, size: 32,
+                        c => c.VerifyField(name: "NumberOfSymbols", value: 1123),
+                        c => c.VerifyField(name: "LvaToFirstSymbol", value: 32),
+                        c => c.VerifyField(name: "NumberOfLinenumbers", value: 0),
+                        c => c.VerifyField(name: "LvaToFirstLinenumber", value: 0),
+                        c => c.VerifyField(name: "RvaToFirstByteOfCode", value: 4096),
+                        c => c.VerifyField(name: "RvaToLastByteOfCode", value: 49152),
+                        c => c.VerifyField(name: "RvaToFirstByteOfData", value: 49152),
+                        c => c.VerifyField(name: "RvaToLastByteOfData", value: 20480)
+                    ),
+                    after: 1
+                )
+            );
+
+            TestXRefs<ImageCoffSymbolsHeader>(
+                v => v.Verify(propertyName: "LvaToFirstSymbol", index: 0, fieldOffset: ImageCoffSymbolsHeader.LvaToFirstSymbolOffset, targetOffset: 61472)
+            );
         }
 
         #endregion
@@ -1733,77 +1714,38 @@ namespace PESpy.Tests
         }
 
         #endregion
-        #region Exception (5)
 
-        [TestMethod]
-        public void ImageDebugDirectory_Exception_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //Exception (5)
+        //Fixup (6)
+        //OmapToSrc (7)
+        //OmapFromSrc (8)
+        //Borland (9)
+        //BBT (10) (also known as Reserved10) always has a size of 4. Format always seems to be BB 00 + 2 more bytes
+        //Clsid (11)
 
-        #endregion
-        #region Fixup (6)
-
-        [TestMethod]
-        public void ImageDebugDirectory_Fixup_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
-        #region OmapToSrc (7)
-
-        [TestMethod]
-        public void ImageDebugDirectory_OmapToSrc_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
-        #region OmapFromSrc (8)
-
-        [TestMethod]
-        public void ImageDebugDirectory_OmapFromSrc_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
-        #region Borland (9)
-
-        [TestMethod]
-        public void ImageDebugDirectory_Borland_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
-        #region BBT (10)
-
-        [TestMethod]
-        public void ImageDebugDirectory_BBT_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
-        #region Clsid (11)
-
-        [TestMethod]
-        public void ImageDebugDirectory_Clsid_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
         #region VCFeature (12)
 
         [TestMethod]
         public void ImageDebugDirectory_VCFeature_Test()
         {
-            var str = GenerateTest<VCFeature>();
+            TestStruct<VCFeature>(
+                v => v.PreVC11 == 0,
+                v => v.C_CPP == 761,
+                v => v.GS == 761,
+                v => v.SDL == 0,
+                v => v.GuardN == 761
+            );
 
-            throw new NotImplementedException();
+            TestView<VCFeature>(
+                v => v.VerifyStruct(
+                    name: "VCFeature", offset: 7684844, size: 20,
+                    c => c.VerifyField(name: "PreVC11", value: 0),
+                    c => c.VerifyField(name: "C_CPP", value: 761),
+                    c => c.VerifyField(name: "GS", value: 761),
+                    c => c.VerifyField(name: "SDL", value: 0),
+                    c => c.VerifyField(name: "GuardN", value: 761)
+                )
+            );
         }
 
         #endregion
@@ -1812,38 +1754,46 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDebugDirectory_PogoData_Test()
         {
-            var str = GenerateTest<PogoData>();
+            TestStruct<PogoData>(
+                v => v.Signature == PogoSignatureKind.LCTG,
+                v => v.Entries == IgnoreValue
+            );
 
-            throw new NotImplementedException();
+            TestView<PogoData>(
+                v => v.VerifyStruct(
+                    name: "PogoData", offset: 7684864, size: 1316,
+                    WithIgnores(
+                        c => c.VerifyField(name: "Signature", value: PogoSignatureKind.LCTG),
+                        after: 131
+                    )
+                )
+            );
         }
 
         [TestMethod]
         public void ImageDebugDirectory_PogoItem_Test()
         {
-            var str = GenerateTest<PogoItem>();
+            TestStruct<PogoItem>(
+                v => v.RVA == 4096,
+                v => v.Size == 1616,
+                v => v.Name == ".text$di"
+            );
 
-            throw new NotImplementedException();
+            TestView<PogoItem>(
+                v => v.VerifyStruct(
+                    name: "PogoItem", offset: 7684868, size: 17,
+                    c => c.VerifyField(name: "RVA", value: 4096),
+                    c => c.VerifyField(name: "Size", value: 1616),
+                    c => c.VerifyField(name: "Name", value: ".text$di")
+                )
+            );
         }
 
         #endregion
-        #region ILTCG (14)
 
-        [TestMethod]
-        public void ImageDebugDirectory_ILTCG_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //ILTCG (14)
+        //MPX (15)
 
-        #endregion
-        #region MPX (15)
-
-        [TestMethod]
-        public void ImageDebugDirectory_MPX_Test()
-        {
-            Assert.Inconclusive();
-        }
-
-        #endregion
         #region Reproducible (16)
 
         [TestMethod]
@@ -1869,29 +1819,41 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDebugDirectory_EmbeddedPortablePdb_Test()
         {
-            var str = GenerateTest<EmbeddedPortablePdb>();
+            TestStruct<EmbeddedPortablePdb>(
+                v => v.Signature == 1111773261,
+                v => v.UncompressedSize == 10368
+            );
 
-            throw new NotImplementedException();
+            TestView<EmbeddedPortablePdb>(
+                v => v.VerifyStruct(
+                    name: "Embedded Portable PDB", offset: 1971, size: 6048,
+                    c => c.VerifyField(name: "Signature", value: 1111773261),
+                    c => c.VerifyField(name: "UncompressedSize", value: 10368),
+                    c => c.VerifyFieldIgnoreValue(name: "PortablePdbImage")
+                )
+            );
         }
 
         #endregion
-        #region SPGO (18)
 
-        [TestMethod]
-        public void ImageDebugDirectory_SPGO_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //SPGO (18)
 
-        #endregion
         #region PdbChecksum (19)
 
         [TestMethod]
         public void ImageDebugDirectory_PdbChecksum_Test()
         {
-            var str = GenerateTest<PdbChecksum>();
+            TestStruct<PdbChecksum>(
+                v => v.AlgorithmName == "SHA256"
+            );
 
-            throw new NotImplementedException();
+            TestView<PdbChecksum>(
+                v => v.VerifyStruct(
+                    name: "PdbChecksum", offset: 5752, size: 39,
+                    c => c.VerifyField(name: "AlgorithmName", value: "SHA256"),
+                    c => c.VerifyFieldIgnoreValue(name: "Checksum")
+                )
+            );
         }
 
         #endregion
@@ -1921,15 +1883,9 @@ namespace PESpy.Tests
         }
 
         #endregion
-        #region R2RPerfMap (21)
 
-        [TestMethod]
-        public void ImageDebugDirectory_R2RPerfMap_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //R2RPerfMap (21)
 
-        #endregion
         #endregion
         #endregion
         #region Copyright Table (7)
@@ -2081,6 +2037,35 @@ namespace PESpy.Tests
                 ),
                 false
             );
+
+            using var peFile32 = PEFile.FromKey(WellKnownTestModule.aadauthhelper);
+            using var peFile64 = PEFile.FromKey(WellKnownTestModule.ntdll);
+
+            var cfg32 = peFile32.LoadConfigTable;
+            var cfg64 = peFile64.LoadConfigTable;
+
+            TestXRefs<ImageLoadConfigDirectory>(
+
+                //Haven't been able to find anything with LockPrefixTable
+                //v => v.Verify(propertyName: "LockPrefixTable",                          index: -1, fieldOffset: cfg32.LockPrefixTableOffset,                          targetOffset: 0),
+
+                v => v.Verify(propertyName: "SecurityCookie",                           index: 0, fieldOffset: cfg64.SecurityCookieOffset,                           targetOffset: 1664304), //ntdll
+                v => v.Verify(propertyName: "SEHandlerTable",                           index: 1, fieldOffset: cfg32.SEHandlerTableOffset,                           targetOffset: 83648), //aadauthhelper
+                v => v.Verify(propertyName: "GuardCFCheckFunctionPointer",              index: 1, fieldOffset: cfg64.GuardCFCheckFunctionPointerOffset,              targetOffset: 1651168), //ntdll
+                v => v.Verify(propertyName: "GuardCFDispatchFunctionPointer",           index: 2, fieldOffset: cfg64.GuardCFDispatchFunctionPointerOffset,           targetOffset: 1667072), //ntdll
+                v => v.Verify(propertyName: "GuardCFFunctionTable",                     index: 3, fieldOffset: cfg64.GuardCFFunctionTableOffset,                     targetOffset: 1261292), //ntdll
+                v => v.Verify(propertyName: "GuardAddressTakenIatEntryTable",           index: 4, fieldOffset: cfg64.GuardAddressTakenIatEntryTableOffset,           targetOffset: 6629368), //SingleFileApp_EXE
+                v => v.Verify(propertyName: "GuardLongJumpTargetTable",                 index: 4, fieldOffset: cfg64.GuardLongJumpTargetTableOffset,                 targetOffset: 58236), //ntoskrnl
+                v => v.Verify(propertyName: "GuardRFFailureRoutineFunctionPointer",     index: 4, fieldOffset: cfg64.GuardRFFailureRoutineFunctionPointerOffset,     targetOffset: 4155656), //DbgEng
+                v => v.Verify(propertyName: "DynamicValueRelocTableOffset",             index: 4, fieldOffset: cfg64.DynamicValueRelocTableOffsetOffset,             targetOffset: 2155868), //ntdll
+                v => v.Verify(propertyName: "GuardRFVerifyStackPointerFunctionPointer", index: 5, fieldOffset: cfg64.GuardRFVerifyStackPointerFunctionPointerOffset, targetOffset: 4155664), //DbgEng
+                v => v.Verify(propertyName: "EnclaveConfigurationPointer",              index: 5, fieldOffset: cfg64.EnclaveConfigurationPointerOffset,              targetOffset: 206864), //AzureAttest
+                v => v.Verify(propertyName: "GuardEHContinuationTable",                 index: 5, fieldOffset: cfg64.GuardEHContinuationTableOffset,                 targetOffset: 1260432), //ntdll
+                v => v.Verify(propertyName: "GuardXFGCheckFunctionPointer",             index: 6, fieldOffset: cfg64.GuardXFGCheckFunctionPointerOffset,             targetOffset: 1667080), //ntdll
+                v => v.Verify(propertyName: "GuardXFGDispatchFunctionPointer",          index: 7, fieldOffset: cfg64.GuardXFGDispatchFunctionPointerOffset,          targetOffset: 1667088), //ntdll
+                v => v.Verify(propertyName: "GuardXFGTableDispatchFunctionPointer",     index: 8, fieldOffset: cfg64.GuardXFGTableDispatchFunctionPointerOffset,     targetOffset: 1667096), //ntdll
+                v => v.Verify(propertyName: "GuardMemcpyFunctionPointer",               index: 9, fieldOffset: cfg64.GuardMemcpyFunctionPointerOffset,               targetOffset: 3917864) //coreclr
+            );
         }
 
         [TestMethod]
@@ -2144,6 +2129,11 @@ namespace PESpy.Tests
                     after: 7
                 )
             );
+
+            //There's 4 xrefs: the ImageEnclaveConfig.ImportList, and all of the ImageEnclaveImport.ImportName items
+            TestXRefs<ImageEnclaveConfig>(
+                v => v.Verify(propertyName: "ImportList", index: 0, fieldOffset: ImageEnclaveConfig.ImportListOffset, targetOffset: 222852)
+            );
         }
 
         [TestMethod]
@@ -2171,29 +2161,46 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "Reserved", value: 0)
                 )
             );
+
+            TestXRefs<ImageEnclaveImport>(
+                v => v.Verify(propertyName: "ImportName", index: 0, fieldOffset: ImageEnclaveImport.ImportNameOffset, targetOffset: 237918)
+            );
         }
 
         [TestMethod]
         public void GuardAddressTakenIatEntryTable_Test()
         {
-            var str = GenerateTest<GuardAddressTakenIatEntryTable>();
+            TestStruct<GuardAddressTakenIatEntryTable>(
+                v => v.Count == 3
+            );
 
-            throw new NotImplementedException();
+            TestView<GuardAddressTakenIatEntryTable>(
+                v => v.VerifyStructIgnoreChildren(name: "GuardAddressTakenIatEntryTable", offset: 6629368, size: 15)
+            );
         }
 
         [TestMethod]
         public void GuardAddressTakenIatEntryTable_Entry_Test()
         {
-            var str = GenerateTest<GuardAddressTakenIatEntryTable.Entry>();
+            TestStruct<GuardAddressTakenIatEntryTable.Entry>(
+                v => v.Function == 6607680,
+                v => v.Flags == 0
+            );
 
-            throw new NotImplementedException();
+            TestView<GuardAddressTakenIatEntryTable.Entry>(
+                v => v.VerifyStruct(
+                    name: "Entry", offset: 6629368, size: 5,
+                    c => c.VerifyField(name: "Function", value: 6607680),
+                    c => c.VerifyField(name: "Flags", value: (IMAGE_GUARD_FLAG) 0)
+                )
+            );
         }
 
         [TestMethod]
         public void GuardCFFunctionTable_Test()
         {
             TestStruct<GuardCFFunctionTable>(
-                v => v.Entries == IgnoreValue
+                v => v.Count == 2217
             );
 
             TestView<GuardCFFunctionTable>(
@@ -2209,8 +2216,6 @@ namespace PESpy.Tests
         [TestMethod]
         public void GuardCFFunctionTable_Entry_Test()
         {
-            var str = GenerateTest<GuardCFFunctionTable.Entry>();
-
             TestStruct<GuardCFFunctionTable.Entry>(
                 v => v.Function == 4368,
                 v => v.Flags == IMAGE_GUARD_FLAG.FID_XFG,
@@ -2231,7 +2236,7 @@ namespace PESpy.Tests
         public void GuardEHContinuationTable_Test()
         {
             TestStruct<GuardEHContinuationTable>(
-                v => v.Entries == IgnoreValue
+                v => v.Count == 172
             );
 
             TestView<GuardEHContinuationTable>(
@@ -2261,17 +2266,30 @@ namespace PESpy.Tests
         [TestMethod]
         public void GuardLongJumpTargetTable_Test()
         {
-            var str = GenerateTest<GuardLongJumpTargetTable>();
+            TestStruct<GuardLongJumpTargetTable>(
+                v => v.Count == 1
+            );
 
-            throw new NotImplementedException();
+            TestView<GuardLongJumpTargetTable>(
+                v => v.VerifyStructIgnoreChildren(name: "GuardLongJumpTargetTable", offset: 58236, size: 5)
+            );
         }
 
         [TestMethod]
         public void GuardLongJumpTargetTable_Entry_Test()
         {
-            var str = GenerateTest<GuardLongJumpTargetTable.Entry>();
+            TestStruct<GuardLongJumpTargetTable.Entry>(
+                v => v.Target == 3897986,
+                v => v.Flags == 0
+            );
 
-            throw new NotImplementedException();
+            TestView<GuardLongJumpTargetTable.Entry>(
+                v => v.VerifyStruct(
+                    name: "Entry", offset: 58236, size: 5,
+                    c => c.VerifyField(name: "Target", value: 3897986),
+                    c => c.VerifyField(name: "Flags", value: (IMAGE_GUARD_FLAG) 0)
+                )
+            );
         }
 
         [TestMethod]
@@ -2296,13 +2314,26 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDynamicRelocation_ntoskrnl()
         {
-            //ntoskrnl has some strange entries in it, apparently relating to PTE (PTE_BASE, etc).
-            //Test that we can correctly parse it
+            //ntoskrnl has special PXE/PPE/PDE/PTE symbols that we want to confirm we can parse.
 
-            var path = WellKnownTestModule.GetStoreFile(WellKnownTestModule.ntoskrnl);
+            using var peFile = PEFile.FromKey(WellKnownTestModule.ntoskrnl);
 
-            //We need to test that have some regular old imagebaserelocation addresses with FFFF symbol kinds
-            Assert.Inconclusive();
+            var dynamicRelocations = peFile.LoadConfigTable.DynamicValueRelocTableOffset.Value.DynamicRelocations;
+
+            dynamicRelocations.Verify(
+               "GUARD_IMPORT_CONTROL_TRANSFER",
+                "GUARD_INDIR_CONTROL_TRANSFER",
+                "GUARD_SWITCHTABLE_BRANCH",
+                "FFFFDE0000000000",
+                "PTE_BASE",
+                "PDE_BASE",
+                "PPE_BASE",
+                "PXE_BASE",
+                "PXE_SELFMAP",
+                "PXE_TOP",
+                "PDE_TOP",
+                "PTE_TOP"
+            );
         }
 
         [TestMethod]
@@ -2324,30 +2355,16 @@ namespace PESpy.Tests
             );
         }
 
-        [TestMethod]
-        public void ImageDynamicRelocationV2_Test()
-        {
-            var str = GenerateTest<ImageDynamicRelocationV2>();
-
-            throw new NotImplementedException();
-        }
+        //Can't find any files on Windows 11 that use ImageDynamicRelocationV2
 
         #region Symbol 1
 
-        [TestMethod]
-        public void ImagePrologueDynamicRelocationHeader_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //Can't find any files on Windows 11 that use ImagePrologueDynamicRelocationHeader
 
         #endregion
         #region Symbol 2
 
-        [TestMethod]
-        public void ImageEpilogueDynamicRelocationHeader_Test()
-        {
-            Assert.Inconclusive();
-        }
+        //Can't find any files on Windows 11 that use ImageEpilogueDynamicRelocationHeader
 
         #endregion
         #region Symbol 3
@@ -2546,14 +2563,37 @@ namespace PESpy.Tests
                 v => v.VerifyValue(offset: 672, value: "MSVCRT40.dll"),
                 v => v.VerifyValue(offset: 685, value: "msvcrt.DLL")
             );
+
+            //Both the ImageBoundImportDescriptor and ImageBoundForwarderRef xrefs are written
+            TestXRefs<ImageBoundImportDescriptor>(
+                v => v.Verify(propertyName: "Name", index: 0, fieldOffset: ImageBoundImportDescriptor.OffsetModuleNameOffset, targetOffset: 672)
+            );
         }
 
         [TestMethod]
         public void ImageBoundForwarderRef_Test()
         {
-            var str = GenerateTest<ImageBoundForwarderRef>();
+            TestStruct<ImageBoundForwarderRef>(
+                v => v.TimeDateStamp.ToString() == "18/08/2001 3:33:02 PM",
+                v => v.OffsetModuleName == 69,
+                v => v.Reserved == 0,
+                v => v.Name.ListedOffset == 685
+            );
 
-            throw new NotImplementedException();
+            TestView<ImageBoundForwarderRef>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_BOUND_FORWARDER_REF", offset: 624, size: 8,
+                    c => c.VerifyField(name: "TimeDateStamp", value: "18/08/2001 3:33:02 PM"),
+                    c => c.VerifyField(name: "OffsetModuleName", value: (ushort) 69),
+                    c => c.VerifyField(name: "Reserved", value: (ushort) 0)
+                ),
+
+                v => v.VerifyValue(offset: 0x2AD, value: "msvcrt.DLL")
+            );
+
+            TestXRefs<ImageBoundForwarderRef>(
+                v => v.Verify(propertyName: "Name", index: 0, fieldOffset: ImageBoundForwarderRef.OffsetModuleNameOffset, targetOffset: 685)
+            );
         }
 
         #endregion
@@ -2562,9 +2602,11 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImportAddressTable_ImageThunkData_Test()
         {
-            Assert.Inconclusive();
+            using var peFile = PEFile.FromKey(WellKnownTestModule.coreclr);
 
-            throw new NotImplementedException();
+            var importAddressTable = peFile.ImportAddressTable;
+
+            Assert.AreEqual(383, importAddressTable.Length);
         }
 
         #endregion
@@ -2573,17 +2615,55 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDelayLoadDescriptor_Test()
         {
-            var str = GenerateTest<ImageDelayLoadDescriptor>();
+            TestStruct<ImageDelayLoadDescriptor>(
+                v => v.Attributes == 1,
+                v => v.DllNameRVA.ListedOffset == 3988976,
+                v => v.ModuleHandleRVA.ListedOffset == 0,
+                v => v.ImportAddressTableRVA.ListedOffset == 5021696,
+                v => v.ImportNameTableRVA.ListedOffset == 4723208,
+                v => v.BoundImportAddressTableRVA == 4723368,
+                v => v.UnloadInformationTable.ListedOffset == 0,
+                v => v.TimeDateStamp == 0
+            );
 
-            throw new NotImplementedException();
+            TestView<ImageDelayLoadDescriptor>(
+                WithIgnores(
+                    before: 1,
+                    v => v.VerifyStruct(
+                        name: "IMAGE_DELAYLOAD_DESCRIPTOR", offset: 4713892, size: 32,
+                        c => c.VerifyField(name: "Attributes", value: 1),
+                        c => c.VerifyField(name: "DllNameRVA", value: 3988976),
+                        c => c.VerifyField(name: "ModuleHandleRVA", value: 0),
+                        c => c.VerifyField(name: "ImportAddressTableRVA", value: 5021696),
+                        c => c.VerifyField(name: "ImportNameTableRVA", value: 4723208),
+                        c => c.VerifyField(name: "BoundImportAddressTableRVA", value: 4723368),
+                        c => c.VerifyField(name: "UnloadInformationTable", value: 0),
+                        c => c.VerifyField(name: "TimeDateStamp", value: (Timestamp) 0)
+                    ),
+                    after: 5
+                )
+            );
+
+            TestXRefs<ImageDelayLoadDescriptor>(
+                v => v.Verify(propertyName: "DllNameRVA",             index: 0, fieldOffset: ImageDelayLoadDescriptor.DllNameRVAOffset, targetOffset: 60976),
+                v => v.Verify(propertyName: "ModuleHandleRVA",        index: 1, fieldOffset: ImageDelayLoadDescriptor.ModuleHandleRVAOffset, targetOffset: 79536),
+                v => v.Verify(propertyName: "ImportAddressTableRVA",  index: 2, fieldOffset: ImageDelayLoadDescriptor.ImportAddressTableRVAOffset, targetOffset: 90200),
+                v => v.Verify(propertyName: "ImportNameTableRVA",     index: 3, fieldOffset: ImageDelayLoadDescriptor.ImportNameTableRVAOffset, targetOffset: 69752)
+
+                //I don't think this is present in on-disk modules
+                //v => v.Verify(propertyName: "UnloadInformationTable", index: -1, fieldOffset: ImageDelayLoadDescriptor.UnloadInformationTableOffset, targetOffset: 0)
+            );
         }
 
         [TestMethod]
         public void ImageDelayLoadDescriptor_ImageThunkData_Test()
         {
-            Assert.Inconclusive();
+            using var peFile = PEFile.FromKey(WellKnownTestModule.coreclr);
 
-            throw new NotImplementedException();
+            var delayLoad = peFile.DelayImportTable[0];
+
+            Assert.AreEqual(4, delayLoad.ImportNameTableRVA.Value.Length);
+            Assert.AreEqual("VerQueryValueW", delayLoad.ImportNameTableRVA.Value[0].ToString());
         }
 
         #endregion
@@ -2706,47 +2786,89 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageCorVTableFixup_Test()
         {
-            var str = GenerateTest<ImageCorVTableFixup>();
+            TestStruct<ImageCorVTableFixup>(
+                v => v.RVA == 90176,
+                v => v.Count == 1,
+                v => v.Type == (COR_VTABLE.COR_VTABLE_64BIT | COR_VTABLE.COR_VTABLE_FROM_UNMANAGED_RETAIN_APPDOMAIN)
+            );
 
-            throw new NotImplementedException();
+            TestView<ImageCorVTableFixup>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_COR_VTABLEFIXUP", offset: 77328, size: 8,
+                    c => c.VerifyField(name: "RVA", value: 90176),
+                    c => c.VerifyField(name: "Count", value: (short) 1),
+                    c => c.VerifyField(name: "Type", value: (COR_VTABLE.COR_VTABLE_64BIT | COR_VTABLE.COR_VTABLE_FROM_UNMANAGED_RETAIN_APPDOMAIN))
+                )
+            );
+        }
+
+        //The EcmaMetadata type just provides access to the StorageSignature/StorageHeader and provides easy to use properties
+        //for accessing the various heaps. It doesn't otherwise do anything
+
+        [TestMethod]
+        public void Ecma335_BlobEntry_Test()
+        {
+            TestStruct<BlobEntry>(
+                v => v.CompressedSize == new byte[]{4},
+                v => v.Value == new byte[] {32,1,1,8}
+            );
+
+            TestView<BlobEntry>(
+                v => v.VerifyStruct(
+                    name: "BlobEntry", offset: 1757, size: 5,
+                    c => c.VerifyField(name: "Size", value: new byte[]{4}),
+                    c => c.VerifyField(name: "Value", value: new byte[]{32,1,1,8})
+                )
+            );
         }
 
         [TestMethod]
-        public void ECMA335_Metadata_Test()
+        public void Ecma335_CompressedModelHeader_Test()
         {
-            Assert.Inconclusive();
+            TestStruct<CompressedModelHeader>(
+                v => v.Reserved1 == 0,
+                v => v.MajorVersion == 2,
+                v => v.MinorVersion == 0,
+                v => v.HeapSizes == 0,
+                v => v.Reserved2 == 1,
+                v => v.Valid == (TableMask.Module | TableMask.TypeRef | TableMask.TypeDef | TableMask.MethodDef | TableMask.Param | TableMask.MemberRef | TableMask.CustomAttribute | TableMask.Assembly | TableMask.AssemblyRef),
+                v => v.Sorted == (TableMask.InterfaceImpl | TableMask.Constant | TableMask.CustomAttribute | TableMask.FieldMarshal | TableMask.DeclSecurity | TableMask.ClassLayout | TableMask.FieldLayout | TableMask.MethodSemantics | TableMask.MethodImpl | TableMask.ImplMap | TableMask.FieldRva | TableMask.NestedClass | TableMask.GenericParam | TableMask.GenericParamConstraint),
+                v => v.RowCounts == new int[] { 1, 16, 2, 2, 1, 15, 14, 1, 1 }
+            );
 
-            throw new NotImplementedException();
+            TestView<CompressedModelHeader>(
+                v => v.VerifyStruct(
+                    name: "Metadata Header", offset: 712, size: 60,
+                    c => c.VerifyField(name: "Reserved1", value: 0),
+                    c => c.VerifyField(name: "MajorVersion", value: (byte) 2),
+                    c => c.VerifyField(name: "MinorVersion", value: (byte) 0),
+                    c => c.VerifyField(name: "HeapSizes", value: (HeapSizes) 0),
+                    c => c.VerifyField(name: "Reserved2", value: (byte) 1),
+                    c => c.VerifyField(name: "Valid", value: (TableMask.Module | TableMask.TypeRef | TableMask.TypeDef | TableMask.MethodDef | TableMask.Param | TableMask.MemberRef | TableMask.CustomAttribute | TableMask.Assembly | TableMask.AssemblyRef)),
+                    c => c.VerifyField(name: "Sorted", value: (TableMask.InterfaceImpl | TableMask.Constant | TableMask.CustomAttribute | TableMask.FieldMarshal | TableMask.DeclSecurity | TableMask.ClassLayout | TableMask.FieldLayout | TableMask.MethodSemantics | TableMask.MethodImpl | TableMask.ImplMap | TableMask.FieldRva | TableMask.NestedClass | TableMask.GenericParam | TableMask.GenericParamConstraint)),
+                    c => c.VerifyField(name: "RowCounts", value: new int[] { 1, 16, 2, 2, 1, 15, 14, 1, 1 })
+                )
+            );
         }
 
-        [TestMethod]
-        public void ECMA335_BlobEntry_Test()
-        {
-            var str = GenerateTest<BlobEntry>();
-
-            throw new NotImplementedException();
-        }
+        //CompressedModelHeap doesn't really "store" anything; it's just a type that holds the unpacked metadata
 
         [TestMethod]
-        public void ECMA335_CompressedModelHeader_Test()
+        public void Ecma335_UserString_Test()
         {
-            var str = GenerateTest<CompressedModelHeader>();
+            TestStruct<UserString>(
+                v => v.Value == "{{ message = {0} }}",
+                v => v.UnicodeByte == 0
+            );
 
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void ECMA335_CompressedModelHeap_Test()
-        {
-            var str = GenerateTest<CompressedModelHeap>();
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void ECMA335_UserString_Test()
-        {
-            var str = GenerateTest<UserString>();
-            throw new NotImplementedException();
+            TestView<UserString>(
+                v => v.VerifyStruct(
+                    name: "UserString", offset: 3610313, size: 40,
+                    c => c.VerifyField(name: "Size", value: new byte[] {39}),
+                    c => c.VerifyField(name: "Value", value: "{{ message = {0} }}"),
+                    c => c.VerifyField(name: "UnicodeByte", value: (byte) 0)
+                )
+            );
         }
 
         [TestMethod]
@@ -2774,22 +2896,67 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageCorILMethodSect_Test()
         {
-            var str = GenerateTest<ImageCorILMethodSect>();
-            throw new NotImplementedException();
+            TestStruct<ImageCorILMethodSect>(
+                v => v.Kind == CorILMethodSect.EHTable,
+                v => v.DataSize == 16
+            );
+
+            TestView<ImageCorILMethodSect>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_COR_ILMETHOD_SECT_SMALL", offset: 2552, size: 2,
+                    c => c.VerifyField(name: "Kind", value: CorILMethodSect.EHTable),
+                    c => c.VerifyField(name: "DataSize", value: (byte) 16)
+                )
+            );
         }
 
         [TestMethod]
         public void ImageCorILMethodSectEH_Test()
         {
-            var str = GenerateTest<ImageCorILMethodSectEH>();
-            throw new NotImplementedException();
+            TestStruct<ImageCorILMethodSectEH>(
+                v => v.Reserved == 0,
+                v => v.Clauses == IgnoreValue
+            );
+
+            TestView<ImageCorILMethodSectEH>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_COR_ILMETHOD_SECT_EH_SMALL", offset: 2552, size: 16,
+                    c => c.VerifyStructField(name: "SectSmall", type: "IMAGE_COR_ILMETHOD_SECT_SMALL", offset: 2552, size: 2,
+                        c1 => c1.VerifyField(name: "Kind", value: CorILMethodSect.EHTable),
+                        c1 => c1.VerifyField(name: "DataSize", value: (byte) 16)
+                    ),
+                    c => c.VerifyField(name: "Reserved", value: (short) 0),
+                    c => c.VerifyStructFieldArray(name: "Clauses",
+                        c1 => c1.VerifyStructIgnoreChildren(name: "IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL", offset: 2556, size: 12)
+                    )
+                )
+            );
         }
 
         [TestMethod]
         public void ImageCorILMethodSectEHClause_Test()
         {
-            var str = GenerateTest<ImageCorILMethodSectEHClause>();
-            throw new NotImplementedException();
+            TestStruct<ImageCorILMethodSectEHClause>(
+                v => v.Flags == CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FINALLY,
+                v => v.TryOffset == 23,
+                v => v.TryLength == 11,
+                v => v.HandlerOffset == 34,
+                v => v.HandlerLength == 7,
+                v => v.ClassToken == 0x0,
+                v => v.FilterOffset == 0
+            );
+
+            TestView<ImageCorILMethodSectEHClause>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL", offset: 2556, size: 12,
+                    c => c.VerifyField(name: "Flags", value: CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FINALLY),
+                    c => c.VerifyField(name: "TryOffset", value: (short) 23),
+                    c => c.VerifyField(name: "TryLength", value: (byte) 11),
+                    c => c.VerifyField(name: "HandlerOffset", value: (short) 34),
+                    c => c.VerifyField(name: "HandlerLength", value: (byte) 7),
+                    c => c.VerifyField(name: "ClassToken", value: 0)
+                )
+            );
         }
 
         #endregion
@@ -2798,29 +2965,85 @@ namespace PESpy.Tests
         [TestMethod]
         public void ReadyToRunCoreHeader_Test()
         {
-            var str = GenerateTest<ReadyToRunCoreHeader>();
-            throw new NotImplementedException();
+            TestStruct<ReadyToRunCoreHeader>(
+                v => v.Flags == (ReadyToRunFlag.READYTORUN_FLAG_SKIP_TYPE_VALIDATION | ReadyToRunFlag.READYTORUN_FLAG_NONSHARED_PINVOKE_STUBS | ReadyToRunFlag.READYTORUN_FLAG_MULTIMODULE_VERSION_BUBBLE),
+                v => v.NumberOfSections == 11,
+                v => v.Sections == IgnoreValue
+            );
+
+            TestView<ReadyToRunCoreHeader>(
+                v => v.VerifyStruct(
+                    name: "READYTORUN_CORE_HEADER", offset: 5512, size: 140,
+                    c => c.VerifyField(name: "Flags", value: (ReadyToRunFlag.READYTORUN_FLAG_SKIP_TYPE_VALIDATION | ReadyToRunFlag.READYTORUN_FLAG_NONSHARED_PINVOKE_STUBS | ReadyToRunFlag.READYTORUN_FLAG_MULTIMODULE_VERSION_BUBBLE)),
+                    c => c.VerifyField(name: "NumberOfSections", value: 11),
+                    c => c.VerifyFieldIgnoreValue("Sections")
+                )
+            );
         }
 
         [TestMethod]
         public void ReadyToRunHeader_Test()
         {
-            var str = GenerateTest<ReadyToRunHeader>();
-            throw new NotImplementedException();
+            TestStruct<ReadyToRunHeader>(
+                v => v.Signature == 5395538,
+                v => v.MajorVersion == 10,
+                v => v.MinorVersion == 1
+            );
+
+            TestView<ReadyToRunHeader>(
+                v => v.VerifyStruct(
+                    name: "READYTORUN_HEADER", offset: 5504, size: 148,
+                    c => c.VerifyField(name: "Signature", value: 5395538),
+                    c => c.VerifyField(name: "MajorVersion", value: (short) 10),
+                    c => c.VerifyField(name: "MinorVersion", value: (short) 1),
+                    c => c.VerifyFieldIgnoreValue(name: "CoreHeader")
+                )
+            );
         }
 
         [TestMethod]
         public void ReadyToRunImportSection_Test()
         {
-            var str = GenerateTest<ReadyToRunImportSection>();
-            throw new NotImplementedException();
+            TestStruct<ReadyToRunImportSection>(
+                v => v.Flags == ReadyToRunImportSectionFlags.PCode,
+                v => v.Type == ReadyToRunImportSectionType.StubDispatch,
+                v => v.EntrySize == 8,
+                v => v.Signatures == 0,
+                v => v.AuxiliaryData == 6088
+            );
+
+            TestView<ReadyToRunImportSection>(
+                v => v.VerifyStruct(
+                    name: "READYTORUN_IMPORT_SECTION", offset: 8212, size: 20,
+                    c => c.VerifyStructField(name: "Section", type: "IMAGE_DATA_DIRECTORY", offset: 8212, size: 8,
+                        c1 => c1.VerifyField(name: "VirtualAddress", value: 8336),
+                        c1 => c1.VerifyField(name: "Size", value: 0)
+                    ),
+                    c => c.VerifyField(name: "Flags", value: ReadyToRunImportSectionFlags.PCode),
+                    c => c.VerifyField(name: "Type", value: ReadyToRunImportSectionType.StubDispatch),
+                    c => c.VerifyField(name: "EntrySize", value: (byte) 8),
+                    c => c.VerifyField(name: "Signatures", value: 0),
+                    c => c.VerifyField(name: "AuxiliaryData", value: 6088)
+                )
+            );
         }
 
         [TestMethod]
         public void ReadyToRunSection_Test()
         {
-            var str = GenerateTest<ReadyToRunSection>();
-            throw new NotImplementedException();
+            TestStruct<ReadyToRunSection>(
+                v => v.Type == ReadyToRunSectionType.CompilerIdentifier,
+                v => v.Data.ToString() == "Crossgen2 9.0.425.16305"
+            );
+
+            TestView<ReadyToRunSection>(
+                v => v.VerifyStruct(
+                    name: "READYTORUN_SECTION", offset: 5520, size: 12,
+                    c => c.VerifyField(name: "Type", value: ReadyToRunSectionType.CompilerIdentifier),
+                    c => c.VerifyFieldIgnoreValue(name: "Section")
+                ),
+                verify => verify.VerifyValue(offset: 0x1750, value: "Crossgen2 9.0.425.16305")
+            );
         }
 
         #endregion
@@ -2829,16 +3052,165 @@ namespace PESpy.Tests
         [TestMethod]
         public void AppHostSignature_Test()
         {
-            var str = GenerateTest<AppHostSignature>();
+            TestStruct<AppHostSignature>(
+                v => v.BundleHeaderOffset.ListedAddress == 12699859,
+                v => v.BundleSignature == IgnoreValue
+            );
 
-            throw new NotImplementedException();
+            TestView<AppHostSignature>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "AppHost Signature", offset: 8230120, size: 40,
+                        c => c.VerifyField(name: "BundleHeaderOffset", value: (long) 12699859),
+                        c => c.VerifyFieldIgnoreValue(name: "BundleSignature")
+                    ),
+                    after: 15623
+                )
+            );
+
+            //All of the children of the bundle also write their xrefs
+            TestXRefs<AppHostSignature>(
+                v => v.Verify(propertyName: "BundleHeaderOffset", index: 0, fieldOffset: AppHostSignature.BundleHeaderOffsetOffset, targetOffset: 12699859)
+            );
+        }
+
+        //The Bundle.Manifest type just encapsulates the members within it
+
+        [TestMethod]
+        public void Bundle_HeaderFixed_Test()
+        {
+            TestStruct<Bundle.HeaderFixed>(
+                v => v.MajorVersion == 6,
+                v => v.MinorVersion == 0,
+                v => v.NumEmbeddedFiles == 12
+            );
+
+            TestView<Bundle.HeaderFixed>(
+                v => v.VerifyStruct(
+                    name: "header_fixed_t", offset: 12699859, size: 12,
+                    c => c.VerifyField(name: "major_version", value: 6),
+                    c => c.VerifyField(name: "minor_version", value: 0),
+                    c => c.VerifyField(name: "num_embedded_files", value: 12)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void Bundle_HeaderFixedV2_Test()
+        {
+            TestStruct<Bundle.HeaderFixedV2>(
+                v => v.Flags == Bundle.header_flags_t.none
+            );
+
+            TestView<Bundle.HeaderFixedV2>(
+                WithIgnores(
+                    before: 2,
+                    v => v.VerifyStruct(
+                        name: "header_fixed_v2_t", offset: 12699904, size: 40,
+                        c => c.VerifyStructField(name: "deps_json_location", type: "location_t", offset: 12699904, size: 16,
+                            c1 => c1.VerifyField("offset", "12697600"),
+                            c1 => c1.VerifyField("size", "2259")
+                        ),
+                        c => c.VerifyStructField(name: "runtimeconfig_json_location", type: "location_t", offset: 12699920, size: 16,
+                            c1 => c1.VerifyField("offset", "9860096"),
+                            c1 => c1.VerifyField("size", "1641")
+                        ),
+                        c => c.VerifyField(name: "flags", value: Bundle.header_flags_t.none)
+                    )
+                )
+            );
+        }
+
+        [TestMethod]
+        public void Bundle_FileEntry_Test()
+        {
+            TestStruct<Bundle.FileEntry>(
+                v => v.RelativePath.ToString() == "TestApp.runtimeconfig.json"
+            );
+
+            TestView<Bundle.FileEntry>(
+                WithIgnores(
+                    before: 1,
+                    v => v.VerifyStruct(
+                        name: "file_entry_t", offset: 12699944, size: 52,
+                        c => c.VerifyStructIgnoreChildren(name: "file_entry_fixed_t", offset: 12699944, size: 25),
+                        c => c.VerifyStructIgnoreChildren(name: "BundleEncodedString", offset: 12699969, size: 27)
+                    )
+                )
+            );
+        }
+
+        [TestMethod]
+        public void Bundle_FileEntryFixed_Test()
+        {
+            TestStruct<Bundle.FileEntryFixed>(
+                v => v.Offset == 9860096,
+                v => v.Size == 1641,
+                v => v.CompressedSize == 0,
+                v => v.Type == Bundle.file_type_t.runtime_config_json
+            );
+
+            TestView<Bundle.FileEntryFixed>(
+                v => v.VerifyStruct(
+                    name: "file_entry_fixed_t", offset: 12699944, size: 25,
+                    c => c.VerifyField(name: "offset", value: (long) 9860096),
+                    c => c.VerifyField(name: "size", value: (long) 1641),
+                    c => c.VerifyField(name: "compressedSize", value: (long) 0),
+                    c => c.VerifyField(name: "type", value: Bundle.file_type_t.runtime_config_json)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void Bundle_Location_Test()
+        {
+            TestStruct<Bundle.Location>(
+                v => v.Size == 2259
+            );
+
+            TestView<Bundle.Location>(
+                v => v.VerifyStruct(
+                    name: "location_t", offset: 12699904, size: 16,
+                    c => c.VerifyField(name: "offset", value: (long) 12697600),
+                    c => c.VerifyField(name: "size", value: (long) 2259)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void BundleEncodedString_Test()
+        {
+            TestStruct<BundleEncodedString>(
+                v => v.Length == 32,
+                v => v.Value == "V_i__Fifk2ERvzJZLk2Y1iFP03KlUWk="
+            );
+
+            TestView<BundleEncodedString>(
+                v => v.VerifyStruct(
+                    name: "BundleEncodedString", offset: 12699871, size: 33,
+                    c => c.VerifyField(name: "Length", value: 32),
+                    c => c.VerifyField(name: "Value", value: "V_i__Fifk2ERvzJZLk2Y1iFP03KlUWk=")
+                )
+            );
         }
 
         [TestMethod]
         public void ClrEngineMetrics_Test()
         {
-            var str = GenerateTest<ClrEngineMetrics>();
-            throw new NotImplementedException();
+            TestStruct<ClrEngineMetrics>(
+                v => v.Size == 16,
+                v => v.DbiVersion == 4,
+                v => v.ContinueStartupEvent == 5376933008
+            );
+
+            TestView<ClrEngineMetrics>(
+                v => v.VerifyStruct(
+                    name: "CLR_ENGINE_METRICS", offset: 8213632, size: 16,
+                    c => c.VerifyField(name: "Size", value: 16),
+                    c => c.VerifyField(name: "DbiVersion", value: 4),
+                    c => c.VerifyField(name: "ContinueStartupEvent", value: (ulong) 5376933008)
+                )
+            );
         }
 
         [TestMethod]
@@ -2856,7 +3228,7 @@ namespace PESpy.Tests
                 WithIgnores(
                     before: 190,
                     v => v.VerifyStruct(
-                        name: "DotNetRuntimeDebugHeader", offset: 1444048, size: 32,
+                        name: "DotNetRuntimeDebugHeader", offset: 1444064, size: 32,
                         c => c.VerifyField(name: "Cookie", value: 1212436036),
                         c => c.VerifyField(name: "MajorVersion", value: (short) 4),
                         c => c.VerifyField(name: "MinorVersion", value: (short) 0),
@@ -2867,6 +3239,12 @@ namespace PESpy.Tests
                     ),
                     after: 2
                 )
+            );
+
+            //All of the child entities have their own xrefs; these two are the first and 186th records
+            TestXRefs<DotNetRuntimeDebugHeader>(
+                v => v.Verify(propertyName: "DebugTypeEntries", index: 0, fieldOffset: 16, targetOffset: 1466672),
+                v => v.Verify(propertyName: "GlobalValueEntries", index: 185, fieldOffset: 24, targetOffset: 1469072)
             );
         }
 
@@ -2884,12 +3262,17 @@ namespace PESpy.Tests
                 v => v.VerifyValue(0x13ECB0, "GcDacVars"),
                 v => v.VerifyValue(0x13ECBC, "SIZEOF"),
                 v => v.VerifyStruct(
-                    name: "DebugTypeEntry GcDacVars.SIZEOF", offset: 1466672, size: 24,
+                    name: "DebugTypeEntry", offset: 1466672, size: 24,
                     c => c.VerifyFieldIgnoreValue(name: "TypeName"),
                     c => c.VerifyFieldIgnoreValue(name: "FieldName"),
                     c => c.VerifyField(name: "FieldOffset", value: 320),
                     c => c.VerifyField(name: "ReservedPadding", value: 0)
                 )
+            );
+
+            TestXRefs<DebugTypeEntry>(
+                v => v.Verify(propertyName: "TypeName",  index: 0, fieldOffset: 0, targetOffset: 1305776),
+                v => v.Verify(propertyName: "FieldName", index: 1, fieldOffset: 8, targetOffset: 1305788)
             );
         }
 
@@ -2903,10 +3286,14 @@ namespace PESpy.Tests
             TestView<GlobalValueEntry>(
                 v => v.VerifyValue(0x13F210, "g_CrashInfoBuffer"),
                 v => v.VerifyStruct(
-                    name: "GlobalValueEntry g_CrashInfoBuffer", offset: 1469072, size: 16,
+                    name: "GlobalValueEntry", offset: 1469072, size: 16,
                     c => c.VerifyFieldIgnoreValue(name: "Name"),
                     c => c.VerifyFieldIgnoreValue(name: "Address")
                 )
+            );
+
+            TestXRefs<GlobalValueEntry>(
+                v => v.Verify(propertyName: "Name", index: 0, fieldOffset: GlobalValueEntry.NameOffset, targetOffset: 1307152)
             );
         }
 
@@ -2970,1142 +3357,54 @@ namespace PESpy.Tests
         [TestMethod]
         public void CoffSymbolTable_Test()
         {
-            var str = GenerateTest<CoffSymbolTable>();
-            throw new NotImplementedException();
-        }
+            TestStruct<CoffSymbolTable>(
+                v => v.Symbols == IgnoreValue,
+                v => v.StringTableSize == 12264,
+                v => v.Strings == IgnoreValue
+            );
 
-        [TestMethod]
-        public void ImageAuxSymbol_Test()
-        {
-            var str = GenerateTest<ImageAuxSymbol>();
-            throw new NotImplementedException();
+            TestView<CoffSymbolTable>(
+                v => v.VerifyStruct(
+                    name: "Coff Symbol Table", offset: 61472, size: 32478,
+                    WithIgnores(
+                        before: 942,
+                        c => c.VerifyField(name: "String Table Size", value: 12264),
+                        after: 508
+                    )
+                )
+            );
         }
 
         [TestMethod]
         public void ImageSymbol_Test()
         {
-            var str = GenerateTest<ImageSymbol>();
+            TestStruct<ImageSymbol>(
+                v => v.Name.ToString() == "@comp.id",
+                v => v.Value == 0,
+                v => v.SectionNumber == 65535,
+                v => v.Type == ImageSymType.Null,
+                v => v.BasicType == ImageSymType.Null,
+                v => v.DerivedType == ImageSymDType.Null,
+                v => v.StorageClass == ImageSymClass.Static,
+                v => v.NumberOfAuxSymbols == 0,
+                v => v.AuxSymbols == IgnoreValue
+            );
 
-            throw new NotImplementedException();
+            TestView<ImageSymbol>(
+                v => v.VerifyStruct(
+                    name: "IMAGE_SYMBOL", offset: 61472, size: 18,
+                    c => c.VerifyField(name: "Name.Short", value: 0),
+                    c => c.VerifyField(name: "Name.Long", value: 0),
+                    c => c.VerifyField(name: "Value", value: (uint) 0),
+                    c => c.VerifyField(name: "SectionNumber", value: (ushort) 65535),
+                    c => c.VerifyField(name: "Type", value: ImageSymType.Null),
+                    c => c.VerifyField(name: "StorageClass", value: ImageSymClass.Static),
+                    c => c.VerifyField(name: "NumberOfAuxSymbols", value: (byte) 0)
+                )
+            );
         }
+
 
         #endregion
-
-        [TestMethod]
-        public void AssertAllStructuresAreTested()
-        {
-            var kinds = typeof(PEFile).Assembly.GetTypes()
-                .Where(t => !t.IsInterface && !t.IsGenericType && t.Namespace?.Contains("PDB") == false)
-                .Where(t => typeof(IValue).IsAssignableFrom(t))
-                .Select(v => v.Name)
-                .Where(v => !v.EndsWith("Row")) //temp
-                .ToArray();
-
-            var actual = GetType()
-                .GetMethods()
-                .Where(m => m.GetCustomAttribute<TestMethodAttribute>() != null && m.Name.Contains("_"))
-                .Select(m => m.Name)
-                .ToArray();
-
-            var missing = kinds.Where(k => !actual.Any(a => a.Contains(k))).ToArray();
-
-            var gen = string.Join(Environment.NewLine + Environment.NewLine, missing.Select(v => $"[TestMethod]\r\npublic void {v}_Test()\r\n{{\r\n    var str = GenerateTest<{v}>();\r\n    throw new NotImplementedException();\r\n}}").ToArray());
-
-            //Get all IViewable items and check that we have a method here that starts with their name
-            throw new NotImplementedException();
-        }
-
-        [TestMethod]
-        public void AssertWriteGlobalsFollowRules()
-        {
-            //Get all types that inherit from IViewable
-            //For each type, get all fields that are either IViewable or an array of something IViewable
-            //Assert that those fields are relayed to in WriteGlobals
-
-            var missingProperties = new List<string>();
-            var erroneousIsValid = new List<string>();
-
-            WithSemanticModels(semanticModel =>
-            {
-                var types = semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>().ToArray();
-
-                foreach (var type in types)
-                {
-                    var typeSymbol = (ITypeSymbol) semanticModel.GetDeclaredSymbol(type);
-
-                    if (typeSymbol.TypeKind == TypeKind.Interface)
-                        continue;
-
-                    foreach (var iface in typeSymbol.AllInterfaces)
-                    {
-                        if (iface.Name == "IViewable")
-                        {
-                            //We should not be doing things like writing the address of an RVA or checking whether the RVA is valid
-                            //prior to writing the value that it points to in WriteGlobals. This ensures that all xrefs are properly captured
-
-                            var ourWriteGlobals = type.Members.OfType<MethodDeclarationSyntax>().Where(m => m.Identifier.Text.EndsWith("WriteGlobals")).ToArray();
-
-                            if (ourWriteGlobals.Length > 0)
-                            {
-                                foreach (var method in ourWriteGlobals)
-                                {
-                                    var propertyReferences = method.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
-
-                                    foreach (var propertyReference in propertyReferences)
-                                    {
-                                        if (propertyReference.Name.Identifier.Text == "IsValid")
-                                            erroneousIsValid.Add(type.Identifier.Text + "." + propertyReference.Expression.ToString());
-                                    }
-                                }
-                            }
-
-                            var members = typeSymbol.GetMembers();
-
-                            foreach (var member in members)
-                            {
-                                ITypeSymbol memberType;
-
-                                //Don't care about fields; all fields should be exposed as properties
-                                if (member is IPropertySymbol p)
-                                {
-                                    memberType = p.Type;
-                                }
-                                else
-                                    continue;
-
-                                if (member.Name == "this[]")
-                                    continue;
-
-                                if (memberType.NullableAnnotation != NullableAnnotation.None)
-                                    memberType = memberType.OriginalDefinition;
-
-                                if (memberType is IArrayTypeSymbol a)
-                                    memberType = a.ElementType;
-
-
-                                //Check that viewable fields are forwarded
-                                foreach (var memberIface in memberType.AllInterfaces)
-                                {
-                                    if (memberIface.Name == "IViewable")
-                                    {
-                                        //The member type is IViewable, however if the type does not do anything in their own WriteGlobals, we don't need to waste time calling them
-                                        var memberTypeWriteGlobals = memberType.GetMembers("PESpy.View.IViewable.WriteGlobals");
-
-                                        if (memberTypeWriteGlobals.Length == 1)
-                                        {
-                                            var memberTypeWriteGlobalsMethodSyntax = (MethodDeclarationSyntax) memberTypeWriteGlobals[0].DeclaringSyntaxReferences.Single().GetSyntax();
-
-                                            if (memberTypeWriteGlobalsMethodSyntax.ExpressionBody == null && memberTypeWriteGlobalsMethodSyntax.Body.Statements.Count == 0)
-                                                continue; //No need to forward WriteGlobals, the target doesn't do anything!
-                                        }
-
-                                        //Get our WriteGlobals method, and assert that this member is referenced within it
-
-                                        //WriteGlobals may be explicitly implemented, or may defer to a virtual implementation
-                                        var writeGlobals = members.Where(m => m.Name.EndsWith("WriteGlobals")).ToArray();
-
-                                        var isMemberWritten = false;
-
-                                        if (writeGlobals.Length == 0)
-                                            throw new NotImplementedException();
-
-                                        foreach (IMethodSymbol method in writeGlobals)
-                                        {
-                                            var methodSyntax = (MethodDeclarationSyntax) method.DeclaringSyntaxReferences.Single().GetSyntax();
-
-                                            //BigMsfHdr.StreamTable technically has two types in it: the outer BigMsfHdr, and the inner StreamTable type.
-                                            //Only the StreamTable type's members will exist in the syntax tree for BigMsfHdr.StreamTable.cs
-                                            if (methodSyntax.SyntaxTree != semanticModel.SyntaxTree)
-                                                continue;
-
-                                            var identifiers = methodSyntax.DescendantNodes().OfType<IdentifierNameSyntax>();
-
-                                            foreach (var identifier in identifiers)
-                                            {
-                                                var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
-
-                                                if (SymbolEqualityComparer.Default.Equals(member, symbol))
-                                                {
-                                                    isMemberWritten = true;
-                                                    break;
-                                                }
-                                            }
-
-                                            if (isMemberWritten)
-                                                break;
-                                        }
-
-                                        if (!isMemberWritten)
-                                            missingProperties.Add(typeSymbol.Name + " -> " + member.Name);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            var excluded = new[]
-            {
-                //These are forwarded from ImageNtHeaders
-                "PEFile -> FileHeader",
-                "PEFile -> OptionalHeader",
-
-                //Virtual only
-                "ImageResourceDataEntry -> Parent",
-                "ImageResourceDirectoryEntry -> Parent",
-                "StreamTable -> StreamInfos",
-
-                //Handled by PDB2File / PDB7File
-                "PDBFile -> StreamTable",
-                "PDBFile -> PreviousStreamTable",
-                "PDBFile -> PDB",
-                "PDBFile -> TPI",
-                "PDBFile -> DBI",
-                "PDBFile -> IPI",
-                "PDBFile -> GSI",
-                "PDBFile -> PSGSI",
-
-                "EcmaMetadata -> CompressedModelHeap"
-            };
-
-            missingProperties.RemoveAll(v => excluded.Contains(v));
-
-            if (missingProperties.Count > 0)
-            {                
-                Assert.Fail($"{missingProperties.Count} properties are not being forwarded in IViewable.WriteGlobals:" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
-            }
-
-            if (erroneousIsValid.Count > 0)
-            {
-                Assert.Fail($"{erroneousIsValid.Count} properties are not forwarding xrefs in IViewable.WriteGlobals:" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, erroneousIsValid));
-            }
-        }
-
-        private void WithSemanticModels(Action<SemanticModel> action)
-        {
-            var solutionDir = Path.GetFullPath(Path.Combine(typeof(FastRewriter).Assembly.Location, "..\\..\\..\\..\\..\\"));
-
-            var files = Directory.EnumerateFiles(Path.Combine(solutionDir, "PESpy"), "*.cs", SearchOption.AllDirectories);
-
-            var syntaxTrees = files.Where(f => !f.Contains("\\obj\\") && !f.Contains("\\Native\\")).Select(f => CSharpSyntaxTree.ParseText(File.ReadAllText(f))).ToArray();
-
-            var compilation = CSharpCompilation.Create("PESpy", syntaxTrees);
-
-            foreach (var syntaxTree in compilation.SyntaxTrees)
-            {
-                var semanticModel = compilation.GetSemanticModel(syntaxTree);
-
-                action(semanticModel);
-            }
-        }
-
-        [TestMethod]
-        public void AssertAllPEFilePropertiesAreInDebugView()
-        {
-            var expectedProperties = typeof(PEFile).GetProperties().Select(v => v.Name);
-            var actualProperties = typeof(PEFileDebugView).GetProperties().Select(v => v.Name);
-
-            var missing = expectedProperties.Except(actualProperties).ToArray();
-
-            if (missing.Length > 0)
-            {
-                var str = string.Join(", ", missing);
-                Assert.Fail($"{nameof(PEFileDebugView)} is missing the following properties: {str}");
-            }
-        }
-
-        private void TestStruct<T>(params Expression<Func<T, bool>>[] asserts) =>
-            TestStruct<T, T>(asserts);
-
-        private void TestStruct<TSelector, TVerifier>(params Expression<Func<TVerifier, bool>>[] asserts)
-        {
-            Stream fs = null;
-            object rawValue;
-
-            rawValue = GetStruct<TSelector, TVerifier>(out fs);
-
-            using var fs1 = fs;
-
-            var results = new List<string>();
-
-            var propertiesAndFieldsTouched = new List<MemberInfo>();
-
-            bool IsEqual(object first, object second)
-            {
-                if (IgnoreValue.Equals(first))
-                    return true;
-
-                if (first == null)
-                {
-                    if (second == null)
-                        return true;
-
-                    return false;
-                }
-                else
-                {
-                    //First is not null
-
-                    if (second == null)
-                        return false;
-                }
-
-                if (first.Equals(second) || second.Equals(first)) //PCSTR -> string
-                    return true;
-
-                var firstType = first.GetType();
-                var secondType = second.GetType();
-
-                if (firstType.IsArray && secondType.IsArray)
-                {
-                    var firstArr = (Array) first;
-                    var secondArr = (Array) second;
-
-                    if (firstArr.Length != secondArr.Length)
-                        return false;
-
-                    for (var i = 0; i < firstArr.Length; i++)
-                    {
-                        var v1 = firstArr.GetValue(i);
-                        var v2 = secondArr.GetValue(i);
-
-                        if (v1 is ProdItem p1)
-                        {
-                            var p2 = (ProdItem) v2;
-
-                            if (!(p1.BuildId == p2.BuildId && p1.Count == p2.Count && p1.ProdId == p2.ProdId && p1.ProductId == p2.ProductId && p1.VisualStudioVersion == p2.VisualStudioVersion))
-                                return false;
-
-                            continue;
-                        }
-
-                        if (!v1.Equals(v2))
-                            return false;
-                    }
-
-                    return true;
-                }
-
-                return false;
-            }
-
-            foreach (var assert in asserts)
-            {
-                var local = rawValue;
-                var body = (BinaryExpression) assert.Body;
-
-                MemberInfo memberInfo;
-                Type memberType;
-                object actual;
-
-                if (body.Left is MethodCallExpression c)
-                {
-                    if (c.Method.Name == "GetSpan")
-                    {
-                        var propertyName = ((ConstantExpression) c.Arguments[1]).Value.ToString();
-                        memberInfo = rawValue.GetType().GetProperty(propertyName);
-                        memberType = ((PropertyInfo) memberInfo).PropertyType;
-
-                        var lambda = Expression.Lambda(c, assert.Parameters).Compile();
-
-                        actual = lambda.DynamicInvoke(rawValue);
-                    }
-                    else if (c.Method.Name == "GetStringSpan")
-                    {
-                        var inner = rawValue;
-
-                        if (c.Arguments[0] is MemberExpression)
-                        {
-                            //The first operand may have multiple levels of properties that need evaluating in order to call GetProperty below
-                            var property = (PropertyInfo) GetPropertyInfo(c.Arguments[0], ref inner);
-                            inner = property.GetValue(inner);
-                        }
-
-                        var propertyName = ((ConstantExpression) c.Arguments[1]).Value.ToString();
-                        memberInfo = inner.GetType().GetProperty(propertyName);
-                        memberType = ((PropertyInfo) memberInfo).PropertyType;
-
-                        var lambda = Expression.Lambda(c, assert.Parameters).Compile();
-
-                        actual = lambda.DynamicInvoke(rawValue);
-                    }
-                    else if (c.Method.Name == "ToString")
-                    {
-                        memberInfo = GetPropertyInfo(c.Object, ref local);
-                        memberType = ((PropertyInfo) memberInfo).PropertyType;
-
-                        var lambda = Expression.Lambda(c, assert.Parameters).Compile();
-
-                        actual = lambda.DynamicInvoke(rawValue);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-                }
-                else
-                {
-                    memberInfo = GetPropertyInfo(body.Left, ref local);
-
-                    if (memberInfo is PropertyInfo p)
-                    {
-                        actual = p.GetValue(local);
-                        memberType = p.PropertyType;
-                    }
-                    else
-                    {
-                        var f = (FieldInfo) memberInfo;
-
-                        actual = f.GetValue(local);
-                        memberType = f.FieldType;
-                    }
-                }
-
-                //If a field is of type "object" but can store a value of type "enum", an expression that compares against an enum will be Convert Int32 -> Convert Enum -> object property == Int32.
-                //We double unwrap the converts to get to the underlying property, but we need to convert the right hand side from Int32 to enum if the inner-most convert was an enum type
-
-                if (memberType == typeof(object))
-                {
-                    if (body.Left is UnaryExpression { NodeType: ExpressionType.Convert } c1 && c1.Operand is UnaryExpression { NodeType: ExpressionType.Convert } c2 && c2.Type.IsEnum)
-                        memberType = c2.Type;
-                    else if (body.Left is UnaryExpression { NodeType: ExpressionType.Convert } cc1 && cc1.Operand is MemberExpression mm1 && mm1.Type.IsEnum)
-                        memberType = mm1.Type;
-                }
-
-                var expectedValue = GetConstantValue(body.Right, memberType);
-
-                if (!IsEqual(expectedValue, actual))
-                {
-                    static Expression Unwrap(Expression e)
-                    {
-                        while (e.NodeType == ExpressionType.Convert)
-                            e = ((UnaryExpression) e).Operand;
-
-                        return e;
-                    }
-
-                    results.Add($"[{Unwrap(body.Left).ToString().Substring(2)}] Expected: {expectedValue} ({expectedValue?.GetType().Name ?? "null"}), Actual: {actual} ({actual?.GetType().Name ?? "null"})");
-                }
-
-                propertiesAndFieldsTouched.Add(memberInfo);
-            }
-
-            if (results.Count > 0)
-                Assert.Fail(string.Join(Environment.NewLine + Environment.NewLine, results));
-
-            var actualPropertiesAndFields = typeof(TVerifier).GetProperties(BindingFlags.Instance | BindingFlags.Public).Cast<MemberInfo>().Concat(typeof(TVerifier).GetFields(BindingFlags.Instance | BindingFlags.Public));
-            var missingPropertiesandFields = actualPropertiesAndFields.Except(propertiesAndFieldsTouched).ToArray();
-
-            //todo: assert that we tested all properties
-        }
-
-        private void TestView<T>(params Action<IView>[] verify) => TestView<T>(verify, true);
-
-        private void TestView<TSelector, TVerifier>(params Action<IView>[] verify) =>
-            TestView<TSelector, TVerifier>(verify, true);
-
-        private void TestView<T>(Action<IView>[] verify, bool assertChildCount) =>
-            TestView<T, T>(verify, assertChildCount);
-
-        private unsafe void TestView<TSelector, TVerifier>(Action<IView>[] verify, bool assertChildCount)
-        {
-            if (verify == null)
-                throw new ArgumentNullException(nameof(verify));
-
-            Stream stream = null;
-            MemoryMappedFileHolder mmf = default;
-
-            try
-            {
-                var rawValue = GetStruct<TSelector, TVerifier>(out stream);
-
-                stream.Seek(0, SeekOrigin.Begin);
-                var peFile = PEFile.FromStream(stream, false);
-
-                byte* pData;
-                int length;
-
-                if (stream is FileStream fs)
-                {
-                    mmf = new MemoryMappedFileHolder(fs);
-                    pData = mmf.Address;
-                    length = (int) mmf.Length;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-
-                var viewWriter = new PEViewWriter(peFile, pData, length, null, ViewMode.Default);
-
-                ((IViewable) rawValue).WriteGlobals(viewWriter);
-
-                var result = ((IViewable) rawValue).WriteStruct(viewWriter);
-
-                if (result is IContainerView c)
-                {
-                    //All globals should be written in WriteGlobals. If the ViewWriter current count was modified after a call
-                    //to Children, this means a global was erroneously written in Children instead of WriteGlobals
-                    var preWriteCount = viewWriter.Current.Count;
-
-                    _ = c.Children;
-
-                    var postWriteCount = viewWriter.Current.Count;
-
-                    Assert.AreEqual(preWriteCount, postWriteCount, "Globals were erroneously written inside Children");
-                }
-                
-                //Combine the struct + any globals into one big list
-                var current = viewWriter.Current.Concat(new[] {result}).OrderBy(v => v.Offset).ToArray();
-
-                if (assertChildCount)
-                    Assert.AreEqual(verify.Length, current.Length, "Number of views was different from expected");
-                else
-                    Assert.IsFalse(verify.Length > current.Length, $"Must have at most {current.Length} verifiers");
-
-                var visitor = new ViewAlignmentVerifier();
-
-                for (var i = 0; i < verify.Length; i++)
-                {
-                    verify[i](current[i]);
-
-                    //Are all of the children properly aligned?
-                    current[i].Accept(visitor);
-                }
-            }
-            finally
-            {
-                if (stream is FileStream f)
-                    mmf.Dispose();
-
-                stream?.Dispose();
-            }
-        }
-
-        private string GenerateTest<T>() where T : IValue
-        {
-            Stream fs = null;
-
-            try
-            {
-                var rawValue = GetStruct<T, T>(out fs);
-
-                Debug.Assert(rawValue != null);
-
-                var builder = new StringBuilder();
-                builder.Append("TestStruct<").Append(typeof(T).Name).AppendLine(">(");
-
-                var properties = typeof(T).GetProperties().Where(p => p.Name != "Offset").ToArray();
-
-                string GetValue(PropertyInfo propertyInfo, bool cast)
-                {
-                    var value = propertyInfo.GetValue(rawValue);
-
-                    if (value == null)
-                        return "null";
-
-                    if (value is IRVA r)
-                        value = r.ListedOffset;
-
-                    if (value is IVA v)
-                        value = v.ListedAddress;
-
-                    if (value is bool b)
-                    {
-                        if (cast)
-                            return "(byte) " + (b ? 1 : 0);
-
-                        return b ? "true" : "false";
-                    }
-
-                    if (propertyInfo.PropertyType.IsEnum)
-                    {
-                        var items = value.ToString().Split(", ").Select(v => $"{propertyInfo.PropertyType.Name}.{v}").ToArray();
-
-                        if (items.Length == 1)
-                            return items[0];
-
-                        return "(" + string.Join(" | ", items) + ")";
-                    }
-
-                    var typeCode = Type.GetTypeCode(propertyInfo.PropertyType);
-
-                    string GetTypeName(TypeCode typeCode)
-                    {
-#pragma warning disable CS8509
-                        return typeCode switch
-#pragma warning restore CS8509
-                        {
-                            TypeCode.SByte => "sbyte",
-                            TypeCode.Byte => "byte",
-                            TypeCode.Int16 => "short",
-                            TypeCode.UInt16 => "ushort",
-                            TypeCode.Int32 => "int",
-                            TypeCode.UInt32 => "uint",
-                            TypeCode.Int64 => "long",
-                            TypeCode.UInt64 => "ulong",
-                        };
-                    }
-
-                    switch (typeCode)
-                    {
-                        case TypeCode.SByte:
-                        case TypeCode.Byte:
-                        case TypeCode.Int16:
-                        case TypeCode.UInt16:
-                        case TypeCode.Int32:
-                        case TypeCode.UInt32:
-                        case TypeCode.Int64:
-                        case TypeCode.UInt64:
-                            if (cast && typeCode != TypeCode.Int32)
-                                return "(" + GetTypeName(typeCode) + ") " + value;
-
-                            return value.ToString();
-                    }
-
-                    if (value is string s)
-                        return $"\"{s}\"";
-
-                    if (value is Guid g)
-                        return $"new Guid(\"{g}\")";
-
-                    if (propertyInfo.PropertyType.IsArray)
-                    {
-                        var arr = (Array) value;
-
-                        var elementType = propertyInfo.PropertyType.GetElementType();
-
-                        var tc = Type.GetTypeCode(elementType);
-
-                        if (tc == TypeCode.Object)
-                            return "null";
-
-                        var typeName = GetTypeName(tc);
-
-                        var arrayBuilder = new StringBuilder();
-                        arrayBuilder.Append("new ").Append(typeName).Append("[]{");
-
-                        for (var i = 0; i < arr.Length; i++)
-                        {
-                            var item = arr.GetValue(i);
-
-                            arrayBuilder.Append(item);
-
-                            if (i < arr.Length - 1)
-                                arrayBuilder.Append(", ");
-                        }
-
-                        arrayBuilder.Append("}");
-
-                        return arrayBuilder.ToString();
-                    }
-
-                    return value.ToString();
-                }
-
-                for (var i = 0; i < properties.Length; i++)
-                {
-                    var value = GetValue(properties[i], false);
-
-                    builder.Append("    v => v.").Append(properties[i].Name).Append(" == ").Append(value);
-
-                    if (i < properties.Length - 1)
-                        builder.Append(",");
-
-                    builder.AppendLine();
-                }
-
-                builder.AppendLine(");");
-                builder.AppendLine();
-
-                string CalculateName(string name)
-                {
-                    var chunks = new List<string>();
-
-                    var chars = name.ToCharArray();
-
-                    var chunkStart = 0;
-
-                    for (var i = 0; i < chars.Length; i++)
-                    {
-                        chunkStart = i;
-
-                        //Find the first lowercase letter
-
-                        int j = i + 1;
-
-                        for (; j < chars.Length; j++)
-                        {
-                            if (char.IsLower(chars[j]))
-                                break;
-                        }
-
-                        //Read characters until we either reach the end, or reach another uppercase letter
-
-                        for (; j < chars.Length; j++)
-                        {
-                            if (char.IsUpper(chars[j]))
-                                break;
-                        }
-
-                        var str = name.Substring(chunkStart, j - chunkStart);
-
-                        chunks.Add(str.ToUpper());
-
-                        i = j - 1;
-                    }
-
-                    return string.Join("_", chunks);
-                }
-
-                builder.Append("TestView<").Append(typeof(T).Name).AppendLine(">(");
-
-                builder.AppendLine("    v => v.VerifyStruct(");
-                builder.AppendLine($"        name: \"{CalculateName(typeof(T).Name)}\", offset: {rawValue.Offset}, size: 0,");
-
-                for (var i = 0; i < properties.Length; i++)
-                {
-                    var value = GetValue(properties[i], true);
-
-                    builder.Append($"        c => c.VerifyField(name: \"{properties[i].Name}\", value: {value})");
-
-                    if (i < properties.Length - 1)
-                        builder.Append(",");
-
-                    builder.AppendLine();
-                }
-
-                builder.AppendLine("    )");
-                builder.Append(");");
-
-                return builder.ToString();
-            }
-            finally
-            {
-                fs?.Dispose();
-            }
-        }
-
-        private TVerifier GetStruct<TSelector, TVerifier>(out Stream fs)
-        {
-            var t = typeof(TSelector);
-
-            string name;
-
-            if (t.IsGenericType)
-                name = t.GetGenericArguments()[0].Name;
-            else
-            {
-                name = typeof(TSelector).Name;
-
-                if (t.DeclaringType != null)
-                    name = t.DeclaringType.Name + "." + name;
-            }
-
-            object rawValue = name switch
-            {
-                #region DOS Header
-
-                nameof(ImageDosHeader) => (object) GetFile(WellKnownTestModule.Ntdll, out fs).DosHeader,
-
-                #endregion
-                #region Rich Header
-
-                nameof(RichHeader) => (object) GetFile(WellKnownTestModule.Ntdll, out fs).RichHeader,
-                nameof(ProdItem) => (object) GetFile(WellKnownTestModule.Ntdll, out fs).RichHeader.Items[1], //The first item is empty
-
-                #endregion
-                #region NT Headers
-
-                nameof(ImageNtHeaders) => GetFile(WellKnownTestModule.Ntdll, out fs).NtHeaders,
-                nameof(ImageFileHeader) => GetFile(WellKnownTestModule.Ntdll, out fs).NtHeaders.FileHeader,
-                nameof(ImageOptionalHeader) => GetFile(WellKnownTestModule.Ntdll, out fs).OptionalHeader,
-                nameof(ImageDataDirectory) => GetFile(WellKnownTestModule.Ntdll, out fs).OptionalHeader.ExportTableDirectory,
-
-                #endregion
-                #region Section Headers
-
-                nameof(ImageSectionHeader) => GetFile(WellKnownTestModule.Ntdll, out fs).SectionHeaders[0],
-
-                #endregion
-                #region Export Table (0)
-
-                nameof(ImageExportDirectory) => GetFile(WellKnownTestModule.Ntdll, out fs).ExportTable,
-
-                #endregion
-                #region Import Table (1)
-
-                nameof(ImageImportDescriptor) => GetFile(WellKnownTestModule.AzureAttest, out fs).ImportTable[0],
-                nameof(ImageImportByName)     => GetFile(WellKnownTestModule.AzureAttest, out fs).ImportTable[1].OriginalFirstThunk.Value[0].Name.Value,
-
-                #endregion
-                #region Resource Directory (2)
-
-                nameof(ImageResourceDirectory)       => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.Entries[0].OffsetToDirectory.Value,
-                nameof(ImageResourceDirectoryEntry)  => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.Entries[0],
-                nameof(ImageResourceDataEntry)       => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.Entries[2].OffsetToDirectory.Value.Entries[0].OffsetToDirectory.Value.Entries[0].OffsetToData.Value,
-                nameof(ImageResourceDirStringU)      => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.Entries[0].NameOrId.NameOffset.Value,
-
-                nameof(ClrDebugResource)             => GetFile(WellKnownTestModule.coreclr, out fs).ResourceDirectory!.EnumerateResources<ClrDebugResource>().First(),
-
-                nameof(VsVersionInfo)                => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First(),
-                nameof(VsFixedFileInfo)              => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Value,
-                nameof(VsVersionInfo.StringFileInfo) => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[0],
-                nameof(VsVersionInfo.StringTable)    => ((VsVersionInfo.StringFileInfo) GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[0]).Children[0],
-                nameof(VsVersionInfo.String)         => ((VsVersionInfo.StringFileInfo) GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[0]).Children[0].Children[0],
-                nameof(VsVersionInfo.VarFileInfo)    => GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[1],
-                nameof(VsVersionInfo.Var)            => ((VsVersionInfo.VarFileInfo) GetFile(WellKnownTestModule.Ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[1]).Children[0],
-
-                #endregion
-                #region Exception Table (3)
-
-                nameof(RuntimeFunction)              => GetFile(WellKnownTestModule.Ntdll, out fs).ExceptionTable[0],
-                nameof(UnwindInfo)                   => GetFile(WellKnownTestModule.Ntdll, out fs).ExceptionTable[28].UnwindData.Value,
-                nameof(ScopeTable)                   => GetFile(WellKnownTestModule.Ntdll, out fs).ExceptionTable[28].UnwindData.Value.ExceptionData,
-                nameof(ScopeTable.ScopeRecord)       => ((ScopeTable) GetFile(WellKnownTestModule.Ntdll, out fs).ExceptionTable[28].UnwindData.Value.ExceptionData).Records[0],
-
-                nameof(FuncInfo)                     => ((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs).ExceptionTable[74].UnwindData.Value.ExceptionData).Value,
-
-                #endregion
-                #region Security Table (4)
-
-                nameof(WinCertificate)               => GetFile(WellKnownTestModule.Ntdll, out fs).SecurityTable[0],
-                nameof(SignedData)                   => GetFile(WellKnownTestModule.Ntdll, out fs).SecurityTable[0].Certificate,
-
-                #endregion
-                #region Base Relocation Table (5)
-
-                nameof(ImageBaseRelocation) => GetFile(WellKnownTestModule.Ntdll, out fs).BaseRelocationTable?[6],
-
-                #endregion
-                #region Debug Table (6)
-
-                nameof(ImageDebugDirectory)       => GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?[0],
-                nameof(RSDSI)                     => (RSDSI)                     GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
-                nameof(NB10I)                     => (NB10I)                     GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
-                nameof(FpoData)                   => ((FpoData[])                 GetFile(WellKnownTestModule.ctl3d32, out fs).DebugTable?.First(t => t.Type == ImageDebugType.FPO).Data)?[0],
-                nameof(ImageDebugMisc)            => (ImageDebugMisc)             GetFile(WellKnownTestModule.mfc40, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Misc).Data,
-                //nameof(VCFeature)                 => (VCFeature)                  GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.VCFeature).Data, //todo: need a test module that has a vcfeature
-                //POGO
-                nameof(Reproducible)              => (Reproducible?)              GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Reproducible).Data,
-                //nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.EmbeddedPortablePdb).Data, //todo: need a test module that has an embedded portable pdb
-                //nameof(PdbChecksum)               => (PdbChecksum?)               GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.PdbChecksum).Data, //todo: need a test module that has a pdb checksum
-                nameof(ImageDllCharacteristicsEx) => (GetFile(WellKnownTestModule.Ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.ExDllCharacteristics)),
-
-                #endregion
-                #region Copyright Table (7)
-                #endregion
-                #region Global Pointer Table (8)
-                #endregion
-                #region Thread Local Storage Table (9)
-
-                nameof(ImageTlsDirectory) => GetFile(WellKnownTestModule.AzureAttest, out fs).TlsDirectory,
-
-                #endregion
-                #region Load Config Table (10)
-
-                nameof(ImageLoadConfigDirectory)       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable,
-                nameof(ImageLoadConfigCodeIntegrity)   => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.CodeIntegrity,
-
-                nameof(ImageEnclaveConfig)             => GetFile(WellKnownTestModule.AzureAttest, out fs).LoadConfigTable!.EnclaveConfigurationPointer.Value,
-                nameof(ImageEnclaveImport)             => GetFile(WellKnownTestModule.AzureAttest, out fs).LoadConfigTable!.EnclaveConfigurationPointer.Value.ImportList.Value[0],
-
-                //nameof(GuardAddressTakenIatEntryTable) => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardAddressTakenIatEntryTable.Value,
-                //"GuardAddressTakenIatEntryTable.Entry" => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardAddressTakenIatEntryTable.Value.Entries[0],
-                nameof(GuardCFFunctionTable)           => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardCFFunctionTable.Value,
-                "GuardCFFunctionTable.Entry"           => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardCFFunctionTable.Value[0],
-                nameof(GuardEHContinuationTable)       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardEHContinuationTable.Value,
-                "GuardEHContinuationTable.Entry"       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardEHContinuationTable.Value[0],
-                //nameof(GuardLongJumpTargetTable)       => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardLongJumpTargetTable.Value,
-                //"ameof(GuardLongJumpTargetTable.Entry" => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.GuardLongJumpTargetTable.Value.Entries[0],
-
-                nameof(ImageDynamicRelocationTable)    => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.DynamicValueRelocTableOffset.Value,
-                nameof(ImageDynamicRelocation)         => GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable?.DynamicValueRelocTableOffset.Value.DynamicRelocations[0],
-                //ImageDynamicRelocationV2
-
-                #region Symbol 1
-
-                //ImagePrologueDynamicRelocationHeader
-
-                #endregion
-                #region Symbol 2
-
-                //ImageEpilogueDynamicRelocationHeader
-
-                #endregion
-                #region Symbol 3
-
-                nameof(ImageImportControlTransferDynamicRelocation) => ((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) GetFile(WellKnownTestModule.cdd, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data)[0].Entries[0],
-
-                #endregion
-                #region Symbol 4
-
-                nameof(ImageIndirControlTransferDynamicRelocation) => ((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) GetFile(WellKnownTestModule.kdstub, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data)[0].Entries[0],
-
-                #endregion
-                #region Symbol 5
-
-                nameof(ImageSwitchTableBranchDynamicRelocation)    => (((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) GetFile(WellKnownTestModule.kd_02_15b3, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[1].Data)[0]).Entries[0],
-
-                #endregion
-                #region Symbol 7
-
-                nameof(ImageFunctionOverrideHeader)            => (ImageFunctionOverrideHeader)  GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data,
-                nameof(ImageFunctionOverrideDynamicRelocation) => ((ImageFunctionOverrideHeader) GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data).FuncOverrides[0],
-                nameof(ImageBDDInfo)                           => ((ImageFunctionOverrideHeader) GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data).BDDInfo,
-                nameof(ImageBDDDynamicRelocation)              => ((ImageFunctionOverrideHeader) GetFile(WellKnownTestModule.Ntdll, out fs).LoadConfigTable!.DynamicValueRelocTableOffset.Value.DynamicRelocations[0].Data).BDDInfo.BDDNodes[0],
-
-                #endregion
-                #endregion
-                #region Bound Import Table (11)
-
-                nameof(ImageBoundImportDescriptor) => GetFile(WellKnownTestModule.mfc40u, out fs).BoundImportTable?[0],
-
-                #endregion
-                #region Import Address Table (12)
-                #endregion
-                #region Delay Import Table (13)
-                #endregion
-                #region Cor Header (14)
-
-                nameof(ImageCor20Header)         => GetFile(WellKnownTestModule.mscorlib, out fs).Cor20Header,
-                nameof(StorageSignature)         => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Signature,
-                nameof(StorageHeader)            => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header,
-                nameof(ImageCorILMethod)         => GetFile(WellKnownTestModule.mscorlib, out fs).ILMethods.First(),
-                nameof(StorageStream)            => GetFile(WellKnownTestModule.mscorlib, out fs).EcmaMetadata.Header.StreamHeaders[0],
-
-                nameof(ReadyToRunHeader)         => GetSampleFile(Sample.R2R_DLL, out fs).ReadyToRunHeader,
-
-                nameof(RuntimeInfo)              => GetSampleFile(Sample.SingleFileApp, out fs).RuntimeInfo,
-
-                nameof(DotNetRuntimeDebugHeader) => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader,
-                nameof(DebugTypeEntry)           => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
-                nameof(GlobalValueEntry)         => GetNativeAOTProcessStream(out fs).DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0],
-
-                #endregion
-                //_ => throw new NotImplementedException($"Don't know how to handle type '{typeof(T).Name}'")
-                _ => throw new AssertInconclusiveException($"Don't know how to handle type '{typeof(TSelector).Name}'")
-            };
-
-            if (rawValue == null)
-                throw new NotImplementedException();
-
-            return (TVerifier) rawValue;
-        }
-
-        private static PEFile GetFile(SymbolStoreKey key, out Stream fs)
-        {
-            var path = WellKnownTestModule.GetStoreFile(key);
-
-            fs = File.OpenRead(path);
-
-            var peFile = PEFile.FromStream(fs, false);
-
-            return peFile;
-        }
-
-        private static PEFile GetSampleFile(string path, out Stream fs)
-        {
-            fs = File.OpenRead(path);
-
-            var peFile = PEFile.FromStream(fs, false);
-
-            return peFile;
-        }
-
-        private static PEFile GetNativeAOTProcessStream(out Stream stream)
-        {
-            stream = ProcessHolderStream.New(Sample.NativeAOT);
-
-            var peFile = PEFile.FromStream(stream, true);
-
-            return peFile;
-        }
-
-        private void TestBytes(string fieldName, byte[] expected)
-        {
-            Stream fs;
-
-#pragma warning disable CS8509
-            ByteBlob rawValue = fieldName switch
-#pragma warning restore CS8509
-            {
-                nameof(PEFile.DosStub) => GetFile(WellKnownTestModule.Ntdll, out fs).DosStub
-            };
-
-            try
-            {
-                var expectedStr = string.Join(", ", expected.Select(v => "0x" + v.ToString("X2")));
-                var actualStr = string.Join(", ", rawValue.Bytes.Select(v => "0x" + v.ToString("X2")));
-
-                Assert.AreEqual(expectedStr, actualStr);
-            }
-            finally
-            {
-                fs.Dispose();
-            }
-        }
-
-        private MemberInfo GetPropertyInfo(Expression expression, ref object rawValue)
-        {
-            while (expression is UnaryExpression e)
-                expression = e.Operand;
-
-            if (expression is not MemberExpression m)
-            {
-                throw new NotImplementedException();
-            }
-
-            var exprs = new List<MemberExpression>();
-
-            var mm = m.Expression;
-
-            while (mm is MemberExpression m2)
-            {
-                exprs.Add(m2);
-                mm = m2.Expression;
-            }
-
-            exprs.Reverse();
-
-            foreach (var expr in exprs)
-                rawValue = ((PropertyInfo) expr.Member).GetValue(rawValue);
-
-            if (mm is UnaryExpression)
-            {
-                var unary = GetPropertyInfo(mm, ref rawValue);
-
-                rawValue = ((PropertyInfo) unary).GetValue(rawValue);
-            }
-
-            return m.Member;
-        }
-
-        private object GetConstantValue(Expression expression, Type type)
-        {
-            object value;
-
-            if (expression is ConstantExpression c)
-                value = c.Value;
-            else
-            {
-                //Compile it
-                value = Expression.Lambda(expression).Compile().DynamicInvoke();
-            }
-
-            var underlying = Nullable.GetUnderlyingType(type);
-
-            if (underlying != null)
-            {
-                //If the expression is null, use null
-                if (value == null)
-                    return null;
-
-                type = underlying;
-            }
-
-            var typeCode = Type.GetTypeCode(type);
-
-            value = typeCode switch
-            {
-                TypeCode.SByte => Convert.ToSByte(value),
-                TypeCode.Byte => Convert.ToByte(value),
-                TypeCode.Int16 => Convert.ToInt16(value),
-                TypeCode.UInt16 => Convert.ToUInt16(value),
-                _ => value
-            };
-
-            if (type.IsEnum && value != null)
-                value = Enum.Parse(type, value.ToString());
-
-            if (type == typeof(Timestamp) && value is uint u)
-                value = (Timestamp) u;
-
-            return value;
-        }
-
-        private IEnumerable<string> FindPEFile(Predicate<PEFile> predicate, string path = "C:\\Windows")
-        {
-            var files = Directory.EnumerateFiles(path, "*.dll", new EnumerationOptions
-            {
-                IgnoreInaccessible = true,
-                RecurseSubdirectories = true
-            });
-
-            foreach (var file in files)
-            {
-                using var fs = File.OpenRead(file);
-
-                if (fs.Length == 0)
-                    continue;
-
-                bool result;
-
-                try
-                {
-                    using var peFile = PEFile.FromStream(fs, false);
-
-                    result = predicate(peFile);
-                }
-                catch (BadImageFormatException)
-                {
-                    continue;
-                }
-
-                if (result)
-                    yield return file;
-            }
-        }
-
-        private string GetStringSpan(object value, string field)
-        {
-            if (value is ImageResourceDirStringU r)
-            {
-#pragma warning disable CS8509
-                return field switch
-#pragma warning restore CS8509
-                {
-                    "NameString" => r.NameString.ToString()
-                };
-            }
-
-            throw new NotImplementedException();
-        }
-
-        internal static Action<IView>[] WithIgnores(Action<IView> action, int after) => WithIgnores(0, action, after);
-
-        internal static Action<IView>[] WithIgnores(Action<IView>[] action, int after) =>
-            WithIgnores(0, action, after);
-
-        internal static Action<IView>[] WithIgnores(int before, Action<IView> action, int after = 0) =>
-            WithIgnores(before, new[] { action }, after);
-
-        internal static Action<IView>[] WithIgnores(int before, Action<IView>[] action, int after = 0)
-        {
-            var list = new List<Action<IView>>();
-
-            for (var i = 0; i < before; i++)
-                list.Add(v => { });
-
-            list.AddRange(action);
-
-            for (var i = 0; i < after; i++)
-                list.Add(v => { });
-
-            return list.ToArray();
-        }
-
-        internal static Action<IView>[] IgnoreValues(int count)
-        {
-            var result = new Action<IView>[count];
-
-            for (var i = 0; i < count; i++)
-                result[i] = v => { };
-
-            return result;
-        }
     }
-
-#pragma warning restore HAA0101 // Array allocation for params parameter
 }

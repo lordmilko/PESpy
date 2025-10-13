@@ -73,7 +73,7 @@ namespace PESpy.PDB
             if (value == default)
                 return "<null>";
             
-            return TypTypeProxy.GetString(this);
+            return StringTypTypeDispatcher.Instance.Dispatch(this);
         }
 
         internal static void AssertMissing(bool condition, string message)

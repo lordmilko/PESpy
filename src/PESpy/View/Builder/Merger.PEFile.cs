@@ -15,10 +15,11 @@ namespace PESpy.View.Builder
             {
                 var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
 
-                var headerMetadata = new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v));
+                var startOffset = peFile.blockProvider.StartOffset;
+                var headerMetadata = new HeaderView(startOffset, sizeOfHeaders, BuildSection(startOffset, startOffset + sizeOfHeaders, v => v, v => v));
                 results.Add(headerMetadata);
                 
-                var lastSectionEnd = sizeOfHeaders;
+                var lastSectionEnd = startOffset + sizeOfHeaders;
 
                 var isVirtualMode = (mode == ViewMode.Default && peFile.IsLoadedImage) || mode == ViewMode.Virtual;
             
@@ -43,6 +44,8 @@ namespace PESpy.View.Builder
 
                     if (size == 0)
                         continue;
+
+                    start += startOffset;
 
                     //You can have extra padding in-between the header and the start of the first section; this logic is general purpose enough to also handle the possibility
                     //of padding also existing between other physical sections
@@ -147,7 +150,7 @@ namespace PESpy.View.Builder
                     //when loaded into memory, which is not the same as the size on disk. Overlay data does not get loaded into memory, which also means
                     //this data might not exist when reading a loaded image
                     var overlayStart = lastSectionEnd;
-                    var fileEnd = (int) extension.GetInputLength();
+                    var fileEnd = byteViewProvider.FileOrSectionLength;
 
                     TryCreateOMFRegion(peFile, ref results);
 
@@ -199,10 +202,11 @@ namespace PESpy.View.Builder
             if (data == null)
                 return;
 
-            var sizeOfData = data.LfoBase;
-            var start = data.Offset;
-            var end = start + sizeOfData; //We would expect that this should take us to the end of the file. We don't have to +4 to cover the area that lfoBase is in
+            CreateOMFRegion(data.Offset, data.LfoBase, data.Signature);
+        }
 
+        private void CreateOMFRegion(int start, int sizeOfData, CodeViewSig sig)
+        {
             var originalNextStructIndex = nextStructIndex;
 
             //Skip ahead to find the first struct that pertains to the OMF area
@@ -214,7 +218,8 @@ namespace PESpy.View.Builder
 
             var nextStructIndexToInsertAt = nextStructIndex;
 
-            var region = new LogicalRegionView(start, $"{data.Signature} OMF Data", BuildSection(start, end), ViewKind.NB05Data, sizeOfData);
+            var end = start + sizeOfData; //We would expect that this should take us to the end of the file. We don't have to +4 to cover the area that lfoBase is in
+            var region = new LogicalRegionView(start, $"{sig} OMF Data", BuildSection(start, end), ViewKind.NB05Data, sizeOfData);
 
             //Remove all the items we read into the region from the global struct list
             var endNextStructIndex = nextStructIndex;

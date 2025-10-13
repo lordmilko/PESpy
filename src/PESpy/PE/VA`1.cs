@@ -189,6 +189,9 @@ namespace PESpy
             if (Value is string s)
                 return s;
 
+            if (Value is long l)
+                return "0x" + l.ToString("X");
+
             if (typeof(T).IsArray)
                 return "0x" + ListedAddress.ToString("X") + $" : (Length: {((Array) (object) Value!).Length})";
 

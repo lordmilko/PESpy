@@ -6,9 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace PESpy
 {
-    //Based on DittedBitSequence.java, Pattern.java from Ghidra, licensed under the Apache License.
-    //See ThirdPartyNotices.txt for full license notice.
-
     internal class ByteSequence
     {
         /// <summary>
@@ -26,7 +23,7 @@ namespace PESpy
         /// <summary>
         /// Gets the index at which the "good" bytes of the pattern begin. Bytes prior to this index will be treated
         /// as junk bytes for the purposes of identifying the starting position of the bytes we want to consume
-        /// from the resulting <see cref="ByteMatch"/>.
+        /// from the resulting byte match.
         /// </summary>
         public int Mark { get; }
 
@@ -307,7 +304,7 @@ namespace PESpy
                 }
             }
 
-            var builder = new StringBuilder();
+            using var builder = new ValueStringBuilder();
 
             if (items != null)
             {

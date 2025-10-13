@@ -5,7 +5,10 @@ PDB/_old/
 R2R/
 BenchmarkDotnet.Artifacts/
 PESpy.Benchmarks/
-VCV.386
+PESpyUI/
+SizeHacks.props
+src/PESpy/PDB/Builder/
+SymTypeBuilder.cs
 
 #################
 # Visual Studio #

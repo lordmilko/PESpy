@@ -85,6 +85,29 @@ namespace PESpy.Tests
             VerifyStruct((IView) fieldView.Value, type, offset, size, verifyChildren);
         }
 
+        public static void VerifyStructFieldIgnoreChildren(this IView view, string name, string type, int offset, int size)
+        {
+            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+
+            var fieldView = (IFieldView) view;
+
+            VerifyStructIgnoreChildren((IView) fieldView.Value, type, offset, size);
+        }
+
+        public static void VerifyStructFieldArray(this IView view, string name, params Action<IView>[] verifyStructs)
+        {
+            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+
+            var fieldView = (IFieldView) view;
+
+            var structs = (IView[]) fieldView.Value;
+
+            Assert.AreEqual(verifyStructs.Length, structs.Length);
+
+            for (var i = 0; i < verifyStructs.Length; i++)
+                verifyStructs[i](structs[i]);
+        }
+
         public static void VerifyField(this IView view, string name, object value)
         {
             Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
@@ -172,6 +195,8 @@ namespace PESpy.Tests
 
             if (actualValue is AnsiString s)
                 actualValue = s.ToString();
+            else if (actualValue is FixedAnsiString fa)
+                actualValue = fa.ToString();
             else if (actualValue is Utf8String u)
                 actualValue = u.ToString();
             else if (actualValue is FixedUtf8String fu)

@@ -2,7 +2,8 @@
 
 namespace PESpy
 {
-    //From debsym.h
+    //debsym.h defines these with the following names (but the name OLDSYM is made up)
+    //NT 4 uses slightly different names, all starting with OSYM* (Old C6 Symbol Constants)
 
     /// <summary>
     /// Describes legacy symbol kinds found in NB00, NB01 and NB02 C6 style symbols.

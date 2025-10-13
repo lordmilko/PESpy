@@ -9,10 +9,18 @@ namespace PESpy
 
         public SymTypeList Symbols { get; }
 
-        public OMFHashedSymbols(OMFSymHash hash, SymTypeList symbols)
+        //See the comments in OMFSymHash about how to parse these
+
+        public NativeSpan<byte> SymbolHashTable { get; }
+
+        public NativeSpan<byte> AddressHashTable { get; }
+
+        public OMFHashedSymbols(OMFSymHash hash, SymTypeList symbols, NativeSpan<byte> symbolHashTable, NativeSpan<byte> addressHashTable)
         {
             Hash = hash;
             Symbols = symbols;
+            SymbolHashTable = symbolHashTable;
+            AddressHashTable = addressHashTable;
         }
     }
 }

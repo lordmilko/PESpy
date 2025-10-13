@@ -7,6 +7,8 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //NT 4 refers to this as the CV 4.0 dnt/DNT
+    [Source(SourceKind.cvexefmt)]
     [DebuggerDisplay("[{iMod}] {SubSection}")]
     public readonly struct OMFDirEntry : IValue, IViewable
     {
@@ -33,7 +35,7 @@ namespace PESpy
         internal OMFDirEntry(
             in MemoryChunk chunk,
             in MemoryChunk outerChunk,
-            ISymbolAccessor symbolAccessor,
+            NB05SymbolAccessor symbolAccessor,
             ref CV_SIGNATURE lastSignature)
         {
             this.chunk = chunk;
@@ -45,9 +47,22 @@ namespace PESpy
             SST subSection,
             in MemoryChunk valueChunk,
             int length,
-            ISymbolAccessor symbolAccessor,
+            NB05SymbolAccessor symbolAccessor,
             ref CV_SIGNATURE lastSignature)
         {
+            /* NT 4 defines several types which I think have been renamed in modern headers (see newdeb.h) for the CV 4.0
+             * SST info (which is what NB05 is)
+             * 
+             * dnthdr/DNTHDR
+             * dnt/DNT
+             * pubinfo16/PUB16
+             * pubinfo32/PUB32
+             * seginfo/SEGINFO
+             * CVSRC
+             * CVGSN
+             * CVLINE
+             */
+
             switch (subSection)
             {
                 case SST.sstModule:
@@ -71,6 +86,11 @@ namespace PESpy
                             throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
                     }
                 }
+
+                case SST.sstPublic:
+                    Debug.Assert(false);
+                    return null;
+
                 case SST.sstSymbols:
                 case SST.sstPublicSym:
                 case SST.sstAlignSym: //Once symbols have been written from an obj file, the sstSymbols section becomes sstAlignSym
@@ -92,6 +112,42 @@ namespace PESpy
                             throw new NotImplementedException($"Don't know how to handle signature {signature}. We should not be getting C13 in OMF, and C6 does not use OMF");
                     }
                 }
+
+                case SST.sstSrcLnSeg:
+                    //Based on cvdump.cpp!DumpSrcLn, the format is the same as NB02'S SSTSRCLNSEG, but I'm not sure what struct we should use
+                    Debug.Assert(false);
+                    return null;
+
+                case SST.sstSrcModule:
+                    return new OMFSourceModule(valueChunk);
+
+                case SST.sstLibraries:
+                {
+                    /* There is a type OMFLibrary defined as follows
+                    * 
+                    *     //  sstLibraries
+                    *     typedef struct OMFLibrary {
+                    *         unsigned char   cbLibs;     // count of library names
+                    *         char            Libs[1];    // array of length prefixed lib names (first entry zero length)
+                    *     } OMFLibrary;
+                    * 
+                    * On this basis, we would expect there to be a cbLibs member prior to the list of names, however the spec says that sstLibraries is just a sequence of
+                    * length prefixed names https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf (pdf page 80)
+                    * 
+                    * Experimentally, I can confirm that neither NB05 nor NB11 have a cbLibs member at the front of them.
+                    * 
+                    * Even more curiously, in the spec for NB02 we have the following
+                    * 
+                    *     // sstLibraries
+                    *     typedef struct {
+                    *         unsigned char     cbLibs;
+                    *         char              Libs[];
+                    *     } lib[];                              // an array of lib names
+                    * 
+                    * What I take this to mean is that a library is simply a length prefixed string, and that sstLibraries is an array
+                    * of these items. The OMFLibrary type, therefore, is simply a typedef for a "length prefixed string"
+                    */
+
                     //The first entry is an empty string, because library indices are 1-based
                     var read = 0;
 
@@ -122,19 +178,22 @@ namespace PESpy
                     if (lastSignature == default)
                         lastSignature = CV_SIGNATURE.C11;
 
-                    var symbols = new SymTypeList(valueChunk.Pointer, OMFSymHash.StructSize, hash.cbSymbol);
-                    //Following this, are the symbol hash and address hash tables. These seem kind of complicated (see cvdump.cpp) so for now we don't include these
-                    return new OMFHashedSymbols(hash, symbols);
+                    var symbols = new SymTypeList(valueChunk.Pointer, OMFSymHash.StructSize, hash.cbSymbol, symbolAccessor);
+
+                    var symbolHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol, hash.cbHSym);
+                    var addressHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol + hash.cbHSym, hash.cbHAddr);
+
+                    return new OMFHashedSymbols(hash, symbols, symbolHashTable, addressHashTable);
                 }
 
                 case SST.sstGlobalTypes:
-                    return new OMFGlobalTypes(valueChunk);
+                    return new OMFGlobalTypes(valueChunk, length, symbolAccessor);
 
                 case SST.sstMPC:
                     throw new NotImplementedException();
 
                 case SST.sstSegMap:
-                    return new PDB.OMFSegMap(valueChunk);
+                    return new OMFSegMap(valueChunk);
 
                 case SST.sstSegName:
                 {
@@ -151,8 +210,16 @@ namespace PESpy
 
                     return names.ToArray();
                 }
+
+                case SST.sstPreComp:
+                case SST.sstPreCompMap:
+                case SST.sstOffsetMap16:
+                case SST.sstOffsetMap32:
+                    Debug.Assert(false);
+                    return null;
+
                 case SST.sstFileIndex: //This is the same format as DBI.FileInfo
-                    return new OMFFileIndex(valueChunk);
+                    return new OMFFileIndex(valueChunk, length, lastSignature != CV_SIGNATURE.C13);
 
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(SST)} '{subSection}'");

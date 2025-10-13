@@ -5,7 +5,7 @@ namespace PESpy
 {
     public struct HandlerType : IValue, IViewable
     {
-        private const int TypeOffset = 4;
+        internal const int TypeOffset = 4;
 
         public int Adjectives => chunk.PeekInt32(0);
 

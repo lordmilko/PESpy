@@ -3,6 +3,7 @@ using PESpy.View;
 
 namespace PESpy
 {
+    [Source(SourceKind.cvexefmt)]
     public struct OMFModule : IValue, IViewable
     {
         public ushort ovlNumber => chunk.PeekUInt16(0);
@@ -88,8 +89,9 @@ namespace PESpy
             s.WriteField(nameof(ovlNumber), ovlNumber);
             s.WriteField(nameof(iLib), iLib);
             s.WriteField(nameof(cSeg), cSeg);
+            s.WriteAnsiFixedLengthField(nameof(Style), Style);
             s.WriteStructField(nameof(SegInfo), SegInfo);
-            s.WriteAnsiFixedLengthField(nameof(Name), Name);
+            s.WriteLengthPrefixedAnsiField(nameof(Name), Name);
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

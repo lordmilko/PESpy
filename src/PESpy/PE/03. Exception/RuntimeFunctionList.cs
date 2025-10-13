@@ -21,7 +21,7 @@ namespace PESpy
 
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     [DebuggerTypeProxy(typeof(RuntimeFunctionListDebugView))]
-    public readonly struct RuntimeFunctionList : IEnumerable<RuntimeFunction>
+    public class RuntimeFunctionList : IEnumerable<RuntimeFunction> //Must be a class to denote that the ExceptionTable is missing
     {
         private string DebuggerDisplay() => chunk.block == null ? "null" : $"Count = {Count}";
 
@@ -34,19 +34,6 @@ namespace PESpy
             Count = count;
             this.chunk = chunk;
         }
-
-        public static bool operator ==(RuntimeFunctionList value, object? other)
-        {
-            if (other == null)
-                return value.chunk.block == null;
-
-            if (other is RuntimeFunctionList r)
-                return value.chunk.block == r.chunk.block;
-
-            return false;
-        }
-
-        public static bool operator !=(RuntimeFunctionList value, object? other) => !(value == other);
 
         public RuntimeFunction this[int index]
         {

@@ -8,6 +8,8 @@ namespace PESpy
     //Also called e32_exe
     public readonly struct ImageVXDHeader : IValue, IViewable
     {
+        public const ushort IMAGE_VXD_SIGNATURE = 0x454C;      // LE
+
         /// <summary>
         /// Magic number<para/>
         /// e32_magic

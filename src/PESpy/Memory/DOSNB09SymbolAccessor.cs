@@ -42,7 +42,7 @@ namespace PESpy
 
             ref var dirEntry = ref data.DirEntries[segMapIndex];
 
-            var segMap = (PDB.OMFSegMap) dirEntry.Data!;
+            var segMap = (OMFSegMap) dirEntry.Data!;
 
             ref var desc = ref segMap.rgDesc[seg - 1];
             ref var group = ref segMap.rgDesc[desc.group];

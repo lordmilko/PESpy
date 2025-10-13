@@ -11,11 +11,7 @@ namespace PESpy.View
     {
         internal PDBFile pdbFile;
 
-        protected unsafe PDBViewWriter(PDBFile pdbFile) : this(pdbFile, (byte*) 1, 1)
-        {
-        }
-
-        internal unsafe PDBViewWriter(PDBFile pdbFile, byte* mmf, int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe PDBViewWriter(PDBFile pdbFile) : base(pdbFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.pdbFile = pdbFile;
         }
@@ -347,11 +343,11 @@ namespace PESpy.View
                 pages.Add(new DirectoryInfo(nameBuilder.ToString(), i * pdbFile.PageSize, pdbFile.PageSize));
             }
 
-            using var merger = new Merger(pdbFile, structs, default, pages, extension);
+            using var merger = new Merger(pdbFile, structs, default, pages, byteViewProvider);
 
             var results = merger.MergePDB();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.PDBFile);
+            return new FileView(ViewMode.Physical, pdbFile.Name, results, ViewKind.PDBFile);
         }
     }
 }

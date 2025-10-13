@@ -21,6 +21,7 @@ namespace PESpy
         public const string EnCModelStream = "#-";
         public const string MinimalMDStream = "#JTD"; //"Minimal Delta"
         public const string PdbStream = "#Pdb";
+        public const string HotModelStream = "#!"; //mdcommon.h in older versions of coreclr has this
 
         public int iOffset => chunk.PeekInt32(0);
 
@@ -80,8 +81,12 @@ namespace PESpy
                             data = new PdbHeap(valueChunk, Size);
                             break;
 
-                        case "#!": //I've seen this header in mscorlib.ni but nobody knows how to handle it
-                            throw new NotImplementedException("Need to parse #1 stream as bytes");
+                        case HotModelStream:
+                            //Hot Model Stream is specific to NGEN images. Older versions of coreclr explicitly state that the Hot Model Stream
+                            //should be forbidden in non-NGEN images. liteweightstgdb.cpp shows how to handle this. We have a tracking issue on GitHub
+                            //for implementing this
+                            data = null;
+                            break;
 
                         default:
                             throw new NotImplementedException($"Don't know how to parse stream '{Name}'");
@@ -121,7 +126,12 @@ namespace PESpy
                 {
                     var data = (CompressedModelHeap) Data!;
 
-                    using var r = writer.CreateRegion(data.Offset + CompressedModelHeader.FixedStructSize + (data.Header.RowCounts.Length * 4), Name, ViewKind.CompressedModelHeap, global: true);
+                    using var r = writer.CreateRegion(
+                        data.Offset + CompressedModelHeader.FixedStructSize + (data.Header.RowCounts.Length * 4),
+                        Name,
+                        ViewKind.CompressedModelHeap,
+                        global: true
+                    );
 
                     r.WriteValue(data);
                     break;
@@ -173,11 +183,10 @@ namespace PESpy
                     break;
                 }
 
-                case "#!":
+                case HotModelStream:
                 {
-                    var data = (ByteBlob) Data!;
-
-                    throw new NotImplementedException($"Serializing stream '{Name}' is not implemented");
+                    Debug.Assert(data == null); //When we implement support for the Hot Model Stream, we need to writeit
+                    break;
                 }
 
                 default:

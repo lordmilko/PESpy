@@ -24,14 +24,14 @@ namespace PESpy.View.Builder
         private int nextDataDirectoryIndex;
         private IView? nextValue;
         private DirectoryInfo? directory;
-        private Extension extension;
+        private ByteViewProvider byteViewProvider;
         private RepeatingGroupMode repeatingGroupMode;
 
         private PooledList<IView> masterList;
         private PooledList<IView> currentList;
         private PooledList<IView> repeatingTypeList;
 
-        internal Merger(IFile file, List<IView> sortedStructs, Extension extension) : this(file, sortedStructs, default, default, extension)
+        internal Merger(IFile file, List<IView> sortedStructs, ByteViewProvider byteViewProvider) : this(file, sortedStructs, default, default, byteViewProvider)
         {
         }
 
@@ -155,7 +155,7 @@ namespace PESpy.View.Builder
             {
                 if (rva > nextValue.Offset)
                 {
-                    //Multiple RuntimeFunction entries may point to the same UnwindCode
+                    //Multiple RuntimeFunction entries may point to the same UnwindInfo
 
                     var previous = sortedStructs[nextStructIndex - 1];
 

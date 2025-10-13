@@ -19,7 +19,7 @@ namespace PESpy.View.Builder
 
                 var sizeOfHeaders = neFile.DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
 
-                results.Add(new HeaderView(sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
 
                 var lastSectionEnd = sizeOfHeaders;
 
@@ -120,7 +120,7 @@ namespace PESpy.View.Builder
                 }
 
                 //The rest of the file is OMF data
-                var fileLength = (int) extension.GetInputLength();
+                var fileLength = byteViewProvider.FileOrSectionLength;
                 var omfLength = fileLength - omfData.Offset;
 
                 string name;

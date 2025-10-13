@@ -1,7 +1,7 @@
-﻿using ClrDebug.OMF;
+﻿using System;
 using System.Collections.Generic;
-using System;
 using System.Diagnostics;
+using ClrDebug.OMF;
 using ClrDebug.PDB;
 
 namespace PESpy
@@ -38,7 +38,9 @@ namespace PESpy
 
             omfData = default;
 
-            switch ((CodeViewSig) endSig->Signature)
+            var sig = (CodeViewSig) endSig->Signature;
+
+            switch (sig)
             {
                 case CodeViewSig.DNRB:
                     /* DNRB (also called CV_OLD_SIG) works as follows:
@@ -71,15 +73,14 @@ namespace PESpy
                     var dataStart = endSig->filepos;
                     var dataLength = length - dataStart;
 
-                    ReadDNRB(new MemoryChunk(globalBlock, dataStart), length - dataStart);
-
-                    throw new NotImplementedException("DNRB not yet implemented");
+                    omfData = ReadDNRB(new MemoryChunk(globalBlock, dataStart), sig, length - dataStart);
+                    return true;
 
                 case CodeViewSig.NB00:
                 case CodeViewSig.NB01:
                 case CodeViewSig.NB02:
-                    //case CodeViewSig.NB03: //Unknown IBM(?) format. Not currently supported
-                    //case CodeViewSig.NB04: //Unknown IBM(?) format. Not currently supported
+                //case CodeViewSig.NB03: //Unknown IBM(?) format. Not currently supported
+                //case CodeViewSig.NB04: //Unknown IBM(?) format. Not currently supported
                     oldStyle = true;
                     break;
 
@@ -113,14 +114,64 @@ namespace PESpy
             var chunk = new MemoryChunk(globalBlock, startOffset);
 
             if (oldStyle)
-                ReadNB02(chunk, omfLength);
+                omfData = ReadNB02(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength);
             else
                 omfData = ReadNB05(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength);
 
             return true;
         }
 
-        private static void ReadDNRBModules(in MemoryChunk chunk, NativeSpan<int> secOffset)
+        #region DNRB
+
+        internal static DNRBData ReadDNRB(in MemoryChunk chunk, CodeViewSig sig, int sizeOfData)
+        {
+            /* See the comments in TryReadTrailingOMF() for info about the structure of DNRB
+             * 
+             * For the most part, DNRB seems to be very similar to NB00 (https://www.pcjs.org/documents/books/mspl13/c/ctoolkit).
+             * Part of this information has also been confirmed by cross referencing with the output of CV.EXE */
+
+            //Read the CVSECTBL for CV_OLD_SIG
+            var secOffset = chunk.PeekNativeSpan<int>(0, 5);
+            var version = chunk.PeekUInt16(5 * sizeof(int)); //The type is listed as "unsigned", but based on the distance between this and the modules that come after it I think it's a ushort
+
+            //Each offset is an absolute position in the file
+
+            /* Since DNRB has a fixed number of sections, the length of each section can be deduced as being the distance between the current
+             * section and the section after it. The length of the last section is the length from the start of the section up to 8 bytes
+             * prior to the end of the file (which holds a CVINFO) */
+
+            //Section 0: Modules. Does not match NB00
+            var modules = ReadDNRBModules(chunk, secOffset);
+
+            //Section 1: Publics. Matches NB00
+            //Some of these offsets and segments seem a bit crazy, but offset is definitely offset, and I've also observed that segment seems to match what we see in the relocations
+            var publics = ReadNB02Publics(chunk.Slice(secOffset[1] - chunk.AbsoluteOffset), secOffset[2] - secOffset[1]);
+
+            //Section 2: Types. Matches NB00
+            var types = ReadNB02Types(chunk.Slice(secOffset[2] - chunk.AbsoluteOffset), secOffset[3] - secOffset[2]);
+
+            //Section 3: Symbols. Matches NB00
+            var symbols = ReadNB02Symbols(chunk.Slice(secOffset[3] - chunk.AbsoluteOffset), secOffset[4] - secOffset[3]);
+
+            //Section 4: Source Lines. Matches NB00
+            var sourceLinesChunk = chunk.Slice(secOffset[4] - chunk.AbsoluteOffset);
+            var sourceLines = ReadNB02SourceLines(chunk.Slice(secOffset[4] - chunk.AbsoluteOffset), sourceLinesChunk.Remaining - 8, false); //Read up to the CVINFO at the end of the file
+
+            return new DNRBData(
+                chunk.AbsoluteOffset,
+                sig,
+                sizeOfData,
+                version,
+                secOffset,
+                modules,
+                publics,
+                types,
+                symbols,
+                sourceLines
+            );
+        }
+
+        private static DNRBModule[] ReadDNRBModules(in MemoryChunk chunk, NativeSpan<int> secOffset)
         {
             //The first section appears to contain names of lib files and symbols that are associated with them.
             //Each symbol contains 30 unknown bytes prior to it. Seems similar to sstModules?
@@ -129,51 +180,26 @@ namespace PESpy
             var toRead = secOffset[1] - secOffset[0];
             var moduleReader = chunk.Slice(secOffset[0] - chunk.AbsoluteOffset);
 
-            var modules = new List<(NativeSpan<byte> bytes, FixedAnsiString name)>();
+            var modules = new List<DNRBModule>();
+
+            //Doesn't seem to be the same as smd
 
             while (read < toRead)
             {
-                var leadingBytes = moduleReader.PeekNativeSpan<byte>(read, 30);
-                read += 30;
-                var length = moduleReader.PeekByte(read);
-                var str = moduleReader.PeekAnsiFixedLength(read + 1, length);
-                read += length + 1;
+                var module = new DNRBModule(moduleReader.Slice(read));
 
-                modules.Add((leadingBytes, str));
+                read += module.StructSize;
+
+                modules.Add(module);
             }
+
+            return modules.ToArray();
         }
 
-        private static void ReadDNRBPublics(in MemoryChunk chunk, NativeSpan<int> secOffset)
-        {
-            //Next is a list of function names. Seems similar to sstPublics?
-            //Each item consists of 6 bytes, followed by a length prefixed string.
-            //This is literally the same as sstPublics
-
-            var read = 0;
-            var toRead = secOffset[2] - secOffset[1];
-            var publicsReader = chunk.Slice(secOffset[1] - chunk.AbsoluteOffset);
-
-            //Offset is definitely offset, and I've also observed that segment seems to match what we see in the relocations
-            var publics = new List<(ushort moffset, ushort segment, ushort maybeTypeIndex, FixedAnsiString name)>();
-
-            //The entry point is called "_astart" and is listed in publics
-            while (read < toRead)
-            {
-                var offset = publicsReader.PeekUInt16(read);
-                var segment = publicsReader.PeekUInt16(read + 2);
-                var maybeTypeIndex = publicsReader.PeekUInt16(read + 4);
-
-                read += 6;
-                var length = publicsReader.PeekByte(read);
-                var str = publicsReader.PeekAnsiFixedLength(read + 1, length);
-                read += length + 1;
-
-                publics.Add((offset, segment, maybeTypeIndex, str));
-            }
-        }
+        #endregion
         #region NB00 -> NB02
 
-        internal static void ReadNB02(in MemoryChunk chunk, int sizeOfData)
+        internal static NB02Data ReadNB02(in MemoryChunk chunk, CodeViewSig sig, int lfoBaseOff, int sizeOfData)
         {
             /* The Microsoft C 6.0 Developer's Toolkit Reference contains a lot of useful
              * information on how to parse all the types of records in NB02, and even contains some typedefs
@@ -205,6 +231,9 @@ namespace PESpy
              * ----------
              * pbi
              *
+             * The following types are listed above type "loe", but this is extremely dubious because loe is only used
+             * for source line information
+             *
              * SSTTYPES
              * SSTCOMPACTED
              * SSTSYMBOLS
@@ -214,15 +243,21 @@ namespace PESpy
              *
              * SSTSRCLNSEG
              * -----------
-             * a different kind of loe(?)
+             * The same format as loe except there's also a segment field
              *
              * SSTLIBRARIES
              * ------------
              * lib[]
              */
 
-            //cvdump doesn't seem to like NB02 files from Windows 3.1 for some reason. I found a GitHub repo that says that the NB02
-            //dumper contains a fundamental bug, and includes a patch
+            /* The version of cvdump.exe that comes with microsoft-pdb has a bug in it: cvexefmt.h is imported without changing the packing to 1,
+             * which causes cvdump to fail to parse the directory entries properly, and you get an invalid executable error. If you compile cvdump yourself,
+             * you can fix this by changing the import of cvexefmt.h to the following
+             *
+             * #pragma pack(1)
+             * #include "cvexefmt.h"
+             * #pragma pack()
+             */
 
             var lfoBase = chunk.Pointer;
 
@@ -233,10 +268,9 @@ namespace PESpy
 
             //Instead of OMFDirEntry, we have DirEntry items. They are basically the same as OMFDirEntry except the size is 16-bit
             var entries = new dnt[cDir];
-            var tableData = new object[cDir];
 
-            //This is the table in section 7.3
-            var offset = lfoDir + sizeof(ushort);
+            //This is the table in section 7.3 of https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
+            var offset = lfoDir + sizeof(ushort); //Skip over cDir
 
             //NB02 data is a bit tricky in that things can sometimes be 16-bit, other times 32-bit. I have seen indications that 32-bit
             //applies when we have an LE File.
@@ -250,9 +284,36 @@ namespace PESpy
 
                 offset += dnt.StructSize;
             }
+
+            var data = new NB02Data(
+                chunk.AbsoluteOffset,
+                sig,
+                lfoBaseOff,
+                lfoDir,
+                cDir,
+                entries
+            );
+
+            return data;
         }
 
-        internal static OldSymType[] ReadNB02Symbols(in MemoryChunk symbolsChunk, int size)
+        internal static RawValue<pbi[]> ReadNB02Publics(in MemoryChunk valueChunk, int size)
+        {
+            using var publics = new PooledList<pbi>();
+
+            var read = 0;
+
+            while (read < size)
+            {
+                var item = new pbi(valueChunk.Slice(read));
+                publics.Add(item);
+                read += item.StructSize;
+            }
+
+            return new RawValue<pbi[]>(valueChunk.AbsoluteOffset, publics.ToArray());
+        }
+
+        internal static RawValue<OldSymType[]> ReadNB02Symbols(in MemoryChunk valueChunk, int size)
         {
             var read = 0;
 
@@ -260,14 +321,67 @@ namespace PESpy
 
             while (read < size)
             {
-                var ptr = new OldSymType(symbolsChunk.Pointer + read);
+                var ptr = new OldSymType(valueChunk.Pointer + read);
 
                 list.Add(ptr);
 
                 read += ptr.reclen + 1;
             }
 
-            return list.ToArray();
+            return new RawValue<OldSymType[]>(valueChunk.AbsoluteOffset, list.ToArray());
+        }
+
+        internal static RawValue<OldTypType[]> ReadNB02Types(in MemoryChunk valueChunk, int size)
+        {
+            /* The Type format is described in section 1.4 of https://www.pcjs.org/documents/books/mspl13/c/ctoolkit/
+             * 
+             * The maximum length of a type (including the 3 header bytes) is 65535 (MAXTYPE). The maximum size
+             * of the data that follows the 3 header bytes is MAXTYPE - 3
+             * 
+             * There are 511 primitive types, so the index of the first type starts at 512
+             * 
+             * Based on the type of the leaf, different bytes may follow
+             * 
+             * Note that while section 3.7 lists the type as being "loe", this is erroneous
+             */
+
+            var read = 0;
+
+            using var list = new PooledList<OldTypType>();
+
+            while (read < size)
+            {
+                var ptr = new OldTypType(valueChunk.Pointer + read);
+
+                list.Add(ptr);
+
+                read += ptr.len + 3;
+            }
+
+            return new RawValue<OldTypType[]>(valueChunk.AbsoluteOffset, list.ToArray());
+        }
+
+        internal static RawValue<loe[]> ReadNB02SourceLines(in MemoryChunk valueChunk, int size, bool hasSeg)
+        {
+            //Based on cvdump.cpp!DumpSrcLn, there can be multiple entries
+
+            //The spec lists a type "loe" for both SSTSRCLINES and SSTSRCLNSEG. You can't have two types
+            //with the same name, so we'll instead use a single type "loe" and if there's no segment, Seg will return null
+
+            var read = 0;
+
+            using var results = new PooledList<loe>();
+
+            while (read < size)
+            {
+                var loe = new loe(valueChunk, hasSeg);
+
+                read += loe.StructSize;
+
+                results.Add(loe);
+            }
+
+            return new RawValue<loe[]>(valueChunk.AbsoluteOffset, results.ToArray());
         }
 
         #endregion
@@ -327,6 +441,9 @@ namespace PESpy
                         symbolAccessor = new NB09SymbolAccessor(file);
                 }
                 break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to parse NB05 symbols for a CodeViewSig of type '{sig}'");
             }
 
             //The subsection directory entries are immediately after the header. This is the table in section 7.3.
@@ -334,13 +451,6 @@ namespace PESpy
             var offset = lfoDir + OMFDirHeader.StructSize;
 
             CV_SIGNATURE lastSignature = default;
-
-            for (var i = 0; i < dirHeader.cDir; i++)
-            {
-                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);                
-
-                offset += OMFDirEntry.StructSize;
-            }
 
             var data = new NB05Data(
                 chunk,
@@ -351,10 +461,19 @@ namespace PESpy
                 entries
             );
 
+            //We need to set this prior to writing the entries, as OMFGlobalTypes needs to know what CodeView version we are
             symbolAccessor.data = data;
+
+            for (var i = 0; i < dirHeader.cDir; i++)
+            {
+                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);                
+
+                offset += OMFDirEntry.StructSize;
+            }
 
             Debug.Assert(lastSignature != default);
             symbolAccessor.CvSignature = lastSignature;
+
             //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
             symbolAccessor.HasLengthPrefixedStrings = lastSignature != CV_SIGNATURE.C13;
 

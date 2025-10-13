@@ -10,7 +10,7 @@ namespace PESpy.View
         protected AsmRange<T>[] ranges;
         protected byte bitness;
 
-        public abstract void Initialize(PEFile peFile);
+        public abstract void Initialize(IFile file);
 
         public abstract bool TryParseDosStub(ref int offset, ref NativeSpan<byte> bytes, List<IView> results);
 

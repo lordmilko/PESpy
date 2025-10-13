@@ -2,6 +2,7 @@
 
 namespace PESpy
 {
+    [Source(SourceKind.cvexefmt)]
     public readonly struct OMFSourceLine
     {
         public ushort Seg => chunk.PeekUInt16(0);

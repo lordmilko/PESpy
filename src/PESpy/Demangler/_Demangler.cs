@@ -1,9 +1,32 @@
 ﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using ClrDebug.DIA;
+
+#nullable disable
+
+namespace PESpy
+{
+    //Based on undname-rs and llvm (see ThirdPartyNotices.txt)
+
+    /* C++ STL templates look like shit. When you declare a variable of type std::string, the PDB says that the variable's type is in
+     * fact std::basic_string<char,std::char_traits<char>,std::allocator<char> >. Separately to this, there is an S_UDT for std::string
+     * that maps to this generic value. However, S_UDT records are not always guaranteed to be generated. If you do std::vector<int>, you'll
+     * find that there is no S_UDT record, and the std::vector<int> is displayed as std::vector<int,std::allocator<int>> in the debugger.
+     * Furthermore, if you step into a method like std::string::size(), you'll be surprised to find that the method displays normally in your
+     * call stack! How is this possible!
+     * 
+     * It does not appear that the natvis file plays any part in customizing how the variable is displayed. Rather, CppDebug.dll seems to have
+     * a list of hard coded heuristics that it uses for controlling the visualization of types. All of the action happens in CppEE::CTypeFormatter.
+     * It's all just a bunch of string manipulation! "std::string" seems to just come from CppEE::CTypeFormatter::ReverselyMapTypeAlias,which just
+     * does a bunch of find and replace for the various standard string types that are known to Visual Studio
+     * 
+     * There are two categories of types whose format might need fixing. Lines that start with "using " whose type does not start with an underscore,
+     * and classes whose line above says "CLASS TEMPLATE". From my initial review of all items that match these criteria, I don't feel like there's actually
+     * that many interesting types that are worth "tidying up". In any case, it _would_ be useful to have an extensible mechanism for tidying up
+     * STL garbage
+     */
 
     public static partial class Demangler
     {
@@ -139,12 +162,46 @@ using ClrDebug.DIA;
 
         #endregion
 
+        /// <summary>
+        /// Demangles the specified symbol name, returning a <see cref="DemangleTree"/> on success and throwing an exception
+        /// on failure.<para/>
+        /// Note: the singleton arena used by the demangler is transferred to the <see cref="DemangleTree"/>. The <see cref="DemangleTree"/>
+        /// should be disposed when it is no longer needed. Any subsequent parse attempts that are made while the arena is held by the <see cref="DemangleTree"/>
+        /// will result in allocations being made.
+        /// </summary>
+        /// <param name="str">The symbol name that should be demangled.</param>
+        /// <returns>The <see cref="DemangleTree"/> that contains the result of the demangling.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public static DemangleTree Parse(string str)
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static FixedUtf8String CreateString(string text) =>
-                new FixedUtf8String((byte*) Marshal.StringToHGlobalAnsi(text), text.Length);
+            var textWindow = new TextWindow(str);
 
+            try
+            {
+                if (TryParseInternal(ref textWindow, out var symbol))
+                {
+                    var symbolTree = new DemangleTree(symbol, textWindow.ExtractStrings(), textWindow.ExtractArena());
+
+                    return symbolTree;
+                }
+
+                throw new InvalidOperationException($"Failed to demangle string '{str}'");
+            }
+            finally
+            {
+                textWindow.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Tries to demangle the specified symbol name, returning a <see cref="DemangleTree"/> on success.<para/>
+        /// Note: the singleton arena used by the demangler is transferred to the <see cref="DemangleTree"/>. The <see cref="DemangleTree"/>
+        /// should be disposed when it is no longer needed. Any subsequent parse attempts that are made while the arena is held by the <see cref="DemangleTree"/>
+        /// will result in allocations being made.
+        /// </summary>
+        /// <param name="str">The symbol name that should be demangled.</param>
+        /// <param name="symbolTree">The <see cref="DemangleTree"/> that contains the result of the demangling.</param>
+        /// <returns>Whether the specified string could be successfully parsed.</returns>
         public static unsafe bool TryParse(SymString str, out DemangleTree symbolTree)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
@@ -2546,26 +2603,8 @@ using ClrDebug.DIA;
             if (!TryParseInternal(ref textWindow, out var scope))
                 return false;
 
-            var ptr = stackalloc char[MaxSymbolName];
-            var builder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
-
-            try
-            {
-                builder.Append("`");
-                scope.Output(ref builder, UNDNAME.UNDNAME_COMPLETE);
-                builder.Append("'");
-                builder.Append("::`");
-                builder.Append(number);
-                builder.Append("'");
-
-                identifier = textWindow.AllocNamedIdentifier(ref builder);
-
-                return true;
-            }
-            finally
-            {
-                builder.Dispose();
-            }
+            identifier = textWindow.AllocScopedIdentifier(scope, number);
+            return true;
         }
 
         private static bool TryParseStringLiteral(ref TextWindow textWindow, out SymbolNode symbolNode)

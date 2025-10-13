@@ -33,9 +33,7 @@ namespace PESpy.View
         public ValueView(int offset, TValue value, int size, ViewKind kind)
         {
             Debug.Assert(size >= 0);
-
-            if (value is string && kind == ViewKind.Value)
-                kind = ViewKind.String;
+            Debug.Assert(kind != 0);
 
             //LIB signature is at 0
             //Debug.Assert(offset != 0);
@@ -83,10 +81,26 @@ namespace PESpy.View
 
             if (this is SplitValueView<TValue> sv)
             {
-                throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
+                //We're just rewriting ourselves to have a new offset
+                var newValue = new SplitValueView<TValue>(newOffset, Value, Size, Kind);
+
+                if (sv.Previous != null)
+                {
+                    //We need to set the previous's next to be us
+                    ((SplitValueView<TValue>) sv.Previous).Next = newValue;
+                    newValue.Previous = sv.Previous;
+                }
+                else if (sv.Next != null)
+                {
+                    //We need to set the next's previous to be us
+                    ((SplitValueView<TValue>) sv.Next).Previous = newValue;
+                    newValue.Next = sv.Next;
+                }
+
+                return newValue;
             }
 
-            return new SplitValueView<TValue>(newOffset, Value, Size, Kind);
+            return new ValueView<TValue>(newOffset, Value, Size, Kind);
         }
     }
 

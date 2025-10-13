@@ -1,4 +1,5 @@
 ﻿using System;
+using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -6,12 +7,7 @@ namespace PESpy.View
     {
         private OMFLIBFile omfLibFile;
 
-        protected unsafe OMFLIBViewWriter(OMFLIBFile omfLibFile) : this(omfLibFile, (byte*) 1, 1)
-        {
-            this.omfLibFile = omfLibFile;
-        }
-
-        internal unsafe OMFLIBViewWriter(OMFLIBFile omfLibFile, byte* mmf, int length) : base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe OMFLIBViewWriter(OMFLIBFile omfLibFile) : base(omfLibFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.omfLibFile = omfLibFile;
         }

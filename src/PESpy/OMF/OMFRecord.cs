@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using PESpy.PDB;
 
 namespace PESpy.OMF
 {
@@ -63,7 +64,10 @@ namespace PESpy.OMF
 
         public override string ToString()
         {
-            return RecordType.ToString();
+            if (value == default)
+                return "<null>";
+
+            return StringOMFRecordDispatcher.Instance.Dispatch(this);
         }
 
         public static implicit operator THEADR(OMFRecord record) => new THEADR(record.value);

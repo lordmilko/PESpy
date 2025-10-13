@@ -6,6 +6,8 @@ namespace PESpy
 {
     public struct ImageCoffSymbolsHeader : IValue, IViewable
     {
+        internal const int LvaToFirstSymbolOffset = 4;
+
         public int NumberOfSymbols => chunk.PeekInt32(0);
 
         private RVA<CoffSymbolTable> lvaToFirstSymbol;
@@ -16,7 +18,7 @@ namespace PESpy
             {
                 if (lvaToFirstSymbol.ListedOffset == 0)
                 {
-                    var value = chunk.PeekInt32(4);
+                    var value = chunk.PeekInt32(LvaToFirstSymbolOffset);
 
                     //Value is relative to the start of this data
                     var offset = chunk.AbsoluteOffset + value;
@@ -61,8 +63,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            if (LvaToFirstSymbol.IsValid)
-                writer.WriteUniqueGlobal(LvaToFirstSymbol.Value);
+            writer.WriteUniqueRVAField(LvaToFirstSymbol, LvaToFirstSymbolOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

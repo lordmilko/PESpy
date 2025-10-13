@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -109,8 +110,32 @@ namespace PESpy.PDB
 
             s.WriteField("Name Buffer Size", NameBufferSize);
 
-            foreach (var name in Names)
+            var namesStart = Offset + sizeof(int);
+            var namesWritten = 0;
+            var lastEnd = namesStart;
+
+            //The names are not sorted, and there can be gaps that may or may not contain valid strings that were previously deleted
+            foreach (var name in Names.OrderBy(n => n.Offset))
+            {
+                if (lastEnd != name.Offset)
+                {
+                    var gap = name.Offset - lastEnd;
+
+                    s.WriteByteBlob(lastEnd, gap);
+
+                    namesWritten += gap;
+                }
+
                 s.WriteInlineAnsiNullTerminated(name);
+
+                namesWritten += name.Value.Length + 1;
+                lastEnd = namesStart + namesWritten;
+            }
+
+            var namesExtra = NameBufferSize - namesWritten;
+
+            if (namesExtra > 0)
+                s.WriteByteBlob(lastEnd, namesExtra);
 
             s.WriteInline(NameOffsetToStreamIndexMap);
 

@@ -15,9 +15,9 @@ namespace PESpy
          * takes if it's not a standard format? Thus, I conclude that for all FuncInfo related entities, _EH_RELATIVE_FUNCINFO
          * should be used */
 
-        private const int UnwindMapOffset = 8;
-        private const int TryBlockMapOffset = 16;
-        private const int IPToStateMapOffset = 24;
+        internal const int UnwindMapOffset = 8;
+        internal const int TryBlockMapOffset = 16;
+        internal const int IPToStateMapOffset = 24;
 
         private int magicNumberAndBBTFlags => chunk.PeekInt32(0);
 
@@ -169,7 +169,7 @@ namespace PESpy
             sizeof(int) + //IPToStateMap
             sizeof(int) + //DispUnwindHelp
             sizeof(int) + //DispESTypeList
-            sizeof(int); //EHFlags
+            sizeof(int);  //EHFlags
 
         private readonly MemoryChunk chunk;
 

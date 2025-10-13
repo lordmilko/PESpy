@@ -11,7 +11,9 @@ namespace PESpy.View
     {
         public ViewMode ViewMode { get; }
 
-        public Int32 Offset { get; }
+        public string? Name { get; }
+
+        public int Offset { get; }
         public int Size { get; }
 
         public ViewKind Kind { get; }
@@ -19,13 +21,13 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public IView[] Children { get; }
 
-        public FileView(ViewMode viewMode, IView[] children, ViewKind kind)
+        public FileView(ViewMode viewMode, string? name, IView[] children, ViewKind kind)
         {
             if (viewMode == ViewMode.Default)
                 throw new ArgumentException($"ViewMode {viewMode} should have been transformed into a more specific type");
 
             ViewMode = viewMode;
-
+            Name = name;
             Offset = children[0].Offset;
             Size = children.Sum(r => r.Size);
             Children = children;

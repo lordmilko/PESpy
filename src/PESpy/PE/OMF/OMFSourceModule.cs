@@ -1,6 +1,7 @@
 ﻿namespace PESpy
 {
-    public struct OMFSourceModule
+    [Source(SourceKind.cvexefmt)]
+    public struct OMFSourceModule : IValue
     {
         public ushort cFile => chunk.PeekUInt16(0);
 
@@ -28,6 +29,8 @@
                 return rawBaseSrcFile;
             }
         }
+
+        public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

@@ -40,7 +40,6 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.UNWIND_CODE, this, ViewKind.UnwindCode, StructSize);
 
-
         IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
         {
             //Can't pass a using variable by ref

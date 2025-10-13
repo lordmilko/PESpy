@@ -1,12 +1,18 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Roslyn.Utilities;
 
 namespace PESpy
 {
-    public readonly unsafe struct SymString
+    public readonly unsafe struct SymString :
+        IString<SymString, byte>,
+        IEquatable<string>,
+        IComparable<string>
     {
         public readonly byte* Value;
         public readonly bool IsLengthPrefixed;
+
+        private string DebuggerDisplay => this.ToString();
 
         internal SymString(byte* value, bool isLengthPrefixed)
         {
@@ -19,21 +25,40 @@ namespace PESpy
             get
             {
                 if (IsLengthPrefixed)
+                {
+                    if (Value == default)
+                        return 0;
+
                     return *(Value - 1);
+                }
 
                 return StringHelpers.GetStringLength(Value);
             }
         }
 
+        #region IString
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool StartsWith(string value) =>
+            StringHelpers.StartsWith(AsSpan(), value); //We can't pass a byte* because we're not necessarily null terminated
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EndsWith(string value) =>
+            StringHelpers.EndsWith(AsSpan(), value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(string value) =>
+            StringHelpers.Contains(AsSpan(), value);
+
         public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
 
-        public void CopyTo(char[] array)
-        {
-            var value = Value;
+        public void CopyTo(Span<char> destination) => StringHelpers.CopyTo(AsSpan(), destination);
 
-            for (var i = 0; i < Length; i++)
-                array[i] = (char) value[i];
-        }
+        public Span<byte> AsSpan() =>
+            new Span<byte>(Value, IsLengthPrefixed ? *(Value - 1) : StringHelpers.GetStringLength(Value));
+
+        #endregion
+        #region IEquatable / IComparable (FixedUtf16String)
 
         public bool Equals(SymString other)
         {
@@ -43,17 +68,33 @@ namespace PESpy
             return AsSpan().SequenceEqual(other.AsSpan());
         }
 
+        public int CompareTo(SymString other) => AsSpan().SequenceCompareTo(other.AsSpan());
+
+        #endregion
+        #region IEquatable / IComparable (string)
+
         public bool Equals(string? other)
         {
             if (other == null)
                 return Value == default;
 
-            return StringHelpers.Equals(Value, other);
+            return StringHelpers.Equals(Value, Length, other);
         }
+
+        public int CompareTo(string other) => throw new NotImplementedException();
+
+        #endregion
+        #region Operators
+
+        //Conversions
 
         public static implicit operator SymString(Utf8String value) => new SymString(value.Value, isLengthPrefixed: false);
 
         public static implicit operator SymString(AnsiString value) => new SymString(value.Value, isLengthPrefixed: false);
+
+        public static implicit operator FixedUtf8String(SymString value) => new FixedUtf8String(value.Value, value.Length);
+
+        //Equality
 
         public static bool operator ==(SymString left, string? right) => left.Equals(right);
         public static bool operator !=(SymString left, string? right) => !left.Equals(right);
@@ -64,9 +105,11 @@ namespace PESpy
         public static bool operator ==(SymString left, SymString right) => Equals(left, right);
         public static bool operator !=(SymString left, SymString right) => !Equals(left, right);
 
+        #endregion
+
         public override bool Equals(object? obj)
         {
-            if (obj is FixedUtf8String p)
+            if (obj is SymString p)
                 return Equals(p);
 
             if (obj is string s)
@@ -75,25 +118,6 @@ namespace PESpy
             return false;
         }
 
-        public bool StartsWith(string value)
-        {
-            if (value.Length > Length)
-                return false;
-
-            //We currently only support ANSI values
-
-            for (var i = 0; i < value.Length; i++)
-            {
-                if ((byte) value[i] != Value[i])
-                    return false;
-            }
-
-            return true;
-        }
-
-        public Span<byte> AsSpan() =>
-            new Span<byte>(Value, IsLengthPrefixed ? *(Value - 1) : StringHelpers.GetStringLength(Value));
-
         public override int GetHashCode() => Hash.GetFNVHashCode(AsSpan());
 
         /// <summary>
@@ -101,12 +125,5 @@ namespace PESpy
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
         public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, System.Text.Encoding.UTF8);
-
-        //todo: implement icomparable for all of our other string types
-        public int CompareTo(SymString other) => AsSpan().SequenceCompareTo(other.AsSpan());
-
-        public int CompareTo(string other) => throw new NotImplementedException();
-
-        private string DebuggerDisplay => this.ToString();
     }
 }

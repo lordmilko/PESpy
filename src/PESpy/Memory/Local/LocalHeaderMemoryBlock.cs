@@ -13,6 +13,13 @@ namespace PESpy
             LocalPointer = provider.Pointer;
         }
 
+        internal unsafe LocalHeaderMemoryBlock(LocalMemoryBlockProvider provider, int startOffset) : base(provider)
+        {
+            RemoteStartOffset = startOffset;
+            RemoteEndOffset = startOffset + (int) provider.Length;
+            LocalPointer = provider.Pointer;
+        }
+
         internal override void Resize(int newSize)
         {
             //As we are backed by a memory mapped file, we don't need to do anything

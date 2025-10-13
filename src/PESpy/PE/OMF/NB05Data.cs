@@ -58,12 +58,12 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //The merger will wrap this all up in a region
+            //Merger.TryCreateOMFRegion will wrap this all up in a region
 
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, "lfoDir", LfoDir, sizeof(int));
 
-            //Data comes before the header
+            //Data comes before the headers
 
             for (var i = 0; i < DirEntries.Length; i++)
             {
@@ -78,9 +78,18 @@ namespace PESpy
                     writer.WriteGlobal(s.Hash);
                     writer.WriteGlobal(s.Hash.Offset + OMFSymHash.StructSize, s.Symbols);
                 }
+                else
+                {
+                    if (data != null)
+                        throw new NotImplementedException($"Don't know how to write a global of type '{data.GetType().Name}'");
+                }
+            }
 
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);
+
+            writer.WriteGlobalField(Offset + LfoBase - 8, "lfoBase", LfoBase, sizeof(int));
+            writer.WriteGlobal(Offset + LfoBase - 4, Signature, sizeof(int), ViewKind.CodeViewSig);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

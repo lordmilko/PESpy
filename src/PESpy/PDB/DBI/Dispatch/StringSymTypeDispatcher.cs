@@ -1,0 +1,101 @@
+﻿#nullable disable
+
+namespace PESpy.PDB
+{
+    internal sealed class StringSymTypeDispatcher : SymTypeDispatcher<string>
+    {
+        public static readonly StringSymTypeDispatcher Instance = new();
+
+        protected override string SymType(SymType value) => value.rectyp.ToString();
+
+        protected override string AlignSym(AlignSym value) => value.ToString();
+        protected override string AnnotationSym(AnnotationSym value) => value.ToString();
+        protected override string ArmSwitchTable(ArmSwitchTable value) => value.ToString();
+        protected override string AttrManyRegSym2(AttrManyRegSym2 value) => value.ToString();
+        protected override string AttrRegRel(AttrRegRel value) => value.ToString();
+        protected override string AttrRegSym(AttrRegSym value) => value.ToString();
+        protected override string AttrSlotSym(AttrSlotSym value) => value.ToString();
+        protected override string BlockSym16(BlockSym16 value) => value.ToString();
+        protected override string BlockSym32(BlockSym32 value) => value.ToString();
+        protected override string BPRelSym16(BPRelSym16 value) => value.ToString();
+        protected override string BPRelSym32(BPRelSym32 value) => value.ToString();
+        protected override string BPRelSym3216t(BPRelSym3216t value) => value.ToString();
+        protected override string BuildInfoSym(BuildInfoSym value) => value.ToString();
+        protected override string CallSiteInfo(CallSiteInfo value) => value.ToString();
+        protected override string CExMSym16(CExMSym16 value) => value.ToString();
+        protected override string CExMSym32(CExMSym32 value) => value.ToString();
+        protected override string CFlagSym(CFlagSym value) => value.ToString();
+        protected override string CoffGroupSym(CoffGroupSym value) => value.ToString();
+        protected override string CompileSym(CompileSym value) => value.ToString();
+        protected override string CompileSym3(CompileSym3 value) => value.ToString();
+        protected override string ConstSym(ConstSym value) => value.ToString();
+        protected override string ConstSym16t(ConstSym16t value) => value.ToString();
+        protected override string DataSym16(DataSym16 value) => value.ToString();
+        protected override string DataSym32(DataSym32 value) => value.ToString();
+        protected override string DataSym3216t(DataSym3216t value) => value.ToString();
+        protected override string DataSymHLSL(DataSymHLSL value) => value.ToString();
+        protected override string DataSymHLSL32(DataSymHLSL32 value) => value.ToString();
+        protected override string DataSymHLSL32Ex(DataSymHLSL32Ex value) => value.ToString();
+        protected override string DefRangeSym(DefRangeSym value) => value.ToString();
+        protected override string DefRangeSymFramePointerRel(DefRangeSymFramePointerRel value) => value.ToString();
+        protected override string DefRangeSymFramePointerRelFullScope(DefRangeSymFramePointerRelFullScope value) => value.ToString();
+        protected override string DefRangeSymHLSL(DefRangeSymHLSL value) => value.ToString();
+        protected override string DefRangeSymRegister(DefRangeSymRegister value) => value.ToString();
+        protected override string DefRangeSymRegisterRel(DefRangeSymRegisterRel value) => value.ToString();
+        protected override string DefRangeSymSubField(DefRangeSymSubField value) => value.ToString();
+        protected override string DefRangeSymSubfieldRegister(DefRangeSymSubfieldRegister value) => value.ToString();
+        protected override string DiscardedSym(DiscardedSym value) => value.ToString();
+        protected override string DPCSymTagMap(DPCSymTagMap value) => value.ToString();
+        protected override string EntryThisSym(EntryThisSym value) => value.ToString();
+        protected override string EnvBlockSym(EnvBlockSym value) => value.ToString();
+        protected override string ExportSym(ExportSym value) => value.ToString();
+        protected override string FileStaticSym(FileStaticSym value) => value.ToString();
+        protected override string FrameCookie(FrameCookie value) => value.ToString();
+        protected override string FrameProcSym(FrameProcSym value) => value.ToString();
+        protected override string FrameRelSym(FrameRelSym value) => value.ToString();
+        protected override string FunctionList(FunctionList value) => value.ToString();
+        protected override string HeapAllocSite(HeapAllocSite value) => value.ToString();
+        protected override string InlineSiteSym(InlineSiteSym value) => value.ToString();
+        protected override string InlineSiteSym2(InlineSiteSym2 value) => value.ToString();
+        protected override string LabelSym16(LabelSym16 value) => value.ToString();
+        protected override string LabelSym32(LabelSym32 value) => value.ToString();
+        protected override string LocalDPCGroupSharedSym(LocalDPCGroupSharedSym value) => value.ToString();
+        protected override string LocalSym(LocalSym value) => value.ToString();
+        protected override string ManProcSym(ManProcSym value) => value.ToString();
+        protected override string ManTypRef(ManTypRef value) => value.ToString();
+        protected override string ManyRegSym(ManyRegSym value) => value.ToString();
+        protected override string ManyRegSym16t(ManyRegSym16t value) => value.ToString();
+        protected override string ManyRegSym2(ManyRegSym2 value) => value.ToString();
+        protected override string ModTypeRef(ModTypeRef value) => value.ToString();
+        protected override string ObjNameSym(ObjNameSym value) => value.ToString();
+        protected override string OemSymbol(OemSymbol value) => value.ToString();
+        protected override string PdbMap(PdbMap value) => value.ToString();
+        protected override string PogoInfo(PogoInfo value) => value.ToString();
+        protected override string ProcSym16(ProcSym16 value) => value.ToString();
+        protected override string ProcSym32(ProcSym32 value) => value.ToString();
+        protected override string ProcSym3216t(ProcSym3216t value) => value.ToString();
+        protected override string ProcSymIA64(ProcSymIA64 value) => value.ToString();
+        protected override string ProcSymMips(ProcSymMips value) => value.ToString();
+        protected override string ProcSymMips16t(ProcSymMips16t value) => value.ToString();
+        protected override string PubSym32(PubSym32 value) => value.ToString();
+        protected override string RefMiniPdb(RefMiniPdb value) => value.ToString();
+        protected override string RefSym(RefSym value) => value.ToString();
+        protected override string RefSym2(RefSym2 value) => value.ToString();
+        protected override string RegRel16(RegRel16 value) => value.ToString();
+        protected override string RegRel32(RegRel32 value) => value.ToString();
+        protected override string RegRel3216t(RegRel3216t value) => value.ToString();
+        protected override string RegSym(RegSym value) => value.ToString();
+        protected override string RegSym16t(RegSym16t value) => value.ToString();
+        protected override string ReturnSym(ReturnSym value) => value.ToString();
+        protected override string SearchSym(SearchSym value) => value.ToString();
+        protected override string SectionSym(SectionSym value) => value.ToString();
+        protected override string SepCodeSym(SepCodeSym value) => value.ToString();
+        protected override string SLink32(SLink32 value) => value.ToString();
+        protected override string SlotSym32(SlotSym32 value) => value.ToString();
+        protected override string ThunkSym16(ThunkSym16 value) => value.ToString();
+        protected override string ThunkSym32(ThunkSym32 value) => value.ToString();
+        protected override string TrampolineSym(TrampolineSym value) => value.ToString();
+        protected override string UdtSym(UdtSym value) => value.ToString();
+        protected override string UdtSym16t(UdtSym16t value) => value.ToString();
+        protected override string UNameSpace(UNameSpace value) => value.ToString();    }
+}

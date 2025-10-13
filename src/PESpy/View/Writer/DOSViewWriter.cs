@@ -7,12 +7,11 @@ namespace PESpy.View
     {
         private DOSFile dosFile;
 
-        protected unsafe DOSViewWriter(DOSFile dosFile) : this(dosFile, (byte*) 1, 1)
+        protected unsafe DOSViewWriter(DOSFile dosFile) : this(dosFile, dosFile.CreateByteViewProvider(null))
         {
         }
 
-        internal unsafe DOSViewWriter(DOSFile dosFile, byte* mmf, int length) :
-            base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe DOSViewWriter(DOSFile dosFile, ByteViewProvider byteViewProvider) : base(byteViewProvider, ViewMode.Default, TryGetViewOffset, null)
         {
             this.dosFile = dosFile;
         }
@@ -31,11 +30,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(dosFile, structs, extension);
+            using var merger = new Merger(dosFile, structs, byteViewProvider);
 
             var results = merger.MergeDOS();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.DOSFile);
+            return new FileView(ViewMode.Physical, dosFile.Name, results, ViewKind.DOSFile);
         }
     }
 }

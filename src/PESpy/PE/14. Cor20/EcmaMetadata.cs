@@ -180,7 +180,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //A region will be created around everything during merging
+            //A region will be created around the IMAGE_COR20_HEADER.Metadata ImageDataDirectory during merging
 
             writer.WriteGlobal(Signature);
             writer.WriteGlobal(Header);

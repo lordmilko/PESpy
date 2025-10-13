@@ -1,8 +1,11 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.View;
+
+namespace PESpy
 {
     public static partial class Bundle
     {
-        public readonly struct Manifest
+        public readonly struct Manifest : IValue, IViewable
         {
             public Bundle.HeaderFixed Header { get; }
             public BundleEncodedString BundleID { get; }
@@ -10,7 +13,12 @@
 
             public FileEntry[] Files { get; }
 
+            public int Offset => chunk.AbsoluteOffset;
+
+            public int StructSize => length;
+
             private readonly MemoryChunk chunk;
+            private readonly int length;
 
             internal Manifest(in MemoryChunk chunk)
             {
@@ -43,7 +51,25 @@
                 }
 
                 Files = files;
+                this.length = read;
             }
+
+            void IViewable.WriteGlobals(ViewWriter writer)
+            {
+                using var r = writer.CreateRegion(Header.Offset, "Bundle Manifest", ViewKind.BundleManifest);
+
+                r.WriteValue(Header);
+                r.WriteValue(BundleID);
+
+                if (AdditionalContext != null)
+                    r.WriteValue(AdditionalContext);
+
+                r.WriteValues(Files);
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
         }
     }    
 }

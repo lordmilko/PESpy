@@ -9,11 +9,11 @@ namespace PESpy
     /// </summary>
     public struct ImageDelayLoadDescriptor : IValue, IViewable
     {
-        private const int DllNameRVAOffset = 4;
-        private const int ModuleHandleRVAOffset = 8;
-        private const int ImportAddressTableRVAOffset = 12;
-        private const int ImportNameTableRVAOffset = 16;
-        private const int UnloadInformationTableOffset = 24;
+        internal const int DllNameRVAOffset = 4;
+        internal const int ModuleHandleRVAOffset = 8;
+        internal const int ImportAddressTableRVAOffset = 12;
+        internal const int ImportNameTableRVAOffset = 16;
+        internal const int UnloadInformationTableOffset = 24;
 
         public int Attributes => chunk.PeekInt32(0);
 
@@ -25,7 +25,7 @@ namespace PESpy
             {
                 if (dllNameRVA.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(4);
+                    var rva = chunk.PeekInt32(DllNameRVAOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -50,7 +50,7 @@ namespace PESpy
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
-                        var value = (long) chunk.PeekPointer(0);
+                        var value = (long) valueChunk.PeekPointer(0);
                         moduleHandleRVA = new RVA<long>(rva, valueChunk.AbsoluteOffset, value);
                     }
                 }
@@ -153,9 +153,54 @@ namespace PESpy
 
             writer.WriteRVAAnsiNullTerminatedField(DllNameRVA, ViewKind.ImageDelayLoadDescriptor_DllNameRVA, fieldOffset: DllNameRVAOffset);
             writer.WriteRVAPointerField(ModuleHandleRVA, ModuleHandleRVAOffset);
-            writer.WriteRVAField(ImportAddressTableRVA, ImportAddressTableRVAOffset);
-            writer.WriteRVAField(ImportNameTableRVA, ImportNameTableRVAOffset);
-            writer.WriteRVAField(UnloadInformationTable, UnloadInformationTableOffset);
+
+            if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
+            {
+                using var r = writer.CreateScopedRegion(
+                    ImportAddressTableRVA.ActualOffset,
+                    ImportAddressTableRVAOffset,
+                    $"[DelayImportAddressTable] {DllNameRVA}",
+                    ViewKind.DelayImportAddressTable,
+                    ViewKind.ImageThunkData
+#if DEBUG
+                    , ImportAddressTableRVA.ListedOffset
+#endif
+                );
+
+                r.WriteValues(ImportAddressTableRVA.Value);
+            }
+
+            if (ImportNameTableRVA.IsValid && ImportNameTableRVA.ListedOffset != 0)
+            {
+                using var r = writer.CreateScopedRegion(
+                    ImportNameTableRVA.ActualOffset,
+                    ImportNameTableRVAOffset,
+                    $"[DelayImportLookupTable] {DllNameRVA}",
+                    ViewKind.DelayImportLookupTable,
+                    ViewKind.ImageThunkData
+#if DEBUG
+                    , ImportNameTableRVA.ListedOffset
+#endif
+                );
+
+                r.WriteValues(ImportNameTableRVA.Value);
+            }
+
+            if (UnloadInformationTable.IsValid && UnloadInformationTable.ListedOffset != 0)
+            {
+                using var r = writer.CreateScopedRegion(
+                    UnloadInformationTable.ActualOffset,
+                    UnloadInformationTableOffset,
+                    $"[DelayUnloadInformationTable] {DllNameRVA}",
+                    ViewKind.DelayUnloadInformationTable,
+                    ViewKind.ImageThunkData
+#if DEBUG
+                    , UnloadInformationTable.ListedOffset
+#endif
+                );
+
+                r.WriteValues(UnloadInformationTable.Value);
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -165,10 +210,6 @@ namespace PESpy
         {
             using var s = viewWriter.CreateStruct(parent);
 
-            //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
-            //from regular import names
-            using var _ = viewWriter.EnterTag(ViewTag.DelayImport);
-
             s.WriteField(nameof(Attributes), Attributes);
             s.WriteRVAAnsiNullTerminatedField(nameof(DllNameRVA), DllNameRVA);
             s.WriteRVAPointerField(nameof(ModuleHandleRVA), ModuleHandleRVA);
@@ -177,27 +218,6 @@ namespace PESpy
             s.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVA); //Should be WriteRVAField but we don't yet know what it points to
             s.WriteRVAField(nameof(UnloadInformationTable), UnloadInformationTable);
             s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-
-            if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
-            {
-                using var r = viewWriter.CreateScopedRegion(ImportAddressTableRVA.ActualOffset, $"[DelayImportAddressTable] {DllNameRVA}", ViewKind.DelayImportAddressTable, ViewKind.ImageThunkData);
-
-                r.WriteValues(ImportAddressTableRVA.Value);
-            }
-
-            if (ImportNameTableRVA.IsValid && ImportNameTableRVA.ListedOffset != 0)
-            {
-                using var r = viewWriter.CreateScopedRegion(ImportNameTableRVA.ActualOffset, $"[DelayImportLookupTable] {DllNameRVA}", ViewKind.DelayImportLookupTable, ViewKind.ImageThunkData);
-
-                r.WriteValues(ImportNameTableRVA.Value);
-            }
-
-            if (UnloadInformationTable.IsValid && UnloadInformationTable.ListedOffset != 0)
-            {
-                using var r = viewWriter.CreateScopedRegion(UnloadInformationTable.ActualOffset, $"[DelayUnloadInformationTable] {DllNameRVA}", ViewKind.DelayUnloadInformationTable, ViewKind.ImageThunkData);
-
-                r.WriteValues(UnloadInformationTable.Value);
-            }
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();

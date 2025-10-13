@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using PESpy.Native;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -90,7 +91,15 @@ namespace PESpy
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
             chunk = new MemoryChunk(globalBlock, 0);
 
-            ReadDosHeaders();
+            try
+            {
+                ReadDosHeaders();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         private unsafe void ReadDosHeaders()
@@ -121,10 +130,17 @@ namespace PESpy
 
         public unsafe FileView GetView()
         {
-            var writer = new DOSViewWriter(this, mmf.Address, (int) mmf.Length);
+            var writer = new DOSViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
+        }
+
+        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
+        {
+            viewDisassembler?.Initialize(this);
+
+            return new LocalByteViewProvider(mmf.Address, (int) mmf.Length, viewDisassembler);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]

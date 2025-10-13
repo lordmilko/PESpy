@@ -1,8 +1,9 @@
 ﻿using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct SrcHeaderOut
+    public readonly struct SrcHeaderOut : IValue, IViewable
     {
         public int cb => chunk.PeekInt32(0);
 

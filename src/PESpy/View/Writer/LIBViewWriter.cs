@@ -15,12 +15,7 @@ namespace PESpy.View
             return ((LongImportLibraryMember) ((GlobalSubMemoryBlock) chunk.block).Owner).FileHeader.Machine;
         }
 
-        protected unsafe LIBViewWriter(LIBFile libFile) : this(libFile, (byte*) 1, 1)
-        {
-        }
-
-        internal unsafe LIBViewWriter(LIBFile libFile, byte* mmf, int length) :
-            base(mmf, length, null, ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe LIBViewWriter(LIBFile libFile) : base(libFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
             this.libFile = libFile;
         }
@@ -70,11 +65,11 @@ namespace PESpy.View
                     dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
             }
 
-            using var merger = new Merger(libFile, structs, default, dataDirectories, extension);
+            using var merger = new Merger(libFile, structs, default, dataDirectories, byteViewProvider);
 
             var results = merger.MergeLIB();
 
-            return new FileView(ViewMode.Physical, results, ViewKind.LIBFile);
+            return new FileView(ViewMode.Physical, libFile.Name, results, ViewKind.LIBFile);
         }
     }
 }

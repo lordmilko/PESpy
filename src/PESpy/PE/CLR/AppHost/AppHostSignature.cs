@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -9,6 +10,8 @@ namespace PESpy
     /// </summary>
     public class AppHostSignature : IValue, IViewable
     {
+        internal const int BundleHeaderOffsetOffset = 0;
+
         /* .NET Framework applications can be compiled to either an exe or a dll.
          * This works fine on Windows, because mscoree.dll is a system wide dll,
          * and the loader has special knowledge of how to handle .NET applications.
@@ -59,16 +62,6 @@ namespace PESpy
             0xee, 0x3b, 0x2d, 0xce, 0x24, 0xb3, 0x6a, 0xae
         };
 
-        internal static unsafe AppHostSignature? New(byte* mmf, int length, HeaderMemoryBlock globalBlock)
-        {
-            var index = KMPSearch(bundleHeaderPlaceholder, mmf, length);
-
-            if (index == -1)
-                return null;
-
-            return new AppHostSignature(new MemoryChunk(globalBlock, index - 8));
-        }
-
         private VA<Bundle.Manifest> bundleHeaderOffset;
 
         public VA<Bundle.Manifest> BundleHeaderOffset
@@ -77,7 +70,7 @@ namespace PESpy
             {
                 if (bundleHeaderOffset.ListedAddress == 0)
                 {
-                    var offset = chunk.PeekInt64(0);
+                    var offset = chunk.PeekInt64(BundleHeaderOffsetOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) offset, out var valueChunk))
                         bundleHeaderOffset = new VA<Bundle.Manifest>(offset, valueChunk.AbsoluteOffset, new Bundle.Manifest(valueChunk));
@@ -87,16 +80,42 @@ namespace PESpy
             }
         }
 
-        public byte[] BundleSignature { get; }
+        public byte[] BundleSignature => bundleHeaderPlaceholder;
 
         public int Offset => chunk.AbsoluteOffset;
+
+        public const int StructSize =
+            32 + //BundleHeaderPlaceholder
+            8;   //BundleHeaderOffset
 
         private readonly MemoryChunk chunk;
 
         internal AppHostSignature(in MemoryChunk chunk)
+        internal AppHostSignature(MemoryBlock block, int index)
         {
-            this.chunk = chunk;
+            this.chunk = new MemoryChunk(block, index - 8);
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteVAPointerField(BundleHeaderOffset, BundleHeaderOffsetOffset);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.AppHostSignature, this, ViewKind.AppHostSignature, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteLargeVAPointerField(nameof(BundleHeaderOffset), BundleHeaderOffset);
+            s.WriteField(nameof(BundleSignature), BundleSignature);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
+        internal static unsafe int FindBundleHeader(byte* bytes, long bytesLength) => KMPSearch(bundleHeaderPlaceholder, bytes, bytesLength);
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 

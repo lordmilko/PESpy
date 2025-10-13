@@ -161,7 +161,8 @@ namespace PESpy.View
         /// </summary>
         ImageImportDescriptor,
 
-        ImageImportDescriptor_Name,
+        //Either the ImageImportDescriptor.Name, or the ImageEnclaveImport.ImportName
+        ImportName,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageThunkData"/>.
@@ -510,6 +511,22 @@ namespace PESpy.View
         ModuleIndex,
         ClrEngineMetrics,
 
+        ImageCorVTableFixup,
+
+        ReadyToRunHeader,
+        ReadyToRunCoreHeader,
+        ReadyToRunSection,
+        ReadyToRunImportSection,
+
+        AppHostSignature,
+        BundleManifest,
+        BundleHeaderFixed,
+        BundleHeaderFixedV2,
+        BundleFileEntry,
+        BundleFileEntryFixed,
+        BundleLocation,
+        BundleEncodedString,
+
         //Native AOT
         DotNetRuntimeDebugHeader,
         DebugTypeEntries,
@@ -575,7 +592,7 @@ namespace PESpy.View
         SectionContribsV60,
         OMFSegMap,
         OMFSegMapDesc,
-        FileInfo,
+        OMFFileIndex,
         NameTable,
         VHdr,
         DbgDataHdr,

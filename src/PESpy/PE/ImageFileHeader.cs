@@ -10,7 +10,7 @@ namespace PESpy
     /// </summary>
     public class ImageFileHeader : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
     {
-        private const int PointerToSymbolTableOffset = 8;
+        internal const int PointerToSymbolTableOffset = 8;
 
         /// <summary>
         /// The type of target machine.

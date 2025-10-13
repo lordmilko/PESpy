@@ -1,8 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("PESpy.Benchmarks")]
+[assembly: InternalsVisibleTo("PESpy.PowerShell")]
 [assembly: InternalsVisibleTo("PESpy.Tests")]
 [assembly: InternalsVisibleTo("PESpyUI")]
+[assembly: InternalsVisibleTo("ReAnalyze")]
 [assembly: InternalsVisibleTo("ReFlow")]
 [assembly: InternalsVisibleTo("ReDbg")]
 [assembly: InternalsVisibleTo("ReDbg.Engine")]

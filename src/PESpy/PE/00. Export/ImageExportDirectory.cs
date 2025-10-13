@@ -13,7 +13,10 @@ namespace PESpy
     [DebuggerDisplay("Exports = {Exports.Length}")]
     public class ImageExportDirectory : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
     {
-        private const int NameOffset = 12;
+        internal const int NameOffset = 12;
+        internal const int AddressOfFunctionsOffset = 28;
+        internal const int AddressOfNamesOffset = 32;
+        internal const int AddressOfNameOrdinalsOffset = 36;
 
         /// <summary>
         /// Reserved, must be 0.
@@ -90,7 +93,7 @@ namespace PESpy
             get
             {
                 if (lazyAddressOfFunctions == null)
-                    lazyAddressOfFunctions = GetAddressOfFunctions(chunk.PeekInt32(28));
+                    lazyAddressOfFunctions = GetAddressOfFunctions(chunk.PeekInt32(AddressOfFunctionsOffset));
 
                 return lazyAddressOfFunctions.Value;
             }
@@ -106,7 +109,7 @@ namespace PESpy
             get
             {
                 if (lazyAddressOfNames == null)
-                    lazyAddressOfNames = GetAddressOfNames(chunk.PeekInt32(32));
+                    lazyAddressOfNames = GetAddressOfNames(chunk.PeekInt32(AddressOfNamesOffset));
 
                 return lazyAddressOfNames.Value;
             }
@@ -122,7 +125,7 @@ namespace PESpy
             get
             {
                 if (lazyAddressOfNameOrdinals == null)
-                    lazyAddressOfNameOrdinals = GetAddressOfNameOrdinals(chunk.PeekInt32(36));
+                    lazyAddressOfNameOrdinals = GetAddressOfNameOrdinals(chunk.PeekInt32(AddressOfNameOrdinalsOffset));
 
                 return lazyAddressOfNameOrdinals.Value;
             }
@@ -427,7 +430,16 @@ namespace PESpy
 
             if (AddressOfFunctions.IsValid)
             {
-                using var r = writer.CreateRegion(AddressOfFunctions.ActualOffset, "Export Address Table", ViewKind.ExportAddressTable);
+                using var r = writer.CreateRegion(
+                    AddressOfFunctions.ActualOffset,
+                    AddressOfFunctionsOffset,
+                    "Export Address Table",
+                    ViewKind.ExportAddressTable,
+                    false
+#if DEBUG
+                    , AddressOfFunctions.ListedOffset
+#endif
+                );
 
                 for (var i = 0; i < AddressOfFunctions.Value.Length; i++)
                 {
@@ -442,7 +454,16 @@ namespace PESpy
 
             if (AddressOfNames.IsValid)
             {
-                using var r = writer.CreateRegion(AddressOfNames.ActualOffset, "Export Names Table", ViewKind.ExportNamesTable);
+                using var r = writer.CreateRegion(
+                    AddressOfNames.ActualOffset,
+                    AddressOfNamesOffset,
+                    "Export Names Table",
+                    ViewKind.ExportNamesTable,
+                    false
+#if DEBUG
+                    , AddressOfNames.ListedOffset
+#endif
+                );
 
                 for (var i = 0; i < AddressOfNames.Value.Length; i++)
                 {
@@ -454,7 +475,16 @@ namespace PESpy
 
             if (AddressOfNameOrdinals.IsValid)
             {
-                using var r = writer.CreateRegion(AddressOfNameOrdinals.ActualOffset, "Export Ordinals Table", ViewKind.ExportOrdinalsTable);
+                using var r = writer.CreateRegion(
+                    AddressOfNameOrdinals.ActualOffset,
+                    AddressOfNameOrdinalsOffset,
+                    "Export Ordinals Table",
+                    ViewKind.ExportOrdinalsTable,
+                    false
+#if DEBUG
+                    , AddressOfNameOrdinals.ListedOffset
+#endif
+                );
 
                 r.WriteValues(AddressOfNameOrdinals.Value);
             }
