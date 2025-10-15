@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfDimArray_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfDimArray16t
+    public readonly unsafe struct LfDimArray16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfDimArray_16t* value;
@@ -19,7 +20,7 @@ namespace PESpy.PDB
 
         public TypOrEnumType diminfo => new TypOrEnumType((byte*) value, value->diminfo);
 
-        public SymString Name => TypType.ReadString(value->name);
+        public SymString name => TypType.ReadString(value->name);
 
         #region PESpy
 
@@ -37,9 +38,33 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfDimArray_16t, this, ViewKind.LfDimArray16t, typlen + sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(typlen), typlen);
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(utype), utype);
+            s.WriteField(nameof(diminfo), diminfo);
+            s.WriteSymStringField(nameof(name), TypType.ReadString(value->name, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
-            return Name.ToString();
+            return name.ToString();
         }
     }
 }

@@ -6,7 +6,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="lfMember_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfMember16t
+    public readonly unsafe struct LfMember16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMember_16t* value;
@@ -34,6 +34,17 @@ namespace PESpy.PDB
         {
             this.value = value;
             TypType.AssertMissing(false, "Read offset");
+        }
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(index), index);
+            s.WriteField(nameof(attr), attr);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="DEFRANGESYMHLSL"/> structure.
     /// </summary>
-    public readonly unsafe struct DefRangeSymHLSL
+    public readonly unsafe struct DefRangeSymHLSL : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMHLSL* value;
@@ -55,6 +56,37 @@ namespace PESpy.PDB
             this.value = value;
             Debug.Assert(false, "Use macros in DEFRANGESYMHLSL to read gaps, data and multi-dimensional offsets of variable locations in register space");
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.DEFRANGESYMHLSL, this, ViewKind.DefRangeSymHLSL, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(regType), regType);
+
+            using (var bitField = s.WriteBitFields<short>())
+            {
+                bitField.WriteField(nameof(regIndices), regIndices, 2);
+                bitField.WriteField(nameof(spilledUdtMember), spilledUdtMember, 1);
+                bitField.WriteField(nameof(memorySpace), memorySpace, 4);
+                bitField.WriteField(nameof(padding), padding, 9);
+            }
+
+            s.WriteField(nameof(offsetParent), offsetParent);
+            s.WriteField(nameof(sizeInParent), sizeInParent);
+            s.WriteField(nameof(range), range);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

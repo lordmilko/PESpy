@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE"/> structure.
     /// </summary>
-    public readonly unsafe struct DefRangeSymFramePointerRelFullScope
+    public readonly unsafe struct DefRangeSymFramePointerRelFullScope : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE* value;
@@ -29,6 +30,25 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE, this, ViewKind.DefRangeSymFramePointerRelFullScope, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(offFramePointer), offFramePointer);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

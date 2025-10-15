@@ -1,5 +1,6 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -7,7 +8,7 @@ namespace PESpy.PDB
     /// Represents the <see cref="PUBSYM32"/> structure.
     /// </summary>
     [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")] //For S_PUB32_ST / S_PUB32
-    public readonly unsafe struct PubSym32
+    public readonly unsafe struct PubSym32 : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PUBSYM32* value;
@@ -56,10 +57,34 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.PUBSYM32, this, ViewKind.PubSym32, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(pubsymflags), pubsymflags);
+            s.WriteField(nameof(off), off);
+            s.WriteField(nameof(seg), seg);
+            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
             return name.ToString();
         }
     }
 }
-

@@ -1,13 +1,14 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfCmplx80"/> structure.
     /// </summary>
-    public readonly unsafe struct LfCmplx80
+    public readonly unsafe struct LfCmplx80 : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfCmplx80* value;
@@ -26,6 +27,27 @@ namespace PESpy.PDB
         internal LfCmplx80(lfCmplx80* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfCmplx80, this, ViewKind.LfCmplx80, typlen + sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(typlen), typlen);
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(val_real), val_real);
+            s.WriteField(nameof(val_imag), val_imag);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

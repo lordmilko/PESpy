@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfVFuncTab_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfVFuncTab16t
+    public readonly unsafe struct LfVFuncTab16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfVFuncTab_16t* value;
@@ -24,6 +25,25 @@ namespace PESpy.PDB
         internal LfVFuncTab16t(lfVFuncTab_16t* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfVFuncTab_16t, this, ViewKind.LfVFuncTab16t, StructSize);
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(type), type);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

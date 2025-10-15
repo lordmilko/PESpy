@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfPointer_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfPointer16t
+    public readonly unsafe struct LfPointer16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfPointer_16t* value;
@@ -25,6 +26,11 @@ namespace PESpy.PDB
         internal LfPointer16t(lfPointer_16t* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
         }
     }
 }

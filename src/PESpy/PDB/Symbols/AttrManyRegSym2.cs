@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="ATTRMANYREGSYM2"/> structure.
     /// </summary>
-    public readonly unsafe struct AttrManyRegSym2
+    public readonly unsafe struct AttrManyRegSym2 : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ATTRMANYREGSYM2* value;
@@ -38,6 +39,27 @@ namespace PESpy.PDB
             this.value = value;
             Debug.Assert(false, "Implement reg and name, which are both variable length arrays"); //CV_HREG_e?
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.ATTRMANYREGSYM2, this, ViewKind.AttrManyRegSym2, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(typind), typind);
+            s.WriteField(nameof(attr), attr);
+            s.WriteField(nameof(count), count);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

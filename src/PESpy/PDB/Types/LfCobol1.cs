@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfCobol1"/> structure.
     /// </summary>
-    public readonly unsafe struct LfCobol1
+    public readonly unsafe struct LfCobol1 : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfCobol1* value;
@@ -22,6 +23,25 @@ namespace PESpy.PDB
         {
             this.value = value;
             TypType.AssertMissing(false, "Read data");
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfCobol1, this, ViewKind.LfCobol1, typlen + sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(typlen), typlen);
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="PROCSYMMIPS_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct ProcSymMips16t
+    public readonly unsafe struct ProcSymMips16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PROCSYMMIPS_16t* value;
@@ -99,10 +100,46 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.PROCSYMMIPS_16t, this, ViewKind.ProcSymMips16t, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(pParent), pParent);
+            s.WriteField(nameof(pEnd), pEnd);
+            s.WriteField(nameof(pNext), pNext);
+            s.WriteField(nameof(len), len);
+            s.WriteField(nameof(DbgStart), DbgStart);
+            s.WriteField(nameof(DbgEnd), DbgEnd);
+            s.WriteField(nameof(regSave), regSave);
+            s.WriteField(nameof(fpSave), fpSave);
+            s.WriteField(nameof(intOff), intOff);
+            s.WriteField(nameof(fpOff), fpOff);
+            s.WriteField(nameof(off), off);
+            s.WriteField(nameof(seg), seg);
+            s.WriteField(nameof(typind), typind);
+            s.WriteField(nameof(retReg), retReg);
+            s.WriteField(nameof(frameReg), frameReg);
+            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
             return name.ToString();
         }
     }
 }
-

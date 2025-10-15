@@ -1,13 +1,14 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="COMPILESYM"/> structure.
     /// </summary>
-    public readonly unsafe struct CompileSym
+    public readonly unsafe struct CompileSym : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly COMPILESYM* value;
@@ -99,10 +100,54 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.COMPILESYM, this, ViewKind.CompileSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+
+            using (var bitField = s.WriteBitFields<long>())
+            {
+                bitField.WriteField(nameof(iLanguage), iLanguage, 8);
+                bitField.WriteField(nameof(fEC), fEC, 1);
+                bitField.WriteField(nameof(fNoDbgInfo), fNoDbgInfo, 1);
+                bitField.WriteField(nameof(fLTCG), fLTCG, 1);
+                bitField.WriteField(nameof(fNoDataAlign), fNoDataAlign, 1);
+                bitField.WriteField(nameof(fManagedPresent), fManagedPresent, 1);
+                bitField.WriteField(nameof(fSecurityChecks), fSecurityChecks, 1);
+                bitField.WriteField(nameof(fHotPatch), fHotPatch, 1);
+                bitField.WriteField(nameof(fCVTCIL), fCVTCIL, 1);
+                bitField.WriteField(nameof(fMSILModule), fMSILModule, 1);
+                bitField.WriteField(nameof(pad), pad, 15);
+            }
+
+            s.WriteField(nameof(machine), machine, sizeof(ushort));
+            s.WriteField(nameof(verFEMajor), verFEMajor);
+            s.WriteField(nameof(verFEMinor), verFEMinor);
+            s.WriteField(nameof(verFEBuild), verFEBuild);
+            s.WriteField(nameof(verMajor), verMajor);
+            s.WriteField(nameof(verMinor), verMinor);
+            s.WriteField(nameof(verBuild), verBuild);
+            s.WriteSymStringField(nameof(verSt), SymType.ReadString(value, value->verSt, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
             return verSt.ToString();
         }
     }
 }
-

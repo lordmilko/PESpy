@@ -6,12 +6,12 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="lfNestTypeEx"/> structure.
     /// </summary>
-    public readonly unsafe struct LfNestTypeEx
+    public readonly unsafe struct LfNestTypeEx : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfNestTypeEx* value;
 
-        public ushort typlen => *(ushort*) ((byte*) value - 2);
+        //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
         public LEAF_ENUM_e leaf => value->leaf;
 

@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="DEFRANGESYMSUBFIELDREGISTER"/> structure.
     /// </summary>
-    public readonly unsafe struct DefRangeSymSubfieldRegister
+    public readonly unsafe struct DefRangeSymSubfieldRegister : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMSUBFIELDREGISTER* value;
@@ -35,7 +36,7 @@ namespace PESpy.PDB
         public CV_LVAR_ADDR_RANGE range => value->range;
 
         /// <inheritdoc cref="DEFRANGESYMSUBFIELDREGISTER.gaps"/>
-        public Span<CV_LVAR_ADDR_GAP> gaps => new Span<CV_LVAR_ADDR_GAP>(value->gaps, DEFRANGESYMSUBFIELD.CV_DEFRANGESYMSUBFIELD_GAPS_COUNT((SYMTYPE*) value));
+        public NativeSpan<CV_LVAR_ADDR_GAP> gaps => new NativeSpan<CV_LVAR_ADDR_GAP>(value->gaps, DEFRANGESYMSUBFIELD.CV_DEFRANGESYMSUBFIELD_GAPS_COUNT((SYMTYPE*) value));
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
@@ -49,6 +50,35 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.DEFRANGESYMSUBFIELDREGISTER, this, ViewKind.DefRangeSymSubfieldRegister, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(reg), reg, sizeof(ushort));
+            s.WriteField(nameof(attr), attr);
+
+            using (var bitField = s.WriteBitFields<int>())
+            {
+                bitField.WriteField(nameof(offParent), offParent, DEFRANGESYMREGISTERREL.CV_OFFSET_PARENT_LENGTH_LIMIT);
+                bitField.WriteField(nameof(padding), padding, 20);
+            }
+
+            s.WriteField(nameof(range), range);
+            s.WriteField(nameof(gaps), gaps);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

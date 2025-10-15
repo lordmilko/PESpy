@@ -6,7 +6,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="INLINESITESYM"/> structure.
     /// </summary>
-    public readonly unsafe struct InlineSiteSym
+    public readonly unsafe struct InlineSiteSym : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly INLINESITESYM* value;
@@ -46,10 +46,29 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.INLINESITESYM, this, ViewKind.InlineSiteSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(pParent), pParent);
+            s.WriteField(nameof(pEnd), pEnd);
+            s.WriteField(nameof(inlinee), inlinee);
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
         public override string ToString()
         {
             return inlinee.ToString();
         }
     }
 }
-

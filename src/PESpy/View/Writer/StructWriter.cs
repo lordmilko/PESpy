@@ -92,6 +92,14 @@ namespace PESpy.View
             public void WriteField(string name, ulong value) =>
                 WriteFieldInternal(name, value, sizeof(long));
 
+            /// <inheritdoc cref="WriteField(string, short)"/>
+            public void WriteField(string name, float value) =>
+                WriteFieldInternal(name, value, sizeof(float));
+
+            /// <inheritdoc cref="WriteField(string, short)"/>
+            public void WriteField(string name, double value) =>
+                WriteFieldInternal(name, value, sizeof(double));
+
             public void WriteField(string name, PN value) =>
                 WriteFieldInternal(name, value, sizeof(uint));
 
@@ -106,6 +114,79 @@ namespace PESpy.View
 
             public void WriteField(string name, ISECT value) =>
                 WriteFieldInternal(name, value, sizeof(ushort));
+
+            public void WriteValue(LEAF_ENUM_e value, int size) =>
+                WriteValue(currentOffset, value, size, ViewKind.Value);
+
+            public unsafe void WriteNumericData(string name, byte* pValue)
+            {
+                var leaf = *(LEAF_ENUM_e*) pValue;
+
+                if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
+                {
+                    //The data does not contain a special leaf
+                    WriteField(name, (ushort) leaf);
+                    return;
+                }
+
+                WriteValue(leaf, sizeof(ushort));
+
+                pValue += sizeof(ushort);
+
+                switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
+                {
+                    case LEAF_ENUM_e.LF_CHAR:
+                        WriteField(name, *pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_SHORT:
+                        WriteField(name, *(short*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_USHORT:
+                        WriteField(name, *(ushort*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_LONG:
+                        WriteField(name, *(int*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_ULONG:
+                        WriteField(name, *(uint*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_REAL32:
+                    case LEAF_ENUM_e.LF_REAL64:
+                    case LEAF_ENUM_e.LF_REAL80:
+                    case LEAF_ENUM_e.LF_REAL128:
+                        throw new NotImplementedException();
+
+                    case LEAF_ENUM_e.LF_QUADWORD:
+                        WriteField(name, *(long*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_UQUADWORD:
+                        WriteField(name, *(ulong*) pValue);
+                        break;
+
+                    case LEAF_ENUM_e.LF_REAL48:
+                    case LEAF_ENUM_e.LF_COMPLEX32:
+                    case LEAF_ENUM_e.LF_COMPLEX64:
+                    case LEAF_ENUM_e.LF_COMPLEX80:
+                    case LEAF_ENUM_e.LF_COMPLEX128:
+                    case LEAF_ENUM_e.LF_VARSTRING:
+                    case LEAF_ENUM_e.LF_OCTWORD:
+                    case LEAF_ENUM_e.LF_UOCTWORD:
+                    case LEAF_ENUM_e.LF_DECIMAL:
+                    case LEAF_ENUM_e.LF_DATE:
+                    case LEAF_ENUM_e.LF_UTF8STRING:
+                    case LEAF_ENUM_e.LF_REAL16:
+                        throw new NotImplementedException();
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
 
             #endregion
             #region Enum
@@ -420,6 +501,8 @@ namespace PESpy.View
 
             public void WriteNullPaddedUTF8Field(string name, FixedUtf8String value, int length) => WriteFieldInternal(name, value, length);
 
+            public void WriteSymStringField(string name, SymString value) => WriteFieldInternal(name, value, value.Length + 1);
+
             public void WriteUTF16Field(string name, string value, int numChars)
             {
                 WriteFieldInternal(name, value, numChars * 2);
@@ -530,6 +613,58 @@ namespace PESpy.View
             }
 
             #endregion
+
+            public void WriteField(string name, CV_lvar_attr value) =>
+                WriteFieldInternal(name, value, sizeof(int) + sizeof(short) + sizeof(short));
+
+            public void WriteField(string name, CV_RANGEATTR value) =>
+                WriteFieldInternal(name, value, sizeof(short));
+
+            public void WriteField(string name, CV_GENERIC_FLAG value) =>
+                WriteFieldInternal(name, value, sizeof(short));
+
+            public void WriteField(string name, CV_SEPCODEFLAGS value) =>
+                WriteFieldInternal(name, value, sizeof(int));
+
+            public void WriteField(string name, CV_LVAR_ADDR_RANGE value) =>
+                WriteFieldInternal(name, value, sizeof(int) + sizeof(short) + sizeof(short));
+
+            public void WriteField(string name, NativeSpan<CV_LVAR_ADDR_GAP> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, (sizeof(short) + sizeof(short)) * value.Length);
+            }
+
+            public void WriteField(string name, NativeSpan<CV_typ_t> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * sizeof(int));
+            }
+
+            public void WriteField(string name, NativeSpan<CV_ItemId> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * sizeof(int));
+            }
+
+            public void WriteField(string name, NativeSpan<CV_typ16_t> value)
+            {
+                if (value.Length == 0)
+                    return;
+
+                WriteFieldInternal(name, value, value.Length * sizeof(short));
+            }
+
+            public void WriteField(string name, BinaryAnnotationList value)
+            {
+                throw new NotImplementedException();
+            }
 
             public void WriteByteBlob(int offset, int size)
             {
@@ -844,12 +979,15 @@ namespace PESpy.View
 
             public bool NeedAlignment(int target, out int required)
             {
-                var alignedOffset = ((int) currentOffset + (target - 1)) & (~(target - 1));
+                var size = Size;
+                var alignedSize = ((int) size + (target - 1)) & (~(target - 1));
 
-                required = alignedOffset - currentOffset;
+                required = alignedSize - size;
                 return required != 0;
             }
 
+            //There is a difference between aligning to a addresses and simply aligning the size.
+            //A value might be on an unaligned address but still need to have an aligned size
             public void Align(int target)
             {
                 if (NeedAlignment(target, out var required))

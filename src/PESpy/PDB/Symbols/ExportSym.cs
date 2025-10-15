@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="EXPORTSYM"/> structure.
     /// </summary>
-    public readonly unsafe struct ExportSym
+    public readonly unsafe struct ExportSym : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly EXPORTSYM* value;
@@ -61,10 +62,44 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.EXPORTSYM, this, ViewKind.ExportSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(ordinal), ordinal);
+
+            using (var bitField = s.WriteBitFields<short>())
+            {
+                bitField.WriteField(nameof(fConstant), fConstant, 1);
+                bitField.WriteField(nameof(fData), fData, 1);
+                bitField.WriteField(nameof(fPrivate), fPrivate, 1);
+                bitField.WriteField(nameof(fNoName), fNoName, 1);
+                bitField.WriteField(nameof(fOrdinal), fOrdinal, 1);
+                bitField.WriteField(nameof(fForwarder), fForwarder, 1);
+                bitField.WriteField(nameof(reserved), reserved, 10);
+            }
+
+            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
             return name.ToString();
         }
     }
 }
-

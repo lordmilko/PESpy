@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="POGOINFO"/> structure.
     /// </summary>
-    public readonly unsafe struct PogoInfo
+    public readonly unsafe struct PogoInfo : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly POGOINFO* value;
@@ -41,6 +42,28 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.POGOINFO, this, ViewKind.PogoInfo, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(invocations), invocations);
+            s.WriteField(nameof(dynCount), dynCount);
+            s.WriteField(nameof(numInstrs), numInstrs);
+            s.WriteField(nameof(staInstLive), staInstLive);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

@@ -1,13 +1,14 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="THUNKSYM16"/> structure.
     /// </summary>
-    public readonly unsafe struct ThunkSym16
+    public readonly unsafe struct ThunkSym16 : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly THUNKSYM16* value;
@@ -63,6 +64,31 @@ namespace PESpy.PDB
             this.value = value;
             Debug.Assert(false, "Read name and variant");
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.THUNKSYM16, this, ViewKind.ThunkSym16, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(pParent), pParent);
+            s.WriteField(nameof(pEnd), pEnd);
+            s.WriteField(nameof(pNext), pNext);
+            s.WriteField(nameof(off), off);
+            s.WriteField(nameof(seg), seg);
+            s.WriteField(nameof(len), len);
+            s.WriteField(nameof(ord), ord, sizeof(byte));
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

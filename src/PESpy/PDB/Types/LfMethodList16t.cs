@@ -1,21 +1,41 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfMethodList_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfMethodList16t
+    public readonly unsafe struct LfMethodList16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMethodList_16t* value;
 
-        //This type is only ever referenced from other records and so does not have a TYPTYPE.len
+        public ushort typlen => *(ushort*) ((byte*) value - 2);
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        //fixed byte mList[1]
+        public MlMethod[] mList
+        {
+            get
+            {
+                using var results = new PooledList<MlMethod>();
+
+                var ptr = value->mList;
+
+                var end = ptr + (typlen - sizeof(ushort));
+
+                while (ptr < end)
+                {
+                    var item = new MlMethod((mlMethod*) ptr);
+                    results.Add(item);
+                    ptr += item.StructSize;
+                }
+
+                return results.ToArray();
+            }
+        }
 
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf
@@ -23,7 +43,26 @@ namespace PESpy.PDB
         internal LfMethodList16t(lfMethodList_16t* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read mList");
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfMethodList_16t, this, ViewKind.LfMethodList16t, typlen + sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+
+            s.WriteStructField(nameof(mList), mList);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
     }
 }

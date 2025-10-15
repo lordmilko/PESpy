@@ -6,12 +6,12 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="lfFriendFcn"/> structure.
     /// </summary>
-    public readonly unsafe struct LfFriendFcn
+    public readonly unsafe struct LfFriendFcn : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfFriendFcn* value;
 
-        public ushort typlen => *(ushort*) ((byte*) value - 2);
+        //This type is only ever referenced from other records and so does not have a TYPTYPE.len
 
         public LEAF_ENUM_e leaf => value->leaf;
 
@@ -37,6 +37,10 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
         public override string ToString()
         {
             return Name.ToString();

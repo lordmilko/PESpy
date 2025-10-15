@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="FRAMEPROCSYM"/> structure.
     /// </summary>
-    public readonly unsafe struct FrameProcSym
+    public readonly unsafe struct FrameProcSym : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FRAMEPROCSYM* value;
@@ -116,6 +117,58 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.FRAMEPROCSYM, this, ViewKind.FrameProcSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(cbFrame), cbFrame);
+            s.WriteField(nameof(cbPad), cbPad);
+            s.WriteField(nameof(offPad), offPad);
+            s.WriteField(nameof(cbSaveRegs), cbSaveRegs);
+            s.WriteField(nameof(offExHdlr), offExHdlr);
+            s.WriteField(nameof(sectExHdlr), sectExHdlr);
+
+            using (var bitField = s.WriteBitFields<int>())
+            {
+                bitField.WriteField(nameof(fHasAlloca), fHasAlloca, 1);
+                bitField.WriteField(nameof(fHasSetJmp), fHasSetJmp, 1);
+                bitField.WriteField(nameof(fHasLongJmp), fHasLongJmp, 1);
+                bitField.WriteField(nameof(fHasInlAsm), fHasInlAsm, 1);
+                bitField.WriteField(nameof(fHasEH), fHasEH, 1);
+                bitField.WriteField(nameof(fInlSpec), fInlSpec, 1);
+                bitField.WriteField(nameof(fHasSEH), fHasSEH, 1);
+                bitField.WriteField(nameof(fNaked), fNaked, 1);
+                bitField.WriteField(nameof(fSecurityChecks), fSecurityChecks, 1);
+                bitField.WriteField(nameof(fAsyncEH), fAsyncEH, 1);
+                bitField.WriteField(nameof(fGSNoStackOrdering), fGSNoStackOrdering, 1);
+                bitField.WriteField(nameof(fWasInlined), fWasInlined, 1);
+                bitField.WriteField(nameof(fGSCheck), fGSCheck, 1);
+                bitField.WriteField(nameof(fSafeBuffers), fSafeBuffers, 1);
+                bitField.WriteField(nameof(encodedLocalBasePointer), encodedLocalBasePointer, 2);
+                bitField.WriteField(nameof(encodedParamBasePointer), encodedParamBasePointer, 2);
+                bitField.WriteField(nameof(fPogoOn), fPogoOn, 1);
+                bitField.WriteField(nameof(fValidCounts), fValidCounts, 1);
+                bitField.WriteField(nameof(fOptSpeed), fOptSpeed, 1);
+                bitField.WriteField(nameof(fGuardCF), fGuardCF, 1);
+                bitField.WriteField(nameof(fGuardCFW), fGuardCFW, 1);
+                bitField.WriteField(nameof(pad), pad, 9);
+            }
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

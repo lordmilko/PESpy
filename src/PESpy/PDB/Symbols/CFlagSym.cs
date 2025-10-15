@@ -1,13 +1,14 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="CFLAGSYM"/> structure.
     /// </summary>
-    public readonly unsafe struct CFlagSym
+    public readonly unsafe struct CFlagSym : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CFLAGSYM* value;
@@ -61,10 +62,45 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.CFLAGSYM, this, ViewKind.CFlagSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(machine), machine, sizeof(byte));
+
+            using (var bitField = s.WriteBitFields<short>())
+            {
+                bitField.WriteField(nameof(language), language, 8);
+                bitField.WriteField(nameof(pcode), pcode, 1);
+                bitField.WriteField(nameof(floatprec), floatprec, 2);
+                bitField.WriteField(nameof(floatpkg), floatpkg, 2);
+                bitField.WriteField(nameof(ambdata), ambdata, 3);
+                bitField.WriteField(nameof(ambcode), ambcode, 3);
+                bitField.WriteField(nameof(mode32), mode32, 1);
+                bitField.WriteField(nameof(pad), pad, 4);
+            }
+
+            s.WriteSymStringField(nameof(ver), SymType.ReadString(value, value->ver, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
+
         public override string ToString()
         {
             return ver.ToString();
         }
     }
 }
-

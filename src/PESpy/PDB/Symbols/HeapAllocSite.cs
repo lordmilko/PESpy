@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="HEAPALLOCSITE"/> structure.
     /// </summary>
-    public readonly unsafe struct HeapAllocSite
+    public readonly unsafe struct HeapAllocSite : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly HEAPALLOCSITE* value;
@@ -41,6 +42,28 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.HEAPALLOCSITE, this, ViewKind.HeapAllocSite, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(off), off);
+            s.WriteField(nameof(sect), sect);
+            s.WriteField(nameof(cbInstr), cbInstr);
+            s.WriteField(nameof(typind), typind);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

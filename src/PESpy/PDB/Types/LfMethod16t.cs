@@ -6,7 +6,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="lfMethod_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfMethod16t
+    public readonly unsafe struct LfMethod16t : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMethod_16t* value;
@@ -35,6 +35,25 @@ namespace PESpy.PDB
         internal LfMethod16t(lfMethod_16t* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(count), count);
+            s.WriteField(nameof(mList), mList);
+            s.WriteSymStringField(nameof(Name), TypType.ReadString(value->Name, viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
 
         public override string ToString()

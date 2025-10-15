@@ -1,13 +1,14 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="FUNCTIONLIST"/> structure.
     /// </summary>
-    public readonly unsafe struct FunctionList
+    public readonly unsafe struct FunctionList : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FUNCTIONLIST* value;
@@ -22,7 +23,7 @@ namespace PESpy.PDB
         public int count => value->count;
 
         /// <inheritdoc cref="FUNCTIONLIST.funcs"/>
-        public Span<CV_typ_t> funcs => new Span<CV_typ_t>(value->funcs, count);
+        public NativeSpan<CV_typ_t> funcs => new NativeSpan<CV_typ_t>(value->funcs, count);
 
         public Span<int> invocations
         {
@@ -54,6 +55,26 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.FUNCTIONLIST, this, ViewKind.FunctionList, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(count), count);
+            s.WriteField(nameof(funcs), funcs);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

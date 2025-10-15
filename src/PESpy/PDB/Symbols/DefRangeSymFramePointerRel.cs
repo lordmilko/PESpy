@@ -1,13 +1,14 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="DEFRANGESYMFRAMEPOINTERREL"/> structure.
     /// </summary>
-    public readonly unsafe struct DefRangeSymFramePointerRel
+    public readonly unsafe struct DefRangeSymFramePointerRel : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMFRAMEPOINTERREL* value;
@@ -25,7 +26,7 @@ namespace PESpy.PDB
         public CV_LVAR_ADDR_RANGE range => value->range;
 
         /// <inheritdoc cref="DEFRANGESYMFRAMEPOINTERREL.gaps"/>
-        public Span<CV_LVAR_ADDR_GAP> gaps => new Span<CV_LVAR_ADDR_GAP>(value->gaps, DEFRANGESYM.CV_DEFRANGESYM_GAPS_COUNT((SYMTYPE*) value));
+        public NativeSpan<CV_LVAR_ADDR_GAP> gaps => new NativeSpan<CV_LVAR_ADDR_GAP>(value->gaps, DEFRANGESYM.CV_DEFRANGESYM_GAPS_COUNT((SYMTYPE*) value));
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
@@ -37,6 +38,27 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.DEFRANGESYMFRAMEPOINTERREL, this, ViewKind.DefRangeSymFramePointerRel, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(offFramePointer), offFramePointer);
+            s.WriteField(nameof(range), range);
+            s.WriteField(nameof(gaps), gaps);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

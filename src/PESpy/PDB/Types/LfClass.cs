@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfClass"/> structure.
     /// </summary>
-    public readonly unsafe struct LfClass
+    public readonly unsafe struct LfClass : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfClass* value;
@@ -43,24 +44,7 @@ namespace PESpy.PDB
 
         public SymString name => GetName(null);
 
-        public SymString uniquename
-        {
-            get
-            {
-                if (property.hasuniquename)
-                {
-                    TypType.ExtractNumericData(value->data, out _, out var bytesRead);
-
-                    //I am assuming I need to use normal ST/UTF parsing logic
-                    var name = TypType.ReadString(value->data + bytesRead);
-
-                    //I am assuming I need to use normal ST/UTF parsing logic
-                    return TypType.ReadString(value->data + bytesRead + name.Length + 1); //+1 because it's either null terminated or length prefixed
-                }
-
-                return default;
-            }
-        }
+        public SymString uniquename => GetUniqueName(null);
 
         #endregion
         #region PESpy
@@ -71,6 +55,22 @@ namespace PESpy.PDB
 
             //I am assuming I need to use normal ST/UTF parsing logic
             return TypType.ReadString(value->data + bytesRead, symbolAccessor);
+        }
+
+        internal SymString GetUniqueName(ISymbolAccessor? symbolAccessor)
+        {
+            if (property.hasuniquename)
+            {
+                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                //I am assuming I need to use normal ST/UTF parsing logic
+                var name = TypType.ReadString(value->data + bytesRead, symbolAccessor);
+
+                //I am assuming I need to use normal ST/UTF parsing logic
+                return TypType.ReadString(value->data + bytesRead + name.Length + 1, symbolAccessor); //+1 because it's either null terminated or length prefixed
+            }
+
+            return default;
         }
 
         #endregion
@@ -86,6 +86,37 @@ namespace PESpy.PDB
         internal LfClass(lfClass* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfClass, this, ViewKind.LfClass, typlen + sizeof(short));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(typlen), typlen);
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+            s.WriteField(nameof(count), count);
+            s.WriteField(nameof(property), property);
+            s.WriteField(nameof(field), field);
+            s.WriteField(nameof(derived), derived);
+            s.WriteField(nameof(vshape), vshape);
+            s.WriteNumericData(nameof(length), value->data);
+            s.WriteSymStringField(nameof(name), GetName(viewWriter.GetSymbolAccessor()));
+
+            if (property.hasuniquename)
+                s.WriteSymStringField(nameof(uniquename), GetUniqueName(viewWriter.GetSymbolAccessor()));
+
+            s.Align(4);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
         }
 
         public override string ToString()

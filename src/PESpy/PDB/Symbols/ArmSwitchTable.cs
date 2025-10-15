@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="ARMSWITCHTABLE"/> structure.
     /// </summary>
-    public readonly unsafe struct ArmSwitchTable
+    public readonly unsafe struct ArmSwitchTable : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ARMSWITCHTABLE* value;
@@ -57,6 +58,32 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.ARMSWITCHTABLE, this, ViewKind.ArmSwitchTable, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(offsetBase), offsetBase);
+            s.WriteField(nameof(sectBase), sectBase);
+            s.WriteField(nameof(switchType), switchType);
+            s.WriteField(nameof(offsetBranch), offsetBranch);
+            s.WriteField(nameof(offsetTable), offsetTable);
+            s.WriteField(nameof(sectBranch), sectBranch);
+            s.WriteField(nameof(sectTable), sectTable);
+            s.WriteField(nameof(cEntries), cEntries);
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-

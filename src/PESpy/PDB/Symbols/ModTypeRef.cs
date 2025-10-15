@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="MODTYPEREF"/> structure.
     /// </summary>
-    public readonly unsafe struct ModTypeRef
+    public readonly unsafe struct ModTypeRef : IViewable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MODTYPEREF* value;
@@ -55,6 +56,37 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.MODTYPEREF, this, ViewKind.ModTypeRef, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        {
+            using var s = viewWriter.CreateStruct(parent);
+
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+
+            using (var bitField = s.WriteBitFields<long>())
+            {
+                bitField.WriteField(nameof(fNone), fNone, 1);
+                bitField.WriteField(nameof(fRefTMPCT), fRefTMPCT, 1);
+                bitField.WriteField(nameof(fOwnTMPCT), fOwnTMPCT, 1);
+                bitField.WriteField(nameof(fOwnTMR), fOwnTMR, 1);
+                bitField.WriteField(nameof(fOwnTM), fOwnTM, 1);
+                bitField.WriteField(nameof(fRefTM), fRefTM, 1);
+                bitField.WriteField(nameof(reserved), reserved, 1);
+                bitField.WriteField(nameof(word0), word0, 1);
+                bitField.WriteField(nameof(word1), word1, 9 + 16); //The bitfield is 32 bits, but Microsoft erroneously only added 9 bits of padding
+            }
+
+            Debug.Assert(parent.Size == s.Size, "Size was not correct");
+            return s.ToArray();
+        }
     }
 }
-
