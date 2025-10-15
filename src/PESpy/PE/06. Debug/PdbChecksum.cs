@@ -8,9 +8,12 @@ namespace PESpy
     //for managed assemblies
     public readonly struct PdbChecksum : IValue, IViewable
     {
-        public Utf8String AlgorithmName => chunk.PeekUtf8NullTerminatedString(0);
+        private const int AlgorithmNameOffset = 0;
+        private int ChecksumOffset => AlgorithmName.Length + 1;
 
-        public NativeSpan<byte> Checksum => chunk.PeekNativeSpan<byte>((AlgorithmName.Length + 1), sizeOfData - (AlgorithmName.Length + 1));
+        public Utf8String AlgorithmName => chunk.PeekUtf8NullTerminatedString(AlgorithmNameOffset);
+
+        public NativeSpan<byte> Checksum => chunk.PeekNativeSpan<byte>(ChecksumOffset, sizeOfData - (AlgorithmName.Length + 1));
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -31,15 +34,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PdbChecksum, this, ViewKind.PdbChecksum, sizeOfData);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteUtf8NullTerminatedField(nameof(AlgorithmName), AlgorithmNameOffset, AlgorithmName);
+                    break;
 
-            s.WriteUTF8NullTerminatedField(nameof(AlgorithmName), AlgorithmName);
-            s.WriteField(nameof(Checksum), Checksum);
+                case 1:
+                    structWriter.WriteField(nameof(Checksum), ChecksumOffset, Checksum);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

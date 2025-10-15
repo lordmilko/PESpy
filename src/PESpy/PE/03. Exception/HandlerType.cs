@@ -1,13 +1,18 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public struct HandlerType : IValue, IViewable
     {
+        private const int AdjectivesOffset = 0;
         internal const int TypeOffset = 4;
+        private const int CatchObjOffset = 8;
+        private const int HandlerOffset = 12;
+        private const int FrameOffset = 16;
 
-        public int Adjectives => chunk.PeekInt32(0);
+        public int Adjectives => chunk.PeekInt32(AdjectivesOffset);
 
         private RVA<TypeDescriptor> type;
 
@@ -31,11 +36,11 @@ namespace PESpy
             }
         }
 
-        public int CatchObj => chunk.PeekInt32(8);
+        public int CatchObj => chunk.PeekInt32(CatchObjOffset);
 
-        public int Handler => chunk.PeekInt32(12);
+        public int Handler => chunk.PeekInt32(HandlerOffset);
 
-        public int Frame => chunk.PeekInt32(16);
+        public int Frame => chunk.PeekInt32(FrameOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -62,18 +67,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.HandlerType, this, ViewKind.HandlerType, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("adjectives", AdjectivesOffset, Adjectives);
+                    break;
 
-            s.WriteField("adjectives", Adjectives);
-            s.WriteRVAField("dispType", Type);
-            s.WriteField("dispCatchObj", CatchObj);
-            s.WriteField("dispOfHandler", Handler);
-            s.WriteField("dispFrame", Frame);
+                case 1:
+                    structWriter.WriteRVAField("dispType", TypeOffset, Type);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("dispCatchObj", CatchObjOffset, CatchObj);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("dispOfHandler", HandlerOffset, Handler);
+                    break;
+
+                case 4:
+                    structWriter.WriteField("dispFrame", FrameOffset, Frame);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

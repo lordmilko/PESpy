@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -35,16 +36,27 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FileRow, this, ViewKind.Metadata_FileRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Flags), table.FlagsOffset, Flags, sizeof(int));
+                    break;
 
-            s.WriteValue(nameof(Flags), Flags, sizeof(int));
-            s.WriteStringHeapIndex(nameof(Name), Name);
-            s.WriteBlobHeapIndex(nameof(HashValue), HashValue);
+                case 1:
+                    structWriter.WriteStringHeapIndex(nameof(Name), table.NameOffset, Name);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteBlobHeapIndex(nameof(HashValue), table.HashValueOffset, HashValue);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

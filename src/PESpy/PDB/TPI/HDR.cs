@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -11,13 +12,20 @@ namespace PESpy.PDB
     /// </summary>
     public class HDR : IHDR //Header could either be HDR or HDR_16
     {
+        private const int versOffset = 0;
+        private const int cbHdrOffset = 4;
+        private const int tiMinOffset = 8;
+        private const int tiMacOffset = 12;
+        private const int cbGprecOffset = 16;
+        private const int tpihashOffset = 20;
+
         /// <summary>
         /// version which created this TypeServer
         /// </summary>
         public TPIImpv vers
         {
-            get => (TPIImpv) chunk.PeekUInt32(0);
-            set => chunk.PokeUInt32(0, (uint) value);
+            get => (TPIImpv) chunk.PeekUInt32(versOffset);
+            set => chunk.PokeUInt32(versOffset, (uint) value);
         }
 
         /// <summary>
@@ -25,8 +33,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbHdr
         {
-            get => chunk.PeekInt32(4);
-            set => chunk.PokeInt32(4, value);
+            get => chunk.PeekInt32(cbHdrOffset);
+            set => chunk.PokeInt32(cbHdrOffset, value);
         }
 
         /// <summary>
@@ -34,8 +42,8 @@ namespace PESpy.PDB
         /// </summary>
         public CV_typ_t tiMin
         {
-            get => chunk.PeekInt32(8);
-            set => chunk.PokeInt32(8, value);
+            get => chunk.PeekInt32(tiMinOffset);
+            set => chunk.PokeInt32(tiMinOffset, value);
         }
 
         /// <summary>
@@ -43,8 +51,8 @@ namespace PESpy.PDB
         /// </summary>
         public CV_typ_t tiMac
         {
-            get => chunk.PeekInt32(12);
-            set => chunk.PokeInt32(12, value);
+            get => chunk.PeekInt32(tiMacOffset);
+            set => chunk.PokeInt32(tiMacOffset, value);
         }
 
         /// <summary>
@@ -52,14 +60,14 @@ namespace PESpy.PDB
         /// </summary>
         public int cbGprec
         {
-            get => chunk.PeekInt32(16);
-            set => chunk.PokeInt32(16, value);
+            get => chunk.PeekInt32(cbGprecOffset);
+            set => chunk.PokeInt32(cbGprecOffset, value);
         }
 
         /// <summary>
         /// hash stream schema
         /// </summary>
-        public TpiHash tpihash => new TpiHash(chunk.Slice(20));
+        public TpiHash tpihash => new TpiHash(chunk.Slice(tpihashOffset));
 
         int IHDR.StructSize => StructSize;
 
@@ -88,19 +96,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.HDR, this, ViewKind.Hdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(vers), versOffset, vers, sizeof(int));
+                    break;
 
-            s.WriteField(nameof(vers), vers, sizeof(int));
-            s.WriteField(nameof(cbHdr), cbHdr);
-            s.WriteField(nameof(tiMin), tiMin);
-            s.WriteField(nameof(tiMac), tiMac);
-            s.WriteField(nameof(cbGprec), cbGprec);
-            s.WriteStructField(nameof(tpihash), tpihash);
+                case 1:
+                    structWriter.WriteField(nameof(cbHdr), cbHdrOffset, cbHdr);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(tiMin), tiMinOffset, tiMin);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(tiMac), tiMacOffset, tiMac);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(cbGprec), cbGprecOffset, cbGprec);
+                    break;
+
+                case 5:
+                    structWriter.WriteStructField(nameof(tpihash), tpihashOffset, tpihash);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

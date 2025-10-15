@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -6,11 +6,15 @@ namespace PESpy.PDB
 {
     public class PDBStream : IValue, IViewable
     {
+        protected const int ImplementationVersionOffset = 0;
+        protected const int SignatureOffset = 4;
+        protected const int AgeOffset = 8;
+
         //impv
         public PDBIMPV ImplementationVersion
         {
-            get => (PDBIMPV) chunk.PeekUInt32(0);
-            set => chunk.PokeUInt32(0, (uint) value);
+            get => (PDBIMPV) chunk.PeekUInt32(ImplementationVersionOffset);
+            set => chunk.PokeUInt32(ImplementationVersionOffset, (uint) value);
         }
 
         //sig. If "z" (reproducible" is specified in the open mode, sig is 1.
@@ -18,15 +22,15 @@ namespace PESpy.PDB
         //the result of the function time(0) is used
         public uint Signature //By default this comes from the C time() function, so we need to make unsigned in case the high bit is set
         {
-            get => chunk.PeekUInt32(4);
-            set => chunk.PokeUInt32(4, value);
+            get => chunk.PeekUInt32(SignatureOffset);
+            set => chunk.PokeUInt32(SignatureOffset, value);
         }
 
         //age
         public int Age
         {
-            get => chunk.PeekInt32(8);
-            set => chunk.PokeInt32(8, value);
+            get => chunk.PeekInt32(AgeOffset);
+            set => chunk.PokeInt32(AgeOffset, value);
         }
 
         public int Offset => chunk.AbsoluteOffset;
@@ -50,21 +54,34 @@ namespace PESpy.PDB
 
         IView? IViewable.WriteStruct(ViewWriter writer) => WriteStruct(writer);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
+        int IViewable.NumChildren => NumChildren;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => WriteChild(index, ref structWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PDBStream, this, ViewKind.PDBStream, StructSize);
 
-        protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        protected virtual int NumChildren => 3;
+
+        protected virtual void WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("impv", ImplementationVersionOffset, ImplementationVersion, sizeof(int));
+                    break;
 
-            s.WriteField("impv", ImplementationVersion, sizeof(int));
-            s.WriteField("sig", Signature);
-            s.WriteField("age", Age);
+                case 1:
+                    structWriter.WriteField("sig", SignatureOffset, Signature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("age", AgeOffset, Age);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Diagnostics;
 using PESpy.View;
 
@@ -88,6 +89,9 @@ namespace PESpy
         [DebuggerDisplay("lineNbr = {lineNbr}, offset = {offset}")]
         public struct LineNumberOffset : IViewable
         {
+            private const int lineNbrOffset = 0;
+            private const int offsetOffset = 2;
+
             public ushort lineNbr;
             public ushort offset;
 
@@ -103,15 +107,23 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewUnmanagedStruct(Strings.LineNumberOffset, this, ViewKind.LineNumberOffset, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => 2;
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                switch (index)
+                {
+                    case 0:
+                        structWriter.WriteField(nameof(lineNbr), lineNbrOffset, lineNbr);
+                        break;
 
-                s.WriteField(nameof(lineNbr), lineNbr);
-                s.WriteField(nameof(offset), offset);
+                    case 1:
+                        structWriter.WriteField(nameof(offset), offsetOffset, offset);
+                        break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 

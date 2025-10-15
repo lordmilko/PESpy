@@ -10,6 +10,11 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfBuildInfo : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int countOffset = 4;
+        private const int argOffset = 6;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfBuildInfo* value;
 
@@ -25,6 +30,8 @@ namespace PESpy.PDB
             sizeof(ushort) + //leaf
             sizeof(short);   //count
 
+        private int BytesUsed => FixedStructSize + (count * sizeof(int));
+
         internal LfBuildInfo(lfBuildInfo* value)
         {
             this.value = value;
@@ -38,22 +45,37 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfBuildInfo, this, ViewKind.LfBuildInfo, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(4, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(count), count);
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            var arg = new NativeSpan<CV_ItemId>(value->arg, count);
+                case 2:
+                    structWriter.WriteField(nameof(count), countOffset, count);
+                    break;
 
-            s.WriteField(nameof(arg), arg);
+                case 3:
+                    var arg = new NativeSpan<CV_ItemId>(value->arg, count);
+                    structWriter.WriteField(nameof(arg), argOffset, arg);
+                    break;
 
-            s.Align(4);
+                case 4:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

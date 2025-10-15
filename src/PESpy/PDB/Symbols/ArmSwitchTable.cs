@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,17 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct ArmSwitchTable : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int offsetBaseOffset = 4;
+        private const int sectBaseOffset = 8;
+        private const int switchTypeOffset = 10;
+        private const int offsetBranchOffset = 12;
+        private const int offsetTableOffset = 16;
+        private const int sectBranchOffset = 20;
+        private const int sectTableOffset = 22;
+        private const int cEntriesOffset = 24;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ARMSWITCHTABLE* value;
 
@@ -67,23 +79,55 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.ARMSWITCHTABLE, this, ViewKind.ArmSwitchTable, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 10;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(offsetBase), offsetBase);
-            s.WriteField(nameof(sectBase), sectBase);
-            s.WriteField(nameof(switchType), switchType);
-            s.WriteField(nameof(offsetBranch), offsetBranch);
-            s.WriteField(nameof(offsetTable), offsetTable);
-            s.WriteField(nameof(sectBranch), sectBranch);
-            s.WriteField(nameof(sectTable), sectTable);
-            s.WriteField(nameof(cEntries), cEntries);
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(offsetBase), offsetBaseOffset, offsetBase);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(sectBase), sectBaseOffset, sectBase);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(switchType), switchTypeOffset, switchType);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(offsetBranch), offsetBranchOffset, offsetBranch);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(offsetTable), offsetTableOffset, offsetTable);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(sectBranch), sectBranchOffset, sectBranch);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(sectTable), sectTableOffset, sectTable);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(cEntries), cEntriesOffset, cEntries);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

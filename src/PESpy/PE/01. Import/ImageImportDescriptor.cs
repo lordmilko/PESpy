@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
@@ -13,6 +14,8 @@ namespace PESpy
     public class ImageImportDescriptor : IValue, IViewable //A class so that we don't have to keep recreating [Original]FirstThunk depending on which struct copy loaded it
     {
         internal const int OriginalFirstThunkOffset = 0;
+        private const int TimeDateStampOffset = 4;
+        private const int ForwarderChainOffset = 8;
         internal const int NameOffset = 12;
         internal const int FirstThunkOffset = 16;
 
@@ -42,12 +45,12 @@ namespace PESpy
         /// <summary>
         /// The stamp that is set to zero until the image is bound. After the image is bound, this field is set to the time/data stamp of the DLL.
         /// </summary>
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         /// <summary>
         /// The index of the first forwarder reference.
         /// </summary>
-        public int ForwarderChain => chunk.PeekInt32(8);
+        public int ForwarderChain => chunk.PeekInt32(ForwarderChainOffset);
 
         /// <summary>
         /// The address of an ASCII string that contains the name of the DLL. This address is relative to the image base.
@@ -216,18 +219,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_IMPORT_DESCRIPTOR, this, ViewKind.ImageImportDescriptor, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteRVAField(nameof(OriginalFirstThunk), OriginalFirstThunkOffset, OriginalFirstThunk);
+                    break;
 
-            s.WriteRVAField(nameof(OriginalFirstThunk), OriginalFirstThunk);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(ForwarderChain), ForwarderChain);
-            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
-            s.WriteRVAField(nameof(FirstThunk), FirstThunk);
+                case 1:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(ForwarderChain), ForwarderChainOffset, ForwarderChain);
+                    break;
+
+                case 3:
+                    structWriter.WriteRVAAnsiNullTerminatedField(nameof(Name), NameOffset, Name);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAField(nameof(FirstThunk), FirstThunkOffset, FirstThunk);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,9 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct DPCSymTagMap : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DPCSYMTAGMAP* value;
 
@@ -36,15 +40,23 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.DPCSYMTAGMAP, this, ViewKind.DPCSymTagMap, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

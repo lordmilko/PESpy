@@ -6,11 +6,15 @@ namespace PESpy
 {
     public readonly struct ImageBaseRelocation : IValue, IViewable
     {
-        public int VirtualAddress => chunk.PeekInt32(0);
+        private const int VirtualAddressOffset = 0;
+        private const int SizeOfBlockOffset = 4;
+        private const int EntriesOffset = 8;
 
-        public int SizeOfBlock => chunk.PeekInt32(4);
+        public int VirtualAddress => chunk.PeekInt32(VirtualAddressOffset);
 
-        public NativeSpan<Entry> Entries => chunk.PeekNativeSpan<Entry>(8, (SizeOfBlock - 8) / 2);
+        public int SizeOfBlock => chunk.PeekInt32(SizeOfBlockOffset);
+
+        public NativeSpan<Entry> Entries => chunk.PeekNativeSpan<Entry>(EntriesOffset, (SizeOfBlock - 8) / 2);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -29,26 +33,34 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BASE_RELOCATION, this, ViewKind.ImageBaseRelocation, SizeOfBlock);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + (Entries.Length * 2);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(VirtualAddress), VirtualAddress);
-            s.WriteField(nameof(SizeOfBlock), SizeOfBlock);
-
-            //Roslyn compiles foreach loops on arrays down to for loops
-            //https://github.com/dotnet/roslyn/blob/e2d4e372f19c16f9b3dea06f7ca857ed5d42bc09/src/Compilers/CSharp/Portable/Lowering/LocalRewriter/LocalRewriter_ForEachStatement.cs
-            foreach (var entry in Entries)
+            switch (index)
             {
-                using (var b = s.WriteStructBitField<ushort>(Strings.Entry, ViewKind.BaseRelocationEntry))
-                {
-                    b.WriteField("Type", entry.Type, 4);
-                    b.WriteField("Offset", entry.Offset, 12);
-                }
-            }
+                case 0:
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, VirtualAddress);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteField(nameof(SizeOfBlock), SizeOfBlockOffset, SizeOfBlock);
+                    break;
+
+                default:
+                    var i = (index - 2) / 2;
+
+                    var entry = Entries[i];
+
+                    var relativeOffset = EntriesOffset + (i * Entry.StructSize);
+
+                    if ((index % 2) == 0)
+                        structWriter.WriteBitField("Type", relativeOffset, entry.Type, sizeof(ushort), 4);
+                    else
+                        structWriter.WriteBitField("Offset", relativeOffset, entry.Offset, sizeof(ushort), 12);
+
+                    break;
+            }
         }
 
         /// <summary>
@@ -58,6 +70,8 @@ namespace PESpy
         [DebuggerDisplay("Type = {Type}, Offset = {Offset}")]
         public readonly struct Entry
         {
+            internal const int StructSize = sizeof(ushort);
+
             public ImageRelBased Type => (ImageRelBased) (Value >> 12);
 
             public short Offset => (short) (Value & 0x0FFF);

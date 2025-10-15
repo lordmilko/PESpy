@@ -47,7 +47,7 @@ namespace PESpy
         public FixedAnsiString Signature { get; private set; }
 
         public FirstLinkerMember? FirstLinkerMember { get; private set; }
-        
+
         public SecondLinkerMember? SecondLinkerMember { get; private set; }
 
         public LongNamesMember? LongNamesMember { get; private set; }
@@ -250,8 +250,9 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             throw new NotSupportedException();
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) =>
-            throw new NotSupportedException();
+        int IViewable.NumChildren => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

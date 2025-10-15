@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -35,16 +36,27 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MethodSemanticsRow, this, ViewKind.Metadata_MethodSemanticsRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Semantics), table.SemanticsOffset, Semantics, sizeof(short));
+                    break;
 
-            s.WriteValue(nameof(Semantics), Semantics, sizeof(short));
-            s.WriteSimpleIndex(nameof(Method), (int) Method, TableKind.MethodDef);
-            s.WriteHasSemanticsIndex(nameof(Association), (int) Association);
+                case 1:
+                    structWriter.WriteSimpleIndex(nameof(Method), table.MethodOffset, (int) Method, TableKind.MethodDef);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteHasSemanticsIndex(nameof(Association), table.AssociationOffset, (int) Association);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -71,19 +71,29 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GuardEHContinuationTable, this, ViewKind.GuardEHContinuationTable, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => Count;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            structWriter.WriteInline(this[index]);
 
-            s.WriteInline<GuardEHContinuationTable, Entry>(this);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteInline<GuardEHContinuationTable, Entry>(this);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]
         public readonly struct Entry : IValue, IViewable
         {
+            private const int FunctionOffset = 0;
+            private const int FlagsOffset = 4;
+
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private string DebuggerDisplay => $"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
 
@@ -124,17 +134,27 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.EHCONTEntry, this, ViewKind.GuardEHContinuationTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+            int IViewable.NumChildren => Flags == null ? 1 : 2;
 
-            s.WriteField(nameof(Function), Function);
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
+            {
+                switch (index)
+                {
+                    case 0:
+                        structWriter.WriteField(nameof(Function), FunctionOffset, Function);
+                        break;
 
-            if (Flags != null)
-                s.WriteField(nameof(Flags), Flags.Value, sizeof(byte));
+                    case 1:
+                        if (Flags != null)
+                            structWriter.WriteField(nameof(Flags), FlagsOffset, Flags.Value, sizeof(byte));
+                        else
+                            throw new IndexOutOfRangeException();
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 

@@ -1,13 +1,16 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct IptoStateMapEntry : IValue, IViewable
     {
-        public int Ip => chunk.PeekInt32(0);
+        private const int IpOffset = 0;
+        private const int StateOffset = 4;
+        public int Ip => chunk.PeekInt32(IpOffset);
 
-        public int State => chunk.PeekInt32(4);
+        public int State => chunk.PeekInt32(StateOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -30,15 +33,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IptoStateMapEntry, this, ViewKind.IptoStateMapEntry, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Ip), IpOffset, Ip);
+                    break;
 
-            s.WriteField(nameof(Ip), Ip);
-            s.WriteField(nameof(State), State);
+                case 1:
+                    structWriter.WriteField(nameof(State), StateOffset, State);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

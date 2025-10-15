@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ClassOffset;
-        private readonly int InterfaceOffset;
+        internal readonly int ClassOffset;
+        internal readonly int InterfaceOffset;
 
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigTypeDefOrRefIndex;

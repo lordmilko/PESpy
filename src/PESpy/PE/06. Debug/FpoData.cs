@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System;
 using PESpy.Native;
 using PESpy.View;
 
@@ -11,25 +10,31 @@ namespace PESpy
     /// </summary>
     public readonly struct FpoData : IValue, IViewable
     {
+        private const int OffStartOffset = 0;
+        private const int ProcSizeOffset = 4;
+        private const int LocalsOffset = 8;
+        private const int ParamsOffset = 12;
+        private const int flagsOffset = 14;
+
         /// <summary>
         /// The offset of the first byte of the function code.
         /// </summary>
-        public int OffStart => chunk.PeekInt32(0);
+        public int OffStart => chunk.PeekInt32(OffStartOffset);
 
         /// <summary>
         /// The number of bytes in the function.
         /// </summary>
-        public int ProcSize => chunk.PeekInt32(4);
+        public int ProcSize => chunk.PeekInt32(ProcSizeOffset);
 
         /// <summary>
         /// The number of local variables.
         /// </summary>
-        public int Locals => chunk.PeekInt32(8);
+        public int Locals => chunk.PeekInt32(LocalsOffset);
 
         /// <summary>
         /// The size of the parameters, in DWORDs.
         /// </summary>
-        public short Params => chunk.PeekInt16(12);
+        public short Params => chunk.PeekInt16(ParamsOffset);
 
         /// <summary>
         /// The number of bytes in the function prolog code.
@@ -61,7 +66,7 @@ namespace PESpy
         /// </summary>
         public FrameType cbFrame => (FrameType) ((flags >> 14) & 0x3);
 
-        private ushort flags => chunk.PeekUInt16(14);
+        private ushort flags => chunk.PeekUInt16(flagsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -87,27 +92,59 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FPO_DATA, this, ViewKind.FpoData, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 10;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField("ulOffStart", OffStart);
-            s.WriteField("cbProcSize", ProcSize);
-            s.WriteField("cdwLocals", Locals);
-            s.WriteField("cdwParams", Params);
-
-            using (var bitField = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                bitField.WriteField(nameof(cbProlog), cbProlog, 8);
-                bitField.WriteField(nameof(cbRegs), cbRegs, 3);
-                bitField.WriteField(nameof(fHasSEH), fHasSEH, 1);
-                bitField.WriteField(nameof(fUseBP), fUseBP, 1);
-                bitField.WriteField(nameof(reserved), reserved, 1);
-                bitField.WriteField(nameof(cbFrame), cbFrame, 2);
-            }
+                case 0:
+                    structWriter.WriteField("ulOffStart", OffStartOffset, OffStart);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteField("cbProcSize", ProcSizeOffset, ProcSize);
+                    break;
+
+                case 2:
+                    structWriter.WriteField("cdwLocals", LocalsOffset, Locals);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("cdwParams", ParamsOffset, Params);
+                    break;
+
+                #region BitField
+
+                case 4:
+                    structWriter.WriteBitField(nameof(cbProlog), flagsOffset, cbProlog, sizeof(ushort), 8);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(cbRegs), flagsOffset, cbRegs, sizeof(ushort), 3);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField(nameof(fHasSEH), flagsOffset, fHasSEH, sizeof(ushort), 1);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField(nameof(fUseBP), flagsOffset, fUseBP, sizeof(ushort), 1);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(reserved), flagsOffset, reserved, sizeof(ushort), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(cbFrame), flagsOffset, cbFrame, sizeof(ushort), 2);
+                    break;
+
+                #endregion
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -86,6 +86,21 @@ namespace PESpy
             }
         }
 
+        //This should only be used by unit tests, because we don't track whether a given address has been added yet
+        internal static unsafe void RegisterSymbolMemory(byte* memory, int length, ISymbolAccessor symbolAccessor)
+        {
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
+            {
+                InsertEntry(memory, length, globalAccessorRanges, symbolAccessor);
+            }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
+            }
+        }
+
         private static unsafe void InsertEntry<T>(MemoryBlock block, List<(long start, long end, T value)> list, T value) =>
             InsertEntry<T>(block.LocalPointer, block.Length, list, value);
 
@@ -207,6 +222,21 @@ namespace PESpy
             {
                 globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
                 block.SymbolMemory.Clear();
+            }
+            finally
+            {
+                globalMemoryRangesLock.ExitWriteLock();
+            }
+        }
+
+        //This should only be used by unit tests
+        internal static unsafe void ClearSymbolMemory(byte* memory)
+        {
+            globalMemoryRangesLock.EnterWriteLock();
+
+            try
+            {
+                globalAccessorRanges.RemoveAll(v => v.start == (long) memory);
             }
             finally
             {

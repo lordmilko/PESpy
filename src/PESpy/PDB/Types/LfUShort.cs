@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,10 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfUShort : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int valOffset = 4;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfUShort* value;
 
@@ -35,16 +40,27 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfUShort, this, ViewKind.LfUShort, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(val), val);
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(val), valOffset, val);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

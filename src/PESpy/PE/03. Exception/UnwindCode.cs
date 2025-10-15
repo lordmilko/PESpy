@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
-using static PESpy.View.ViewWriter;
 
 namespace PESpy
 {
@@ -12,6 +12,9 @@ namespace PESpy
     [DebuggerDisplay("CodeOffset = {CodeOffset}, UnwindOp = {UnwindOp}")]
     public abstract class UnwindCode : IValue, IViewable
     {
+        private const int CodeOffsetOffset = 0;
+        private const int UnwindOpOffset = 1;
+
         public int Offset { get; }
 
         public byte CodeOffset { get; }
@@ -40,34 +43,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.UNWIND_CODE, this, ViewKind.UnwindCode, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => NumChildren;
+
+        protected virtual int NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            //Can't pass a using variable by ref
-            var s = viewWriter.CreateStruct(parent);
-
-            try
+            switch (index)
             {
-                s.WriteField(nameof(CodeOffset), CodeOffset);
+                case 0:
+                    structWriter.WriteField(nameof(CodeOffset), CodeOffsetOffset, CodeOffset);
+                    break;
 
-                using (var b = s.WriteBitFields<byte>())
-                {
-                    b.WriteField(nameof(UnwindOp), UnwindOp, 4);
-                    b.WriteField(nameof(OpInfo), OpInfo, 4);
-                }
+                #region BitField
 
-                WriteViewExtra(ref s);
+                case 1:
+                    structWriter.WriteBitField(nameof(UnwindOp), UnwindOpOffset, UnwindOp, sizeof(byte), 4);
+                    break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
-            }
-            finally
-            {
-                s.Dispose();
+                case 2:
+                    structWriter.WriteBitField(nameof(OpInfo), UnwindOpOffset, OpInfo, sizeof(byte), 4);
+                    break;
+
+                #endregion
+
+                default:
+                    WriteExtraChild(index, ref structWriter);
+                    break;
             }
         }
 
-        internal virtual void WriteViewExtra(ref StructWriter structWriter)
+        protected virtual void WriteExtraChild(int index, ref StructWriter structWriter)
         {
+            throw new IndexOutOfRangeException();
         }
 
         public class PushNonVolatile : UnwindCode
@@ -84,11 +92,15 @@ namespace PESpy
 
         public class AllocLarge : UnwindCode
         {
+            private const int SizeOffset = 2;
+
             public int Size { get; }
 
             public override int StructSize =>
                 (OpInfo == 0 ? sizeof(short) : sizeof(int)) + //Size
                 base.StructSize;
+
+            protected override int NumChildren => 4;
 
             public AllocLarge(int offset, byte codeOffset, byte opInfo, int size) : base(offset, codeOffset, UWOP.ALLOC_LARGE)
             {
@@ -96,12 +108,21 @@ namespace PESpy
                 Size = size;
             }
 
-            internal override void WriteViewExtra(ref StructWriter structWriter)
+            protected override void WriteExtraChild(int index, ref StructWriter structWriter)
             {
-                if (OpInfo == 0)
-                    structWriter.WriteField(nameof(Size), (ushort) Size);
-                else
-                    structWriter.WriteField(nameof(Size), Size); //SizeHi has been shifted 16 bits and added to SizeLo. We don't currently store them separately
+                switch (index)
+                {
+                    case 3:
+                        if (OpInfo == 0)
+                            structWriter.WriteField(nameof(Size), SizeOffset, (ushort) Size);
+                        else
+                            structWriter.WriteField(nameof(Size), SizeOffset, Size); //SizeHi has been shifted 16 bits and added to SizeLo. We don't currently store them separately
+
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 
@@ -133,6 +154,8 @@ namespace PESpy
 
         public class SaveNonVolatile : UnwindCode
         {
+            private const int StackOffsetOffset = 2;
+
             public UnwindInfo.X64Register Register { get; }
 
             public override byte OpInfo => (byte) Register;
@@ -143,20 +166,32 @@ namespace PESpy
                 sizeof(short) + //StackOffset
                 base.StructSize;
 
+            protected override int NumChildren => 4;
+
             public SaveNonVolatile(int offset, byte codeOffset, UnwindInfo.X64Register register, ushort stackOffset) : base(offset, codeOffset, UWOP.SAVE_NONVOL)
             {
                 Register = register;
                 StackOffset = stackOffset;
             }
 
-            internal override void WriteViewExtra(ref StructWriter structWriter)
+            protected override void WriteExtraChild(int index, ref StructWriter structWriter)
             {
-                structWriter.WriteField(nameof(StackOffset), StackOffset);
+                switch (index)
+                {
+                    case 3:
+                        structWriter.WriteField(nameof(StackOffset), StackOffsetOffset, StackOffset);
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 
         public class SaveNonVolatileFar : UnwindCode
         {
+            private const int StackOffsetOffset = 2;
+
             public UnwindInfo.X64Register Register { get; }
 
             public override byte OpInfo => (byte) Register;
@@ -167,17 +202,27 @@ namespace PESpy
                 sizeof(int) + //StackOffset
                 base.StructSize;
 
+            protected override int NumChildren => 4;
+
             public SaveNonVolatileFar(int offset, byte codeOffset, UnwindInfo.X64Register register, int stackOffset) : base(offset, codeOffset, UWOP.SAVE_NONVOL_FAR)
             {
                 Register = register;
                 StackOffset = stackOffset;
             }
 
-            internal override void WriteViewExtra(ref StructWriter structWriter)
+            protected override void WriteExtraChild(int index, ref StructWriter structWriter)
             {
-                //The high word has been shifted 16 bits to the right and then added to the low word.
-                //We don't currently store them separately
-                structWriter.WriteField(nameof(StackOffset), StackOffset);
+                switch (index)
+                {
+                    case 3:
+                        //The high word has been shifted 16 bits to the right and then added to the low word.
+                        //We don't currently store them separately
+                        structWriter.WriteField(nameof(StackOffset), StackOffsetOffset, StackOffset);
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 
@@ -191,6 +236,8 @@ namespace PESpy
 
         public class SaveXmm128 : UnwindCode
         {
+            private const int StackOffsetOffset = 2;
+
             public UnwindInfo.X64Register Register { get; }
 
             public override byte OpInfo => (byte) Register;
@@ -201,20 +248,32 @@ namespace PESpy
                 sizeof(ushort) + //StackOffset
                 base.StructSize;
 
+            protected override int NumChildren => 4;
+
             public SaveXmm128(int offset, byte codeOffset, UnwindInfo.X64Register register, ushort stackOffset) : base(offset, codeOffset, UWOP.SAVE_XMM128)
             {
                 Register = register;
                 StackOffset = stackOffset;
             }
 
-            internal override void WriteViewExtra(ref StructWriter structWriter)
+            protected override void WriteExtraChild(int index, ref StructWriter structWriter)
             {
-                structWriter.WriteField(nameof(StackOffset), StackOffset);
+                switch (index)
+                {
+                    case 3:
+                        structWriter.WriteField(nameof(StackOffset), StackOffsetOffset, StackOffset);
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 
         public class SaveXmm128Far : UnwindCode
         {
+            private const int StackOffsetOffset = 2;
+
             public UnwindInfo.X64Register Register { get; }
 
             public override byte OpInfo => (byte) Register;
@@ -225,17 +284,27 @@ namespace PESpy
                 sizeof(int) + //StackOffset
                 base.StructSize;
 
+            protected override int NumChildren => 4;
+
             public SaveXmm128Far(int offset, byte codeOffset, UnwindInfo.X64Register register, int stackOffset) : base(offset, codeOffset, UWOP.SAVE_XMM128_FAR)
             {
                 Register = register;
                 StackOffset = stackOffset;
             }
 
-            internal override void WriteViewExtra(ref StructWriter structWriter)
+            protected override void WriteExtraChild(int index, ref StructWriter structWriter)
             {
-                //The high word has been shifted 16 bits to the right and then added to the low word.
-                //We don't currently store them separately
-                structWriter.WriteField(nameof(StackOffset), StackOffset);
+                switch (index)
+                {
+                    case 3:
+                        //The high word has been shifted 16 bits to the right and then added to the low word.
+                        //We don't currently store them separately
+                        structWriter.WriteField(nameof(StackOffset), StackOffsetOffset, StackOffset);
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
 

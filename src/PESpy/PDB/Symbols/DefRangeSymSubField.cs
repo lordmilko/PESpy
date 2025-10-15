@@ -10,6 +10,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct DefRangeSymSubField : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int programOffset = 4;
+        private const int offParentOffset = 8;
+        private const int rangeOffset = 12;
+        private const int gapsOffset = 16;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMSUBFIELD* value;
 
@@ -52,19 +59,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.DEFRANGESYMSUBFIELD, this, ViewKind.DefRangeSymSubField, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(program), program);
-            s.WriteField(nameof(offParent), offParent);
-            s.WriteField(nameof(range), range);
-            s.WriteField(nameof(gaps), gaps);
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(program), programOffset, program);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(offParent), offParentOffset, offParent);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(range), rangeOffset, range);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(gaps), gapsOffset, gaps);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

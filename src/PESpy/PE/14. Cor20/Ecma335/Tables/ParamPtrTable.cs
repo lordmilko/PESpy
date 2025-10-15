@@ -4,7 +4,7 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ParamOffset;
+        internal readonly int ParamOffset;
 
         private readonly bool isBigParamIndex;
 

@@ -19,7 +19,7 @@ namespace PESpy.View.Builder
 
                 var sizeOfHeaders = neFile.DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
 
-                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders), viewWriter));
 
                 var lastSectionEnd = sizeOfHeaders;
 
@@ -64,7 +64,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }
@@ -81,7 +81,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), ViewKind.NonResidentNameTable, length));
+            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), viewWriter, ViewKind.NonResidentNameTable, length));
 
             lastSectionEnd = end;
         }
@@ -99,7 +99,7 @@ namespace PESpy.View.Builder
 
                 var data = BuildSection(segmentStart, end);
 
-                results.Add(new SectionView(segmentStart, $"Segment {i + 1}", data, segmentLength));
+                results.Add(new SectionView(segmentStart, $"Segment {i + 1}", data, viewWriter, segmentLength));
 
                 lastSectionEnd = end;
             }
@@ -136,7 +136,7 @@ namespace PESpy.View.Builder
                     throw new NotImplementedException();
                 }
 
-                results.Add(new LogicalRegionView(omfData.Offset, name, BuildSection(omfData.Offset, fileLength, v => v, v => v, isOverlay: true), kind, omfLength));
+                results.Add(new LogicalRegionView(omfData.Offset, name, BuildSection(omfData.Offset, fileLength, v => v, v => v, isOverlay: true), viewWriter, kind, omfLength));
             }
         }
 
@@ -152,7 +152,7 @@ namespace PESpy.View.Builder
                     results.Add(children[0]);
                 else
                 {
-                    var interRegion = new LogicalRegionView(lastSectionEnd, "Inter-Section Data", children, ViewKind.InterSectionData, interSectionLength);
+                    var interRegion = new LogicalRegionView(lastSectionEnd, "Inter-Section Data", children, merger.viewWriter, ViewKind.InterSectionData, interSectionLength);
                     results.Add(interRegion);
                 }
             }

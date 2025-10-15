@@ -9,9 +9,9 @@ namespace PESpy.Ecma335
 
         private readonly bool isBigStringIndex;
 
-        private readonly int FlagsOffset;
-        private readonly int SequenceOffset;
-        private readonly int NameOffset;
+        internal readonly int FlagsOffset;
+        internal readonly int SequenceOffset;
+        internal readonly int NameOffset;
 
         private readonly Func<StringHeap?> stringHeap;
         private readonly MemoryChunk tableChunk;

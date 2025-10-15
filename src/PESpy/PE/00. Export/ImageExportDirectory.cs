@@ -13,7 +13,14 @@ namespace PESpy
     [DebuggerDisplay("Exports = {Exports.Length}")]
     public class ImageExportDirectory : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
     {
+        private const int CharacteristicsOffset = 0;
+        private const int TimeDateStampOffset = 4;
+        private const int MajorVersionOffset = 8;
+        private const int MinorVersionOffset = 10;
         internal const int NameOffset = 12;
+        private const int BaseOffset = 16;
+        private const int NumberOfFunctionsOffset = 20;
+        private const int NumberOfNamesOffset = 24;
         internal const int AddressOfFunctionsOffset = 28;
         internal const int AddressOfNamesOffset = 32;
         internal const int AddressOfNameOrdinalsOffset = 36;
@@ -21,24 +28,24 @@ namespace PESpy
         /// <summary>
         /// Reserved, must be 0.
         /// </summary>
-        public int Characteristics => chunk.PeekInt32(0);
+        public int Characteristics => chunk.PeekInt32(CharacteristicsOffset);
 
         /// <summary>
         /// The time and date that the export data was created.<para/>
         /// If this <see cref="PEFile"/> has an <see cref="ImageDebugDirectory"/> whose type is <see cref="ImageDebugType.Reproducible"/>, this value is not a TimeDateStamp, but rather a
         /// checksum derived from the executable's file contents, whose algorithm is an implementation detail of the tool that produced the file.
         /// </summary>
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         /// <summary>
         /// The major version number. The major and minor version numbers can be set by the user.
         /// </summary>
-        public ushort MajorVersion => chunk.PeekUInt16(8);
+        public ushort MajorVersion => chunk.PeekUInt16(MajorVersionOffset);
 
         /// <summary>
         /// The minor version number.
         /// </summary>
-        public ushort MinorVersion => chunk.PeekUInt16(10);
+        public ushort MinorVersion => chunk.PeekUInt16(MinorVersionOffset);
 
         private RVA<AnsiString>? lazyName;
 
@@ -71,17 +78,17 @@ namespace PESpy
         /// <summary>
         /// The starting ordinal number for exports in this image. This field specifies the starting ordinal number for the export address table. It is usually set to 1.
         /// </summary>
-        public int Base => chunk.PeekInt32(16);
+        public int Base => chunk.PeekInt32(BaseOffset);
 
         /// <summary>
         /// The number of entries in the export address table.
         /// </summary>
-        public int NumberOfFunctions => chunk.PeekInt32(20);
+        public int NumberOfFunctions => chunk.PeekInt32(NumberOfFunctionsOffset);
 
           /// <summary>
         /// The number of entries in the name pointer table. This is also the number of entries in the ordinal table.
         /// </summary>
-        public int NumberOfNames => chunk.PeekInt32(24);
+        public int NumberOfNames => chunk.PeekInt32(NumberOfNamesOffset);
 
         private RVA<ForwardOrAddress[]>? lazyAddressOfFunctions;
 
@@ -493,24 +500,59 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_EXPORT_DIRECTORY, this, ViewKind.ImageExportDirectory, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 11;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Characteristics), CharacteristicsOffset, Characteristics);
+                    break;
 
-            s.WriteField(nameof(Characteristics), Characteristics);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteRVAAnsiNullTerminatedField(nameof(Name), Name);
-            s.WriteField(nameof(Base), Base);
-            s.WriteField(nameof(NumberOfFunctions), NumberOfFunctions);
-            s.WriteField(nameof(NumberOfNames), NumberOfNames);
-            s.WriteField(nameof(AddressOfFunctions), (int) AddressOfFunctions.ListedOffset);
-            s.WriteField(nameof(AddressOfNames), (int) AddressOfNames.ListedOffset);
-            s.WriteField(nameof(AddressOfNameOrdinals), (int) AddressOfNameOrdinals.ListedOffset);
+                case 1:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(MajorVersion), MajorVersionOffset, MajorVersion);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(MinorVersion), MinorVersionOffset, MinorVersion);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAAnsiNullTerminatedField(nameof(Name), NameOffset, Name);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(Base), BaseOffset, Base);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(NumberOfFunctions), NumberOfFunctionsOffset, NumberOfFunctions);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(NumberOfNames), NumberOfNamesOffset, NumberOfNames);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(AddressOfFunctions), AddressOfFunctionsOffset, (int) AddressOfFunctions.ListedOffset);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(AddressOfNames), AddressOfNamesOffset, (int) AddressOfNames.ListedOffset);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(AddressOfNameOrdinals), AddressOfNameOrdinalsOffset, (int) AddressOfNameOrdinals.ListedOffset);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         /// <summary>

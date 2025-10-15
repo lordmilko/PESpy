@@ -270,10 +270,12 @@ var strings = new[]{
     //snDbi
     "DBIHdr",
     "NewDBIHdr",
-    "MODI",
+    "MODI (v2)",
+    "MODI (v4)",
     "MODI50",
     "MODI_60_Persist",
     "ECInfo",
+    "SC20",
     "SC40",
     "SC",
     "SC2",
@@ -578,7 +580,7 @@ namespace PESpy
         /// <summary>
         /// <#= str #>
         /// </summary>
-        internal static FixedUtf8String <#= str.Replace("`", string.Empty).Replace("'", string.Empty).Replace(" ", string.Empty).Replace("+", "And") #>
+        internal static FixedUtf8String <#= str.Replace("`", string.Empty).Replace("'", string.Empty).Replace(" ", string.Empty).Replace("+", "And").Replace("(", string.Empty).Replace(")", string.Empty) #>
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

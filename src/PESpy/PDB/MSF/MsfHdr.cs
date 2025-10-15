@@ -14,14 +14,21 @@ namespace PESpy.PDB
         //This was present in NT 4 but I haven't found anywhere it's used yet
         internal const string HdrMagic2 = "Microsoft C/C++ program database 4.00\r\n\u001aJG\0\0";
 
+        private const int MagicOffset = 0;
+        private const int PageSizeOffset = 44;
+        private const int FpmPageNoOffset = 48;
+        private const int NumPagesOffset = 50;
+        private const int StreamTableSizeInfoOffset = 52;
+        private const int StreamTablePageListOffset = 60;
+
         //szMagic
-        public FixedAnsiString Magic => chunk.PeekAnsiFixedLength(0, 44);
+        public FixedAnsiString Magic => chunk.PeekAnsiFixedLength(MagicOffset, 44);
 
-        public int PageSize => chunk.PeekInt32(44); //cbPg
+        public int PageSize => chunk.PeekInt32(PageSizeOffset); //cbPg
 
-        public PN FpmPageNo => chunk.PeekUInt16(48); //V2 uses 16-bit
+        public PN FpmPageNo => chunk.PeekUInt16(FpmPageNoOffset); //V2 uses 16-bit
 
-        public ushort NumPages => chunk.PeekUInt16(50); //pnMac
+        public ushort NumPages => chunk.PeekUInt16(NumPagesOffset); //pnMac
 
         public SI_PERSIST StreamTableSizeInfo { get; } //siSt
 
@@ -29,7 +36,7 @@ namespace PESpy.PDB
 
         //Unlike BIGMSF_HDR where mpspnpnSt lists the location of the stream table pages, in MSF_HDR mpspnpnSt lists
         //the stream table pages immediately; there is no indirection
-        public NativeSpan<ushort> StreamTablePageList => chunk.PeekNativeSpan<ushort>(60, SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize));
+        public NativeSpan<ushort> StreamTablePageList => chunk.PeekNativeSpan<ushort>(StreamTablePageListOffset, SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize));
 
         internal const int FixedStructSize =
             44 + //Magic
@@ -47,7 +54,7 @@ namespace PESpy.PDB
         internal MsfHdr(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-            StreamTableSizeInfo = new SI_PERSIST(chunk.Slice(52));
+            StreamTableSizeInfo = new SI_PERSIST(chunk.Slice(StreamTableSizeInfoOffset));
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -58,19 +65,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MSF_HDR, this, ViewKind.MsfHdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteNullPaddedUtf8Field("szMagic", MagicOffset, HdrMagic, 44); //It's not null padded, it's just exactly 44 bytes
+                    break;
 
-            s.WriteNullPaddedUTF8Field("szMagic", HdrMagic, 44); //It's not null padded, it's just exactly 44 bytes
-            s.WriteField("cbPg", PageSize);
-            s.WriteField("pnFpm", (ushort) FpmPageNo);
-            s.WriteField("pnMac", NumPages);
-            s.WriteStructField("siSt", StreamTableSizeInfo);
-            s.WriteField("mpspnpnSt", StreamTablePageList);
+                case 1:
+                    structWriter.WriteField("cbPg", PageSizeOffset, PageSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("pnFpm", FpmPageNoOffset, (ushort) FpmPageNo);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("pnMac", NumPagesOffset, NumPages);
+                    break;
+
+                case 4:
+                    structWriter.WriteStructField("siSt", StreamTableSizeInfoOffset, StreamTableSizeInfo);
+                    break;
+
+                case 5:
+                    structWriter.WriteField("mpspnpnSt", StreamTablePageListOffset, StreamTablePageList);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -7,20 +8,28 @@ namespace PESpy
     //Note: we are not currently parsing these members properly
     public readonly struct ImageArchiveMemberHeader : IValue, IViewable
     {
-        public FixedAnsiString Name => chunk.PeekAnsiFixedLength(0, 16);
+        private const int NameOffset = 0;
+        private const int DateOffset = 16;
+        private const int UserIDOffset = 28;
+        private const int GroupIDOffset = 34;
+        private const int ModeOffset = 40;
+        private const int SizeOffset = 48;
+        private const int EndHeaderOffset = 58;
 
-        public FixedAnsiString Date => chunk.PeekAnsiFixedLength(16, 12); //Should parse as number
+        public FixedAnsiString Name => chunk.PeekAnsiFixedLength(NameOffset, 16);
 
-        public FixedAnsiString UserID => chunk.PeekAnsiFixedLength(28, 6); //Should be a decimal
+        public FixedAnsiString Date => chunk.PeekAnsiFixedLength(DateOffset, 12); //Should parse as number
 
-        public FixedAnsiString GroupID => chunk.PeekAnsiFixedLength(34, 6); //Should be a decimal
+        public FixedAnsiString UserID => chunk.PeekAnsiFixedLength(UserIDOffset, 6); //Should be a decimal
 
-        public FixedAnsiString Mode => chunk.PeekAnsiFixedLength(40, 8); //Should be octal
+        public FixedAnsiString GroupID => chunk.PeekAnsiFixedLength(GroupIDOffset, 6); //Should be a decimal
+
+        public FixedAnsiString Mode => chunk.PeekAnsiFixedLength(ModeOffset, 8); //Should be octal
 
         //The size of the data following this ImageArchiveMemberHeader. The total size of the member is Size + sizeof(IMAGE_ARCHIVE_MEMBER_HEADER)
-        public int Size => chunk.PeekSpacePaddedInt32(48, 10);
+        public int Size => chunk.PeekSpacePaddedInt32(SizeOffset, 10);
 
-        public FixedAnsiString EndHeader => chunk.PeekAnsiFixedLength(58, 2);
+        public FixedAnsiString EndHeader => chunk.PeekAnsiFixedLength(EndHeaderOffset, 2);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -48,20 +57,43 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_ARCHIVE_MEMBER_HEADER, this, ViewKind.ImageArchiveMemberHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 7;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteAnsiFixedLengthField(nameof(Name), NameOffset, Name);
+                    break;
 
-            s.WriteAnsiFixedLengthField(nameof(Name), Name);
-            s.WriteAnsiFixedLengthField(nameof(Date), Date);
-            s.WriteAnsiFixedLengthField(nameof(UserID), UserID);
-            s.WriteAnsiFixedLengthField(nameof(GroupID), GroupID);
-            s.WriteAnsiFixedLengthField(nameof(Mode), Mode);
-            s.WriteAnsiFixedLengthField(nameof(Size), chunk.PeekAnsiFixedLength(48, 10));
-            s.WriteAnsiFixedLengthField(nameof(EndHeader), EndHeader);
+                case 1:
+                    structWriter.WriteAnsiFixedLengthField(nameof(Date), DateOffset, Date);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteAnsiFixedLengthField(nameof(UserID), UserIDOffset, UserID);
+                    break;
+
+                case 3:
+                    structWriter.WriteAnsiFixedLengthField(nameof(GroupID), GroupIDOffset, GroupID);
+                    break;
+
+                case 4:
+                    structWriter.WriteAnsiFixedLengthField(nameof(Mode), ModeOffset, Mode);
+                    break;
+
+                case 5:
+                    structWriter.WriteAnsiFixedLengthField(nameof(Size), SizeOffset, chunk.PeekAnsiFixedLength(48, 10));
+                    break;
+
+                case 6:
+                    structWriter.WriteAnsiFixedLengthField(nameof(EndHeader), EndHeaderOffset, EndHeader);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

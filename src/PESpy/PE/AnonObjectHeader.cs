@@ -17,37 +17,45 @@ namespace PESpy
          * have a ClassID {0CB3FE38-D9A5-4DAB-AC9B-D6B6222653C2} */
         internal static readonly Guid EXTENDED_COFF_OBJ_GUID = new Guid("D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8"); //Used in c2!CoffTerm (called by coff_end)
 
+        private const int Sig1Offset = 0;
+        private const int Sig2Offset = 2;
+        private const int VersionOffset = 4;
+        private const int MachineOffset = 6;
+        private const int TimeDateStampOffset = 8;
+        private const int ClassIDOffset = 12;
+        private const int SizeOfDataOffset = 28;
+
         /// <summary>
         /// Must be IMAGE_FILE_MACHINE_UNKNOWN
         /// </summary>
-        public IMAGE_FILE_MACHINE Sig1 => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(0);
+        public IMAGE_FILE_MACHINE Sig1 => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(Sig1Offset);
 
         /// <summary>
         /// Must be 0xffff
         /// </summary>
-        public short Sig2 => chunk.PeekInt16(2);
+        public short Sig2 => chunk.PeekInt16(Sig2Offset);
 
         /// <summary>
         /// >= 2 (implies the Flags field is present)
         /// </summary>
-        public short Version => chunk.PeekInt16(4);
+        public short Version => chunk.PeekInt16(VersionOffset);
 
         /// <summary>
         /// Actual machine - IMAGE_FILE_MACHINE_xxx
         /// </summary>
-        public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(6);
+        public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(MachineOffset);
 
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(8);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         /// <summary>
         /// <see cref="EXTENDED_COFF_OBJ_GUID"/> {D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8}
         /// </summary>
-        public Guid ClassID => chunk.PeekGuid(12);
+        public Guid ClassID => chunk.PeekGuid(ClassIDOffset);
 
         /// <summary>
         /// Size of data that follows the header
         /// </summary>
-        public int SizeOfData => chunk.PeekInt32(28);
+        public int SizeOfData => chunk.PeekInt32(SizeOfDataOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -74,25 +82,50 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer) => WriteStruct(writer);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => GetChildren(parent, viewWriter);
+        int IViewable.NumChildren => NumChildren;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => WriteChild(index, ref structWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.ANON_OBJECT_HEADER, this, ViewKind.AnonObjectHeader, StructSize);
 
-        protected virtual IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        protected virtual int NumChildren => 7;
+
+        protected virtual void WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Sig1), Sig1Offset, Sig1, sizeof(short));
+                    break;
 
-            s.WriteField(nameof(Sig1), Sig1, sizeof(short));
-            s.WriteField(nameof(Sig2), Sig2);
-            s.WriteField(nameof(Version), Version);
-            s.WriteField(nameof(Machine), Machine, sizeof(short));
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(ClassID), ClassID);
-            s.WriteField(nameof(SizeOfData), SizeOfData);
+                case 1:
+                    structWriter.WriteField(nameof(Sig2), Sig2Offset, Sig2);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Version), VersionOffset, Version);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Machine), MachineOffset, Machine, sizeof(short));
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(ClassID), ClassIDOffset, ClassID);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(SizeOfData), SizeOfDataOffset, SizeOfData);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

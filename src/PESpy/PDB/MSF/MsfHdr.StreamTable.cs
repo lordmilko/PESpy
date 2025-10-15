@@ -83,29 +83,38 @@ namespace PESpy.PDB
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StreamTable, this, ViewKind.StreamTable, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => 1 + StreamPersists.Length + StreamPages.Length;
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
-
-                s.WriteField("NumStreams", NumStreams);
-                s.WriteInline(StreamPersists);
-
-                //We store the StreamPages as 32-bit but they were originally 16-bit
-
-                for (var i = 0; i < StreamPages.Length; i++)
+                switch (index)
                 {
-                    var item = StreamPages[i];
+                    case 0:
+                        structWriter.WriteField("NumStreams", NumStreamsOffset, NumStreams);
+                        break;
 
-                    var arr = new ushort[item.Length];
+                    default:
+                        var i = index - 1;
 
-                    for (var j = 0; j < item.Length; j++)
-                        arr[j] = (ushort) (int) item[j];
+                        if (i < StreamPersists.Length)
+                        {
+                            structWriter.WriteInline(StreamPersists[i]);
+                        }
+                        else
+                        {
+                            i -= StreamPersists.Length;
 
-                    s.WriteField($"PageList ({i})", arr);
+                            var item = StreamPages[i];
+
+                            var arr = new ushort[item.Length];
+
+                            for (var j = 0; j < item.Length; j++)
+                                arr[j] = (ushort) (int) item[j];
+
+                            structWriter.WriteField($"PageList ({i})", arr);
+                        }
+                        break;
                 }
-
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
             }
         }
     }

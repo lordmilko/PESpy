@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System;
 using PESpy.Native;
 using PESpy.View;
 
@@ -9,13 +9,15 @@ namespace PESpy
     /// </summary>
     public struct ImageBoundForwarderRef : IValue, IViewable
     {
+        private const int TimeDateStampOffset = 0;
         internal const int OffsetModuleNameOffset = 4;
+        private const int ReservedOffset = 6;
 
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(0);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         public ushort OffsetModuleName => chunk.PeekUInt16(OffsetModuleNameOffset);
 
-        public ushort Reserved => chunk.PeekUInt16(6);
+        public ushort Reserved => chunk.PeekUInt16(ReservedOffset);
 
         private RVA<AnsiString> name;
 
@@ -66,16 +68,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BOUND_FORWARDER_REF, this, ViewKind.ImageBoundForwarderRef, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
 
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
-            s.WriteField(nameof(Reserved), Reserved);
+                case 1:
+                    structWriter.WriteField(nameof(OffsetModuleName), OffsetModuleNameOffset, OffsetModuleNameOffset, OffsetModuleName);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, ReservedOffset, Reserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

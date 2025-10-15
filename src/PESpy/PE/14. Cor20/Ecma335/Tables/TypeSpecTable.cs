@@ -6,7 +6,7 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int SignatureOffset;
+        internal readonly int SignatureOffset;
 
         private readonly bool isBigBlobIndex;
 

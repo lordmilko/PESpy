@@ -4,9 +4,9 @@
     {
         internal readonly int RowSize;
 
-        private readonly int OSPlatformIDOffset;
-        private readonly int OSMajorVersionOffset;
-        private readonly int OSMinorVersionOffset;
+        internal readonly int OSPlatformIDOffset;
+        internal readonly int OSMajorVersionOffset;
+        internal readonly int OSMinorVersionOffset;
 
         private readonly MemoryChunk tableChunk;
 

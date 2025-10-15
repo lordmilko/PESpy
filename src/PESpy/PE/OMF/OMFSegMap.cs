@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,9 +7,13 @@ namespace PESpy
     [Source(SourceKind.cvexefmt)]
     public class OMFSegMap : IValue, IViewable //Class as it may not be present
     {
-        public short cSeg => chunk.PeekInt16(0);
+        private const int cSegOffset = 0;
+        private const int cSegLogOffset = 2;
+        private const int rgDescOffset = 4;
 
-        public short cSegLog => chunk.PeekInt16(2);
+        public short cSeg => chunk.PeekInt16(cSegOffset);
+
+        public short cSegLog => chunk.PeekInt16(cSegLogOffset);
 
         private OMFSegMapDesc[]? descs;
 
@@ -23,7 +28,7 @@ namespace PESpy
                     var arr = new OMFSegMapDesc[numSegs];
 
                     for (var i = 0; i < numSegs; i++)
-                        arr[i] = new OMFSegMapDesc(chunk.Slice(4 + (i * OMFSegMapDesc.StructSize)));
+                        arr[i] = new OMFSegMapDesc(chunk.Slice(rgDescOffset + (i * OMFSegMapDesc.StructSize)));
 
                     descs = arr;
                 }
@@ -55,16 +60,24 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFSegMap, this, ViewKind.OMFSegMap, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + rgDesc.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(cSeg), cSegOffset, cSeg);
+                    break;
 
-            s.WriteField(nameof(cSeg), cSeg);
-            s.WriteField(nameof(cSegLog), cSegLog);
-            s.WriteInline(rgDesc);
+                case 1:
+                    structWriter.WriteField(nameof(cSegLog), cSegLogOffset, cSegLog);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(rgDesc[index - 2]);
+                    break;
+            }
         }
     }
 }

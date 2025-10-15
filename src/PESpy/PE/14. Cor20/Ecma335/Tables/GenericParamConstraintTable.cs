@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int OwnerOffset;
-        private readonly int ConstraintOffset;
+        internal readonly int OwnerOffset;
+        internal readonly int ConstraintOffset;
 
         private readonly bool isBigGenericParamIndex;
         private readonly bool isBigTypeDefOrRefIndex;

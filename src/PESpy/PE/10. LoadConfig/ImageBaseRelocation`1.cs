@@ -11,6 +11,10 @@ namespace PESpy
     /// <typeparam name="T">The type of entry contained in this object in lieu of the normal Type/Offset structure.</typeparam>
     public readonly struct ImageBaseRelocation<T> : IValue, IViewable where T : IValue, IViewable
     {
+        private const int VirtualAddressOffset = 0;
+        private const int SizeOfBlockOffset = 4;
+        private const int EntriesOffset = 8;
+
         public int VirtualAddress { get; }
 
         public int SizeOfBlock { get; }
@@ -36,17 +40,24 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BASE_RELOCATION, this, ViewKind.ImageBaseRelocation, SizeOfBlock);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + Entries.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, VirtualAddress);
+                    break;
 
-            s.WriteField(nameof(VirtualAddress), VirtualAddress);
-            s.WriteField(nameof(SizeOfBlock), SizeOfBlock);
+                case 1:
+                    structWriter.WriteField(nameof(SizeOfBlock), SizeOfBlockOffset, SizeOfBlock);
+                    break;
 
-            s.WriteInline(Entries);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(Entries[index - 2]);
+                    break;
+            }
         }
     }
 }

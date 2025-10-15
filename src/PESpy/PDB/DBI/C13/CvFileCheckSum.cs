@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using PESpy.View;
 
@@ -17,15 +18,19 @@ namespace PESpy.PDB
 
             return nameMap.GetStringFromNI(name).ToString();
         }
+        private const int nameOffset = 0;
+        private const int lenOffset = 4;
+        private const int typeOffset = 5;
+        private const int hashOffset = 6;
 
         //An index into /names
-        public NI name => chunk.PeekInt32(0);
+        public NI name => chunk.PeekInt32(nameOffset);
 
-        public byte len => chunk.PeekByte(4);
+        public byte len => chunk.PeekByte(lenOffset);
 
-        public CV_SourceChksum_t type => (CV_SourceChksum_t) chunk.PeekByte(5);
+        public CV_SourceChksum_t type => (CV_SourceChksum_t) chunk.PeekByte(typeOffset);
 
-        public NativeSpan<byte> hash => chunk.PeekNativeSpan<byte>(6, len);
+        public NativeSpan<byte> hash => chunk.PeekNativeSpan<byte>(hashOffset, len);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -50,17 +55,31 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CV_FileCheckSum, this, ViewKind.CvFileCheckSum, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(name), nameOffset, name);
+                    break;
 
-            s.WriteField(nameof(name), name);
-            s.WriteField(nameof(len), len);
-            s.WriteField(nameof(type), type, sizeof(byte));
-            s.WriteField(nameof(hash), hash);
+                case 1:
+                    structWriter.WriteField(nameof(len), lenOffset, len);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(type), typeOffset, type, sizeof(byte));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(hash), hashOffset, hash);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

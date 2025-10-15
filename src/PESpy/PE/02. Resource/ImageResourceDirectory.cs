@@ -15,6 +15,13 @@ namespace PESpy
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class ImageResourceDirectory : IValue, IViewable
     {
+        private const int CharacteristicsOffset = 0;
+        private const int TimeDateStampOffset = 4;
+        private const int MajorVersionOffset = 8;
+        private const int MinorVersionOffset = 10;
+        private const int NumberOfNamedEntriesOffset = 12;
+        private const int NumberOfIdEntriesOffset = 14;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal string DebuggerDisplay
         {
@@ -45,32 +52,32 @@ namespace PESpy
         /// <summary>
         /// Resource flags. This field is reserved for future use. It is currently set to zero.
         /// </summary>
-        public uint Characteristics => chunk.PeekUInt32(0);
+        public uint Characteristics => chunk.PeekUInt32(CharacteristicsOffset);
 
         /// <summary>
         /// The time that the resource data was created by the resource compiler.
         /// </summary>
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(4);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         /// <summary>
         /// The major version number, set by the user.
         /// </summary>
-        public ushort MajorVersion => chunk.PeekUInt16(8);
+        public ushort MajorVersion => chunk.PeekUInt16(MajorVersionOffset);
 
         /// <summary>
         /// The minor version number, set by the user.
         /// </summary>
-        public ushort MinorVersion => chunk.PeekUInt16(10);
+        public ushort MinorVersion => chunk.PeekUInt16(MinorVersionOffset);
 
         /// <summary>
         /// The number of directory entries immediately following the table that use strings to identify Type, Name, or Language entries (depending on the level of the table).
         /// </summary>
-        public ushort NumberOfNamedEntries => chunk.PeekUInt16(12);
+        public ushort NumberOfNamedEntries => chunk.PeekUInt16(NumberOfNamedEntriesOffset);
 
         /// <summary>
         /// The number of directory entries immediately following the Name entries that use numeric IDs for Type, Name, or Language entries.
         /// </summary>
-        public ushort NumberOfIdEntries => chunk.PeekUInt16(14);
+        public ushort NumberOfIdEntries => chunk.PeekUInt16(NumberOfIdEntriesOffset);
 
         private ImageResourceDirectoryEntry[] entries;
 
@@ -118,7 +125,7 @@ namespace PESpy
             this.chunk = chunk;
             this.rootRVA = rootRVA;
             this.parent = parent;
-            
+
             entries = null!;
 
 #if STRESS_TEST
@@ -161,19 +168,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_RESOURCE_DIRECTORY, this, ViewKind.ImageResourceDirectory, FixedStructSize); //The entries are written as global, so the FixedStructSize is all we care about
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Characteristics), CharacteristicsOffset, Characteristics);
+                    break;
 
-            s.WriteField(nameof(Characteristics), Characteristics);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteField(nameof(NumberOfNamedEntries), NumberOfNamedEntries);
-            s.WriteField(nameof(NumberOfIdEntries), NumberOfIdEntries);
+                case 1:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(MajorVersion), MajorVersionOffset, MajorVersion);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(MinorVersion), MinorVersionOffset, MinorVersion);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(NumberOfNamedEntries), NumberOfNamedEntriesOffset, NumberOfNamedEntries);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(NumberOfIdEntries), NumberOfIdEntriesOffset, NumberOfIdEntries);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

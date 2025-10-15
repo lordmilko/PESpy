@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -9,10 +10,15 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageLoadConfigCodeIntegrity : IValue, IViewable
     {
-        public ushort Flags => chunk.PeekUInt16(0);
-        public ushort Catalog => chunk.PeekUInt16(2);
-        public int CatalogOffset => chunk.PeekInt32(4);
-        public int Reserved => chunk.PeekInt32(8);
+        private const int FlagsOffset = 0;
+        private const int _CatalogOffset = 2;
+        private const int CatalogOffsetOffset = 4;
+        private const int ReservedOffset = 8;
+
+        public ushort Flags => chunk.PeekUInt16(FlagsOffset);
+        public ushort Catalog => chunk.PeekUInt16(_CatalogOffset);
+        public int CatalogOffset => chunk.PeekInt32(CatalogOffsetOffset);
+        public int Reserved => chunk.PeekInt32(ReservedOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -37,17 +43,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_LOAD_CONFIG_CODE_INTEGRITY, this, ViewKind.ImageLoadConfigCodeIntegrity, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Flags), FlagsOffset, Flags);
+                    break;
 
-            s.WriteField(nameof(Flags), Flags);
-            s.WriteField(nameof(Catalog), Catalog);
-            s.WriteField(nameof(CatalogOffset), CatalogOffset);
-            s.WriteField(nameof(Reserved), Reserved);
+                case 1:
+                    structWriter.WriteField(nameof(Catalog), _CatalogOffset, Catalog);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(CatalogOffset), CatalogOffsetOffset, CatalogOffset);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using ClrDebug;
+﻿using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
@@ -14,7 +12,10 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal int StructSize => (Kind & CorILMethodSect.FatFormat) != 0 ? sizeof(int) : sizeof(short);
+        internal int StructSize => (Kind & CorILMethodSect.FatFormat) != 0 ? FatSize : TinySize;
+
+        internal const int FatSize = sizeof(int);
+        internal const int TinySize = sizeof(short);
 
         internal ImageCorILMethodSect(CorILMethodSect kind, in MemoryChunk chunk, out int read)
         {
@@ -26,13 +27,13 @@ namespace PESpy
             {
                 //The data pointed to by the section is in fat format, and its length is encoded in 3 bytes
                 DataSize = chunk.PeekInt32(0) >> 8;
-                read = 4;
+                read = 4; //Kind (1) + DataSize (3)
             }
             else
             {
                 //The data pointed to by the section is in small format, and its length is a single byte
                 DataSize = chunk.PeekByte(1);
-                read = 2;
+                read = 2; //Kind (1) + DataSize (1)
             }
         }
 
@@ -53,28 +54,30 @@ namespace PESpy
             );
         }
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             var isFat = (Kind & CorILMethodSect.FatFormat) != 0;
 
-            using var s = viewWriter.CreateStruct(parent);
-
-            if (isFat)
+            switch (index)
             {
-                using (var b = s.WriteBitFields<int>())
-                {
-                    b.WriteField(nameof(Kind), Kind, 8);
-                    b.WriteField(nameof(DataSize), DataSize, 24);
-                }
-            }
-            else
-            {
-                s.WriteField(nameof(Kind), Kind, sizeof(byte));
-                s.WriteField(nameof(DataSize), (byte) DataSize);
-            }
+                case 0:
+                    if (isFat)
+                        structWriter.WriteBitField(nameof(Kind), relativeOffset: 0, Kind, sizeof(int), 8);
+                    else
+                        structWriter.WriteField(nameof(Kind), relativeOffset: 0, Kind, sizeof(byte));
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                    break;
+
+                case 1:
+                    if (isFat)
+                        structWriter.WriteBitField(nameof(DataSize), relativeOffset: 0, DataSize, sizeof(int), 24);
+                    else
+                        structWriter.WriteField(nameof(DataSize), relativeOffset: 1, (byte) DataSize);
+
+                    break;
+            }
         }
     }
 }

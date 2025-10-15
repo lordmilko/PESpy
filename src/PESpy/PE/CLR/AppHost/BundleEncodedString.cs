@@ -1,10 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public struct BundleEncodedString : IValue, IViewable
     {
+        private const int LengthOffset = 0;
+
         public int Length { get; }
 
         public FixedUtf8String Value { get; }
@@ -34,15 +37,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.BundleEncodedString, this, ViewKind.BundleEncodedString, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.Write7BitField(nameof(Length), LengthOffset, Length, StructSize - Value.Length);
+                    break;
 
-            s.Write7BitField(nameof(Length), Length, StructSize - Value.Length);
-            s.WriteUTF8FixedLengthField(nameof(Value), Value);
+                case 1:
+                    structWriter.WriteUtf8FixedLengthField(nameof(Value), StructSize - Value.Length, Value);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

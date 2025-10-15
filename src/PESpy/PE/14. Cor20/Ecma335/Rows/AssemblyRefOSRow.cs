@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -34,18 +35,31 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.AssemblyRefOSRow, this, ViewKind.Metadata_AssemblyRefOSRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(OSPlatformID), table.OSPlatformIDOffset, OSPlatformID);
+                    break;
 
-            s.WriteValue(nameof(OSPlatformID), OSPlatformID);
-            s.WriteValue(nameof(OSMajorVersion), OSMajorVersion);
-            s.WriteValue(nameof(OSMinorVersion), OSMinorVersion);
+                case 1:
+                    structWriter.WriteField(nameof(OSMajorVersion), table.OSMajorVersionOffset, OSMajorVersion);
+                    break;
 
-            s.WriteSimpleIndex(nameof(AssemblyRef), (int) AssemblyRef, TableKind.AssemblyRef);
+                case 2:
+                    structWriter.WriteField(nameof(OSMinorVersion), table.OSMinorVersionOffset, OSMinorVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteSimpleIndex(nameof(AssemblyRef), table.AssemblyRefOffset, (int) AssemblyRef, TableKind.AssemblyRef);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

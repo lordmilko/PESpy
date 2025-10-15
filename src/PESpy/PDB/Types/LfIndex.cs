@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,10 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfIndex : IViewable
     {
+        private const int leafOffset = 0;
+        private const int pad0Offset = 2;
+        private const int indexOffset = 4;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfIndex* value;
 
@@ -38,16 +43,27 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfIndex, this, ViewKind.LfIndex, StructSize); //Non-primary, should not have a TYPTYPE.len
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
-            
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(pad0), pad0);
-            s.WriteField(nameof(index), index);
+        int IViewable.NumChildren => 3;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(pad0), pad0Offset, pad0);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

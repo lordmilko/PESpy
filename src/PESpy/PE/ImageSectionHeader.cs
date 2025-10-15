@@ -1,7 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using ClrDebug;
-using PESpy.View;
 using PESpy.LIB;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -10,20 +12,28 @@ namespace PESpy
     /// </summary>
     public struct ImageSectionHeader : IValue, IViewable //Stored in an array, so can be a struct
     {
-        internal const int PointerToRelocationsOffset = 24;
-        internal const int PointerToLineNumbersOffset = 28;
+        private const int NameOffset = 0;
+        private const int VirtualSizeOffset = 8;
+        private const int VirtualAddressOffset = 12;
+        private const int SizeOfRawDataOffset = 16;
+        private const int PointerToRawDataOffset = 20;
+        private const int PointerToRelocationsOffset = 24;
+        private const int PointerToLineNumbersOffset = 28;
+        private const int NumberOfRelocationsOffset = 32;
+        private const int NumberOfLineNumbersOffset = 34;
+        private const int CharacteristicsOffset = 36;
 
         /// <summary>
         /// The name of the section.
         /// </summary>
-        public FixedUtf8String Name => chunk.PeekNullPaddedUtf8(0, 8);
+        public FixedUtf8String Name => chunk.PeekNullPaddedUtf8(NameOffset, 8);
 
         /// <summary>
         /// The total size of the section when loaded into memory.
         /// If this value is greater than <see cref="SizeOfRawData"/>, the section is zero-padded.
         /// This field is valid only for PE images and should be set to zero for object files.
         /// </summary>
-        public int VirtualSize => chunk.PeekInt32(8);
+        public int VirtualSize => chunk.PeekInt32(VirtualSizeOffset);
 
         /// <summary>
         /// For PE images, the address of the first byte of the section relative to the image base when the
@@ -31,7 +41,7 @@ namespace PESpy
         /// relocation is applied; for simplicity, compilers should set this to zero. Otherwise,
         /// it is an arbitrary value that is subtracted from offsets during relocation.
         /// </summary>
-        public int VirtualAddress => chunk.PeekInt32(12);
+        public int VirtualAddress => chunk.PeekInt32(VirtualAddressOffset);
 
         /// <summary>
         /// The size of the section (for object files) or the size of the initialized data on disk (for image files).
@@ -41,7 +51,7 @@ namespace PESpy
         /// it is possible for <see cref="SizeOfRawData"/> to be greater than <see cref="VirtualSize"/> as well.
         ///  When a section contains only uninitialized data, this field should be zero.
         /// </summary>
-        public int SizeOfRawData => chunk.PeekInt32(16);
+        public int SizeOfRawData => chunk.PeekInt32(SizeOfRawDataOffset);
 
         /// <summary>
         /// The file pointer to the first page of the section within the COFF file.
@@ -49,7 +59,7 @@ namespace PESpy
         /// For object files, the value should be aligned on a 4 byte boundary for best performance.
         /// When a section contains only uninitialized data, this field should be zero.
         /// </summary>
-        public int PointerToRawData => chunk.PeekInt32(20);
+        public int PointerToRawData => chunk.PeekInt32(PointerToRawDataOffset);
 
         /// <summary>
         /// The file pointer to the beginning of relocation entries for the section.
@@ -85,7 +95,7 @@ namespace PESpy
                         else
                         {
                             pointerToRelocations = new VA<ImageRelocation[]>(offset);
-                        }                        
+                        }
                     }
                 }
 
@@ -138,18 +148,18 @@ namespace PESpy
         /// <summary>
         /// The number of relocation entries for the section. This is set to zero for PE images.
         /// </summary>
-        public short NumberOfRelocations => chunk.PeekInt16(32);
+        public short NumberOfRelocations => chunk.PeekInt16(NumberOfRelocationsOffset);
 
         /// <summary>
         /// The number of line-number entries for the section.
         ///  This value should be zero for an image because COFF debugging information is deprecated.
         /// </summary>
-        public short NumberOfLineNumbers => chunk.PeekInt16(34);
+        public short NumberOfLineNumbers => chunk.PeekInt16(NumberOfLineNumbersOffset);
 
         /// <summary>
         /// The flags that describe the characteristics of the section.
         /// </summary>
-        public IMAGE_SCN Characteristics => (IMAGE_SCN) chunk.PeekUInt32(36);
+        public IMAGE_SCN Characteristics => (IMAGE_SCN) chunk.PeekUInt32(CharacteristicsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -225,24 +235,55 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_SECTION_HEADER, this, ViewKind.ImageSectionHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 10;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteNullPaddedUtf8Field(nameof(Name), NameOffset, Name, NameSize);
+                    break;
 
-            //Name is exactly 8 bytes. If the name is only 4 bytes, the remaining 4 bytes are \0
-            s.WriteNullPaddedUTF8Field(nameof(Name), Name, NameSize);
-            s.WriteField(nameof(VirtualSize), VirtualSize);
-            s.WriteField(nameof(VirtualAddress), (int) VirtualAddress);
-            s.WriteField(nameof(SizeOfRawData), SizeOfRawData);
-            s.WriteField(nameof(PointerToRawData), (int) PointerToRawData);
-            s.WriteSmallVAPointerField(nameof(PointerToRelocations), PointerToRelocations);
-            s.WriteSmallVAPointerField(nameof(PointerToLineNumbers), PointerToLineNumbers);
-            s.WriteField(nameof(NumberOfRelocations), NumberOfRelocations);
-            s.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbers);
-            s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));
+                case 1:
+                    structWriter.WriteField(nameof(VirtualSize), VirtualSizeOffset, VirtualSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(SizeOfRawData), SizeOfRawDataOffset, SizeOfRawData);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, (int) PointerToRawData);
+                    break;
+
+                case 5:
+                    structWriter.WriteSmallVAPointerField(nameof(PointerToRelocations), PointerToRelocationsOffset, PointerToRelocations);
+                    break;
+
+                case 6:
+                    structWriter.WriteSmallVAPointerField(nameof(PointerToLineNumbers), PointerToLineNumbersOffset, PointerToLineNumbers);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(NumberOfRelocations), NumberOfRelocationsOffset, NumberOfRelocations);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(NumberOfLineNumbers), NumberOfLineNumbersOffset, NumberOfLineNumbers);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(Characteristics), CharacteristicsOffset, Characteristics, sizeof(int));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

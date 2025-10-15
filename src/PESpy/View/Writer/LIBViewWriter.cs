@@ -65,11 +65,11 @@ namespace PESpy.View
                     dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
             }
 
-            using var merger = new Merger(libFile, structs, default, dataDirectories, byteViewProvider);
+            using var merger = new Merger(libFile, this, structs, default, dataDirectories, byteViewProvider);
 
             var results = merger.MergeLIB();
 
-            return new FileView(ViewMode.Physical, libFile.Name, results, ViewKind.LIBFile);
+            return new FileView(ViewMode.Physical, libFile.Name, results, this, ViewKind.LIBFile);
         }
     }
 }

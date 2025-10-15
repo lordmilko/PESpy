@@ -22,6 +22,10 @@ namespace PESpy
     [Source(SourceKind.cvexefmt)]
     public partial class OMFFileIndex : IValue, IViewable
     {
+        private const int NumModulesOffset = 0;
+        private const int NumSourceFilesOffset = 2;
+        private const int ModuleIndicesOffset = 4;
+
         //cMods
         public ushort NumModules => chunk.PeekUInt16(0);
 
@@ -34,7 +38,7 @@ namespace PESpy
         /// explicitly deduce the number of files in each module however; this is told to you by <see cref="ModuleFileCounts"/>.<para/>
         /// Corresponds to /ushort iRefModStart[cMods]
         /// </summary>
-        public NativeSpan<ushort> ModuleIndices => chunk.PeekNativeSpan<ushort>(4, NumModules);
+        public NativeSpan<ushort> ModuleIndices => chunk.PeekNativeSpan<ushort>(ModuleIndicesOffset, NumModules);
 
         /// <summary>
         /// Gets the number of files contained in each module.<para/>

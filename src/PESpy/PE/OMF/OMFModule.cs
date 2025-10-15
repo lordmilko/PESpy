@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,13 +7,20 @@ namespace PESpy
     [Source(SourceKind.cvexefmt)]
     public struct OMFModule : IValue, IViewable
     {
-        public ushort ovlNumber => chunk.PeekUInt16(0);
+        private const int ovlNumberOffset = 0;
+        private const int iLibOffset = 2;
+        private const int cSegOffset = 4;
+        private const int StyleOffset = 6;
+        private const int SegInfoOffset = 8;
+        private int NameOffset => FixedStructSize + (cSeg * OMFSegDesc.StructSize);
 
-        public ushort iLib => chunk.PeekUInt16(2);
+        public ushort ovlNumber => chunk.PeekUInt16(ovlNumberOffset);
 
-        public ushort cSeg => chunk.PeekUInt16(4);
+        public ushort iLib => chunk.PeekUInt16(iLibOffset);
 
-        public FixedAnsiString Style => chunk.PeekAnsiFixedLength(6, 2);
+        public ushort cSeg => chunk.PeekUInt16(cSegOffset);
+
+        public FixedAnsiString Style => chunk.PeekAnsiFixedLength(StyleOffset, 2);
 
         private OMFSegDesc[]? segInfo;
 
@@ -25,7 +33,7 @@ namespace PESpy
                     var results = new OMFSegDesc[cSeg];
 
                     for (var i = 0; i < cSeg; i++)
-                        results[i] = new OMFSegDesc(chunk.Slice(8 + (i * OMFSegDesc.StructSize)));
+                        results[i] = new OMFSegDesc(chunk.Slice(SegInfoOffset + (i * OMFSegDesc.StructSize)));
 
                     segInfo = results;
                 }
@@ -38,7 +46,7 @@ namespace PESpy
         {
             get
             {
-                var offset = FixedStructSize + (cSeg * OMFSegDesc.StructSize);
+                var offset = NameOffset;
                 var length = chunk.PeekByte(offset);
                 return chunk.PeekAnsiFixedLength(offset + 1, length);
             }
@@ -82,19 +90,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFModule, this, ViewKind.OMFModule, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(ovlNumber), ovlNumberOffset, ovlNumber);
+                    break;
 
-            s.WriteField(nameof(ovlNumber), ovlNumber);
-            s.WriteField(nameof(iLib), iLib);
-            s.WriteField(nameof(cSeg), cSeg);
-            s.WriteAnsiFixedLengthField(nameof(Style), Style);
-            s.WriteStructField(nameof(SegInfo), SegInfo);
-            s.WriteLengthPrefixedAnsiField(nameof(Name), Name);
+                case 1:
+                    structWriter.WriteField(nameof(iLib), iLibOffset, iLib);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(cSeg), cSegOffset, cSeg);
+                    break;
+
+                case 3:
+                    structWriter.WriteAnsiFixedLengthField(nameof(Style), StyleOffset, Style);
+                    break;
+
+                case 4:
+                    structWriter.WriteStructField(nameof(SegInfo), SegInfoOffset, SegInfo);
+                    break;
+
+                case 5:
+                    structWriter.WriteLengthPrefixedAnsiField(nameof(Name), NameOffset, Name);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

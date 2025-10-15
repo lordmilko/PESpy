@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -14,11 +15,15 @@ namespace PESpy
         /// </summary>
         public readonly struct HeaderFixed : IValue, IViewable
         {
-            public int MajorVersion => chunk.PeekInt32(0);
+            private const int MajorVersionOffset = 0;
+            private const int MinorVersionOffset = 4;
+            private const int NumEmbeddedFilesOffset = 8;
 
-            public int MinorVersion => chunk.PeekInt32(4);
+            public int MajorVersion => chunk.PeekInt32(MajorVersionOffset);
 
-            public int NumEmbeddedFiles => chunk.PeekInt32(8);
+            public int MinorVersion => chunk.PeekInt32(MinorVersionOffset);
+
+            public int NumEmbeddedFiles => chunk.PeekInt32(NumEmbeddedFilesOffset);
 
             public int Offset => chunk.AbsoluteOffset;
 
@@ -42,17 +47,28 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.header_fixed_t, this, ViewKind.BundleHeaderFixed, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                case 0:
+                    structWriter.WriteField("major_version", MajorVersionOffset, MajorVersion);
+                    break;
 
-                s.WriteField("major_version", MajorVersion);
-                s.WriteField("minor_version", MinorVersion);
-                s.WriteField("num_embedded_files", NumEmbeddedFiles);
+                case 1:
+                    structWriter.WriteField("minor_version", MinorVersionOffset, MinorVersion);
+                    break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                case 2:
+                    structWriter.WriteField("num_embedded_files", NumEmbeddedFilesOffset, NumEmbeddedFiles);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
+        }
         }
     }
 }

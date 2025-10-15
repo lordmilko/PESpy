@@ -108,7 +108,23 @@ namespace PESpy.View
 
             if (this is SplitByteBlobView sv)
             {
-                throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
+                //We're just rewriting ourselves to have a new offset
+                var newValue = new SplitByteBlobView(newOffset, Bytes, Size, Kind);
+
+                if (sv.Previous != null)
+                {
+                    //We need to set the previous's next to be us
+                    ((SplitByteBlobView) sv.Previous).Next = newValue;
+                    newValue.Previous = sv.Previous;
+                }
+                else if (sv.Next != null)
+                {
+                    //We need to set the next's previous to be us
+                    ((SplitByteBlobView) sv.Next).Previous = newValue;
+                    newValue.Next = sv.Next;
+                }
+
+                return newValue;
             }
 
             return new SplitByteBlobView(newOffset, Bytes, Size, Kind);

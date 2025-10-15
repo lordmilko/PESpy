@@ -5,9 +5,11 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public class SignedData : IValue, IViewable
+    public class SignedData : IViewableValue
     {
-        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
+        private const int BytesOffset = 0;
+
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(BytesOffset, length);
 
         private X509Certificate2? certificate;
 
@@ -56,14 +58,19 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SignedData, this, ViewKind.SignedData, length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("Bytes", BytesOffset, Bytes);
+                    break;
 
-            s.WriteField("Bytes", Bytes);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

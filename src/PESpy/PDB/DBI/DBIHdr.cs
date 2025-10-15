@@ -1,31 +1,40 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     public class DBIHdr : IDBIHdr, IValue, IViewable
     {
-        public SN snGSSyms => (SN) chunk.PeekUInt16(0);
+        private const int snGSSymsOffset = 0;
+        private const int snPSSymsOffset = 2;
+        private const int snSymRecsOffset = 4;
+        private const int cbGpModiOffset = 8;
+        private const int cbSCOffset = 12;
+        private const int cbSecMapOffset = 16;
+        private const int cbFileInfoOffset = 20;
 
-        public SN snPSSyms => (SN) chunk.PeekUInt16(2);
+        public SN snGSSyms => (SN) chunk.PeekUInt16(snGSSymsOffset);
 
-        public SN snSymRecs => (SN) chunk.PeekUInt16(4);
+        public SN snPSSyms => (SN) chunk.PeekUInt16(snPSSymsOffset);
+
+        public SN snSymRecs => (SN) chunk.PeekUInt16(snSymRecsOffset);
 
         //6-7: 2 bytes padding
 
         /// <summary>
         /// size of rgmodi substream
         /// </summary>
-        public int cbGpModi => chunk.PeekInt32(8);
+        public int cbGpModi => chunk.PeekInt32(cbGpModiOffset);
 
         /// <summary>
         /// size of Section Contribution substream
         /// </summary>
-        public int cbSC => chunk.PeekInt32(12);
+        public int cbSC => chunk.PeekInt32(cbSCOffset);
 
-        public int cbSecMap => chunk.PeekInt32(16);
+        public int cbSecMap => chunk.PeekInt32(cbSecMapOffset);
 
-        public int cbFileInfo => chunk.PeekInt32(20);
+        public int cbFileInfo => chunk.PeekInt32(cbFileInfoOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -56,21 +65,47 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.DBIHdr, this, ViewKind.DbiHdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 8;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(snGSSyms), snGSSymsOffset, snGSSyms);
+                    break;
 
-            s.WriteField(nameof(snGSSyms), snGSSyms);
-            s.WriteField(nameof(snPSSyms), snPSSyms);
-            s.WriteField(nameof(snSymRecs), snSymRecs);
-            s.Align(4);
-            s.WriteField(nameof(cbGpModi), cbGpModi);
-            s.WriteField(nameof(cbSC), cbSC);
-            s.WriteField(nameof(cbSecMap), cbSecMap);
-            s.WriteField(nameof(cbFileInfo), cbFileInfo);
+                case 1:
+                    structWriter.WriteField(nameof(snPSSyms), snPSSymsOffset, snPSSyms);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(snSymRecs), snSymRecsOffset, snSymRecs);
+                    break;
+
+                case 3:
+                    structWriter.WriteByteBlob(snSymRecsOffset + 2, sizeof(short)); //2 bytes
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(cbGpModi), cbGpModiOffset, cbGpModi);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(cbSC), cbSCOffset, cbSC);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(cbSecMap), cbSecMapOffset, cbSecMap);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(cbFileInfo), cbFileInfoOffset, cbFileInfo);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

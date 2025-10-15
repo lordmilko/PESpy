@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -44,22 +45,51 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.AssemblyRefRow, this, ViewKind.Metadata_AssemblyRefRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 9;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(MajorVersion), table.MajorVersionOffset, MajorVersion);
+                    break;
 
-            s.WriteValue(nameof(MajorVersion), MajorVersion);
-            s.WriteValue(nameof(MinorVersion), MinorVersion);
-            s.WriteValue(nameof(BuildNumber), BuildNumber);
-            s.WriteValue(nameof(RevisionNumber), RevisionNumber);
-            s.WriteValue(nameof(Flags), Flags, sizeof(int));
-            s.WriteBlobHeapIndex(nameof(PublicKeyOrToken), PublicKeyOrToken);
-            s.WriteStringHeapIndex(nameof(Name), Name);
-            s.WriteStringHeapIndex(nameof(Culture), Culture);
-            s.WriteBlobHeapIndex(nameof(HashValue), HashValue);
+                case 1:
+                    structWriter.WriteField(nameof(MinorVersion), table.MinorVersionOffset, MinorVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(BuildNumber), table.BuildNumberOffset, BuildNumber);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(RevisionNumber), table.RevisionNumberOffset, RevisionNumber);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(Flags), table.FlagsOffset, Flags, sizeof(int));
+                    break;
+
+                case 5:
+                    structWriter.WriteBlobHeapIndex(nameof(PublicKeyOrToken), table.PublicKeyOrTokenOffset, PublicKeyOrToken);
+                    break;
+
+                case 6:
+                    structWriter.WriteStringHeapIndex(nameof(Name), table.NameOffset, Name);
+                    break;
+
+                case 7:
+                    structWriter.WriteStringHeapIndex(nameof(Culture), table.CultureOffset, Culture);
+                    break;
+
+                case 8:
+                    structWriter.WriteBlobHeapIndex(nameof(HashValue), table.HashValueOffset, HashValue);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

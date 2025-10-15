@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.NE
@@ -19,28 +20,33 @@ namespace PESpy.NE
         /// </summary>
         public const byte NSALIGN = 9;
 
+        private const int ns_sectorOffset = 0;
+        private const int ns_cbsegOffset = 2;
+        private const int ns_flagsOffset = 4;
+        private const int ns_minallocOffset = 6;
+
         /// <summary>
         /// Logical-sector offset (n byte) to the contents of the segment
         /// data, relative to the beginning of the file. Zero means no file data.<para/>
         /// This value must be shifted by left <see cref="ImageOS2Header.SegmentAlignmentShiftCount"/> to get the absolute
         /// file position.
         /// </summary>
-        public ushort ns_sector => chunk.PeekUInt16(0);
+        public ushort ns_sector => chunk.PeekUInt16(ns_sectorOffset);
 
         /// <summary>
         /// Length of the segment in the file, in bytes. Zero means 64K.
         /// </summary>
-        public ushort ns_cbseg => chunk.PeekUInt16(2);
+        public ushort ns_cbseg => chunk.PeekUInt16(ns_cbsegOffset);
 
         /// <summary>
         /// Attribute flags
         /// </summary>
-        public NewSegFlags ns_flags => (NewSegFlags) chunk.PeekUInt16(4);
+        public NewSegFlags ns_flags => (NewSegFlags) chunk.PeekUInt16(ns_flagsOffset);
 
         /// <summary>
         /// Minimum allocation size of the segment, in bytes. Total size of the segment. Zero means 64K.
         /// </summary>
-        public ushort ns_minalloc => chunk.PeekUInt16(6);
+        public ushort ns_minalloc => chunk.PeekUInt16(ns_minallocOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -65,17 +71,31 @@ namespace PESpy.NE
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.new_seg, this, ViewKind.NewSeg, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(ns_sector), ns_sectorOffset, ns_sector);
+                    break;
 
-            s.WriteField(nameof(ns_sector), ns_sector);
-            s.WriteField(nameof(ns_cbseg), ns_cbseg);
-            s.WriteField(nameof(ns_flags), ns_flags, sizeof(short));
-            s.WriteField(nameof(ns_minalloc), ns_minalloc);
+                case 1:
+                    structWriter.WriteField(nameof(ns_cbseg), ns_cbsegOffset, ns_cbseg);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(ns_flags), ns_flagsOffset, ns_flags, sizeof(short));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(ns_minalloc), ns_minallocOffset, ns_minalloc);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

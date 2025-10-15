@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,17 +7,22 @@ namespace PESpy
     //SSTPUBLICS
     public readonly struct pbi : IValue, IViewable
     {
-        public ushort off => chunk.PeekUInt16(0);
+        private const int offOffset = 0;
+        private const int segOffset = 2;
+        private const int typeOffset = 4;
+        private const int nameOffset = 6;
 
-        public ushort seg => chunk.PeekUInt16(2);
+        public ushort off => chunk.PeekUInt16(offOffset);
 
-        public ushort type => chunk.PeekUInt16(4);
+        public ushort seg => chunk.PeekUInt16(segOffset);
+
+        public ushort type => chunk.PeekUInt16(typeOffset);
 
         public FixedAnsiString name
         {
             get
             {
-                var length = chunk.PeekByte(6);
+                var length = chunk.PeekByte(nameOffset);
                 return chunk.PeekAnsiFixedLength(7, length);
             }
         }
@@ -45,17 +51,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.pbi, this, ViewKind.pbi, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
 
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(seg), seg);
-            s.WriteField(nameof(type), type);
-            s.WriteLengthPrefixedAnsiField(nameof(name), name);
+                case 1:
+                    structWriter.WriteField(nameof(seg), segOffset, seg);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(type), typeOffset, type);
+                    break;
+
+                case 3:
+                    structWriter.WriteLengthPrefixedAnsiField(nameof(name), nameOffset, name);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

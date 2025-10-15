@@ -300,7 +300,7 @@ namespace PESpy
             writer.WriteGlobal(AnonObjectHeader);
             writer.WriteGlobal(FileHeader);
             writer.WriteGlobal(SectionHeaders);
-            
+
             foreach (var item in SectionData)
             {
                 if (item == null)
@@ -319,7 +319,9 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+        int IViewable.NumChildren => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
         internal ISymbolAccessor RegisterC13SymbolMemory(MemoryChunk dataChunk)
         {

@@ -29,11 +29,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(objFile, structs, byteViewProvider);
+            using var merger = new Merger(objFile, this, structs, byteViewProvider);
 
             var results = merger.MergeOBJ();
 
-            return new FileView(ViewMode.Physical, objFile.Name, results, ViewKind.OBJFile);
+            return new FileView(ViewMode.Physical, objFile.Name, results, this, ViewKind.OBJFile);
         }
     }
 }

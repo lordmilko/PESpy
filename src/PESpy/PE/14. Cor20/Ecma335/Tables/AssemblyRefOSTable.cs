@@ -4,10 +4,10 @@
     {
         internal readonly int RowSize;
 
-        private readonly int OSPlatformIDOffset;
-        private readonly int OSMajorVersionOffset;
-        private readonly int OSMinorVersionOffset;
-        private readonly int AssemblyRefOffset;
+        internal readonly int OSPlatformIDOffset;
+        internal readonly int OSMajorVersionOffset;
+        internal readonly int OSMinorVersionOffset;
+        internal readonly int AssemblyRefOffset;
 
         private readonly bool isBigAssemblyRefIndex;
 

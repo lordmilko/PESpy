@@ -9,11 +9,15 @@ namespace PESpy
         //header_fixed_v2_t
         public class HeaderFixedV2 : IValue, IViewable //May not be present
         {
+            private const int DepsJsonLocationOffset = 0;
+            private const int RuntimeConfigJsonLocationOffset = Location.StructSize;
+            private int FlagsOffset = Location.StructSize * 2;
+
             public Location DepsJsonLocation => new Location(chunk);
 
-            public Location RuntimeConfigJsonLocation => new Location(chunk.Slice(Location.StructSize));
+            public Location RuntimeConfigJsonLocation => new Location(chunk.Slice(RuntimeConfigJsonLocationOffset));
 
-            public header_flags_t Flags => (header_flags_t) chunk.PeekUInt64(Location.StructSize * 2);
+            public header_flags_t Flags => (header_flags_t) chunk.PeekUInt64(FlagsOffset);
 
             private RawValue<FixedUtf8String> depsJson;
 
@@ -83,17 +87,28 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.header_fixed_v2_t, this, ViewKind.BundleHeaderFixedV2, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                case 0:
+                    structWriter.WriteStructField("deps_json_location", DepsJsonLocationOffset, DepsJsonLocation);
+                    break;
 
-                s.WriteStructField("deps_json_location", DepsJsonLocation);
-                s.WriteStructField("runtimeconfig_json_location", RuntimeConfigJsonLocation);
-                s.WriteField("flags", Flags, sizeof(long));
+                case 1:
+                    structWriter.WriteStructField("runtimeconfig_json_location", RuntimeConfigJsonLocationOffset, RuntimeConfigJsonLocation);
+                    break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                case 2:
+                    structWriter.WriteField("flags", FlagsOffset, Flags, sizeof(long));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
+        }
         }
     }
 }

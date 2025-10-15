@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LabelSym16 : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int offOffset = 4;
+        private const int segOffset = 6;
+        private const int flagsOffset = 8;
+        private const int nameOffset = 9;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly LABELSYM16* value;
 
@@ -45,6 +53,8 @@ namespace PESpy.PDB
             sizeof(short)  + //seg
             1;               //flags
 
+        private int BytesUsed => FixedStructSize + name.Length + 1;
+
         internal LabelSym16(LABELSYM16* value)
         {
             this.value = value;
@@ -58,21 +68,44 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.LABELSYM16, this, ViewKind.LabelSym16, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(seg), seg);
-            s.WriteField(nameof(flags), flags);
-            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField(nameof(seg), segOffset, seg);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(flags), flagsOffset, flags);
+                    break;
+
+                case 5:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, SymType.ReadString(value, value->name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 6:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

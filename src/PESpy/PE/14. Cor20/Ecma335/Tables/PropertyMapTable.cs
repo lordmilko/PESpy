@@ -7,8 +7,8 @@
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigPropertyIndex;
 
-        private readonly int ParentOffset;
-        private readonly int PropertyListOffset;
+        internal readonly int ParentOffset;
+        internal readonly int PropertyListOffset;
 
         private readonly MemoryChunk tableChunk;
 

@@ -10,20 +10,33 @@ namespace PESpy
     /// </summary>
     public class ImageCor20Header : IValue, IViewable
     {
-        public int ByteCount => chunk.PeekInt32(0);
-        public ushort MajorRuntimeVersion => chunk.PeekUInt16(4);
-        public ushort MinorRuntimeVersion => chunk.PeekUInt16(6);
+        private const int ByteCountOffset = 0;
+        private const int MajorRuntimeVersionOffset = 4;
+        private const int MinorRuntimeVersionOffset = 6;
+        private const int MetadataOffset = 8;
+        private const int FlagsOffset = 16;
+        private const int EntryPointTokenOrRVAOffset = 20;
+        private const int ResourcesOffset = 24;
+        private const int StrongNameSignatureOffset = 32;
+        private const int CodeManagerTableOffset = 40;
+        private const int VTableFixupsOffset = 48;
+        private const int ExportAddressTableJumpsOffset = 56;
+        private const int ManagedNativeHeaderOffset = 64;
+
+        public int ByteCount => chunk.PeekInt32(ByteCountOffset);
+        public ushort MajorRuntimeVersion => chunk.PeekUInt16(MajorRuntimeVersionOffset);
+        public ushort MinorRuntimeVersion => chunk.PeekUInt16(MinorRuntimeVersionOffset);
 
         //This field should be called MetaData but I really don't like how that looks
-        public ImageDataDirectory Metadata => new ImageDataDirectory(chunk.Slice(8));
+        public ImageDataDirectory Metadata => new ImageDataDirectory(chunk.Slice(MetadataOffset));
 
-        public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS) chunk.PeekUInt32(16);
-        public int EntryPointTokenOrRVA => chunk.PeekInt32(20);
-        public ImageDataDirectory Resources => new ImageDataDirectory(chunk.Slice(24));
-        public ImageDataDirectory StrongNameSignature => new ImageDataDirectory(chunk.Slice(32));
-        public ImageDataDirectory CodeManagerTable => new ImageDataDirectory(chunk.Slice(40));
-        public ImageDataDirectory VTableFixups => new ImageDataDirectory(chunk.Slice(48));
-        public ImageDataDirectory ExportAddressTableJumps => new ImageDataDirectory(chunk.Slice(56));
+        public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS) chunk.PeekUInt32(FlagsOffset);
+        public int EntryPointTokenOrRVA => chunk.PeekInt32(EntryPointTokenOrRVAOffset);
+        public ImageDataDirectory Resources => new ImageDataDirectory(chunk.Slice(ResourcesOffset));
+        public ImageDataDirectory StrongNameSignature => new ImageDataDirectory(chunk.Slice(StrongNameSignatureOffset));
+        public ImageDataDirectory CodeManagerTable => new ImageDataDirectory(chunk.Slice(CodeManagerTableOffset));
+        public ImageDataDirectory VTableFixups => new ImageDataDirectory(chunk.Slice(VTableFixupsOffset));
+        public ImageDataDirectory ExportAddressTableJumps => new ImageDataDirectory(chunk.Slice(ExportAddressTableJumpsOffset));
         public ImageDataDirectory ManagedNativeHeader => new ImageDataDirectory(chunk.Slice(64));
 
         public int Offset => chunk.AbsoluteOffset;
@@ -57,25 +70,63 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_COR20_HEADER, this, ViewKind.ImageCor20Header, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 12;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("cb", ByteCountOffset, ByteCount);
+                    break;
 
-            s.WriteField("cb", ByteCount);
-            s.WriteField(nameof(MajorRuntimeVersion), MajorRuntimeVersion);
-            s.WriteField(nameof(MinorRuntimeVersion), MinorRuntimeVersion);
-            s.WriteStructField("MetaData", Metadata);
-            s.WriteField(nameof(Flags), Flags, sizeof(int));
-            s.WriteField(nameof(EntryPointTokenOrRVA), EntryPointTokenOrRVA);
-            s.WriteStructField(nameof(Resources), Resources);
-            s.WriteStructField(nameof(StrongNameSignature), StrongNameSignature);
-            s.WriteStructField(nameof(CodeManagerTable), CodeManagerTable);
-            s.WriteStructField(nameof(VTableFixups), VTableFixups);
-            s.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumps);
-            s.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeader);
+                case 1:
+                    structWriter.WriteField(nameof(MajorRuntimeVersion), MajorRuntimeVersionOffset, MajorRuntimeVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(MinorRuntimeVersion), MinorRuntimeVersionOffset, MinorRuntimeVersion);
+                    break;
+
+                case 3:
+                    structWriter.WriteStructField("MetaData", MetadataOffset, Metadata);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(Flags), FlagsOffset, Flags, sizeof(int));
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(EntryPointTokenOrRVA), EntryPointTokenOrRVAOffset, EntryPointTokenOrRVA);
+                    break;
+
+                case 6:
+                    structWriter.WriteStructField(nameof(Resources), ResourcesOffset, Resources);
+                    break;
+
+                case 7:
+                    structWriter.WriteStructField(nameof(StrongNameSignature), StrongNameSignatureOffset, StrongNameSignature);
+                    break;
+
+                case 8:
+                    structWriter.WriteStructField(nameof(CodeManagerTable), CodeManagerTableOffset, CodeManagerTable);
+                    break;
+
+                case 9:
+                    structWriter.WriteStructField(nameof(VTableFixups), VTableFixupsOffset, VTableFixups);
+                    break;
+
+                case 10:
+                    structWriter.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumpsOffset, ExportAddressTableJumps);
+                    break;
+
+                case 11:
+                    structWriter.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeaderOffset, ManagedNativeHeader);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

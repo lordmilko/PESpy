@@ -4,9 +4,9 @@
     {
         internal readonly int RowSize;
 
-        private readonly int PackingSizeOffset;
-        private readonly int ClassSizeOffset;
-        private readonly int ParentOffset;
+        internal readonly int PackingSizeOffset;
+        internal readonly int ClassSizeOffset;
+        internal readonly int ParentOffset;
 
         private readonly bool isBigTypeDefIndex;
 

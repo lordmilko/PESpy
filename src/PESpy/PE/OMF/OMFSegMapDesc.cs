@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Text;
 using PESpy.View;
 
@@ -29,45 +30,54 @@ namespace PESpy
             return builder.ToString();
         }
 
+        private const int flagsOffset = 0;
+        private const int ovlOffset = 2;
+        private const int groupOffset = 4;
+        private const int frameOffset = 6;
+        private const int iSegNameOffset = 8;
+        private const int iClassNameOffset = 10;
+        private const int offsetOffset = 12;
+        private const int cbSegOffset = 16;
+
         /// <summary>
         /// descriptor flags bit field.
         /// </summary>
-        public OMFSegMapFlags flags => chunk.PeekUInt16(0);
+        public OMFSegMapFlags flags => chunk.PeekUInt16(flagsOffset);
 
         /// <summary>
         /// the logical overlay number
         /// </summary>
-        public short ovl => chunk.PeekInt16(2);
+        public short ovl => chunk.PeekInt16(ovlOffset);
 
         /// <summary>
         /// group index into the descriptor array
         /// </summary>
-        public short group => chunk.PeekInt16(4);
+        public short group => chunk.PeekInt16(groupOffset);
 
         /// <summary>
         /// logical segment index - interpreted via flags
         /// </summary>
-        public short frame => chunk.PeekInt16(6);
+        public short frame => chunk.PeekInt16(frameOffset);
 
         /// <summary>
         /// segment or group name - index into sstSegName
         /// </summary>
-        public short iSegName => chunk.PeekInt16(8);
+        public short iSegName => chunk.PeekInt16(iSegNameOffset);
 
         /// <summary>
         /// class name - index into sstSegName
         /// </summary>
-        public short iClassName => chunk.PeekInt16(10);
+        public short iClassName => chunk.PeekInt16(iClassNameOffset);
 
         /// <summary>
         /// byte offset of the logical within the physical segment
         /// </summary>
-        public int offset => chunk.PeekInt16(12);
+        public int offset => chunk.PeekInt16(offsetOffset);
 
         /// <summary>
         /// byte count of the logical segment or group
         /// </summary>
-        public int cbSeg => chunk.PeekInt16(16);
+        public int cbSeg => chunk.PeekInt16(cbSegOffset);
 
         public AnsiString SegName
         {
@@ -147,34 +157,87 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFSegMapDesc, this, ViewKind.OMFSegMapDesc, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 17;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            using (var bitField = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                bitField.WriteField("fRead", flags.fRead, 1);
-                bitField.WriteField("fWrite", flags.fWrite, 1);
-                bitField.WriteField("fExecute", flags.fExecute, 1);
-                bitField.WriteField("f32Bit", flags.f32Bit, 1);
-                bitField.WriteField("res1", flags.res1, 4);
-                bitField.WriteField("fSel", flags.fSel, 1);
-                bitField.WriteField("fAbs", flags.fAbs, 1);
-                bitField.WriteField("res2", flags.res2, 2);
-                bitField.WriteField("fGroup", flags.fRead, 1);
-                bitField.WriteField("res3", flags.res3, 3);
+                #region BitField
+
+                case 0:
+                    structWriter.WriteBitField("fRead", flagsOffset, flags.fRead, sizeof(ushort), 1);
+                    break;
+
+                case 1:
+                    structWriter.WriteBitField("fWrite", flagsOffset, flags.fWrite, sizeof(ushort), 1);
+                    break;
+
+                case 2:
+                    structWriter.WriteBitField("fExecute", flagsOffset, flags.fExecute, sizeof(ushort), 1);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField("f32Bit", flagsOffset, flags.f32Bit, sizeof(ushort), 1);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField("res1", flagsOffset, flags.res1, sizeof(ushort), 4);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField("fSel", flagsOffset, flags.fSel, sizeof(ushort), 1);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField("fAbs", flagsOffset, flags.fAbs, sizeof(ushort), 1);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField("res2", flagsOffset, flags.res2, sizeof(ushort), 2);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField("fGroup", flagsOffset, flags.fRead, sizeof(ushort), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField("res3", flagsOffset, flags.res3, sizeof(ushort), 3);
+                    break;
+
+                #endregion
+
+                case 10:
+                    structWriter.WriteField(nameof(ovl), ovlOffset, ovl);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(group), groupOffset, group);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(frame), frameOffset, frame);
+                    break;
+
+                case 13:
+                    structWriter.WriteField(nameof(iSegName), iSegNameOffset, iSegName);
+                    break;
+
+                case 14:
+                    structWriter.WriteField(nameof(iClassName), iClassNameOffset, iClassName);
+                    break;
+
+                case 15:
+                    structWriter.WriteField(nameof(offset), offsetOffset, offset);
+                    break;
+
+                case 16:
+                    structWriter.WriteField(nameof(cbSeg), cbSegOffset, cbSeg);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField(nameof(ovl), ovl);
-            s.WriteField(nameof(group), group);
-            s.WriteField(nameof(frame), frame);
-            s.WriteField(nameof(iSegName), iSegName);
-            s.WriteField(nameof(iClassName), iClassName);
-            s.WriteField(nameof(offset), offset);
-            s.WriteField(nameof(cbSeg), cbSeg);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

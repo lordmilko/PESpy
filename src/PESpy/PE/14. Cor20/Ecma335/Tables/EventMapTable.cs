@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ParentOffset;
-        private readonly int EventListOffset;
+        internal readonly int ParentOffset;
+        internal readonly int EventListOffset;
 
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigEventIndex;

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ClrDebug;
 using ClrDebug.PDB;
+using PESpy.View;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.PDB
@@ -10,8 +11,11 @@ namespace PESpy.PDB
 
     [DebuggerTypeProxy(typeof(SymTypeProxy))]
     [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")]
-    public readonly unsafe struct SymType : IEquatable<SymType>
+    public readonly unsafe struct SymType : IViewable, IEquatable<SymType>
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SYMTYPE* value;
 
@@ -41,11 +45,46 @@ namespace PESpy.PDB
 
         public bool Equals(SymType other) => value == other.value;
 
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.SYMTYPE, this, ViewKind.SymType, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
+
+        int IViewable.NumChildren => reclen == 2 ? 2 : 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    if (reclen > 4)
+                        structWriter.WriteByteBlob(relativeOffset: 4, size: reclen - 4);
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
+        }
+
         public override string ToString()
         {
             if (value == default)
                 return "<null>";
-            
+
             return StringSymTypeDispatcher.Instance.Dispatch(this);
         }
 
@@ -104,7 +143,7 @@ namespace PESpy.PDB
              *
              * 1. if the PDB impv > impvVC98, SZ is used everywhere
              * 2. if the PDB impv <= impvVC98, it's ST if the string type is < S_ST_MAX. If it's >= S_ST_MAX, it's SZ
-             * 
+             *
              * PDB1::fIsSZPDB() performs this check between PDBStream.impv and impvVC98
              *
              * Confusingly, dumppdb.cpp says that UTF8 applies when the PDB interface version >= PDBImpvVC70. In between VC98
@@ -295,7 +334,7 @@ namespace PESpy.PDB
 
                 //InlineSiteSym
                 case S_INLINESITE:
-                
+
                 //InlineSiteSym2
                 case S_INLINESITE2:
 

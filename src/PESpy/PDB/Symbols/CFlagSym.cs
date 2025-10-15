@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,14 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct CFlagSym : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int machineOffset = 4;
+        private const int languageOffset = 5;
+        private const int flags1Offset = 6;
+        private const int flags2Offset = 7;
+        private const int verOffset = 8;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CFLAGSYM* value;
 
@@ -57,6 +66,8 @@ namespace PESpy.PDB
             sizeof(byte)   + //flags1
             sizeof(byte);    //flags2
 
+        private int BytesUsed => FixedStructSize + ver.Length + 1;
+
         internal CFlagSym(CFLAGSYM* value)
         {
             this.value = value;
@@ -70,32 +81,72 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.CFLAGSYM, this, ViewKind.CFlagSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(12, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(machine), machine, sizeof(byte));
-
-            using (var bitField = s.WriteBitFields<short>())
+            switch (index)
             {
-                bitField.WriteField(nameof(language), language, 8);
-                bitField.WriteField(nameof(pcode), pcode, 1);
-                bitField.WriteField(nameof(floatprec), floatprec, 2);
-                bitField.WriteField(nameof(floatpkg), floatpkg, 2);
-                bitField.WriteField(nameof(ambdata), ambdata, 3);
-                bitField.WriteField(nameof(ambcode), ambcode, 3);
-                bitField.WriteField(nameof(mode32), mode32, 1);
-                bitField.WriteField(nameof(pad), pad, 4);
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(machine), machineOffset, machine, sizeof(byte));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(language), languageOffset, language, sizeof(byte)); //It's listed as a bitfield but it takes up all 8 bits!
+                    break;
+
+                #region BitField (x2)
+
+                case 4:
+                    structWriter.WriteBitField(nameof(pcode), flags1Offset, pcode, sizeof(byte), 1);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(floatprec), flags1Offset, floatprec, sizeof(byte), 2);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField(nameof(floatpkg), flags1Offset, floatpkg, sizeof(byte), 2);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField(nameof(ambdata), flags1Offset, ambdata, sizeof(byte), 3);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(ambcode), flags2Offset, ambcode, sizeof(byte), 3);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(mode32), flags2Offset, mode32, sizeof(byte), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(pad), flags2Offset, pad, sizeof(byte), 4);
+                    break;
+
+                #endregion
+
+                case 11:
+                    structWriter.WriteSymStringField(nameof(ver), verOffset, SymType.ReadString(value, value->ver, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 12:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteSymStringField(nameof(ver), SymType.ReadString(value, value->ver, viewWriter.GetSymbolAccessor()));
-
-            s.Align(4);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
 
         public override string ToString()

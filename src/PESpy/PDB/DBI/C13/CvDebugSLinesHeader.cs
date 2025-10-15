@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -8,10 +8,15 @@ namespace PESpy.PDB
     //CV_DebugSLinesHeader_t
     public class CvDebugSLinesHeader : IValue, IViewable //It's going to be boxed, and also it stores a big array which we don't want to lose
     {
-        public CV_off32_t offCon => chunk.PeekInt32(0); //Relative offset within segment
-        public short segCon => chunk.PeekInt16(4); //1-based segment number
-        public CV_LINES flags => (CV_LINES) chunk.PeekUInt16(6);
-        public int cbCon => chunk.PeekInt32(8); //Total number of bytes represented by this area. The difference between the last line and this gives you the length of the last line
+        private const int offConOffset = 0;
+        private const int segConOffset = 4;
+        private const int flagsOffset = 6;
+        private const int cbConOffset = 8;
+
+        public CV_off32_t offCon => chunk.PeekInt32(offConOffset); //Relative offset within segment
+        public short segCon => chunk.PeekInt16(segConOffset); //1-based segment number
+        public CV_LINES flags => (CV_LINES) chunk.PeekUInt16(flagsOffset);
+        public int cbCon => chunk.PeekInt32(cbConOffset); //Total number of bytes represented by this area. The difference between the last line and this gives you the length of the last line
 
         private CvDebugSLinesFileBlockHeader[]? fileBlocks;
 
@@ -64,19 +69,32 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CV_DebugSLinesHeader_t, this, ViewKind.CvDebugSLinesHeader, length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4 + FileBlocks.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(offCon), offConOffset, offCon);
+                    break;
 
-            s.WriteField(nameof(offCon), offCon);
-            s.WriteField(nameof(segCon), segCon);
-            s.WriteField(nameof(flags), flags, sizeof(short));
-            s.WriteField(nameof(cbCon), cbCon);
+                case 1:
+                    structWriter.WriteField(nameof(segCon), segConOffset, segCon);
+                    break;
 
-            s.WriteInline(FileBlocks);
+                case 2:
+                    structWriter.WriteField(nameof(flags), flagsOffset, flags, sizeof(short));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField(nameof(cbCon), cbConOffset, cbCon);
+                    break;
+
+                default:
+                    structWriter.WriteInline(FileBlocks[index - 4]);
+                    break;
+            }
         }
     }
 }

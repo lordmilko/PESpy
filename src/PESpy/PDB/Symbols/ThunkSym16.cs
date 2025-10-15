@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,16 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct ThunkSym16 : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int pParentOffset = 4;
+        private const int pEndOffset = 8;
+        private const int pNextOffset = 12;
+        private const int offOffset = 16;
+        private const int segOffset = 18;
+        private const int lenOffset = 20;
+        private const int ordOffset = 22;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly THUNKSYM16* value;
 
@@ -73,22 +84,51 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.THUNKSYM16, this, ViewKind.ThunkSym16, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 9;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(pParent), pParent);
-            s.WriteField(nameof(pEnd), pEnd);
-            s.WriteField(nameof(pNext), pNext);
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(seg), seg);
-            s.WriteField(nameof(len), len);
-            s.WriteField(nameof(ord), ord, sizeof(byte));
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(pParent), pParentOffset, pParent);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(pEnd), pEndOffset, pEnd);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(pNext), pNextOffset, pNext);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(seg), segOffset, seg);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(len), lenOffset, len);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(ord), ordOffset, ord, sizeof(byte));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -6,8 +6,13 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the <see cref="lfVBClass"/> structure.
     /// </summary>
-    public readonly unsafe struct LfVBClass
+    public readonly unsafe struct LfVBClass : IViewable
     {
+        private const int leafOffset = 0;
+        private const int attrOffset = 2;
+        private const int indexOffset = 4;
+        private const int vbptrOffset = 8;
+                                                                        
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfVBClass* value;
 

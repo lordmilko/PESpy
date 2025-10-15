@@ -8,7 +8,7 @@ namespace PESpy.View
     /// </summary>
     public interface IContainerView : IView
     {
-        public IView[] Children { get; }
+        ViewChildList Children { get; }
     }
 
     /// <summary>

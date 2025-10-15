@@ -4,12 +4,12 @@
     {
         internal readonly int RowSize;
 
-        private readonly int MethodOffset;
-        private readonly int ImportScopeOffset;
-        private readonly int VariableListOffset;
-        private readonly int ConstantListOffset;
-        private readonly int StartOffset;
-        private readonly int LengthOffset;
+        internal readonly int MethodOffset;
+        internal readonly int ImportScopeOffset;
+        internal readonly int VariableListOffset;
+        internal readonly int ConstantListOffset;
+        internal readonly int StartOffsetOffset;
+        internal readonly int LengthOffset;
 
         private readonly bool isBigMethodIndex;
         private readonly bool isBigImportScopeIndex;
@@ -37,8 +37,8 @@
             ImportScopeOffset = MethodOffset + methodIndexSize;
             VariableListOffset = ImportScopeOffset + importScopeIndexSize;
             ConstantListOffset = VariableListOffset + localVariableIndexSize;
-            StartOffset = ConstantListOffset + localConstantIndexSize;
-            LengthOffset = StartOffset + sizeof(int);
+            StartOffsetOffset = ConstantListOffset + localConstantIndexSize;
+            LengthOffset = StartOffsetOffset + sizeof(int);
             RowSize = LengthOffset + sizeof(int);
         }
 
@@ -69,7 +69,7 @@
         public uint GetStartOffset(LocalScopeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekUInt32(rowOffset + StartOffset);
+            return tableChunk.PeekUInt32(rowOffset + StartOffsetOffset);
         }
 
         public int GetLength(LocalScopeIndex index)

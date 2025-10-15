@@ -261,16 +261,19 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_AUX_SYMBOL, this, ViewKind.ImageAuxSymbol, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1;
+
+        void IViewable.WriteChild(int index, ViewWriter viewWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    viewWriter.WriteField("Bytes", Bytes);
+                    break;
 
-            //We don't currently calculate our Kind
-            Debug.Assert(Kind == AuxSymbolKind.Unknown);
-            s.WriteField("Bytes", Bytes);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -8,12 +8,24 @@ namespace PESpy
     //IMAGE_ENCLAVE_CONFIG32 / IMAGE_ENCLAVE_CONFIG64
     public struct ImageEnclaveConfig : IValue, IViewable
     {
+        private const int SizeOffset = 0;
+        private const int MinimumRequiredConfigSizeOffset = 4;
+        private const int PolicyFlagsOffset = 8;
+        private const int NumberOfImportsOffset = 12;
         internal const int ImportListOffset = 16;
+        private const int ImportEntrySizeOffset = 20;
+        private const int FamilyIDOffset = 24;
+        private const int ImageIDOffset = 24 + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
+        private const int ImageVersionOffset = 24 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        private const int SecurityVersionOffset = 28 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        private const int EnclaveSizeOffset = 32 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        private int NumberOfThreadsOffset => 32 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        private int EnclaveFlagsOffset => 36 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH);
 
-        public int Size => chunk.PeekInt32(0);
-        public int MinimumRequiredConfigSize => chunk.PeekInt32(4);
-        public int PolicyFlags => chunk.PeekInt32(8);
-        public int NumberOfImports => chunk.PeekInt32(12);
+        public int Size => chunk.PeekInt32(SizeOffset);
+        public int MinimumRequiredConfigSize => chunk.PeekInt32(MinimumRequiredConfigSizeOffset);
+        public int PolicyFlags => chunk.PeekInt32(PolicyFlagsOffset);
+        public int NumberOfImports => chunk.PeekInt32(NumberOfImportsOffset);
 
         private RVA<ImageEnclaveImport[]> importList;
 
@@ -46,14 +58,14 @@ namespace PESpy
             }
         }
 
-        public int ImportEntrySize => chunk.PeekInt32(20);
-        public NativeSpan<byte> FamilyID => chunk.PeekNativeSpan<byte>(24, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
-        public NativeSpan<byte> ImageID => chunk.PeekNativeSpan<byte>(24 + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
-        public int ImageVersion => chunk.PeekInt32(24 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
-        public int SecurityVersion => chunk.PeekInt32(28 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
-        public long EnclaveSize => (long) chunk.PeekPointer(32 + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
-        public int NumberOfThreads => chunk.PeekInt32(32 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
-        public int EnclaveFlags => chunk.PeekInt32(36 + chunk.PointerSize + (2 * IMAGE_ENCLAVE_SHORT_ID_LENGTH));
+        public int ImportEntrySize => chunk.PeekInt32(ImportEntrySizeOffset);
+        public NativeSpan<byte> FamilyID => chunk.PeekNativeSpan<byte>(FamilyIDOffset, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public NativeSpan<byte> ImageID => chunk.PeekNativeSpan<byte>(ImageIDOffset, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public int ImageVersion => chunk.PeekInt32(ImageVersionOffset);
+        public int SecurityVersion => chunk.PeekInt32(SecurityVersionOffset);
+        public long EnclaveSize => (long) chunk.PeekPointer(EnclaveSizeOffset);
+        public int NumberOfThreads => chunk.PeekInt32(NumberOfThreadsOffset);
+        public int EnclaveFlags => chunk.PeekInt32(EnclaveFlagsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -88,26 +100,67 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_ENCLAVE_CONFIG, this, ViewKind.ImageEnclaveConfig, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 13;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            s.WriteField(nameof(Size), Size);
-            s.WriteField(nameof(MinimumRequiredConfigSize), MinimumRequiredConfigSize);
-            s.WriteField(nameof(PolicyFlags), PolicyFlags);
-            s.WriteField(nameof(NumberOfImports), NumberOfImports);
-            s.WriteRVAField(nameof(ImportList), ImportList);
-            s.WriteField(nameof(ImportEntrySize), ImportEntrySize);
-            s.WriteField(nameof(FamilyID), FamilyID);
-            s.WriteField(nameof(ImageID), ImageID);
-            s.WriteField(nameof(ImageVersion), ImageVersion);
-            s.WriteField(nameof(SecurityVersion), SecurityVersion);
-            s.WriteField(nameof(EnclaveSize), EnclaveSize);
-            s.WriteField(nameof(NumberOfThreads), NumberOfThreads);
-            s.WriteField(nameof(EnclaveFlags), EnclaveFlags);
+                case 1:
+                    structWriter.WriteField(nameof(MinimumRequiredConfigSize), MinimumRequiredConfigSizeOffset, MinimumRequiredConfigSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(PolicyFlags), PolicyFlagsOffset, PolicyFlags);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(NumberOfImports), NumberOfImportsOffset, NumberOfImports);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAField(nameof(ImportList), ImportListOffset, ImportList);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(ImportEntrySize), ImportEntrySizeOffset, ImportEntrySize);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(FamilyID), FamilyIDOffset, FamilyID);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(ImageID), ImageIDOffset, ImageID);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(ImageVersion), ImageVersionOffset, ImageVersion);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(SecurityVersion), SecurityVersionOffset, SecurityVersion);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(EnclaveSize), EnclaveSizeOffset, EnclaveSize);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(NumberOfThreads), NumberOfThreadsOffset, NumberOfThreads);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(EnclaveFlags), EnclaveFlagsOffset, EnclaveFlags);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

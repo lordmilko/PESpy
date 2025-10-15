@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -7,6 +8,20 @@ namespace PESpy
     [DebuggerDisplay("Flags = {Flags}, TryOffset = {TryOffset}, TryLength = {TryLength}, HandlerOffset = {HandlerOffset}, ClassToken = {ClassToken}, FilterOffset = {FilterOffset}")]
     public readonly struct ImageCorILMethodSectEHClause : IValue, IViewable
     {
+        private const int FatFlagsOffset = 0;
+        private const int FatTryOffsetOffset = 4;
+        private const int FatTryLengthOffset = 8;
+        private const int FatHandlerOffsetOffset = 12;
+        private const int FatHandlerLengthOffset = 16;
+        private const int FatFilterOffsetOffset = 20;
+
+        private const int TinyFlagsOffset = 0;
+        private const int TinyTryOffsetOffset = 2;
+        private const int TinyTryLengthOffset = 4;
+        private const int TinyHandlerOffsetOffset = 5;
+        private const int TinyHandlerLengthOffset = 7;
+        private const int TinyFilterOffsetOffset = 8;
+
         public CorExceptionFlag Flags { get; }
 
         public int TryOffset { get; }
@@ -23,15 +38,15 @@ namespace PESpy
 
         public int Offset { get; }
 
-        private const int FatSize =
+        internal const int FatSize =
             sizeof(int) + //Flags
             sizeof(int) + //TryOffset
             sizeof(int) + //TryLength
             sizeof(int) + //HandlerOffset
             sizeof(int) + //HandlerLength
-            sizeof(int); //FilterOffset        
+            sizeof(int); //FilterOffset
 
-        private const int TinySize =
+        internal const int TinySize =
             sizeof(short) + //Flags
             sizeof(short) + //TryOffset
             sizeof(byte) + //TryLength
@@ -43,30 +58,32 @@ namespace PESpy
 
         private readonly bool isFat;
 
-        internal ImageCorILMethodSectEHClause(in MemoryChunk chunk, bool isFat, ref int read)
+        internal ImageCorILMethodSectEHClause(in MemoryChunk chunk, bool isFat)
         {
-            Offset = chunk.AbsoluteOffset + read;
+            Offset = chunk.AbsoluteOffset;
             this.isFat = isFat;
+
+            int filterOffsetOffset;
 
             if (isFat)
             {
-                Flags = (CorExceptionFlag) chunk.PeekUInt32(read);
-                TryOffset = chunk.PeekInt32(read + 4);
-                TryLength = chunk.PeekInt32(read + 8);
-                HandlerOffset = chunk.PeekInt32(read + 12);
-                HandlerLength = chunk.PeekInt32(read + 16);
+                Flags = (CorExceptionFlag) chunk.PeekUInt32(FatFlagsOffset);
+                TryOffset = chunk.PeekInt32(FatTryOffsetOffset);
+                TryLength = chunk.PeekInt32(FatTryLengthOffset);
+                HandlerOffset = chunk.PeekInt32(FatHandlerOffsetOffset);
+                HandlerLength = chunk.PeekInt32(FatHandlerLengthOffset);
 
-                read += 20;
+                filterOffsetOffset = FatFilterOffsetOffset;
             }
             else
             {
-                Flags = (CorExceptionFlag) chunk.PeekUInt16(read);
-                TryOffset = chunk.PeekUInt16(read + 2);
-                TryLength = chunk.PeekByte(read + 4);
-                HandlerOffset = chunk.PeekUInt16(read + 5);
-                HandlerLength = chunk.PeekByte(read + 7);
+                Flags = (CorExceptionFlag) chunk.PeekUInt16(TinyFlagsOffset);
+                TryOffset = chunk.PeekUInt16(TinyTryOffsetOffset);
+                TryLength = chunk.PeekByte(TinyTryLengthOffset);
+                HandlerOffset = chunk.PeekUInt16(TinyHandlerOffsetOffset);
+                HandlerLength = chunk.PeekByte(TinyHandlerLengthOffset);
 
-                read += 8;
+                filterOffsetOffset = TinyFilterOffsetOffset;
             }
 
             //There are several other flags that can be set; extract out the actual kind of handler it is
@@ -79,19 +96,16 @@ namespace PESpy
             switch (kind)
             {
                 case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT:
-                    ClassToken = chunk.PeekUInt32(read);
-                    read += 4;
+                    ClassToken = chunk.PeekUInt32(filterOffsetOffset);
                     break;
 
                 case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER:
-                    FilterOffset = chunk.PeekInt32(read);
-                    read += 4;
+                    FilterOffset = chunk.PeekInt32(filterOffsetOffset);
                     break;
 
                 default:
                     //Value points to junk
-                    ClassToken = chunk.PeekUInt32(read);
-                    read += 4;
+                    ClassToken = chunk.PeekUInt32(filterOffsetOffset);
                     break;
             }
         }
@@ -111,43 +125,69 @@ namespace PESpy
             );
         }
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            if (isFat)
+            switch (index)
             {
-                s.WriteField(nameof(Flags), Flags, sizeof(int));
-                s.WriteField(nameof(TryOffset), TryOffset);
-                s.WriteField(nameof(TryLength), TryLength);
-                s.WriteField(nameof(HandlerOffset), HandlerOffset);
-                s.WriteField(nameof(HandlerLength), HandlerLength);
-            }
-            else
-            {
-                s.WriteField(nameof(Flags), Flags, sizeof(short));
-                s.WriteField(nameof(TryOffset), (short) TryOffset);
-                s.WriteField(nameof(TryLength), (byte) TryLength);
-                s.WriteField(nameof(HandlerOffset), (short) HandlerOffset);
-                s.WriteField(nameof(HandlerLength), (byte) HandlerLength);
-            }
+                case 0:
+                    if (isFat)
+                        structWriter.WriteField(nameof(Flags), FatFlagsOffset, Flags, sizeof(int));
+                    else
+                        structWriter.WriteField(nameof(Flags), TinyFlagsOffset, Flags, sizeof(short));
 
-            var kind = Flags & (CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FINALLY | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT);
-
-            switch (kind)
-            {
-                case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT:
-                default:
-                    s.WriteField(nameof(ClassToken), ClassToken);
                     break;
 
-                case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER:
-                    s.WriteField(nameof(FilterOffset), ClassToken);
+                case 1:
+                    if (isFat)
+                        structWriter.WriteField(nameof(TryOffset), FatTryOffsetOffset, TryOffset);
+                    else
+                        structWriter.WriteField(nameof(TryOffset), TinyTryOffsetOffset, (short) TryOffset);
+
+                    break;
+
+                case 2:
+                    if (isFat)
+                        structWriter.WriteField(nameof(TryLength), FatTryLengthOffset, TryLength);
+                    else
+                        structWriter.WriteField(nameof(TryLength), TinyTryLengthOffset, (byte) TryLength);
+
+                    break;
+
+                case 3:
+                    if (isFat)
+                        structWriter.WriteField(nameof(HandlerOffset), FatHandlerOffsetOffset, HandlerOffset);
+                    else
+                        structWriter.WriteField(nameof(HandlerOffset), TinyHandlerOffsetOffset, (short) HandlerOffset);
+
+                    break;
+
+                case 4:
+                    if (isFat)
+                        structWriter.WriteField(nameof(HandlerLength), FatHandlerLengthOffset, HandlerLength);
+                    else
+                        structWriter.WriteField(nameof(HandlerLength), TinyHandlerLengthOffset, (byte) HandlerLength);
+
+                    break;
+
+                case 5:
+                    var kind = Flags & (CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FINALLY | CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT);
+
+                    switch (kind)
+                    {
+                        case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT:
+                        default:
+                            structWriter.WriteField(nameof(ClassToken), FatFilterOffsetOffset, ClassToken);
+                            break;
+
+                        case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER:
+                            structWriter.WriteField(nameof(FilterOffset), TinyFilterOffsetOffset, ClassToken);
+                            break;
+                    }
+
                     break;
             }
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

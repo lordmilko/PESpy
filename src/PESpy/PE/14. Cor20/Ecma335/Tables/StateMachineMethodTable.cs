@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int MoveNextMethodOffset;
-        private readonly int KickoffMethodOffset;
+        internal readonly int MoveNextMethodOffset;
+        internal readonly int KickoffMethodOffset;
 
         private readonly bool isBigMethodIndex;
 

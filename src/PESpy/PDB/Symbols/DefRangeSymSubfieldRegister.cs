@@ -11,6 +11,14 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct DefRangeSymSubfieldRegister : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int regOffset = 4;
+        private const int attrOffset = 6;
+        private const int paddingdataOffset = 6;
+        private const int rangeOffset = 10;
+        private const int gapsOffset = 18;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMSUBFIELDREGISTER* value;
 
@@ -59,26 +67,51 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.DEFRANGESYMSUBFIELDREGISTER, this, ViewKind.DefRangeSymSubfieldRegister, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => gaps.Length > 0 ? 8 : 7;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(reg), reg, sizeof(ushort));
-            s.WriteField(nameof(attr), attr);
-
-            using (var bitField = s.WriteBitFields<int>())
+            switch (index)
             {
-                bitField.WriteField(nameof(offParent), offParent, DEFRANGESYMREGISTERREL.CV_OFFSET_PARENT_LENGTH_LIMIT);
-                bitField.WriteField(nameof(padding), padding, 20);
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(reg), regOffset, reg, sizeof(ushort));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(attr), attrOffset, attr);
+                    break;
+
+                #region BitFeld
+
+                case 4:
+                    structWriter.WriteBitField(nameof(offParent), paddingdataOffset, offParent, sizeof(int), DEFRANGESYMREGISTERREL.CV_OFFSET_PARENT_LENGTH_LIMIT);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(padding), paddingdataOffset, padding, sizeof(int), 20);
+                    break;
+
+                #endregion
+
+                case 6:
+                    structWriter.WriteField(nameof(range), rangeOffset, range);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(gaps), gapsOffset, gaps);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField(nameof(range), range);
-            s.WriteField(nameof(gaps), gaps);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

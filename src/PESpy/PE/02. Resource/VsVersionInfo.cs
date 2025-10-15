@@ -10,16 +10,22 @@ namespace PESpy
     /// </summary>
     public partial class VsVersionInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
     {
-        public short Length => chunk.PeekInt16(0);
+        private const int LengthOffset = 0;
+        private const int ValueLengthOffset = 2;
+        private const int TypeOffset = 4;
+        private const int KeyOffset = 6;
+        private const int Padding1Offset = 38;
 
-        public short ValueLength => chunk.PeekInt16(2);
+        public short Length => chunk.PeekInt16(LengthOffset);
 
-        public short Type => chunk.PeekInt16(4);
+        public short ValueLength => chunk.PeekInt16(ValueLengthOffset);
 
-        public FixedUtf16String Key => chunk.PeekUtf16FixedLength(6, 15); //VS_VERSION_INFO + \0 (16 in total)
+        public short Type => chunk.PeekInt16(TypeOffset);
+
+        public FixedUtf16String Key => chunk.PeekUtf16FixedLength(KeyOffset, 15); //VS_VERSION_INFO + \0 (16 in total)
 
         //Due to the fact we've read 3 shorts and then 16 bits, we should always align here
-        public short Padding1 => chunk.PeekInt16(38); //6 + (16 * 2)
+        public short Padding1 => chunk.PeekInt16(Padding1Offset); //6 + (16 * 2)
 
         private VsFixedFileInfo? value;
 
@@ -98,7 +104,7 @@ namespace PESpy
 
                             //Attempting to align can push us over the length; that's OK
                             read = (read + 3) & ~3;
-                        } while (read < length);                        
+                        } while (read < length);
 
                         children = results.ToArray();
                     }
@@ -137,14 +143,19 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.VS_VERSIONINFO, this, ViewKind.VsVersionInfo, Length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteField("wLength", Length);
             s.WriteField("wValueLength", ValueLength);
             s.WriteField("wType", Type);
-            s.WriteUTF16Field("szKey", Key, 16);
+            s.WriteUtf16FixedLengthField("szKey", Key, 16);
             s.WriteField(nameof(Padding1), Padding1);
 
             var value = Value;
@@ -168,8 +179,7 @@ namespace PESpy
 
             s.VerifyLength(Length);
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

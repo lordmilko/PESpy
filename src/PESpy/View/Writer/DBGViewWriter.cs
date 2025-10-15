@@ -26,11 +26,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(dbgFile, structs, byteViewProvider);
+            using var merger = new Merger(dbgFile, this, structs, byteViewProvider);
 
             var results = merger.MergeDBG();
 
-            return new FileView(ViewMode.Physical, dbgFile.Name, results, ViewKind.DBGFile);
+            return new FileView(ViewMode.Physical, dbgFile.Name, results, this, ViewKind.DBGFile);
         }
     }
 }

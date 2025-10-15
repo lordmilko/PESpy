@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,12 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfHLSL : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int subtypeOffset = 4;
+        private const int kindOffset = 8;
+        private const int propdataOffset = 10;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfHLSL* value;
 
@@ -20,17 +27,15 @@ namespace PESpy.PDB
 
         public short kind => value->kind;
 
+        //Bitfield
         public short numprops => value->numprops;
-
         public short unused => value->unused;
-
-        public short propdata => value->propdata;
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(int)    + //subtype
             sizeof(short)  + //kind
-            sizeof(short);   //propdata
+            sizeof(short);   //numprops / unused
 
         internal LfHLSL(lfHLSL* value)
         {
@@ -46,20 +51,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfHLSL, this, ViewKind.LfHLSL, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(subtype), subtype);
-            s.WriteField(nameof(kind), kind);
-            s.WriteField(nameof(numprops), numprops);
-            s.WriteField(nameof(unused), unused);
-            s.WriteField(nameof(propdata), propdata);
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(subtype), subtypeOffset, value->subtype);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(kind), kindOffset, kind);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField(nameof(numprops), propdataOffset, numprops, sizeof(short), 4);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(unused), propdataOffset, unused, sizeof(short), 12);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

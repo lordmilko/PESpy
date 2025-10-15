@@ -9,15 +9,21 @@ namespace PESpy
     /// </summary>
     public class NB10I : ICodeViewPDB, IViewable //It's going to be boxed
     {
-        public CodeViewSig Signature => (CodeViewSig) chunk.PeekUInt32(0);
+        private const int SignatureOffset = 0;
+        private const int dwOffsetOffset = 4;
+        private const int PdbSignatureOffset = 8;
+        private const int AgeOffset = 12;
+        private const int PathOffset = 16;
 
-        public int dwOffset => chunk.PeekInt32(4);
+        public CodeViewSig Signature => (CodeViewSig) chunk.PeekUInt32(SignatureOffset);
 
-        public uint PdbSignature => chunk.PeekUInt32(8);
+        public int dwOffset => chunk.PeekInt32(dwOffsetOffset);
 
-        public int Age => chunk.PeekInt32(12);
+        public uint PdbSignature => chunk.PeekUInt32(PdbSignatureOffset);
 
-        public AnsiString Path => chunk.PeekAnsiNullTerminatedString(16);
+        public int Age => chunk.PeekInt32(AgeOffset);
+
+        public AnsiString Path => chunk.PeekAnsiNullTerminatedString(PathOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -46,18 +52,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.NB10I, this, ViewKind.NB10I, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("dwSig", SignatureOffset, Signature, sizeof(uint));
+                    break;
 
-            s.WriteField("dwSig", Signature, sizeof(uint));
-            s.WriteField("dwOffset", dwOffset);
-            s.WriteField("sig", PdbSignature);
-            s.WriteField("age", Age);
-            s.WriteAnsiNullTerminatedField("szPdb", Path);
+                case 1:
+                    structWriter.WriteField("dwOffset", dwOffsetOffset, dwOffset);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("sig", PdbSignatureOffset, PdbSignature);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("age", AgeOffset, Age);
+                    break;
+
+                case 4:
+                    structWriter.WriteAnsiNullTerminatedField("szPdb", PathOffset, Path);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

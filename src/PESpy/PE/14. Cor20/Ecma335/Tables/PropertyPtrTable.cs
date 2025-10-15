@@ -4,7 +4,7 @@
     {
         internal readonly int RowSize;
 
-        private readonly int PropertyOffset;
+        internal readonly int PropertyOffset;
 
         private readonly bool isBigPropertyIndex;
 

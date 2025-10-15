@@ -58,7 +58,7 @@ namespace PESpy.Ecma335
              */
 
             //If you have a string C:\foo\bar\baz.cs, each component ("foo", "bar") is stored separately, so that when you have multiple paths under a given path you only need to store "foo" and "bar" once
-            //e.g. suppose offset is 
+            //e.g. suppose offset is
             while (read < end)
             {
                 var partOffset = chunk.PeekCorCompressedInteger(read, out var partOffsetBytesRead);

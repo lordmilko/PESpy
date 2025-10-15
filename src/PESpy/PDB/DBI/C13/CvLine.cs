@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -7,10 +8,13 @@ namespace PESpy.PDB
     [DebuggerDisplay("offset = {offset}, linenumStart = {linenumStart}, deltaLineEnd = {deltaLineEnd}, fStatement = {fStatement}")]
     public readonly struct CvLine : IValue, IViewable
     {
+        private const int offsetOffset = 0;
+        private const int flagsOffset = 4;
+
         /// <summary>
         /// Offset to start of code bytes for line number
         /// </summary>
-        public int offset => chunk.PeekInt32(0);
+        public int offset => chunk.PeekInt32(offsetOffset);
 
         /// <summary>
         /// line where statement/expression starts
@@ -27,7 +31,7 @@ namespace PESpy.PDB
         /// </summary>
         public bool fStatement => ((flags >> 31) & 0x1) != 0;
 
-        private uint flags => chunk.PeekUInt32(4);
+        private uint flags => chunk.PeekUInt32(flagsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -50,21 +54,35 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CV_Line_t, this, ViewKind.CvLine, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(offset), offset);
-
-            using (var bitField = s.WriteBitFields<int>())
+            switch (index)
             {
-                bitField.WriteField(nameof(linenumStart), linenumStart, 24);
-                bitField.WriteField(nameof(deltaLineEnd), deltaLineEnd, 7);
-                bitField.WriteField(nameof(fStatement), fStatement, 1);
-            }
+                case 0:
+                    structWriter.WriteField(nameof(offset), offsetOffset, offset);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                #region BitField
+
+                case 1:
+                    structWriter.WriteBitField(nameof(linenumStart), flagsOffset, linenumStart, sizeof(int), 24);
+                    break;
+
+                case 2:
+                    structWriter.WriteBitField(nameof(deltaLineEnd), flagsOffset, deltaLineEnd, sizeof(int), 7);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField(nameof(fStatement), flagsOffset, fStatement, sizeof(int), 1);
+                    break;
+
+                #endregion
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,16 +1,18 @@
-﻿using System.Diagnostics;
-using PESpy.Native;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct ImageLineNumber : IValue, IViewable
     {
-        public int SymbolTableIndex => chunk.PeekInt32(0);
+        private const int SymbolTableIndexOrVirtualAddressOffset = 0;
+        private const int LinenumberOffset = 4;
 
-        public int VirtualAddress => chunk.PeekInt32(0);
+        public int SymbolTableIndex => chunk.PeekInt32(SymbolTableIndexOrVirtualAddressOffset);
 
-        public short Linenumber => chunk.PeekInt16(4);
+        public int VirtualAddress => chunk.PeekInt32(SymbolTableIndexOrVirtualAddressOffset);
+
+        public short Linenumber => chunk.PeekInt16(LinenumberOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -33,19 +35,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_LINENUMBER, this, ViewKind.ImageLineNumber, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    if (Linenumber == 0)
+                        structWriter.WriteField(nameof(SymbolTableIndex), SymbolTableIndexOrVirtualAddressOffset, SymbolTableIndex);
+                    else
+                        structWriter.WriteField(nameof(VirtualAddress), SymbolTableIndexOrVirtualAddressOffset, VirtualAddress);
 
-            if (Linenumber == 0)
-                s.WriteField(nameof(SymbolTableIndex), SymbolTableIndex);
-            else
-                s.WriteField(nameof(VirtualAddress), VirtualAddress);
+                    break;
 
-            s.WriteField(nameof(Linenumber), Linenumber);
+                case 1:
+                    structWriter.WriteField(nameof(Linenumber), LinenumberOffset, Linenumber);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

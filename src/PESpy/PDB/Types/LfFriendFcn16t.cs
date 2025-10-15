@@ -1,13 +1,19 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
     /// <summary>
     /// Represents the <see cref="lfFriendFcn_16t"/> structure.
     /// </summary>
-    public readonly unsafe struct LfFriendFcn16t
+    public readonly unsafe struct LfFriendFcn16t : IViewable
     {
+        private const int leafOffset = 0;
+        private const int indexOffset = 2;
+        private const int NameOffset = 4;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfFriendFcn_16t* value;
 
@@ -29,9 +35,49 @@ namespace PESpy.PDB
             sizeof(ushort) + //leaf
             sizeof(short);   //index
 
+        internal int StructSize => GetStructSize(null);
+
+        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        {
+            var str = TypType.ReadString(value->Name, symbolAccessor);
+
+            return FixedStructSize + str.Length + 1;
+        }
+
         internal LfFriendFcn16t(lfFriendFcn_16t* value)
         {
             this.value = value;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfFriendFcn_16t, this, ViewKind.LfFriendFcn16t, GetStructSize(writer.GetSymbolAccessor()));
+
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    break;
+
+                case 2:
+                    structWriter.WriteSymStringField(nameof(Name), NameOffset, TypType.ReadString(value->Name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

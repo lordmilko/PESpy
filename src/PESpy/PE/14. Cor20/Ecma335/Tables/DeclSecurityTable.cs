@@ -7,9 +7,9 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ActionOffset;
-        private readonly int ParentOffset;
-        private readonly int PermissionSetOffset;
+        internal readonly int ActionOffset;
+        internal readonly int ParentOffset;
+        internal readonly int PermissionSetOffset;
 
         private readonly bool isBigHasDeclSecurityIndex;
         private readonly bool isBigBlobIndexSize;

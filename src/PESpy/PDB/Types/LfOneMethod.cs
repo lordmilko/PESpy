@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfOneMethod : IViewable
     {
+        private const int leafOffset = 0;
+        private const int attrOffset = 2;
+        private const int indexOffset = 4;
+        private const int vbaseoffOffset = 8;
+        private const int nameWithVBaseOffset = 12;
+        private const int nameWithoutVBaseOffset = 8;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfOneMethod* value;
 
@@ -77,23 +85,45 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfOneMethod, this, ViewKind.LfOneMethod, GetStructSize(writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => HasIntro() ? 5 : 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(attr), attr);
-            s.WriteField(nameof(index), index);
+                case 1:
+                    structWriter.WriteField(nameof(attr), attrOffset, attr);
+                    break;
 
-            if (HasIntro())
-                s.WriteField(nameof(vbaseoff), vbaseoff);
+                case 2:
+                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    break;
 
-            s.WriteSymStringField(nameof(name), GetName(viewWriter.GetSymbolAccessor()));
+                case 3:
+                    if (HasIntro())
+                        structWriter.WriteField(nameof(vbaseoff), vbaseoffOffset, vbaseoff);
+                    else
+                        structWriter.WriteSymStringField(nameof(name), nameWithoutVBaseOffset, GetName(structWriter.GetSymbolAccessor()));
 
-            //Do not align; the parent will apply padding
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 4:
+                    if (HasIntro())
+                        structWriter.WriteSymStringField(nameof(name), nameWithVBaseOffset, GetName(structWriter.GetSymbolAccessor()));
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
+
+                //Do not align; the parent will apply padding
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

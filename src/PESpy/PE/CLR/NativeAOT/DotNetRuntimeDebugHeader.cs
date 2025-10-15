@@ -14,16 +14,23 @@ namespace PESpy
     public class DotNetRuntimeDebugHeader : IValue, IViewable
     {
         public int AotSignature = 0x48444E44; //DNDH
+        private const int CookieOffset = 0;
+        private const int MajorVersionOffset = 4;
+        private const int MinorVersionOffset = 6;
+        private const int FlagsOffset = 8;
+        private const int ReservedPadding1Offset = 12;
+        private const int DebugTypeEntriesOffset = 16;
+        private int GlobalValueEntriesOffset => 16 + chunk.PointerSize;
 
-        public int Cookie => chunk.PeekInt32(0);
+        public int Cookie => chunk.PeekInt32(CookieOffset);
 
-        public short MajorVersion => chunk.PeekInt16(4);
+        public short MajorVersion => chunk.PeekInt16(MajorVersionOffset);
 
-        public short MinorVersion => chunk.PeekInt16(6);
+        public short MinorVersion => chunk.PeekInt16(MinorVersionOffset);
 
-        public int Flags => chunk.PeekInt32(8);
+        public int Flags => chunk.PeekInt32(FlagsOffset);
 
-        public int ReservedPadding1 => chunk.PeekInt32(12);
+        public int ReservedPadding1 => chunk.PeekInt32(ReservedPadding1Offset);
 
         //This information seems to be populated at runtime by PopulateDebugHeaders()
 
@@ -39,7 +46,7 @@ namespace PESpy
                 {
                     var peFile = chunk.PEFile();
 
-                    var debugTypeEntriesAddress = (long) chunk.PeekPointer(16);
+                    var debugTypeEntriesAddress = (long) chunk.PeekPointer(DebugTypeEntriesOffset);
 
                     if (peFile.IsLoadedImage)
                     {
@@ -97,7 +104,7 @@ namespace PESpy
                 {
                     var peFile = chunk.PEFile();
 
-                    var globalEntriesAddress = (long) chunk.PeekPointer(16 + chunk.PointerSize);
+                    var globalEntriesAddress = (long) chunk.PeekPointer(GlobalValueEntriesOffset);
 
                     if (peFile.IsLoadedImage)
                     {
@@ -200,20 +207,43 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.DotNetRuntimeDebugHeader, this, ViewKind.DotNetRuntimeDebugHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 7;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Cookie), CookieOffset, Cookie);
+                    break;
 
-            s.WriteField(nameof(Cookie), Cookie);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteField(nameof(Flags), Flags);
-            s.WriteField(nameof(ReservedPadding1), ReservedPadding1);
-            s.WriteVAPointerField(nameof(DebugTypeEntries), DebugTypeEntries);
-            s.WriteVAPointerField(nameof(GlobalValueEntries), GlobalValueEntries);
+                case 1:
+                    structWriter.WriteField(nameof(MajorVersion), MajorVersionOffset, MajorVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(MinorVersion), MinorVersionOffset, MinorVersion);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Flags), FlagsOffset, Flags);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(ReservedPadding1), ReservedPadding1Offset, ReservedPadding1);
+                    break;
+
+                case 5:
+                    structWriter.WriteVAPointerField(nameof(DebugTypeEntries), DebugTypeEntriesOffset, DebugTypeEntries);
+                    break;
+
+                case 6:
+                    structWriter.WriteVAPointerField(nameof(GlobalValueEntries), GlobalValueEntriesOffset, GlobalValueEntries);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

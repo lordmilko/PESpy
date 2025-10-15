@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using PESpy.View;
 
@@ -14,11 +14,25 @@ namespace PESpy.PDB
      * As MODI60 is the same thing as MODI_60_PERSIST, and is a more sensible name, I have opted to use that name for our managed type definition */
     public class Modi60 : IModi, IValue, IViewable //Will always be boxed
     {
+        private const int pmodOffset = 0;
+        private const int scOffset = 4;
+        private const int flagsOffset = 4 + SC.StructSize;
+        private const int snOffset = 6 + SC.StructSize;
+        private const int cbSymsOffset = 8 + SC.StructSize;
+        private const int cbLinesOffset = 12 + SC.StructSize;
+        private const int cbC13LinesOffset = 16 + SC.StructSize;
+        private const int ifileMacOffset = 20 + SC.StructSize;
+        private const int padding1Offset = 22 + SC.StructSize;
+        private const int mpifileichFileOffset = 24 + SC.StructSize;
+        private const int ecInfoOffset = 28 + SC.StructSize;
+        private const int szModuleOffset = 28 + SC40.StructSize + ECInfo.StructSize;
+        private int szObjFileOffset => szModuleOffset + szModule.Length + 1;
+
         //Supposedly this field is used to store the "currently open mod", but in version 6.0 I don't think its actually used
         public int pmod
         {
-            get => chunk.PeekInt32(0);
-            set => chunk.PokeInt32(0, value);
+            get => chunk.PeekInt32(pmodOffset);
+            set => chunk.PokeInt32(pmodOffset, value);
         }
 
         /// <summary>
@@ -26,14 +40,14 @@ namespace PESpy.PDB
         /// </summary>
         public SC sc
         {
-            get => chunk.PeekUnmanaged<SC>(4);
-            set => chunk.PokeUnmanaged<SC>(4, value);
+            get => chunk.PeekUnmanaged<SC>(scOffset);
+            set => chunk.PokeUnmanaged<SC>(scOffset, value);
         }
 
         public Modi60Flags flags
         {
-            get => chunk.PeekUInt16(4 + SC.StructSize);
-            set => chunk.PokeUInt16(4 + SC.StructSize, value);
+            get => chunk.PeekUInt16(flagsOffset);
+            set => chunk.PokeUInt16(flagsOffset, value);
         }
 
         /// <summary>
@@ -41,8 +55,8 @@ namespace PESpy.PDB
         /// </summary>
         public SN sn
         {
-            get => chunk.PeekUInt16(6 + SC.StructSize);
-            set => chunk.PokeUInt16(6 + SC.StructSize, value);
+            get => chunk.PeekUInt16(snOffset);
+            set => chunk.PokeUInt16(snOffset, value);
         }
 
         /// <summary>
@@ -50,8 +64,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbSyms
         {
-            get => chunk.PeekInt32(8 + SC.StructSize);
-            set => chunk.PokeInt32(8 + SC.StructSize, value);
+            get => chunk.PeekInt32(cbSymsOffset);
+            set => chunk.PokeInt32(cbSymsOffset, value);
         }
 
         /// <summary>
@@ -59,8 +73,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbLines
         {
-            get => chunk.PeekInt32(12 + SC.StructSize);
-            set => chunk.PokeInt32(12 + SC.StructSize, value);
+            get => chunk.PeekInt32(cbLinesOffset);
+            set => chunk.PokeInt32(cbLinesOffset, value);
         }
 
         /// <summary>
@@ -68,8 +82,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbC13Lines
         {
-            get => chunk.PeekInt32(16 + SC.StructSize);
-            set => chunk.PokeInt32(16 + SC.StructSize, value);
+            get => chunk.PeekInt32(cbC13LinesOffset);
+            set => chunk.PokeInt32(cbC13LinesOffset, value);
         }
 
         /// <summary>
@@ -77,21 +91,21 @@ namespace PESpy.PDB
         /// </summary>
         public ushort ifileMac
         {
-            get => chunk.PeekUInt16(20 + SC.StructSize);
-            set => chunk.PokeUInt16(20 + SC.StructSize, value);
+            get => chunk.PeekUInt16(ifileMacOffset);
+            set => chunk.PokeUInt16(ifileMacOffset, value);
         }
 
         public ushort padding1
         {
-            get => chunk.PeekUInt16(22 + SC.StructSize);
-            set => chunk.PokeUInt16(22 + SC.StructSize, value);
+            get => chunk.PeekUInt16(padding1Offset);
+            set => chunk.PokeUInt16(padding1Offset, value);
         }
         public int mpifileichFile
         {
-            get => chunk.PeekInt32(24 + SC.StructSize);
-            set => chunk.PokeInt32(24 + SC.StructSize, value);
+            get => chunk.PeekInt32(mpifileichFileOffset);
+            set => chunk.PokeInt32(mpifileichFileOffset, value);
         }
-        public ECInfo ecInfo => new ECInfo(chunk.Slice(28 + SC.StructSize));
+        public ECInfo ecInfo => new ECInfo(chunk.Slice(ecInfoOffset));
         public AnsiString szModule { get; }
         public AnsiString szObjFile { get; }
 
@@ -180,6 +194,8 @@ namespace PESpy.PDB
 
         internal int StructSize => (FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1 + 3) & ~3; //32-bit aligned
 
+        private int BytesUsed => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
+
         private readonly MemoryChunk chunk;
 
         internal unsafe Modi60(in MemoryChunk chunk, out int read)
@@ -219,36 +235,83 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MODI_60_Persist, this, ViewKind.Modi60Persist, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(16, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(pmod), pmod);
-            s.WriteStructField(nameof(sc), sc);
-
-            using (var bitField = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                bitField.WriteField("fWritten", flags.fWritten, 1);
-                bitField.WriteField("fECEnabled", flags.fECEnabled, 1);
-                bitField.WriteField("unused", flags.unused, 6);
-                bitField.WriteField("iTSM", flags.iTSM, 8);
+                case 0:
+                    structWriter.WriteField(nameof(pmod), pmodOffset, pmod);
+                    break;
+
+                case 1:
+                    structWriter.WriteStructField(nameof(sc), scOffset, sc);
+                    break;
+
+                case 2:
+                    structWriter.WriteBitField("fWritten", flagsOffset, flags.fWritten, sizeof(ushort), 1);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField("fECEnabled", flagsOffset, flags.fECEnabled, sizeof(ushort), 1);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField("unused", flagsOffset, flags.unused, sizeof(ushort), 6);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField("iTSM", flagsOffset, flags.iTSM, sizeof(ushort), 8);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(sn), snOffset, sn);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(cbSyms), cbSymsOffset, cbSyms);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(cbLines), cbLinesOffset, cbLines);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(cbC13Lines), cbC13LinesOffset, cbC13Lines);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(ifileMac), ifileMacOffset, ifileMac);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(padding1), padding1Offset, padding1);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(mpifileichFile), mpifileichFileOffset, mpifileichFile);
+                    break;
+
+                case 13:
+                    structWriter.WriteInline(ecInfo);
+                    break;
+
+                case 14:
+                    structWriter.WriteAnsiNullTerminatedField(nameof(szModule), szModuleOffset, szModule);
+                    break;
+
+                case 15:
+                    structWriter.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFileOffset, szObjFile);
+                    break;
+
+                case 16:
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField(nameof(sn), sn);
-            s.WriteField(nameof(cbSyms), cbSyms);
-            s.WriteField(nameof(cbLines), cbLines);
-            s.WriteField(nameof(cbC13Lines), cbC13Lines);
-            s.WriteField(nameof(ifileMac), ifileMac);
-            s.WriteField(nameof(padding1), padding1);
-            s.WriteField(nameof(mpifileichFile), mpifileichFile);
-            s.WriteInline(ecInfo);
-            s.WriteAnsiNullTerminatedField(nameof(szModule), szModule);
-            s.WriteAnsiNullTerminatedField(nameof(szObjFile), szObjFile);
-
-            s.Align(4);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
 
         public override string ToString()

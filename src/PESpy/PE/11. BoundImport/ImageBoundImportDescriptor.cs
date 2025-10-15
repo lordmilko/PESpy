@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -9,11 +10,13 @@ namespace PESpy
     /// </summary>
     public struct ImageBoundImportDescriptor : IValue, IViewable
     {
+        private const int TimeDateStampOffset = 0;
         internal const int OffsetModuleNameOffset = 4;
+        private const int NumberOfModuleForwarderRefsOffset = 6;
 
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(0);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
         public ushort OffsetModuleName => chunk.PeekUInt16(OffsetModuleNameOffset);
-        public ushort NumberOfModuleForwarderRefs => chunk.PeekUInt16(6);
+        public ushort NumberOfModuleForwarderRefs => chunk.PeekUInt16(NumberOfModuleForwarderRefsOffset);
 
         private ImageBoundForwarderRef[]? refs;
 
@@ -100,19 +103,28 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BOUND_IMPORT_DESCRIPTOR, this, ViewKind.ImageBoundImportDescriptor, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3 + Refs.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
 
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(OffsetModuleName), OffsetModuleName);
+                case 1:
+                    structWriter.WriteField(nameof(OffsetModuleName), OffsetModuleNameOffset, OffsetModuleName);
+                    break;
 
-            s.WriteField(nameof(NumberOfModuleForwarderRefs), NumberOfModuleForwarderRefs);
+                case 2:
+                    structWriter.WriteField(nameof(NumberOfModuleForwarderRefs), NumberOfModuleForwarderRefsOffset, NumberOfModuleForwarderRefs);
+                    break;
 
-            s.WriteInline(Refs);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(Refs[index - 3]);
+                    break;
+            }
         }
 
         public override string ToString()

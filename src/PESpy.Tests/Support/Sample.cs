@@ -160,6 +160,9 @@ namespace PESpy.Tests
 
         public static readonly string VC50_OBJ; //C11
 
+        //From a separate build to the VC50_EXE; the VC50_EXE contains NB11 symbols without an associated PDB
+        public static readonly string VC50_PDB;
+
         #endregion
         #region 12. Visual C++ 6.0
 
@@ -313,6 +316,7 @@ namespace PESpy.Tests
 
             VC50_EXE = MakePath("11. vc50\\TestApp.exe");
             VC50_OBJ = MakePath("11. vc50\\main.obj");
+            VC50_PDB = MakePath("11. vc50\\TestApp.pdb");
 
             #endregion
             #region 12. Visual C++ 6.0

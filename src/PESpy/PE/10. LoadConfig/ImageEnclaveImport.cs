@@ -9,18 +9,25 @@ namespace PESpy
     //IMAGE_ENCLAVE_IMPORT
     public struct ImageEnclaveImport : IValue, IViewable
     {
-        internal const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
+        private const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
+
+        private const int MatchTypeOffset = 0;
+        private const int MinimumSecurityVersionOffset = 4;
+        private const int UniqueOrAuthorIDOffset = 8;
+        private const int FamilyIDOffset = 8 + IMAGE_ENCLAVE_LONG_ID_LENGTH;
+        private const int ImageIDOffset = 8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
         internal const int ImportNameOffset = 8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
+        private const int ReservedOffset = 12 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH;
 
-        public IMAGE_ENCLAVE_IMPORT_MATCH MatchType => (IMAGE_ENCLAVE_IMPORT_MATCH) chunk.PeekUInt32(0);
+        public IMAGE_ENCLAVE_IMPORT_MATCH MatchType => (IMAGE_ENCLAVE_IMPORT_MATCH) chunk.PeekUInt32(MatchTypeOffset);
 
-        public int MinimumSecurityVersion => chunk.PeekInt32(4);
+        public int MinimumSecurityVersion => chunk.PeekInt32(MinimumSecurityVersionOffset);
 
-        public NativeSpan<byte> UniqueOrAuthorID => chunk.PeekNativeSpan<byte>(8, IMAGE_ENCLAVE_LONG_ID_LENGTH);
+        public NativeSpan<byte> UniqueOrAuthorID => chunk.PeekNativeSpan<byte>(UniqueOrAuthorIDOffset, IMAGE_ENCLAVE_LONG_ID_LENGTH);
 
-        public NativeSpan<byte> FamilyID => chunk.PeekNativeSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public NativeSpan<byte> FamilyID => chunk.PeekNativeSpan<byte>(FamilyIDOffset, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
 
-        public NativeSpan<byte> ImageID => chunk.PeekNativeSpan<byte>(8 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public NativeSpan<byte> ImageID => chunk.PeekNativeSpan<byte>(ImageIDOffset, IMAGE_ENCLAVE_SHORT_ID_LENGTH);
 
         private RVA<AnsiString>? importName;
 
@@ -46,7 +53,7 @@ namespace PESpy
             }
         }
 
-        public int Reserved => chunk.PeekInt32(12 + IMAGE_ENCLAVE_LONG_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH + IMAGE_ENCLAVE_SHORT_ID_LENGTH);
+        public int Reserved => chunk.PeekInt32(ReservedOffset);
 
         internal const int StructSize =
             sizeof(int) + //MatchType
@@ -76,20 +83,43 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_ENCLAVE_IMPORT, this, ViewKind.ImageEnclaveImport, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 7;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(MatchType), MatchTypeOffset, MatchType, sizeof(int));
+                    break;
 
-            s.WriteField(nameof(MatchType), MatchType, sizeof(int));
-            s.WriteField(nameof(MinimumSecurityVersion), MinimumSecurityVersion);
-            s.WriteField(nameof(UniqueOrAuthorID), UniqueOrAuthorID);
-            s.WriteField(nameof(FamilyID), FamilyID);
-            s.WriteField(nameof(ImageID), ImageID);
-            s.WriteRVAAnsiNullTerminatedField(nameof(ImportName), ImportName);
-            s.WriteField(nameof(Reserved), Reserved);
+                case 1:
+                    structWriter.WriteField(nameof(MinimumSecurityVersion), MinimumSecurityVersionOffset, MinimumSecurityVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(UniqueOrAuthorID), UniqueOrAuthorIDOffset, UniqueOrAuthorID);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(FamilyID), FamilyIDOffset, FamilyID);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(ImageID), ImageIDOffset, ImageID);
+                    break;
+
+                case 5:
+                    structWriter.WriteRVAAnsiNullTerminatedField(nameof(ImportName), ImportNameOffset, ImportName);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

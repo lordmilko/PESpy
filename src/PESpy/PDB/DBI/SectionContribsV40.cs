@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -6,7 +7,9 @@ namespace PESpy.PDB
     //This type is made up and merely encapsulates the SC40 entries
     public class SectionContribsV40 : ISectionContribs, IValue, IViewable
     {
-        public NativeSpan<SC40> Entries => chunk.PeekNativeSpan<SC40>(0, numElems);
+        private const int EntriesOffset = 0;
+
+        public NativeSpan<SC40> Entries => chunk.PeekNativeSpan<SC40>(EntriesOffset, numElems);
 
         public int Length => Entries.Length;
 
@@ -78,14 +81,11 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SectionContribs, this, ViewKind.SectionContribsV40, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => Entries.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteInline(Entries);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.WriteInline(Entries.Length + (SC40.StructSize * index), Entries[index]);
         }
     }
 }

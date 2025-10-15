@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,15 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfEnum : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int countOffset = 4;
+        private const int propertyOffset = 6;
+        private const int utypeOffset = 8;
+        private const int fieldOffset = 12;
+        private const int NameOffset = 16;
+        private int uniquenameOffset => NameOffset + Name.Length + 1;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfEnum* value;
 
@@ -55,6 +65,25 @@ namespace PESpy.PDB
             sizeof(int)    + //utype
             sizeof(int);     //field
 
+        private int BytesUsed
+        {
+            get
+            {
+                var name = TypType.ReadString(value->Name);
+
+                var length = FixedStructSize + name.Length + 1;
+
+                if (property.hasuniquename)
+                {
+                    var uniqueName = TypType.ReadString(value->Name + name.Length + 1);
+
+                    length += uniquename.Length + 1;
+                }
+
+                return length;
+            }
+        }
+
         internal LfEnum(lfEnum* value)
         {
             this.value = value;
@@ -68,25 +97,62 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfEnum, this, ViewKind.LfEnum, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(count), count);
-            s.WriteField(nameof(property), property);
-            s.WriteField(nameof(utype), utype);
-            s.WriteField(nameof(field), field);
-            s.WriteSymStringField(nameof(Name), TypType.ReadString(value->Name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            if (property.hasuniquename)
-                s.WriteSymStringField(nameof(uniquename), GetUniqueName(viewWriter.GetSymbolAccessor()));
+                case 2:
+                    structWriter.WriteField(nameof(count), countOffset, count);
+                    break;
 
-            s.Align(4);
+                case 3:
+                    structWriter.WriteField(nameof(property), propertyOffset, property);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 4:
+                    structWriter.WriteField(nameof(utype), utypeOffset, value->utype);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(field), fieldOffset, value->field);
+                    break;
+
+                case 6:
+                    structWriter.WriteSymStringField(nameof(Name), NameOffset, TypType.ReadString(value->Name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 7:
+                    if (property.hasuniquename)
+                        structWriter.WriteSymStringField(nameof(uniquename), uniquenameOffset, GetUniqueName(structWriter.GetSymbolAccessor()));
+                    else
+                        structWriter.AlignOrThrow(BytesUsed);
+
+                    break;
+
+                case 8:
+                    if (property.hasuniquename)
+                    {
+                        //Possible alignment
+                        structWriter.AlignOrThrow(BytesUsed);
+                    }
+                    else
+                        throw new IndexOutOfRangeException(); //We already aligned above
+
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -59,7 +59,7 @@ namespace PESpy.Ecma335
 
         internal static int GetCodedIndexSize(int[] rowCounts, bool isMinimalDelta, CodedIndexTag tag)
         {
-            /* A coded index is an index that can reference one of several potential tables. Which table, and the index to then use in that table, 
+            /* A coded index is an index that can reference one of several potential tables. Which table, and the index to then use in that table,
              * are stored in a compact format. e.g. a TypeDefOrReg coded index is an index that targets either the TypeDef, TypeRef or TypeSpec table.
              *
              * The following breaks down the description of coded indices from II.24.2.6 and translates it into english

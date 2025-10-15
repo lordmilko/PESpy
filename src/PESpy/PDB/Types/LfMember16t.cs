@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,20 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfMember16t : IViewable
     {
+        private const int leafOffset = 0;
+        private const int indexOffset = 2;
+        private const int attrOffset = 4;
+        private const int offsetOffset = 6;
+        private int nameOffset
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+
+                return offsetOffset + bytesRead;
+            }
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMember_16t* value;
 
@@ -19,9 +35,32 @@ namespace PESpy.PDB
 
         public CV_fldattr_t attr => value->attr;
 
+        #region offset
+
+        //variable length offset of field followed by length prefixed name of field
+
+        public int offset
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->offset, out var offset, out _);
+
+                return (int) offset;
+            }
+        }
+
+        public SymString name => GetName(null);
+
+        #endregion
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) => throw new System.NotImplementedException(); //TypType.ReadString(value->name, symbolAccessor);
+        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        {
+            //I am assuming I need to use normal ST/UTF parsing logic
+            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+
+            return TypType.ReadString(value->offset + bytesRead, symbolAccessor);
+        }
 
         #endregion
 
@@ -30,21 +69,61 @@ namespace PESpy.PDB
             sizeof(short)  + //index
             2;               //attr
 
+        internal int StructSize => GetStructSize(null);
+
+        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        {
+            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+
+            var str = TypType.ReadString(value->offset + bytesRead, symbolAccessor);
+
+            return FixedStructSize + bytesRead + str.Length + 1;
+        }
+
         internal LfMember16t(lfMember_16t* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read offset");
         }
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //No globals
+        }
 
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(index), index);
-            s.WriteField(nameof(attr), attr);
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfMember_16t, this, ViewKind.LfMember16t, GetStructSize(writer.GetSymbolAccessor()));
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(attr), attrOffset, attr);
+                    break;
+
+                case 3:
+                    structWriter.WriteNumericData(nameof(offset), offsetOffset, value->offset);
+                    break;
+
+                case 4:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, GetName(structWriter.GetSymbolAccessor()));
+                    break;
+
+                //Do not align; the parent will apply padding
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using PESpy.PDB;
 using PESpy.View.Builder;
 using DirectoryInfo = PESpy.View.Builder.DirectoryInfo;
@@ -10,6 +9,8 @@ namespace PESpy.View
     public class PDBViewWriter : ViewWriter
     {
         internal PDBFile pdbFile;
+
+        internal override ISymbolAccessor GetSymbolAccessor() => pdbFile;
 
         internal unsafe PDBViewWriter(PDBFile pdbFile) : base(pdbFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
         {
@@ -288,6 +289,10 @@ namespace PESpy.View
                 }
             }
 
+            using var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
+
+            PDBContiguousSectionInfo currentContiguousSection = default;
+
             for (var i = 0; i < pdbFile.NumPages; i++)
             {
                 using var nameBuilder = new ValueStringBuilder();
@@ -326,6 +331,31 @@ namespace PESpy.View
                             name = $"{specialName} / {name}";
                     }
 
+                    if (currentContiguousSection.Name == null)
+                    {
+                        currentContiguousSection = new PDBContiguousSectionInfo(name, match.pageIndex, i, match.si.PageList.Length);
+                    }
+                    else
+                    {
+                        if (currentContiguousSection.Name != name || match.pageIndex != currentContiguousSection.LocalEndIndex + 1)
+                        {
+                            if (currentContiguousSection.Name != null)
+                            {
+                                if (currentContiguousSection.NumPages > 1)
+                                    contiguousSections.Add(currentContiguousSection);
+
+                                currentContiguousSection = default;
+                            }
+
+                            currentContiguousSection = new PDBContiguousSectionInfo(name, match.pageIndex, i, match.si.PageList.Length);
+                        }
+                        else
+                        {
+                            currentContiguousSection.LocalEndIndex = match.pageIndex;
+                            currentContiguousSection.GlobalEndIndex = i;
+                        }
+                    }
+
                     nameBuilder.Append(" | " + name);
                     nameBuilder.Append(" (");
                     nameBuilder.Append(match.pageIndex + 1);
@@ -336,6 +366,24 @@ namespace PESpy.View
                 else if (specialPageMap.TryGetValue(i, out var name))
                 {
                     nameBuilder.Append(" | " + name);
+
+                    if (currentContiguousSection.Name != null)
+                    {
+                        if (currentContiguousSection.NumPages > 1)
+                            contiguousSections.Add(currentContiguousSection);
+
+                        currentContiguousSection = default;
+                    }
+                }
+                else
+                {
+                    if (currentContiguousSection.Name != null)
+                    {
+                        if (currentContiguousSection.NumPages > 1)
+                            contiguousSections.Add(currentContiguousSection);
+
+                        currentContiguousSection = default;
+                    }
                 }
 
                 //Try and include some details about which streams reside in this page
@@ -343,11 +391,11 @@ namespace PESpy.View
                 pages.Add(new DirectoryInfo(nameBuilder.ToString(), i * pdbFile.PageSize, pdbFile.PageSize));
             }
 
-            using var merger = new Merger(pdbFile, structs, default, pages, byteViewProvider);
+            using var merger = new Merger(pdbFile, this, structs, default, pages, byteViewProvider);
 
-            var results = merger.MergePDB();
+            var results = merger.MergePDB(contiguousSections);
 
-            return new FileView(ViewMode.Physical, pdbFile.Name, results, ViewKind.PDBFile);
+            return new FileView(ViewMode.Physical, pdbFile.Name, results, this, ViewKind.PDBFile);
         }
     }
 }

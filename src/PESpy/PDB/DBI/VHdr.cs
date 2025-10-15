@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -19,9 +20,12 @@ namespace PESpy.PDB
             verLongHashV2 = 2,
         }
 
-        public Hdr ulHdr => (Hdr) chunk.PeekUInt32(0);
+        private const int ulHdrOffset = 0;
+        private const int ulVerOffset = 4;
 
-        public Ver ulVer => (Ver) chunk.PeekUInt32(4);
+        public Hdr ulHdr => (Hdr) chunk.PeekUInt32(ulHdrOffset);
+
+        public Ver ulVer => (Ver) chunk.PeekUInt32(ulVerOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -44,15 +48,23 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.VHdr, this, ViewKind.VHdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(ulHdr), ulHdrOffset, ulHdr, sizeof(int));
+                    break;
 
-            s.WriteField(nameof(ulHdr), ulHdr, sizeof(int));
-            s.WriteField(nameof(ulVer), ulVer, sizeof(int));
+                case 1:
+                    structWriter.WriteField(nameof(ulVer), ulVerOffset, ulVer, sizeof(int));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

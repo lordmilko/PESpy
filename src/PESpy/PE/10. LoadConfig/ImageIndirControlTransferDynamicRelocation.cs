@@ -1,17 +1,19 @@
-﻿using System.Diagnostics;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct ImageIndirControlTransferDynamicRelocation : IValue, IViewable
     {
+        private const int flagsOffset = 0;
+
         public short PageRelativeOffset => (short) ((flags >> 0) & 0xFFF);
         public bool IndirectCall        => ((flags >> 12) & 0x1) != 0;
         public bool RexWPrefix          => ((flags >> 13) & 0x1) != 0;
         public bool CfgCheck            => ((flags >> 14) & 0x1) != 0;
         public bool Reserved            => ((flags >> 15) & 0x1) != 0;
 
-        private ushort flags => chunk.PeekUInt16(0);
+        private ushort flags => chunk.PeekUInt16(flagsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -33,21 +35,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION, this, ViewKind.ImageIndirControlTransferDynamicRelocation, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            using (var b = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                b.WriteField(nameof(PageRelativeOffset), PageRelativeOffset, 12);
-                b.WriteField(nameof(IndirectCall), IndirectCall, 1);
-                b.WriteField(nameof(RexWPrefix), RexWPrefix, 1);
-                b.WriteField(nameof(CfgCheck), CfgCheck, 1);
-                b.WriteField(nameof(Reserved), Reserved, 1);
-            }
+                case 0:
+                    structWriter.WriteBitField(nameof(PageRelativeOffset), flagsOffset, PageRelativeOffset, sizeof(ushort), 12);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteBitField(nameof(IndirectCall), flagsOffset, IndirectCall, sizeof(ushort), 1);
+                    break;
+
+                case 2:
+                    structWriter.WriteBitField(nameof(RexWPrefix), flagsOffset, RexWPrefix, sizeof(ushort), 1);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField(nameof(CfgCheck), flagsOffset, CfgCheck, sizeof(ushort), 1);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField(nameof(Reserved), flagsOffset, Reserved, sizeof(ushort), 1);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,10 +1,13 @@
-﻿using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct ImageBDDInfo : IValue, IViewable
     {
+        private const int VersionOffset = 0;
+        private const int BDDSizeOffset = 4;
+        private const int BDDNodesOffset = 8;
+
         /// <summary>
         /// Decides the semantics of serialized BDD
         /// </summary>
@@ -26,13 +29,13 @@ namespace PESpy
             Offset = chunk.AbsoluteOffset;
 
             //Eagerly load; I presume all the info you want is in the BDD Nodes
-            Version = chunk.PeekInt32(0);
-            BDDSize = chunk.PeekInt32(4);
+            Version = chunk.PeekInt32(VersionOffset);
+            BDDSize = chunk.PeekInt32(BDDSizeOffset);
 
             var nodes = new ImageBDDDynamicRelocation[BDDSize / ImageBDDDynamicRelocation.StructSize];
 
             for (var i = 0; i < nodes.Length; i++)
-                nodes[i] = new ImageBDDDynamicRelocation(chunk.Slice(8 + (i * ImageBDDDynamicRelocation.StructSize)));
+                nodes[i] = new ImageBDDDynamicRelocation(chunk.Slice(BDDNodesOffset + (i * ImageBDDDynamicRelocation.StructSize)));
 
             BDDNodes = nodes;
         }
@@ -45,16 +48,24 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BDD_INFO, this, ViewKind.ImageBDDInfo, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + BDDNodes.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Version), VersionOffset, Version);
+                    break;
 
-            s.WriteField(nameof(Version), Version);
-            s.WriteField(nameof(BDDSize), BDDSize);
-            s.WriteInline(BDDNodes);
+                case 1:
+                    structWriter.WriteField(nameof(BDDSize), BDDSizeOffset, BDDSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(BDDNodes[index - 2]);
+                    break;
+            }
         }
     }
 }

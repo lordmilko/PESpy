@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -9,11 +10,13 @@ namespace PESpy
     [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
     public struct RuntimeFunction : IValue, IViewable
     {
+        private const int BeginAddressOffset = 0;
+        private const int EndAddressOffset = 4;
         internal const int UnwindDataOffset = 8;
 
-        public int BeginAddress => chunk.PeekInt32(0);
+        public int BeginAddress => chunk.PeekInt32(BeginAddressOffset);
 
-        public int EndAddress => chunk.PeekInt32(4);
+        public int EndAddress => chunk.PeekInt32(EndAddressOffset);
 
         private RVA<UnwindInfo> unwindData;
 
@@ -77,16 +80,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.RUNTIME_FUNCTION, this, ViewKind.RuntimeFunction, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(BeginAddress), BeginAddressOffset, BeginAddress);
+                    break;
 
-            s.WriteField(nameof(BeginAddress), BeginAddress);
-            s.WriteField(nameof(EndAddress), EndAddress);
-            s.WriteRVAField(nameof(UnwindData), UnwindData);
+                case 1:
+                    structWriter.WriteField(nameof(EndAddress), EndAddressOffset, EndAddress);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteRVAField(nameof(UnwindData), UnwindDataOffset, UnwindData);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

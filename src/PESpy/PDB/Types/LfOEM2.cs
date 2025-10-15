@@ -10,6 +10,11 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfOEM2 : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int idOemOffset = 4;
+        private const int countOffset = 20;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfOEM2* value;
 
@@ -40,17 +45,31 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfOEM2, this, ViewKind.LfOEM2, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(idOem), idOem);
-            s.WriteField(nameof(count), count);
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(idOem), idOemOffset, idOem);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(count), countOffset, count);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

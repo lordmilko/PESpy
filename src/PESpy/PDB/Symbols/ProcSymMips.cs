@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,25 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct ProcSymMips : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int pParentOffset = 4;
+        private const int pEndOffset = 8;
+        private const int pNextOffset = 12;
+        private const int lenOffset = 16;
+        private const int DbgStartOffset = 20;
+        private const int DbgEndOffset = 24;
+        private const int regSaveOffset = 28;
+        private const int fpSaveOffset = 32;
+        private const int intOffOffset = 36;
+        private const int fpOffOffset = 40;
+        private const int typindOffset = 44;
+        private const int offOffset = 48;
+        private const int segOffset = 52;
+        private const int retRegOffset = 54;
+        private const int frameRegOffset = 55;
+        private const int nameOffset = 56;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PROCSYMMIPS* value;
 
@@ -95,6 +115,8 @@ namespace PESpy.PDB
             sizeof(byte)   + //retReg
             sizeof(byte);    //frameReg
 
+        private int BytesUsed => FixedStructSize + name.Length + 1;
+
         internal ProcSymMips(PROCSYMMIPS* value)
         {
             this.value = value;
@@ -108,33 +130,92 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.PROCSYMMIPS, this, ViewKind.ProcSymMips, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(18, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(pParent), pParent);
-            s.WriteField(nameof(pEnd), pEnd);
-            s.WriteField(nameof(pNext), pNext);
-            s.WriteField(nameof(len), len);
-            s.WriteField(nameof(DbgStart), DbgStart);
-            s.WriteField(nameof(DbgEnd), DbgEnd);
-            s.WriteField(nameof(regSave), regSave);
-            s.WriteField(nameof(fpSave), fpSave);
-            s.WriteField(nameof(intOff), intOff);
-            s.WriteField(nameof(fpOff), fpOff);
-            s.WriteField(nameof(typind), typind);
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(seg), seg);
-            s.WriteField(nameof(retReg), retReg);
-            s.WriteField(nameof(frameReg), frameReg);
-            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField(nameof(pParent), pParentOffset, pParent);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField(nameof(pEnd), pEndOffset, pEnd);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(pNext), pNextOffset, pNext);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(len), lenOffset, len);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(DbgStart), DbgStartOffset, DbgStart);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(DbgEnd), DbgEndOffset, DbgEnd);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(regSave), regSaveOffset, regSave);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(fpSave), fpSaveOffset, fpSave);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(intOff), intOffOffset, intOff);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(fpOff), fpOffOffset, fpOff);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(typind), typindOffset, value->typind);
+                    break;
+
+                case 13:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
+
+                case 14:
+                    structWriter.WriteField(nameof(seg), segOffset, seg);
+                    break;
+
+                case 15:
+                    structWriter.WriteField(nameof(retReg), retRegOffset, retReg);
+                    break;
+
+                case 16:
+                    structWriter.WriteField(nameof(frameReg), frameRegOffset, frameReg);
+                    break;
+
+                case 17:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, SymType.ReadString(value, value->name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 18:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

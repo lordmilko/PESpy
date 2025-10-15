@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ProcessorOffset;
-        private readonly int AssemblyRefOffset;
+        internal readonly int ProcessorOffset;
+        internal readonly int AssemblyRefOffset;
 
         private readonly bool isBigAssemblyRefIndex;
 

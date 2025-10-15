@@ -11,9 +11,12 @@ namespace PESpy
     /// </summary>
     public readonly struct Reproducible : IValue, IViewable
     {
-        public int Size => chunk.PeekInt32(0);
+        private const int SizeOffset = 0;
+        private const int HashOffset = 4;
 
-        public NativeSpan<byte> Hash => chunk.PeekNativeSpan<byte>(4, Size);
+        public int Size => chunk.PeekInt32(SizeOffset);
+
+        public NativeSpan<byte> Hash => chunk.PeekNativeSpan<byte>(HashOffset, Size);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -36,15 +39,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.Reproducible, this, ViewKind.Reproducible, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            s.WriteField(nameof(Size), Size);
-            s.WriteField(nameof(Hash), Hash);
+                case 1:
+                    structWriter.WriteField(nameof(Hash), HashOffset, Hash);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

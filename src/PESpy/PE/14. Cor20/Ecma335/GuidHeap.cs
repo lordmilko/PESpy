@@ -79,7 +79,7 @@ namespace PESpy.Ecma335
                     return false;
 
                 Current = guidHeap[index];
-                index++;                
+                index++;
                 return true;
             }
 

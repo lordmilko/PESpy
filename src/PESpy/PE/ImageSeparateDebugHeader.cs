@@ -9,31 +9,45 @@ namespace PESpy
     {
         public const ushort IMAGE_SEPARATE_DEBUG_SIGNATURE = 0x4944; //DI
 
-        public ushort Signature => chunk.PeekUInt16(0);
+        private const int SignatureOffset = 0;
+        private const int FlagsOffset = 2;
+        private const int MachineOffset = 4;
+        private const int CharacteristicsOffset = 6;
+        private const int TimeDateStampOffset = 8;
+        private const int CheckSumOffset = 12;
+        private const int ImageBaseOffset = 16;
+        private const int SizeOfImageOffset = 20;
+        private const int NumberOfSectionsOffset = 24;
+        private const int ExportedNamesSizeOffset = 28;
+        private const int DebugDirectorySizeOffset = 32;
+        private const int SectionAlignmentOffset = 36;
+        private const int ReservedOffset = 40;
 
-        public short Flags => chunk.PeekInt16(2);
+        public ushort Signature => chunk.PeekUInt16(SignatureOffset);
 
-        public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(4);
+        public short Flags => chunk.PeekInt16(FlagsOffset);
 
-        public ImageFile Characteristics => (ImageFile) chunk.PeekUInt16(6);
+        public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(MachineOffset);
 
-        public uint TimeDateStamp => chunk.PeekUInt32(8);
+        public ImageFile Characteristics => (ImageFile) chunk.PeekUInt16(CharacteristicsOffset);
 
-        public uint CheckSum => chunk.PeekUInt32(12);
+        public uint TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
-        public uint ImageBase => chunk.PeekUInt32(16);
+        public uint CheckSum => chunk.PeekUInt32(CheckSumOffset);
 
-        public int SizeOfImage => chunk.PeekInt32(20);
+        public uint ImageBase => chunk.PeekUInt32(ImageBaseOffset);
 
-        public int NumberOfSections => chunk.PeekInt32(24);
+        public int SizeOfImage => chunk.PeekInt32(SizeOfImageOffset);
 
-        public int ExportedNamesSize => chunk.PeekInt32(28);
+        public int NumberOfSections => chunk.PeekInt32(NumberOfSectionsOffset);
 
-        public int DebugDirectorySize => chunk.PeekInt32(32);
+        public int ExportedNamesSize => chunk.PeekInt32(ExportedNamesSizeOffset);
 
-        public int SectionAlignment => chunk.PeekInt32(36);
+        public int DebugDirectorySize => chunk.PeekInt32(DebugDirectorySizeOffset);
 
-        public NativeSpan<int> Reserved => chunk.PeekNativeSpan<int>(40, 2);
+        public int SectionAlignment => chunk.PeekInt32(SectionAlignmentOffset);
+
+        public NativeSpan<int> Reserved => chunk.PeekNativeSpan<int>(ReservedOffset, 2);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -70,26 +84,67 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_SEPARATE_DEBUG_HEADER, this, ViewKind.ImageSeparateDebugHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 13;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Signature), SignatureOffset, Signature);
+                    break;
 
-            s.WriteField(nameof(Signature), Signature);
-            s.WriteField(nameof(Flags), Flags);
-            s.WriteField(nameof(Machine), Machine, sizeof(short));
-            s.WriteField(nameof(Characteristics), Characteristics, sizeof(short));
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
-            s.WriteField(nameof(CheckSum), CheckSum);
-            s.WriteField(nameof(ImageBase), ImageBase);
-            s.WriteField(nameof(SizeOfImage), SizeOfImage);
-            s.WriteField(nameof(NumberOfSections), NumberOfSections);
-            s.WriteField(nameof(ExportedNamesSize), ExportedNamesSize);
-            s.WriteField(nameof(DebugDirectorySize), DebugDirectorySize);
-            s.WriteField(nameof(SectionAlignment), SectionAlignment);
-            s.WriteField(nameof(Reserved), Reserved);
+                case 1:
+                    structWriter.WriteField(nameof(Flags), FlagsOffset, Flags);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Machine), MachineOffset, Machine, sizeof(short));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Characteristics), CharacteristicsOffset, Characteristics, sizeof(short));
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(CheckSum), CheckSumOffset, CheckSum);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(ImageBase), ImageBaseOffset, ImageBase);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(SizeOfImage), SizeOfImageOffset, SizeOfImage);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(NumberOfSections), NumberOfSectionsOffset, NumberOfSections);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(ExportedNamesSize), ExportedNamesSizeOffset, ExportedNamesSize);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(DebugDirectorySize), DebugDirectorySizeOffset, DebugDirectorySize);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(SectionAlignment), SectionAlignmentOffset, SectionAlignment);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

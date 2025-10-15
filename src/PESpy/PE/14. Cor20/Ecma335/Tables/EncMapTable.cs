@@ -6,7 +6,7 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int TokenOffset;
+        internal readonly int TokenOffset;
 
         private readonly MemoryChunk tableChunk;
 

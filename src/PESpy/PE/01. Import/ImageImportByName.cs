@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -9,11 +10,14 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageImportByName : IValue, IViewable
     {
+        private const int HintOffset = 0;
+        private const int NameOffset = 2;
+
         //Used to index into the "export name pointer table". If that fails, a full search is done to resolve the import
         //at runtime
-        public short Hint => chunk.PeekInt16(0);
+        public short Hint => chunk.PeekInt16(HintOffset);
 
-        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(2);
+        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(NameOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -36,15 +40,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_IMPORT_BY_NAME, this, ViewKind.ImageImportByName, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Hint), HintOffset, Hint);
+                    break;
 
-            s.WriteField(nameof(Hint), Hint);
-            s.WriteAnsiNullTerminatedField(nameof(Name), Name);
+                case 1:
+                    structWriter.WriteAnsiNullTerminatedField(nameof(Name), NameOffset, Name);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

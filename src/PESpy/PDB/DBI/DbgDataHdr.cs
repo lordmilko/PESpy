@@ -59,68 +59,76 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.DbgDataHdr, this, ViewKind.DbgDataHdr, maxIndex * sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => maxIndex;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            //This is supposed to be an array
-
-            for (var i = 0; i < maxIndex; i++)
+            switch (index)
             {
-                switch ((DBGTYPE) i)
-                {
-                    case DBGTYPE.dbgtypeFPO:
-                        s.WriteField(nameof(FPO), FPO);
-                        break;
+                case 0:
+                    WriteIndex(nameof(FPO), index, FPO, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeException:
-                        s.WriteField(nameof(Exception), Exception);
-                        break;
+                case 1:
+                    WriteIndex(nameof(Exception), index, Exception, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeFixup:
-                        s.WriteField(nameof(Fixup), Fixup);
-                        break;
+                case 2:
+                    WriteIndex(nameof(Fixup), index, Fixup, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeOmapToSrc:
-                        s.WriteField(nameof(OmapToSrc), OmapToSrc);
-                        break;
+                case 3:
+                    WriteIndex(nameof(OmapToSrc), index, OmapToSrc, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeOmapFromSrc:
-                        s.WriteField(nameof(OmapFromSrc), OmapFromSrc);
-                        break;
+                case 4:
+                    WriteIndex(nameof(OmapFromSrc), index, OmapFromSrc, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeSectionHdr:
-                        s.WriteField(nameof(SectionHdr), SectionHdr);
-                        break;
+                case 5:
+                    WriteIndex(nameof(SectionHdr), index, SectionHdr, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeTokenRidMap:
-                        s.WriteField(nameof(TokenRidMap), TokenRidMap);
-                        break;
+                case 6:
+                    WriteIndex(nameof(TokenRidMap), index, TokenRidMap, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeXdata:
-                        s.WriteField(nameof(XData), XData);
-                        break;
+                case 7:
+                    WriteIndex(nameof(XData), index, XData, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypePdata:
-                        s.WriteField(nameof(PData), PData);
-                        break;
+                case 8:
+                    WriteIndex(nameof(PData), index, PData, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeNewFPO:
-                        s.WriteField(nameof(NewFPO), NewFPO);
-                        break;
+                case 9:
+                    WriteIndex(nameof(NewFPO), index, NewFPO, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeSectionHdrOrig:
-                        s.WriteField(nameof(SectionHdrOrig), SectionHdrOrig);
-                        break;
+                case 10:
+                    WriteIndex(nameof(SectionHdrOrig), index, SectionHdrOrig, ref structWriter);
+                    break;
 
-                    case DBGTYPE.dbgtypeMax:
-                        s.WriteField(nameof(Max), Max); //This is part of it, the total size is 24 bytes
-                        break;
-                }
+                case 11:
+                    WriteIndex(nameof(Max), index, Max, ref structWriter); //This is part of it, the total size is 24 bytes
+                    break;
+
+                default:
+                    if (index < maxIndex)
+                        structWriter.WriteByteBlob(index * 2, (maxIndex - index) * 2); //Write the rest as bytes
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
             }
+        }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        private void WriteIndex(string name, int index, SN value, ref StructWriter structWriter)
+        {
+            if (index >= maxIndex)
+                throw new IndexOutOfRangeException();
+
+            structWriter.WriteField(name, index * 2, value);
         }
     }
 }

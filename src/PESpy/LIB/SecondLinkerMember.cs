@@ -7,17 +7,23 @@ namespace PESpy.LIB
     //Name is made up
     public class SecondLinkerMember : IValue, IViewable //Don't know if we can guarantee it will exist
     {
+        private const int ArchiveHeaderOffset = 0;
+        private const int NumberOfMembersOffset = ImageArchiveMemberHeader.StructSize;
+        private const int OffsetsOffset = ImageArchiveMemberHeader.StructSize + 4;
+        private int NumberOfSymbolsOffset => ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4);
+        private int IndicesOffset => ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4) + 4;
+
         private readonly ImageArchiveMemberHeader archiveHeader;
 
         public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
 
-        public int NumberOfMembers => chunk.PeekInt32(ImageArchiveMemberHeader.StructSize);
+        public int NumberOfMembers => chunk.PeekInt32(NumberOfMembersOffset);
 
-        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(ImageArchiveMemberHeader.StructSize + 4, NumberOfMembers);
+        public NativeSpan<int> Offsets => chunk.PeekNativeSpan<int>(OffsetsOffset, NumberOfMembers);
 
-        public int NumberOfSymbols => chunk.PeekInt32(ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4));
+        public int NumberOfSymbols => chunk.PeekInt32(NumberOfSymbolsOffset);
 
-        public NativeSpan<short> Indices => chunk.PeekNativeSpan<short>(ImageArchiveMemberHeader.StructSize + 4 + (NumberOfMembers * 4) + 4, NumberOfSymbols);
+        public NativeSpan<short> Indices => chunk.PeekNativeSpan<short>(IndicesOffset, NumberOfSymbols);
 
         public RawValue<AnsiString>[] StringTable { get; }
 
@@ -58,21 +64,41 @@ namespace PESpy.LIB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SecondLinkerMember, this, ViewKind.SecondLinkerMember, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5 + StringTable.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteInline(ArchiveHeader);
+                    break;
 
-            s.WriteInline(ArchiveHeader);
-            s.WriteField("Number Of Members", NumberOfMembers);
-            s.WriteField("Offsets", Offsets);
-            s.WriteField("Number Of Symbols", NumberOfSymbols);
-            s.WriteField("Indices", Indices);
+                case 1:
+                    structWriter.WriteField("Number Of Members", NumberOfMembersOffset, NumberOfMembers);
+                    break;
 
-            foreach (var value in StringTable)
-                s.WriteInlineAnsiNullTerminated(value);
+                case 2:
+                    structWriter.WriteField("Offsets", OffsetsOffset, Offsets);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField("Number Of Symbols", NumberOfSymbolsOffset, NumberOfSymbols);
+                    break;
+
+                case 4:
+                    structWriter.WriteField("Indices", IndicesOffset, Indices);
+                    break;
+
+                case 5:
+                    var i = index - 5;
+
+                    structWriter.WriteInlineAnsiNullTerminated(StringTable[i]);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

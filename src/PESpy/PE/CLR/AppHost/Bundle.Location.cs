@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -7,8 +8,11 @@ namespace PESpy
     {
         public readonly struct Location : IValue, IViewable
         {
-            public long Offset => chunk.PeekInt64(0);
-            public long Size => chunk.PeekInt64(8);
+            private const int OffsetOffset = 0;
+            private const int SizeOffset = 8;
+
+            public long Offset => chunk.PeekInt64(OffsetOffset);
+            public long Size => chunk.PeekInt64(SizeOffset);
 
             int IValue.Offset => chunk.AbsoluteOffset;
 
@@ -31,16 +35,24 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.location_t, this, ViewKind.BundleLocation, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                case 0:
+                    structWriter.WriteField("offset", OffsetOffset, Offset);
+                    break;
 
-                s.WriteField("offset", Offset);
-                s.WriteField("size", Size);
+                case 1:
+                    structWriter.WriteField("size", SizeOffset, Size);
+                    break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
             }
+        }
         }
     }
 }

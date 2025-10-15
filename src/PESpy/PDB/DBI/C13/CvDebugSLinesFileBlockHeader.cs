@@ -8,15 +8,19 @@ namespace PESpy.PDB
     //CV_DebugSLinesFileBlockHeader_t
     public readonly struct CvDebugSLinesFileBlockHeader : IValue, IViewable
     {
+        private const int offFileOffset = 0;
+        private const int nLinesOffset = 4;
+        private const int cbBlockOffset = 8;
+
         /* This property returns the relative offset of the CV_FileCheckSum record of this file
          * from the beginning of DEBUG_S_FILECHKSMS. PDB1 creates a mapping from the index of
          * the file in the CV_FileCheckSum[] and converts to and from this when you call
          * EnumLines::GetLinesColumns/ Mod1::QueryFileNameInfo */
-        public CV_off32_t offFile => chunk.PeekInt32(0);
+        public CV_off32_t offFile => chunk.PeekInt32(offFileOffset);
 
-        public CV_off32_t nLines => chunk.PeekInt32(4);
+        public CV_off32_t nLines => chunk.PeekInt32(nLinesOffset);
 
-        public CV_off32_t cbBlock => chunk.PeekInt32(8);
+        public CV_off32_t cbBlock => chunk.PeekInt32(cbBlockOffset);
 
         public CvLine[] lines { get; }
 
@@ -54,18 +58,24 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CV_DebugSLinesFileBlockHeader_t, this, ViewKind.CvDebugSLinesFileBlockHeader, FixedStructSize + (lines.Length * CvLine.StructSize) + (columns.Length * 4));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + lines.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(nLines), nLinesOffset, nLines);
+                    break;
 
-            s.WriteField(nameof(nLines), nLines);
-            s.WriteField(nameof(cbBlock), cbBlock);
-            s.WriteInline(lines);
+                case 1:
+                    structWriter.WriteField(nameof(cbBlock), cbBlockOffset, cbBlock);
+                    break;
 
-            Debug.Assert(columns.Length == 0); //todo
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(lines[index - 2]);
+                    break;
+            }
         }
     }
 }

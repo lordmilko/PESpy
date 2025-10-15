@@ -153,37 +153,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_THUNK_DATA, this, ViewKind.ImageThunkData, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            switch (Kind)
+            if (index == 0)
             {
-                case DataKind.Name:
-                    s.WritePointerField("AddressOfData", Value);
-                    break;
+                switch (Kind)
+                {
+                    case DataKind.Name:
+                        structWriter.WritePointerField("AddressOfData", 0, Value);
+                        break;
 
-                case DataKind.Forwarder:
-                    throw new NotImplementedException();
+                    case DataKind.Forwarder:
+                        throw new NotImplementedException();
 
-                case DataKind.Ordinal:
-                    s.WritePointerField("Ordinal", Ordinal);
-                    break;
+                    case DataKind.Ordinal:
+                        structWriter.WritePointerField("Ordinal", 0, Ordinal);
+                        break;
 
-                case DataKind.Function:
-                    s.WritePointerField("Function", Value);
-                    break;
+                    case DataKind.Function:
+                        structWriter.WritePointerField("Function", 0, Value);
+                        break;
 
-                case 0: //It's the null record
-                    s.WritePointerField("AddressOfData", Value);
-                    break;
+                    case 0: //It's the null record
+                        structWriter.WritePointerField("AddressOfData", 0, Value);
+                        break;
 
-                default:
-                    throw new NotImplementedException($"Don't know how to handle {nameof(DataKind)} '{Kind}'");
+                    default:
+                        throw new NotImplementedException($"Don't know how to handle {nameof(DataKind)} '{Kind}'");
+                }
             }
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            else
+                throw new IndexOutOfRangeException();
         }
 
         public override string ToString()

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,12 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfTypeServer : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int signatureOffset = 4;
+        private const int ageOffset = 8;
+        private const int nameOffset = 12;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfTypeServer* value;
 
@@ -33,6 +40,8 @@ namespace PESpy.PDB
             sizeof(int)    + //signature
             sizeof(int);     //age
 
+        private int BytesUsed => FixedStructSize + name.Length + 1;
+
         internal LfTypeServer(lfTypeServer* value)
         {
             this.value = value;
@@ -46,20 +55,40 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfTypeServer, this, ViewKind.LfTypeServer, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(5, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(signature), signature);
-            s.WriteField(nameof(age), age);
-            s.WriteSymStringField(nameof(name), TypType.ReadString(value->name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField(nameof(signature), signatureOffset, signature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField(nameof(age), ageOffset, age);
+                    break;
+
+                case 4:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, TypType.ReadString(value->name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 5:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

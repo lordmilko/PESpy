@@ -16,13 +16,17 @@ namespace PESpy.View
         public ViewKind Kind => ViewKind.Header;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children { get; }
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
 
-        public HeaderView(int offset, int size, IView[] children)
+        private ViewWriter viewWriter;
+        private IViewable childProvider;
+
+        public HeaderView(int offset, int size, IView[] children, ViewWriter viewWriter)
         {
             Offset = offset;
             Size = size;
-            Children = children;
+            childProvider = new ViewChildProvider(children);
+            this.viewWriter = viewWriter;
         }
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitHeader(this);

@@ -1,4 +1,5 @@
-﻿using PESpy.View;
+﻿using System;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -26,9 +27,11 @@ namespace PESpy
             throw new System.NotImplementedException();
         }
 
-        protected override IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        protected override int NumChildren => base.NumChildren;
+
+        protected override void WriteChild(int index, ref StructWriter structWriter)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }

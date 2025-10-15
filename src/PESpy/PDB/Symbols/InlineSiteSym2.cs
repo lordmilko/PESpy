@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct InlineSiteSym2 : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int pParentOffset = 4;
+        private const int pEndOffset = 8;
+        private const int inlineeOffset = 12;
+        private const int invocationsOffset = 16;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly INLINESITESYM2* value;
 
@@ -58,18 +67,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.INLINESITESYM2, this, ViewKind.InlineSiteSym2, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+        int IViewable.NumChildren => 6;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(pParent), pParent);
-            s.WriteField(nameof(pEnd), pEnd);
-            s.WriteField(nameof(inlinee), inlinee);
-            s.WriteField(nameof(invocations), invocations);
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(pParent), pParentOffset, pParent);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(pEnd), pEndOffset, pEnd);
+                    break;
+
+                case 4:
+                    viewWriter.WriteField(nameof(inlinee), inlinee);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(invocations), invocationsOffset, invocations);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

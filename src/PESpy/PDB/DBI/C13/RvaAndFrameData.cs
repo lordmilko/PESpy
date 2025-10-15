@@ -1,11 +1,15 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
+    //todo: nope, use struct, and we can use a framedatalist here instead of allocating
+
     public class RvaAndFrameData : IValue, IViewable //Will be boxed so should be class
     {
-        public int RVA => chunk.PeekInt32(0);
+        private const int RVAOffset = 0;
+        public int RVA => chunk.PeekInt32(RVAOffset);
 
         private FrameData[]? frameData;
 
@@ -50,15 +54,20 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.RVAAndFrameData, this, ViewKind.RvaAndFrameData, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1 + FrameData.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(RVA), RVAOffset, RVA);
+                    break;
 
-            s.WriteField(nameof(RVA), RVA);
-            s.WriteInline(FrameData);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(FrameData[index - 1]);
+                    break;
+            }
         }
     }
 }

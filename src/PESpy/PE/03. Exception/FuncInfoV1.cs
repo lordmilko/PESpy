@@ -1,15 +1,19 @@
-﻿using System.Diagnostics;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy
 {
     public struct FuncInfoV1 : IValue, IViewable
     {
+        private const int magicNumberAndBBTFlagsOffset = 0;
+        private const int MaxStateOffset = 4;
         internal const int UnwindMapOffset = 8;
+        private const int nTryBlocksOffset = 12;
         internal const int TryBlockMapOffset = 16;
+        private const int nIPMapEntriesOffset = 20;
         internal const int IPToStateMapOffset = 24;
 
-        private int magicNumberAndBBTFlags => chunk.PeekInt32(0);
+        private int magicNumberAndBBTFlags => chunk.PeekInt32(magicNumberAndBBTFlagsOffset);
 
         /// <summary>
         /// Identifies version of compiler
@@ -24,7 +28,7 @@ namespace PESpy
         /// <summary>
         /// Highest state number plus one (thus number of entries in unwind map)
         /// </summary>
-        public int MaxState => chunk.PeekInt32(4);
+        public int MaxState => chunk.PeekInt32(MaxStateOffset);
 
         /// <summary>
         /// Image relative offset of the unwind map
@@ -61,7 +65,7 @@ namespace PESpy
         /// <summary>
         /// Number of 'try' blocks in this function
         /// </summary>
-        public int nTryBlocks => chunk.PeekInt32(12);
+        public int nTryBlocks => chunk.PeekInt32(nTryBlocksOffset);
 
         /// <summary>
         /// Image relative offset of the handler map
@@ -98,7 +102,7 @@ namespace PESpy
         /// <summary>
         /// # entries in the IP-to-state map
         /// </summary>
-        public int nIPMapEntries => chunk.PeekInt32(20);
+        public int nIPMapEntries => chunk.PeekInt32(nIPMapEntriesOffset);
 
         /// <summary>
         /// Image relative offset of the IP to state map
@@ -163,26 +167,47 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FuncInfoV1, this, ViewKind.FuncInfoV1, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 8;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            using (var b = s.WriteBitFields<uint>())
+            switch (index)
             {
-                b.WriteField("magicNumber", MagicNumber, 29);
-                b.WriteField("bbtFlags", BBTFlags, 3);
+                case 0:
+                    structWriter.WriteBitField("magicNumber", magicNumberAndBBTFlagsOffset, MagicNumber, sizeof(int), 29);
+                    break;
+
+                case 1:
+                    structWriter.WriteBitField("bbtFlags", magicNumberAndBBTFlagsOffset, BBTFlags, sizeof(int), 3);
+                    break;
+
+                case 2:
+                    structWriter.WriteField("maxState", MaxStateOffset, MaxState);
+                    break;
+
+                case 3:
+                    structWriter.WriteRVAField("dispUnwindMap", UnwindMapOffset, UnwindMap);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(nTryBlocks), nTryBlocksOffset, nTryBlocks);
+                    break;
+
+                case 5:
+                    structWriter.WriteRVAField("dispTryBlockMap", TryBlockMapOffset, TryBlockMap);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(nIPMapEntries), nIPMapEntriesOffset, nIPMapEntries);
+                    break;
+
+                case 7:
+                    structWriter.WriteRVAField("dispIPtoStateMap", IPToStateMapOffset, IPToStateMap);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField("maxState", MaxState);
-
-            s.WriteRVAField("dispUnwindMap", UnwindMap);
-            s.WriteField(nameof(nTryBlocks), nTryBlocks);
-            s.WriteRVAField("dispTryBlockMap", TryBlockMap);
-            s.WriteField(nameof(nIPMapEntries), nIPMapEntries);
-            s.WriteRVAField("dispIPtoStateMap", IPToStateMap);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

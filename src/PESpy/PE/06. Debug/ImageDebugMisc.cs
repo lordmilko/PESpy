@@ -10,15 +10,21 @@ namespace PESpy
     /// </summary>
     public class ImageDebugMisc : IValue, IViewable //It will always be boxed
     {
-        public ImageDebugMiscType DataType => (ImageDebugMiscType) chunk.PeekUInt32(0);
+        private const int DataTypeOffset = 0;
+        private const int LengthOffset = 4;
+        private const int UnicodeOffset = 8;
+        private const int ReservedOffset = 9;
+        private const int DataOffset = 12;
 
-        public int Length => chunk.PeekInt32(4);
+        public ImageDebugMiscType DataType => (ImageDebugMiscType) chunk.PeekUInt32(DataTypeOffset);
 
-        public bool Unicode => chunk.PeekByte(8) != 0;
+        public int Length => chunk.PeekInt32(LengthOffset);
 
-        public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(9, 3);
+        public bool Unicode => chunk.PeekByte(UnicodeOffset) != 0;
 
-        public NullTerminatedString Data => chunk.PeekNullTerminatedString(12, Unicode ? StringKind.UTF16 : StringKind.ANSI);
+        public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(ReservedOffset, 3);
+
+        public NullTerminatedString Data => chunk.PeekNullTerminatedString(DataOffset, Unicode ? StringKind.UTF16 : StringKind.ANSI);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -49,18 +55,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_DEBUG_MISC, this, ViewKind.ImageDebugMisc, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(DataType), DataTypeOffset, DataType, sizeof(int));
+                    break;
 
-            s.WriteField(nameof(DataType), DataType, sizeof(int));
-            s.WriteField(nameof(Length), Length);
-            s.WriteField(nameof(Unicode), (byte) (Unicode ? 1 : 0));
-            s.WriteField(nameof(Reserved), Reserved);
-            s.WriteNullTerminatedField(nameof(Data), Data);
+                case 1:
+                    structWriter.WriteField(nameof(Length), LengthOffset, Length);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Unicode), UnicodeOffset, (byte) (Unicode ? 1 : 0));
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
+                    break;
+
+                case 4:
+                    structWriter.WriteNullTerminatedField(nameof(Data), DataOffset, Data);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,14 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct RefMiniPdb : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int isectCoffOffset = 4;
+        private const int typindOffset = 8;
+        private const int imodOffset = 12;
+        private const int dataOffset = 14;
+        private const int nameOffset = 16;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly REFMINIPDB* value;
 
@@ -61,6 +71,8 @@ namespace PESpy.PDB
             sizeof(short)  + //imod
             sizeof(short);   //data
 
+        private int BytesUsed => FixedStructSize + name.Length + 1;
+
         internal RefMiniPdb(REFMINIPDB* value)
         {
             this.value = value;
@@ -74,29 +86,73 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.REFMINIPDB, this, ViewKind.RefMiniPdb, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(12, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            using (var bitField = s.WriteBitFields<long>())
+            switch (index)
             {
-                bitField.WriteField(nameof(imod), imod, 1);
-                bitField.WriteField(nameof(fLocal), fLocal, 1);
-                bitField.WriteField(nameof(fData), fData, 1);
-                bitField.WriteField(nameof(fUDT), fUDT, 1);
-                bitField.WriteField(nameof(fLabel), fLabel, 1);
-                bitField.WriteField(nameof(fConst), fConst, 1);
-                bitField.WriteField(nameof(reserved), reserved, 11);
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(isectCoff), isectCoffOffset, isectCoff);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(typind), typindOffset, value->typind);
+                    break;
+
+
+                #region BitField
+
+                case 4:
+                    structWriter.WriteBitField(nameof(imod), dataOffset, imod, sizeof(long), 1);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(fLocal), dataOffset, fLocal, sizeof(long), 1);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField(nameof(fData), dataOffset, fData, sizeof(long), 1);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField(nameof(fUDT), dataOffset, fUDT, sizeof(long), 1);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(fLabel), dataOffset, fLabel, sizeof(long), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(fConst), dataOffset, fConst, sizeof(long), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(reserved), dataOffset, reserved, sizeof(long), 11);
+                    break;
+
+                #endregion
+
+                case 11:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, SymType.ReadString(value, value->name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 12:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
-
-            s.Align(4);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
 
         public override string ToString()
@@ -105,4 +161,3 @@ namespace PESpy.PDB
         }
     }
 }
-

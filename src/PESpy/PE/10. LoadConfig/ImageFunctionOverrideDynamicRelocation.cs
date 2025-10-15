@@ -8,30 +8,36 @@ namespace PESpy
 {
     public struct ImageFunctionOverrideDynamicRelocation : IValue, IViewable
     {
+        private const int OriginalRvaOffset = 0;
+        private const int BDDOffsetOffset = 4;
+        private const int RvaSizeOffset = 8;
+        private const int BaseRelocSizeOffset = 12;
+        private const int RVAsOffset = 16;
+
         /// <summary>
         /// RVA of original function
         /// </summary>
-        public int OriginalRva => chunk.PeekInt32(0);
+        public int OriginalRva => chunk.PeekInt32(OriginalRvaOffset);
 
         /// <summary>
         /// Offset into the BDD region
         /// </summary>
-        public int BDDOffset => chunk.PeekInt32(4);
+        public int BDDOffset => chunk.PeekInt32(BDDOffsetOffset);
 
         /// <summary>
         /// Size in bytes taken by RVAs. Must be multiple of sizeof(int).
         /// </summary>
-        public int RvaSize => chunk.PeekInt32(8);
+        public int RvaSize => chunk.PeekInt32(RvaSizeOffset);
 
         /// <summary>
         /// Size in bytes taken by BaseRelocs
         /// </summary>
-        public int BaseRelocSize => chunk.PeekInt32(12);
+        public int BaseRelocSize => chunk.PeekInt32(BaseRelocSizeOffset);
 
         /// <summary>
         /// Array containing overriding func RVAs.
         /// </summary>
-        public NativeSpan<int> RVAs => chunk.PeekNativeSpan<int>(16, RvaSize / sizeof(int));
+        public NativeSpan<int> RVAs => chunk.PeekNativeSpan<int>(RVAsOffset, RvaSize / sizeof(int));
 
         private ImageBaseRelocation[]? baseRelocs;
 
@@ -87,19 +93,36 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, this, ViewKind.ImageFunctionOverrideDynamicRelocation, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5 + BaseRelocs.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(OriginalRva), OriginalRvaOffset, OriginalRva);
+                    break;
 
-            s.WriteField(nameof(OriginalRva), OriginalRva);
-            s.WriteField(nameof(BDDOffset), BDDOffset);
-            s.WriteField(nameof(RvaSize), RvaSize);
-            s.WriteField(nameof(BaseRelocSize), BaseRelocSize);
-            s.WriteField(nameof(RVAs), RVAs);
-            s.WriteInline(BaseRelocs);
+                case 1:
+                    structWriter.WriteField(nameof(BDDOffset), BDDOffsetOffset, BDDOffset);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(RvaSize), RvaSizeOffset, RvaSize);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(BaseRelocSize), BaseRelocSizeOffset, BaseRelocSize);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(RVAs), RVAsOffset, RVAs);
+                    break;
+
+                default:
+                    structWriter.WriteInline(BaseRelocs[index - 5]);
+                    break;
+            }
         }
     }
 }

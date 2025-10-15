@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System;
 using PESpy.Native;
 using PESpy.View;
 
@@ -9,9 +9,12 @@ namespace PESpy
     /// </summary>
     public class ImageResourceDirStringU : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
     {
-        public short Length => chunk.PeekInt16(0);
+        private const int LengthOffset = 0;
+        private const int NameStringOffset = 2;
 
-        public FixedUtf16String NameString => chunk.PeekUtf16FixedLength(2, Length);
+        public short Length => chunk.PeekInt16(LengthOffset);
+
+        public FixedUtf16String NameString => chunk.PeekUtf16FixedLength(NameStringOffset, Length);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -34,15 +37,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_RESOURCE_DIR_STRING_U, this, ViewKind.ImageResourceDirStringU, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Length), LengthOffset, Length);
+                    break;
 
-            s.WriteField(nameof(Length), Length);
-            s.WriteUTF16Field(nameof(NameString), NameString, Length);
+                case 1:
+                    structWriter.WriteUtf16FixedLengthField(nameof(NameString), NameStringOffset, NameString);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

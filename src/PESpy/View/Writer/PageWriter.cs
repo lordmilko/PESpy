@@ -44,6 +44,36 @@ namespace PESpy.View
                 end = false;
             }
 
+            public unsafe void WriteStruct(TypType typType, ViewTypTypeDispatcher dispatcher)
+            {
+                viewWriter.UnmanagedOffset = pageStart + relativeOffset;
+
+                var view = dispatcher.Dispatch(typType);
+
+                if (view != null)
+                {
+                    items.Add(view);
+                    IncrementOffset(view.Size);
+                }
+                else
+                    IncrementOffset(typType.len + sizeof(short));
+            }
+
+            public unsafe void WriteStruct(SymType symType, ViewSymTypeDispatcher dispatcher, ISymbolAccessor? symbolAccessor)
+            {
+                viewWriter.UnmanagedOffset = pageStart + relativeOffset;
+
+                var view = dispatcher.Dispatch(symType);
+
+                if (view != null)
+                {
+                    items.Add(view);
+                    IncrementOffset(view.Size);
+                }
+                else
+                    IncrementOffset(SymType.GetSymbolLength(symType, symbolAccessor));
+            }
+
             public void WriteValue<T>(in T value, int size, ViewKind kind)
             {
                 if (end)
@@ -51,6 +81,12 @@ namespace PESpy.View
 
                 //If we overflow the end of the page, merger will split us
                 items.Add(new ValueView<T>(pageStart + relativeOffset, value, size, kind));
+
+                IncrementOffset(size);
+            }
+
+            private void IncrementOffset(int size)
+            {
                 relativeOffset += size;
 
                 if (relativeOffset >= pageSize)

@@ -11,20 +11,24 @@ namespace PESpy
         [DebuggerDisplay("{Key,nq} = {Value}")]
         public readonly struct String : IValue, IViewable
         {
+        private const int LengthOffset = 0;
+        private const int ValueLengthOffset = 2;
+        private const int TypeOffset = 4;
+
             /// <summary>
             /// The length, in bytes, of this String structure.
             /// </summary>
-            public short Length => chunk.PeekInt16(0);
+            public short Length => chunk.PeekInt16(LengthOffset);
 
             /// <summary>
             /// The size, in words, of the Value member.
             /// </summary>
-            public short ValueLength => chunk.PeekInt16(2);
+            public short ValueLength => chunk.PeekInt16(ValueLengthOffset);
 
             /// <summary>
             /// The type of data in the version resource. This member is 1 if the version resource contains text data and 0 if the version resource contains binary data.
             /// </summary>
-            public short Type => chunk.PeekInt16(4);
+            public short Type => chunk.PeekInt16(TypeOffset);
 
             /// <summary>
             /// An arbitrary Unicode string. The szKey member can be one or more of the following values. These values are guidelines only.
@@ -133,14 +137,19 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.String, this, ViewKind.StringTable_String, Length);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => throw StructWriter.GetEagerLoadOnlyException();
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                if (index != -1)
+                    throw StructWriter.GetEagerLoadOnlyException();
+
+                using var s = structWriter.CreateEagerWriter();
 
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);
                 s.WriteField("wType", Type);
-                s.WriteUTF16NullTerminatedField("szKey", Key);
+                s.WriteUtf16NullTerminatedField("szKey", Key);
 
                 if (s.NeedAlignment(4, out var required))
                 {
@@ -150,7 +159,7 @@ namespace PESpy
 
                 if (ValueLength > 0)
                 {
-                    s.WriteUTF16NullTerminatedField(nameof(Value), Value);
+                    s.WriteUtf16NullTerminatedField(nameof(Value), Value);
 
                     var extra = Extra;
 
@@ -165,8 +174,7 @@ namespace PESpy
 
                 s.VerifyLength(Length);
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                structWriter.EagerFields = s.ToArray();
             }
         }
     }

@@ -114,14 +114,14 @@ namespace PESpy.View
 
             builder.Append(view.Name);
 
-            if (view.Children.Length > 0)
+            if (view.Children.Count > 0)
             {
                 if (view.Children[0] is IStructView st)
                 {
                     var first = st.Name;
 
-                    if (view.Children.Length > 1 && view.Children.All(v => v is IStructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
-                        builder.Append(" (").Append(view.Children.Length).Append(")");
+                    if (view.Children.Count > 1 && view.Children.All(v => v is IStructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
+                        builder.Append(" (").Append(view.Children.Count).Append(")");
                     else if (first == "IMAGE_IMPORT_BY_NAME")
                         builder.Append(" (").Append(view.Children.Count(v => v is IStructView s && s.Name == Strings.IMAGE_IMPORT_BY_NAME || v is IValueView { Value: string })).Append(")");
                 }
@@ -155,9 +155,9 @@ namespace PESpy.View
                 if (view.Offset == 0)
                 {
                     if (view.Name != null)
-                        return $"[{view.ViewMode}] {view.Name} ({view.Children.Length})";
+                        return $"[{view.ViewMode}] {view.Name} ({view.Children.Count})";
 
-                    return $"[{view.ViewMode}] Count = {view.Children.Length}";
+                    return $"[{view.ViewMode}] Count = {view.Children.Count}";
                 }
 
                 var builder = new StringBuilder();
@@ -166,7 +166,7 @@ namespace PESpy.View
                 return builder.ToString();
             }
 
-            return $"Count = {view.Children.Length}";
+            return $"Count = {view.Children.Count}";
         }
 
         public static string Section(SectionView view)
@@ -287,7 +287,7 @@ namespace PESpy.View
                                 builder.Append(" (").Append(typeField).Append(")");
                         }
                     }
-                }                
+                }
             }
 
             if (view is ISplitView)

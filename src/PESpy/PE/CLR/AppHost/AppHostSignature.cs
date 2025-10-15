@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -104,15 +105,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.AppHostSignature, this, ViewKind.AppHostSignature, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteLargeVAPointerField(nameof(BundleHeaderOffset), BundleHeaderOffsetOffset, BundleHeaderOffset);
+                    break;
 
-            s.WriteLargeVAPointerField(nameof(BundleHeaderOffset), BundleHeaderOffset);
-            s.WriteField(nameof(BundleSignature), BundleSignature);
+                case 1:
+                    structWriter.WriteField(nameof(BundleSignature), BundleSignatureOffset, BundleSignature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         internal static unsafe int FindBundleHeader(byte* bytes, long bytesLength) => KMPSearch(bundleHeaderPlaceholder, bytes, bytesLength);

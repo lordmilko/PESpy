@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.PDB;
@@ -16,9 +17,9 @@ namespace PESpy.Tests
 
             Assert.AreEqual(size, headerView.Size, $"Size of Header was incorrect");
 
-            Assert.AreEqual(verifyChildren.Length, headerView.Children.Length, "Number of HeaderView children was incorrect");
+            Assert.AreEqual(verifyChildren.Length, headerView.Children.Count, "Number of HeaderView children was incorrect");
 
-            for (var i = 0; i < headerView.Children.Length; i++)
+            for (var i = 0; i < headerView.Children.Count; i++)
                 verifyChildren[i](headerView.Children[i]);
         }
 
@@ -32,9 +33,9 @@ namespace PESpy.Tests
             Assert.AreEqual(offset, sectionView.Offset, $"Offset of {name} was incorrect. Also size is {sectionView.Size}");
             Assert.AreEqual(size, sectionView.Size, $"Size of {name} was incorrect");
 
-            Assert.AreEqual(verifyChildren.Length, sectionView.Children.Length, "Number of SectionView children was incorrect");
+            Assert.AreEqual(verifyChildren.Length, sectionView.Children.Count, "Number of SectionView children was incorrect");
 
-            for (var i = 0; i < sectionView.Children.Length; i++)
+            for (var i = 0; i < sectionView.Children.Count; i++)
                 verifyChildren[i](sectionView.Children[i]);
         }
 
@@ -59,9 +60,12 @@ namespace PESpy.Tests
             Assert.AreEqual(offset, structView.Offset, $"Offset of {name} was incorrect. Also size is {structView.Size}");
             Assert.AreEqual(size, structView.Size, $"Size of {name} was incorrect");
 
-            Assert.AreEqual(verifyChildren.Length, structView.Children.Length, "Number of StructView fields was incorrect");
+            //Children are lazily evaluated; force evaluate them all immediately to check for any errors
+            _ = structView.Children.ToArray();
 
-            for (var i = 0; i < structView.Children.Length; i++)
+            Assert.AreEqual(verifyChildren.Length, structView.Children.Count, "Number of StructView fields was incorrect");
+
+            for (var i = 0; i < structView.Children.Count; i++)
                 verifyChildren[i](structView.Children[i]);
         }
 
@@ -161,6 +165,12 @@ namespace PESpy.Tests
                 if (fieldValue is Timestamp && value is uint u)
                     value = (Timestamp) u;
 
+                if (fieldValue is CV_typ_t t)
+                    fieldValue = (int) t;
+
+                if (fieldValue is CV_typ16_t t16)
+                    fieldValue = (short) t16;
+
                 Assert.AreEqual(value, fieldValue, $"Value of field {name} was incorrect");
             }
         }
@@ -236,9 +246,9 @@ namespace PESpy.Tests
             Assert.AreEqual(offset, logicalRegion.Offset, $"Offset of {name} was incorrect. Also size is {logicalRegion.Size}");
             Assert.AreEqual(size, logicalRegion.Size, $"Size of {name} was incorrect");
 
-            Assert.AreEqual(verifyChildren.Length, logicalRegion.Children.Length, "Number of LogicalRegionView children was incorrect");
+            Assert.AreEqual(verifyChildren.Length, logicalRegion.Children.Count, "Number of LogicalRegionView children was incorrect");
 
-            for (var i = 0; i < logicalRegion.Children.Length; i++)
+            for (var i = 0; i < logicalRegion.Children.Count; i++)
                 verifyChildren[i](logicalRegion.Children[i]);
         }
 

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -11,14 +12,18 @@ namespace PESpy.PDB
     public class GSIHashHdr : IValue, IViewable //May not be present
     {
         public const int hdrSignature = -1;
+        private const int verSignatureOffset = 0;
+        private const int verHdrOffset = 4;
+        private const int cbHrOffset = 8;
+        private const int cbBucketsOffset = 12;
 
-        public int verSignature => chunk.PeekInt16(0);
+        public int verSignature => chunk.PeekInt16(verSignatureOffset);
 
-        public GSIHashSCImpv verHdr => (GSIHashSCImpv) chunk.PeekUInt32(4);
+        public GSIHashSCImpv verHdr => (GSIHashSCImpv) chunk.PeekUInt32(verHdrOffset);
 
-        public int cbHr => chunk.PeekInt32(8);
+        public int cbHr => chunk.PeekInt32(cbHrOffset);
 
-        public int cbBuckets => chunk.PeekInt32(12);
+        public int cbBuckets => chunk.PeekInt32(cbBucketsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -43,17 +48,31 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GSIHashHdr, this, ViewKind.GSIHashHdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(verSignature), verSignatureOffset, verSignature);
+                    break;
 
-            s.WriteField(nameof(verSignature), verSignature);
-            s.WriteField(nameof(verHdr), verHdr, sizeof(int));
-            s.WriteField(nameof(cbHr), cbHr);
-            s.WriteField(nameof(cbBuckets), cbBuckets);
+                case 1:
+                    structWriter.WriteField(nameof(verHdr), verHdrOffset, verHdr, sizeof(int));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(cbHr), cbHrOffset, cbHr);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cbBuckets), cbBucketsOffset, cbBuckets);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

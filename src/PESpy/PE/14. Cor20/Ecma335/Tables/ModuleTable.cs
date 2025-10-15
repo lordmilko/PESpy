@@ -6,11 +6,11 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int GenerationOffset;
-        private readonly int NameOffset;
-        private readonly int MvidOffset;
-        private readonly int EncIdOffset;
-        private readonly int EncBaseIdOffset;
+        internal readonly int GenerationOffset;
+        internal readonly int NameOffset;
+        internal readonly int MvidOffset;
+        internal readonly int EncIdOffset;
+        internal readonly int EncBaseIdOffset;
 
         private readonly bool isBigStringIndex;
         private readonly bool isBigGuidIndex;

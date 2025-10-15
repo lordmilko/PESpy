@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Diagnostics;
 using PESpy.View;
 
@@ -5,11 +6,15 @@ namespace PESpy
 {
     public readonly struct MessageResourceEntry : IValue, IViewable
     {
-        public short Length => chunk.PeekInt16(0);
+        private const int LengthOffset = 0;
+        private const int FlagsOffset = 2;
+        private const int TextOffset = 4;
 
-        public MessageResourceFlags Flags => (MessageResourceFlags) chunk.PeekInt16(2);
+        public short Length => chunk.PeekInt16(LengthOffset);
 
-        public NullTerminatedString Text => chunk.PeekNullTerminatedString(4, Flags switch
+        public MessageResourceFlags Flags => (MessageResourceFlags) chunk.PeekInt16(FlagsOffset);
+
+        public NullTerminatedString Text => chunk.PeekNullTerminatedString(TextOffset, Flags switch
         {
             MessageResourceFlags.Unicode => StringKind.UTF16,
             MessageResourceFlags.UTF8 => StringKind.UTF8,

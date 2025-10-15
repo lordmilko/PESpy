@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -6,6 +7,9 @@ namespace PESpy.PDB
     [DebuggerDisplay("off = {off}, cb = {cb}")]
     public struct OffCb : IViewable
     {
+        private const int offOffset = 0;
+        private const int cbOffset = 4;
+
         public int off;
         public int cb;
 
@@ -21,15 +25,23 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.OffCb, this, ViewKind.OffCb, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter writer)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = writer.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
 
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(cb), cb);
+                case 1:
+                    structWriter.WriteField(nameof(cb), cbOffset, cb);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

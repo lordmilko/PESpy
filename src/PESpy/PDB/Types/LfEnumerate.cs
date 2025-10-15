@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,19 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfEnumerate : IViewable
     {
+        private const int leafOffset = 0;
+        private const int attrOffset = 2;
+        private const int valueOffset = 4;
+        private int nameOffset
+        {
+            get
+            {
+                TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
+
+                return valueOffset + bytesRead;
+            }
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfEnumerate* raw;
 
@@ -70,19 +84,33 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfEnumerate, this, ViewKind.LfEnumerate, GetStructSize(writer.GetSymbolAccessor())); //Non-primary, should not have a TYPTYPE.len
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(attr), attr);
-            s.WriteNumericData(nameof(value), raw->value);
-            s.WriteSymStringField(nameof(name), GetName(viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(attr), attrOffset, attr);
+                    break;
 
-            //Do not align; the parent will apply padding
+                case 2:
+                    structWriter.WriteNumericData(nameof(value), valueOffset, raw->value);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, GetName(structWriter.GetSymbolAccessor()));
+                    break;
+
+                //Do not align; the parent will apply padding
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

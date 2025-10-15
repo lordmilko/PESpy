@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,14 +7,17 @@ namespace PESpy
     //Name is made up
     public readonly struct DNRBModule : IValue, IViewable
     {
-        public NativeSpan<byte> Unknown => chunk.PeekNativeSpan<byte>(0, 30);
+        private const int UnknownOffset = 0;
+        private const int NameOffset = FixedStructSize;
+
+        public NativeSpan<byte> Unknown => chunk.PeekNativeSpan<byte>(UnknownOffset, 30);
 
         public FixedAnsiString Name
         {
             get
             {
                 //After the 30 bytes at the front is the name
-                var length = chunk.PeekByte(FixedStructSize);
+                var length = chunk.PeekByte(NameOffset);
                 return chunk.PeekAnsiFixedLength(FixedStructSize + 1, length);
             }
         }
@@ -39,15 +43,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.DNRBModule, this, ViewKind.DNRBModule, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("Unknown", UnknownOffset, Unknown);
+                    break;
 
-            s.WriteField("Unknown", Unknown);
-            s.WriteLengthPrefixedAnsiField("Name", Name);
+                case 1:
+                    structWriter.WriteLengthPrefixedAnsiField("Name", NameOffset, Name);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

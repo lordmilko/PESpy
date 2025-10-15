@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -6,7 +7,9 @@ namespace PESpy
 {
     public class MessageResourceData : IValue, IViewable
     {
-        public int NumberOfBlocks => chunk.PeekInt32(0);
+        private const int NumberOfBlocksOffset = 0;
+
+        public int NumberOfBlocks => chunk.PeekInt32(NumberOfBlocksOffset);
 
         private MessageResourceBlock[]? blocks;
 
@@ -47,15 +50,20 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MESSAGE_RESOURCE_DATA, this, ViewKind.MessageResourceData, sizeof(int) + (NumberOfBlocks * MessageResourceBlock.StructSize));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1 + Blocks.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(NumberOfBlocks), NumberOfBlocksOffset, NumberOfBlocks);
+                    break;
 
-            s.WriteField(nameof(NumberOfBlocks), NumberOfBlocks);
-            s.WriteInline(Blocks);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    structWriter.WriteInline(Blocks[index - 1]);
+                    break;
+            }
         }
     }
 }

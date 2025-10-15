@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -8,11 +9,15 @@ namespace PESpy
     /// </summary>
     public readonly struct PogoItem : IValue, IViewable
     {
-        public int RVA => chunk.PeekInt32(0);
+        private const int RVAOffset = 0;
+        private const int SizeOffset = 4;
+        private const int NameOffset = 8;
 
-        public int Size => chunk.PeekInt32(4);
+        public int RVA => chunk.PeekInt32(RVAOffset);
 
-        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(8);
+        public int Size => chunk.PeekInt32(SizeOffset);
+
+        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(NameOffset);
 
         internal const int FixedStructSize =
             sizeof(int) + //RVA
@@ -39,16 +44,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PogoItem, this, ViewKind.PogoItem, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(RVA), RVAOffset, RVA);
+                    break;
 
-            s.WriteField(nameof(RVA), RVA);
-            s.WriteField(nameof(Size), Size);
-            s.WriteAnsiNullTerminatedField(nameof(Name), Name);
+                case 1:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteAnsiNullTerminatedField(nameof(Name), NameOffset, Name);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

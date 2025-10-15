@@ -16,7 +16,7 @@ namespace PESpy.View.Builder
 
                 var sizeOfHeaders = leFile.DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
 
-                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders)));
+                results.Add(new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders), viewWriter));
 
                 var vxdHeader = leFile.VXDHeader;
 
@@ -114,7 +114,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }
@@ -134,7 +134,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
 
             lastSectionEnd = end;
         }

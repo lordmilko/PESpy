@@ -1,13 +1,17 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct UnwindMapEntry : IValue, IViewable
     {
-        public int ToState => chunk.PeekInt32(0);
+        private const int ToStateOffset = 0;
+        private const int ActionOffset = 4;
 
-        public int Action => chunk.PeekInt32(4);
+        public int ToState => chunk.PeekInt32(ToStateOffset);
+
+        public int Action => chunk.PeekInt32(ActionOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -30,15 +34,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.UnwindMapEntry, this, ViewKind.UnwindMapEntry, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("toState", ToStateOffset, ToState);
+                    break;
 
-            s.WriteField("toState", ToState);
-            s.WriteField("action", Action);
+                case 1:
+                    structWriter.WriteField("action", ActionOffset, Action);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

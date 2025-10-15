@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -13,46 +14,67 @@ namespace PESpy.PDB
         //we _must_ be NewDBIHdr
         public const int hdrSignature = -1;
 
+        private const int verSignatureOffset = 0;
+        private const int verHdrOffset = 4;
+        private const int ageOffset = 8;
+        private const int snGSSymsOffset = 12;
+        private const int usVerAllOffset = 14;
+        private const int snPSSymsOffset = 16;
+        private const int usVerPdbDllBuildOffset = 18;
+        private const int snSymRecsOffset = 20;
+        private const int usVerPdbDllRBldOffset = 22;
+        private const int cbGpModiOffset = 24;
+        private const int cbSCOffset = 28;
+        private const int cbSecMapOffset = 32;
+        private const int cbFileInfoOffset = 36;
+        private const int cbTSMapOffset = 40;
+        private const int iMFCOffset = 44;
+        private const int cbDbgHdrOffset = 48;
+        private const int cbECInfoOffset = 52;
+        private const int flagsOffset = 56;
+        private const int wMachineOffset = 58;
+        private const int rgulReservedOffset = 60;
+
         //verSignature. Value is always hdrSignature (-1)
         public int verSignature
         {
-            get => chunk.PeekInt32(0);
-            set => chunk.PokeInt32(0, value);
+            get => chunk.PeekInt32(verSignatureOffset);
+            set => chunk.PokeInt32(verSignatureOffset, value);
         }
 
         //verHdr
         public DBIImpv verHdr
         {
-            get => (DBIImpv) chunk.PeekUInt32(4);
-            set => chunk.PokeUInt32(4, (uint) value);
+            get => (DBIImpv) chunk.PeekUInt32(verHdrOffset);
+            set => chunk.PokeUInt32(verHdrOffset, (uint) value);
         }
 
         //age
         public int age
         {
-            get => chunk.PeekInt32(8);
-            set => chunk.PokeInt32(8, value);
+            get => chunk.PeekInt32(ageOffset);
+            set => chunk.PokeInt32(ageOffset, value);
         }
 
         //snGSSyms
         public SN snGSSyms
         {
-            get => chunk.PeekUInt16(12);
-            set => chunk.PokeUInt16(12, value);
+            get => chunk.PeekUInt16(snGSSymsOffset);
+            set => chunk.PokeUInt16(snGSSymsOffset, value);
         }
 
         //usVerAll
         public DbiHdrVersion usVerAll
         {
-            get => chunk.PeekUInt16(14);
-            set => chunk.PokeUInt16(14, value);
+            get => chunk.PeekUInt16(usVerAllOffset);
+            set => chunk.PokeUInt16(usVerAllOffset, value);
         }
 
         //snPSSyms
         public SN snPSSyms
         {
-            get => chunk.PeekUInt16(16);
-            set => chunk.PokeUInt16(16, value);
+            get => chunk.PeekUInt16(snPSSymsOffset);
+            set => chunk.PokeUInt16(snPSSymsOffset, value);
         }
 
         /// <summary>
@@ -60,14 +82,14 @@ namespace PESpy.PDB
         /// </summary>
         public ushort usVerPdbDllBuild
         {
-            get => chunk.PeekUInt16(18);
-            set => chunk.PokeUInt16(18, value);
+            get => chunk.PeekUInt16(usVerPdbDllBuildOffset);
+            set => chunk.PokeUInt16(usVerPdbDllBuildOffset, value);
         }
 
         public SN snSymRecs
         {
-            get => chunk.PeekUInt16(20);
-            set => chunk.PokeUInt16(20, value);
+            get => chunk.PeekUInt16(snSymRecsOffset);
+            set => chunk.PokeUInt16(snSymRecsOffset, value);
         }
 
         /// <summary>
@@ -75,8 +97,8 @@ namespace PESpy.PDB
         /// </summary>
         public ushort usVerPdbDllRBld
         {
-            get => chunk.PeekUInt16(22);
-            set => chunk.PokeUInt16(22, value);
+            get => chunk.PeekUInt16(usVerPdbDllRBldOffset);
+            set => chunk.PokeUInt16(usVerPdbDllRBldOffset, value);
         }
 
         /// <summary>
@@ -84,8 +106,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbGpModi
         {
-            get => chunk.PeekInt32(24);
-            set => chunk.PokeInt32(24, value);
+            get => chunk.PeekInt32(cbGpModiOffset);
+            set => chunk.PokeInt32(cbGpModiOffset, value);
         }
 
         /// <summary>
@@ -93,20 +115,20 @@ namespace PESpy.PDB
         /// </summary>
         public int cbSC
         {
-            get => chunk.PeekInt32(28);
-            set => chunk.PokeInt32(28, value);
+            get => chunk.PeekInt32(cbSCOffset);
+            set => chunk.PokeInt32(cbSCOffset, value);
         }
 
         public int cbSecMap
         {
-            get => chunk.PeekInt32(32);
-            set => chunk.PokeInt32(32, value);
+            get => chunk.PeekInt32(cbSecMapOffset);
+            set => chunk.PokeInt32(cbSecMapOffset, value);
         }
 
         public int cbFileInfo
         {
-            get => chunk.PeekInt32(36);
-            set => chunk.PokeInt32(36, value);
+            get => chunk.PeekInt32(cbFileInfoOffset);
+            set => chunk.PokeInt32(cbFileInfoOffset, value);
         }
 
         /// <summary>
@@ -114,8 +136,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbTSMap
         {
-            get => chunk.PeekInt32(40);
-            set => chunk.PokeInt32(40, value);
+            get => chunk.PeekInt32(cbTSMapOffset);
+            set => chunk.PokeInt32(cbTSMapOffset, value);
         }
 
         /// <summary>
@@ -123,8 +145,8 @@ namespace PESpy.PDB
         /// </summary>
         public int iMFC
         {
-            get => chunk.PeekInt32(44);
-            set => chunk.PokeInt32(44, value);
+            get => chunk.PeekInt32(iMFCOffset);
+            set => chunk.PokeInt32(iMFCOffset, value);
         }
 
         /// <summary>
@@ -132,8 +154,8 @@ namespace PESpy.PDB
         /// </summary>
         public int cbDbgHdr
         {
-            get => chunk.PeekInt32(48);
-            set => chunk.PokeInt32(48, value);
+            get => chunk.PeekInt32(cbDbgHdrOffset);
+            set => chunk.PokeInt32(cbDbgHdrOffset, value);
         }
 
         /// <summary>
@@ -141,14 +163,14 @@ namespace PESpy.PDB
         /// </summary>
         public int cbECInfo
         {
-            get => chunk.PeekInt32(52);
-            set => chunk.PokeInt32(52, value);
+            get => chunk.PeekInt32(cbECInfoOffset);
+            set => chunk.PokeInt32(cbECInfoOffset, value);
         }
 
         public DbiHdrFlags flags
         {
-            get => chunk.PeekUInt16(56);
-            set => chunk.PokeUInt16(56, value);
+            get => chunk.PeekUInt16(flagsOffset);
+            set => chunk.PokeUInt16(flagsOffset, value);
         }
 
         /// <summary>
@@ -156,8 +178,8 @@ namespace PESpy.PDB
         /// </summary>
         public IMAGE_FILE_MACHINE wMachine
         {
-            get => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(58);
-            set => chunk.PokeUInt16(58, (ushort) value);
+            get => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(wMachineOffset);
+            set => chunk.PokeUInt16(wMachineOffset, (ushort) value);
         }
 
         /// <summary>
@@ -165,8 +187,8 @@ namespace PESpy.PDB
         /// </summary>
         public int rgulReserved
         {
-            get => chunk.PeekInt32(60);
-            set => chunk.PokeInt32(60, value);
+            get => chunk.PeekInt32(rgulReservedOffset);
+            set => chunk.PokeInt32(rgulReservedOffset, value);
         }
 
         int IDBIHdr.StructSize => StructSize;
@@ -210,58 +232,141 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.NewDBIHdr, this, ViewKind.NewDbiHdr, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 25;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(verSignature), verSignature);
-            s.WriteField(nameof(verHdr), verHdr, sizeof(int));
-            s.WriteField(nameof(age), age);
-            s.WriteField(nameof(snGSSyms), snGSSyms);
-
-            using (var bitField = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                if (usVerAll.vernew.fNewVerFmt)
-                {
-                    bitField.WriteField("usVerPdbDllMin", usVerAll.vernew.usVerPdbDllMin, 8);
-                    bitField.WriteField("usVerPdbDllMaj", usVerAll.vernew.usVerPdbDllMaj, 7);
-                    bitField.WriteField("fNewVerFmt", usVerAll.vernew.fNewVerFmt, 1);
-                }
-                else
-                {
-                    //Assume it's just old and not really screwed up
-                    bitField.WriteField("usVerPdbDllRbld", usVerAll.verold.usVerPdbDllRBld, 4);
-                    bitField.WriteField("usVerPdbDllMin", usVerAll.verold.usVerPdbDllMin, 7);
-                    bitField.WriteField("usVerPdbDllMaj", usVerAll.verold.usVerPdbDllMaj, 5);
-                }
+                case 0:
+                    structWriter.WriteField(nameof(verSignature), verSignatureOffset, verSignature);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(verHdr), verHdrOffset, verHdr, sizeof(int));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(age), ageOffset, age);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(snGSSyms), snGSSymsOffset, snGSSyms);
+                    break;
+
+                #region BitField
+
+                case 4:
+                    if (usVerAll.vernew.fNewVerFmt)
+                        structWriter.WriteBitField("usVerPdbDllMin", usVerAllOffset, usVerAll.vernew.usVerPdbDllMin, sizeof(ushort), 8);
+                    else
+                    {
+                        //Assume it's just old and not really screwed up
+                        structWriter.WriteBitField("usVerPdbDllRbld", usVerAllOffset, usVerAll.verold.usVerPdbDllRBld, sizeof(ushort), 4);
+                    }
+                    break;
+
+                case 5:
+                    if (usVerAll.vernew.fNewVerFmt)
+                        structWriter.WriteBitField("usVerPdbDllMaj", usVerAllOffset, usVerAll.vernew.usVerPdbDllMaj, sizeof(ushort), 7);
+                    else
+                    {
+                        //Assume it's just old and not really screwed up
+                        structWriter.WriteBitField("usVerPdbDllMin", usVerAllOffset, usVerAll.verold.usVerPdbDllMin, sizeof(ushort), 7);
+                    }
+                    break;
+
+                case 6:
+                    if (usVerAll.vernew.fNewVerFmt)
+                        structWriter.WriteBitField("fNewVerFmt", usVerAllOffset, usVerAll.vernew.fNewVerFmt, sizeof(ushort), 1);
+                    else
+                    {
+                        //Assume it's just old and not really screwed up
+                        structWriter.WriteBitField("usVerPdbDllMaj", usVerAllOffset, usVerAll.verold.usVerPdbDllMaj, sizeof(ushort), 5);
+                    }
+                    break;
+
+                #endregion
+
+                case 7:
+                    structWriter.WriteField(nameof(snPSSyms), snPSSymsOffset, snPSSyms);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(usVerPdbDllBuild), usVerPdbDllBuildOffset, usVerPdbDllBuild);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(snSymRecs), snSymRecsOffset, snSymRecs);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(usVerPdbDllRBld), usVerPdbDllRBldOffset, usVerPdbDllRBld);
+                    break;
+
+                case 11:
+                    structWriter.WriteField(nameof(cbGpModi), cbGpModiOffset, cbGpModi);
+                    break;
+
+                case 12:
+                    structWriter.WriteField(nameof(cbSC), cbSCOffset, cbSC);
+                    break;
+
+                case 13:
+                    structWriter.WriteField(nameof(cbSecMap), cbSecMapOffset, cbSecMap);
+                    break;
+
+                case 14:
+                    structWriter.WriteField(nameof(cbFileInfo), cbFileInfoOffset, cbFileInfo);
+                    break;
+
+                case 15:
+                    structWriter.WriteField(nameof(cbTSMap), cbTSMapOffset, cbTSMap);
+                    break;
+
+                case 16:
+                    structWriter.WriteField(nameof(iMFC), iMFCOffset, iMFC);
+                    break;
+
+                case 17:
+                    structWriter.WriteField(nameof(cbDbgHdr), cbDbgHdrOffset, cbDbgHdr);
+                    break;
+
+                case 18:
+                    structWriter.WriteField(nameof(cbECInfo), cbECInfoOffset, cbECInfo);
+                    break;
+
+                #region BitField
+
+                case 19:
+                    structWriter.WriteBitField("fIncLink", flagsOffset, flags.fIncLink, sizeof(ushort), 1);
+                    break;
+
+                case 20:
+                    structWriter.WriteBitField("fStripped", flagsOffset, flags.fStripped, sizeof(ushort), 1);
+                    break;
+
+                case 21:
+                    structWriter.WriteBitField("fCTypes", flagsOffset, flags.fCTypes, sizeof(ushort), 1);
+                    break;
+
+                case 22:
+                    structWriter.WriteBitField("unused", flagsOffset, flags.unused, sizeof(ushort), 13);
+                    break;
+
+                #endregion
+
+                case 23:
+                    structWriter.WriteField(nameof(wMachine), wMachineOffset, wMachine, sizeof(short));
+                    break;
+
+                case 24:
+                    structWriter.WriteField(nameof(rgulReserved), rgulReservedOffset, rgulReserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField(nameof(snPSSyms), snPSSyms);
-            s.WriteField(nameof(usVerPdbDllBuild), usVerPdbDllBuild);
-            s.WriteField(nameof(snSymRecs), snSymRecs);
-            s.WriteField(nameof(usVerPdbDllRBld), usVerPdbDllRBld);
-            s.WriteField(nameof(cbGpModi), cbGpModi);
-            s.WriteField(nameof(cbSC), cbSC);
-            s.WriteField(nameof(cbSecMap), cbSecMap);
-            s.WriteField(nameof(cbFileInfo), cbFileInfo);
-            s.WriteField(nameof(cbTSMap), cbTSMap);
-            s.WriteField(nameof(iMFC), iMFC);
-            s.WriteField(nameof(cbDbgHdr), cbDbgHdr);
-            s.WriteField(nameof(cbECInfo), cbECInfo);
-
-            using (var bitField = s.WriteBitFields<ushort>())
-            {
-                bitField.WriteField("fIncLink", flags.fIncLink, 1);
-                bitField.WriteField("fStripped", flags.fStripped, 1);
-                bitField.WriteField("fCTypes", flags.fCTypes, 1);
-                bitField.WriteField("unused", flags.unused, 13);
-            }
-
-            s.WriteField(nameof(wMachine), wMachine, sizeof(short));
-            s.WriteField(nameof(rgulReserved), rgulReserved);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

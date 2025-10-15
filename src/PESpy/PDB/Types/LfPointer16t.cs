@@ -10,6 +10,10 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfPointer16t : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int utypeOffset = 6;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfPointer_16t* value;
 

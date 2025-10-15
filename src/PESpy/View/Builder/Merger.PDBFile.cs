@@ -11,7 +11,7 @@ namespace PESpy.View.Builder
     {
         internal Dictionary<PN, int> pageNumberToSIIndex;
 
-        internal IView[] MergePDB()
+        internal IView[] MergePDB(PooledList<PDBContiguousSectionInfo> contiguousSections)
         {
             //When a value spans multiple pages, we'll split the value. The page that the first half is in
             //may be far away from the page that the second half is in. The way we figure out what our "next" page is
@@ -56,9 +56,42 @@ namespace PESpy.View.Builder
 
             pageNumberToSIIndex = dict;
 
-            var results = BuildSection(0, pdbFile.NumPages * pdbFile.PageSize);
+            var currentPageIndex = 0;
 
-            return results;
+            using var results = new PooledList<IView>();
+
+            var pageSize = pdbFile.PageSize;
+
+            //Calling BuildSection multiple times will clear the masterList, which will prevent us from back patching bytes we read as junk
+            //which actually turned out to be data from a section that came after it and had to be split. So Plan B: we'll read the whole thing,
+            //and then carve it up into sections
+
+            var raw = BuildSection(0, pdbFile.NumPages * pageSize);
+
+            for (var i = 0; i < contiguousSections.Count; i++)
+            {
+                var section = contiguousSections[i];
+
+                if (currentPageIndex < section.GlobalStartIndex)
+                {
+                    //Write all pages up to the start of this page
+                    results.AddRange(raw, currentPageIndex, section.GlobalStartIndex - currentPageIndex);
+                }
+
+                var sectionViews = raw.AsSpan(section.GlobalStartIndex, section.NumPages).ToArray();
+
+                results.Add(new SectionView(
+                    section.GlobalStartIndex * pageSize,
+                    section.ToString(),
+                    sectionViews,
+                    viewWriter,
+                    section.NumPages * pageSize
+                ));
+
+                currentPageIndex = section.GlobalEndIndex + 1;
+            }
+
+            return results.ToArray();
         }
     }
 }

@@ -6,9 +6,9 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int SemanticsOffset;
-        private readonly int MethodOffset;
-        private readonly int AssociationOffset;
+        internal readonly int SemanticsOffset;
+        internal readonly int MethodOffset;
+        internal readonly int AssociationOffset;
 
         private readonly bool hasBigMethodDefIndex;
         private readonly bool hasBigHasSemanticsIndex;

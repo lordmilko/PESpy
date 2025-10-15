@@ -11,9 +11,19 @@ namespace PESpy.View
             this.outerWriter = parentWriter;
         }
 
-        protected internal override IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize, ViewWriter? viewWriter)
+        protected internal override IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
         {
-            return outerWriter.NewStruct(name, value, kind, structSize, this);
+            var previous = outerWriter.NestedViewWriter;
+            outerWriter.NestedViewWriter = this;
+
+            try
+            {
+                return outerWriter.NewStruct(name, value, kind, structSize);
+            }
+            finally
+            {
+                outerWriter.NestedViewWriter = previous;
+            }
         }
 
         protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)

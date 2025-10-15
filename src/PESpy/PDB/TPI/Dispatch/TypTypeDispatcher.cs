@@ -66,7 +66,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_IVBCLASS_16t:
                     LfVBClass16t((LfVBClass16t) easy);
                     break;
-                
+
                 case LEAF_ENUM_e.LF_FRIENDFCN_16t:  LfFriendFcn16t((LfFriendFcn16t) easy); break;
                 case LEAF_ENUM_e.LF_INDEX_16t:      LfIndex16t((LfIndex16t) easy); break;
                 case LEAF_ENUM_e.LF_MEMBER_16t:     LfMember16t((LfMember16t) easy); break;

@@ -585,6 +585,7 @@ namespace PESpy.View
         Modi50,
         Modi60Persist,
         ECInfo,
+        SC20,
         SC40,
         SC,
         SC2,

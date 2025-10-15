@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,18 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct CompileSym : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int flagsOffset = 4;
+        private const int machineOffset = 8;
+        private const int verFEMajorOffset = 10;
+        private const int verFEMinorOffset = 12;
+        private const int verFEBuildOffset = 14;
+        private const int verMajorOffset = 16;
+        private const int verMinorOffset = 18;
+        private const int verBuildOffset = 20;
+        private const int verStOffset = 22;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly COMPILESYM* value;
 
@@ -95,6 +108,8 @@ namespace PESpy.PDB
             sizeof(short)  + //verMinor
             sizeof(short);   //verBuild
 
+        private int BytesUsed => FixedStructSize + verSt.Length + 1;
+
         internal CompileSym(COMPILESYM* value)
         {
             this.value = value;
@@ -108,41 +123,108 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.COMPILESYM, this, ViewKind.CompileSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(21, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-
-            using (var bitField = s.WriteBitFields<long>())
+            switch (index)
             {
-                bitField.WriteField(nameof(iLanguage), iLanguage, 8);
-                bitField.WriteField(nameof(fEC), fEC, 1);
-                bitField.WriteField(nameof(fNoDbgInfo), fNoDbgInfo, 1);
-                bitField.WriteField(nameof(fLTCG), fLTCG, 1);
-                bitField.WriteField(nameof(fNoDataAlign), fNoDataAlign, 1);
-                bitField.WriteField(nameof(fManagedPresent), fManagedPresent, 1);
-                bitField.WriteField(nameof(fSecurityChecks), fSecurityChecks, 1);
-                bitField.WriteField(nameof(fHotPatch), fHotPatch, 1);
-                bitField.WriteField(nameof(fCVTCIL), fCVTCIL, 1);
-                bitField.WriteField(nameof(fMSILModule), fMSILModule, 1);
-                bitField.WriteField(nameof(pad), pad, 15);
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                #region BitField
+
+                case 2:
+                    structWriter.WriteBitField(nameof(iLanguage), flagsOffset, iLanguage, sizeof(int), 8);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField(nameof(fEC), flagsOffset, fEC, sizeof(int), 1);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField(nameof(fNoDbgInfo), flagsOffset, fNoDbgInfo, sizeof(int), 1);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(fLTCG), flagsOffset, fLTCG, sizeof(int), 1);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField(nameof(fNoDataAlign), flagsOffset, fNoDataAlign, sizeof(int), 1);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField(nameof(fManagedPresent), flagsOffset, fManagedPresent, sizeof(int), 1);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(fSecurityChecks), flagsOffset, fSecurityChecks, sizeof(int), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(fHotPatch), flagsOffset, fHotPatch, sizeof(int), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(fCVTCIL), flagsOffset, fCVTCIL, sizeof(int), 1);
+                    break;
+
+                case 11:
+                    structWriter.WriteBitField(nameof(fMSILModule), flagsOffset, fMSILModule, sizeof(int), 1);
+                    break;
+
+                case 12:
+                    structWriter.WriteBitField(nameof(pad), flagsOffset, pad, sizeof(int), 15);
+                    break;
+
+                #endregion
+
+                case 13:
+                    structWriter.WriteField(nameof(machine), machineOffset, machine, sizeof(ushort));
+                    break;
+
+                case 14:
+                    structWriter.WriteField(nameof(verFEMajor), verFEMajorOffset, verFEMajor);
+                    break;
+
+                case 15:
+                    structWriter.WriteField(nameof(verFEMinor), verFEMinorOffset, verFEMinor);
+                    break;
+
+                case 16:
+                    structWriter.WriteField(nameof(verFEBuild), verFEBuildOffset, verFEBuild);
+                    break;
+
+                case 17:
+                    structWriter.WriteField(nameof(verMajor), verMajorOffset, verMajor);
+                    break;
+
+                case 18:
+                    structWriter.WriteField(nameof(verMinor), verMinorOffset, verMinor);
+                    break;
+
+                case 19:
+                    structWriter.WriteField(nameof(verBuild), verBuildOffset, verBuild);
+                    break;
+
+                case 20:
+                    structWriter.WriteSymStringField(nameof(verSt), verStOffset, SymType.ReadString(value, value->verSt, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 21:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.WriteField(nameof(machine), machine, sizeof(ushort));
-            s.WriteField(nameof(verFEMajor), verFEMajor);
-            s.WriteField(nameof(verFEMinor), verFEMinor);
-            s.WriteField(nameof(verFEBuild), verFEBuild);
-            s.WriteField(nameof(verMajor), verMajor);
-            s.WriteField(nameof(verMinor), verMinor);
-            s.WriteField(nameof(verBuild), verBuild);
-            s.WriteSymStringField(nameof(verSt), SymType.ReadString(value, value->verSt, viewWriter.GetSymbolAccessor()));
-
-            s.Align(4);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
 
         public override string ToString()

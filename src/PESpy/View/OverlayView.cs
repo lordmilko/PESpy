@@ -14,12 +14,16 @@ namespace PESpy.View
         public ViewKind Kind => ViewKind.Overlay;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children { get; }
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
 
-        public OverlayView(int offset, IView[] children, int size)
+        private ViewWriter viewWriter;
+        private IViewable childProvider;
+
+        public OverlayView(int offset, IView[] children, ViewWriter viewWriter, int size)
         {
             Offset = offset;
-            Children = children;
+            childProvider = new ViewChildProvider(children);
+            this.viewWriter = viewWriter;
             Size = size;
         }
 

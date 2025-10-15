@@ -1,13 +1,18 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public class ClrEngineMetrics : IValue, IViewable
     {
-        public int Size => chunk.PeekInt32(0);
-        public int DbiVersion => chunk.PeekInt32(4);
-        public ulong ContinueStartupEvent => chunk.PeekPointer(8);
+        private const int SizeOffset = 0;
+        private const int DbiVersionOffset = 4;
+        private const int ContinueStartupEventOffset = 8;
+
+        public int Size => chunk.PeekInt32(SizeOffset);
+        public int DbiVersion => chunk.PeekInt32(DbiVersionOffset);
+        public ulong ContinueStartupEvent => chunk.PeekPointer(ContinueStartupEventOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -31,16 +36,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CLR_ENGINE_METRICS, this, ViewKind.ClrEngineMetrics, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            s.WriteField(nameof(Size), Size);
-            s.WriteField(nameof(DbiVersion), DbiVersion);
-            s.WritePointerField(nameof(ContinueStartupEvent), ContinueStartupEvent);
+                case 1:
+                    structWriter.WriteField(nameof(DbiVersion), DbiVersionOffset, DbiVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WritePointerField(nameof(ContinueStartupEvent), ContinueStartupEventOffset, ContinueStartupEvent);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

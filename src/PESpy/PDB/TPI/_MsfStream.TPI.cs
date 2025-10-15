@@ -100,6 +100,7 @@ namespace PESpy.PDB
                     }
                     else
                     {
+                        throw new NotImplementedException();
                     }
                 }
 
@@ -124,7 +125,9 @@ namespace PESpy.PDB
 
             IView? IViewable.WriteStruct(ViewWriter writer) => null;
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+            int IViewable.NumChildren => throw new NotSupportedException();
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
         }
     }
 }

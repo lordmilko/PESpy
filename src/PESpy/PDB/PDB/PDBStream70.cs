@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Diagnostics;
-using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     public class PDBStream70 : PDBStream, IValue, IViewable //Header could either be PDBStream or PDBStream70, so must be a class
     {
+        private const int GuidOffset = 12;
+
         //sig70. if fRepro ("z") is used in the open mode, this is -1. Otherwise, it's a random GUID
         public Guid Guid
         {
-            get => chunk.PeekGuid(12);
-            set => chunk.PokeGuid(12, value);
+            get => chunk.PeekGuid(GuidOffset);
+            set => chunk.PokeGuid(GuidOffset, value);
         }
 
         internal new const int StructSize =
@@ -27,17 +27,31 @@ namespace PESpy.PDB
         protected override IView? WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PDBStream70, this, ViewKind.PDBStream70, StructSize);
 
-        protected override IView[] GetChildren(IView parent, ViewWriter viewWriter)
+        protected override int NumChildren => 4;
+
+        protected override void WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("impv", ImplementationVersionOffset, ImplementationVersion, sizeof(int));
+                    break;
 
-            s.WriteField("impv", ImplementationVersion, sizeof(int));
-            s.WriteField("sig", Signature);
-            s.WriteField("age", Age);
-            s.WriteField("sig70", Guid);
+                case 1:
+                    structWriter.WriteField("sig", SignatureOffset, Signature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("age", AgeOffset, Age);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("sig70", GuidOffset, Guid);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

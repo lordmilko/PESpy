@@ -7,10 +7,10 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ResourceOffset;
-        private readonly int FlagsOffset;
-        private readonly int NameOffset;
-        private readonly int ImplementationOffset;
+        internal readonly int ResourceOffsetOffset;
+        internal readonly int FlagsOffset;
+        internal readonly int NameOffset;
+        internal readonly int ImplementationOffset;
 
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;
@@ -26,8 +26,8 @@ namespace PESpy.Ecma335
             isBigStringIndex = stringIndexSize == 4;
             isBigImplementationIndex = implementationIndexSize == 4;
 
-            ResourceOffset = 0;
-            FlagsOffset = ResourceOffset + sizeof(int);
+            ResourceOffsetOffset = 0;
+            FlagsOffset = ResourceOffsetOffset + sizeof(int);
             NameOffset = FlagsOffset + sizeof(int);
             ImplementationOffset = NameOffset + stringIndexSize;
             RowSize = ImplementationOffset + implementationIndexSize;
@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
         public int GetResourceOffset(ManifestResourceIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return tableChunk.PeekInt32(rowOffset + ResourceOffset);
+            return tableChunk.PeekInt32(rowOffset + ResourceOffsetOffset);
         }
 
         public CorManifestResourceFlags GetFlags(ManifestResourceIndex index)

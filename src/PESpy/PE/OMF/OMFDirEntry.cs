@@ -12,13 +12,18 @@ namespace PESpy
     [DebuggerDisplay("[{iMod}] {SubSection}")]
     public readonly struct OMFDirEntry : IValue, IViewable
     {
-        public SST SubSection => (SST) chunk.PeekUInt16(0);
+        private const int SubSectionOffset = 0;
+        private const int iModOffset = 2;
+        private const int lfoOffset = 4;
+        private const int cbOffset = 8;
 
-        public ushort iMod => chunk.PeekUInt16(2);
+        public SST SubSection => (SST) chunk.PeekUInt16(SubSectionOffset);
 
-        public int lfo => chunk.PeekInt32(4);
+        public ushort iMod => chunk.PeekUInt16(iModOffset);
 
-        public int cb => chunk.PeekInt32(8);
+        public int lfo => chunk.PeekInt32(lfoOffset);
+
+        public int cb => chunk.PeekInt32(cbOffset);
 
         public object Data { get; }
 
@@ -234,17 +239,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFDirEntry, this, ViewKind.OMFDirEntry, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(SubSection), SubSectionOffset, SubSection, sizeof(ushort));
+                    break;
 
-            s.WriteField(nameof(SubSection), SubSection, sizeof(ushort));
-            s.WriteField(nameof(iMod), iMod);
-            s.WriteField(nameof(lfo), lfo);
-            s.WriteField(nameof(cb), cb);
+                case 1:
+                    structWriter.WriteField(nameof(iMod), iModOffset, iMod);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(lfo), lfoOffset, lfo);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cb), cbOffset, cb);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

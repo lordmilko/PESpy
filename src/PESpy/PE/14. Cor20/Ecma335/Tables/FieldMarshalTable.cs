@@ -6,8 +6,8 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ParentOffset;
-        private readonly int NativeTypeOffset;
+        internal readonly int ParentOffset;
+        internal readonly int NativeTypeOffset;
 
         private readonly bool isBigHasFieldMarshalIndex;
         private readonly bool isBigBlobIndex;

@@ -6,8 +6,8 @@
 
         private readonly bool isBigTypeDefIndex;
 
-        private readonly int NestedClassOffset;
-        private readonly int EnclosingClassOffset;
+        internal readonly int NestedClassOffset;
+        internal readonly int EnclosingClassOffset;
 
         private readonly MemoryChunk tableChunk;
 

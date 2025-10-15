@@ -11,19 +11,27 @@ namespace PESpy.Ecma335
 
     public readonly struct CompressedModelHeader : IValue, IViewable
     {
-        public int Reserved1 => chunk.PeekInt32(0);
+        private const int Reserved1Offset = 0;
+        private const int MajorVersionOffset = 4;
+        private const int MinorVersionOffset = 5;
+        private const int HeapSizesOffset = 6;
+        private const int Reserved2Offset = 7;
+        private const int ValidOffset = 8;
+        private const int SortedOffset = 16;
 
-        public byte MajorVersion => chunk.PeekByte(4);
+        public int Reserved1 => chunk.PeekInt32(Reserved1Offset);
 
-        public byte MinorVersion => chunk.PeekByte(5);
+        public byte MajorVersion => chunk.PeekByte(MajorVersionOffset);
 
-        public HeapSizes HeapSizes => (HeapSizes) chunk.PeekByte(6);
+        public byte MinorVersion => chunk.PeekByte(MinorVersionOffset);
 
-        public byte Reserved2 => chunk.PeekByte(7);
+        public HeapSizes HeapSizes => (HeapSizes) chunk.PeekByte(HeapSizesOffset);
 
-        public TableMask Valid => (TableMask) chunk.PeekUInt64(8);
+        public byte Reserved2 => chunk.PeekByte(Reserved2Offset);
 
-        public TableMask Sorted => (TableMask) chunk.PeekUInt64(16);
+        public TableMask Valid => (TableMask) chunk.PeekUInt64(ValidOffset);
+
+        public TableMask Sorted => (TableMask) chunk.PeekUInt64(SortedOffset);
 
         /// <summary>
         /// Gets the row counts as listed in the header. Note that this will only contain as many valid entries as there are <see cref="Valid"/>
@@ -97,21 +105,47 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MetadataHeader, this, ViewKind.MetadataHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 8;
+
+        void IViewable.WriteChild(int index, ViewWriter viewWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    viewWriter.WriteField(nameof(Reserved1), Reserved1);
+                    break;
 
-            s.WriteField(nameof(Reserved1), Reserved1);
-            s.WriteField(nameof(MajorVersion), MajorVersion);
-            s.WriteField(nameof(MinorVersion), MinorVersion);
-            s.WriteField(nameof(HeapSizes), HeapSizes, sizeof(byte));
-            s.WriteField(nameof(Reserved2), Reserved2);
-            s.WriteField(nameof(Valid), Valid, sizeof(long));
-            s.WriteField(nameof(Sorted), Sorted, sizeof(long));
-            s.WriteField(nameof(RowCounts), RowCounts);
+                case 1:
+                    viewWriter.WriteField(nameof(MajorVersion), MajorVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    viewWriter.WriteField(nameof(MinorVersion), MinorVersion);
+                    break;
+
+                case 3:
+                    viewWriter.WriteField(nameof(HeapSizes), HeapSizes, sizeof(byte));
+                    break;
+
+                case 4:
+                    viewWriter.WriteField(nameof(Reserved2), Reserved2);
+                    break;
+
+                case 5:
+                    viewWriter.WriteField(nameof(Valid), Valid, sizeof(long));
+                    break;
+
+                case 6:
+                    viewWriter.WriteField(nameof(Sorted), Sorted, sizeof(long));
+                    break;
+
+                case 7:
+                    viewWriter.WriteField(nameof(RowCounts), RowCounts);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

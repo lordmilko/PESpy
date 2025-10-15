@@ -6,8 +6,8 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int MethodOffset;
-        private readonly int InstantiationOffset;
+        internal readonly int MethodOffset;
+        internal readonly int InstantiationOffset;
 
         private readonly bool isBigMethodDefOrRefIndex;
         private readonly bool isBigBlobIndex;

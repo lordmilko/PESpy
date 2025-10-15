@@ -15,13 +15,17 @@ namespace PESpy.View
         public ViewKind Kind => ViewKind.Section;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children { get; }
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
 
-        public SectionView(int offset, string name, IView[] children, int size)
+        private ViewWriter viewWriter;
+        private IViewable childProvider;
+
+        public SectionView(int offset, string name, IView[] children, ViewWriter viewWriter, int size)
         {
             Offset = offset;
             Name = name;
-            Children = children;
+            childProvider = new ViewChildProvider(children);
+            this.viewWriter = viewWriter;
             Size = size;
         }
 

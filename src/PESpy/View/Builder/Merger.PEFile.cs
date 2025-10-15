@@ -16,13 +16,13 @@ namespace PESpy.View.Builder
                 var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
 
                 var startOffset = peFile.blockProvider.StartOffset;
-                var headerMetadata = new HeaderView(startOffset, sizeOfHeaders, BuildSection(startOffset, startOffset + sizeOfHeaders, v => v, v => v));
+                var headerMetadata = new HeaderView(startOffset, sizeOfHeaders, BuildSection(startOffset, startOffset + sizeOfHeaders, v => v, v => v), viewWriter);
                 results.Add(headerMetadata);
-                
+
                 var lastSectionEnd = startOffset + sizeOfHeaders;
 
                 var isVirtualMode = (mode == ViewMode.Default && peFile.IsLoadedImage) || mode == ViewMode.Virtual;
-            
+
                 foreach (var section in peFile.SectionHeaders)
                 {
                     //We are dealing with RVAs, so I think this whole thing is predicated on using virtual addresses
@@ -138,7 +138,7 @@ namespace PESpy.View.Builder
 
                     var data = BuildSection(start, start + size, getRealOffset, getRVA);
 
-                    results.Add(new SectionView(start, section.Name.ToString(), data, size));
+                    results.Add(new SectionView(start, section.Name.ToString(), data, viewWriter, size));
 
                     lastSectionEnd = start + size;
                 }
@@ -159,8 +159,8 @@ namespace PESpy.View.Builder
                     if (overlayData.Length > 0)
                     {
                         var size = overlayData.Sum(v => v.Size);
-                        results.Add(new OverlayView(overlayStart, overlayData, size));
-                    }   
+                        results.Add(new OverlayView(overlayStart, overlayData, viewWriter, size));
+                    }
                 }
 
                 return results.ToArray();
@@ -219,7 +219,7 @@ namespace PESpy.View.Builder
             var nextStructIndexToInsertAt = nextStructIndex;
 
             var end = start + sizeOfData; //We would expect that this should take us to the end of the file. We don't have to +4 to cover the area that lfoBase is in
-            var region = new LogicalRegionView(start, $"{sig} OMF Data", BuildSection(start, end), ViewKind.NB05Data, sizeOfData);
+            var region = new LogicalRegionView(start, $"{sig} OMF Data", BuildSection(start, end), viewWriter, ViewKind.NB05Data, sizeOfData);
 
             //Remove all the items we read into the region from the global struct list
             var endNextStructIndex = nextStructIndex;

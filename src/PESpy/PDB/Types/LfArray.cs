@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,22 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfArray : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+        private const int elemtypeOffset = 4;
+        private const int idxtypeOffset = 8;
+        private const int lengthOffset = 12;
+        private int nameOffset
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                return 12 + bytesRead;
+            }
+        }
+
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfArray* value;
 
@@ -51,6 +69,18 @@ namespace PESpy.PDB
 
         #endregion
 
+        private int BytesUsed
+        {
+            get
+            {
+                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+                var str = TypType.ReadString(value->data + bytesRead);
+
+                return FixedStructSize + bytesRead + str.Length;
+            }
+        }
+
         internal LfArray(lfArray* value)
         {
             this.value = value;
@@ -64,18 +94,44 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfArray, this, ViewKind.LfArray, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
 
-            s.WriteField(nameof(typlen), typlen);
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(elemtype), elemtype);
-            s.WriteField(nameof(idxtype), idxtype);
-            s.WriteNumericData(nameof(length), value->data);
-            s.WriteSymStringField(nameof(name), GetName(viewWriter.GetSymbolAccessor()));
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(elemtype), elemtypeOffset, value->elemtype);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(idxtype), idxtypeOffset, value->idxtype);
+                    break;
+
+                case 4:
+                    structWriter.WriteNumericData(nameof(length), lengthOffset, value->data);
+                    break;
+
+                case 5:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, GetName(structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 6:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

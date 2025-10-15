@@ -13,6 +13,11 @@ namespace PESpy
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class ImageResourceDataEntry : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
     {
+        private const int OffsetToDataOffset = 0;
+        private const int SizeOffset = 4;
+        private const int CodePageOffset = 8;
+        private const int ReservedOffset = 12;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string DebuggerDisplay
         {
@@ -67,7 +72,7 @@ namespace PESpy
             {
                 if (offsetToData.ListedOffset == 0)
                 {
-                    var rva = chunk.PeekInt32(0);
+                    var rva = chunk.PeekInt32(OffsetToDataOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
@@ -128,11 +133,11 @@ namespace PESpy
                         else
                         {
                             /* - MUI
-                             *   
+                             *
                              *   You might be inclined to think that MUI is FILEMUIINFO, but this is wrong! FILEMUIINFO is what is returned by GetFileMUIInfo,
                              *   but this is not the physical representation. The physical data starts with CD FE CD FE. The physical representation is converted to FILEMUIINFO
                              *   by kernelbase!GetFileMUIInfo. There's a bit of complexity to it. ReactOS has their interpretation of the physical data structure
-                             *   
+                             *
                              * - IMAGE
                              * - WEVT_TEMPLATE (https://github.com/libyal/libfwevt/blob/main/documentation/Windows%20Event%20manifest%20binary%20format.asciidoc). need to include this reference permanently
                              */
@@ -158,14 +163,14 @@ namespace PESpy
         /// <summary>
         /// The size, in bytes, of the resource data that is pointed to by the Data RVA field.
         /// </summary>
-        public int Size => chunk.PeekInt32(4);
+        public int Size => chunk.PeekInt32(SizeOffset);
 
         /// <summary>
         /// The code page that is used to decode code point values within the resource data. Typically, the code page would be the Unicode code page.
         /// </summary>
-        public int CodePage => chunk.PeekInt32(8);
+        public int CodePage => chunk.PeekInt32(CodePageOffset);
 
-        public int Reserved => chunk.PeekInt32(12);
+        public int Reserved => chunk.PeekInt32(ReservedOffset);
 
         /// <summary>
         /// Gets the <see cref="ResourceType"/> or <see cref="string"/> that describes the type of data contained in this entry.
@@ -260,17 +265,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_RESOURCE_DATA_ENTRY, this, ViewKind.ImageResourceDataEntry, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(OffsetToData), OffsetToDataOffset, (int) OffsetToData.ListedOffset);
+                    break;
 
-            s.WriteField(nameof(OffsetToData), (int) OffsetToData.ListedOffset);
-            s.WriteField(nameof(Size), Size);
-            s.WriteField(nameof(CodePage), CodePage);
-            s.WriteField(nameof(Reserved), Reserved);
+                case 1:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(CodePage), CodePageOffset, CodePage);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

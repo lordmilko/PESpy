@@ -161,7 +161,7 @@ namespace PESpy.View
                         };
                     }
                     break;
-                
+
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
             }
@@ -285,7 +285,7 @@ namespace PESpy.View
 
                 dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
 
-                using var merger = new Merger(peFile, structs, delayNameViews, dataDirectories, byteViewProvider);
+                using var merger = new Merger(peFile, this, structs, delayNameViews, dataDirectories, byteViewProvider);
 
                 var results = merger.MergePE(mode);
 
@@ -295,13 +295,14 @@ namespace PESpy.View
                         : mode,
                     peFile.Name,
                     results,
+                    this,
                     ViewKind.PEFile
                 );
             }
             finally
             {
                 dataDirectories.Dispose();
-            }            
+            }
         }
 
         void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)

@@ -7,10 +7,10 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int TypeOffset;
-        private readonly int PaddingOffset;
-        private readonly int ParentOffset;
-        private readonly int ValueOffset;
+        internal readonly int TypeOffset;
+        internal readonly int PaddingOffset;
+        internal readonly int ParentOffset;
+        internal readonly int ValueOffset;
 
         private readonly bool isBigHasConstantIndexSize;
         private readonly bool isBigBlobIndexSize;

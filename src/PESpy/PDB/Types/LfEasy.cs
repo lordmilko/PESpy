@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -10,6 +12,9 @@ namespace PESpy.PDB
     [DebuggerDisplay("{TypTypeProxy.DebuggerDisplay(this),nq}")]
     public readonly unsafe struct LfEasy : IViewable
     {
+        private const int typlenOffset = 0;
+        private const int leafOffset = 2;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfEasy* value;
 
@@ -17,16 +22,49 @@ namespace PESpy.PDB
         {
             get
             {
-                //Leaves >= 0x200 but less than 0x1000 and >= 0x1200 and < 1500 are only referenced from other type records,
-                //and therefore don't have lengths (cvinfo.h). We store all leaves as TypType, which causes an issue
-                //when it comes to asking for their lengths, so we need to do this check
+                //Based on my reading of cvinfo.h, leaves >= 0x200 but less than 0x1000 and >= 0x1200 and < 1500 are only referenced from other type records,
+                //and therefore don't have lengths. However, this is is not correct. Some of these items do nicely fit into ranges, but other's (such as LF_MEMBER) don't.
+                //As such I think the safest thing to do is just to switch on the various types that are known to be sub-leaves, and return
+                //a 0 typlen for all of them (since technically speaking they don't have this field)
+                switch (value->leaf)
+                {
+                    case LEAF_ENUM_e.LF_BCLASS_16t:
+                    case LEAF_ENUM_e.LF_BCLASS:
+                    case LEAF_ENUM_e.LF_ENUMERATE:
+                    case LEAF_ENUM_e.LF_ENUMERATE_ST:
+                    case LEAF_ENUM_e.LF_FRIENDCLS_16t:
+                    case LEAF_ENUM_e.LF_FRIENDCLS:
+                    case LEAF_ENUM_e.LF_FRIENDFCN_16t:
+                    case LEAF_ENUM_e.LF_FRIENDFCN:
+                    case LEAF_ENUM_e.LF_FRIENDFCN_ST:
+                    case LEAF_ENUM_e.LF_INDEX_16t:
+                    case LEAF_ENUM_e.LF_INDEX:
+                    case LEAF_ENUM_e.LF_IVBCLASS_16t:
+                    case LEAF_ENUM_e.LF_IVBCLASS:
+                    case LEAF_ENUM_e.LF_MEMBER_16t:
+                    case LEAF_ENUM_e.LF_MEMBER:
+                    case LEAF_ENUM_e.LF_MEMBER_ST:
+                    case LEAF_ENUM_e.LF_METHOD_16t:
+                    case LEAF_ENUM_e.LF_METHOD:
+                    case LEAF_ENUM_e.LF_METHOD_ST:
+                    case LEAF_ENUM_e.LF_NESTTYPE_16t:
+                    case LEAF_ENUM_e.LF_NESTTYPE:
+                    case LEAF_ENUM_e.LF_NESTTYPE_ST:
+                    case LEAF_ENUM_e.LF_ONEMETHOD_16t:
+                    case LEAF_ENUM_e.LF_ONEMETHOD:
+                    case LEAF_ENUM_e.LF_ONEMETHOD_ST:
+                    case LEAF_ENUM_e.LF_STMEMBER_16t:
+                    case LEAF_ENUM_e.LF_STMEMBER:
+                    case LEAF_ENUM_e.LF_STMEMBER_ST:
+                    case LEAF_ENUM_e.LF_VBCLASS_16t:
+                    case LEAF_ENUM_e.LF_VBCLASS:
+                    case LEAF_ENUM_e.LF_VFUNCTAB_16t:
+                    case LEAF_ENUM_e.LF_VFUNCTAB:
+                        return 0;
 
-                var leaf = (ushort) value->leaf;
-
-                if (leaf >= 0x200 && leaf < 0x1000 || leaf >= 0x1200 && leaf < 0x1500)
-                    return 0;
-
-                return *(ushort*) ((byte*) value - 2);
+                    default:
+                        return *(ushort*) ((byte*) value - 2);
+                }
             }
         }
 
@@ -48,14 +86,31 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfEasy, this, ViewKind.LfEasy, typlen + sizeof(short));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => typlen > 2 ? 3 : 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //Unlike with SymType, we should not be writing an unknown type as LfEasy
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(typlen), typlenOffset, typlen);
+                    break;
 
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+                case 1:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    //Our dispatcher will dispatch to LfEasy in the event of an unsupported top level type.
+                    //LfFieldList will crash in the event of an unsupported type, so we should never have a 0 typlen
+                    Debug.Assert(typlen != 0);
+                    structWriter.WriteByteBlob(4, typlen - sizeof(ushort));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

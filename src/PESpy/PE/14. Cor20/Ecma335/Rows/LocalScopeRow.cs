@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -40,19 +41,39 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.LocalScopeRow, this, ViewKind.PortablePdb_LocalScopeRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Method), table.MethodOffset, (int) Method);
+                    break;
 
-            s.WriteValue(nameof(Method), (int) Method);
-            s.WriteValue(nameof(ImportScope), (int) ImportScope);
-            s.WriteValue(nameof(VariableList), (int) VariableList);
-            s.WriteValue(nameof(ConstantList), (int) ConstantList);
-            s.WriteValue(nameof(StartOffset), StartOffset);
-            s.WriteValue(nameof(Length), Length);
+                case 1:
+                    structWriter.WriteField(nameof(ImportScope), table.ImportScopeOffset, (int) ImportScope);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(VariableList), table.VariableListOffset, (int) VariableList);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(ConstantList), table.ConstantListOffset, (int) ConstantList);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(StartOffset), table.StartOffsetOffset, StartOffset);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(Length), table.LengthOffset, Length);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

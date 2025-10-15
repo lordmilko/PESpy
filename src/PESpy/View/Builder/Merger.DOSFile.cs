@@ -17,11 +17,11 @@
                 var sizeOfHeaders = dosFile.SizeOfHeaders;
                 var startOfOverlay = dosFile.StartOfOverlay;
 
-                var headerMetadata = new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v));
+                var headerMetadata = new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v), viewWriter);
                 results.Add(headerMetadata);
 
                 var data = BuildSection(sizeOfHeaders, startOfOverlay, v => v, v => v);
-                results.Add(new SectionView(startOfOverlay, "Code", data, startOfOverlay - sizeOfHeaders));
+                results.Add(new SectionView(startOfOverlay, "Code", data, viewWriter, startOfOverlay - sizeOfHeaders));
 
                 var length = byteViewProvider.FileOrSectionLength;
 

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -7,6 +8,8 @@ namespace PESpy
     {
         private const int TypeNameOffset = 0;
         private int FieldNameOffset => chunk.PointerSize;
+        private int FieldOffsetOffset => chunk.PointerSize * 2;
+        private int ReservedPaddingOffset => 4 + (chunk.PointerSize * 2);
 
         private VA<AnsiString> typeName;
 
@@ -62,9 +65,9 @@ namespace PESpy
             }
         }
 
-        public int FieldOffset => chunk.PeekInt32(chunk.PointerSize * 2);
+        public int FieldOffset => chunk.PeekInt32(FieldOffsetOffset);
 
-        public int ReservedPadding => chunk.PeekInt32(4 + (chunk.PointerSize * 2));
+        public int ReservedPadding => chunk.PeekInt32(ReservedPaddingOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -91,17 +94,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.DebugTypeEntry, this, ViewKind.DebugTypeEntry, StructSize(chunk.Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteVAAnsiNullTerminatedField(nameof(TypeName), TypeNameOffset, TypeName);
+                    break;
 
-            s.WriteVAAnsiNullTerminatedField(nameof(TypeName), TypeName);
-            s.WriteVAAnsiNullTerminatedField(nameof(FieldName), FieldName);
-            s.WriteField(nameof(FieldOffset), FieldOffset);
-            s.WriteField(nameof(ReservedPadding), ReservedPadding);
+                case 1:
+                    structWriter.WriteVAAnsiNullTerminatedField(nameof(FieldName), FieldNameOffset, FieldName);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(FieldOffset), FieldOffsetOffset, FieldOffset);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(ReservedPadding), ReservedPaddingOffset, ReservedPadding);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -1,4 +1,4 @@
-﻿using PESpy.Native;
+﻿using System;
 using PESpy.View;
 using System.Diagnostics;
 
@@ -6,17 +6,21 @@ namespace PESpy
 {
     public struct WinCertificate : IValue, IViewable
     {
+        private const int LengthOffset = 0;
+        private const int RevisionOffset = 4;
+        private const int CertificateTypeOffset = 6;
+
         /// <summary>
         /// Specifies the length, in bytes, of the signature.
         /// </summary>
-        public int Length => chunk.PeekInt32(0);
+        public int Length => chunk.PeekInt32(LengthOffset);
 
 /// <summary>
 /// Specifies the certificate revision.
 /// </summary>
-        public WinCertRevision Revision => (WinCertRevision) chunk.PeekUInt16(4);
+        public WinCertRevision Revision => (WinCertRevision) chunk.PeekUInt16(RevisionOffset);
 
-        public WinCertType CertificateType => (WinCertType) chunk.PeekUInt16(6);
+        public WinCertType CertificateType => (WinCertType) chunk.PeekUInt16(CertificateTypeOffset);
 
         private IValue? certificate;
 
@@ -66,18 +70,33 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.WIN_CERTIFICATE, this, ViewKind.WinCertificate, Length); //Length includes the fields before the data
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("dwLength", LengthOffset, Length);
+                    break;
 
-            s.WriteField("dwLength", Length);
-            s.WriteField("wRevision", Revision, sizeof(short));
-            s.WriteField("wCertificateType", CertificateType, sizeof(short));
-            s.WriteInline((IViewable) Certificate);
+                case 1:
+                    structWriter.WriteField("wRevision", RevisionOffset, Revision, sizeof(short));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("wCertificateType", CertificateTypeOffset, CertificateType, sizeof(short));
+                    break;
+
+                case 3:
+                    structWriter.WriteInline((IViewableValue) Certificate);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
+
 
         public override string ToString()
         {

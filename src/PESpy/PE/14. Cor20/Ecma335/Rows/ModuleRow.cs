@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -38,18 +39,35 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.ModuleRow, this, ViewKind.Metadata_ModuleRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Generation), table.GenerationOffset, Generation);
+                    break;
 
-            s.WriteValue(nameof(Generation), Generation);
-            s.WriteStringHeapIndex(nameof(Name), Name);
-            s.WriteGuidHeapIndex(nameof(Mvid), Mvid);
-            s.WriteGuidHeapIndex(nameof(EncId), EncId);
-            s.WriteGuidHeapIndex(nameof(EncBaseId), EncBaseId);
+                case 1:
+                    structWriter.WriteStringHeapIndex(nameof(Name), table.NameOffset, Name);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteGuidHeapIndex(nameof(Mvid), table.MvidOffset, Mvid);
+                    break;
+
+                case 3:
+                    structWriter.WriteGuidHeapIndex(nameof(EncId), table.EncIdOffset, EncId);
+                    break;
+
+                case 4:
+                    structWriter.WriteGuidHeapIndex(nameof(EncBaseId), table.EncBaseIdOffset, EncBaseId);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

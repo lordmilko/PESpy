@@ -4,7 +4,7 @@
     {
         internal readonly int RowSize;
 
-        private readonly int EventOffset;
+        internal readonly int EventOffset;
 
         private readonly bool isBigEventIndex;
 

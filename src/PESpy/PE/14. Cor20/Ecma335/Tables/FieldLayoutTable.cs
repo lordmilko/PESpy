@@ -4,8 +4,8 @@
     {
         internal readonly int RowSize;
 
-        private readonly int FieldOffsetOffset;
-        private readonly int FieldOffset;
+        internal readonly int FieldOffsetOffset;
+        internal readonly int FieldOffset;
 
         private readonly bool isBigFieldIndexSize;
 

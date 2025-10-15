@@ -7,7 +7,10 @@ namespace PESpy
 {
     public struct ImageDynamicRelocation : IValue, IViewable
     {
-        public ImageDynamicRelocationKind Symbol => (ImageDynamicRelocationKind) chunk.PeekPointer(0);
+        private const int SymbolOffset = 0;
+        private int BaseRelocSizeOffset => chunk.PointerSize;
+
+        public ImageDynamicRelocationKind Symbol => (ImageDynamicRelocationKind) chunk.PeekPointer(SymbolOffset);
 
         public SpecialAddressKind SpecialKind
         {
@@ -40,7 +43,7 @@ namespace PESpy
         }
 
         //This appears to be the size of everything that comes after this member (so doesn't include Symbol and BaseRelocSize)
-        public int BaseRelocSize => chunk.PeekInt32(chunk.PointerSize);
+        public int BaseRelocSize => chunk.PeekInt32(BaseRelocSizeOffset);
 
         //IMAGE_DYNAMIC_RELOCATION says that this field is called BaseReloactions,
         //however when Symbol == 7 this is a ImageFunctionOverrideHeader
@@ -219,43 +222,65 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_DYNAMIC_RELOCATION, this, ViewKind.ImageDynamicRelocation, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(Symbol), Symbol, chunk.PointerSize);
-            s.WriteField(nameof(BaseRelocSize), BaseRelocSize);
-
-            switch (Symbol)
+            get
             {
-                case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
-                case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
-                    Debug.Assert(false, $"Writing {Symbol} is not implemented");
-                    break;
+                const int baseCount = 2;
 
-                case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
-                    s.WriteInline((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!);
-                    break;
+                switch (Symbol)
+                {
+                    case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
+                    case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                        throw new NotImplementedException();
 
-                case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
-                    s.WriteInline((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!);
-                    break;
+                    case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                    case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                    case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                    case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                        return baseCount + 1;
 
-                case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
-                    s.WriteInline((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!);
-                    break;
-
-                case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
-                    s.WriteInline((ImageFunctionOverrideHeader) Data!);
-                    break;
-
-                default: //ntoskrnl
-                    s.WriteInline((ImageBaseRelocation[]) Data!);
-                    break;
+                    default: //ntoskrnl
+                        return baseCount + ((ImageBaseRelocation[]) Data!).Length;
+                }
             }
+        }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Symbol), SymbolOffset, Symbol, chunk.PointerSize);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(BaseRelocSize), BaseRelocSizeOffset, BaseRelocSize);
+                    break;
+
+                case 2:
+                    structWriter.WriteInline((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!);
+                    break;
+
+                case 3:
+                    structWriter.WriteInline((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!);
+                    break;
+
+                case 4:
+                    structWriter.WriteInline((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!);
+                    break;
+
+                case 5:
+                    structWriter.WriteInline((ImageFunctionOverrideHeader) Data!);
+                    break;
+
+                case 6:
+                    structWriter.WriteInline((ImageBaseRelocation[]) Data!);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public enum SpecialAddressKind : ulong

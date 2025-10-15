@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -12,15 +13,18 @@ namespace PESpy
     [DebuggerDisplay("RVA = {VirtualAddress}, Size = {Size}")]
     public readonly struct ImageDataDirectory : IValue, IViewable //Small enough that returning a copy from properties is OK
     {
+        private const int VirtualAddressOffset = 0;
+        private const int SizeOffset = 4;
+
         /// <summary>
         /// The relative virtual address of the table.
         /// </summary>
-        public int VirtualAddress => chunk.PeekInt32(0);
+        public int VirtualAddress => chunk.PeekInt32(VirtualAddressOffset);
 
         /// <summary>
         /// The size of the table, in bytes.
         /// </summary>
-        public int Size => chunk.PeekInt32(4);
+        public int Size => chunk.PeekInt32(SizeOffset);
 
         internal bool HasData => VirtualAddress != 0 && Size != 0;
 
@@ -45,15 +49,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_DATA_DIRECTORY, this, ViewKind.ImageDataDirectory, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress);
+                    break;
 
-            s.WriteField(nameof(VirtualAddress), (int) VirtualAddress);
-            s.WriteField(nameof(Size), Size);
+                case 1:
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

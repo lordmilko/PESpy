@@ -7,15 +7,15 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int MajorVersionOffset;
-        private readonly int MinorVersionOffset;
-        private readonly int BuildNumberOffset;
-        private readonly int RevisionNumberOffset;
-        private readonly int FlagsOffset;
-        private readonly int PublicKeyOrTokenOffset;
-        private readonly int NameOffset;
-        private readonly int CultureOffset;
-        private readonly int HashValueOffset;
+        internal readonly int MajorVersionOffset;
+        internal readonly int MinorVersionOffset;
+        internal readonly int BuildNumberOffset;
+        internal readonly int RevisionNumberOffset;
+        internal readonly int FlagsOffset;
+        internal readonly int PublicKeyOrTokenOffset;
+        internal readonly int NameOffset;
+        internal readonly int CultureOffset;
+        internal readonly int HashValueOffset;
 
         private readonly bool isBigBlobIndex;
         private readonly bool isBigStringIndex;

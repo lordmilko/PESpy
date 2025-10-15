@@ -11,15 +11,22 @@ namespace PESpy
     /// </summary>
     public class RuntimeInfo : IValue, IViewable
     {
-        public Utf8String Signature => chunk.PeekUtf8NullTerminatedString(0); //Should be DotNetRuntimeInfo\0
+        private const int SignatureOffset = 0;
+        private const int VersionOffset = 20;
+        private const int RuntimeModuleIndexOffset = 24;
+        private const int DacModuleIndexOffset = 24 + ModuleIndex.StructSize;
+        private const int DbiModuleIndexOffset = 24 + (2 * ModuleIndex.StructSize);
+        private const int RuntimeVersionOffset = 24 + (3 * ModuleIndex.StructSize);
 
-        public int Version => chunk.PeekInt32(20); //2 bytes pf padding for alignment
+        public Utf8String Signature => chunk.PeekUtf8NullTerminatedString(SignatureOffset); //Should be DotNetRuntimeInfo\0
 
-        public ModuleIndex RuntimeModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24);
+        public int Version => chunk.PeekInt32(VersionOffset); //2 bytes pf padding for alignment
 
-        public ModuleIndex DacModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + ModuleIndex.StructSize);
+        public ModuleIndex RuntimeModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(RuntimeModuleIndexOffset);
 
-        public ModuleIndex DbiModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(24 + (2 * ModuleIndex.StructSize));
+        public ModuleIndex DacModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(DacModuleIndexOffset);
+
+        public ModuleIndex DbiModuleIndex => chunk.PeekUnmanaged<ModuleIndex>(DbiModuleIndexOffset);
 
         private Version? runtimeVersion;
 
@@ -29,7 +36,7 @@ namespace PESpy
             {
                 if (runtimeVersion == null && Version >= 2)
                 {
-                    var start = 24 + (3 * ModuleIndex.StructSize);
+                    var start = RuntimeVersionOffset;
 
                     runtimeVersion = new Version(
                         chunk.PeekInt32(start),
@@ -72,31 +79,58 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.RuntimeInfo, this, ViewKind.RuntimeInfo, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => Version >= 2 ? 7 : 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteUTF8NullTerminatedField(nameof(Signature), Signature);
-            s.Align(4);
-
-            s.WriteField(nameof(Version), Version);
-            s.WriteStructField(nameof(RuntimeModuleIndex), RuntimeModuleIndex);
-            s.WriteStructField(nameof(DacModuleIndex), DacModuleIndex);
-            s.WriteStructField(nameof(DbiModuleIndex), DbiModuleIndex);
-
-            if (Version >= 2)
+            switch (index)
             {
-                s.WriteField(nameof(RuntimeVersion), new int[] { RuntimeVersion!.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
-            }
+                case 0:
+                    structWriter.WriteUtf8NullTerminatedField(nameof(Signature), SignatureOffset, Signature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteByteBlob(VersionOffset - sizeof(ushort), sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(Version), VersionOffset, Version);
+                    break;
+
+                case 3:
+                    structWriter.WriteStructField(nameof(RuntimeModuleIndex), RuntimeModuleIndexOffset, RuntimeModuleIndex);
+                    break;
+
+                case 4:
+                    structWriter.WriteStructField(nameof(DacModuleIndex), DacModuleIndexOffset, DacModuleIndex);
+                    break;
+
+                case 5:
+                    structWriter.WriteStructField(nameof(DbiModuleIndex), DbiModuleIndexOffset, DbiModuleIndex);
+                    break;
+
+                case 6:
+                    if (Version >= 2)
+                        structWriter.WriteField(nameof(RuntimeVersion), RuntimeVersionOffset, new int[] { RuntimeVersion!.Major, RuntimeVersion.Minor, RuntimeVersion.Build, RuntimeVersion.Revision });
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         [DebuggerDisplay("Size = {Size}, TimeStamp = {TimeStamp}, ImageSize = {ImageSize}")]
         public unsafe struct ModuleIndex : IViewable
         {
+            private const int SizeOffset = 0;
+            private const int TimeStampOffset = 1;
+            private const int ImageSizeOffset = 5;
+            private const int ExtraOffset = 9;
+
             public byte Size;
             public Timestamp TimeStamp;
             public int ImageSize;
@@ -116,19 +150,31 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewUnmanagedStruct(Strings.ModuleIndex, this, ViewKind.ModuleIndex, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter writer)
+            int IViewable.NumChildren => 4;
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = writer.CreateStruct(parent);
-
-                fixed (byte* e = Extra)
+                switch (index)
                 {
-                    s.WriteField(nameof(Size), Size);
-                    s.WriteField(nameof(TimeStamp), TimeStamp);
-                    s.WriteField(nameof(ImageSize), ImageSize);
-                    s.WriteField(nameof(Extra), new NativeSpan<byte>(e, 15));
+                    case 0:
+                        structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                        break;
 
-                    Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                    return s.ToArray();
+                    case 1:
+                        structWriter.WriteField(nameof(TimeStamp), TimeStampOffset, TimeStamp);
+                        break;
+
+                    case 2:
+                        structWriter.WriteField(nameof(ImageSize), ImageSizeOffset, ImageSize);
+                        break;
+
+                    case 3:
+                        fixed (byte* e = Extra)
+                            structWriter.WriteField(nameof(Extra), ExtraOffset, new NativeSpan<byte>(e, 15));
+                        break;
+
+                    default:
+                        throw new IndexOutOfRangeException();
                 }
             }
         }

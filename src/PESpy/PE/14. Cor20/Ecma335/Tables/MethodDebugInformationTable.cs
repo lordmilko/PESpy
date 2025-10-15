@@ -6,8 +6,8 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int DocumentOffset;
-        private readonly int SequencePointsOffset;
+        internal readonly int DocumentOffset;
+        internal readonly int SequencePointsOffset;
 
         private readonly bool isBigBlobIndex;
         private readonly bool isBigDocumentIndex;

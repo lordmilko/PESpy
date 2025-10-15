@@ -13,7 +13,7 @@ namespace PESpy.View
         DelayImport
     }
 
-    public abstract partial  class ViewWriter
+    public abstract partial class ViewWriter
     {
         //When a struct wants to write another struct inside it, it will push its list of fields to the viewStack,
         //which will cause the inner struct to write itself to this list instead of the main global list
@@ -21,6 +21,8 @@ namespace PESpy.View
         protected List<IView> globalList;
 
         public IReadOnlyList<IView> Current => new ReadOnlyCollection<IView>(globalList);
+
+        internal virtual ISymbolAccessor GetSymbolAccessor() => throw new NotImplementedException();
 
         internal void Clear() => globalList.Clear();
 
@@ -38,11 +40,21 @@ namespace PESpy.View
         private HashSet<long> globalFields;
 #endif
 
+        internal ViewWriter? NestedViewWriter;
+
         internal int UnmanagedOffset;
 
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
 
         internal ViewTag CurrentTag => currentTag;
+
+        private ViewSymTypeDispatcher? _symTypeDispatcher;
+
+        internal ViewSymTypeDispatcher SymTypeDispatcher => _symTypeDispatcher ??= new ViewSymTypeDispatcher(this);
+
+        private ViewTypTypeDispatcher? _typTypeDispatcher;
+
+        internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
 
         internal unsafe ViewWriter(
             ByteViewProvider byteViewProvider,
@@ -273,12 +285,25 @@ namespace PESpy.View
 
         public unsafe void WriteGlobal(int offset, SymTypeList value)
         {
+            var dispatcher = SymTypeDispatcher;
+
+            var oldOffset = UnmanagedOffset;
+            UnmanagedOffset = offset;
+
             foreach (var item in value)
             {
-                var size = SymType.GetSymbolLength(item, value.symbolAccessor);
-                WriteGlobal(offset, item, size, ViewKind.SymType);
-                offset += size;
+                var view = dispatcher.Dispatch(item);
+
+                if (view != null)
+                {
+                    AddView(view);
+                    UnmanagedOffset += view.Size;
+                }
+                else
+                    UnmanagedOffset += SymType.GetSymbolLength(item, value.symbolAccessor);
             }
+
+            UnmanagedOffset = oldOffset;
         }
 
         public void WriteGlobalField<T>(int offset, string name, in T value, int size)
@@ -312,16 +337,28 @@ namespace PESpy.View
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
+            var oldOffset = UnmanagedOffset;
+
+            var dispatcher = SymTypeDispatcher;
+
             foreach (var item in value)
-                p.WriteValue(item, SymType.GetSymbolLength(item, value.symbolAccessor), ViewKind.SymType);
+                p.WriteStruct(item, dispatcher, value.symbolAccessor);
+
+            UnmanagedOffset = oldOffset;
         }
 
         internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypTypeList value)
         {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
+            var oldOffset = UnmanagedOffset;
+
+            var dispatcher = TypTypeDispatcher;
+
             foreach (var item in value)
-                p.WriteValue(item, item.len + 2, ViewKind.TypType);
+                p.WriteStruct(item, dispatcher);
+
+            UnmanagedOffset = oldOffset;
         }
 
         internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, T[] value, ViewKind viewKind) where T : unmanaged
@@ -360,7 +397,7 @@ namespace PESpy.View
             Pop();
         }
 
-        public void WriteDosStub(in ByteBlob byteBlob)
+        public virtual void WriteDosStub(in ByteBlob byteBlob)
         {
             var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
 
@@ -382,7 +419,7 @@ namespace PESpy.View
             }
         }
 
-        public ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
+        public virtual ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
             var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
 
@@ -742,7 +779,8 @@ namespace PESpy.View
 
         internal StructWriter CreateStruct(IView parent) => new StructWriter(parent.Offset, this);
 
-        protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize, ViewWriter? viewWriter = null) where T : IValue
+        protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+            where T : IValue, IViewable
         {
             var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
 
@@ -758,7 +796,7 @@ namespace PESpy.View
         {
         }
 
-        internal IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        internal IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
         {
             Debug.Assert(UnmanagedOffset != 0);
             var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
@@ -898,6 +936,34 @@ namespace PESpy.View
             }
         }
 
+        public IView GetChild<TParent>(int parentOffset, TParent parent, int index) where TParent : IViewable
+        {
+            var structWriter = new StructWriter(this, parentOffset);
+
+            parent.WriteChild(index, ref structWriter);
+
+            return structWriter.Field;
+        }
+
+        [Conditional("DEBUG")]
+        internal void VerifyXRef<T>(VA<T> value)
+        {
+            //Assert that the global has already been written
+            if (value.IsValid)
+            {
+                Debug.Assert(globalFields.Contains(value.ListedAddress));
+            }
+        }
+
+        [Conditional("DEBUG")]
+        internal void VerifyXRef<T>(RVA<T> value)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                Debug.Assert(globalFields.Contains(value.ListedOffset));
+            }
+        }
+
         private void AddViews(IList<IView> views)
         {
             //When StructWriter.Dispose runs, the stack might be empty
@@ -906,6 +972,53 @@ namespace PESpy.View
                 globalList.AddRange(views);
             else
                 viewStack.Peek().AddRange(views);
+        }
+
+        internal void WriteField<T>(
+            string name,
+            int parentOffset,
+            int fieldOffset,
+            T value,
+            int size,
+            ref StructWriter structWriter)
+        {
+            structWriter.Field = new FieldView<T>(parentOffset + fieldOffset, name, value, size);
+        }
+
+        internal void WriteBitField<T>(
+            string name,
+            int parentOffset,
+            int fieldOffset,
+            T value,
+            int size,
+            int bits,
+            ref StructWriter structWriter)
+        {
+            structWriter.Field = new BitFieldView<T>(parentOffset + fieldOffset, name, value, bits, size);
+        }
+
+        internal void WriteByteBlob(
+            int parentOffset,
+            int fieldOffset,
+            int size,
+            ref StructWriter structWriter)
+        {
+            var offset = parentOffset + fieldOffset;
+
+            //The offset passed in has already been translated by the parent, so we don't need to call tryGetViewOffset
+
+            structWriter.Field = byteViewProvider.ReadBlob(offset, getRealOffset, size);
+        }
+
+        internal void WriteValue<T>(
+            int parentOffset,
+            int fieldOffset,
+            T value,
+            int size,
+            ViewKind kind,
+            ref StructWriter structWriter)
+        {
+            structWriter.Field = new ValueView<T>(parentOffset + fieldOffset, value, size, kind);
         }
 
         internal List<IView> RentList()

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
@@ -11,11 +11,14 @@ namespace PESpy
     /// </summary>
     public readonly struct StorageHeader : IValue, IViewable
     {
-        public STGHDR Flags => (STGHDR) chunk.PeekByte(0);
+        private const int FlagsOffset = 0;
+        private const int PaddingOffset = 1;
+        private const int StreamsOffset = 2;
+        public STGHDR Flags => (STGHDR) chunk.PeekByte(FlagsOffset);
 
-        public byte Padding => chunk.PeekByte(1);
+        public byte Padding => chunk.PeekByte(PaddingOffset);
 
-        public short Streams => chunk.PeekInt16(2);
+        public short Streams => chunk.PeekInt16(StreamsOffset);
 
         public StorageStream[] StreamHeaders { get; }
 
@@ -71,17 +74,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.STORAGEHEADER, this, ViewKind.StorageHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3 + Streams;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("fFlags", FlagsOffset, Flags, sizeof(byte));
+                    break;
 
-            s.WriteField("fFlags", Flags, sizeof(byte));
-            s.WriteField("pad", Padding);
-            s.WriteField("iStreams", Streams);
-            s.WriteInline(StreamHeaders);
+                case 1:
+                    structWriter.WriteField("pad", PaddingOffset, Padding);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("iStreams", StreamsOffset, Streams);
+                    break;
+
+                case 3:
+                    structWriter.WriteInline(StreamHeaders[index - 3]);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -10,6 +9,14 @@ namespace PESpy
     /// </summary>
     public readonly struct smd : IValue, IViewable
     {
+        private const int SegInfoOffset = 0;
+        private const int ovlNbrOffset = nsg.StructSize;
+        private const int iLibOffset = nsg.StructSize + 2;
+        private const int cSegOffset = nsg.StructSize + 4;
+        private const int reservedOffset = nsg.StructSize + 5;
+        private const int nameOffset = nsg.StructSize + 6;
+        private int arnsgOffset => FixedStructSize + name.Length + 1;
+
         /// <summary>
         /// Describes first segment in module
         /// </summary>
@@ -18,23 +25,23 @@ namespace PESpy
         /// <summary>
         /// Overlay number
         /// </summary>
-        public ushort ovlNbr => chunk.PeekUInt16(nsg.StructSize);
+        public ushort ovlNbr => chunk.PeekUInt16(ovlNbrOffset);
 
-        public ushort iLib => chunk.PeekUInt16(nsg.StructSize + 2);
+        public ushort iLib => chunk.PeekUInt16(iLibOffset);
 
         /// <summary>
         /// Number of segments in module
         /// </summary>
-        public byte cSeg => chunk.PeekByte(nsg.StructSize + 4);
+        public byte cSeg => chunk.PeekByte(cSegOffset);
 
-        public byte reserved => chunk.PeekByte(nsg.StructSize + 5);
+        public byte reserved => chunk.PeekByte(reservedOffset);
 
         public FixedAnsiString name
         {
             get
             {
-                var length = chunk.PeekByte(nsg.StructSize + 6);
-                return chunk.PeekAnsiFixedLength(nsg.StructSize + 7, length);
+                var length = chunk.PeekByte(nameOffset);
+                return chunk.PeekAnsiFixedLength(nameOffset + 1, length);
             }
         }
 
@@ -48,7 +55,7 @@ namespace PESpy
 
                 var results = new nsg[cSeg - 1];
 
-                var read = FixedStructSize + name.Length + 1;
+                var read = arnsgOffset;
 
                 for (var i = 0; i < results.Length; i++)
                 {
@@ -103,24 +110,48 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.smd, this, ViewKind.smd, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => cSeg > 1 ? 7 : 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteStructField(nameof(SegInfo), SegInfoOffset, SegInfo);
+                    break;
 
-            s.WriteStructField(nameof(SegInfo), SegInfo);
-            s.WriteField(nameof(ovlNbr), ovlNbr);
-            s.WriteField(nameof(iLib), iLib);
-            s.WriteField(nameof(cSeg), cSeg);
-            s.WriteField(nameof(reserved), reserved);
-            s.WriteLengthPrefixedAnsiField(nameof(name), name);
+                case 1:
+                    structWriter.WriteField(nameof(ovlNbr), ovlNbrOffset, ovlNbr);
+                    break;
 
-            var items = arnsg;
+                case 2:
+                    structWriter.WriteField(nameof(iLib), iLibOffset, iLib);
+                    break;
 
-            if (items.Length > 0)
-                s.WriteStructField("arnsg", items);
+                case 3:
+                    structWriter.WriteField(nameof(cSeg), cSegOffset, cSeg);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 4:
+                    structWriter.WriteField(nameof(reserved), reservedOffset, reserved);
+                    break;
+
+                case 5:
+                    structWriter.WriteLengthPrefixedAnsiField(nameof(name), nameOffset, name);
+                    break;
+
+                case 6:
+                    var items = arnsg;
+
+                    if (items.Length == 0)
+                        throw new IndexOutOfRangeException();
+
+                    structWriter.WriteStructField("arnsg", arnsgOffset, items);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

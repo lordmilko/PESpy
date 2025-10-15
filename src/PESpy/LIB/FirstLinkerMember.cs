@@ -1,11 +1,14 @@
-﻿using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy.LIB
 {
     //Name is made up
     public class FirstLinkerMember : IValue, IViewable //Don't know if we can guarantee it will exist
     {
+        private const int ArchiveHeaderOffset = 0;
+        private const int NumberOfSymbolsOffset = ImageArchiveMemberHeader.StructSize;
+        private const int OffsetsOffset = ImageArchiveMemberHeader.StructSize + sizeof(int);
+
         private ImageArchiveMemberHeader archiveHeader;
 
         public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
@@ -61,19 +64,30 @@ namespace PESpy.LIB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FirstLinkerMember, this, ViewKind.FirstLinkerMember, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3 + StringTable.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteInline(ArchiveHeader);
+                    break;
 
-            s.WriteInline(ArchiveHeader);
-            s.WriteField("Number Of Symbols", NumberOfSymbols);
-            s.WriteField("Offsets", Offsets);
+                case 1:
+                    structWriter.WriteField("Number Of Symbols", NumberOfSymbolsOffset, NumberOfSymbols);
+                    break;
 
-            foreach (var value in StringTable)
-                s.WriteInlineAnsiNullTerminated(value);
+                case 2:
+                    structWriter.WriteField("Offsets", OffsetsOffset, Offsets);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    var i = index - 3;
+
+                    structWriter.WriteInlineAnsiNullTerminated(StringTable[i]);
+                    break;
+            }
         }
     }
 }

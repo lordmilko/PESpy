@@ -7,9 +7,9 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int EventFlagsOffset;
-        private readonly int NameOffset;
-        private readonly int EventTypeOffset;
+        internal readonly int EventFlagsOffset;
+        internal readonly int NameOffset;
+        internal readonly int EventTypeOffset;
 
         private readonly bool isBigStringIndex;
         private readonly bool isBigTypeDefOrRefIndexSize;

@@ -1,19 +1,27 @@
-﻿using System.Diagnostics;
-using ClrDebug.PDB;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     public readonly struct FrameData : IValue, IViewable
     {
-        public int ulRvaStart => chunk.PeekInt32(0);
-        public int cbBlock => chunk.PeekInt32(4);
-        public int cbLocals => chunk.PeekInt32(8);
-        public int cbParams => chunk.PeekInt32(12);
-        public int cbStkMax => chunk.PeekInt32(16);
-        public int frameFunc => chunk.PeekInt32(20);
-        public short cbProlog => chunk.PeekInt16(24);
-        public short cbSavedRegs => chunk.PeekInt16(26);
+        private const int ulRvaStartOffset = 0;
+        private const int cbBlockOffset = 4;
+        private const int cbLocalsOffset = 8;
+        private const int cbParamsOffset = 12;
+        private const int cbStkMaxOffset = 16;
+        private const int frameFuncOffset = 20;
+        private const int cbPrologOffset = 24;
+        private const int cbSavedRegsOffset = 26;
+        private const int dataOffset = 28;
+        public int ulRvaStart => chunk.PeekInt32(ulRvaStartOffset);
+        public int cbBlock => chunk.PeekInt32(cbBlockOffset);
+        public int cbLocals => chunk.PeekInt32(cbLocalsOffset);
+        public int cbParams => chunk.PeekInt32(cbParamsOffset);
+        public int cbStkMax => chunk.PeekInt32(cbStkMaxOffset);
+        public int frameFunc => chunk.PeekInt32(frameFuncOffset);
+        public short cbProlog => chunk.PeekInt16(cbPrologOffset);
+        public short cbSavedRegs => chunk.PeekInt16(cbSavedRegsOffset);
 
         public bool fHasSEH => (data & 1) != 0;
 
@@ -23,7 +31,7 @@ namespace PESpy.PDB
 
         public int reserved => data >> 3;
 
-        private int data => chunk.PeekInt32(28);
+        private int data => chunk.PeekInt32(dataOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -53,29 +61,67 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FRAMEDATA, this, ViewKind.FrameData, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 12;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(ulRvaStart), ulRvaStart);
-            s.WriteField(nameof(cbBlock), cbBlock);
-            s.WriteField(nameof(cbLocals), cbLocals);
-            s.WriteField(nameof(cbParams), cbParams);
-            s.WriteField(nameof(cbStkMax), cbStkMax);
-            s.WriteField(nameof(frameFunc), frameFunc);
-            s.WriteField(nameof(cbProlog), cbProlog);
-            s.WriteField(nameof(cbSavedRegs), cbSavedRegs);
-
-            using (var bitField = s.WriteBitFields<int>())
+            switch (index)
             {
-                bitField.WriteField(nameof(fHasSEH), fHasSEH, 1);
-                bitField.WriteField(nameof(fHasEH), fHasEH, 1);
-                bitField.WriteField(nameof(fIsFunctionStart), fIsFunctionStart, 1);
-                bitField.WriteField(nameof(reserved), reserved, 29);
-            }
+                case 0:
+                    structWriter.WriteField(nameof(ulRvaStart), ulRvaStartOffset, ulRvaStart);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteField(nameof(cbBlock), cbBlockOffset, cbBlock);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(cbLocals), cbLocalsOffset, cbLocals);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cbParams), cbParamsOffset, cbParams);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(cbStkMax), cbStkMaxOffset, cbStkMax);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(frameFunc), frameFuncOffset, frameFunc);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(cbProlog), cbPrologOffset, cbProlog);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(cbSavedRegs), cbSavedRegsOffset, cbSavedRegs);
+                    break;
+
+                #region BitField
+
+                case 8:
+                    structWriter.WriteBitField(nameof(fHasSEH), dataOffset, fHasSEH, sizeof(int), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(fHasEH), dataOffset, fHasEH, sizeof(int), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(fIsFunctionStart), dataOffset, fIsFunctionStart, sizeof(int), 1);
+                    break;
+
+                case 11:
+                    structWriter.WriteBitField(nameof(reserved), dataOffset, reserved, sizeof(int), 29);
+                    break;
+
+                #endregion
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

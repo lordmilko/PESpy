@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.LE;
 using PESpy.NE;
 using PESpy.View;
@@ -10,303 +11,355 @@ namespace PESpy
     {
         public const ushort IMAGE_VXD_SIGNATURE = 0x454C;      // LE
 
+        private const int MagicOffset = 0;
+        private const int ByteOrderOffset = 2;
+        private const int WordOrderOffset = 3;
+        private const int ExeFormatLevelOffset = 4;
+        private const int CpuTypeOffset = 8;
+        private const int OSTypeOffset = 10;
+        private const int ModuleVersionOffset = 12;
+        private const int ModuleFlagsOffset = 16;
+        private const int NumModulePagesOffset = 20;
+        private const int ObjectNumForIPOffset = 24;
+        private const int EIPOffset = 28;
+        private const int ObjectNumForSPOffset = 32;
+        private const int ESPOffset = 36;
+        private const int PageSizeOffset = 40;
+        private const int LastPageSizeOffset = 44;
+        private const int FixupSectionSizeOffset = 48;
+        private const int FixupSectionChecksumOffset = 52;
+        private const int LoaderSectionSizeOffset = 56;
+        private const int LoaderSectionChecksumOffset = 60;
+        private const int OffsetOfObjectTableOffset = 64;
+        private const int NumObjectsInModuleOffset = 68;
+        private const int OffsetOfObjectPageMapOffset = 72;
+        private const int OffsetOfIteratedDataMapOffset = 76;
+        private const int OffsetOfResourceTableOffset = 80;
+        private const int NumResourceEntriesOffset = 84;
+        private const int OffsetOfResidentNameTableOffset = 88;
+        private const int OffsetOfEntryTableOffset = 92;
+        private const int OffsetOfModuleDirectiveTableOffset = 96;
+        private const int NumModuleDirectivesOffset = 100;
+        private const int OffsetOfFixupPageTableOffset = 104;
+        private const int OffsetOfFixupRecordTableOffset = 108;
+        private const int OffsetOfImportModuleNameTableOffset = 112;
+        private const int NumImportModuleNameTableEntriesOffset = 116;
+        private const int OffsetOfImportProcedureNameTableOffset = 120;
+        private const int OffsetOfPerPageChecksumTableOffset = 124;
+        private const int OffsetOfEnumeratedDataPagesOffset = 128;
+        private const int NumPreloadPagesOffset = 132;
+        private const int OffsetOfNonResidentNamesTableOffset = 136;
+        private const int SizeOfNonResidentNameTableOffset = 140;
+        private const int NonResidentNameTableChecksumOffset = 144;
+        private const int ObjectNumForAutomaticDataObjectOffset = 148;
+        private const int OffsetOfDebugInfoOffset = 152;
+        private const int DebugInfoLengthOffset = 156;
+        private const int NumPreloadSectionInstancePagesOffset = 160;
+        private const int NumDemandLoadInstancePagesOffset = 164;
+        private const int HeapSizeOffset = 168;
+        private const int ReservedOffset = 172;
+        private const int e32_winresoffOffset = 184;
+        private const int e32_winreslenOffset = 188;
+        private const int DeviceIDOffset = 192;
+        private const int DDKVersionOffset = 194;
+
         /// <summary>
         /// Magic number<para/>
         /// e32_magic
         /// </summary>
-        public ushort Magic => chunk.PeekUInt16(0);
+        public ushort Magic => chunk.PeekUInt16(MagicOffset);
 
         /// <summary>
         /// The byte ordering for the VXD<para/>
         /// e32_border
         /// </summary>
-        public E32ByteOrder ByteOrder => (E32ByteOrder) chunk.PeekByte(2);
+        public E32ByteOrder ByteOrder => (E32ByteOrder) chunk.PeekByte(ByteOrderOffset);
 
         /// <summary>
         /// The word ordering for the VXD<para/>
         /// e32_worder
         /// </summary>
-        public E32WordOrder WordOrder => (E32WordOrder) chunk.PeekByte(3);
+        public E32WordOrder WordOrder => (E32WordOrder) chunk.PeekByte(WordOrderOffset);
 
         /// <summary>
         /// The EXE format level for now = 0<para/>
         /// e32_level
         /// </summary>
-        public E32Level ExeFormatLevel => (E32Level) chunk.PeekUInt32(4);
+        public E32Level ExeFormatLevel => (E32Level) chunk.PeekUInt32(ExeFormatLevelOffset);
 
         /// <summary>
         /// The CPU type<para/>
         /// e32_cpu
         /// </summary>
-        public E32CPU CpuType => (E32CPU) chunk.PeekUInt16(8);
+        public E32CPU CpuType => (E32CPU) chunk.PeekUInt16(CpuTypeOffset);
 
         /// <summary>
         /// The OS type<para/>
         /// e32_os
         /// </summary>
-        public NewOperatingSystem OSType => (NewOperatingSystem) chunk.PeekUInt16(10);
+        public NewOperatingSystem OSType => (NewOperatingSystem) chunk.PeekUInt16(OSTypeOffset);
 
         /// <summary>
         /// Module version<para/>
         /// e32_ver
         /// </summary>
-        public int ModuleVersion => chunk.PeekInt32(12);
+        public int ModuleVersion => chunk.PeekInt32(ModuleVersionOffset);
 
         /// <summary>
         /// Module flags<para/>
         /// e32_mflags
         /// </summary>
-        public E32ModuleFlags ModuleFlags => (E32ModuleFlags) chunk.PeekUInt32(16);
+        public E32ModuleFlags ModuleFlags => (E32ModuleFlags) chunk.PeekUInt32(ModuleFlagsOffset);
 
         /// <summary>
         /// Module # pages<para/>
         /// e32_mpages
         /// </summary>
-        public int NumModulePages => chunk.PeekInt32(20);
+        public int NumModulePages => chunk.PeekInt32(NumModulePagesOffset);
 
         /// <summary>
         /// Object # for instruction pointer<para/>
         /// e32_startobj
         /// </summary>
-        public int ObjectNumForIP => chunk.PeekInt32(24);
+        public int ObjectNumForIP => chunk.PeekInt32(ObjectNumForIPOffset);
 
         /// <summary>
         /// Extended instruction pointer<para/>
         /// e32_eip
         /// </summary>
-        public int EIP => chunk.PeekInt32(28);
+        public int EIP => chunk.PeekInt32(EIPOffset);
 
         /// <summary>
         /// Object # for stack pointer<para/>
         /// e32_stackobj
         /// </summary>
-        public int ObjectNumForSP => chunk.PeekInt32(32);
+        public int ObjectNumForSP => chunk.PeekInt32(ObjectNumForSPOffset);
 
         /// <summary>
         /// Extended stack pointer<para/>
         /// e32_esp
         /// </summary>
-        public int ESP => chunk.PeekInt32(36);
+        public int ESP => chunk.PeekInt32(ESPOffset);
 
         /// <summary>
         /// VXD page size<para/>
         /// e32_pagesize
         /// </summary>
-        public int PageSize => chunk.PeekInt32(40);
+        public int PageSize => chunk.PeekInt32(PageSizeOffset);
 
         /// <summary>
         /// Last page size in VXD<para/>
         /// e32_lastpagesize
         /// </summary>
-        public int LastPageSize => chunk.PeekInt32(44);
+        public int LastPageSize => chunk.PeekInt32(LastPageSizeOffset);
 
         /// <summary>
         /// Fixup section size<para/>
         /// e32_fixupsize
         /// </summary>
-        public int FixupSectionSize => chunk.PeekInt32(48);
+        public int FixupSectionSize => chunk.PeekInt32(FixupSectionSizeOffset);
 
         /// <summary>
         /// Fixup section checksum<para/>
         /// e32_fixupsum
         /// </summary>
-        public int FixupSectionChecksum => chunk.PeekInt32(52);
+        public int FixupSectionChecksum => chunk.PeekInt32(FixupSectionChecksumOffset);
 
         /// <summary>
         /// Loader section size<para/>
         /// e32_ldrsize
         /// </summary>
-        public int LoaderSectionSize => chunk.PeekInt32(56);
+        public int LoaderSectionSize => chunk.PeekInt32(LoaderSectionSizeOffset);
 
         /// <summary>
         /// Loader section checksum<para/>
         /// e32_ldrsum
         /// </summary>
-        public int LoaderSectionChecksum => chunk.PeekInt32(60);
+        public int LoaderSectionChecksum => chunk.PeekInt32(LoaderSectionChecksumOffset);
 
         /// <summary>
         /// Object table offset<para/>
         /// e32_objtab
         /// </summary>
-        public int OffsetOfObjectTable => chunk.PeekInt32(64); //Relative to LE header
+        public int OffsetOfObjectTable => chunk.PeekInt32(OffsetOfObjectTableOffset); //Relative to LE header
 
         /// <summary>
         /// Number of objects in module<para/>
         /// e32_objcnt
         /// </summary>
-        public int NumObjectsInModule => chunk.PeekInt32(68);
+        public int NumObjectsInModule => chunk.PeekInt32(NumObjectsInModuleOffset);
 
         /// <summary>
         /// Object page map offset<para/>
         /// e32_objmap
         /// </summary>
-        public int OffsetOfObjectPageMap => chunk.PeekInt32(72); //Relative to LE header
+        public int OffsetOfObjectPageMap => chunk.PeekInt32(OffsetOfObjectPageMapOffset); //Relative to LE header
 
         /// <summary>
         /// Object iterated data map offset<para/>
         /// e32_itermap
         /// </summary>
-        public int OffsetOfIteratedDataMap => chunk.PeekInt32(76); //Relative to beginning of file
+        public int OffsetOfIteratedDataMap => chunk.PeekInt32(OffsetOfIteratedDataMapOffset); //Relative to beginning of file
 
         /// <summary>
         /// Offset of Resource Table<para/>
         /// e32_rsrctab
         /// </summary>
-        public int OffsetOfResourceTable => chunk.PeekInt32(80); //Relative to LE header
+        public int OffsetOfResourceTable => chunk.PeekInt32(OffsetOfResourceTableOffset); //Relative to LE header
 
         /// <summary>
         /// Number of resource entries<para/>
         /// e32_rsrccnt
         /// </summary>
-        public int NumResourceEntries => chunk.PeekInt32(84);
+        public int NumResourceEntries => chunk.PeekInt32(NumResourceEntriesOffset);
 
         /// <summary>
         /// Offset of resident name table<para/>
         /// e32_restab
         /// </summary>
-        public int OffsetOfResidentNameTable => chunk.PeekInt32(88); //Relative to LE header
+        public int OffsetOfResidentNameTable => chunk.PeekInt32(OffsetOfResidentNameTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Entry Table<para/>
         /// e32_enttab
         /// </summary>
-        public int OffsetOfEntryTable => chunk.PeekInt32(92); //Relative to LE header
+        public int OffsetOfEntryTable => chunk.PeekInt32(OffsetOfEntryTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Module Directive Table<para/>
         /// e32_dirtab
         /// </summary>
-        public int OffsetOfModuleDirectiveTable => chunk.PeekInt32(96); //Relative to LE header
+        public int OffsetOfModuleDirectiveTable => chunk.PeekInt32(OffsetOfModuleDirectiveTableOffset); //Relative to LE header
 
         /// <summary>
         /// Number of module directives<para/>
         /// e32_dircnt
         /// </summary>
-        public int NumModuleDirectives => chunk.PeekInt32(100);
+        public int NumModuleDirectives => chunk.PeekInt32(NumModuleDirectivesOffset);
 
         /// <summary>
         /// Offset of Fixup Page Table<para/>
         /// e32_fpagetab
         /// </summary>
-        public int OffsetOfFixupPageTable => chunk.PeekInt32(104); //Relative to LE header
+        public int OffsetOfFixupPageTable => chunk.PeekInt32(OffsetOfFixupPageTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Fixup Record Table<para/>
         /// e32_frectab
         /// </summary>
-        public int OffsetOfFixupRecordTable => chunk.PeekInt32(108); //Relative to LE header
+        public int OffsetOfFixupRecordTable => chunk.PeekInt32(OffsetOfFixupRecordTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Import Module Name Table<para/>
         /// e32_impmod
         /// </summary>
-        public int OffsetOfImportModuleNameTable => chunk.PeekInt32(112); //Relative to LE header
+        public int OffsetOfImportModuleNameTable => chunk.PeekInt32(OffsetOfImportModuleNameTableOffset); //Relative to LE header
 
         /// <summary>
         /// Number of entries in Import Module Name Table<para/>
         /// e32_impmodcnt
         /// </summary>
-        public int NumImportModuleNameTableEntries => chunk.PeekInt32(116);
+        public int NumImportModuleNameTableEntries => chunk.PeekInt32(NumImportModuleNameTableEntriesOffset);
 
         /// <summary>
         /// Offset of Import Procedure Name Table<para/>
         /// e32_impproc
         /// </summary>
-        public int OffsetOfImportProcedureNameTable => chunk.PeekInt32(120); //Relative to LE header
+        public int OffsetOfImportProcedureNameTable => chunk.PeekInt32(OffsetOfImportProcedureNameTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Per-Page Checksum Table<para/>
         /// e32_pagesum
         /// </summary>
-        public int OffsetOfPerPageChecksumTable => chunk.PeekInt32(124); //Relative to LE header
+        public int OffsetOfPerPageChecksumTable => chunk.PeekInt32(OffsetOfPerPageChecksumTableOffset); //Relative to LE header
 
         /// <summary>
         /// Offset of Enumerated Data Pages<para/>
         /// e32_datapage
         /// </summary>
-        public int OffsetOfEnumeratedDataPages => chunk.PeekInt32(128); //Relative to beginning of file
+        public int OffsetOfEnumeratedDataPages => chunk.PeekInt32(OffsetOfEnumeratedDataPagesOffset); //Relative to beginning of file
 
         /// <summary>
         /// Number of preload pages<para/>
         /// e32_preload
         /// </summary>
-        public int NumPreloadPages => chunk.PeekInt32(132);
+        public int NumPreloadPages => chunk.PeekInt32(NumPreloadPagesOffset);
 
         /// <summary>
         /// Offset of Non-resident Names Table<para/>
         /// e32_nrestab
         /// </summary>
-        public int OffsetOfNonResidentNamesTable => chunk.PeekInt32(136); //Relative to beginning of file
+        public int OffsetOfNonResidentNamesTable => chunk.PeekInt32(OffsetOfNonResidentNamesTableOffset); //Relative to beginning of file
 
         /// <summary>
         /// Size of Non-resident Name Table<para/>
         /// e32_cbnrestab
         /// </summary>
-        public int SizeOfNonResidentNameTable => chunk.PeekInt32(140);
+        public int SizeOfNonResidentNameTable => chunk.PeekInt32(SizeOfNonResidentNameTableOffset);
 
         /// <summary>
         /// Non-resident Name Table Checksum<para/>
         /// e32_nressum
         /// </summary>
-        public int NonResidentNameTableChecksum => chunk.PeekInt32(144); //Relative to LE header
+        public int NonResidentNameTableChecksum => chunk.PeekInt32(NonResidentNameTableChecksumOffset); //Relative to LE header
 
         /// <summary>
         /// Object # for automatic data object<para/>
         /// e32_autodata
         /// </summary>
-        public int ObjectNumForAutomaticDataObject => chunk.PeekInt32(148);
+        public int ObjectNumForAutomaticDataObject => chunk.PeekInt32(ObjectNumForAutomaticDataObjectOffset);
 
         /// <summary>
         /// Offset of the debugging information<para/>
         /// e32_debuginfo
         /// </summary>
-        public int OffsetOfDebugInfo => chunk.PeekInt32(152); //Relative to LE header
+        public int OffsetOfDebugInfo => chunk.PeekInt32(OffsetOfDebugInfoOffset); //Relative to LE header
 
         /// <summary>
         /// The length of the debugging info. in bytes<para/>
         /// e32_debuglen
         /// </summary>
-        public int DebugInfoLength => chunk.PeekInt32(156);
+        public int DebugInfoLength => chunk.PeekInt32(DebugInfoLengthOffset);
 
         /// <summary>
         /// Number of instance pages in preload section of VXD file<para/>
         /// e32_instpreload
         /// </summary>
-        public int NumPreloadSectionInstancePages => chunk.PeekInt32(160);
+        public int NumPreloadSectionInstancePages => chunk.PeekInt32(NumPreloadSectionInstancePagesOffset);
 
         /// <summary>
         /// Number of instance pages in demand load section of VXD file<para/>
         /// e32_instdemand
         /// </summary>
-        public int NumDemandLoadInstancePages => chunk.PeekInt32(164);
+        public int NumDemandLoadInstancePages => chunk.PeekInt32(NumDemandLoadInstancePagesOffset);
 
         /// <summary>
         /// Size of heap - for 16-bit apps<para/>
         /// e32_heapsize
         /// </summary>
-        public int HeapSize => chunk.PeekInt32(168);
+        public int HeapSize => chunk.PeekInt32(HeapSizeOffset);
 
         /// <summary>
         /// Reserved words<para/>
         /// e32_res3
         /// </summary>
-        public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(172, 12);
+        public NativeSpan<byte> Reserved => chunk.PeekNativeSpan<byte>(ReservedOffset, 12);
 
-        public int e32_winresoff => chunk.PeekInt32(184);
+        public int e32_winresoff => chunk.PeekInt32(e32_winresoffOffset);
 
-        public int e32_winreslen => chunk.PeekInt32(188);
+        public int e32_winreslen => chunk.PeekInt32(e32_winreslenOffset);
 
         /// <summary>
         /// Device ID for VxD<para/>
         /// e32_devid
         /// </summary>
-        public ushort DeviceID => chunk.PeekUInt16(192);
+        public ushort DeviceID => chunk.PeekUInt16(DeviceIDOffset);
 
         /// <summary>
         /// DDK version for VxD<para/>
         /// e32_ddkver
         /// </summary>
-        public ushort DDKVersion => chunk.PeekUInt16(194);
+        public ushort DDKVersion => chunk.PeekUInt16(DDKVersionOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -378,64 +431,219 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_VXD_HEADER, this, ViewKind.ImageVXDHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 51;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("e32_magic", MagicOffset, Magic);
+                    break;
 
-            s.WriteField("e32_magic", Magic);
-            s.WriteField("e32_border", ByteOrder, sizeof(byte));
-            s.WriteField("e32_worder", WordOrder, sizeof(byte));
-            s.WriteField("e32_level", ExeFormatLevel, sizeof(int));
-            s.WriteField("e32_cpu", CpuType, sizeof(short));
-            s.WriteField("e32_os", OSType, sizeof(ushort));
-            s.WriteField("e32_ver", ModuleVersion);
-            s.WriteField("e32_mflags", ModuleFlags, sizeof(int));
-            s.WriteField("e32_mpages", NumModulePages);
-            s.WriteField("e32_startobj", ObjectNumForIP);
-            s.WriteField("e32_eip", EIP);
-            s.WriteField("e32_stackobj", ObjectNumForSP);
-            s.WriteField("e32_esp", ESP);
-            s.WriteField("e32_pagesize", PageSize);
-            s.WriteField("e32_lastpagesize", LastPageSize);
-            s.WriteField("e32_fixupsize", FixupSectionSize);
-            s.WriteField("e32_fixupsum", FixupSectionChecksum);
-            s.WriteField("e32_ldrsize", LoaderSectionSize);
-            s.WriteField("e32_ldrsum", LoaderSectionChecksum);
-            s.WriteField("e32_objtab", OffsetOfObjectTable);
-            s.WriteField("e32_objcnt", NumObjectsInModule);
-            s.WriteField("e32_objmap", OffsetOfObjectPageMap);
-            s.WriteField("e32_itermap", OffsetOfIteratedDataMap);
-            s.WriteField("e32_rsrctab", OffsetOfResourceTable);
-            s.WriteField("e32_rsrccnt", NumResourceEntries);
-            s.WriteField("e32_restab", OffsetOfResidentNameTable);
-            s.WriteField("e32_enttab", OffsetOfEntryTable);
-            s.WriteField("e32_dirtab", OffsetOfModuleDirectiveTable);
-            s.WriteField("e32_dircnt", NumModuleDirectives);
-            s.WriteField("e32_fpagetab", OffsetOfFixupPageTable);
-            s.WriteField("e32_frectab", OffsetOfFixupRecordTable);
-            s.WriteField("e32_impmod", OffsetOfImportModuleNameTable);
-            s.WriteField("e32_impmodcnt", NumImportModuleNameTableEntries);
-            s.WriteField("e32_impproc", OffsetOfImportProcedureNameTable);
-            s.WriteField("e32_pagesum", OffsetOfPerPageChecksumTable);
-            s.WriteField("e32_datapage", OffsetOfEnumeratedDataPages);
-            s.WriteField("e32_preload", NumPreloadPages);
-            s.WriteField("e32_nrestab", OffsetOfNonResidentNamesTable);
-            s.WriteField("e32_cbnrestab", SizeOfNonResidentNameTable);
-            s.WriteField("e32_nressum", NonResidentNameTableChecksum);
-            s.WriteField("e32_autodata", ObjectNumForAutomaticDataObject);
-            s.WriteField("e32_debuginfo", OffsetOfDebugInfo);
-            s.WriteField("e32_debuglen", DebugInfoLength);
-            s.WriteField("e32_instpreload", NumPreloadSectionInstancePages);
-            s.WriteField("e32_instdemand", NumDemandLoadInstancePages);
-            s.WriteField("e32_heapsize", HeapSize);
-            s.WriteField("e32_res3", Reserved);
-            s.WriteField("e32_winresoff", e32_winresoff);
-            s.WriteField("e32_winreslen", e32_winreslen);
-            s.WriteField("e32_devid", DeviceID);
-            s.WriteField("e32_ddkver", DDKVersion);
+                case 1:
+                    structWriter.WriteField("e32_border", ByteOrderOffset, ByteOrder, sizeof(byte));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("e32_worder", WordOrderOffset, WordOrder, sizeof(byte));
+                    break;
+
+                case 3:
+                    structWriter.WriteField("e32_level", ExeFormatLevelOffset, ExeFormatLevel, sizeof(int));
+                    break;
+
+                case 4:
+                    structWriter.WriteField("e32_cpu", CpuTypeOffset, CpuType, sizeof(short));
+                    break;
+
+                case 5:
+                    structWriter.WriteField("e32_os", OSTypeOffset, OSType, sizeof(ushort));
+                    break;
+
+                case 6:
+                    structWriter.WriteField("e32_ver", ModuleVersionOffset, ModuleVersion);
+                    break;
+
+                case 7:
+                    structWriter.WriteField("e32_mflags", ModuleFlagsOffset, ModuleFlags, sizeof(int));
+                    break;
+
+                case 8:
+                    structWriter.WriteField("e32_mpages", NumModulePagesOffset, NumModulePages);
+                    break;
+
+                case 9:
+                    structWriter.WriteField("e32_startobj", ObjectNumForIPOffset, ObjectNumForIP);
+                    break;
+
+                case 10:
+                    structWriter.WriteField("e32_eip", EIPOffset, EIP);
+                    break;
+
+                case 11:
+                    structWriter.WriteField("e32_stackobj", ObjectNumForSPOffset, ObjectNumForSP);
+                    break;
+
+                case 12:
+                    structWriter.WriteField("e32_esp", ESPOffset, ESP);
+                    break;
+
+                case 13:
+                    structWriter.WriteField("e32_pagesize", PageSizeOffset, PageSize);
+                    break;
+
+                case 14:
+                    structWriter.WriteField("e32_lastpagesize", LastPageSizeOffset, LastPageSize);
+                    break;
+
+                case 15:
+                    structWriter.WriteField("e32_fixupsize", FixupSectionSizeOffset, FixupSectionSize);
+                    break;
+
+                case 16:
+                    structWriter.WriteField("e32_fixupsum", FixupSectionChecksumOffset, FixupSectionChecksum);
+                    break;
+
+                case 17:
+                    structWriter.WriteField("e32_ldrsize", LoaderSectionSizeOffset, LoaderSectionSize);
+                    break;
+
+                case 18:
+                    structWriter.WriteField("e32_ldrsum", LoaderSectionChecksumOffset, LoaderSectionChecksum);
+                    break;
+
+                case 19:
+                    structWriter.WriteField("e32_objtab", OffsetOfObjectTableOffset, OffsetOfObjectTable);
+                    break;
+
+                case 20:
+                    structWriter.WriteField("e32_objcnt", NumObjectsInModuleOffset, NumObjectsInModule);
+                    break;
+
+                case 21:
+                    structWriter.WriteField("e32_objmap", OffsetOfObjectPageMapOffset, OffsetOfObjectPageMap);
+                    break;
+
+                case 22:
+                    structWriter.WriteField("e32_itermap", OffsetOfIteratedDataMapOffset, OffsetOfIteratedDataMap);
+                    break;
+
+                case 23:
+                    structWriter.WriteField("e32_rsrctab", OffsetOfResourceTableOffset, OffsetOfResourceTable);
+                    break;
+
+                case 24:
+                    structWriter.WriteField("e32_rsrccnt", NumResourceEntriesOffset, NumResourceEntries);
+                    break;
+
+                case 25:
+                    structWriter.WriteField("e32_restab", OffsetOfResidentNameTableOffset, OffsetOfResidentNameTable);
+                    break;
+
+                case 26:
+                    structWriter.WriteField("e32_enttab", OffsetOfEntryTableOffset, OffsetOfEntryTable);
+                    break;
+
+                case 27:
+                    structWriter.WriteField("e32_dirtab", OffsetOfModuleDirectiveTableOffset, OffsetOfModuleDirectiveTable);
+                    break;
+
+                case 28:
+                    structWriter.WriteField("e32_dircnt", NumModuleDirectivesOffset, NumModuleDirectives);
+                    break;
+
+                case 29:
+                    structWriter.WriteField("e32_fpagetab", OffsetOfFixupPageTableOffset, OffsetOfFixupPageTable);
+                    break;
+
+                case 30:
+                    structWriter.WriteField("e32_frectab", OffsetOfFixupRecordTableOffset, OffsetOfFixupRecordTable);
+                    break;
+
+                case 31:
+                    structWriter.WriteField("e32_impmod", OffsetOfImportModuleNameTableOffset, OffsetOfImportModuleNameTable);
+                    break;
+
+                case 32:
+                    structWriter.WriteField("e32_impmodcnt", NumImportModuleNameTableEntriesOffset, NumImportModuleNameTableEntries);
+                    break;
+
+                case 33:
+                    structWriter.WriteField("e32_impproc", OffsetOfImportProcedureNameTableOffset, OffsetOfImportProcedureNameTable);
+                    break;
+
+                case 34:
+                    structWriter.WriteField("e32_pagesum", OffsetOfPerPageChecksumTableOffset, OffsetOfPerPageChecksumTable);
+                    break;
+
+                case 35:
+                    structWriter.WriteField("e32_datapage", OffsetOfEnumeratedDataPagesOffset, OffsetOfEnumeratedDataPages);
+                    break;
+
+                case 36:
+                    structWriter.WriteField("e32_preload", NumPreloadPagesOffset, NumPreloadPages);
+                    break;
+
+                case 37:
+                    structWriter.WriteField("e32_nrestab", OffsetOfNonResidentNamesTableOffset, OffsetOfNonResidentNamesTable);
+                    break;
+
+                case 38:
+                    structWriter.WriteField("e32_cbnrestab", SizeOfNonResidentNameTableOffset, SizeOfNonResidentNameTable);
+                    break;
+
+                case 39:
+                    structWriter.WriteField("e32_nressum", NonResidentNameTableChecksumOffset, NonResidentNameTableChecksum);
+                    break;
+
+                case 40:
+                    structWriter.WriteField("e32_autodata", ObjectNumForAutomaticDataObjectOffset, ObjectNumForAutomaticDataObject);
+                    break;
+
+                case 41:
+                    structWriter.WriteField("e32_debuginfo", OffsetOfDebugInfoOffset, OffsetOfDebugInfo);
+                    break;
+
+                case 42:
+                    structWriter.WriteField("e32_debuglen", DebugInfoLengthOffset, DebugInfoLength);
+                    break;
+
+                case 43:
+                    structWriter.WriteField("e32_instpreload", NumPreloadSectionInstancePagesOffset, NumPreloadSectionInstancePages);
+                    break;
+
+                case 44:
+                    structWriter.WriteField("e32_instdemand", NumDemandLoadInstancePagesOffset, NumDemandLoadInstancePages);
+                    break;
+
+                case 45:
+                    structWriter.WriteField("e32_heapsize", HeapSizeOffset, HeapSize);
+                    break;
+
+                case 46:
+                    structWriter.WriteField("e32_res3", ReservedOffset, Reserved);
+                    break;
+
+                case 47:
+                    structWriter.WriteField("e32_winresoff", e32_winresoffOffset, e32_winresoff);
+                    break;
+
+                case 48:
+                    structWriter.WriteField("e32_winreslen", e32_winreslenOffset, e32_winreslen);
+                    break;
+
+                case 49:
+                    structWriter.WriteField("e32_devid", DeviceIDOffset, DeviceID);
+                    break;
+
+                case 50:
+                    structWriter.WriteField("e32_ddkver", DDKVersionOffset, DDKVersion);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ namespace PESpy.View.Builder
 {
     internal abstract unsafe class ByteViewProvider
     {
-        protected byte* mmf;
+        internal byte* mmf;
         protected int length;
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
@@ -19,6 +19,17 @@ namespace PESpy.View.Builder
         }
 
         public int FileOrSectionLength => length;
+
+        internal IView ReadBlob(int rva, Func<int, int>? getRealOffset, int length)
+        {
+            Debug.Assert(mmf != default);
+
+            var realRVA = getRealOffset == null ? rva : getRealOffset(rva);
+
+            var bytes = new NativeSpan<byte>(mmf + realRVA, length);
+
+            return new ByteBlobView(rva, bytes, null); //Auto-detect the kind
+        }
 
         internal IView[]? ReadBytes(ref int currentRVA, int endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {

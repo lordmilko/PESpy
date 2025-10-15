@@ -1,31 +1,36 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public struct TryBlockMapEntry : IValue, IViewable
     {
+        private const int TryLowOffset = 0;
+        private const int TryHighOffset = 4;
+        private const int CatchHighOffset = 8;
+        private const int nCatchesOffset = 12;
         internal const int HandlerArrayOffset = 16;
 
         /// <summary>
         /// Lowest state index of try
         /// </summary>
-        public int TryLow => chunk.PeekInt32(0);
+        public int TryLow => chunk.PeekInt32(TryLowOffset);
 
         /// <summary>
         /// Highest state index of try
         /// </summary>
-        public int TryHigh => chunk.PeekInt32(4);
+        public int TryHigh => chunk.PeekInt32(TryHighOffset);
 
         /// <summary>
         /// Highest state index of any associated catch
         /// </summary>
-        public int CatchHigh => chunk.PeekInt32(8);
+        public int CatchHigh => chunk.PeekInt32(CatchHighOffset);
 
         /// <summary>
         /// Number of entries in array
         /// </summary>
-        public int nCatches => chunk.PeekInt32(12);
+        public int nCatches => chunk.PeekInt32(nCatchesOffset);
 
         /// <summary>
         /// Image relative offset of list of handlers for this try
@@ -84,18 +89,35 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.TryBlockMapEntry, this, ViewKind.TryBlockMapEntry, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("tryLow", TryLowOffset, TryLow);
+                    break;
 
-            s.WriteField("tryLow", TryLow);
-            s.WriteField("tryHigh", TryHigh);
-            s.WriteField("catchHigh", CatchHigh);
-            s.WriteField("nCatches", nCatches);
-            s.WriteRVAField("dispHandlerArray", HandlerArray);
+                case 1:
+                    structWriter.WriteField("tryHigh", TryHighOffset, TryHigh);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("catchHigh", CatchHighOffset, CatchHigh);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("nCatches", nCatchesOffset, nCatches);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAField("dispHandlerArray", HandlerArrayOffset, HandlerArray);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

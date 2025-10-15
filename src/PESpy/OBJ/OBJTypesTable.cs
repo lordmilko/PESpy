@@ -11,7 +11,9 @@ namespace PESpy.OBJ
     [DebuggerDisplay("{Signature} Types")]
     public class OBJTypesTable : IValue, IViewable
     {
-        public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(0);
+        private const int SignatureOffset = 0;
+
+        public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(SignatureOffset);
 
         private TypTypeList? types;
 
@@ -51,7 +53,7 @@ namespace PESpy.OBJ
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
-        
+
         /// <summary>
         /// Gets the number of bytes contained in the table.
         /// </summary>
@@ -83,6 +85,8 @@ namespace PESpy.OBJ
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+        int IViewable.NumChildren => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }
 }

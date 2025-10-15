@@ -6,9 +6,9 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ResolutionScopeOffset;
-        private readonly int TypeNameOffset;
-        private readonly int TypeNamespaceOffset;
+        internal readonly int ResolutionScopeOffset;
+        internal readonly int TypeNameOffset;
+        internal readonly int TypeNamespaceOffset;
 
         private readonly bool isBigResolutionScopeIndex;
         private readonly bool isBigStringIndex;

@@ -34,12 +34,19 @@ namespace PESpy
         /// </summary>
         public static readonly Guid CLR_ID_ONECORE_CLR = new Guid("B1EE760D-6C4A-4533-BA41-6F4F661FABAF");
 
-        public int Version => chunk.PeekInt32(0);
-        public Guid Signature => chunk.PeekGuid(4);
-        public int DacTimeStamp => chunk.PeekInt32(20);
-        public int DacSizeOfImage => chunk.PeekInt32(24);
-        public int DbiTimeStamp => chunk.PeekInt32(28);
-        public int DbiSizeOfImage => chunk.PeekInt32(32);
+        private const int VersionOffset = 0;
+        private const int SignatureOffset = 4;
+        private const int DacTimeStampOffset = 20;
+        private const int DacSizeOfImageOffset = 24;
+        private const int DbiTimeStampOffset = 28;
+        private const int DbiSizeOfImageOffset = 32;
+
+        public int Version => chunk.PeekInt32(VersionOffset);
+        public Guid Signature => chunk.PeekGuid(SignatureOffset);
+        public int DacTimeStamp => chunk.PeekInt32(DacTimeStampOffset);
+        public int DacSizeOfImage => chunk.PeekInt32(DacSizeOfImageOffset);
+        public int DbiTimeStamp => chunk.PeekInt32(DbiTimeStampOffset);
+        public int DbiSizeOfImage => chunk.PeekInt32(DbiSizeOfImageOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -66,19 +73,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CLR_DEBUG_RESOURCE, this, ViewKind.ClrDebugResource, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("dwVersion", VersionOffset, Version);
+                    break;
 
-            s.WriteField("dwVersion", Version);
-            s.WriteField("signature", Signature);
-            s.WriteField("dwDacTimeStamp", DacTimeStamp);
-            s.WriteField("dwDacSizeOfImage", DacSizeOfImage);
-            s.WriteField("dwDbiTimeStamp", DbiTimeStamp);
-            s.WriteField("dwDbiSizeOfImage", DbiSizeOfImage);
+                case 1:
+                    structWriter.WriteField("signature", SignatureOffset, Signature);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("dwDacTimeStamp", DacTimeStampOffset, DacTimeStamp);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("dwDacSizeOfImage", DacSizeOfImageOffset, DacSizeOfImage);
+                    break;
+
+                case 4:
+                    structWriter.WriteField("dwDbiTimeStamp", DbiTimeStampOffset, DbiTimeStamp);
+                    break;
+
+                case 5:
+                    structWriter.WriteField("dwDbiSizeOfImage", DbiSizeOfImageOffset, DbiSizeOfImage);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -7,11 +7,11 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int FlagsOffset;
-        private readonly int TypeDefIdOffset;
-        private readonly int TypeNameOffset;
-        private readonly int TypeNamespaceOffset;
-        private readonly int ImplementationOffset;
+        internal readonly int FlagsOffset;
+        internal readonly int TypeDefIdOffset;
+        internal readonly int TypeNameOffset;
+        internal readonly int TypeNamespaceOffset;
+        internal readonly int ImplementationOffset;
 
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;

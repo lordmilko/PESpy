@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,17 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct FrameProcSym : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int cbFrameOffset = 4;
+        private const int cbPadOffset = 8;
+        private const int offPadOffset = 12;
+        private const int cbSaveRegsOffset = 16;
+        private const int offExHdlrOffset = 20;
+        private const int sectExHdlrOffset = 24;
+        private const int flagsOffset = 26;
+        private const int paddingOffset = 30;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FRAMEPROCSYM* value;
 
@@ -126,49 +138,144 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.FRAMEPROCSYM, this, ViewKind.FrameProcSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 31;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(cbFrame), cbFrame);
-            s.WriteField(nameof(cbPad), cbPad);
-            s.WriteField(nameof(offPad), offPad);
-            s.WriteField(nameof(cbSaveRegs), cbSaveRegs);
-            s.WriteField(nameof(offExHdlr), offExHdlr);
-            s.WriteField(nameof(sectExHdlr), sectExHdlr);
-
-            using (var bitField = s.WriteBitFields<int>())
+            switch (index)
             {
-                bitField.WriteField(nameof(fHasAlloca), fHasAlloca, 1);
-                bitField.WriteField(nameof(fHasSetJmp), fHasSetJmp, 1);
-                bitField.WriteField(nameof(fHasLongJmp), fHasLongJmp, 1);
-                bitField.WriteField(nameof(fHasInlAsm), fHasInlAsm, 1);
-                bitField.WriteField(nameof(fHasEH), fHasEH, 1);
-                bitField.WriteField(nameof(fInlSpec), fInlSpec, 1);
-                bitField.WriteField(nameof(fHasSEH), fHasSEH, 1);
-                bitField.WriteField(nameof(fNaked), fNaked, 1);
-                bitField.WriteField(nameof(fSecurityChecks), fSecurityChecks, 1);
-                bitField.WriteField(nameof(fAsyncEH), fAsyncEH, 1);
-                bitField.WriteField(nameof(fGSNoStackOrdering), fGSNoStackOrdering, 1);
-                bitField.WriteField(nameof(fWasInlined), fWasInlined, 1);
-                bitField.WriteField(nameof(fGSCheck), fGSCheck, 1);
-                bitField.WriteField(nameof(fSafeBuffers), fSafeBuffers, 1);
-                bitField.WriteField(nameof(encodedLocalBasePointer), encodedLocalBasePointer, 2);
-                bitField.WriteField(nameof(encodedParamBasePointer), encodedParamBasePointer, 2);
-                bitField.WriteField(nameof(fPogoOn), fPogoOn, 1);
-                bitField.WriteField(nameof(fValidCounts), fValidCounts, 1);
-                bitField.WriteField(nameof(fOptSpeed), fOptSpeed, 1);
-                bitField.WriteField(nameof(fGuardCF), fGuardCF, 1);
-                bitField.WriteField(nameof(fGuardCFW), fGuardCFW, 1);
-                bitField.WriteField(nameof(pad), pad, 9);
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(cbFrame), cbFrameOffset, cbFrame);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cbPad), cbPadOffset, cbPad);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(offPad), offPadOffset, offPad);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(cbSaveRegs), cbSaveRegsOffset, cbSaveRegs);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(offExHdlr), offExHdlrOffset, offExHdlr);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(sectExHdlr), sectExHdlrOffset, sectExHdlr);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(fHasAlloca), flagsOffset, fHasAlloca, sizeof(int), 1);
+                    break;
+
+                #region BitField
+
+                case 9:
+                    structWriter.WriteBitField(nameof(fHasSetJmp), flagsOffset, fHasSetJmp, sizeof(int), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(fHasLongJmp), flagsOffset, fHasLongJmp, sizeof(int), 1);
+                    break;
+
+                case 11:
+                    structWriter.WriteBitField(nameof(fHasInlAsm), flagsOffset, fHasInlAsm, sizeof(int), 1);
+                    break;
+
+                case 12:
+                    structWriter.WriteBitField(nameof(fHasEH), flagsOffset, fHasEH, sizeof(int), 1);
+                    break;
+
+                case 13:
+                    structWriter.WriteBitField(nameof(fInlSpec), flagsOffset, fInlSpec, sizeof(int), 1);
+                    break;
+
+                case 14:
+                    structWriter.WriteBitField(nameof(fHasSEH), flagsOffset, fHasSEH, sizeof(int), 1);
+                    break;
+
+                case 15:
+                    structWriter.WriteBitField(nameof(fNaked), flagsOffset, fNaked, sizeof(int), 1);
+                    break;
+
+                case 16:
+                    structWriter.WriteBitField(nameof(fSecurityChecks), flagsOffset, fSecurityChecks, sizeof(int), 1);
+                    break;
+
+                case 17:
+                    structWriter.WriteBitField(nameof(fAsyncEH), flagsOffset, fAsyncEH, sizeof(int), 1);
+                    break;
+
+                case 18:
+                    structWriter.WriteBitField(nameof(fGSNoStackOrdering), flagsOffset, fGSNoStackOrdering, sizeof(int), 1);
+                    break;
+
+                case 19:
+                    structWriter.WriteBitField(nameof(fWasInlined), flagsOffset, fWasInlined, sizeof(int), 1);
+                    break;
+
+                case 20:
+                    structWriter.WriteBitField(nameof(fGSCheck), flagsOffset, fGSCheck, sizeof(int), 1);
+                    break;
+
+                case 21:
+                    structWriter.WriteBitField(nameof(fSafeBuffers), flagsOffset, fSafeBuffers, sizeof(int), 1);
+                    break;
+
+                case 22:
+                    structWriter.WriteBitField(nameof(encodedLocalBasePointer), flagsOffset, encodedLocalBasePointer, sizeof(int), 2);
+                    break;
+
+                case 23:
+                    structWriter.WriteBitField(nameof(encodedParamBasePointer), flagsOffset, encodedParamBasePointer, sizeof(int), 2);
+                    break;
+
+                case 24:
+                    structWriter.WriteBitField(nameof(fPogoOn), flagsOffset, fPogoOn, sizeof(int), 1);
+                    break;
+
+                case 25:
+                    structWriter.WriteBitField(nameof(fValidCounts), flagsOffset, fValidCounts, sizeof(int), 1);
+                    break;
+
+                case 26:
+                    structWriter.WriteBitField(nameof(fOptSpeed), flagsOffset, fOptSpeed, sizeof(int), 1);
+                    break;
+
+                case 27:
+                    structWriter.WriteBitField(nameof(fGuardCF), flagsOffset, fGuardCF, sizeof(int), 1);
+                    break;
+
+                case 28:
+                    structWriter.WriteBitField(nameof(fGuardCFW), flagsOffset, fGuardCFW, sizeof(int), 1);
+                    break;
+
+                case 29:
+                    structWriter.WriteBitField(nameof(pad), flagsOffset, pad, sizeof(int), 9);
+                    break;
+
+                #endregion
+
+                case 30:
+                    //sectExHdlr causes this struct to not be 4 byte aligned
+                    structWriter.WriteByteBlob(paddingOffset, sizeof(short));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
-
-            s.Align(4);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
         }
     }
 }

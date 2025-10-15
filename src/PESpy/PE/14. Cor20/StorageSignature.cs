@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
@@ -11,23 +11,29 @@ namespace PESpy
     public readonly struct StorageSignature : IValue, IViewable
     {
         public const uint STORAGE_MAGIC_SIG = 0x424A5342; //BSJB
+        private const int SignatureOffset = 0;
+        private const int MajorVersionOffset = 4;
+        private const int MinorVersionOffset = 6;
+        private const int ExtraDataOffset = 8;
+        private const int VersionStringLengthOffset = 12;
+        private const int VersionOffset = 16;
 
         /// <summary>
         /// Magic signature for physical metadata : 0x424A5342.
         /// </summary>
-        public uint Signature => chunk.PeekUInt32(0);
+        public uint Signature => chunk.PeekUInt32(SignatureOffset);
 
-        public short MajorVersion => chunk.PeekInt16(4);
+        public short MajorVersion => chunk.PeekInt16(MajorVersionOffset);
 
-        public short MinorVersion => chunk.PeekInt16(6);
+        public short MinorVersion => chunk.PeekInt16(MinorVersionOffset);
 
-        public int ExtraData => chunk.PeekInt32(8);
+        public int ExtraData => chunk.PeekInt32(ExtraDataOffset);
 
-        public int VersionStringLength => chunk.PeekInt32(12);
+        public int VersionStringLength => chunk.PeekInt32(VersionStringLengthOffset);
 
         //The version string is a bit weird. It's really more of a null padded string, but VersionStringLength bytes
         //are allocated for it
-        public FixedUtf8String Version => chunk.PeekNullPaddedUtf8(16, VersionStringLength);
+        public FixedUtf8String Version => chunk.PeekNullPaddedUtf8(VersionOffset, VersionStringLength);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -57,21 +63,43 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.STORAGESIGNATURE, this, ViewKind.StorageSignature, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(6, StructSize);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("iSignature", SignatureOffset, Signature);
+                    break;
 
-            s.WriteField("iSignature", Signature);
-            s.WriteField("iMajorVer", MajorVersion);
-            s.WriteField("iMinorVer", MinorVersion);
-            s.WriteField("iExtraData", ExtraData);
-            s.WriteField("iVersionString", VersionStringLength);
-            s.WriteUTF8FixedLengthField("pVersion", Version);
+                case 1:
+                    structWriter.WriteField("iMajorVer", MajorVersionOffset, MajorVersion);
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField("iMinorVer", MinorVersionOffset, MinorVersion);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField("iExtraData", ExtraDataOffset, ExtraData);
+                    break;
+
+                case 4:
+                    structWriter.WriteField("iVersionString", VersionStringLengthOffset, VersionStringLength);
+                    break;
+
+                case 5:
+                    structWriter.WriteUtf8FixedLengthField("pVersion", VersionOffset, Version);
+                    break;
+
+                case 6:
+                    structWriter.AlignOrThrow(StructSize);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

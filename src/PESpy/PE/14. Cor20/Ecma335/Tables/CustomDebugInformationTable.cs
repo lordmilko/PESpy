@@ -6,9 +6,9 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ParentOffset;
-        private readonly int KindOffset;
-        private readonly int ValueOffset;
+        internal readonly int ParentOffset;
+        internal readonly int KindOffset;
+        internal readonly int ValueOffset;
 
         private readonly bool isBigHasCustomDebugInformationIndex;
         private readonly bool isBigGuidIndex;

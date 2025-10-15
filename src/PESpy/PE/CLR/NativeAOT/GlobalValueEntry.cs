@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,6 +7,7 @@ namespace PESpy
     public struct GlobalValueEntry : IValue, IViewable
     {
         internal const int NameOffset = 0;
+        private int AddressOffset => chunk.PointerSize;
 
         private VA<AnsiString> name;
 
@@ -34,7 +36,7 @@ namespace PESpy
             }
         }
 
-        public ulong Address => chunk.PeekPointer(chunk.PointerSize);
+        public ulong Address => chunk.PeekPointer(AddressOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -57,15 +59,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GlobalValueEntry, this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteVAAnsiNullTerminatedField(nameof(Name), NameOffset, Name);
+                    break;
 
-            s.WriteVAAnsiNullTerminatedField(nameof(Name), Name);
-            s.WritePointerField(nameof(Address), Address);
+                case 1:
+                    structWriter.WritePointerField(nameof(Address), AddressOffset, Address);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

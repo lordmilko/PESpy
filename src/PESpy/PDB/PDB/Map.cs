@@ -13,17 +13,24 @@ namespace PESpy.PDB
         where D : unmanaged, IEquatable<D>
         where H : HashClass<D>
     {
-        public int Size => chunk.PeekInt32(0);
+        private const int SizeOffset = 0;
+        private const int CapacityOffset = 4;
+        private const int PresentWordCountOffset = 8;
+        private const int PresentWordsOffset = 12;
+        private int DeletedWordCountOffset => 12 + (PresentWordCount * 4);
+        private int DeletedWordsOffset => 16 + (PresentWordCount * 4);
 
-        public int Capacity => chunk.PeekInt32(4);
+        public int Size => chunk.PeekInt32(SizeOffset);
 
-        public int PresentWordCount => chunk.PeekInt32(8);
+        public int Capacity => chunk.PeekInt32(CapacityOffset);
 
-        public NativeSpan<int> PresentWords => chunk.PeekNativeSpan<int>(12, PresentWordCount);
+        public int PresentWordCount => chunk.PeekInt32(PresentWordCountOffset);
 
-        public int DeletedWordCount => chunk.PeekInt32(12 + (PresentWordCount * 4));
+        public NativeSpan<int> PresentWords => chunk.PeekNativeSpan<int>(PresentWordsOffset, PresentWordCount);
 
-        public NativeSpan<int> DeletedWords => chunk.PeekNativeSpan<int>(16 + (PresentWordCount * 4), DeletedWordCount);
+        public int DeletedWordCount => chunk.PeekInt32(DeletedWordCountOffset);
+
+        public NativeSpan<int> DeletedWords => chunk.PeekNativeSpan<int>(DeletedWordsOffset, DeletedWordCount);
 
         //The physical entries that exist on disk
         public Entry[] Entries { get; }
@@ -133,27 +140,48 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.Map, this, ViewKind.Map, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6 + Entries.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("Size", SizeOffset, Size);
+                    break;
 
-            s.WriteField("Size", Size);
-            s.WriteField("Capacity", Capacity);
-            s.WriteField("Present Word Count", PresentWordCount);
-            s.WriteField("Present Words", PresentWords);
-            s.WriteField("Deleted Word Count", DeletedWordCount);
-            s.WriteField("Deleted Words", DeletedWords);
+                case 1:
+                    structWriter.WriteField("Capacity", CapacityOffset, Capacity);
+                    break;
 
-            s.WriteInline(Entries);
+                case 2:
+                    structWriter.WriteField("Present Word Count", PresentWordCountOffset, PresentWordCount);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField("Present Words", PresentWordsOffset, PresentWords);
+                    break;
+
+                case 4:
+                    structWriter.WriteField("Deleted Word Count", DeletedWordCountOffset, DeletedWordCount);
+                    break;
+
+                case 5:
+                    structWriter.WriteField("Deleted Words", DeletedWordsOffset, DeletedWords);
+                    break;
+
+                default:
+                    structWriter.WriteInline(Entries[index - 6]);
+                    break;
+            }
         }
 
         [DebuggerDisplay("{Key} -> {Value}")]
         public readonly unsafe struct Entry : IValue, IViewable
         {
-            public D Key => chunk.PeekUnmanaged<D>(0);
+            private const int KeyOffset = 0;
+
+            public D Key => chunk.PeekUnmanaged<D>(KeyOffset);
 
             public unsafe R Value => getValue(chunk.Slice(sizeof(D)));
 
@@ -182,28 +210,37 @@ namespace PESpy.PDB
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.Entry, this, default, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => 2;
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                switch (index)
+                {
+                    case 0:
+                        var key = Key;
 
-                var key = Key;
+                        if (typeof(D) == typeof(int))
+                            structWriter.WriteField("Key", 0, Unsafe.As<D, int>(ref key));
+                        else if (typeof(D) == typeof(NI))
+                            structWriter.WriteField("Key", 0, Unsafe.As<D, NI>(ref key));
+                        else
+                            Debug.Assert(false);
+                        break;
 
-                if (typeof(D) == typeof(int))
-                    s.WriteField("Key", Unsafe.As<D, int>(ref key));
-                else if (typeof(D) == typeof(NI))
-                    s.WriteField("Key", Unsafe.As<D, NI>(ref key));
-                else
-                    Debug.Assert(false);
+                    case 1:
+                        var value = Value;
 
-                var value = Value;
+                        if (typeof(R) == typeof(SN))
+                            structWriter.WriteField("Value", sizeof(D), Unsafe.As<R, SN>(ref value), valueSize);
+                        else if (typeof(R) == typeof(SrcHeaderOut))
+                            structWriter.WriteStructField("Value", sizeof(D), Unsafe.As<R, SrcHeaderOut>(ref value));
+                        else
+                            Debug.Assert(false);
+                        break;
 
-                if (typeof(R) == typeof(SN))
-                    s.WriteField("Value", Unsafe.As<D, SN>(ref key), valueSize);
-                else if (typeof(R) == typeof(SrcHeaderOut))
-                    s.WriteStructField("Value", Unsafe.As<D, SrcHeaderOut>(ref key));
-
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
     }

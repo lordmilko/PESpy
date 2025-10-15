@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -8,26 +7,31 @@ namespace PESpy
     {
         public class StringFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
         {
+        private const int LengthOffset = 0;
+        private const int ValueLengthOffset = 2;
+        private const int TypeOffset = 4;
+        private const int KeyOffset = 6;
+
             /// <summary>
             /// The length, in bytes, of the entire StringFileInfo block, including all structures indicated by the Children member.
             /// </summary>
-            public short Length => chunk.PeekInt16(0);
+            public short Length => chunk.PeekInt16(LengthOffset);
 
             /// <summary>
             /// This member is always equal to zero.
             /// </summary>
-            public short ValueLength => chunk.PeekInt16(2);
+            public short ValueLength => chunk.PeekInt16(ValueLengthOffset);
 
             /// <summary>
             /// The type of data in the version resource. This member is 1 if the version resource contains text data and 0
             /// if the version resource contains binary data.
             /// </summary>
-            public short Type => chunk.PeekInt16(4);
+            public short Type => chunk.PeekInt16(TypeOffset);
 
             /// <summary>
             /// The Unicode string L"StringFileInfo".
             /// </summary>
-            public FixedUtf16String Key => chunk.PeekUtf16FixedLength(6, 14);
+            public FixedUtf16String Key => chunk.PeekUtf16FixedLength(KeyOffset, 14);
 
             //Will never need to align, as Key is 30 bytes, so we're now on byte 36
 
@@ -95,14 +99,19 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StringFileInfo, this, ViewKind.StringFileInfo, Length);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => throw StructWriter.GetEagerLoadOnlyException();
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                if (index != -1)
+                    throw StructWriter.GetEagerLoadOnlyException();
+
+                using var s = structWriter.CreateEagerWriter();
 
                 s.WriteField("wLength", Length);
                 s.WriteField("wValueLength", ValueLength);
                 s.WriteField("wType", Type);
-                s.WriteUTF16Field("szKey", Key, 15);
+                s.WriteUtf16FixedLengthField("szKey", Key, 15);
 
                 if (Children != null)
                 {
@@ -121,8 +130,7 @@ namespace PESpy
 
                 s.VerifyLength(Length);
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                structWriter.EagerFields = s.ToArray();
             }
         }
     }

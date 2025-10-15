@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,17 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct ThunkSym32 : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int pParentOffset = 4;
+        private const int pEndOffset = 8;
+        private const int pNextOffset = 12;
+        private const int offOffset = 16;
+        private const int segOffset = 20;
+        private const int lenOffset = 22;
+        private const int ordOffset = 24;
+        private const int nameOffset = 25;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly THUNKSYM32* value;
 
@@ -64,11 +76,13 @@ namespace PESpy.PDB
             sizeof(short)  + //len
             sizeof(byte);    //ord
 
+        private int BytesUsed => FixedStructSize + name.Length + 1;
+
         internal ThunkSym32(THUNKSYM32* value)
         {
             this.value = value;
 
-            byte* variant = value->name + name.Length + 1;
+            //byte* variant = value->name + name.Length + 1;
 
             //dumpsym7.cpp says adjustor and vcall can have variant
             Debug.Assert(!(ord == THUNK_ORDINAL.THUNK_ORDINAL_ADJUSTOR || ord == THUNK_ORDINAL.THUNK_ORDINAL_VCALL), "Read name and variant");
@@ -82,25 +96,60 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.THUNKSYM32, this, ViewKind.ThunkSym32, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(10, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(pParent), pParent);
-            s.WriteField(nameof(pEnd), pEnd);
-            s.WriteField(nameof(pNext), pNext);
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(seg), seg);
-            s.WriteField(nameof(len), len);
-            s.WriteField(nameof(ord), ord, sizeof(byte));
-            s.WriteSymStringField(nameof(name), SymType.ReadString(value, value->name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField(nameof(pParent), pParentOffset, pParent);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteField(nameof(pEnd), pEndOffset, pEnd);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(pNext), pNextOffset, pNext);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(seg), segOffset, seg);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(len), lenOffset, len);
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(ord), ordOffset, ord, sizeof(byte));
+                    break;
+
+                case 9:
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, SymType.ReadString(value, value->name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                case 10:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

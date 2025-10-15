@@ -6,8 +6,8 @@ namespace PESpy.Ecma335
     {
         internal readonly int RowSize;
 
-        private readonly int ParentOffset;
-        private readonly int ImportsOffset;
+        internal readonly int ParentOffset;
+        internal readonly int ImportsOffset;
 
         private readonly bool isBigBlobIndex;
         private readonly bool isBigImportScopeIndex;

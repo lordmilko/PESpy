@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -6,9 +7,16 @@ namespace PESpy
 {
     public struct ImageCoffSymbolsHeader : IValue, IViewable
     {
+        private const int NumberOfSymbolsOffset = 0;
         internal const int LvaToFirstSymbolOffset = 4;
+        private const int NumberOfLinenumbersOffset = 8;
+        private const int LvaToFirstLinenumberOffset = 12;
+        private const int RvaToFirstByteOfCodeOffset = 16;
+        private const int RvaToLastByteOfCodeOffset = 20;
+        private const int RvaToFirstByteOfDataOffset = 24;
+        private const int RvaToLastByteOfDataOffset = 28;
 
-        public int NumberOfSymbols => chunk.PeekInt32(0);
+        public int NumberOfSymbols => chunk.PeekInt32(NumberOfSymbolsOffset);
 
         private RVA<CoffSymbolTable> lvaToFirstSymbol;
 
@@ -34,12 +42,12 @@ namespace PESpy
             }
         }
 
-        public int NumberOfLinenumbers => chunk.PeekInt32(8);
-        public int LvaToFirstLinenumber => chunk.PeekInt32(12);
-        public int RvaToFirstByteOfCode => chunk.PeekInt32(16);
-        public int RvaToLastByteOfCode => chunk.PeekInt32(20);
-        public int RvaToFirstByteOfData => chunk.PeekInt32(24);
-        public int RvaToLastByteOfData => chunk.PeekInt32(28);
+        public int NumberOfLinenumbers => chunk.PeekInt32(NumberOfLinenumbersOffset);
+        public int LvaToFirstLinenumber => chunk.PeekInt32(LvaToFirstLinenumberOffset);
+        public int RvaToFirstByteOfCode => chunk.PeekInt32(RvaToFirstByteOfCodeOffset);
+        public int RvaToLastByteOfCode => chunk.PeekInt32(RvaToLastByteOfCodeOffset);
+        public int RvaToFirstByteOfData => chunk.PeekInt32(RvaToFirstByteOfDataOffset);
+        public int RvaToLastByteOfData => chunk.PeekInt32(RvaToLastByteOfDataOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -69,23 +77,47 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_COFF_SYMBOLS_HEADER, this, ViewKind.ImageCoffSymbolsHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 8;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(NumberOfSymbols), NumberOfSymbolsOffset, NumberOfSymbolsOffset, NumberOfSymbols);
+                    break;
 
-            s.WriteField(nameof(NumberOfSymbols), NumberOfSymbols);
+                case 1:
+                    structWriter.WriteField(nameof(LvaToFirstSymbol), LvaToFirstSymbolOffset, LvaToFirstSymbolOffset, LvaToFirstSymbol.ListedOffset);
+                    break;
 
-            s.WriteField(nameof(LvaToFirstSymbol), LvaToFirstSymbol.ListedOffset);
+                case 2:
+                    structWriter.WriteField(nameof(NumberOfLinenumbers), NumberOfLinenumbersOffset, NumberOfLinenumbersOffset, NumberOfLinenumbers);
+                    break;
 
-            s.WriteField(nameof(NumberOfLinenumbers), NumberOfLinenumbers);
-            s.WriteField(nameof(LvaToFirstLinenumber), LvaToFirstLinenumber);
-            s.WriteField(nameof(RvaToFirstByteOfCode), RvaToFirstByteOfCode);
-            s.WriteField(nameof(RvaToLastByteOfCode), RvaToLastByteOfCode);
-            s.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfData);
-            s.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfData);
+                case 3:
+                    structWriter.WriteField(nameof(LvaToFirstLinenumber), LvaToFirstLinenumberOffset, LvaToFirstLinenumberOffset, LvaToFirstLinenumber);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 4:
+                    structWriter.WriteField(nameof(RvaToFirstByteOfCode), RvaToFirstByteOfCodeOffset, RvaToFirstByteOfCodeOffset, RvaToFirstByteOfCode);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(RvaToLastByteOfCode), RvaToLastByteOfCodeOffset, RvaToLastByteOfCodeOffset, RvaToLastByteOfCode);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfDataOffset, RvaToFirstByteOfDataOffset, RvaToFirstByteOfData);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfDataOffset, RvaToLastByteOfDataOffset, RvaToLastByteOfData);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

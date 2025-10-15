@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -6,13 +7,18 @@ namespace PESpy
     [Source(SourceKind.cvexefmt)]
     public readonly struct OMFSegDesc : IValue, IViewable
     {
-        public ushort Seg => chunk.PeekUInt16(0);
+        private const int SegOffset = 0;
+        private const int padOffset = 2;
+        private const int OffOffset = 4;
+        private const int cbSegOffset = 8;
 
-        public ushort pad => chunk.PeekUInt16(2);
+        public ushort Seg => chunk.PeekUInt16(SegOffset);
 
-        public int Off => chunk.PeekInt32(4);
+        public ushort pad => chunk.PeekUInt16(padOffset);
 
-        public int cbSeg => chunk.PeekInt32(8);
+        public int Off => chunk.PeekInt32(OffOffset);
+
+        public int cbSeg => chunk.PeekInt32(cbSegOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -37,17 +43,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFModule, this, ViewKind.OMFSegDesc, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Seg), SegOffset, Seg);
+                    break;
 
-            s.WriteField(nameof(Seg), Seg);
-            s.WriteField(nameof(pad), pad);
-            s.WriteField(nameof(Off), Off);
-            s.WriteField(nameof(cbSeg), cbSeg);
+                case 1:
+                    structWriter.WriteField(nameof(pad), padOffset, pad);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Off), OffOffset, Off);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cbSeg), cbSegOffset, cbSeg);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

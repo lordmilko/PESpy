@@ -4,9 +4,9 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ClassOffset;
-        private readonly int MethodBodyOffset;
-        private readonly int MethodDeclarationOffset;
+        internal readonly int ClassOffset;
+        internal readonly int MethodBodyOffset;
+        internal readonly int MethodDeclarationOffset;
 
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigMethodDefOrRefIndex;

@@ -30,11 +30,11 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var merger = new Merger(neFile, structs, byteViewProvider);
+            using var merger = new Merger(neFile, this, structs, byteViewProvider);
 
             var results = merger.MergeNE();
 
-            return new FileView(ViewMode.Physical, neFile.Name, results, ViewKind.NEFile);
+            return new FileView(ViewMode.Physical, neFile.Name, results, this, ViewKind.NEFile);
         }
     }
 }

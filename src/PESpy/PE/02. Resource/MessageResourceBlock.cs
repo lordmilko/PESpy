@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
@@ -8,12 +9,14 @@ namespace PESpy
     [DebuggerDisplay("0x{LowId.ToString(\"X\"),nq} - 0x{HighId.ToString(\"X\"),nq}")]
     public struct MessageResourceBlock : IValue, IViewable
     {
+        private const int LowIdOffset = 0;
+        private const int HighIdOffset = 4;
         private const int OffsetToEntriesOffset = 8;
 
         //Values are regularly uints
-        public uint LowId => chunk.PeekUInt32(0);
+        public uint LowId => chunk.PeekUInt32(LowIdOffset);
 
-        public uint HighId => chunk.PeekUInt32(4);
+        public uint HighId => chunk.PeekUInt32(HighIdOffset);
 
         private RVA<MessageResourceEntry[]> offsetToEntries;
 
@@ -75,16 +78,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MESSAGE_RESOURCE_BLOCK, this, ViewKind.MessageResourceBlock, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(LowId), LowIdOffset, LowId);
+                    break;
 
-            s.WriteField(nameof(LowId), LowId);
-            s.WriteField(nameof(HighId), HighId);
-            s.WriteRVAField(nameof(OffsetToEntries), OffsetToEntries);
+                case 1:
+                    structWriter.WriteField(nameof(HighId), HighIdOffset, HighId);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteRVAField(nameof(OffsetToEntries), OffsetToEntriesOffset, OffsetToEntries);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -249,5 +249,5 @@ namespace PESpy
                 return Name.ToString();
             }
         }
-    }    
+    }
 }

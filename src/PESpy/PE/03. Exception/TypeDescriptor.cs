@@ -1,15 +1,20 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct TypeDescriptor : IValue, IViewable
     {
-        public ulong pVFTable => chunk.PeekUInt64(0);
+        private const int pVFTableOffset = 0;
+        private const int SpareOffset = 8;
+        private const int NameOffset = 16;
 
-        public ulong Spare => chunk.PeekUInt64(8);
+        public ulong pVFTable => chunk.PeekUInt64(pVFTableOffset);
 
-        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(16);
+        public ulong Spare => chunk.PeekUInt64(SpareOffset);
+
+        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(NameOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -33,16 +38,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.TypeDescriptor, this, ViewKind.TypeDescriptor, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WritePointerField("pVFTable", pVFTableOffset, pVFTable);
+                    break;
 
-            s.WritePointerField("pVFTable", pVFTable);
-            s.WritePointerField("spare", Spare);
-            s.WriteAnsiNullTerminatedField("name", Name);
+                case 1:
+                    structWriter.WritePointerField("spare", SpareOffset, Spare);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteAnsiNullTerminatedField("name", NameOffset, Name);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

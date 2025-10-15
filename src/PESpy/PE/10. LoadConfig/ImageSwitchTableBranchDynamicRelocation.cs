@@ -1,15 +1,17 @@
-﻿using System.Diagnostics;
+﻿using System;
 using PESpy.View;
 
 namespace PESpy
 {
     public readonly struct ImageSwitchTableBranchDynamicRelocation : IValue, IViewable
     {
+        private const int flagsOffset = 0;
+
         public short PageRelativeOffset => (short) (flags & 0xFFF);
 
         public short RegisterNumber => (short) ((flags >> 12) & 0xF);
 
-        private ushort flags => chunk.PeekUInt16(0);
+        private ushort flags => chunk.PeekUInt16(flagsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -31,18 +33,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION, this, ViewKind.ImageSwitchTableBranchDynamicRelocation, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            using (var b = s.WriteBitFields<ushort>())
+            switch (index)
             {
-                b.WriteField(nameof(PageRelativeOffset), PageRelativeOffset, 12);
-                b.WriteField(nameof(RegisterNumber), RegisterNumber, 4);
-            }
+                case 0:
+                    structWriter.WriteBitField(nameof(PageRelativeOffset), flagsOffset, PageRelativeOffset, sizeof(short), 12);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteBitField(nameof(RegisterNumber), flagsOffset, RegisterNumber, sizeof(short), 4);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

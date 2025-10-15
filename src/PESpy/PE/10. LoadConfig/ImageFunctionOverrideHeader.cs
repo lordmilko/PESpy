@@ -1,13 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using PESpy.Native;
 using PESpy.View;
 
 namespace PESpy
 {
     public class ImageFunctionOverrideHeader : IValue, IViewable //Will be boxed in ImageDynamicRelocation record
     {
-        public int FuncOverrideSize => chunk.PeekInt32(0);
+        private const int FuncOverrideSizeOffset = 0;
+
+        public int FuncOverrideSize => chunk.PeekInt32(FuncOverrideSizeOffset);
 
         //IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
         //IMAGE_BDD_INFO BDDInfo; // BDD region, size in bytes: DVRTEntrySize - sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) - FuncOverrideSize
@@ -81,17 +82,26 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_FUNCTION_OVERRIDE_HEADER, this, ViewKind.ImageFunctionOverrideHeader, length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1 + FuncOverrides.Length + 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            if (index == 0)
+                structWriter.WriteField(nameof(FuncOverrideSize), FuncOverrideSizeOffset, FuncOverrideSize);
+            else
+            {
+                var i = index - 1;
 
-            s.WriteField(nameof(FuncOverrideSize), FuncOverrideSize);
-
-            s.WriteInline(FuncOverrides);
-            s.WriteInline(BDDInfo);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                if (i < FuncOverrides.Length)
+                    structWriter.WriteInline(FuncOverrides[i]);
+                else
+                {
+                    if (i == FuncOverrides.Length)
+                        structWriter.WriteInline(BDDInfo);
+                    else
+                        throw new IndexOutOfRangeException();
+                }
+            }
         }
     }
 }

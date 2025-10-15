@@ -4,7 +4,7 @@
     {
         internal readonly int RowSize;
 
-        private readonly int MethodOffset;
+        internal readonly int MethodOffset;
 
         private readonly bool isBigMethodIndex;
 

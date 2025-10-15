@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,11 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfMethod16t : IViewable
     {
+        private const int leafOffset = 0;
+        private const int countOffset = 2;
+        private const int mListOffset = 4;
+        private const int NameOffset = 6;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfMethod_16t* value;
 
@@ -32,6 +39,15 @@ namespace PESpy.PDB
             sizeof(short)  + //count
             sizeof(short);   //mList
 
+        internal int StructSize => GetStructSize(null);
+
+        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        {
+            var str = TypType.ReadString(value->Name, symbolAccessor);
+
+            return FixedStructSize + str.Length + 1;
+        }
+
         internal LfMethod16t(lfMethod_16t* value)
         {
             this.value = value;
@@ -41,19 +57,35 @@ namespace PESpy.PDB
         {
             //No globals
         }
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfMethod_16t, this, ViewKind.LfMethod16t, GetStructSize(writer.GetSymbolAccessor()));
+
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
 
-            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
-            s.WriteField(nameof(count), count);
-            s.WriteField(nameof(mList), mList);
-            s.WriteSymStringField(nameof(Name), TypType.ReadString(value->Name, viewWriter.GetSymbolAccessor()));
+                case 1:
+                    structWriter.WriteField(nameof(count), countOffset, count);
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteField(nameof(mList), mListOffset, value->mList);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.WriteSymStringField(nameof(Name), NameOffset, TypType.ReadString(value->Name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

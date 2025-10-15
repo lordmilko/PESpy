@@ -13,10 +13,14 @@ namespace PESpy
     [DebuggerDisplay("VisualStudioVersion = {VisualStudioVersion}, ProductId = {ProductId}, BuildId = {BuildId}, Count = {Count}")]
     public readonly struct ProdItem : IValue, IViewable //Stored in an array, so can be a struct
     {
+        private const int ProdIdOffset = 0;
+        private const int BuildIdOffset = 2;
+        private const int CountOffset = 4;
+
         public short ProdId { get; init; }
 
         public short BuildId { get; init; }
-        
+
         public int Count { get; init; }
 
         public string ProductId { get; init; }
@@ -363,16 +367,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PRODITEM, this, ViewKind.ProdItem, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(ProdId), ProdIdOffset, ProdId);
+                    break;
 
-            s.WriteField(nameof(ProdId), ProdId);
-            s.WriteField(nameof(BuildId), BuildId);
-            s.WriteField(nameof(Count), Count);
+                case 1:
+                    structWriter.WriteField(nameof(BuildId), BuildIdOffset, BuildId);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Count), CountOffset, Count);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

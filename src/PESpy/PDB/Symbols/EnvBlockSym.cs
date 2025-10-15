@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,10 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct EnvBlockSym : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int flagsOffset = 4;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ENVBLOCKSYM* value;
 
@@ -69,21 +74,35 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.ENVBLOCKSYM, this, ViewKind.EnvBlockSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-
-            using (var bitField = s.WriteBitFields<byte>())
+            switch (index)
             {
-                bitField.WriteField(nameof(rev), rev, 1);
-                bitField.WriteField(nameof(pad), pad, 7);
-            }
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                #region BitField
+
+                case 2:
+                    structWriter.WriteBitField(nameof(rev), flagsOffset, rev, sizeof(byte), 1);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField(nameof(pad), flagsOffset, pad, sizeof(byte), 7);
+                    break;
+
+                #endregion
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

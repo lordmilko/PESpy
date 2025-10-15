@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -6,11 +7,14 @@ namespace PESpy.PDB
     //SI_PERSIST
     public readonly struct SI_PERSIST : IValue, IViewable
     {
+        private const int ByteCountOffset = 0;
+        private const int PageListOffset = 4;
+
         //cb
         public int ByteCount //st.mpsnsi[snSt].cb
         {
-            get => chunk.PeekInt32(0);
-            set => chunk.PokeInt32(0, value);
+            get => chunk.PeekInt32(ByteCountOffset);
+            set => chunk.PokeInt32(ByteCountOffset, value);
         }
 
         //"mpspnpn" = Map of Stream Page Numbers -> Page Numbers. A SPN is simply an index into a PN[], so this is essentially a really
@@ -19,8 +23,8 @@ namespace PESpy.PDB
         //for a full rundown of the way this works. MSF_HB::Commit explicitly sets this to 0. mpspnpnSt comes from siPnList
         public int PageList
         {
-            get => chunk.PeekInt32(4);
-            set => chunk.PokeInt32(4, value);
+            get => chunk.PeekInt32(PageListOffset);
+            set => chunk.PokeInt32(PageListOffset, value);
         }
 
         public int Offset => chunk.AbsoluteOffset;
@@ -44,15 +48,23 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SI_PERSIST, this, ViewKind.SI_PERSIST, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("cb", ByteCountOffset, ByteCount);
+                    break;
 
-            s.WriteField("cb", ByteCount);
-            s.WriteField("mpspnpn", PageList);
+                case 1:
+                    structWriter.WriteField("mpspnpn", PageListOffset, PageList);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

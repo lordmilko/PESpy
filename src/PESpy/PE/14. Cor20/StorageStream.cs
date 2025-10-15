@@ -23,9 +23,13 @@ namespace PESpy
         public const string PdbStream = "#Pdb";
         public const string HotModelStream = "#!"; //mdcommon.h in older versions of coreclr has this
 
-        public int iOffset => chunk.PeekInt32(0);
+        private const int iOffsetOffset = 0;
+        private const int SizeOffset = 4;
+        private const int NameOffset = 8;
 
-        public int Size => chunk.PeekInt32(4);
+        public int iOffset => chunk.PeekInt32(iOffsetOffset);
+
+        public int Size => chunk.PeekInt32(SizeOffset);
 
         public string Name { get; }
 
@@ -107,6 +111,8 @@ namespace PESpy
             (FixedStructSize +
             Name.Length + 1 + 3) & ~3; //32-bit aligned
 
+        private int BytesUsed => FixedStructSize + Name.Length + 1;
+
         private readonly MemoryChunk chunk;
 
         internal StorageStream(in MemoryChunk chunk)
@@ -114,7 +120,7 @@ namespace PESpy
             this.chunk = chunk;
 
             //We want to be able to switch on the name so we need to allocate
-            Name = chunk.PeekUtf8NullTerminatedString(8).ToString();
+            Name = chunk.PeekUtf8NullTerminatedString(NameOffset).ToString();
             data = null;
         }
 
@@ -197,18 +203,31 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.STORAGESTREAM, this, ViewKind.StorageStream, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(3, BytesUsed);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("iOffset", iOffsetOffset, iOffset);
+                    break;
 
-            s.WriteField("iOffset", iOffset);
-            s.WriteField("iSize", Size);
-            s.WriteAnsiNullTerminatedField("rcName", Name);
+                case 1:
+                    structWriter.WriteField("iSize", SizeOffset, Size);
+                    break;
 
-            s.Align(4);
+                case 2:
+                    structWriter.WriteAnsiNullTerminatedField("rcName", NameOffset, Name);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    structWriter.AlignOrThrow(BytesUsed);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

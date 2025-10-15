@@ -13,10 +13,12 @@ namespace PESpy
     {
         public const uint IMAGE_NT_SIGNATURE = 0x00004550; //PE00
 
+        private const int SignatureOffset = 0;
+
         /// <summary>
         /// A 4-byte signature identifying the file as a PE image. The bytes are "PE\0\0".
         /// </summary>
-        public int Signature => chunk.PeekInt32(0);
+        public int Signature => chunk.PeekInt32(SignatureOffset);
 
         /// <summary>
         /// An <see cref="ImageFileHeader"/> structure that specifies the file header.
@@ -66,16 +68,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_NT_HEADERS, this, ViewKind.ImageNtHeaders, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Signature), SignatureOffset, Signature);
+                    break;
 
-            s.WriteField(nameof(Signature), Signature);
-            s.WriteInline(FileHeader);
-            s.WriteInline(OptionalHeader);
+                case 1:
+                    structWriter.WriteInline(FileHeader);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteInline(OptionalHeader);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

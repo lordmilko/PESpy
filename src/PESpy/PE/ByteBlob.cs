@@ -8,7 +8,9 @@ namespace PESpy
     /// </summary>
     public readonly struct ByteBlob : IValue, IViewable  //Small enough that returning a copy from properties is OK
     {
-        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, length);
+        private const int BytesOffset = 0;
+
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(BytesOffset, length);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -29,6 +31,8 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.WriteByteBlob(this);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+        int IViewable.NumChildren => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }
 }

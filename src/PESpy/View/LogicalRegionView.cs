@@ -16,20 +16,24 @@ namespace PESpy.View
         public string Name { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children { get; }
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
 
         public ViewKind Kind { get; }
 
         public int Size { get; }
 
-        public LogicalRegionView(int offset, string name, IView[] children, ViewKind kind, int size)
+        private ViewWriter viewWriter;
+        private IViewable childProvider;
+
+        public LogicalRegionView(int offset, string name, IView[] children, ViewWriter viewWriter, ViewKind kind, int size)
         {
             Debug.Assert(size != 0);
             Debug.Assert(kind != 0);
 
             Offset = offset;
             Name = name;
-            Children = children;
+            childProvider = new ViewChildProvider(children);
+            this.viewWriter = viewWriter;
             Kind = kind;
             Size = size;
         }

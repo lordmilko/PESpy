@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -9,20 +10,24 @@ namespace PESpy
     /// </summary>
     public readonly struct ImageCorVTableFixup : IValue, IViewable
     {
+        private const int RVAOffset = 0;
+        private const int CountOffset = 4;
+        private const int TypeOffset = 6;
+
         /// <summary>
         /// Offset of v-table array in image.
         /// </summary>
-        public int RVA => chunk.PeekInt32(0);
+        public int RVA => chunk.PeekInt32(RVAOffset);
 
         /// <summary>
         /// How many entries at location.
         /// </summary>
-        public short Count => chunk.PeekInt16(4);
+        public short Count => chunk.PeekInt16(CountOffset);
 
         /// <summary>
         /// COR_VTABLE_xxx type of entries.
         /// </summary>
-        public COR_VTABLE Type => (COR_VTABLE) chunk.PeekUInt16(6);
+        public COR_VTABLE Type => (COR_VTABLE) chunk.PeekUInt16(TypeOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -46,16 +51,27 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_COR_VTABLEFIXUP, this, ViewKind.ImageCorVTableFixup, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(RVA), RVAOffset, RVA);
+                    break;
 
-            s.WriteField(nameof(RVA), RVA);
-            s.WriteField(nameof(Count), Count);
-            s.WriteField(nameof(Type), Type, sizeof(short));
+                case 1:
+                    structWriter.WriteField(nameof(Count), CountOffset, Count);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Type), TypeOffset, Type, sizeof(short));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

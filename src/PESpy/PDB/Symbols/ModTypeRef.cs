@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -9,6 +10,12 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct ModTypeRef : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int dataOffset = 4;
+        private const int word0Offset = 8;
+        private const int word1Offset = 10;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MODTYPEREF* value;
 
@@ -65,28 +72,59 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.MODTYPEREF, this, ViewKind.ModTypeRef, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 11;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-
-            using (var bitField = s.WriteBitFields<long>())
+            switch (index)
             {
-                bitField.WriteField(nameof(fNone), fNone, 1);
-                bitField.WriteField(nameof(fRefTMPCT), fRefTMPCT, 1);
-                bitField.WriteField(nameof(fOwnTMPCT), fOwnTMPCT, 1);
-                bitField.WriteField(nameof(fOwnTMR), fOwnTMR, 1);
-                bitField.WriteField(nameof(fOwnTM), fOwnTM, 1);
-                bitField.WriteField(nameof(fRefTM), fRefTM, 1);
-                bitField.WriteField(nameof(reserved), reserved, 1);
-                bitField.WriteField(nameof(word0), word0, 1);
-                bitField.WriteField(nameof(word1), word1, 9 + 16); //The bitfield is 32 bits, but Microsoft erroneously only added 9 bits of padding
-            }
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
+
+                case 2:
+                    structWriter.WriteBitField(nameof(fNone), dataOffset, fNone, sizeof(long), 1);
+                    break;
+
+                case 3:
+                    structWriter.WriteBitField(nameof(fRefTMPCT), dataOffset, fRefTMPCT, sizeof(long), 1);
+                    break;
+
+                case 4:
+                    structWriter.WriteBitField(nameof(fOwnTMPCT), dataOffset, fOwnTMPCT, sizeof(long), 1);
+                    break;
+
+                case 5:
+                    structWriter.WriteBitField(nameof(fOwnTMR), dataOffset, fOwnTMR, sizeof(long), 1);
+                    break;
+
+                case 6:
+                    structWriter.WriteBitField(nameof(fOwnTM), dataOffset, fOwnTM, sizeof(long), 1);
+                    break;
+
+                case 7:
+                    structWriter.WriteBitField(nameof(fRefTM), dataOffset, fRefTM, sizeof(long), 1);
+                    break;
+
+                case 8:
+                    structWriter.WriteBitField(nameof(reserved), dataOffset, reserved, sizeof(long), 1);
+                    break;
+
+                case 9:
+                    structWriter.WriteBitField(nameof(word0), dataOffset, word0, sizeof(long), 1);
+                    break;
+
+                case 10:
+                    structWriter.WriteBitField(nameof(word1), dataOffset, word1, sizeof(long), 9 + 16); //The bitfield is 32 bits, but Microsoft erroneously only added 9 bits of padding
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

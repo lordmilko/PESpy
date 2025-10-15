@@ -9,13 +9,16 @@ namespace PESpy
     /// </summary>
     public struct ImageDelayLoadDescriptor : IValue, IViewable
     {
+        private const int AttributesOffset = 0;
         internal const int DllNameRVAOffset = 4;
         internal const int ModuleHandleRVAOffset = 8;
         internal const int ImportAddressTableRVAOffset = 12;
         internal const int ImportNameTableRVAOffset = 16;
-        internal const int UnloadInformationTableOffset = 24;
+        private const int BoundImportAddressTableRVAOffset = 20;
+        private const int UnloadInformationTableOffset = 24;
+        private const int TimeDateStampOffset = 28;
 
-        public int Attributes => chunk.PeekInt32(0);
+        public int Attributes => chunk.PeekInt32(AttributesOffset);
 
         private RVA<AnsiString> dllNameRVA;
 
@@ -95,7 +98,7 @@ namespace PESpy
             }
         }
 
-        public int BoundImportAddressTableRVA => chunk.PeekInt32(20);
+        public int BoundImportAddressTableRVA => chunk.PeekInt32(BoundImportAddressTableRVAOffset);
 
         private RVA<ImageThunkData[]> unloadInformationTable;
 
@@ -119,7 +122,7 @@ namespace PESpy
             }
         }
 
-        public Timestamp TimeDateStamp => chunk.PeekUInt32(28);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -206,21 +209,47 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_DELAYLOAD_DESCRIPTOR, this, ViewKind.ImageDelayLoadDescriptor, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 8;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Attributes), AttributesOffset, Attributes);
+                    break;
 
-            s.WriteField(nameof(Attributes), Attributes);
-            s.WriteRVAAnsiNullTerminatedField(nameof(DllNameRVA), DllNameRVA);
-            s.WriteRVAPointerField(nameof(ModuleHandleRVA), ModuleHandleRVA);
-            s.WriteRVAField(nameof(ImportAddressTableRVA), ImportAddressTableRVA);
-            s.WriteRVAField(nameof(ImportNameTableRVA), ImportNameTableRVA);
-            s.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVA); //Should be WriteRVAField but we don't yet know what it points to
-            s.WriteRVAField(nameof(UnloadInformationTable), UnloadInformationTable);
-            s.WriteField(nameof(TimeDateStamp), TimeDateStamp);
+                case 1:
+                    structWriter.WriteRVAAnsiNullTerminatedField(nameof(DllNameRVA), DllNameRVAOffset, DllNameRVA);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteRVAPointerField(nameof(ModuleHandleRVA), ModuleHandleRVAOffset, ModuleHandleRVA);
+                    break;
+
+                case 3:
+                    structWriter.WriteRVAField(nameof(ImportAddressTableRVA), ImportAddressTableRVAOffset, ImportAddressTableRVA);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAField(nameof(ImportNameTableRVA), ImportNameTableRVAOffset, ImportNameTableRVA);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(BoundImportAddressTableRVA), BoundImportAddressTableRVAOffset, BoundImportAddressTableRVA); //Should be WriteRVAField but we don't yet know what it points to
+                    break;
+
+                case 6:
+                    structWriter.WriteRVAField(nameof(UnloadInformationTable), UnloadInformationTableOffset, UnloadInformationTable);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(TimeDateStamp), TimeDateStampOffset, TimeDateStamp);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

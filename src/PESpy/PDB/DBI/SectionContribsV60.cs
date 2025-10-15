@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -13,9 +14,12 @@ namespace PESpy.PDB
     /// </summary>
     public class SectionContribsV60 : ISectionContribs, IValue, IViewable //Class as it may not be present
     {
-        public DBISCImpv Version => (DBISCImpv) chunk.PeekUInt32(0);
+        private const int VersionOffset = 0;
+        private const int EntriesOffset = 4;
 
-        public NativeSpan<SC> Entries => chunk.PeekNativeSpan<SC>(4, numElems);
+        public DBISCImpv Version => (DBISCImpv) chunk.PeekUInt32(VersionOffset);
+
+        public NativeSpan<SC> Entries => chunk.PeekNativeSpan<SC>(EntriesOffset, numElems);
 
         public int Length => Entries.Length;
 
@@ -56,15 +60,22 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SectionContribs, this, ViewKind.SectionContribsV60, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1 + Entries.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField("Version", VersionOffset, Version, sizeof(int));
+                    break;
 
-            s.WriteField("Version", Version, sizeof(int));
-            s.WriteInline(Entries);
+                default:
+                    var i = index - 1;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                    structWriter.WriteInline(EntriesOffset + (i * SC.StructSize), Entries[i]);
+                    break;
+            }
         }
     }
 }

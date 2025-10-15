@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.Native;
 using PESpy.View;
@@ -10,17 +11,24 @@ namespace PESpy
     /// </summary>
     public class ImageTlsDirectory : IValue, IViewable
     {
-        public ulong StartAddressOfRawData => chunk.PeekPointer(0);
+        private const int StartAddressOfRawDataOffset = 0;
+        private int EndAddressOfRawDataOffset => chunk.PointerSize;
+        private int AddressOfIndexOffset => 2 * chunk.PointerSize;
+        private int AddressOfCallBacksOffset => 3 * chunk.PointerSize;
+        private int SizeOfZeroFillOffset => 4 * chunk.PointerSize;
+        private int CharacteristicsOffset => 4 + (4 * chunk.PointerSize);
 
-        public ulong EndAddressOfRawData => chunk.PeekPointer(chunk.PointerSize);
+        public ulong StartAddressOfRawData => chunk.PeekPointer(StartAddressOfRawDataOffset);
 
-        public ulong AddressOfIndex => chunk.PeekPointer(2 * chunk.PointerSize);
+        public ulong EndAddressOfRawData => chunk.PeekPointer(EndAddressOfRawDataOffset);
 
-        public ulong AddressOfCallBacks => chunk.PeekPointer(3 * chunk.PointerSize);
+        public ulong AddressOfIndex => chunk.PeekPointer(AddressOfIndexOffset);
 
-        public int SizeOfZeroFill => chunk.PeekInt32(4 * chunk.PointerSize);
+        public ulong AddressOfCallBacks => chunk.PeekPointer(AddressOfCallBacksOffset);
 
-        public IMAGE_SCN_ALIGN Characteristics => (IMAGE_SCN_ALIGN) chunk.PeekUInt32(4 + (4 * chunk.PointerSize));
+        public int SizeOfZeroFill => chunk.PeekInt32(SizeOfZeroFillOffset);
+
+        public IMAGE_SCN_ALIGN Characteristics => (IMAGE_SCN_ALIGN) chunk.PeekUInt32(CharacteristicsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -50,19 +58,39 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_TLS_DIRECTORY, this, ViewKind.ImageTlsDirectory, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WritePointerField(nameof(StartAddressOfRawData), StartAddressOfRawDataOffset, StartAddressOfRawData);
+                    break;
 
-            s.WritePointerField(nameof(StartAddressOfRawData), StartAddressOfRawData);
-            s.WritePointerField(nameof(EndAddressOfRawData), EndAddressOfRawData);
-            s.WritePointerField(nameof(AddressOfIndex), AddressOfIndex);
-            s.WritePointerField(nameof(AddressOfCallBacks), AddressOfCallBacks);
-            s.WriteField(nameof(SizeOfZeroFill), SizeOfZeroFill);
-            s.WriteField(nameof(Characteristics), Characteristics, sizeof(int));
+                case 1:
+                    structWriter.WritePointerField(nameof(EndAddressOfRawData), EndAddressOfRawDataOffset, EndAddressOfRawData);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WritePointerField(nameof(AddressOfIndex), AddressOfIndexOffset, AddressOfIndex);
+                    break;
+
+                case 3:
+                    structWriter.WritePointerField(nameof(AddressOfCallBacks), AddressOfCallBacksOffset, AddressOfCallBacks);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(SizeOfZeroFill), SizeOfZeroFillOffset, SizeOfZeroFill);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(Characteristics), CharacteristicsOffset, Characteristics, sizeof(int));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

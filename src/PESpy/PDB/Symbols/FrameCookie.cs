@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
@@ -10,6 +11,13 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct FrameCookie : IViewable
     {
+        private const int reclenOffset = 0;
+        private const int rectypOffset = 2;
+        private const int offOffset = 4;
+        private const int regOffset = 8;
+        private const int cookietypeOffset = 10;
+        private const int flagsOffset = 11;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FRAMECOOKIE* value;
 
@@ -52,19 +60,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.FRAMECOOKIE, this, ViewKind.FrameCookie, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
+                    break;
 
-            s.WriteField(nameof(reclen), reclen);
-            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
-            s.WriteField(nameof(off), off);
-            s.WriteField(nameof(reg), reg, sizeof(ushort));
-            s.WriteField(nameof(cookietype), cookietype, sizeof(byte));
-            s.WriteField(nameof(flags), flags);
+                case 1:
+                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(off), offOffset, off);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(reg), regOffset, reg, sizeof(ushort));
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(cookietype), cookietypeOffset, cookietype, sizeof(byte));
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(flags), flagsOffset, flags);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

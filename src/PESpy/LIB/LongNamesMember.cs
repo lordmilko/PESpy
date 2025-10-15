@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy.LIB
 {
@@ -10,7 +8,7 @@ namespace PESpy.LIB
 
         public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
 
-        public AnsiString[] Names { get; }
+        public RawValue<AnsiString>[] Names { get; }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -27,12 +25,12 @@ namespace PESpy.LIB
 
             var size = archiveHeader.Size + ImageArchiveMemberHeader.StructSize;
 
-            using var names = new PooledList<AnsiString>();
+            using var names = new PooledList<RawValue<AnsiString>>();
 
             while (read < size)
             {
                 var str = chunk.PeekAnsiNullTerminatedString(read);
-                names.Add(str);
+                names.Add(new RawValue<AnsiString>(chunk.AbsoluteOffset + read, str));
                 read += str.Length + 1;
             }
 
@@ -55,17 +53,22 @@ namespace PESpy.LIB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.LongNamesMember, this, ViewKind.LongNamesMember, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 1 + Names.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteInline(ArchiveHeader);
+                    break;
 
-            s.WriteInline(ArchiveHeader);
+                default:
+                    var i = index - 1;
 
-            foreach (var value in Names)
-                s.WriteInlineAnsiNullTerminated(value);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                    structWriter.WriteInlineAnsiNullTerminated(Names[i]);
+                    break;
+            }
         }
     }
 }

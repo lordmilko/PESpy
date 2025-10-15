@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -8,6 +10,11 @@ namespace PESpy.PDB
     /// </summary>
     public readonly unsafe struct LfFriendFcn : IViewable
     {
+        private const int leafOffset = 0;
+        private const int pad0Offset = 2;
+        private const int indexOffset = 4;
+        private const int NameOffset = 8;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfFriendFcn* value;
 
@@ -32,6 +39,15 @@ namespace PESpy.PDB
             sizeof(short)  + //pad0
             sizeof(int);     //index
 
+        internal int StructSize => GetStructSize(null);
+
+        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        {
+            var str = TypType.ReadString(value->Name, symbolAccessor);
+
+            return FixedStructSize + str.Length + 1;
+        }
+
         internal LfFriendFcn(lfFriendFcn* value)
         {
             this.value = value;
@@ -41,6 +57,37 @@ namespace PESpy.PDB
         {
             //No globals
         }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfFriendFcn, this, ViewKind.LfFriendFcn, GetStructSize(writer.GetSymbolAccessor()));
+
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(leaf), leafOffset, leaf, sizeof(ushort));
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(pad0), pad0Offset, pad0);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    break;
+
+                case 3:
+                    structWriter.WriteSymStringField(nameof(Name), NameOffset, TypType.ReadString(value->Name, structWriter.GetSymbolAccessor()));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
+        }
+
         public override string ToString()
         {
             return Name.ToString();

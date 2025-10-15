@@ -4,7 +4,7 @@
     {
         internal readonly int RowSize;
 
-        private readonly int ProcessorOffset;
+        internal readonly int ProcessorOffset;
 
         private readonly MemoryChunk tableChunk;
 

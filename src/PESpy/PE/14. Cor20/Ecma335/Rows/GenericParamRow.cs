@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
@@ -37,17 +38,31 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GenericParamRow, this, ViewKind.Metadata_GenericParamRow, table.RowSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateMetadataRow(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Number), table.NumberOffset, Number);
+                    break;
 
-            s.WriteValue(nameof(Number), Number);
-            s.WriteValue(nameof(Flags), Flags, sizeof(short));
-            s.WriteTypeOrMethodDefIndex(nameof(Owner), (int) Owner);
-            s.WriteStringHeapIndex(nameof(Name), Name);
+                case 1:
+                    structWriter.WriteField(nameof(Flags), table.FlagsOffset, Flags, sizeof(short));
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteTypeOrMethodDefIndex(nameof(Owner), table.OwnerOffset, (int) Owner);
+                    break;
+
+                case 3:
+                    structWriter.WriteStringHeapIndex(nameof(Name), table.NameOffset, Name);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

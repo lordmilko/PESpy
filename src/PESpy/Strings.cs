@@ -2492,15 +2492,28 @@ namespace PESpy
         }
 
         /// <summary>
-        /// MODI
+        /// MODI (v2)
         /// </summary>
-        internal static FixedUtf8String MODI
+        internal static FixedUtf8String MODIv2
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x4F, 0x44, 0x49 })
-                    return new FixedUtf8String(p, 4);
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x4F, 0x44, 0x49, 0x20, 0x28, 0x76, 0x32, 0x29 })
+                    return new FixedUtf8String(p, 9);
+            }
+        }
+
+        /// <summary>
+        /// MODI (v4)
+        /// </summary>
+        internal static FixedUtf8String MODIv4
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x4F, 0x44, 0x49, 0x20, 0x28, 0x76, 0x34, 0x29 })
+                    return new FixedUtf8String(p, 9);
             }
         }
 
@@ -2540,6 +2553,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x45, 0x43, 0x49, 0x6E, 0x66, 0x6F })
                     return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// SC20
+        /// </summary>
+        internal static FixedUtf8String SC20
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x43, 0x32, 0x30 })
+                    return new FixedUtf8String(p, 4);
             }
         }
 

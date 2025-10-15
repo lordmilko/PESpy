@@ -7,9 +7,12 @@ namespace PESpy
 {
     public readonly struct ImagePrologueDynamicRelocationHeader : IValue, IViewable
     {
-        public byte PrologueByteCount => chunk.PeekByte(0);
+        private const int PrologueByteCountOffset = 0;
+        private const int PrologueBytesOffset = 1;
 
-        public NativeSpan<byte> PrologueBytes => chunk.PeekNativeSpan<byte>(1, PrologueByteCount);
+        public byte PrologueByteCount => chunk.PeekByte(PrologueByteCountOffset);
+
+        public NativeSpan<byte> PrologueBytes => chunk.PeekNativeSpan<byte>(PrologueBytesOffset, PrologueByteCount);
 
         public int Offset => chunk.AbsoluteOffset;
         internal int StructSize =>
@@ -31,15 +34,23 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER, this, ViewKind.ImagePrologueDynamicRelocationHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(PrologueByteCount), PrologueByteCountOffset, PrologueByteCount);
+                    break;
 
-            s.WriteField(nameof(PrologueByteCount), PrologueByteCount);
-            s.WriteField(nameof(PrologueBytes), PrologueBytes);
+                case 1:
+                    structWriter.WriteField(nameof(PrologueBytes), PrologueBytesOffset, PrologueBytes);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

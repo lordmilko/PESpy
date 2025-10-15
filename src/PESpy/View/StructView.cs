@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace PESpy.View
 {
@@ -10,11 +13,33 @@ namespace PESpy.View
         bool TryGetEnhancedName(out string name);
     }
 
+    internal class StructViewDebugView
+    {
+        private IStructView structView;
+
+        public int Offset => structView.Offset;
+
+        public FixedUtf8String Name => structView.Name;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public IView[] Children => structView.Children.ToArray();
+
+        public int Size => structView.Size;
+
+        public ViewKind Kind => structView.Kind;
+
+        internal StructViewDebugView(IStructView structView)
+        {
+            this.structView = structView;
+        }
+    }
+
     /// <summary>
     /// Provides a view over a structure and the data contained within its bounds.
     /// </summary>
+    [DebuggerTypeProxy(typeof(StructViewDebugView))]
     [DebuggerDisplay("{ViewDebuggerDisplay.Struct(this),nq}")]
-    public class StructView<TValue> : IStructView, IContainerView, ISplittableView
+    public class StructView<TValue> : IStructView, IContainerView, ISplittableView where TValue : IViewable
     {
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
@@ -26,17 +51,17 @@ namespace PESpy.View
         /// </summary>
         public FixedUtf8String Name { get; }
 
-        private IView[] children;
+        //Boxes
 
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children
-        {
-            get => children ??= ((IViewable) value).GetChildren(this, viewWriter);
-            private set => children = value;
-        }
+        ViewChildList IContainerView.Children => new ViewChildList(Offset, value, viewWriter);
+
+        /// <summary>
+        /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
+        /// </summary>
+        public ViewChildList<TValue> Children => new ViewChildList<TValue>(Offset, value, viewWriter);
 
         /// <summary>
         /// Gets the total number of bytes that this struct occupies.
@@ -184,9 +209,9 @@ namespace PESpy.View
 
             var runningOffset = newOffset;
 
-            var newChildren = new IView[Children.Length];
+            var newChildren = new IView[Children.Count];
 
-            for (var i = 0; i < Children.Length; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
                 var newChild = ((ISplittableView) Children[i]).WithOffset(runningOffset);
                 newChildren[i] = newChild;
@@ -255,7 +280,7 @@ namespace PESpy.View
         }
     }
 
-    class SplitStructView<TValue> : StructView<TValue>, ISplitView
+    class SplitStructView<TValue> : StructView<TValue>, ISplitView where TValue : IViewable
     {
         public ISplitView? Previous { get; internal set; }
 

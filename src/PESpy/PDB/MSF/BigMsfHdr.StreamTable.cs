@@ -20,11 +20,14 @@ namespace PESpy.PDB
         /// </summary>
         public class StreamTable : IStreamTable, IValue, IViewable //Stream 0 (snST) has a copy of the previous stream table. Stream 0 may not be present, so this is a class
         {
+            private const int NumStreamsOffset = 0;
+            private const int StreamSizesOffset = 4;
+
             //snMac
-            public int NumStreams => chunk.PeekInt32(0);
+            public int NumStreams => chunk.PeekInt32(NumStreamsOffset);
 
             //Eagerly read as a list so that we can append to it. We then need to manually serialize the stream table whenever we make changes
-            public NativeSpan<int> StreamSizes => chunk.PeekNativeSpan<int>(4, NumStreams);
+            public NativeSpan<int> StreamSizes => chunk.PeekNativeSpan<int>(StreamSizesOffset, NumStreams);
 
             //After the stream sizes there is a PN[][]. However, we need to use each StreamSize[i]
             //to get the number of elements in each sub-array, so we use the SI API to collect this
@@ -103,21 +106,25 @@ namespace PESpy.PDB
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StreamTable, this, ViewKind.StreamTable, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 2 + StreamPages.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                case 0:
+                    structWriter.WriteField("NumStreams", NumStreamsOffset, NumStreams);
+                    break;
 
-                s.WriteField("NumStreams", NumStreams);
-                s.WriteField("StreamSizes", StreamSizes.ToArray());
+                case 1:
+                    structWriter.WriteField("StreamSizes", StreamSizesOffset, StreamSizes.ToArray());
+                    break;
 
-                for (var i = 0; i < StreamPages.Length; i++)
-                {
+                default:
+                    var i = index - 2;
                     var item = StreamPages[i];
-                    s.WriteField($"PageList ({i})", item);
-                }
-
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                    structWriter.WriteField($"PageList ({i})", item);
+                    break;
             }
         }
     }

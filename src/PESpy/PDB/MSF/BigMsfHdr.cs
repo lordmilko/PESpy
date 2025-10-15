@@ -17,11 +17,18 @@ namespace PESpy.PDB
     {
         internal const string BigHdrMagic = "Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0";
 
+        private const int MagicOffset = 0;
+        private const int PageSizeOffset = 32;
+        private const int FpmPageNoOffset = 36;
+        private const int NumPagesOffset = 40;
+        private const int StreamTableSizeInfoOffset = 44;
+        private const int PagesOfStreamTablePageListOffset = 52;
+
         //szMagic
         public FixedAnsiString Magic
         {
-            get => chunk.PeekAnsiFixedLength(0, 32);
-            set => chunk.PokeAnsiFixedLength(0, 32, value);
+            get => chunk.PeekAnsiFixedLength(MagicOffset, 32);
+            set => chunk.PokeAnsiFixedLength(MagicOffset, 32, value);
         }
 
         public unsafe void SetMagic(string magic)
@@ -43,8 +50,8 @@ namespace PESpy.PDB
         /// </summary>
         public int PageSize
         {
-            get => chunk.PeekInt32(32);
-            set => chunk.PokeInt32(32, value);
+            get => chunk.PeekInt32(PageSizeOffset);
+            set => chunk.PokeInt32(PageSizeOffset, value);
         } //cbPg
 
         /// <summary>
@@ -53,8 +60,8 @@ namespace PESpy.PDB
         /// </summary>
         public PN FpmPageNo
         {
-            get => chunk.PeekInt32(36);
-            set => chunk.PokeInt32(36, value);
+            get => chunk.PeekInt32(FpmPageNoOffset);
+            set => chunk.PokeInt32(FpmPageNoOffset, value);
         } //pnFpm
 
         /// <summary>
@@ -63,8 +70,8 @@ namespace PESpy.PDB
         /// </summary>
         public int NumPages
         {
-            get => chunk.PeekInt32(40);
-            set => chunk.PokeInt32(40, value);
+            get => chunk.PeekInt32(NumPagesOffset);
+            set => chunk.PokeInt32(NumPagesOffset, value);
         } //pnMac
 
         /// <summary>
@@ -86,8 +93,8 @@ namespace PESpy.PDB
         /// </remarks>
         public NativeSpan<PN> PagesOfStreamTablePageList
         {
-            get => chunk.PeekNativeSpan<PN>(52, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize));
-            set => chunk.PokeNativeSpan<PN>(52, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize), value);
+            get => chunk.PeekNativeSpan<PN>(PagesOfStreamTablePageListOffset, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize));
+            set => chunk.PokeNativeSpan<PN>(PagesOfStreamTablePageListOffset, SI.DivideUp((SI.DivideUp(StreamTableSizeInfo.ByteCount, PageSize) * 4), PageSize), value);
         } //Normally there will be a single page that lists the location of the stream table. However, once you have enough data, additional pages to represent the stream table may be required
 
         public void SetPagesOfStreamTablePageList(List<PN> newPages)
@@ -130,7 +137,7 @@ namespace PESpy.PDB
         internal BigMsfHdr(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-            StreamTableSizeInfo = new SI_PERSIST(chunk.Slice(44));
+            StreamTableSizeInfo = new SI_PERSIST(chunk.Slice(StreamTableSizeInfoOffset));
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -141,19 +148,39 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.BIGMSF_HDR, this, ViewKind.BigMsfHdr, FixedStructSize + (PagesOfStreamTablePageList.Length * sizeof(int)));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteNullPaddedUtf8Field("szMagic", MagicOffset, BigHdrMagic, 32); //It's not null padded, it's just exactly 32 bytes
+                    break;
 
-            s.WriteNullPaddedUTF8Field("szMagic", BigHdrMagic, 32); //It's not null padded, it's just exactly 32 bytes
-            s.WriteField("cbPg", PageSize);
-            s.WriteField("pnFpm", FpmPageNo);
-            s.WriteField("pnMac", NumPages);
-            s.WriteStructField("siSt", StreamTableSizeInfo);
-            s.WriteField("mpspnpnSt", PagesOfStreamTablePageList);
+                case 1:
+                    structWriter.WriteField("cbPg", PageSizeOffset, PageSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField("pnFpm", FpmPageNoOffset, FpmPageNo);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("pnMac", NumPagesOffset, NumPages);
+                    break;
+
+                case 4:
+                    structWriter.WriteStructField("siSt", StreamTableSizeInfoOffset, StreamTableSizeInfo);
+                    break;
+
+                case 5:
+                    structWriter.WriteField("mpspnpnSt", PagesOfStreamTablePageListOffset, PagesOfStreamTablePageList);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

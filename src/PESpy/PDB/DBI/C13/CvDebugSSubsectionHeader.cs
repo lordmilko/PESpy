@@ -11,11 +11,14 @@ namespace PESpy.PDB
     //CV_DebugSSubsectionHeader_t
     public readonly struct CvDebugSSubsectionHeader : IValue, IViewable
     {
+        private const int TypeOffset = 0;
+        private const int LengthOffset = 4;
+
         //type
-        public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(0);
+        public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(TypeOffset);
         
         //cbLen
-        public CV_off32_t Length => chunk.PeekInt32(4);
+        public CV_off32_t Length => chunk.PeekInt32(LengthOffset);
 
         public unsafe object Data => GetData<object>();
 

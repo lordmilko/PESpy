@@ -28,19 +28,19 @@ namespace PESpy
 
                     var header = Header;
 
-                    if (data.Offset == 0 && peFile.TryGetValueChunkFromPhysicalOffset((int) header.Offset, out var valueChunk))
+                    if (data.Offset == 0 && peFile.TryGetValueChunkFromPhysicalOffset((int)header.Offset, out var valueChunk))
                     {
                         switch (Header.Type)
                         {
                             case file_type_t.native_binary:
                             case file_type_t.assembly:
                                 Debug.Assert(header.CompressedSize == 0);
-                                data = new RawValue<object>((int) header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), valueChunk.AbsoluteOffset));
+                                data = new RawValue<object>((int)header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), valueChunk.AbsoluteOffset));
                                 break;
 
                             case file_type_t.deps_json:
                             case file_type_t.runtime_config_json:
-                                data = new RawValue<object>((int) header.Offset, valueChunk.PeekUtf8FixedLength(0, (int) header.Size));
+                                data = new RawValue<object>((int)header.Offset, valueChunk.PeekUtf8FixedLength(0, (int)header.Size));
                                 break;
 
                             case file_type_t.symbols:
@@ -100,7 +100,7 @@ namespace PESpy
                     //You can have a file that says it's PE32 inside of a PE32Plus single file app.
                     //This causes a problem, because entities want to know the bitness of their parent PEFile.
                     //As such, we must create a brand new PEFileWriter for this nested PEFile to use
-                    writer.WriteNestedFile(p, (int) Header.Size);
+                    writer.WriteNestedFile(p, (int)Header.Size);
                 }
                 else if (data.Value is IViewable v)
                     writer.WriteGlobal(v);
@@ -113,16 +113,24 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.file_entry_t, this, ViewKind.BundleFileEntry, StructSize);
 
-            IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+            int IViewable.NumChildren => 2;
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                using var s = viewWriter.CreateStruct(parent);
+                switch (index)
+                {
+                    case 0:
+                        structWriter.WriteInline(Header);
+                        break;
 
-                s.WriteInline(Header);
-                s.WriteInline(RelativePath);
+                    case 1:
+                        structWriter.WriteInline(RelativePath);
+                        break;
 
-                Debug.Assert(parent.Size == s.Size, "Size was not correct");
-                return s.ToArray();
+                    default:
+                        throw new IndexOutOfRangeException();
+                }
             }
         }
-    }    
+    }
 }
