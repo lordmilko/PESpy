@@ -12,8 +12,8 @@ namespace PESpy.PDB
     public static partial class SymTypeExtensions
     {
         /// <summary>
-        /// <inheritdoc cref="IDiaSymbol.get_framePadOffset"/><para/>
-        /// Corresponds to <see cref="IDiaSymbol.get_framePadOffset"/>
+        /// <inheritdoc cref="IDiaSymbol9.get_framePadOffset"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol9.get_framePadOffset"/>
         /// </summary>
         public static bool TryGetFramePadOffset(in this SymType symType, out int framePadOffset)
         {

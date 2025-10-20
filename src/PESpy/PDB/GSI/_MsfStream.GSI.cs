@@ -24,7 +24,7 @@ namespace PESpy.PDB
             private int iphrHash;
 
             internal readonly MemoryChunk chunk;
-            
+
             internal unsafe GSI(in MemoryChunk chunk, int length)
             {
                 this.chunk = chunk;
@@ -117,7 +117,7 @@ namespace PESpy.PDB
                                  * I think that HROffsetCalc is only really used in 64-bit and is needed due to the fact that they want to store
                                  * a pointer, rather than the raw offset itself. We are just storing offsets so we don't need to worry about
                                  * any of this nonsense
-                                 * 
+                                 *
                                  * todo: its a 12 bit offset? or its an offset * 12?
                                  */
                                 if (bitArray[i])

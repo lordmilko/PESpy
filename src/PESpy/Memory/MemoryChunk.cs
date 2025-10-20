@@ -213,7 +213,7 @@ namespace PESpy
 
             //If the first one byte of the 'blob' is 0bbbbbbb2, then the rest of the 'blob' contains the bbbbbbb2 bytes of actual data
             //That is to say, if the high bit is 0, the low 7 bits contain the number. Since the high bit is 0, there's no problem
-            if ((byte1 & 0x80) == 0) //10000000 
+            if ((byte1 & 0x80) == 0) //10000000
             {
                 bytesRead = 1;
                 return byte1;

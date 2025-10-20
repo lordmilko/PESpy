@@ -122,22 +122,6 @@ namespace PESpy
             }
 
             list.Insert(lo, (start, (long) (memory + length), value));
-            return;
-
-            var didInsert = false;
-
-            for (var i = 0; i < list.Count; i++)
-            {
-                if (list[i].start > start)
-                {
-                    list.Insert(i, (start, (long) (memory + length), value));
-                    didInsert = true;
-                    break;
-                }
-            }
-
-            if (!didInsert)
-                list.Add(((long) memory, (long) (memory + length), value));
         }
 
         internal static ImageSectionHeader[]? GetSectionHeaders(long address)

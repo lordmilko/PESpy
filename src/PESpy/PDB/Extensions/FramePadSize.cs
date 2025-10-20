@@ -12,8 +12,8 @@ namespace PESpy.PDB
     public static partial class SymTypeExtensions
     {
         /// <summary>
-        /// <inheritdoc cref="IDiaSymbol.get_framePadSize"/><para/>
-        /// Corresponds to <see cref="IDiaSymbol.get_framePadSize"/>
+        /// <inheritdoc cref="IDiaSymbol9.get_framePadSize"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol9.get_framePadSize"/>
         /// </summary>
         public static bool TryGetFramePadSize(in this SymType symType, out int framePadSize)
         {

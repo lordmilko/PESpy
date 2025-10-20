@@ -89,7 +89,7 @@ namespace PESpy.PDB
             /* In small MSFs, a great big FPM is allocated up front capable of storing all possible page bits. While in theory
              * a single page is capable of representing 65536 bits, in practice only the 1024 and 2048 byte page sizes use all
              * 65536 bits. The 4096 byte version caps the number of bits to 32767
-             * 
+             *
              * And so, the number of pages required to represent the FPM will depend on both how big each page is, and the maximum
              * number of bits that are allowed to exist in a given page */
 

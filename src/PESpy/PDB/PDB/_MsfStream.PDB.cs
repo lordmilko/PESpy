@@ -75,12 +75,12 @@ namespace PESpy.PDB
                 {
                     /* Per PDB1::savePdbStream, additional features are only set when m_fContainIDStream is true.
                      * However, in reverse m_fContainIDStream is set under the following circumstances:
-                     * 
+                     *
                      * 1. You're creating a new PDB
                      * 2. the features contain impvVC110
                      * 3. The features contain impvVC140
                      * PDB1::savePdbStream will automatically use impvVC140 as the feature unless PdbOpenMode.pdbVC120 was specified, in which case impvVC110 is used.
-                     * 
+                     *
                      * But either way, these still denote that the ID stream is present.
                      *
                      * It's possible that the versions used could change in the future; as such, we will say that IPI is present as long as any features are defined */

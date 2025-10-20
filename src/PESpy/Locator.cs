@@ -317,7 +317,7 @@ namespace PESpy
                 if (exeOrDbgPath == null)
                     throw new ArgumentException("The specifid file does not have a FileName");
             }
-            
+
             var state = State.None;
 
             var ctx = new LocatorContext
@@ -441,7 +441,7 @@ namespace PESpy
 
             for (int i = 0; i < ctx.DebugTable.Length; i++)
             {
-                ref ImageDebugDirectory debugDir = ref ctx.DebugTable[i];
+                ImageDebugDirectory debugDir = ctx.DebugTable[i];
 
                 switch (debugDir.Type)
                 {
@@ -823,9 +823,9 @@ namespace PESpy
 
         public enum State
         {
-            //The initial state. Read headers to 
+            //The initial state. Read headers to find out what type of file it is
             None,
-            
+
             //Read the debug table of the input *.exe or *.dbg file
             ReadDebugTable,
 

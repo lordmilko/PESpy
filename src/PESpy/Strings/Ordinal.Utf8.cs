@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
 using System.Runtime.Intrinsics;
 #endif
 using System.Text;
@@ -20,7 +20,7 @@ namespace System.Globalization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool EqualsIgnoreCaseUtf8(ref byte charA, int lengthA, ref byte charB, int lengthB)
         {
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             if (!Vector128.IsHardwareAccelerated || (lengthA < Vector128<byte>.Count) || (lengthB < Vector128<byte>.Count))
             {
                 return EqualsIgnoreCaseUtf8_Scalar(ref charA, lengthA, ref charB, lengthB);
@@ -227,14 +227,14 @@ namespace System.Globalization
             }
 
             range -= length;
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             throw new NotImplementedException();
 #else
             return EqualsStringIgnoreCaseNonAsciiUtf8(ref charA, lengthA - range, ref charB, lengthB - range);
 #endif
         }
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
         private static bool EqualsStringIgnoreCaseNonAsciiUtf8(ref byte strA, int lengthA, ref byte strB, int lengthB)
         {
             // NLS/ICU doesn't provide native UTF-8 support so we need to do our own corresponding ordinal comparison
@@ -339,7 +339,7 @@ namespace System.Globalization
             );
         }
 #endif
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
         internal static bool StartsWithStringIgnoreCaseUtf8(ref byte source, int sourceLength, ref byte prefix, int prefixLength)
         {
             // NOTE: Two UTF-8 inputs of different length might compare as equal under

@@ -127,7 +127,9 @@ namespace PESpy
                     mmf = MemoryMappedFile.CreateNew(null, bufferSize);
                     mma = mmf.CreateViewAccessor();
 
+#if NETSTANDARD
                     RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
                     byte* destAddress = default;
 
@@ -171,7 +173,9 @@ namespace PESpy
 
             if (mmf != null && LocalPointer != default)
             {
+#if NETSTANDARD
                 RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
                 try
                 {

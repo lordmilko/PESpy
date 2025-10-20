@@ -10,5 +10,7 @@
 
     <UseLatestTargetFramework Condition="'$(VisualStudioVersion)' != '15.0' And '$(VisualStudioVersion)' != '16.0'">true</UseLatestTargetFramework>
     <UseLatestTargetFramework Condition="'$(UseLatestTargetFramework)' == ''">false</UseLatestTargetFramework>
+
+		<NoWarn>$(NoWarn);1591;8509;8524;8981;1701;1702</NoWarn>
   </PropertyGroup>
 </Project>

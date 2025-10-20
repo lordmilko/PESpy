@@ -401,7 +401,7 @@ namespace PESpy
                  * 100: NewDbiHdr, C:\Windows\sys
                  * 102: /names(2) stem32\notepad.exe
                  * 103: /names(1) C:\Windows\sys
-                 * 
+                 *
                  * This creates the illusion that /names is starting on page 100, right after the NewDbiHdr. This is not the case.
                  * As you can see, the actual start of the string has been written in /names(1) on page 103. Page 100 previously
                  * was being used to store /names(1), but got repurposed to store NewDbiHdr instead */
@@ -821,7 +821,7 @@ namespace PESpy
         public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
         {
             /* Address traversers
-             * 
+             *
              *     CCompByAddrTrav
              *     CPubByAddrTrav
              *     CFuncByAddrTrav
@@ -834,43 +834,43 @@ namespace PESpy
              *     CAllSymsByAddrTrav
              * COMAPSymsByAddrTrav (not sure what this does)
              *     CModSymsByAddrTrav
-             * 
+             *
              * CAllDataByAddrTrav
              *     CGlobalDataByAddrTrav
              *     CDataByAddrTrav
-             *     
+             *
              * CPubByAddrTrav
              *     PSGSI::getEnumByAddr
-             * 
+             *
              * CDataByAddrTrav
              *     ModCache::dataByAddr
              *     CModSymsByAddrTrav
-             * 
+             *
              * CGlobalDataByAddrTrav
              *     GSI1::NextSym
-             * 
+             *
              * CModSymsByAddrTrav
              *     DBI::getEnumContrib
-             * 
+             *
              * CBlockByAddrTrav
              *     CModSymsByAddrTrav
              *     iterates over the symbols looking for block symbols
-             * 
+             *
              * CAllSymsByAddrTrav
              *     CPubByAddrTrav
              *     CBlockByAddrTrav
              *     CDataByAddrTrav
              *     CGlobalDataByAddrTrav
-             * 
+             *
              * CCompByAddrTrav (only used when you do a search for SymTagCompiland)
              *     DBI::QueryModFromAddr
              *     the IMod is then retrieved from the Mod1, and thenfrom that the module data is somehow retrieved
-             * 
+             *
              * CFuncByAddrTrav
              *     CModSymsByAddrTrav
              *     ModCache::blockByAddr
              *     SymBuffer::isFunctionSym
-             *     
+             *
              */
 
             //CAllSymsByAddrTrav always seems to start with CPubByAddrTrav, and only if that returns something does it
@@ -958,7 +958,7 @@ namespace PESpy
             var sectionContribs = dbi.SectionContribs;
 
             if (sectionContribs == null)
-                return false;            
+                return false;
 
             var sectionHeaders = dbi.SectionHdr;
 

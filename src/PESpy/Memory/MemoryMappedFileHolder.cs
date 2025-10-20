@@ -30,7 +30,9 @@ namespace PESpy
             mmf = MemoryMappedFile.CreateFromFile(fs, null, 0, access.Value, HandleInheritability.None, false);
             mma = mmf.CreateViewAccessor(0, 0, access.Value);
 
+#if NETSTANDARD
             RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
             try
             {
@@ -60,11 +62,15 @@ namespace PESpy
 
         public void Dispose()
         {
+#if NETSTANDARD
             RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
             if (Address != (byte*) 0 && mma != null) //If mma is null, it's a fake MMF
             {
+#if NETSTANDARD
                 RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
                 try
                 {

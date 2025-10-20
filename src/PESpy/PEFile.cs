@@ -1938,7 +1938,7 @@ namespace PESpy
                  * to see if they're non 0
                  * https://github.com/dotnet/runtime/blob/e572463b5706b0509fe0c524d9d09893e7e252da/src/native/corehost/apphost/bundle_marker.h
                  * https://github.com/dotnet/runtime/blob/e572463b5706b0509fe0c524d9d09893e7e252da/src/native/corehost/apphost/bundle_marker.cpp
-                 * 
+                 *
                  * The practical effect of this is that the bundle marker is injected into the .data section. There is no requirement that the .data
                  * section be used. From our perspective, this basically creates a challenge for us because for a remote debug target, we essentially
                  * have to copy the whole thing into our memory just to check whether the signature exists.
@@ -2415,15 +2415,15 @@ namespace PESpy
             Debug.Assert(headers != null);
 
             /* Should we be translating RVAs to sections via linear search or binary search?
-             * 
+             *
              * Most modules contain 10 seconds or less, so due to the improved branch prediction you would think that linear search would always win.
              * However, all of our nonsense shuffling ImageSectionHeader records around massively slows us down, so much so that binary searching
              * against section headers actually becomes faster on average (given a random offset anywhere in the file) than performing a linear search.
-             * 
+             *
              * If we rework things so that instead of operating on ImageSectionHeader records we instead have arrays of start and end indices, we end
              * up being 4x faster. Furthermore, it's actually faster having two separate start and end arrays than it is having an array of pairs that
              * hold the start and end addresses.
-             * 
+             *
              * So, should we perhaps start caching the start and end offsets? Further research is required as to whether
              * it's worth the slightly slower startup cost when retrieving the section headers for th first time
              */

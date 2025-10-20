@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
 using System.Runtime.Intrinsics;
 #endif
 
@@ -24,7 +24,7 @@ namespace System
                 ref searchSpace,
                 value,
                 length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                 , DontNegate<byte>.Instance
 #endif
             );
@@ -35,7 +35,7 @@ namespace System
             ref byte searchSpace,
             byte value,
             int length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             , TNegator negator
 #endif
             )
@@ -46,7 +46,7 @@ namespace System
                 ref searchSpace,
                 value,
                 length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                 , negator
 #endif
                 );
@@ -56,7 +56,7 @@ namespace System
             ref byte searchSpace,
             byte value,
             int length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             , TNegator negator
 #endif
             )
@@ -64,7 +64,7 @@ namespace System
         {
             Debug.Assert(length >= 0, "Expected non-negative length");
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             if (!Vector128.IsHardwareAccelerated || length < Vector128<byte>.Count)
 #endif
             {
@@ -74,7 +74,7 @@ namespace System
                 {
                     length -= 8;
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset) == value)) goto Found;
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset + 1) == value)) goto Found1;
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset + 2) == value)) goto Found2;
@@ -101,7 +101,7 @@ namespace System
                 {
                     length -= 4;
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset) == value)) goto Found;
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset + 1) == value)) goto Found1;
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset + 2) == value)) goto Found2;
@@ -120,7 +120,7 @@ namespace System
                 {
                     length -= 1;
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset) == value)) goto Found;
 #else
                     if (TNegator.NegateIfNeeded(Unsafe.Add(ref searchSpace, offset) == value)) goto Found;
@@ -146,7 +146,7 @@ namespace System
             Found:
                 return (int)(offset);
             }
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             else if (Vector512.IsHardwareAccelerated && length >= Vector512<byte>.Count)
             {
                 Vector512<byte> current, values = Vector512.Create(value);
@@ -255,7 +255,7 @@ namespace System
                 value0,
                 value1,
                 length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                 , DontNegate<byte>.Instance
 #endif
                 );
@@ -267,7 +267,7 @@ namespace System
             byte value0,
             byte value1,
             int length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             , TNegator negator
 #endif
             )
@@ -279,7 +279,7 @@ namespace System
                 value0,
                 value1,
                 length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                 , negator
 #endif
                 );
@@ -291,7 +291,7 @@ namespace System
             byte value0,
             byte value1,
             int length
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             , TNegator negator
 #endif
             )
@@ -299,7 +299,7 @@ namespace System
         {
             Debug.Assert(length >= 0, "Expected non-negative length");
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             if (!Vector128.IsHardwareAccelerated || length < Vector128<byte>.Count)
 #endif
             {
@@ -313,7 +313,7 @@ namespace System
                     ref byte current = ref Unsafe.Add(ref searchSpace, offset);
                     lookUp = current;
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found;
                     lookUp = Unsafe.Add(ref current, 1);
                     if (negator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found1;
@@ -357,7 +357,7 @@ namespace System
                     ref byte current = ref Unsafe.Add(ref searchSpace, offset);
                     lookUp = current;
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found;
                     lookUp = Unsafe.Add(ref current, 1);
                     if (negator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found1;
@@ -384,7 +384,7 @@ namespace System
 
                     lookUp = Unsafe.Add(ref searchSpace, offset);
 
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
                     if (negator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found;
 #else
                     if (TNegator.NegateIfNeeded(lookUp == value0 || lookUp == value1)) goto Found;
@@ -410,7 +410,7 @@ namespace System
             Found:
                 return (int)(offset);
             }
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             else if (Vector512.IsHardwareAccelerated && length >= Vector512<byte>.Count)
             {
                 Vector512<byte> equals, current, values0 = Vector512.Create(value0), values1 = Vector512.Create(value1);
@@ -512,7 +512,7 @@ namespace System
             return -1;
         }
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe int ComputeFirstIndex(ref byte searchSpace, ref byte current, Vector128<byte> equals)
         {
@@ -540,13 +540,13 @@ namespace System
 
         internal interface INegator<T> where T : struct
         {
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             bool NegateIfNeeded(bool equals);
 #else
             static abstract bool NegateIfNeeded(bool equals);
 #endif
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             static abstract Vector128<T> NegateIfNeeded(Vector128<T> equals);
             static abstract Vector256<T> NegateIfNeeded(Vector256<T> equals);
             static abstract Vector512<T> NegateIfNeeded(Vector512<T> equals);
@@ -563,14 +563,14 @@ namespace System
         internal readonly struct DontNegate<T> : INegator<T>
             where T : struct
         {
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             public static readonly DontNegate<T> Instance;
             public bool NegateIfNeeded(bool equals) => equals;
 #else
             public static bool NegateIfNeeded(bool equals) => equals;
 #endif
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             public static Vector128<T> NegateIfNeeded(Vector128<T> equals) => equals;
             public static Vector256<T> NegateIfNeeded(Vector256<T> equals) => equals;
             public static Vector512<T> NegateIfNeeded(Vector512<T> equals) => equals;
@@ -593,14 +593,14 @@ namespace System
         internal readonly struct Negate<T> : INegator<T>
             where T : struct
         {
-#if NETSTANDARD
+#if !NET9_0_OR_GREATER
             public static readonly DontNegate<T> Instance;
             public bool NegateIfNeeded(bool equals) => !equals;
 #else
             public static bool NegateIfNeeded(bool equals) => !equals;
 #endif
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             public static Vector128<T> NegateIfNeeded(Vector128<T> equals) => ~equals;
             public static Vector256<T> NegateIfNeeded(Vector256<T> equals) => ~equals;
             public static Vector512<T> NegateIfNeeded(Vector512<T> equals) => ~equals;

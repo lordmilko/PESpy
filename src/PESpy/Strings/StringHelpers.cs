@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -15,19 +15,19 @@ namespace PESpy
     {
         /* After having performed extensive testing on null terminated string comparisons
          * in .NET, I can conclude the following items
-         * 
+         *
          * - The fastest way to manipulate strings is using hardware intrinsics
-         * 
+         *
          * - You can beat native implementations of strcmp, strncmp, stricmp, strnicmp and strlen, even with the added
          *   cost of having to calculate the length of the string up front, even when using SuppressGCTransition
          *
          * - Using specialized hardware intrinsics of calculating the length of the string is also way faster than performing
          *   a naive Span.IndexOf
-         * 
+         *
          *   On my machine, I can compare the string "SetupThread" 1,000,000 times using SequenceEquals and its known length in 0.4ms.
          *   strncmp with SuppressGCTransition takes 1.7695ms, and yet incredibly you can use AVX to calculate the length and then do SequenceEquals
          *   in 1.7338ms - beating out the native implementation!
-         * 
+         *
          * - You can get the length of a null terminated string fastest with AVX, which is
          *   way faster than doing Span.IndexOf and is also faster than trying to re-implement
          *   the logic of strlen written in handrolled assembly. It's marginally faster to unroll
@@ -37,7 +37,7 @@ namespace PESpy
          * - You do not need to worry about aligning the values you pass into AVX. In fact it's significantly
          *   slower to manually try and align your strings - you might just end up checking the length
          *   of the whole string manually
-         *   
+         *
          * - With smaller strings, Vector128 is marginally faster than Vector256, but once you get
          *   to larger strings, Vector256 clearly becomes better
          */
@@ -50,7 +50,7 @@ namespace PESpy
             if (str == default)
                 return 0;
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             var p = str;
 
             if (Avx2.IsSupported)
@@ -131,6 +131,7 @@ namespace PESpy
         public static bool StartsWith(byte* str1, byte* str2) =>
             new Span<byte>(str1, GetStringLength(str1)).StartsWith(new Span<byte>(str2, GetStringLength(str2)));
 
+        //This is faster than passing in a Span
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EndsWith(byte* str1, byte* str2) =>
             new Span<byte>(str1, GetStringLength(str1)).EndsWith(new Span<byte>(str2, GetStringLength(str2)));
@@ -186,9 +187,9 @@ namespace PESpy
             ref var refStr1 = ref Unsafe.AsRef<byte>(str1);
             ref var refStr2 = ref MemoryMarshal.GetReference(str2.AsSpan());
 
+#if NET9_0_OR_GREATER
             var i = 0;
 
-#if !NETSTANDARD
             if (Sse2.IsSupported)
             {
                 //We compare using Vector128 which operates on 16 byte payloads. As such, get the maximum
@@ -228,10 +229,10 @@ namespace PESpy
 
                 /* For the remaining bytes, we basically just need to do the same thing as the above, except
                  * we mask out the result to only take into consideration the remaining bytes that we're yet to consider.
-                 * 
+                 *
                  * I'm not exactly 100% sure how safe this is; technically speaking, we're reading beyond the length
                  * of the string into invalid memory
-                 * 
+                 *
                  * These variables all have the same names, but they can't literally share the same variables as above;
                  * doing so results in slower codegen (perhaps due to having to preserve the variable's lifetimes?)
                  */

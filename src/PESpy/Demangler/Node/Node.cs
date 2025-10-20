@@ -162,7 +162,7 @@ namespace PESpy
 
                         break;
                     }
-                        
+
                     case Qualifiers.Unaligned:
                         if (doUnderScore)
                             builder.Append("__unaligned");

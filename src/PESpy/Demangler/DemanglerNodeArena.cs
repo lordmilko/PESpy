@@ -189,11 +189,6 @@ namespace PESpy
                 if (misses > 0)
                     allMisses.Add(misses);
 
-                if (allMisses.Count > 10)
-                {
-                    var x = 0;
-                }
-
                 misses = 0;
 #endif
             }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
@@ -9,9 +10,24 @@ namespace PESpy
 {
     //NT 4 refers to this as the CV 4.0 dnt/DNT
     [Source(SourceKind.cvexefmt)]
-    [DebuggerDisplay("[{iMod}] {SubSection}")]
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct OMFDirEntry : IValue, IViewable
     {
+        private string DebuggerDisplay()
+        {
+            var builder = new StringBuilder();
+            builder.Append($"[{iMod}] {SubSection}");
+
+            switch (SubSection)
+            {
+                case SST.sstModule:
+                    builder.Append(" ").Append(Data.ToString());
+                    break;
+            }
+
+            return builder.ToString();
+        }
+
         private const int SubSectionOffset = 0;
         private const int iModOffset = 2;
         private const int lfoOffset = 4;
@@ -57,7 +73,7 @@ namespace PESpy
         {
             /* NT 4 defines several types which I think have been renamed in modern headers (see newdeb.h) for the CV 4.0
              * SST info (which is what NB05 is)
-             * 
+             *
              * dnthdr/DNTHDR
              * dnt/DNT
              * pubinfo16/PUB16
@@ -129,26 +145,26 @@ namespace PESpy
                 case SST.sstLibraries:
                 {
                     /* There is a type OMFLibrary defined as follows
-                    * 
+                    *
                     *     //  sstLibraries
                     *     typedef struct OMFLibrary {
                     *         unsigned char   cbLibs;     // count of library names
                     *         char            Libs[1];    // array of length prefixed lib names (first entry zero length)
                     *     } OMFLibrary;
-                    * 
+                    *
                     * On this basis, we would expect there to be a cbLibs member prior to the list of names, however the spec says that sstLibraries is just a sequence of
                     * length prefixed names https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf (pdf page 80)
-                    * 
+                    *
                     * Experimentally, I can confirm that neither NB05 nor NB11 have a cbLibs member at the front of them.
-                    * 
+                    *
                     * Even more curiously, in the spec for NB02 we have the following
-                    * 
+                    *
                     *     // sstLibraries
                     *     typedef struct {
                     *         unsigned char     cbLibs;
                     *         char              Libs[];
                     *     } lib[];                              // an array of lib names
-                    * 
+                    *
                     * What I take this to mean is that a library is simply a length prefixed string, and that sstLibraries is an array
                     * of these items. The OMFLibrary type, therefore, is simply a typedef for a "length prefixed string"
                     */
@@ -177,7 +193,7 @@ namespace PESpy
                 {
                     var hash = new OMFSymHash(valueChunk);
 
-                    //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11 
+                    //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11
                     SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, symbolAccessor);
 
                     if (lastSignature == default)

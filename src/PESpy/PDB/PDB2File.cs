@@ -67,7 +67,7 @@ namespace PESpy
              *    int NumStreams
              *    SI_PERSIST[] Streams
              *    PN[][] StreamPages
-             * 
+             *
              * Each SI_PERSIST contains its ByteCount, which is what you get from int[] StreamSizes in v7
              */
 

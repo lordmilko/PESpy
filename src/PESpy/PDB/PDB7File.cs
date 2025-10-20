@@ -56,30 +56,30 @@ namespace PESpy
             /* An absolutely minimal PDB created by MSF::Open is 11KB large. cbPgDef is 0x400, which is the default page size that is used if no explicit
              * page size is provided. "Normal" PDBs tend to use 0x1000 (cbPgMax - 4096 bytes). 10 pages are allocated (after master) because lgCbPg is 10 in rgmsfparms_hc
              * for 0x400
-             * 
+             *
              * The minimal PDB has the following page layout
-             * 
+             *
              * 0: Master
              * - BIGMSF_HDR
              * - Padding
-             * 
+             *
              * 1: FPM 0 (Active)
              * - 0xE0 in first byte, the rest are 0xFF
-             * 
+             *
              * 2: FPM 1 (Inactive)
              * - 0x00 in all bytes
-             * 
+             *
              * 3: Stream Table
              * - Stream Table
              *   - Just contains NumStreams: 0
              * - Padding
-             * 
+             *
              * 4: Stream Table Page List
              * - SI Pages
              *   = Just contains "3", which is the singular page that the Stream Table encompasses (i.e. page above)
              * - Padding
              * 5-10: Free
-             * 
+             *
              * Page numbers are allocated by calling FPM.nextPn(). There is nothing inherently hardcoded to say that pages 1-4 contain these items;
              * but they inherently do as a result of the order in which FPM.nextPn() was called for certain purposes
              */
@@ -108,10 +108,10 @@ namespace PESpy
             /* TLDR: In order to know what streams exist in the PDB, and which pages those streams span across, we need to read the Stream Table.
              * And the Stream Table _itself_ could potentially be very big, and span multiple pages! So first, we must read the list of pages
              * that the Stream Table spans
-             * 
+             *
              * Detailed Explanation
              * --------------------
-             * 
+             *
              * How many streams are embedded in the PDB? To answer this, we need to read the "stream directory" from the PDB. The stream directory lists three pieces of information
              * 1. How many streams are there?
              * 2. How big are each of these streams?

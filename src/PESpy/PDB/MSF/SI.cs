@@ -15,7 +15,7 @@ namespace PESpy.PDB
          * the size of a stream, and the pages that it spans across. These two pieces
          * of information do not live next to each other however: they are stored in two separate arrays,
          * which are then zipped together to create the Stream Info type.
-         * 
+         *
          * SI records are stored in an array inside the StrmTbl type, the in-memory representation of the stream table */
 
         /// <summary>

@@ -16,12 +16,12 @@ namespace PESpy
      * find that there is no S_UDT record, and the std::vector<int> is displayed as std::vector<int,std::allocator<int>> in the debugger.
      * Furthermore, if you step into a method like std::string::size(), you'll be surprised to find that the method displays normally in your
      * call stack! How is this possible!
-     * 
+     *
      * It does not appear that the natvis file plays any part in customizing how the variable is displayed. Rather, CppDebug.dll seems to have
      * a list of hard coded heuristics that it uses for controlling the visualization of types. All of the action happens in CppEE::CTypeFormatter.
      * It's all just a bunch of string manipulation! "std::string" seems to just come from CppEE::CTypeFormatter::ReverselyMapTypeAlias,which just
      * does a bunch of find and replace for the various standard string types that are known to Visual Studio
-     * 
+     *
      * There are two categories of types whose format might need fixing. Lines that start with "using " whose type does not start with an underscore,
      * and classes whose line above says "CLASS TEMPLATE". From my initial review of all items that match these criteria, I don't feel like there's actually
      * that many interesting types that are worth "tidying up". In any case, it _would_ be useful to have an extensible mechanism for tidying up
@@ -2511,7 +2511,7 @@ namespace PESpy
             if (!textWindow.TryAdvance('Q'))
                 return false;
 
-            //Eat tokens until we hit a @@ 
+            //Eat tokens until we hit a @@
 
             var nodes = new PooledList<Node>();
 

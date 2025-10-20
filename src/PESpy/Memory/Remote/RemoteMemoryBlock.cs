@@ -35,7 +35,9 @@ namespace PESpy
             mmf = MemoryMappedFile.CreateNew(null, size);
             mma = mmf.CreateViewAccessor();
 
+#if NETSTANDARD
             RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
             byte* ptr = default;
 

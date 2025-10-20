@@ -8,7 +8,7 @@
         public int RvaSize;              // Size in bytes taken by RVAs. Must be multiple of sizeof(int).
         public int BaseRelocSize;        // Size in bytes taken by BaseRelocs
 
-        // int RVAs[RvaSize / sizeof(int)];     // Array containing overriding func RVAs. 
+        // int RVAs[RvaSize / sizeof(int)];     // Array containing overriding func RVAs.
 
         // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY]; // Base relocations (RVA + Size + TO)
         //  Padded with extra TOs for 4B alignment

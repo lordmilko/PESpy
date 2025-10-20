@@ -7,16 +7,16 @@ using ClrDebug.PDB;
 namespace PESpy
 {
     /* https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf pdf page 71
-     * 
+     *
      * There are two kinds of OMF data
      * - Data embedded in PE Files
      * - Data embedded in pre-PE Files
-     * 
+     *
      * Regardless of whether a file is a PE File or not, OMF-embedded data seems to have the property of having an NBxx signature
      * at the end of the file, followed by lfoBase which tells us how many bytes to rewind from the end of the file to find another NBxx
      * signature, that is then immediately followed by lfoDir, the subsection tables, and the Subsection Directory header that lfoDir
      * points to, describing the types of subsection tables that precede it.
-     * 
+     *
      * There are two OMF formats
      * - NB02, which covers NB00, NB01 and NB02. Microsoft considers NB00 and NB01 obsolete, so refers to this old format as the NB02 format,
      *   even though it technically precedes NB02
@@ -126,7 +126,7 @@ namespace PESpy
         internal static DNRBData ReadDNRB(in MemoryChunk chunk, CodeViewSig sig, int sizeOfData)
         {
             /* See the comments in TryReadTrailingOMF() for info about the structure of DNRB
-             * 
+             *
              * For the most part, DNRB seems to be very similar to NB00 (https://www.pcjs.org/documents/books/mspl13/c/ctoolkit).
              * Part of this information has also been confirmed by cross referencing with the output of CV.EXE */
 
@@ -334,14 +334,14 @@ namespace PESpy
         internal static RawValue<OldTypType[]> ReadNB02Types(in MemoryChunk valueChunk, int size)
         {
             /* The Type format is described in section 1.4 of https://www.pcjs.org/documents/books/mspl13/c/ctoolkit/
-             * 
+             *
              * The maximum length of a type (including the 3 header bytes) is 65535 (MAXTYPE). The maximum size
              * of the data that follows the 3 header bytes is MAXTYPE - 3
-             * 
+             *
              * There are 511 primitive types, so the index of the first type starts at 512
-             * 
+             *
              * Based on the type of the leaf, different bytes may follow
-             * 
+             *
              * Note that while section 3.7 lists the type as being "loe", this is erroneous
              */
 
@@ -391,10 +391,10 @@ namespace PESpy
         {
             /* NB05-NB11 have the same format. The individual versions seem to just indicate which linker was used and whether the file was packed or not.
              * The only substantive difference seems to be when dumping globals, if it's NB09 or NB11 there's no OMFSymHash offset to consider (see dympsym7.cpp!DumpGlobal)
-             * 
+             *
              * For OMF executables (not PE Files) the last 8 bytes of the file contain a signature (NBxx) and a Long File Offset
              * from the end of the file (lfoBase). lfaBase = length of file - lfoBase
-             * 
+             *
              * Data pointed to by PointerToRawData:
              * - NB11
              * - 0x0001f444 (lfoDir) - corresponds to lfoDirectory (Offset of directory from base address)
@@ -466,7 +466,7 @@ namespace PESpy
 
             for (var i = 0; i < dirHeader.cDir; i++)
             {
-                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);                
+                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);
 
                 offset += OMFDirEntry.StructSize;
             }

@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if NET
+#if NET9_0_OR_GREATER
 using System.Runtime.Intrinsics;
 #endif
 
@@ -234,7 +234,7 @@ namespace System.Text.Unicode
             return (valueA | letterMaskA) == (valueB | letterMaskB);
         }
 
-#if NET
+#if NET9_0_OR_GREATER
         /// <summary>
         /// Returns true iff the Vector128 represents 16 ASCII UTF-8 characters in machine endianness.
         /// </summary>

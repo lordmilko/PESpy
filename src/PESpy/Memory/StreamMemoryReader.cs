@@ -19,7 +19,7 @@ namespace PESpy
         public unsafe void ReadVirtual(long address, IntPtr buffer, int size)
         {
             stream.Seek(address, SeekOrigin.Begin);
-            
+
             if (size <= this.buffer.Length)
             {
                 //Easy: just read the data straight into the buffer

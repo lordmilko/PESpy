@@ -16,7 +16,7 @@ namespace PESpy.PDB
 
         //type
         public DEBUG_S_SUBSECTION_TYPE Type => (DEBUG_S_SUBSECTION_TYPE) chunk.PeekUInt32(TypeOffset);
-        
+
         //cbLen
         public CV_off32_t Length => chunk.PeekInt32(LengthOffset);
 

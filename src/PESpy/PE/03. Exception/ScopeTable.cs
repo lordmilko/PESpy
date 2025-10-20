@@ -16,7 +16,7 @@ namespace PESpy
     public struct ScopeTable : IValue, IViewable, IEnumerable<ScopeTable.ScopeRecord>
     {
         private const int CountOffset = 0;
-        private const int RecordsOffset = 4;        
+        private const int RecordsOffset = 4;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Count => chunk.PeekInt32(CountOffset);

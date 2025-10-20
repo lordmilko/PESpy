@@ -14,7 +14,7 @@ namespace PESpy
             //that's not the case, we'll swap out this buffer for a larger one.
             //Any structs already pointing to this object will transparently use the new pointer
             this.reader = reader;
-            
+
             //Some applications are only 1024, but some are 4096
             RemoteEndOffset = 0x1000;
             LocalPointer = (byte*) Marshal.AllocHGlobal(Length);

@@ -10,7 +10,7 @@ namespace PESpy.PDB
         public PdbIdScope externalScope => chunk.PeekUnmanaged<PdbIdScope>(0);
 
         /// <summary>
-        /// Count of following array. 
+        /// Count of following array.
         /// </summary>
         public int countOfCrossReferences => chunk.PeekInt32(4);
 

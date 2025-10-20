@@ -91,7 +91,7 @@ namespace PESpy
             /// Grab the next character and advance the position.
             /// </summary>
             /// <returns>
-            /// The next character, <see cref="InvalidCharacter" /> if there were no characters 
+            /// The next character, <see cref="InvalidCharacter" /> if there were no characters
             /// remaining.
             /// </returns>
             public char NextChar()
@@ -116,7 +116,7 @@ namespace PESpy
             }
 
             /// <summary>
-            /// Gets the next character if there are any characters in the 
+            /// Gets the next character if there are any characters in the
             /// SourceText.
             /// </summary>
             /// <returns>
@@ -529,5 +529,5 @@ namespace PESpy
         }
     }
 
-    
+
 }

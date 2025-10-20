@@ -73,7 +73,7 @@ namespace PESpy.PDB
             sizeof(int) + //isectThunkTable + padding
             sizeof(int) + //offThunkTable
             sizeof(int);  //nSects
-        
+
         private readonly MemoryChunk chunk;
 
         internal PSGSIHDR(in MemoryChunk chunk)

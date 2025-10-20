@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <LocalReFlow>$(MSBuildThisFileDirectory)\..\..\ReFlow\src\ReFlow\bin\Debug\netstandard2.0\ReFlow.dll</LocalReFlow>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- If ReFlow has been cloned to the parent directory containing both ReFlow and ReDbg,
+         prefer the local version for development purposes -->
+    <PackageReference Include="ReFlow" Version="$(ReFlowVersion)" Condition="!Exists('$(LocalReFlow)')" />
+
+    <Reference Include="ReFlow" Condition="Exists('$(LocalReFlow)')">
+      <HintPath>$(LocalReFlow)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

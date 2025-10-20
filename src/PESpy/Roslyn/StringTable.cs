@@ -27,7 +27,7 @@ namespace Roslyn.Utilities
         }
 
         // TODO: Need to tweak the size with more scenarios.
-        //       for now this is what works well enough with 
+        //       for now this is what works well enough with
         //       Roslyn C# compiler project
 
         // Size of local cache.
@@ -46,7 +46,7 @@ namespace Roslyn.Utilities
         private const int SharedBucketSizeMask = SharedBucketSize - 1;
 
         // local (L1) cache
-        // simple fast and not threadsafe cache 
+        // simple fast and not threadsafe cache
         // with limited size and "last add wins" expiration policy
         //
         // The main purpose of the local cache is to use in long lived
@@ -61,7 +61,7 @@ namespace Roslyn.Utilities
         // writes to local cache will update shared cache as well.
         private static readonly SegmentedArray<Entry> s_sharedTable = new SegmentedArray<Entry>(SharedSize);
 
-        // essentially a random number 
+        // essentially a random number
         // the usage pattern will randomly use and increment this
         // the counter is not static to avoid interlocked operations and cross-thread traffic
         private int _localRandom = Environment.TickCount;
@@ -683,7 +683,7 @@ foundIdx:
             }
 
             // Don't add non-ascii strings to table. The hashCode we have here is not correct and we won't find them again.
-            // Non-ascii in UTF-8 encoded parts of metadata (the only use of this at the moment) is assumed to be rare in 
+            // Non-ascii in UTF-8 encoded parts of metadata (the only use of this at the moment) is assumed to be rare in
             // practice. If that turns out to be wrong, we could decode to pooled memory and rehash here.
             if (isAscii)
             {

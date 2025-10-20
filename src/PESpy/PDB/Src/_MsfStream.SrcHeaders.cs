@@ -109,10 +109,10 @@ namespace PESpy.PDB
                 /* In order to lookup a file name in the header block you need to convert it to lowercase and change forward slashes to back slashes.
                  * SrcImpl::QueryByNameW creates a copy of the input file, and then calls CCanonFile::SzCanonFilename on it, which calls LCMapStringW on
                  * it with LOCALE_INVARIANT and LCMAP_LOWERCASE and then replaces all \ characters with /
-                 * 
+                 *
                  * There is a MemoryExtensions method that converts a ReadOnlySpan<byte> ToLower, but our hasher requires that we pass in a UTF-8 string,
-                 * so we would need to convert from UTF-8 -> UTF-16 -> UTF-8 if we were to use this, which is no good. Furthermore, this API just seems to call 
-                 * char.ToLower() individually anyway; it doesn't blast all the characters to LCMapStringW. So we may as well just normalize the string ourselves 
+                 * so we would need to convert from UTF-8 -> UTF-16 -> UTF-8 if we were to use this, which is no good. Furthermore, this API just seems to call
+                 * char.ToLower() individually anyway; it doesn't blast all the characters to LCMapStringW. So we may as well just normalize the string ourselves
                  */
 
                 var buffer = ArrayPool<byte>.Shared.Rent(fileName.Length);

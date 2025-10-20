@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -52,7 +52,7 @@ namespace System.Globalization
 
             // If the input is long enough and the value ends with ASCII and is at least two characters,
             // we can take a special vectorized path that compares both the beginning and the end at the same time.
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
             if (Vector128.IsHardwareAccelerated && valueTailLength != 0 && searchSpaceMinusValueTailLength >= Vector128<byte>.Count)
             {
                 valueCharU = Unsafe.Add(ref valueRef, valueTailLength);
@@ -108,7 +108,7 @@ namespace System.Globalization
 
             return -1;
 
-#if !NETSTANDARD
+#if NET9_0_OR_GREATER
 
         // Based on SpanHelpers.IndexOf(ref char, int, ref char, int), which was in turn based on
         // http://0x80.pl/articles/simd-strfind.html#algorithm-1-generic-simd. This version has additional

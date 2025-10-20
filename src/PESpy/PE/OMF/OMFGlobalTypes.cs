@@ -77,6 +77,7 @@ namespace PESpy
                 this.typeChunk = typeChunk;
                 this.offsets = offsets;
                 index = 0;
+                Current = default;
             }
 
             public unsafe bool MoveNext()

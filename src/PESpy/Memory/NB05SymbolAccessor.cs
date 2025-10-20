@@ -8,15 +8,15 @@ namespace PESpy
      * my observation is that in NB05, symbols are ordered
      * 1. Everything in module 1 (including the sstModule)
      * 2. Everything in module 2 (including the sstModule)
-     * 
+     *
      * etc
-     * 
+     *
      * By contrast, in later codeView versions the ordering is
-     * 
+     *
      * 1. All of the sstModule entries
      * 2. Everything else for module 1
      * 3. Everything else for module 2
-     * 
+     *
      * etc
      */
 

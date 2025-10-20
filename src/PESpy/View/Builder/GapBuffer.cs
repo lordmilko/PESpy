@@ -119,17 +119,17 @@ namespace PESpy
         public void Prepend(ReadOnlySpan<T> value)
         {
             /* Suppose we have the following buffer
-             * 
+             *
              *     b 0 0 0
              *
              * And we want to prepend "a" such that we end up with
-             * 
+             *
              *     0 0 a b
-             * 
+             *
              * by default, if you simply do "Insert" you will end up with
-             * 
+             *
              *     a 0 0 b
-             * 
+             *
              * because it's assumed that you want to do subsequent inserts _after_ "a". To work around
              * this, we will first pretend that we want to insert a value at the very beginning of
              * the buffer, thereby moving the gap. However, we will then change the index of the position
