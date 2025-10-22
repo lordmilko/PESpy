@@ -185,11 +185,11 @@ namespace PESpy.PDB
             return sectionHeader.VirtualAddress + off;
         }
 
-        internal static SymType GetSymbol<T>(T* symType, ushort imod, int ibSym) where T : unmanaged
+        internal static SymType GetSymbol<T>(T* symType, ushort imod, int ibSym, ISymbolAccessor? accessor) where T : unmanaged
         {
             //To get the symbol that this ref points to, lookup the module indicated by imod (which is 1 based) and then get the symbol at ibSym bytes into the module's address space
 
-            var accessor = SymbolMemoryTracker.GetAccessor((long) symType);
+            accessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
 
             if (accessor == null)
                 return default;

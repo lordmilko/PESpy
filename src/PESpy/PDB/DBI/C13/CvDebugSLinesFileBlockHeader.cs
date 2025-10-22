@@ -77,5 +77,11 @@ namespace PESpy.PDB
                     break;
             }
         }
+
+        //We don't have a ToString or DebuggerDisplay that shows the filename, as that requires
+        //that we ship the MODI all the way to this struct. I thought of maybe having a custom memory block
+        //that we wrap the page block in (or maybe we derive from it so we can do checks if the block is a page block properly)
+        //but ultimately I don't think the allocations are worth it. PDBFileModule60Symbol in SymHelp
+        //demonstrates how the filename can be retrieved from the offFile
     }
 }

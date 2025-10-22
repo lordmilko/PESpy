@@ -32,6 +32,7 @@ namespace PESpy.View
 
                     var pILViewByte = pViewByte + 1;
                     pILViewByte->Kind = ViewByteKind.Code;
+                    pILViewByte->IsIL = true;
 
                     //todo: need to queue up the fact we need to apply the name to this item
 
@@ -55,6 +56,7 @@ namespace PESpy.View
 
                     var pILViewByte = pViewByte + 12;
                     pILViewByte->Kind = ViewByteKind.Code;
+                    pILViewByte->IsIL = true;
 
                     for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
                         i->Kind = ViewByteKind.Body;

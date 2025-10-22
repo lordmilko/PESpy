@@ -8,7 +8,7 @@ namespace PESpy
 {
     static partial class Demangler
     {
-        unsafe ref struct TextWindow
+        internal unsafe ref struct TextWindow
         {
             public const char InvalidCharacter = char.MaxValue;
 
@@ -39,6 +39,18 @@ namespace PESpy
                 this.length = length;
                 Position = 0;
                 this.arena = Interlocked.Exchange(ref cachedArena, null);
+
+                BackRefNames = default;
+                BackRefFunctionParams = default;
+                strings = default;
+            }
+
+            //To be used only for basic parsing, without any allocating
+            internal TextWindow(SymString str, int length)
+            {
+                this.buffer = str.Value;
+                this.length = length;
+                Position = 0;
 
                 BackRefNames = default;
                 BackRefFunctionParams = default;

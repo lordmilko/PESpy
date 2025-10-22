@@ -554,7 +554,20 @@ var strings = new[]{
     "`anonymous namespace'",
     "`local vftable'",
     "`vftable'",
-    "`vbtable'"
+    "`vbtable'",
+
+    //Symbols
+    "__security_cookie",
+    "__guard_check_icall_fptr",
+    "__guard_dispatch_icall_fptr",
+    "__guard_fids_table",
+    "__guard_iat_table",
+    "__guard_longjmp_table",
+    "___enclave_config",
+    "__guard_eh_cont_table",
+    "__guard_xfg_check_icall_fptr",
+    "__guard_xfg_dispatch_icall_fptr",
+    "__guard_xfg_table_dispatch_icall_fptr",
 };
 #>
 namespace PESpy

@@ -157,15 +157,23 @@ namespace PESpy.PDB
 
                         var end = moduleChunk.AbsoluteOffset + cbC13Lines;
 
+                        Debug.Assert(cbC13Lines <= moduleChunk.Remaining);
+
                         using var headers = new PooledList<CvDebugSSubsectionHeader>();
 
-                        while (moduleChunk.AbsoluteOffset < end)
+                        var read = 0;
+
+                        while (read < cbC13Lines)
                         {
-                            var header = new CvDebugSSubsectionHeader(moduleChunk);
+                            var header = new CvDebugSSubsectionHeader(moduleChunk.Slice(read));
 
                             headers.Add(header);
-                            moduleChunk = moduleChunk.Slice(header.Length + 8); //cbLen just covers the data, not the header
+
+                            //Watch out, these need to be aligned!
+                            read += (header.StructSize + 3) & ~3; ;
                         }
+
+                        Debug.Assert(read == cbC13Lines);
 
                         c13Lines = headers.ToArray();
                     }

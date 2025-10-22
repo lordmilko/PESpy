@@ -1745,7 +1745,7 @@ namespace PESpy
             }
         }
 
-        private static bool TryParseNumber(ref TextWindow textWindow, out bool isNegative, out ulong number)
+        internal static bool TryParseNumber(ref TextWindow textWindow, out bool isNegative, out ulong number)
         {
             isNegative = default;
             number = default;

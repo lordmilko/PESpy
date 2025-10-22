@@ -496,6 +496,239 @@ namespace PESpy.Tests
             {
                 file?.Dispose();
             }
+        #region C13
+
+        [TestMethod]
+        public void Symbols_C13_Symbols()
+        {
+            TestC13<SymTypeList>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS,
+                v =>
+                {
+                    Assert.AreEqual(6, v.Count);
+                }
+            );
         }
+
+        [TestMethod]
+        public void Symbols_C13_Lines()
+        {
+            TestC13<CvDebugSLinesHeader>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES,
+                v =>
+                {
+                    //We don't show the name in the debugger display because that would require allocating a fake memory block and/or shipping
+                    //the MODI all over the place, which we don't want to do
+                    Assert.AreEqual(1, v.FileBlocks.Length);
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_StringTable()
+        {
+            //Haven't seen it in any PDBs, but it is in OBJ files
+
+            TestC13<RawValue<Utf8String>[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE,
+                v =>
+                {
+                    Assert.AreEqual(3, v.Length);
+
+                    Assert.AreEqual("C:\\TestApp\\TestApp.cpp", v[1].ToString());
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_FileCheckSums()
+        {
+            TestC13<CvFileCheckSum[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS,
+                v =>
+                {
+                    v.Verify(
+                        "C:\\TestApp\\TestApp.cpp"
+                    );
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_FrameData()
+        {
+            TestC13<RvaAndFrameData>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA,
+                v =>
+                {
+                    Assert.AreEqual(1, v.FrameData.Length);
+                    Assert.AreEqual(true, v.FrameData[0].fIsFunctionStart);
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_InlineeLines()
+        {
+            TestC13<InlineeSigAndLines>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES,
+                v =>
+                {
+                    Assert.AreEqual("__dyn_tls_on_demand_init", ((PESpy.PDB.InlineeSourceLine[]) v.Lines)[0].inlinee.ToString());
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_CrossScopeImports()
+        {
+            TestC13<PDB.CrossScopeReferences[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS,
+                v =>
+                {
+                    Assert.AreEqual(1, v.Length);
+
+                    var ids = v[0].referenceIds;
+                    Assert.AreEqual(1, ids.Count);
+
+                    var id = ids[0];
+
+                    Assert.AreEqual("0x80004527", id.ToString());
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_CrossScopeExports()
+        {
+            TestC13<PDB.LocalIdAndGlobalIdPair[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS,
+                v =>
+                {
+                    Assert.AreEqual("__vcrt_uninitialize_locks", v[5].localId.ToString());
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_ILLines()
+        {
+            TestC13<CvDebugSLinesHeader>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES,
+                v =>
+                {
+                    Assert.AreEqual(1, v.FileBlocks.Length);
+
+                    var lines = v.FileBlocks[0].lines;
+                    Assert.AreEqual(5, lines.Length);
+                }
+            );
+        }
+
+        [TestMethod]
+        public unsafe void Symbols_C13_FuncMDTokenMap()
+        {
+            TestC13<FuncMDTokenMap>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP,
+                v =>
+                {
+                    Assert.AreEqual(68367, v.Entries.Length);
+
+                    var item = v.Entries[0];
+
+                    Assert.AreEqual(2, item.NumGenericParameters);
+
+                    var provider = new MockSignatureProvider();
+                    var decoder = new SignatureDecoder<object, object>(provider, null, null);
+                    var blobReader = new BlobReader((byte*) item.TypeSpecBlobs, item.TypeSpecBlobs.Length);
+
+                    var type1 = decoder.DecodeType(ref blobReader);
+                    var type2 = decoder.DecodeType(ref blobReader);
+
+                    Assert.AreEqual(0, blobReader.RemainingBytes);
+                }
+            );
+        }
+
+        [TestMethod]
+        public unsafe void Symbols_C13_TypeMDTokenMap()
+        {
+            TestC13<TypeMDTokenMap>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP,
+                v =>
+                {
+                    Assert.AreEqual(14454, v.Entries.Length);
+
+                    var entry = v.Entries[0];
+
+                    Assert.AreEqual("System::EventHandler$1<System::Diagnostics::Tracing::EventCommandEventArgs>", entry.ToString());
+
+                    var provider = new MockSignatureProvider();
+                    var decoder = new SignatureDecoder<object, object>(provider, null, null);
+                    var blobReader = new BlobReader((byte*) entry.LargeTypeSig, entry.LargeTypeSig.Length);
+
+                    var (genericType, typeArguments) = ((object, ImmutableArray<object>)) decoder.DecodeType(ref blobReader);
+
+                    Assert.AreEqual("0x10000EE", genericType.ToString());
+                    Assert.AreEqual(1, typeArguments.Length);
+                    Assert.AreEqual("0x10004AD", typeArguments[0].ToString());
+
+                    Assert.AreEqual(0, blobReader.RemainingBytes);
+                }
+            );
+        }
+
+        [TestMethod]
+        public void Symbols_C13_MergedAssemblyInput()
+        {
+            TestC13<MergedAssemblyInfo[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT,
+                v =>
+                {
+                    Assert.AreEqual(25, v.Length);
+
+                    Assert.AreEqual("System.Collections, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", v[0].ToString());
+                }
+            );
+        }
+
+        //I haven't found any references on how to parse DEBUG_S_COFF_SYMBOL_RVA
+        //DEBUG_S_XFGHASH_TYPE and DEBUG_S_XFGHASH_VIRTUAL are new internal formats,
+        //nobody knows how to parse these
+
+        private void TestC13<T>(
+            DEBUG_S_SUBSECTION_TYPE type,
+            Action<T> verify)
+        {
+            Stream fs = null;
+
+            try
+            {
+                object value = type switch
+                {
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS              => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out fs).SectionData[1]).C13SubSections[0].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES                => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).DBI.Modules[1].C13Lines[0].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE          => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out fs).SectionData[1]).C13SubSections[5].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS           => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).DBI.Modules[1].C13Lines[1].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA            => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out fs).SectionData[1]).C13SubSections[1].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES         => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out fs).DBI.Modules[25].C13Lines[1].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS    => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out fs).DBI.Modules[112].C13Lines[1].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS    => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out fs).DBI.Modules[112].C13Lines[0].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES             => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out fs).DBI.Modules[0].C13Lines[1].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out fs).DBI.Modules[0].C13Lines[104775].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out fs).DBI.Modules[0].C13Lines[104774].Data,
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out fs).DBI.Modules[0].C13Lines[104776].Data,
+                };
+
+                verify((T) value);
+            }
+            finally
+            {
+                fs?.Dispose();
+            }
+        }
+        }
+
+        #endregion
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
+using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -10,6 +11,8 @@ namespace PESpy.View
         /// Gets the <see cref="PEFile"/> that this object provides access to.
         /// </summary>
         public PEFile PEFile { get; }
+
+        public DirectoryInfo[] DataDirectories { get; set; }
 
         /* To reduce the cost of having to constantly lookup what section a given RVA belongs to and whether that section
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when

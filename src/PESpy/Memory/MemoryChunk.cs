@@ -125,6 +125,16 @@ namespace PESpy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NullTerminatedString PeekNullTerminatedString(int offset, StringKind kind) => new NullTerminatedString(Pointer + offset, kind);
 
+        public SymString PeekSymString(int offset)
+        {
+            var pdbFile = this.PDBFile();
+
+            if (((ISymbolAccessor) pdbFile).HasLengthPrefixedStrings)
+                return new SymString(Pointer + offset + 1, isLengthPrefixed: true);
+
+            return new SymString(Pointer + offset, isLengthPrefixed: false);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PeekBigEndianInt32(int offset)
         {

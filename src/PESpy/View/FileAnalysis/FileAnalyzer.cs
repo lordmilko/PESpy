@@ -15,58 +15,59 @@ namespace PESpy.View
             IFileDisassembler disassembler = null,
             IFileAnalyzerProgress? progress = null)
         {
-            if (TryAnalyzeInternal(fileName, out fileAccessor, disassembler, progress))
+            if (!Detector.TryOpenFile(fileName, out var file))
             {
-                //Cleanup the objects on the LOH that were allocated during analysis
-                GC.Collect();
-                return true;
+                fileAccessor = null;
+                return false;
             }
 
-            fileAccessor = default;
-            return false;
+            fileAccessor = Analyze(file);
+            return true;
         }
 
-        private static bool TryAnalyzeInternal(
-            string fileName,
-            out FileAccessor fileAccessor,
+        public static FileAccessor Analyze(
+            IFile file,
+            IFileDisassembler disassembler = null,
+            IFileAnalyzerProgress? progress = null)
+        {
+            var fileAccessor = AnalyzeInternal(file, disassembler, progress);
+
+            //Cleanup the objects on the LOH that were allocated during analysis
+            GC.Collect();
+
+            return fileAccessor;
+        }
+
+        private static FileAccessor AnalyzeInternal(
+            IFile file,
             IFileDisassembler disassembler,
             IFileAnalyzerProgress? progress)
         {
-
-            if (Detector.TryOpenFile(fileName, out var file))
+            try
             {
-                try
+                var fileAnalyzer = file.Kind switch
                 {
-                    var fileAnalyzer = file.Kind switch
-                    {
-                        FileKind.PE => new PEFileAnalyzer(new PEFileAccessor((PEFile) file), disassembler, progress),
-                        //FileKind.NE => new NEFileAnalyzer(new NEFileAccessor((NEFile) file), disassembler, progress),
-                        //FileKind.LE => new LEFileAnalyzer(new LEFileAccessor((LEFile) file), disassembler, progress),
-                        //FileKind.DOS => new DOSFileAnalyzer(new DOSFileAccessor((DOSFile) file), disassembler, progress),
-                        //FileKind.DBG => new DBGFileAnalyzer(new DBGFileAccessor((DBGFile) file), disassembler, progress),
-                        //FileKind.PDB => new PDBFileAnalyzer(new PDBFileAccessor((PDBFile) file), disassembler, progress),
-                        //FileKind.PortablePDB => new PortablePDBFileAnalyzer(new PortablePDBFileAccessor((PortablePDBFile) file), disassembler, progress),
-                        //FileKind.OBJ => new OBJFileAnalyzer(new OBJFileAccessor((OBJFile) file), disassembler, progress),
-                        //FileKind.LIB => new LIBFileAnalyzer(new LIBFileAccessor((LIBFile) file), disassembler, progress),
-                        //FileKind.OMF => new OMFFileAnalyzer(new OMFFileAccessor((OMFFile) file), disassembler, progress),
-                        //FileKind.OMFLIB => new OMFLIBFileAnalyzer(new OMFLIBFileAccessor((OMFLIBFile) file), disassembler, progress),
-                        _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
-                    };
+                    FileKind.PE => new PEFileAnalyzer(new PEFileAccessor((PEFile) file), disassembler, progress),
+                    //FileKind.NE => new NEFileAnalyzer(new NEFileAccessor((NEFile) file), disassembler, progress),
+                    //FileKind.LE => new LEFileAnalyzer(new LEFileAccessor((LEFile) file), disassembler, progress),
+                    //FileKind.DOS => new DOSFileAnalyzer(new DOSFileAccessor((DOSFile) file), disassembler, progress),
+                    //FileKind.DBG => new DBGFileAnalyzer(new DBGFileAccessor((DBGFile) file), disassembler, progress),
+                    //FileKind.PDB => new PDBFileAnalyzer(new PDBFileAccessor((PDBFile) file), disassembler, progress),
+                    //FileKind.PortablePDB => new PortablePDBFileAnalyzer(new PortablePDBFileAccessor((PortablePDBFile) file), disassembler, progress),
+                    //FileKind.OBJ => new OBJFileAnalyzer(new OBJFileAccessor((OBJFile) file), disassembler, progress),
+                    //FileKind.LIB => new LIBFileAnalyzer(new LIBFileAccessor((LIBFile) file), disassembler, progress),
+                    //FileKind.OMF => new OMFFileAnalyzer(new OMFFileAccessor((OMFFile) file), disassembler, progress),
+                    //FileKind.OMFLIB => new OMFLIBFileAnalyzer(new OMFLIBFileAccessor((OMFLIBFile) file), disassembler, progress),
+                    _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
+                };
 
-                    fileAccessor = fileAnalyzer.Execute();
-                    return true;
-                }
-                catch
-                {
-                    file.Dispose();
-
-                    throw;
-                }
+                return fileAnalyzer.Execute();
             }
-            else
+            catch
             {
-                fileAccessor = default!;
-                return false;
+                file.Dispose();
+
+                throw;
             }
         }
 

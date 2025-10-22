@@ -131,6 +131,18 @@ namespace PESpy.View
             }
         }
 
+        public bool IsIL
+        {
+            get => (CodeFlags & ViewByteCodeFlags.IsIL) != 0;
+            set
+            {
+                if (value)
+                    CodeFlags |= ViewByteCodeFlags.IsIL;
+                else
+                    CodeFlags |= ~ViewByteCodeFlags.IsIL;
+            }
+        }
+
         #endregion
         #region Data
 
@@ -226,5 +238,10 @@ namespace PESpy.View
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return Kind.ToString();
+        }
     }
 }

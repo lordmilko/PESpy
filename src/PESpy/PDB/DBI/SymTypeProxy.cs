@@ -16,7 +16,25 @@ namespace PESpy.PDB
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public object Value => ObjectSymTypeDispatcher.Instance.Dispatch(symType);
+        public object Value
+        {
+            get
+            {
+                var result = ObjectSymTypeDispatcher.Instance.Dispatch(symType);
+
+                if (result is SymType t)
+                {
+                    //Protect against a recursive lookup loop in the debugger
+                    return new
+                    {
+                        t.reclen,
+                        t.rectyp
+                    };
+                }
+
+                return result;
+            }
+        }
 
         public static string DebuggerDisplay(SymType symType)
         {

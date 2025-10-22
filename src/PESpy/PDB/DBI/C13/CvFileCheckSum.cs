@@ -6,18 +6,8 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //CV_FileCheckSum (from Roslyn)
-    [DebuggerDisplay("{DebuggerDisplay()}")]
     public readonly struct CvFileCheckSum : IValue, IViewable
     {
-        private string DebuggerDisplay()
-        {
-            var nameMap = chunk.PDBFile().NameMap;
-
-            if (nameMap == null)
-                return $"/names[{name}]";
-
-            return nameMap.GetStringFromNI(name).ToString();
-        }
         private const int nameOffset = 0;
         private const int lenOffset = 4;
         private const int typeOffset = 5;
@@ -80,6 +70,16 @@ namespace PESpy.PDB
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            var nameMap = chunk.PDBFile().NameMap;
+
+            if (nameMap == null)
+                return $"/names[{name}]";
+
+            return nameMap.GetStringFromNI(name).ToString();
         }
     }
 }

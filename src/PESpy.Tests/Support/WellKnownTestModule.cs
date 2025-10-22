@@ -20,6 +20,7 @@ namespace PESpy.Tests
         public static SymStoreKey mfc40 = new SymStoreKey("mfc40.dll/31E55C32e7000/mfc40.dll", SymStoreKeyKind.PE); //The 64-bit one also has ImageDebugMisc
         public static SymStoreKey mfc40u = new SymStoreKey("mfc40u.dll/3B7DFE9Ae9000/mfc40u.dll", SymStoreKeyKind.PE);
         public static SymStoreKey mscorlib = new SymStoreKey("mscorlib.dll/66D13820576000/mscorlib.dll", SymStoreKeyKind.PE);
+        public static SymStoreKey SharedLibraryPDB = new SymStoreKey("SharedLibrary.pdb/13C8DCDB8CDE4CE1BB43877B7F8A40341/SharedLibrary.pdb", SymStoreKeyKind.PDB);
         public static SymStoreKey ShoulderTapView = new SymStoreKey("shouldertapview.dll/1456661987000/shouldertapview.dll", SymStoreKeyKind.PE);
         public static SymStoreKey _7z = new SymStoreKey("7z.dll/61C875601ad000/7z.dll", SymStoreKeyKind.PE);
 

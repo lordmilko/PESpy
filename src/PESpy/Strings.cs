@@ -5909,5 +5909,148 @@ namespace PESpy
                     return new FixedUtf8String(p, 9);
             }
         }
+
+        /// <summary>
+        /// __security_cookie
+        /// </summary>
+        internal static FixedUtf8String __security_cookie
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x73, 0x65, 0x63, 0x75, 0x72, 0x69, 0x74, 0x79, 0x5F, 0x63, 0x6F, 0x6F, 0x6B, 0x69, 0x65 })
+                    return new FixedUtf8String(p, 17);
+            }
+        }
+
+        /// <summary>
+        /// __guard_check_icall_fptr
+        /// </summary>
+        internal static FixedUtf8String __guard_check_icall_fptr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x63, 0x68, 0x65, 0x63, 0x6B, 0x5F, 0x69, 0x63, 0x61, 0x6C, 0x6C, 0x5F, 0x66, 0x70, 0x74, 0x72 })
+                    return new FixedUtf8String(p, 24);
+            }
+        }
+
+        /// <summary>
+        /// __guard_dispatch_icall_fptr
+        /// </summary>
+        internal static FixedUtf8String __guard_dispatch_icall_fptr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x64, 0x69, 0x73, 0x70, 0x61, 0x74, 0x63, 0x68, 0x5F, 0x69, 0x63, 0x61, 0x6C, 0x6C, 0x5F, 0x66, 0x70, 0x74, 0x72 })
+                    return new FixedUtf8String(p, 27);
+            }
+        }
+
+        /// <summary>
+        /// __guard_fids_table
+        /// </summary>
+        internal static FixedUtf8String __guard_fids_table
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x66, 0x69, 0x64, 0x73, 0x5F, 0x74, 0x61, 0x62, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 18);
+            }
+        }
+
+        /// <summary>
+        /// __guard_iat_table
+        /// </summary>
+        internal static FixedUtf8String __guard_iat_table
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x69, 0x61, 0x74, 0x5F, 0x74, 0x61, 0x62, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 17);
+            }
+        }
+
+        /// <summary>
+        /// __guard_longjmp_table
+        /// </summary>
+        internal static FixedUtf8String __guard_longjmp_table
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x6C, 0x6F, 0x6E, 0x67, 0x6A, 0x6D, 0x70, 0x5F, 0x74, 0x61, 0x62, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 21);
+            }
+        }
+
+        /// <summary>
+        /// ___enclave_config
+        /// </summary>
+        internal static FixedUtf8String ___enclave_config
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x5F, 0x65, 0x6E, 0x63, 0x6C, 0x61, 0x76, 0x65, 0x5F, 0x63, 0x6F, 0x6E, 0x66, 0x69, 0x67 })
+                    return new FixedUtf8String(p, 17);
+            }
+        }
+
+        /// <summary>
+        /// __guard_eh_cont_table
+        /// </summary>
+        internal static FixedUtf8String __guard_eh_cont_table
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x65, 0x68, 0x5F, 0x63, 0x6F, 0x6E, 0x74, 0x5F, 0x74, 0x61, 0x62, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 21);
+            }
+        }
+
+        /// <summary>
+        /// __guard_xfg_check_icall_fptr
+        /// </summary>
+        internal static FixedUtf8String __guard_xfg_check_icall_fptr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x78, 0x66, 0x67, 0x5F, 0x63, 0x68, 0x65, 0x63, 0x6B, 0x5F, 0x69, 0x63, 0x61, 0x6C, 0x6C, 0x5F, 0x66, 0x70, 0x74, 0x72 })
+                    return new FixedUtf8String(p, 28);
+            }
+        }
+
+        /// <summary>
+        /// __guard_xfg_dispatch_icall_fptr
+        /// </summary>
+        internal static FixedUtf8String __guard_xfg_dispatch_icall_fptr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x78, 0x66, 0x67, 0x5F, 0x64, 0x69, 0x73, 0x70, 0x61, 0x74, 0x63, 0x68, 0x5F, 0x69, 0x63, 0x61, 0x6C, 0x6C, 0x5F, 0x66, 0x70, 0x74, 0x72 })
+                    return new FixedUtf8String(p, 31);
+            }
+        }
+
+        /// <summary>
+        /// __guard_xfg_table_dispatch_icall_fptr
+        /// </summary>
+        internal static FixedUtf8String __guard_xfg_table_dispatch_icall_fptr
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x5F, 0x67, 0x75, 0x61, 0x72, 0x64, 0x5F, 0x78, 0x66, 0x67, 0x5F, 0x74, 0x61, 0x62, 0x6C, 0x65, 0x5F, 0x64, 0x69, 0x73, 0x70, 0x61, 0x74, 0x63, 0x68, 0x5F, 0x69, 0x63, 0x61, 0x6C, 0x6C, 0x5F, 0x66, 0x70, 0x74, 0x72 })
+                    return new FixedUtf8String(p, 37);
+            }
+        }
     }
 }

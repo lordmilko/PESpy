@@ -13,5 +13,9 @@ namespace PESpy.PDB
         AnsiString szObjFile { get; }
 
         PDBModuleSymbols? Symbols { get; }
+
+        C11Lines? C11Lines { get; }
+
+        CvDebugSSubsectionHeader[]? C13Lines { get; }
     }
 }

@@ -41,7 +41,10 @@
                     var results = new C11File[baseSrcFile.Length];
 
                     for (var i = 0; i < results.Length; i++)
-                        results[i] = new C11File(chunk.Slice(baseSrcFile[i]));
+                    {
+                        var fileOffset = baseSrcFile[i];
+                        results[i] = new C11File(chunk.Slice(fileOffset), fileOffset);
+                    }
 
                     files = results;
                 }

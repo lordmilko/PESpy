@@ -14,7 +14,26 @@ namespace PESpy.OMF
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public object Value => ObjectOMFRecordDispatcher.Instance.Dispatch(omfRecord);
+        public object Value
+        {
+            get
+            {
+                var value = ObjectOMFRecordDispatcher.Instance.Dispatch(omfRecord);
+
+                //Protect against a recursive lookup loop in the debugger
+                if (value is OMFRecord o)
+                {
+                    return new
+                    {
+                        o.RecordType,
+                        o.RecordLength,
+                        o.Checksum
+                    };
+                }
+
+                return value;
+            }
+        }
 
         public static string DebuggerDisplay(OMFRecord omfRecord)
         {

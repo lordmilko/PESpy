@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using ClrDebug;
+using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -36,6 +38,19 @@ namespace PESpy.View
 
             //Go through all remaining untagged bytes and mark any repeated sequences of 0x00 or 0xCC as being padding
             MarkPadding();
+
+            var dataDirectories = new PooledList<DirectoryInfo>();
+
+            try
+            {
+                viewWriter.CollectDataDirectories(ref dataDirectories);
+
+                ((PEFileAccessor) _fileAccessor).DataDirectories = dataDirectories.ToArray();
+            }
+            finally
+            {
+                dataDirectories.Dispose();
+            }
 
             return _fileAccessor;
         }
@@ -274,11 +289,12 @@ namespace PESpy.View
                     //For each method, lookup the ByteInfo of its IL Bytes and give them a name
                     foreach (var methodDef in methodDefTable)
                     {
-                        //You can have P/Invokes that say they have RVAs but these don't point to valid data
+                        //You can have P/Invokes that say they have RVAs but these don't point to valid data.
+                        //Conversely, if a given method's implementation is native, there won't be an associated Cor IL Method for it
 
                         var rva = methodDef.RVA;
 
-                        if (rva == 0)
+                        if (rva == 0 || (methodDef.ImplFlags & CorMethodImpl.miNative) != 0)
                             continue;
 
                         if (lookupCache.TryGetSectionInfo(rva, out var targetAddress, out var sectionIndex, out _))

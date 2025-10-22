@@ -93,6 +93,8 @@ namespace PESpy.PDB
 
         #endregion
 
+        CvDebugSSubsectionHeader[]? IModi.C13Lines => null;
+
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =

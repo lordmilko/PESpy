@@ -12,6 +12,14 @@
 
         public NativeSpan<ushort> linenumbers => chunk.PeekNativeSpan<ushort>(4 + (cPair * sizeof(int)), cPair);
 
+        public int Offset => chunk.AbsoluteOffset;
+
+        internal int StructSize =>
+            sizeof(short) + //Seg
+            sizeof(short) + //cPair
+            (cPair * sizeof(int)) + //offset
+            (cPair * sizeof(short)); //linenumbers
+
         private readonly MemoryChunk chunk;
 
         internal SPO(in MemoryChunk chunk)

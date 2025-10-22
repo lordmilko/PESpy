@@ -14,7 +14,7 @@ namespace PESpy.PDB
         public VHdr vhdr => new VHdr(chunk);
 
         public int NameBufferSize => chunk.PeekInt32(VHdr.StructSize);
-        
+
         //Names are physically located after NameBufferSize and before NumOffsets
 
         public int NumOffsets => chunk.PeekInt32(VHdr.StructSize + sizeof(int) + NameBufferSize);

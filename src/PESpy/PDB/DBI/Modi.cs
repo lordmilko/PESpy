@@ -95,6 +95,8 @@ namespace PESpy.PDB
 
         #endregion
 
+        CvDebugSSubsectionHeader[]? IModi.C13Lines => null;
+
         internal static unsafe PDBModuleSymbols? GetSymbols(ref PDBModuleSymbols? field, IModi modi, in MemoryChunk chunk)
         {
             if (field == null && modi.cbSyms > 0)
