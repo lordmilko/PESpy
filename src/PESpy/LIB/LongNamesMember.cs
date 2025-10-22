@@ -53,7 +53,7 @@ namespace PESpy.LIB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.LongNamesMember, this, ViewKind.LongNamesMember, StructSize);
 
-        int IViewable.NumChildren => 1 + Names.Length;
+        int IViewable.NumChildren() => 1 + Names.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

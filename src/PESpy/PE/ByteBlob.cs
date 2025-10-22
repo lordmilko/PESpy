@@ -31,7 +31,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.WriteByteBlob(this);
 
-        int IViewable.NumChildren => throw new NotSupportedException();
+        int IViewable.NumChildren() => throw new NotSupportedException();
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }

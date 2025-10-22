@@ -171,7 +171,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MODIv4, this, ViewKind.Modi, StructSize);
 
-        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(13, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(13, BytesUsed);
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

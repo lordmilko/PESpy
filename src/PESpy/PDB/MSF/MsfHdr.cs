@@ -65,7 +65,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MSF_HDR, this, ViewKind.MsfHdr, StructSize);
 
-        int IViewable.NumChildren => 6;
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

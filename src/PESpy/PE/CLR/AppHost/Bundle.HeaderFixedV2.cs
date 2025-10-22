@@ -87,7 +87,7 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.header_fixed_v2_t, this, ViewKind.BundleHeaderFixedV2, StructSize);
 
-        int IViewable.NumChildren => 3;
+        int IViewable.NumChildren() => 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

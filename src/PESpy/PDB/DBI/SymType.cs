@@ -53,7 +53,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.SYMTYPE, this, ViewKind.SymType, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren => reclen == 2 ? 2 : 3;
+        int IViewable.NumChildren() => reclen == 2 ? 2 : 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

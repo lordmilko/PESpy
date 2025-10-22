@@ -148,7 +148,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.BIGMSF_HDR, this, ViewKind.BigMsfHdr, FixedStructSize + (PagesOfStreamTablePageList.Length * sizeof(int)));
 
-        int IViewable.NumChildren => 6;
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

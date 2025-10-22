@@ -54,7 +54,7 @@ namespace PESpy
             );
         }
 
-        int IViewable.NumChildren => 2;
+        int IViewable.NumChildren() => 2;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

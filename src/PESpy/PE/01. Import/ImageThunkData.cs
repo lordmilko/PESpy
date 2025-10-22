@@ -153,7 +153,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_THUNK_DATA, this, ViewKind.ImageThunkData, ((PEViewWriter) writer).Is32Bit ? 4 : 8);
 
-        int IViewable.NumChildren => 1;
+        int IViewable.NumChildren() => 1;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

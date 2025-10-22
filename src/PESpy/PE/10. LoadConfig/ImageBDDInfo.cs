@@ -48,7 +48,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BDD_INFO, this, ViewKind.ImageBDDInfo, StructSize);
 
-        int IViewable.NumChildren => 2 + BDDNodes.Length;
+        int IViewable.NumChildren() => 2 + BDDNodes.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

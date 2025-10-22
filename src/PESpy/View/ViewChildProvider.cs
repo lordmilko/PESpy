@@ -15,7 +15,7 @@ namespace PESpy.View
             this.children = children;
         }
 
-        public int NumChildren => children.Length;
+        public int NumChildren() => children.Length;
 
         public void WriteChild(int index, ref StructWriter structWriter)
         {

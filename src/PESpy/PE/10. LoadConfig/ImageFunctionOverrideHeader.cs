@@ -82,7 +82,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_FUNCTION_OVERRIDE_HEADER, this, ViewKind.ImageFunctionOverrideHeader, length);
 
-        int IViewable.NumChildren => 1 + FuncOverrides.Length + 1;
+        int IViewable.NumChildren() => 1 + FuncOverrides.Length + 1;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

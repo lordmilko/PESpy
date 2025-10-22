@@ -168,7 +168,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_RESOURCE_DIRECTORY, this, ViewKind.ImageResourceDirectory, FixedStructSize); //The entries are written as global, so the FixedStructSize is all we care about
 
-        int IViewable.NumChildren => 6;
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

@@ -92,7 +92,7 @@ namespace PESpy
             );
         }
 
-        int IViewable.NumChildren => (Sect.Kind & CorILMethodSect.FatFormat) != 0 ? 2 : 3;
+        int IViewable.NumChildren() => (Sect.Kind & CorILMethodSect.FatFormat) != 0 ? 2 : 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

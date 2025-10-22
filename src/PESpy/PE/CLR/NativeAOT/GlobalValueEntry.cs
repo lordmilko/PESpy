@@ -59,7 +59,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GlobalValueEntry, this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        int IViewable.NumChildren => 2;
+        int IViewable.NumChildren() => 2;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

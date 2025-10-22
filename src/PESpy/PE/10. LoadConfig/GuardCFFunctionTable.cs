@@ -88,7 +88,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.GuardCFFunctionTable, this, ViewKind.GuardCFFunctionTable, StructSize);
 
-        int IViewable.NumChildren => Count;
+        int IViewable.NumChildren() => Count;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -165,7 +165,7 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.GFIDSEntry, this, ViewKind.GuardCFFunctionTable_Entry, sizeof(int) + (Flags != null ? 1 : 0)); //The XFG RVA is not part of the structure
 
-            int IViewable.NumChildren => Flags == null ? 1 : 2;
+            int IViewable.NumChildren() => Flags == null ? 1 : 2;
 
             void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {

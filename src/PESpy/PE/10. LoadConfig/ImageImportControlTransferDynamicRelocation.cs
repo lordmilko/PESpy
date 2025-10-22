@@ -34,7 +34,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION, this, ViewKind.ImageImportControlTransferDynamicRelocation, StructSize);
 
-        int IViewable.NumChildren => 3;
+        int IViewable.NumChildren() => 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

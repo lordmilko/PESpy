@@ -79,7 +79,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.RuntimeInfo, this, ViewKind.RuntimeInfo, StructSize);
 
-        int IViewable.NumChildren => Version >= 2 ? 7 : 6;
+        int IViewable.NumChildren() => Version >= 2 ? 7 : 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -150,7 +150,7 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewUnmanagedStruct(Strings.ModuleIndex, this, ViewKind.ModuleIndex, StructSize);
 
-            int IViewable.NumChildren => 4;
+            int IViewable.NumChildren() => 4;
 
             void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {

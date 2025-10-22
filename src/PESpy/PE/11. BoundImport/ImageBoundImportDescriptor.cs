@@ -103,7 +103,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_BOUND_IMPORT_DESCRIPTOR, this, ViewKind.ImageBoundImportDescriptor, StructSize);
 
-        int IViewable.NumChildren => 3 + Refs.Length;
+        int IViewable.NumChildren() => 3 + Refs.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

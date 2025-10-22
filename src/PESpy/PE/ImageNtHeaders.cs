@@ -68,7 +68,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_NT_HEADERS, this, ViewKind.ImageNtHeaders, StructSize(((PEViewWriter) writer).Is32Bit));
 
-        int IViewable.NumChildren => 3;
+        int IViewable.NumChildren() => 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

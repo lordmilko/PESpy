@@ -35,7 +35,7 @@ namespace PESpy.View
             this.parentOffset = parentOffset;
             this.parent = parent;
             this.viewWriter = viewWriter;
-            numChildren = parent.NumChildren;
+            numChildren = parent.NumChildren();
         }
 
         public IView this[int index] => viewWriter.GetChild(parentOffset, parent, index);

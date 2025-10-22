@@ -69,7 +69,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.TRAMPOLINESYM, this, ViewKind.TrampolineSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren => 8;
+        int IViewable.NumChildren() => 8;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

@@ -14,7 +14,8 @@
 
         IView? WriteStruct(ViewWriter writer);
 
-        int NumChildren { get; }
+        //This is a method instead of a property so we don't see any noise in the debugger display; particularly for IFile implementations, which are also IViewable
+        int NumChildren();
 
         void WriteChild(int index, ref StructWriter structWriter);
     }

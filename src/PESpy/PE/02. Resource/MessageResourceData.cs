@@ -50,7 +50,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MESSAGE_RESOURCE_DATA, this, ViewKind.MessageResourceData, sizeof(int) + (NumberOfBlocks * MessageResourceBlock.StructSize));
 
-        int IViewable.NumChildren => 1 + Blocks.Length;
+        int IViewable.NumChildren() => 1 + Blocks.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

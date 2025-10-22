@@ -127,7 +127,7 @@ namespace PESpy
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StringTable, this, ViewKind.StringTable, Length);
 
-            int IViewable.NumChildren => throw StructWriter.GetEagerLoadOnlyException();
+            int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
             void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
