@@ -9,7 +9,7 @@ namespace PESpy
         /// Represents the organization of data in a file-version resource. It contains a string that describes a specific aspect of a file, for example, a file's version, its copyright notices, or its trademarks.
         /// </summary>
         [DebuggerDisplay("{Key,nq} = {Value}")]
-        public readonly struct String : IValue, IViewable
+        public readonly struct String : IViewableValue
         {
         private const int LengthOffset = 0;
         private const int ValueLengthOffset = 2;

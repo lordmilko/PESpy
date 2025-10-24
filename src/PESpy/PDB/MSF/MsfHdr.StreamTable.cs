@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using PESpy.View;
+﻿using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -9,7 +6,9 @@ namespace PESpy.PDB
     {
         public class StreamTable : IStreamTable
         {
-            public int NumStreams => chunk.PeekInt32(0);
+            private const int NumStreamsOffset = 0;
+
+            public int NumStreams => chunk.PeekInt32(NumStreamsOffset);
 
             public SI_PERSIST[] StreamPersists { get; }
 
@@ -83,38 +82,32 @@ namespace PESpy.PDB
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StreamTable, this, ViewKind.StreamTable, StructSize);
 
-            int IViewable.NumChildren() => 1 + StreamPersists.Length + StreamPages.Length;
+            int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
             void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                switch (index)
+                //The big one is eager, so we make this one eager too
+
+                using var s = structWriter.CreateEagerWriter();
+
+                s.WriteField("NumStreams", NumStreams);
+                s.WriteInline(StreamPersists);
+
+                //We store the StreamPages as 32-bit but they were originally 16-bit
+
+                for (var i = 0; i < StreamPages.Length; i++)
                 {
-                    case 0:
-                        structWriter.WriteField("NumStreams", NumStreamsOffset, NumStreams);
-                        break;
+                    var item = StreamPages[i];
 
-                    default:
-                        var i = index - 1;
+                    var arr = new ushort[item.Length];
 
-                        if (i < StreamPersists.Length)
-                        {
-                            structWriter.WriteInline(StreamPersists[i]);
-                        }
-                        else
-                        {
-                            i -= StreamPersists.Length;
+                    for (var j = 0; j < item.Length; j++)
+                        arr[j] = (ushort) (int) item[j];
 
-                            var item = StreamPages[i];
-
-                            var arr = new ushort[item.Length];
-
-                            for (var j = 0; j < item.Length; j++)
-                                arr[j] = (ushort) (int) item[j];
-
-                            structWriter.WriteField($"PageList ({i})", arr);
-                        }
-                        break;
+                    s.WriteField($"PageList ({i})", arr);
                 }
+
+                structWriter.EagerFields = s.ToArray();
             }
         }
     }

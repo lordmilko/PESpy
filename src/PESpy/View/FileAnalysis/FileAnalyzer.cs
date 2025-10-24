@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using ClrDebug.DIA;
+using ClrDebug.PDB;
+using PESpy.PDB;
+using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.View
 {
@@ -82,12 +86,16 @@ namespace PESpy.View
         //ended up being slower. Checking the Usage before adding to candidate additions also didn't help
         private readonly Queue<WorkItem> _globalWorkQueue = new Queue<WorkItem>();
         private readonly object _globalWorkQueueLock = new object();
+        protected readonly ViewWriter _viewWriter;
 
         protected FileAnalyzer(FileAccessor fileAccessor, IFileDisassembler? fileDisassembler)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
+            _viewWriter = CreateViewWriter();
         }
+
+        protected abstract ViewWriter CreateViewWriter();
 
         public abstract FileAccessor Execute();
 

@@ -538,6 +538,16 @@ namespace PESpy.View
         GlobalValueEntry_Name,
 
         #endregion
+        #region RTTI
+
+        //TypeDescriptor is covered under exception data
+
+        RTTIBaseClassDescriptor,
+        RTTIBaseClassArray,
+        RTTIClassHierarchyDescriptor,
+        RTTICompleteObjectLocator,
+
+        #endregion
 
         //NE
         NEFile,
@@ -834,7 +844,7 @@ namespace PESpy.View
 
         //Globals
         GSIHashHdr,
-        
+
         //Publics
         PSGSIHDR,
 

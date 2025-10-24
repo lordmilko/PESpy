@@ -27,10 +27,10 @@ namespace PESpy
         private const int ModuleIndicesOffset = 4;
 
         //cMods
-        public ushort NumModules => chunk.PeekUInt16(0);
+        public ushort NumModules => chunk.PeekUInt16(NumModulesOffset);
 
         //cRefs
-        public ushort NumSourceFiles => chunk.PeekUInt16(2);
+        public ushort NumSourceFiles => chunk.PeekUInt16(NumSourceFilesOffset);
 
         /// <summary>/
         /// For each module, describes the position in <see cref="FileNameOffsets"/> where the given module's file names start (by treating <see cref="FileNameOffsets"/> like a flat array)<para/>
@@ -107,9 +107,15 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.OMFFileIndex, this, ViewKind.OMFFileIndex, length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            ////The names need to be sorted, so only support eager load
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             string numModulesName;
             string numSourceFilesName;
@@ -153,7 +159,7 @@ namespace PESpy
                 foreach (var name in FileNames.AsFlat().OrderBy(v => v.Offset))
                 {
                     if (seenAddress.Add(name.Offset))
-                        s.WriteInlineLengthPrefixedAnsiString(name);
+                        s.WriteInlineSymString(name);
                 }
             }
             else
@@ -161,7 +167,7 @@ namespace PESpy
                 foreach (var name in FileNames.AsFlat().OrderBy(v => v.Offset))
                 {
                     if (seenAddress.Add(name.Offset))
-                        s.WriteInlineUtf8NullTerminated(name);
+                        s.WriteInlineSymString(name);
                 }
             }
 
@@ -170,6 +176,7 @@ namespace PESpy
 
             Debug.Assert(parent.Size == s.Size, "Size was not correct");
             return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

@@ -82,29 +82,33 @@ namespace PESpy.Tests
 
         public static void VerifyStructField(this IView view, string name, string type, int offset, int size, params Action<IView>[] verifyChildren)
         {
-            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+            Assert.IsInstanceOfType(view, typeof(IStructFieldView), $"{name} should not be a field");
 
-            var fieldView = (IFieldView) view;
+            var structFieldView = (IStructFieldView) view;
 
-            VerifyStruct((IView) fieldView.Value, type, offset, size, verifyChildren);
+            VerifyFieldIgnoreValue(view, name);
+            VerifyStruct(structFieldView.Value, type, offset, size, verifyChildren);
         }
 
         public static void VerifyStructFieldIgnoreChildren(this IView view, string name, string type, int offset, int size)
         {
-            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+            Assert.IsInstanceOfType(view, typeof(IStructFieldView), $"{name} should not be a field");
 
-            var fieldView = (IFieldView) view;
+            var fieldView = (IStructFieldView) view;
 
+            VerifyFieldIgnoreValue(view, name);
             VerifyStructIgnoreChildren((IView) fieldView.Value, type, offset, size);
         }
 
         public static void VerifyStructFieldArray(this IView view, string name, params Action<IView>[] verifyStructs)
         {
-            Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
+            Assert.IsInstanceOfType(view, typeof(IStructArrayFieldView), $"{name} should not be a field");
 
-            var fieldView = (IFieldView) view;
+            var structFieldView = (IStructArrayFieldView) view;
 
-            var structs = (IView[]) fieldView.Value;
+            VerifyFieldIgnoreValue(view, name);
+
+            var structs = structFieldView.Value;
 
             Assert.AreEqual(verifyStructs.Length, structs.Length);
 
@@ -170,6 +174,9 @@ namespace PESpy.Tests
 
                 if (fieldValue is CV_typ16_t t16)
                     fieldValue = (short) t16;
+
+                if (fieldValue is PDB.SN sn && value is not PDB.SN)
+                    fieldValue = (ushort) sn;
 
                 Assert.AreEqual(value, fieldValue, $"Value of field {name} was incorrect");
             }

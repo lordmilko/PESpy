@@ -94,11 +94,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteStructField("deps_json_location", DepsJsonLocationOffset, DepsJsonLocation);
+                    structWriter.WriteStructField("deps_json_location", DepsJsonLocation);
                     break;
 
                 case 1:
-                    structWriter.WriteStructField("runtimeconfig_json_location", RuntimeConfigJsonLocationOffset, RuntimeConfigJsonLocation);
+                    structWriter.WriteStructField("runtimeconfig_json_location", RuntimeConfigJsonLocation);
                     break;
 
                 case 2:

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.View;
 
@@ -21,7 +22,9 @@ namespace PESpy
     /// </summary>
     public struct PogoData : IValue, IViewable
     {
-        public PogoSignatureKind Signature => (PogoSignatureKind) chunk.PeekUInt32(0);
+        private const int SignatureOffset = 0;
+
+        public PogoSignatureKind Signature => (PogoSignatureKind) chunk.PeekUInt32(SignatureOffset);
 
         private PogoItem[]? entries;
 
@@ -75,9 +78,14 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.PogoData, this, ViewKind.PogoData, sizeOfData);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteField(nameof(Signature), Signature, sizeof(int));
 
@@ -91,8 +99,7 @@ namespace PESpy
                 s.Align(4);
             }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

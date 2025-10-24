@@ -183,107 +183,7 @@ namespace PESpy.View
 
             try
             {
-                #region IMAGE_OPTIONAL_HEADER
-
-                var o = peFile.OptionalHeader;
-
-                AddVirtualDirectory(ref dataDirectories, o.ExportTableDirectory, nameof(o.ExportTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.ImportTableDirectory, nameof(o.ImportTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
-
-                if (o.SecurityTableDirectory.VirtualAddress != 0)
-                    dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
-
-                AddVirtualDirectory(ref dataDirectories, o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.DebugTableDirectory, nameof(o.DebugTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
-
-                if (o.BoundImportTableDirectory.VirtualAddress != 0)
-                    dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
-
-                AddVirtualDirectory(ref dataDirectories, o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
-                AddVirtualDirectory(ref dataDirectories, o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
-
-                #endregion
-                #region ImageCor20Header
-
-                var cor20Header = peFile.Cor20Header;
-
-                if (cor20Header != null)
-                {
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.Metadata, "Cor20 Metadata Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.Resources, "Cor20 Resources Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.StrongNameSignature, "Cor20 StrongNameSignature Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.CodeManagerTable, "Cor20 CodeManagerTable Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.VTableFixups, "Cor20 VTableFixups Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.ExportAddressTableJumps, "Cor20 ExportAddressTableJumps Directory");
-                    AddVirtualDirectory(ref dataDirectories, cor20Header.ManagedNativeHeader, "Cor20 ManagedNativeHeader Directory");
-                }
-
-                #endregion
-                #region NGEN
-
-                var ngenHeader = peFile.NgenHeader;
-
-                if (ngenHeader != null)
-                {
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.HelperTable, "NGEN HelperTable Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.ImportSections, "NGEN ImportSections Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy0, "NGEN Dummy0 Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.StubsData, "NGEN StubsData Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.VersionInfo, "NGEN VersionInfo Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dependencies, "NGEN Dependencies Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.DebugMap, "NGEN DebugMap Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.ModuleImage, "NGEN ModuleImage Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.CodeManagerTable, "NGEN CodeManagerTable Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.ProfileDataList, "NGEN ProfileDataList Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.ManifestMetaData, "NGEN ManifestMetaData Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.VirtualSectionsTable, "NGEN VirtualSectionsTable Directory");
-
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.EEInfoTable, "NGEN EEInfoTable Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy1, "NGEN Dummy1 Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy2, "NGEN Dummy2 Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy3, "NGEN Dummy3 Directory");
-                    AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy4, "NGEN Dummy4 Directory");
-                }
-
-                #endregion
-                #region R2R
-
-                var r2rHeader = peFile.ReadyToRunHeader;
-
-                if (r2rHeader != null)
-                {
-                    var sections = r2rHeader.CoreHeader.Sections;
-
-                    for (var i = 0; i < sections.Length; i++)
-                    {
-                        ref var section = ref sections[i];
-
-                        AddVirtualDirectory(ref dataDirectories, section.Section, $"R2R {section.Type} Directory");
-
-                        if (section.Type == ReadyToRunSectionType.ImportSections)
-                        {
-                            var importSections = (ReadyToRunImportSection[]) section.Data!;
-
-                            for (var j = 0; j < importSections.Length; j++)
-                            {
-                                ref var importSection = ref importSections[j];
-
-                                AddVirtualDirectory(ref dataDirectories, importSection.Section, $"R2R Import {importSection.Type} Directory");
-                            }
-                        }
-                    }
-                }
-
-                #endregion
-
-                dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
+                CollectDataDirectories(ref dataDirectories);
 
                 using var merger = new Merger(peFile, this, structs, delayNameViews, dataDirectories, byteViewProvider);
 
@@ -303,6 +203,111 @@ namespace PESpy.View
             {
                 dataDirectories.Dispose();
             }
+        }
+
+        internal void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        {
+            #region IMAGE_OPTIONAL_HEADER
+
+            var o = peFile.OptionalHeader;
+
+            AddVirtualDirectory(ref dataDirectories, o.ExportTableDirectory, nameof(o.ExportTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.ImportTableDirectory, nameof(o.ImportTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
+
+            if (o.SecurityTableDirectory.VirtualAddress != 0)
+                dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
+
+            AddVirtualDirectory(ref dataDirectories, o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.DebugTableDirectory, nameof(o.DebugTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
+
+            if (o.BoundImportTableDirectory.VirtualAddress != 0)
+                dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
+
+            AddVirtualDirectory(ref dataDirectories, o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
+            AddVirtualDirectory(ref dataDirectories, o.CorHeaderTableDirectory, nameof(o.CorHeaderTableDirectory));
+
+            #endregion
+            #region ImageCor20Header
+
+            var cor20Header = peFile.Cor20Header;
+
+            if (cor20Header != null)
+            {
+                AddVirtualDirectory(ref dataDirectories, cor20Header.Metadata, "Cor20 Metadata Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.Resources, "Cor20 Resources Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.StrongNameSignature, "Cor20 StrongNameSignature Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.CodeManagerTable, "Cor20 CodeManagerTable Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.VTableFixups, "Cor20 VTableFixups Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.ExportAddressTableJumps, "Cor20 ExportAddressTableJumps Directory");
+                AddVirtualDirectory(ref dataDirectories, cor20Header.ManagedNativeHeader, "Cor20 ManagedNativeHeader Directory");
+            }
+
+            #endregion
+            #region NGEN
+
+            var ngenHeader = peFile.NgenHeader;
+
+            if (ngenHeader != null)
+            {
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.HelperTable, "NGEN HelperTable Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.ImportSections, "NGEN ImportSections Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy0, "NGEN Dummy0 Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.StubsData, "NGEN StubsData Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.VersionInfo, "NGEN VersionInfo Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dependencies, "NGEN Dependencies Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.DebugMap, "NGEN DebugMap Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.ModuleImage, "NGEN ModuleImage Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.CodeManagerTable, "NGEN CodeManagerTable Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.ProfileDataList, "NGEN ProfileDataList Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.ManifestMetaData, "NGEN ManifestMetaData Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.VirtualSectionsTable, "NGEN VirtualSectionsTable Directory");
+
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.EEInfoTable, "NGEN EEInfoTable Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy1, "NGEN Dummy1 Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy2, "NGEN Dummy2 Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy3, "NGEN Dummy3 Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy4, "NGEN Dummy4 Directory");
+            }
+
+            #endregion
+            #region R2R
+
+            var r2rHeader = peFile.ReadyToRunHeader;
+
+            if (r2rHeader != null)
+            {
+                var sections = r2rHeader.CoreHeader.Sections;
+
+                for (var i = 0; i < sections.Length; i++)
+                {
+                    ref var section = ref sections[i];
+
+                    AddVirtualDirectory(ref dataDirectories, section.Section, $"R2R {section.Type} Directory");
+
+                    if (section.Type == ReadyToRunSectionType.ImportSections)
+                    {
+                        var importSections = (ReadyToRunImportSection[]) section.Data!;
+
+                        for (var j = 0; j < importSections.Length; j++)
+                        {
+                            ref var importSection = ref importSections[j];
+
+                            AddVirtualDirectory(ref dataDirectories, importSection.Section, $"R2R Import {importSection.Type} Directory");
+                        }
+                    }
+                }
+            }
+
+            #endregion
+
+            dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
         }
 
         void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)

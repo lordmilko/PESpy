@@ -1,8 +1,9 @@
 ﻿using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly unsafe struct LocalIdAndGlobalIdPair
+    public readonly unsafe struct LocalIdAndGlobalIdPair : IViewableValue
     {
         /// <summary>
         /// local id inside the compile time PDB scope. 0 based
@@ -25,6 +26,21 @@ namespace PESpy.PDB
         internal LocalIdAndGlobalIdPair(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            throw new System.NotImplementedException();
+
+        int IViewable.NumChildren() => throw new System.NotImplementedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

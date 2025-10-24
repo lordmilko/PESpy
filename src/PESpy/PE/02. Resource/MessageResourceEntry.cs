@@ -1,5 +1,5 @@
 ﻿using System;
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy

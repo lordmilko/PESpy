@@ -8,7 +8,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_LOAD_CONFIG_CODE_INTEGRITY"/> structure.
     /// </summary>
-    public readonly struct ImageLoadConfigCodeIntegrity : IValue, IViewable
+    public readonly struct ImageLoadConfigCodeIntegrity : IViewableValue
     {
         private const int FlagsOffset = 0;
         private const int _CatalogOffset = 2;

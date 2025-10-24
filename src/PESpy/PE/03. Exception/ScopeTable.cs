@@ -13,7 +13,7 @@ namespace PESpy
     /// Represents the <see cref="SCOPE_TABLE"/> structure.
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
-    public struct ScopeTable : IValue, IViewable, IEnumerable<ScopeTable.ScopeRecord>
+    public struct ScopeTable : IViewableValue, IEnumerable<ScopeTable.ScopeRecord>
     {
         private const int CountOffset = 0;
         private const int RecordsOffset = 4;

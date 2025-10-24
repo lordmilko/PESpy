@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using ClrDebug;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;

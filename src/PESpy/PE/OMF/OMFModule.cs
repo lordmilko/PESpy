@@ -113,7 +113,7 @@ namespace PESpy
                     break;
 
                 case 4:
-                    structWriter.WriteStructField(nameof(SegInfo), SegInfoOffset, SegInfo);
+                    structWriter.WriteStructField(nameof(SegInfo), SegInfo);
                     break;
 
                 case 5:

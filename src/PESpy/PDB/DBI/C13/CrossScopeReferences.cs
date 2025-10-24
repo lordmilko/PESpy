@@ -1,8 +1,9 @@
 ﻿using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct CrossScopeReferences
+    public readonly struct CrossScopeReferences : IViewableValue
     {
         /// <summary>
         /// Module of definition Scope.
@@ -30,6 +31,21 @@ namespace PESpy.PDB
         internal CrossScopeReferences(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            throw new System.NotImplementedException();
+
+        int IViewable.NumChildren() => throw new System.NotImplementedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

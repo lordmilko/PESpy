@@ -92,12 +92,9 @@ namespace PESpy
                     structWriter.WriteField("iStreams", StreamsOffset, Streams);
                     break;
 
-                case 3:
+                default:
                     structWriter.WriteInline(StreamHeaders[index - 3]);
                     break;
-
-                default:
-                    throw new IndexOutOfRangeException();
             }
         }
     }

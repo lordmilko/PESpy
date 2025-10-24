@@ -4,6 +4,8 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //@comp.id.Value apparently has the compiler type in the top 16 bits and the compiler id version in the bottom?
+
     public struct ImageSymbol : IValue, IViewable
     {
         //Special section numbers
@@ -18,21 +20,28 @@ namespace PESpy
         public const ushort N_BTSHIFT = 4;
         public const ushort N_TSHIFT = 2;
 
+        private const int NameOffset = 0;
+        private const int ValueOffset = 8;
+        private const int SectionNumberOffset = 12;
+        private const int TypeOffset = 14;
+        private const int StorageClassOffset = 16;
+        private const int NumberOfAuxSymbolsOffset = 17;
+
         public NameOrOffset Name { get; }
 
-        public uint Value => chunk.PeekUInt32(8);
+        public uint Value => chunk.PeekUInt32(ValueOffset);
 
-        public ushort SectionNumber => chunk.PeekUInt16(12);
+        public ushort SectionNumber => chunk.PeekUInt16(SectionNumberOffset);
 
-        public ImageSymType Type => (ImageSymType) chunk.PeekUInt16(14);
+        public ImageSymType Type => (ImageSymType) chunk.PeekUInt16(TypeOffset);
 
         public ImageSymType BasicType => (ImageSymType) ((ushort) Type & N_BTMASK);
 
         public ImageSymDType DerivedType => (ImageSymDType) (((ushort) Type & N_TMASK) >> N_BTSHIFT);
 
-        public ImageSymClass StorageClass => (ImageSymClass) chunk.PeekByte(16);
+        public ImageSymClass StorageClass => (ImageSymClass) chunk.PeekByte(StorageClassOffset);
 
-        public byte NumberOfAuxSymbols => chunk.PeekByte(17);
+        public byte NumberOfAuxSymbols => chunk.PeekByte(NumberOfAuxSymbolsOffset);
 
         public ImageAuxSymbol[] AuxSymbols { get; }
 
@@ -90,29 +99,61 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_SYMBOL, this, ViewKind.ImageSymbol, StructSize + (NumberOfAuxSymbols * ImageAuxSymbol.StructSize));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+        int IViewable.NumChildren() => (Name.Short == 0 ? 2 : 1) + 5 + AuxSymbols.Length;
 
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
             if (Name.Short == 0)
             {
-                s.WriteField("Name.Short", Name.Short);
-                s.WriteField("Name.Long", Name.Long);
+                switch (index)
+                {
+                    case 0:
+                        structWriter.WriteField("Name.Short", NameOffset, Name.Short);
+                        return;
+
+                    case 1:
+                        structWriter.WriteField("Name.Long", NameOffset + 4, Name.Long);
+                        return;
+                }
+
+                //Everything after index 1 we pretend as if we're in long mode, where there was one previous child
+                index--;
             }
             else
             {
-                s.WriteNullPaddedAnsiField(nameof(Name), Name.Name, 8);
+                if (index == 0)
+                {
+                    structWriter.WriteNullPaddedAnsiField(nameof(Name), NameOffset, Name.Name, 8);
+                    return;
+                }
             }
 
-            s.WriteField(nameof(Value), Value);
-            s.WriteField(nameof(SectionNumber), SectionNumber);
-            s.WriteField(nameof(Type), Type, sizeof(short));
-            s.WriteField(nameof(StorageClass), StorageClass, sizeof(byte));
-            s.WriteField(nameof(NumberOfAuxSymbols), NumberOfAuxSymbols);
-            s.WriteInline(AuxSymbols);
+            switch (index)
+            {
+                case 1:
+                    structWriter.WriteField(nameof(Value), ValueOffset, Value);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(SectionNumber), SectionNumberOffset, SectionNumber);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Type), TypeOffset, Type, sizeof(short));
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(StorageClass), StorageClassOffset, StorageClass, sizeof(byte));
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(NumberOfAuxSymbols), NumberOfAuxSymbolsOffset, NumberOfAuxSymbols);
+                    break;
+
+                default:
+                    structWriter.WriteInline(AuxSymbols[index - 6]);
+                    break;
+            }
         }
 
         public readonly struct NameOrOffset

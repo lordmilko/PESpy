@@ -20,6 +20,8 @@
         protected internal abstract TResult VisitFile(FileView view);
         protected internal abstract TResult VisitSection(SectionView view);
         protected internal abstract TResult VisitStruct(IStructView view);
+        protected internal abstract TResult VisitStructField(IStructFieldView view);
+        protected internal abstract TResult VisitStructArrayField(IStructArrayFieldView view);
         protected internal abstract TResult VisitValue(IValueView view);
     }
 }

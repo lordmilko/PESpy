@@ -136,28 +136,37 @@ namespace PESpy
             writer.NewStruct(Strings.IMAGE_RESOURCE_DIRECTORY_ENTRY, this, ViewKind.ImageResourceDirectoryEntry, StructSize);
 
         int IViewable.NumChildren() => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            if (NameOrId.NameIsString)
-                s.WriteRVAField("Name", NameOrId.NameOffset);
-            else
-                s.WriteField("Id", (int) NameOrId.Id);
-
-            if (dataAndDirectoryUnion.DataIsDirectory)
+            switch (index)
             {
-                //We need to write the original value, where the high bit is set. The high bit will have been cleared
-                //in OffsetToDirectory, but is still present in OffsetToData (where we stored it for posterity)
-                s.WriteField("OffsetToData", (int) dataAndDirectoryUnion.OffsetToData.ListedOffset);
-            }
-            else
-            {
-                //No high bit to set, so we can just write OffsetToData as is
-                s.WriteRVAField("OffsetToData", dataAndDirectoryUnion.OffsetToData);
-            }
+                case 0:
+                    if (NameOrId.NameIsString)
+                        structWriter.WriteRVAField("Name", NameOrIdOffset, NameOrId.NameOffset);
+                    else
+                        structWriter.WriteField("Id", NameOrIdOffset, (int) NameOrId.Id);
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                    break;
+
+                case 1:
+                    if (dataAndDirectoryUnion.DataIsDirectory)
+                    {
+                        //We need to write the original value, where the high bit is set. The high bit will have been cleared
+                        //in OffsetToDirectory, but is still present in OffsetToData (where we stored it for posterity)
+                        structWriter.WriteField("OffsetToData", DataAndDirectoryOffset, (int) dataAndDirectoryUnion.OffsetToData.ListedOffset);
+                    }
+                    else
+                    {
+                        //No high bit to set, so we can just write OffsetToData as is
+                        structWriter.WriteRVAField("OffsetToData", DataAndDirectoryOffset, dataAndDirectoryUnion.OffsetToData);
+                    }
+
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]

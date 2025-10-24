@@ -84,35 +84,35 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(NumberOfSymbols), NumberOfSymbolsOffset, NumberOfSymbolsOffset, NumberOfSymbols);
+                    structWriter.WriteField(nameof(NumberOfSymbols), NumberOfSymbolsOffset, NumberOfSymbols);
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(LvaToFirstSymbol), LvaToFirstSymbolOffset, LvaToFirstSymbolOffset, LvaToFirstSymbol.ListedOffset);
+                    structWriter.WriteField(nameof(LvaToFirstSymbol), LvaToFirstSymbolOffset, LvaToFirstSymbol.ListedOffset);
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(NumberOfLinenumbers), NumberOfLinenumbersOffset, NumberOfLinenumbersOffset, NumberOfLinenumbers);
+                    structWriter.WriteField(nameof(NumberOfLinenumbers), NumberOfLinenumbersOffset, NumberOfLinenumbers);
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(LvaToFirstLinenumber), LvaToFirstLinenumberOffset, LvaToFirstLinenumberOffset, LvaToFirstLinenumber);
+                    structWriter.WriteField(nameof(LvaToFirstLinenumber), LvaToFirstLinenumberOffset, LvaToFirstLinenumber);
                     break;
 
                 case 4:
-                    structWriter.WriteField(nameof(RvaToFirstByteOfCode), RvaToFirstByteOfCodeOffset, RvaToFirstByteOfCodeOffset, RvaToFirstByteOfCode);
+                    structWriter.WriteField(nameof(RvaToFirstByteOfCode), RvaToFirstByteOfCodeOffset, RvaToFirstByteOfCode);
                     break;
 
                 case 5:
-                    structWriter.WriteField(nameof(RvaToLastByteOfCode), RvaToLastByteOfCodeOffset, RvaToLastByteOfCodeOffset, RvaToLastByteOfCode);
+                    structWriter.WriteField(nameof(RvaToLastByteOfCode), RvaToLastByteOfCodeOffset, RvaToLastByteOfCode);
                     break;
 
                 case 6:
-                    structWriter.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfDataOffset, RvaToFirstByteOfDataOffset, RvaToFirstByteOfData);
+                    structWriter.WriteField(nameof(RvaToFirstByteOfData), RvaToFirstByteOfDataOffset, RvaToFirstByteOfData);
                     break;
 
                 case 7:
-                    structWriter.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfDataOffset, RvaToLastByteOfDataOffset, RvaToLastByteOfData);
+                    structWriter.WriteField(nameof(RvaToLastByteOfData), RvaToLastByteOfDataOffset, RvaToLastByteOfData);
                     break;
 
                 default:

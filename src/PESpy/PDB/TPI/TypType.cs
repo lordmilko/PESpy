@@ -5,15 +5,15 @@ using ClrDebug.PDB;
 namespace PESpy.PDB
 {
     /* cvinfo.h contains the following text (which I have split up and annotated)
-     * 
+     *
      *     No leaf index can have a value of 0x0000.
-     *     
+     *
      *     The leaf indices are separated into ranges depending upon the use of the type record.
      *     - The first range is for type records that are not referenced by symbols but instead are referenced by other type records.
      *     - The second range is for the type records that are directly referenced in symbols.
-     * 
+     *
      *     All type records must have a starting leaf index in these first two ranges.
-     *     
+     *
      *     - The third range of leaf indices are used to build up complex lists such as the field list of a class type record.
      *       No type record can begin with one of the leaf indices.
      *     - The fourth ranges of type indices are used to represent numeric data in a symbol or type record.
@@ -23,15 +23,15 @@ namespace PESpy.PDB
      *     1. the next two bytes in the type record are examined.
      *     2. If the value is less than 0x8000, then the two bytes contain the numeric value.
      *     3. If the value is greater than 0x8000, then the data follows the leaf index in a format specified by the leaf index.
-     *     
+     *
      *     The final range of leaf indices are used to force alignment of subfields within a complex type record.
-     * 
+     *
      * 0x0001 -> 0x0016: leaf indices starting records but referenced from symbol records
      * 0x0200 -> 0x040d: leaf indices starting records but referenced only from type records
-     * 
+     *
      * 0x1000 -> 0x1011: 32-bit type index versions of leaves, all have the 0x1000 bit set
      * 1200   -> LF_ID_MAX: leaf indices starting records but referenced only from type records
-     * 
+     *
      * There are then special kinds in the range 0x8000 -> 0x801c
      */
 
@@ -72,7 +72,7 @@ namespace PESpy.PDB
         {
             if (value == default)
                 return "<null>";
-            
+
             return StringTypTypeDispatcher.Instance.Dispatch(this);
         }
 
@@ -162,6 +162,7 @@ namespace PESpy.PDB
         }
 
         public static implicit operator TypType(TYPTYPE* value) => new TypType(value);
+        public static implicit operator TYPTYPE*(TypType value) => value.value;
 
         public static implicit operator LfAlias(TypType typType) => new LfAlias((lfAlias*) ((byte*) typType.value + 2));
         public static implicit operator LfArgList(TypType typType) => new LfArgList((lfArgList*) ((byte*) typType.value + 2));

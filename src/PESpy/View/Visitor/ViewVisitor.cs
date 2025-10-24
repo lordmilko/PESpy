@@ -14,6 +14,8 @@
         protected internal abstract void VisitFile(FileView view);
         protected internal abstract void VisitSection(SectionView view);
         protected internal abstract void VisitStruct(IStructView view);
+        protected internal abstract void VisitStructField(IStructFieldView view);
+        protected internal abstract void VisitStructArrayField(IStructArrayFieldView view);
         protected internal abstract void VisitValue(IValueView view);
 
         protected virtual void VisitChildren(IContainerView view)

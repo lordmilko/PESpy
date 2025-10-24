@@ -116,7 +116,7 @@ namespace PESpy.PDB
                     break;
 
                 case 5:
-                    structWriter.WriteByteBlob();
+                    structWriter.WriteByteBlob(isectThunkTableOffset + sizeof(ushort), sizeof(ushort));
                     break;
 
                 case 6:

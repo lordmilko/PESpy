@@ -6,7 +6,7 @@ namespace PESpy
 {
     public static partial class Bundle
     {
-        public readonly struct Location : IValue, IViewable
+        public readonly struct Location : IViewableValue
         {
             private const int OffsetOffset = 0;
             private const int SizeOffset = 8;

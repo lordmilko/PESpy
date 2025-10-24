@@ -587,7 +587,7 @@ namespace PESpy
         private void WriteDirectoryOrThrow(string name, int relativeOffset, in ImageDataDirectory value, int directoryIndex, ref StructWriter structWriter)
         {
             if (directoryIndex < NumberOfRvaAndSizes)
-                structWriter.WriteStructField(name, relativeOffset, value);
+                structWriter.WriteStructField(name, value);
             else
                 throw new IndexOutOfRangeException();
         }

@@ -3,7 +3,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public struct FuncInfoV1 : IValue, IViewable
+    public struct FuncInfoV1 : IViewableValue
     {
         private const int magicNumberAndBBTFlagsOffset = 0;
         private const int MaxStateOffset = 4;

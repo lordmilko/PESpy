@@ -12,6 +12,7 @@ namespace PESpy
     public class AppHostSignature : IValue, IViewable
     {
         internal const int BundleHeaderOffsetOffset = 0;
+        private const int BundleSignatureOffset = 8;
 
         /* .NET Framework applications can be compiled to either an exe or a dll.
          * This works fine on Windows, because mscoree.dll is a system wide dll,

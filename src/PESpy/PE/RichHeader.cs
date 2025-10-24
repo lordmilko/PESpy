@@ -11,6 +11,13 @@ namespace PESpy
     /// </summary>
     public class RichHeader : IValue, IViewable //May be null, so can't be a struct
     {
+        private const int DanSOffset = 0;
+        private const int Padding1Offset = 4;
+        private const int Padding2Offset = 8;
+        private const int Padding3Offset = 12;
+        private int RichOffset => 16 + (Items.Length * PRODITEM.StructSize);
+        private int XorKeyOffset => 20 + (Items.Length * PRODITEM.StructSize);
+
         internal static unsafe RichHeader? New(int ntHeaderOffset, HeaderMemoryBlock headerBlock)
         {
             //https://www.virusbulletin.com/virusbulletin/2020/01/vb2019-paper-rich-headers-leveraging-mysterious-artifact-pe-format/
@@ -184,20 +191,55 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.RichHeader, this, ViewKind.RichHeader, FixedStructSize + (Items.Length * ProdItem.StructSize));
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => 6 + Items.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(DanS), DanSOffset, DanS);
+                    break;
 
-            s.WriteField(nameof(DanS), DanS);
-            s.WriteField(nameof(Padding1), Padding1);
-            s.WriteField(nameof(Padding2), Padding2);
-            s.WriteField(nameof(Padding3), Padding3);
-            s.WriteInline(Items);
-            s.WriteField(nameof(Rich), Rich);
-            s.WriteField(nameof(XorKey), XorKey);
+                case 1:
+                    structWriter.WriteField(nameof(Padding1), Padding1Offset, Padding1);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 2:
+                    structWriter.WriteField(nameof(Padding2), Padding2Offset, Padding2);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(Padding3), Padding3Offset, Padding3);
+                    break;
+
+                default:
+                    var i = index - 4;
+
+                    if (i < Items.Length)
+                    {
+                        structWriter.WriteInline(Items[i]);
+                    }
+                    else
+                    {
+                        i -= Items.Length;
+
+                        switch (i)
+                        {
+                            case 0:
+                                structWriter.WriteField(nameof(Rich), RichOffset, Rich);
+                                break;
+
+                            case 1:
+                                structWriter.WriteField(nameof(XorKey), XorKeyOffset, XorKey);
+                                break;
+
+                            default:
+                                throw new IndexOutOfRangeException();
+                        }
+                    }
+                    break;
+            }
         }
     }
 }

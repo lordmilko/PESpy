@@ -78,16 +78,25 @@ namespace PESpy.PDB
                         {
                             var pdbFile = chunk.PDBFile();
 
-                            if (pdbFile.PDB!.PDBHeader.ImplementationVersion == PDBIMPV.PDBImpvVC2)
-                                throw new NotImplementedException("Reading VC2 modules is not implemented"); //NT 4 has special logic for handling V2 files
-
                             int totalRead = 0;
 
-                            while (totalRead < end)
+                            if (pdbFile.PDB!.PDBHeader.ImplementationVersion == PDBIMPV.PDBImpvVC2)
                             {
-                                var module = new Modi(moduleChunk.Slice(totalRead), out var read);
-                                results.Add(module);
-                                totalRead += read;
+                                while (totalRead < end)
+                                {
+                                    var module = new Modi20(moduleChunk.Slice(totalRead), out var read);
+                                    results.Add(module);
+                                    totalRead += read;
+                                }
+                            }
+                            else
+                            {
+                                while (totalRead < end)
+                                {
+                                    var module = new Modi(moduleChunk.Slice(totalRead), out var read);
+                                    results.Add(module);
+                                    totalRead += read;
+                                }
                             }
 
                             Debug.Assert(totalRead == end);
@@ -163,9 +172,9 @@ namespace PESpy.PDB
             #endregion
             #region File Info
 
-            private FileInfo? fileInfo;
+            private OMFFileIndex? fileInfo;
 
-            public FileInfo? FileInfo
+            public OMFFileIndex? FileInfo
             {
                 get
                 {
@@ -174,7 +183,7 @@ namespace PESpy.PDB
                         var length = DbiHdr.cbFileInfo;
 
                         var isLengthPrefixedString = chunk.PDBFile().PDB!.PDBHeader.ImplementationVersion <= ClrDebug.PDB.PDBIMPV.PDBImpvVC98;
-                        fileInfo = new FileInfo(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length, isLengthPrefixedString);
+                        fileInfo = new OMFFileIndex(chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi + DbiHdr.cbSC + DbiHdr.cbSecMap), length, isLengthPrefixedString);
                     }
 
                     return fileInfo;
@@ -381,7 +390,7 @@ namespace PESpy.PDB
                  * 100: NewDbiHdr, C:\Windows\sys
                  * 102: /names(2) stem32\notepad.exe
                  * 103: /names(1) C:\Windows\sys
-                 * 
+                 *
                  * This creates the illusion that /names is starting on page 100, right after the NewDbiHdr. This is not the case.
                  * As you can see, the actual start of the string has been written in /names(1) on page 103. Page 100 previously
                  * was being used to store /names(1), but got repurposed to store NewDbiHdr instead */

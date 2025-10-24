@@ -5,7 +5,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //SI_PERSIST
-    public readonly struct SI_PERSIST : IValue, IViewable
+    public readonly struct SI_PERSIST : IViewableValue
     {
         private const int ByteCountOffset = 0;
         private const int PageListOffset = 4;

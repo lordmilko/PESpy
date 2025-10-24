@@ -25,7 +25,7 @@ namespace PESpy.PDB
         private const int padding1Offset = 22 + SC.StructSize;
         private const int mpifileichFileOffset = 24 + SC.StructSize;
         private const int ecInfoOffset = 28 + SC.StructSize;
-        private const int szModuleOffset = 28 + SC40.StructSize + ECInfo.StructSize;
+        private const int szModuleOffset = 28 + SC.StructSize + ECInfo.StructSize;
         private int szObjFileOffset => szModuleOffset + szModule.Length + 1;
 
         //Supposedly this field is used to store the "currently open mod", but in version 6.0 I don't think its actually used
@@ -95,11 +95,6 @@ namespace PESpy.PDB
             set => chunk.PokeUInt16(ifileMacOffset, value);
         }
 
-        public ushort padding1
-        {
-            get => chunk.PeekUInt16(padding1Offset);
-            set => chunk.PokeUInt16(padding1Offset, value);
-        }
         public int mpifileichFile
         {
             get => chunk.PeekInt32(mpifileichFileOffset);
@@ -196,7 +191,7 @@ namespace PESpy.PDB
             sizeof(int) + //cbLines
             sizeof(int) + //cbC13Lines
             sizeof(short) + //iFileMac
-            sizeof(short) + //padding1
+            sizeof(short) + //padding
             sizeof(int) + //mpifileichFile
             ECInfo.StructSize; //ecInfo
 
@@ -294,7 +289,7 @@ namespace PESpy.PDB
                     break;
 
                 case 11:
-                    structWriter.WriteField(nameof(padding1), padding1Offset, padding1);
+                    structWriter.WriteByteBlob(padding1Offset, sizeof(short));
                     break;
 
                 case 12:
@@ -302,7 +297,7 @@ namespace PESpy.PDB
                     break;
 
                 case 13:
-                    structWriter.WriteInline(ecInfo);
+                    structWriter.WriteStructField(nameof(ecInfo), ecInfo);
                     break;
 
                 case 14:

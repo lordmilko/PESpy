@@ -17,11 +17,29 @@ namespace PESpy.PDB
 
         public struct New
         {
-            public byte usVerPdbDllMin => (byte) (value & 0xFF);
+            public byte usVerPdbDllMin
+            {
+                get => (byte) (value & 0xFF);
+                set => this.value = (ushort) ((this.value & 0xFF00) | (value & 0xFF));
+            }
 
-            public byte usVerPdbDllMaj => (byte) ((value >> 8) & 0x7F);
+            public byte usVerPdbDllMaj
+            {
+                get => (byte) ((value >> 8) & 0x7F);
+                set => this.value = (ushort) ((this.value & 0x80FF) | ((value & 0x7F) << 8));
+            }
 
-            public bool fNewVerFmt => (value & 0x8000) != 0;
+            public bool fNewVerFmt
+            {
+                get => (value & 0x8000) != 0;
+                set
+                {
+                    if (value)
+                        this.value |= 0x8000;
+                    else
+                        this.value &= 0x7FFF;
+                }
+            }
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private ushort value;
@@ -45,16 +63,54 @@ namespace PESpy.PDB
 
         public struct Old
         {
-            public byte usVerPdbDllRBld => (byte) (value & 0x000F);
+            public byte usVerPdbDllRBld
+            {
+                get => (byte) (value & 0x000F);
+                set => this.value = (ushort) ((this.value & ~0x000F) | (value & 0x0F));
+            }
 
-            public byte usVerPdbDllMin => (byte) ((value >> 4) & 0x007F);
+            public byte usVerPdbDllMin
+            {
+                get => (byte) ((value >> 4) & 0x007F);
+                set => this.value = (ushort) ((this.value & ~0x07F0) | ((value & 0x7F) << 4));
+            }
 
-            public byte usVerPdbDllMaj => (byte) ((value >> 11) & 0x001F);
+            public byte usVerPdbDllMaj
+            {
+                get => (byte) ((value >> 11) & 0x001F);
+                set => this.value = (ushort) ((this.value & ~0xF800) | ((value & 0x1F) << 11));
+            }
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
 #pragma warning disable CS0649
             private ushort value;
 #pragma warning restore CS0649
+        }
+
+        public static DbiHdrVersion FromNew(byte usVerPdbDllMaj, byte usVerPdbDllMin)
+        {
+            return new DbiHdrVersion
+            {
+                vernew = new New
+                {
+                    usVerPdbDllMaj = usVerPdbDllMaj,
+                    usVerPdbDllMin = usVerPdbDllMin,
+                    fNewVerFmt = true
+                }
+            };
+        }
+
+        public static DbiHdrVersion FromOld(byte usVerPdbDllMaj, byte usVerPdbDllMin, byte usVerPdbDllRBld)
+        {
+            return new DbiHdrVersion
+            {
+                verold = new Old
+                {
+                    usVerPdbDllRBld = usVerPdbDllRBld,
+                    usVerPdbDllMin = usVerPdbDllMin,
+                    usVerPdbDllMaj = usVerPdbDllMaj
+                }
+            };
         }
 
         public static implicit operator DbiHdrVersion(ushort value) => new DbiHdrVersion {vernew = value};

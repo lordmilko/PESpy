@@ -76,16 +76,6 @@ namespace PESpy
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             structWriter.WriteInline(this[index]);
-
-            switch (index)
-            {
-                case 0:
-                    structWriter.WriteInline<GuardEHContinuationTable, Entry>(this);
-                    break;
-
-                default:
-                    throw new IndexOutOfRangeException();
-            }
         }
 
         [DebuggerDisplay("{DebuggerDisplay,nq}")]

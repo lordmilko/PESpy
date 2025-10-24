@@ -6,7 +6,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //CV_DebugSLinesHeader_t
-    public class CvDebugSLinesHeader : IValue, IViewable //It's going to be boxed, and also it stores a big array which we don't want to lose
+    public class CvDebugSLinesHeader : IViewableValue //It's going to be boxed, and also it stores a big array which we don't want to lose
     {
         private const int offConOffset = 0;
         private const int segConOffset = 4;

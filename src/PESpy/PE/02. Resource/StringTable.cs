@@ -7,7 +7,7 @@ namespace PESpy
     public partial class VsVersionInfo
     {
         [DebuggerDisplay("{DebuggerDisplay,nq}")]
-        public struct StringTable : IValue, IViewable
+        public struct StringTable : IViewableValue
         {
         private const int LengthOffset = 0;
         private const int ValueLengthOffset = 2;

@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Diagnostics;
 using ClrDebug;
 using PESpy.View.Builder;
@@ -18,11 +19,13 @@ namespace PESpy.View
             _lookupCache = new PESectionLookupCache(fileAccessor.PEFile);
         }
 
+        protected override ViewWriter CreateViewWriter() =>
+                new PEViewByteViewWriter(((PEFileAccessor) _fileAccessor).PEFile, _fileAccessor, _fileDisassembler);
+
         public override FileAccessor Execute()
         {
             //Mark all data structures that our PEFile knows about as being data
-            var viewWriter = new PEViewByteViewWriter(_peFile, _fileAccessor, _fileDisassembler);
-            ((IViewable) _peFile).WriteGlobals(viewWriter);
+            ((IViewable) _peFile).WriteGlobals(_viewWriter);
 
             //We may or may not have symbols. Collect any code locations pointed to by the PEFile
             //so we can at least disassemble something
@@ -43,7 +46,7 @@ namespace PESpy.View
 
             try
             {
-                viewWriter.CollectDataDirectories(ref dataDirectories);
+                ((PEViewWriter) _viewWriter).CollectDataDirectories(ref dataDirectories);
 
                 ((PEFileAccessor) _fileAccessor).DataDirectories = dataDirectories.ToArray();
             }
@@ -98,7 +101,7 @@ namespace PESpy.View
                         {
                             var info = isCode
                                 ? AddCode(targetAddress, address, sectionIndex)
-                                : _fileAccessor.AddData(targetAddress, address, sectionIndex, length: 1); //We don't know how big this data item is yet, so we'll just say it's 1 byte. If we get some symbols, we might be able to do better
+                                : _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Byte, length: 1); //We don't know how big this data item is yet, so we'll just say it's 1 byte. If we get some symbols, we might be able to do better
 
                             if (export.Name.Length > 0)
                                 _fileAccessor.AddName(targetAddress, info, (FixedUtf8String) export.Name);

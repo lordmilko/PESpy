@@ -171,7 +171,7 @@ namespace PESpy.PDB
                     break;
 
                 case 4:
-                    structWriter.WriteStructField("siSt", StreamTableSizeInfoOffset, StreamTableSizeInfo);
+                    structWriter.WriteStructField("siSt", StreamTableSizeInfo);
                     break;
 
                 case 5:

@@ -2804,6 +2804,32 @@ namespace PESpy
         }
 
         /// <summary>
+        /// Func MD Token Map
+        /// </summary>
+        internal static FixedUtf8String FuncMDTokenMap
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x75, 0x6E, 0x63, 0x20, 0x4D, 0x44, 0x20, 0x54, 0x6F, 0x6B, 0x65, 0x6E, 0x20, 0x4D, 0x61, 0x70 })
+                    return new FixedUtf8String(p, 17);
+            }
+        }
+
+        /// <summary>
+        /// Type MD Token Map
+        /// </summary>
+        internal static FixedUtf8String TypeMDTokenMap
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x54, 0x79, 0x70, 0x65, 0x20, 0x4D, 0x44, 0x20, 0x54, 0x6F, 0x6B, 0x65, 0x6E, 0x20, 0x4D, 0x61, 0x70 })
+                    return new FixedUtf8String(p, 17);
+            }
+        }
+
+        /// <summary>
         /// ALIGNSYM
         /// </summary>
         internal static FixedUtf8String ALIGNSYM

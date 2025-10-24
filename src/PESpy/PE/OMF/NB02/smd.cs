@@ -117,7 +117,7 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteStructField(nameof(SegInfo), SegInfoOffset, SegInfo);
+                    structWriter.WriteStructField(nameof(SegInfo), SegInfo);
                     break;
 
                 case 1:
@@ -146,7 +146,7 @@ namespace PESpy
                     if (items.Length == 0)
                         throw new IndexOutOfRangeException();
 
-                    structWriter.WriteStructField("arnsg", arnsgOffset, items);
+                    structWriter.WriteStructField("arnsg", items);
                     break;
 
                 default:

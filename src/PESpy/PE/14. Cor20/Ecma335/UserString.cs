@@ -6,6 +6,10 @@ namespace PESpy.Ecma335
 {
     public readonly unsafe struct UserString : IValue, IViewable
     {
+        private const int SizeOffset = 0;
+        private int ValueOffset => lengthSize;
+        private int UnicodeByteOffset => lengthSize + (Value.Length * 2);
+
         public NativeSpan<byte> CompressedSize => new NativeSpan<byte>(start, lengthSize);
 
         public FixedUtf16String Value { get; }
@@ -42,20 +46,35 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.UserString, this, ViewKind.Metadata_UserString, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => Value.Length > 0 ? 3 : 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
-
-            s.WriteField("Size", CompressedSize);
-
-            if (Value.Length > 0)
+            switch (index)
             {
-                s.WriteUTF16Field("Value", Value, Value.Length);
-                s.WriteField(nameof(UnicodeByte), UnicodeByte);
-            }
+                case 0:
+                    structWriter.WriteField("Size", SizeOffset, CompressedSize);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 1:
+                    if (Value.Length > 0)
+                        structWriter.WriteUtf16FixedLengthField("Value", ValueOffset, Value, Value.Length);
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
+
+                case 2:
+                    if (Value.Length > 0)
+                        structWriter.WriteField(nameof(UnicodeByte), UnicodeByteOffset, UnicodeByte);
+                    else
+                        throw new IndexOutOfRangeException();
+
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

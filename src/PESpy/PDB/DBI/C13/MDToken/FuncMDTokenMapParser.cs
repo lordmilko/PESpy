@@ -4,15 +4,16 @@ namespace PESpy.PDB
 {
     internal sealed class FuncMDTokenMapParser : MDTokenMapParser<FuncMDTokenMap, FuncMDTokenMap.Entry>
     {
-        protected override unsafe FuncMDTokenMap.Entry CreateSmallEntry(byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
+        protected override unsafe FuncMDTokenMap.Entry CreateSmallEntry(int offset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
         {
             //corert has an assert that EmitMetadataHandleForTypeSystemEntity returns a handle of type MemberReference for the method it passes in
             var token = (mdMemberRef) Extensions.TokenFromRid((int) ridOrTypeSig, CorTokenType.mdtMemberRef);
 
-            return new FuncMDTokenMap.Entry(rawEntry.RVAOrTypeIndex, rawEntry.Offset, token);
+            return new FuncMDTokenMap.Entry(offset, rawEntry.RVAOrTypeIndex, rawEntry.Offset, token);
         }
 
         protected override FuncMDTokenMap.Entry CreateLargeEntry(
+            int structOffset,
             in MemoryChunk blobChunk,
             RawMDTokenMapEntry rawEntry,
             int blobLength)
@@ -37,14 +38,21 @@ namespace PESpy.PDB
 
             var typeSpecBlobs = blobChunk.PeekNativeSpan<byte>(4, blobLength);
 
-            var entry = new FuncMDTokenMap.Entry(rawEntry.RVAOrTypeIndex, rawEntry.Offset, token, (int) numGenericArgs, typeSpecBlobs);
+            var entry = new FuncMDTokenMap.Entry(
+                structOffset,
+                rawEntry.RVAOrTypeIndex,
+                rawEntry.Offset,
+                token,
+                (int) numGenericArgs,
+                typeSpecBlobs
+            );
 
             return entry;
         }
 
-        protected override FuncMDTokenMap CreateMap(int numEntries, FuncMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
+        protected override FuncMDTokenMap CreateMap(int structOffset, int numEntries, FuncMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
         {
-            return new FuncMDTokenMap(numEntries, entries, dataBlob);
+            return new FuncMDTokenMap(structOffset, numEntries, entries, dataBlob);
         }
     }
 }

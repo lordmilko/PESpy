@@ -294,6 +294,8 @@ var strings = new[]{
     "CV_DebugSLinesHeader_t",
     "CV_DebugSLinesFileBlockHeader_t",
     "CV_Line_t",
+    "Func MD Token Map",
+    "Type MD Token Map",
 
     //Symbols
     "ALIGNSYM",

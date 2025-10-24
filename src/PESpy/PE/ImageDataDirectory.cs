@@ -11,7 +11,7 @@ namespace PESpy
     /// _the_ debug directory region that may be pointed to by a given <see cref="ImageDataDirectory"/>.
     /// </summary>
     [DebuggerDisplay("RVA = {VirtualAddress}, Size = {Size}")]
-    public readonly struct ImageDataDirectory : IValue, IViewable //Small enough that returning a copy from properties is OK
+    public readonly struct ImageDataDirectory : IViewableValue //Small enough that returning a copy from properties is OK
     {
         private const int VirtualAddressOffset = 0;
         private const int SizeOffset = 4;

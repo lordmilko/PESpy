@@ -8,7 +8,7 @@ namespace PESpy
     /// Information describing each segment in a module<para/>
     /// "nsg" in the Microsoft C 6.0 Developer's Toolkit Reference; "oldnsg" in cvexefmt.h
     /// </summary>
-    public readonly struct nsg : IValue, IViewable
+    public readonly struct nsg : IViewableValue
     {
         private const int SegOffset = 0;
         private const int OffOffset = 2;

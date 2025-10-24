@@ -6,7 +6,7 @@ using PESpy.View;
 namespace PESpy
 {
     [DebuggerDisplay("Flags = {Flags}, TryOffset = {TryOffset}, TryLength = {TryLength}, HandlerOffset = {HandlerOffset}, ClassToken = {ClassToken}, FilterOffset = {FilterOffset}")]
-    public readonly struct ImageCorILMethodSectEHClause : IValue, IViewable
+    public readonly struct ImageCorILMethodSectEHClause : IViewableValue
     {
         private const int FatFlagsOffset = 0;
         private const int FatTryOffsetOffset = 4;
@@ -178,11 +178,19 @@ namespace PESpy
                     {
                         case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FAULT:
                         default:
-                            structWriter.WriteField(nameof(ClassToken), FatFilterOffsetOffset, ClassToken);
+                            structWriter.WriteField(
+                                nameof(ClassToken),
+                                isFat ? FatFilterOffsetOffset : TinyFilterOffsetOffset,
+                                ClassToken
+                            );
                             break;
 
                         case CorExceptionFlag.COR_ILEXCEPTION_CLAUSE_FILTER:
-                            structWriter.WriteField(nameof(FilterOffset), TinyFilterOffsetOffset, ClassToken);
+                            structWriter.WriteField(
+                                nameof(FilterOffset),
+                                isFat ? FatFilterOffsetOffset : TinyFilterOffsetOffset,
+                                ClassToken
+                            );
                             break;
                     }
 

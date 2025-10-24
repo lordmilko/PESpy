@@ -1,4 +1,6 @@
-﻿namespace PESpy.View
+﻿using System;
+
+namespace PESpy.View
 {
     public abstract class ViewWalker : ViewVisitor
     {
@@ -32,6 +34,14 @@
         protected internal override void VisitSection(SectionView view) => VisitChildren(view);
 
         protected internal override void VisitStruct(IStructView view) => VisitChildren(view);
+
+        protected internal override void VisitStructField(IStructFieldView view) => VisitChildren(view.Value);
+
+        protected internal override void VisitStructArrayField(IStructArrayFieldView view)
+        {
+            foreach (var value in view.Value)
+                VisitChildren(value);
+        }
 
         protected internal override void VisitValue(IValueView view)
         {

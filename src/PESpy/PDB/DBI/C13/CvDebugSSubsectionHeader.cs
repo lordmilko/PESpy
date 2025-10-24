@@ -55,7 +55,7 @@ namespace PESpy.PDB
         /// <see cref="DEBUG_S_CROSSSCOPEEXPORTS"/> = <see cref="LocalIdAndGlobalIdPair"/>[]<para/>
         /// <see cref="DEBUG_S_IL_LINES"/> = <see cref="CvDebugSLinesHeader"/><para/>
         /// <see cref="DEBUG_S_FUNC_MDTOKEN_MAP"/> = <see cref="FuncMDTokenMap"/><para/>
-        /// <see cref="DEBUG_S_TYPE_MDTOKEN_MAP"/> = ?<para/>
+        /// <see cref="DEBUG_S_TYPE_MDTOKEN_MAP"/> = <see cref="TypeMDTokenMap"/><para/>
         /// <see cref="DEBUG_S_MERGED_ASSEMBLYINPUT"/> = <see cref="MergedAssemblyInfo"/>[]<para/><para/>
         /// Any other subsection types not listed are not supported.
         /// </summary>
@@ -240,7 +240,7 @@ namespace PESpy.PDB
                 for (var i = 0; i < entries.Length; i++)
                     entries[i] = new InlineeSourceLine(dataChunk.Slice(4 + (i * InlineeSourceLine.StructSize)));
 
-                return new InlineeSigAndLines(sig, entries);
+                return new InlineeSigAndLines(dataChunk.AbsoluteOffset, sig, entries);
             }
             else
             {
@@ -260,7 +260,7 @@ namespace PESpy.PDB
 
                 Debug.Assert(read == length);
 
-                return new InlineeSigAndLines(sig, list.ToArray());
+                return new InlineeSigAndLines(dataChunk.AbsoluteOffset, sig, list.ToArray());
             }
         }
 
@@ -372,68 +372,78 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.CV_DebugSSubsectionHeader_t, this, ViewKind.CvDebugSSubsectionHeader, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteField("type", Type, sizeof(int));
             s.WriteField("cbLen", Length);
 
             switch (Type)
             {
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS:
+                case DEBUG_S_SYMBOLS:
                     if (chunk.block is PagedMemoryBlock p)
-                        s.WritePagedValue(chunk.RelativeOffset + 8, p, (SymTypeList) Data);
+                        s.WritePagedValue(chunk.RelativeOffset + 8, p, GetSymbols());
                     else
-                        s.WriteValue(Offset + 8, (SymTypeList) Data);
+                        s.WriteValue(Offset + 8, GetSymbols());
                     break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES:
-                    s.WriteInline((CvDebugSLinesHeader) Data);
+                case DEBUG_S_LINES:
+                case DEBUG_S_IL_LINES:
+                    s.WriteInline(GetLines());
                     break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE:
-                    s.WriteInlineUtf8NullTerminated((RawValue<Utf8String>[]) Data);
+                case DEBUG_S_STRINGTABLE:
+                    s.WriteInlineUtf8NullTerminated(GetStringTable());
                     break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS:
-                    s.WriteInline((CvFileCheckSum[]) Data);
+                case DEBUG_S_FILECHKSMS:
+                    s.WriteInline(GetFileChecksums());
                     break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA:
-                    s.WriteInline((RvaAndFrameData) Data);
+                case DEBUG_S_FRAMEDATA:
+                    s.WriteInline(GetFrameData());
                     break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES:
-                    throw new NotImplementedException();
+                case DEBUG_S_INLINEELINES:
+                    s.WriteInline(GetInlineeLines());
+                    break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS:
-                    throw new NotImplementedException();
+                case DEBUG_S_CROSSSCOPEIMPORTS:
+                    s.WriteInline(GetCrossScopeImports());
+                    break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS:
-                    throw new NotImplementedException();
+                case DEBUG_S_CROSSSCOPEEXPORTS:
+                    s.WriteInline(GetCrossScopeExports());
+                    break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES:
-                    throw new NotImplementedException();
+                case DEBUG_S_FUNC_MDTOKEN_MAP:
+                    s.WriteInline(GetFuncMDTokenMap());
+                    break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP:
-                    throw new NotImplementedException();
+                case DEBUG_S_TYPE_MDTOKEN_MAP:
+                    s.WriteInline(GetTypeMDTokenMap());
+                    break;
 
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP:
-                    throw new NotImplementedException();
-
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT:
-                    throw new NotImplementedException();
-
-                case DEBUG_S_SUBSECTION_TYPE.DEBUG_S_COFF_SYMBOL_RVA:
-                    throw new NotImplementedException();
+                case DEBUG_S_MERGED_ASSEMBLYINPUT:
+                    s.WriteInline(GetMergedAssemblyInput());
+                    break;
 
                 default:
-                    throw new NotImplementedException();
+                    Debug.Assert(false);
+
+                    s.Pad(Length);
+                    break;
             }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
+        }
+
         private void VerifyType(DEBUG_S_SUBSECTION_TYPE type)
         {
             if (Type != type)

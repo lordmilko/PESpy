@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
@@ -18,6 +16,7 @@ namespace PESpy.Ecma335
         private const int Reserved2Offset = 7;
         private const int ValidOffset = 8;
         private const int SortedOffset = 16;
+        private const int RowCountsOffset = 24;
 
         public int Reserved1 => chunk.PeekInt32(Reserved1Offset);
 
@@ -38,7 +37,7 @@ namespace PESpy.Ecma335
         /// bits. In order to get the number of rows in each table, an array of 64 integers must be constructed, and the bits contained in <see cref="Valid"/>
         /// iterated over to assign each row count to the table that owns it.
         /// </summary>
-        public int[] RowCounts { get; init; }
+        public int[] RowCounts { get; init; } //This is the _compressed_ row counts!
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -107,40 +106,40 @@ namespace PESpy.Ecma335
 
         int IViewable.NumChildren() => 8;
 
-        void IViewable.WriteChild(int index, ViewWriter viewWriter)
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             switch (index)
             {
                 case 0:
-                    viewWriter.WriteField(nameof(Reserved1), Reserved1);
+                    structWriter.WriteField(nameof(Reserved1), Reserved1Offset, Reserved1);
                     break;
 
                 case 1:
-                    viewWriter.WriteField(nameof(MajorVersion), MajorVersion);
+                    structWriter.WriteField(nameof(MajorVersion), MajorVersionOffset, MajorVersion);
                     break;
 
                 case 2:
-                    viewWriter.WriteField(nameof(MinorVersion), MinorVersion);
+                    structWriter.WriteField(nameof(MinorVersion), MinorVersionOffset, MinorVersion);
                     break;
 
                 case 3:
-                    viewWriter.WriteField(nameof(HeapSizes), HeapSizes, sizeof(byte));
+                    structWriter.WriteField(nameof(HeapSizes), HeapSizesOffset, HeapSizes, sizeof(byte));
                     break;
 
                 case 4:
-                    viewWriter.WriteField(nameof(Reserved2), Reserved2);
+                    structWriter.WriteField(nameof(Reserved2), Reserved2Offset, Reserved2);
                     break;
 
                 case 5:
-                    viewWriter.WriteField(nameof(Valid), Valid, sizeof(long));
+                    structWriter.WriteField(nameof(Valid), ValidOffset, Valid, sizeof(long));
                     break;
 
                 case 6:
-                    viewWriter.WriteField(nameof(Sorted), Sorted, sizeof(long));
+                    structWriter.WriteField(nameof(Sorted), SortedOffset, Sorted, sizeof(long));
                     break;
 
                 case 7:
-                    viewWriter.WriteField(nameof(RowCounts), RowCounts);
+                    structWriter.WriteField(nameof(RowCounts), RowCountsOffset, RowCounts);
                     break;
 
                 default:

@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
-    public readonly struct ECInfo : IValue, IViewable
+    public readonly struct ECInfo : IViewableValue
     {
         private const int niSrcFileOffset = 0;
         private const int niPdbFileOffset = 4;

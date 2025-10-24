@@ -56,12 +56,31 @@ namespace PESpy.View
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
-        ViewChildList IContainerView.Children => new ViewChildList(Offset, value, viewWriter);
+        ViewChildList IContainerView.Children
+        {
+            get
+            {
+                //We can do better in the non-generic ViewChildList type: just wrap the children up in a fake parent; then we don't need to check whether we were eager or not with each child we access
+                if (StructWriter.NeedsEagerChildren(Kind))
+                    return new ViewChildList(Offset, new ViewChildProvider(viewWriter.GetChildren(Offset, value)), viewWriter);
+
+                return new ViewChildList(Offset, value, viewWriter);
+            }
+        }
 
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
-        public ViewChildList<TValue> Children => new ViewChildList<TValue>(Offset, value, viewWriter);
+        public ViewChildList<TValue> Children
+        {
+            get
+            {
+                if (StructWriter.NeedsEagerChildren(Kind))
+                    return new ViewChildList<TValue>(viewWriter.GetChildren(Offset, value));
+
+                return new ViewChildList<TValue>(Offset, value, viewWriter);
+            }
+        }
 
         /// <summary>
         /// Gets the total number of bytes that this struct occupies.
@@ -77,12 +96,11 @@ namespace PESpy.View
         private readonly TValue value;
         private readonly ViewWriter viewWriter;
 
-        public StructView(int offset, FixedUtf8String name, TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter)
+        public StructView(int offset, FixedUtf8String name, in TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter)
         {
             Offset = offset;
             Name = name;
             this.value = value;
-            this.children = children;
             Size = size;
             Kind = kind;
             this.viewWriter = viewWriter;
@@ -222,7 +240,7 @@ namespace PESpy.View
             {
                 //We're just rewriting ourselves to have a new offset
                 var newValue = new SplitStructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);
-                
+
                 if (sv.Previous != null)
                 {
                     //We need to set the previous's next to be us

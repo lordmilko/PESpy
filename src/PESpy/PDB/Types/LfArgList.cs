@@ -58,7 +58,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfArgList, this, ViewKind.LfArgList, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => 3;
+        int IViewable.NumChildren() => count == 0 ? 2 : 3;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -73,6 +73,7 @@ namespace PESpy.PDB
                     break;
 
                 case 2:
+                    //WriteField will throw IndexOutOfRangeException if this is empty
                     var arg = new NativeSpan<CV_typ_t>(value->arg, count);
                     structWriter.WriteField(nameof(arg), argOffset, arg);
                     break;

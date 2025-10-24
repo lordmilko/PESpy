@@ -31,17 +31,22 @@ namespace PESpy
     /// </summary>
     public struct UnwindInfo : IValue, IViewable
     {
+        private const int versionAndFlagsOffset = 0;
+        private const int SizeOfPrologOffset = 1;
+        private const int CountOfCodesOffset = 2;
+        private const int frameRegisterAndOffsetOffset = 3;
+
         public byte Version => (byte) (versionAndFlags & 0x7); //bottom 3 bits
 
         public UNW_FLAG Flags => (UNW_FLAG) ((versionAndFlags >> 3) & 0x1f); //top 5 bits
 
-        private byte versionAndFlags => chunk.PeekByte(0);
+        private byte versionAndFlags => chunk.PeekByte(versionAndFlagsOffset);
 
-        public byte SizeOfProlog => chunk.PeekByte(1);
+        public byte SizeOfProlog => chunk.PeekByte(SizeOfPrologOffset);
 
-        public byte CountOfCodes => chunk.PeekByte(2);
+        public byte CountOfCodes => chunk.PeekByte(CountOfCodesOffset);
 
-        private byte frameRegisterAndOffset => chunk.PeekByte(3);
+        private byte frameRegisterAndOffset => chunk.PeekByte(frameRegisterAndOffsetOffset);
 
         public byte FrameRegister => (byte) (frameRegisterAndOffset & 0x0F);
 
@@ -271,7 +276,7 @@ namespace PESpy
             {
                 /* https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#chained-unwind-info-structures
                  *
-                 * The formula for calculating the address of the chained info is 
+                 * The formula for calculating the address of the chained info is
                  *     PRUNTIME_FUNCTION primaryUwindInfo = (PRUNTIME_FUNCTION)&(unwindInfo->UnwindCode[( unwindInfo->CountOfCodes + 1 ) & ~1]);
                  *
                  * This seems quite complicated, but in effect what it's really saying is, "the chained RUNTIME_FUNCTION is listed after the aligned
@@ -406,11 +411,16 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
-        {
-            using var s = viewWriter.CreateStruct(parent);
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
-            using (var b = s.WriteBitFields<byte>())
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
+
+            using (var b = s.WriteBitFields<byte>(2))
             {
                 b.WriteField("Version", Version, 3);
                 b.WriteField("Flags", Flags, 5);
@@ -419,7 +429,7 @@ namespace PESpy
             s.WriteField(nameof(SizeOfProlog), SizeOfProlog);
             s.WriteField(nameof(CountOfCodes), CountOfCodes);
 
-            using (var b = s.WriteBitFields<byte>())
+            using (var b = s.WriteBitFields<byte>(2))
             {
                 b.WriteField(nameof(FrameRegister), FrameRegister, 4);
                 b.WriteField(nameof(FrameOffset), FrameOffset, 4);
@@ -438,7 +448,7 @@ namespace PESpy
 
                 if (data != null)
                 {
-                    if (data is IViewable v)
+                    if (data is IViewableValue v)
                         s.WriteInline(v);
                     else if (data is RawValue<int> r)
                         s.WriteInline(r, ViewKind.Value);
@@ -453,7 +463,7 @@ namespace PESpy
                 }
                 else
                 {
-                    var diff = parent.Size - s.Size;
+                    var diff = StructSize - s.Size;
 
                     if (diff > 0)
                         s.Pad(diff); //We don't know how to parse these bytes
@@ -464,8 +474,7 @@ namespace PESpy
                 s.WriteInline((RuntimeFunction) FunctionEntry!);
             }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

@@ -59,6 +59,8 @@
 
                 var offset = rawEntry.Offset;
 
+                var structOffset = dataChunk.AbsoluteOffset + 4 + (i * 8);
+
                 if ((offset >> 31) != 0)
                 {
                     /* The high bit is set, which means that for a func entry this is the RID,
@@ -70,7 +72,7 @@
                     var ridOrTypeSig = (int) (offset &= 0x7fffffff); //Clear the high bit
 
                     //Type entries need a pointer to the chunk so they can resolve their types
-                    entries[i] = CreateSmallEntry(dataChunk.Pointer, rawEntry, ridOrTypeSig);
+                    entries[i] = CreateSmallEntry(structOffset, dataChunk.Pointer, rawEntry, ridOrTypeSig);
                 }
                 else
                 {
@@ -102,25 +104,26 @@
                         blobLength = methodDataChunkLength - (int) offset;
                     }
 
-                    entries[i] = CreateLargeEntry(methodDataChunk.Slice((int) offset), rawEntry, blobLength);
+                    entries[i] = CreateLargeEntry(structOffset, methodDataChunk.Slice((int) offset), rawEntry, blobLength);
                 }
             }
 
             var dataBlob = methodDataChunk.PeekNativeSpan<byte>(0, methodDataChunkLength);
 
-            var map = CreateMap(numEntries, entries, dataBlob);
+            var map = CreateMap(dataChunk.AbsoluteOffset, numEntries, entries, dataBlob);
 
             return map;
         }
 
         //Value is the "cleaned" value with the top bit cleared
-        protected abstract unsafe TEntry CreateSmallEntry(byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig);
+        protected abstract unsafe TEntry CreateSmallEntry(int structOffset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig);
 
         protected abstract TEntry CreateLargeEntry(
+            int structOffset,
             in MemoryChunk blobChunk,
             RawMDTokenMapEntry rawEntry,
             int blobLength);
 
-        protected abstract TMap CreateMap(int numEntries, TEntry[] entries, NativeSpan<byte> dataBlob);
+        protected abstract TMap CreateMap(int structOffset, int numEntries, TEntry[] entries, NativeSpan<byte> dataBlob);
     }
 }

@@ -166,19 +166,19 @@ namespace PESpy.Tests
 
                     nameof(ImageResourceDataEntry) => propertyName switch
                     {
-                        nameof(ImageResourceDataEntry.OffsetToData) => null
+                        nameof(ImageResourceDataEntry.OffsetToData) => throw new System.NotImplementedException()
                     },
 
                     nameof(ImageResourceDirectoryEntry) => propertyName switch
                     {
-                        nameof(ImageResourceDirectoryEntry.OffsetToData) => null,
-                        nameof(ImageResourceDirectoryEntry.OffsetToDirectory) => null
+                        nameof(ImageResourceDirectoryEntry.OffsetToData) => throw new System.NotImplementedException(),
+                        nameof(ImageResourceDirectoryEntry.OffsetToDirectory) => throw new System.NotImplementedException()
                     },
 
                     nameof(ImageSectionHeader) => propertyName switch
                     {
-                        nameof(ImageSectionHeader.PointerToRelocations) => null, //GetStruct doesn't have either of these; find a sample that has line numbers
-                        nameof(ImageSectionHeader.PointerToLineNumbers) => null
+                        nameof(ImageSectionHeader.PointerToRelocations) => throw new System.NotImplementedException(), //GetStruct doesn't have either of these; find a sample that has line numbers
+                        nameof(ImageSectionHeader.PointerToLineNumbers) => throw new System.NotImplementedException()
                     },
 
                     nameof(RuntimeFunction) => propertyName switch

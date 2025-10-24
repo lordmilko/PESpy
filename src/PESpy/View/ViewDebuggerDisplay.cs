@@ -27,6 +27,8 @@ namespace PESpy.View
             var builder = new StringBuilder();
             WriteRange(builder, view);
             builder.Append(view.Name);
+            builder.Append(":");
+            builder.Append(view.Bits);
             builder.Append(" = ");
             builder.Append(view.Value);
 
@@ -292,6 +294,34 @@ namespace PESpy.View
 
             if (view is ISplitView)
                 builder.Append(" (Split)");
+
+            return builder.ToString();
+        }
+
+        public static string StructField<T>(StructFieldView<T> view) where T : IViewable
+        {
+            var builder = new StringBuilder();
+
+            WriteRange(builder, view);
+
+            builder.Append(view.FieldName);
+            builder.Append(" (");
+            builder.Append(view.StructName);
+            builder.Append(")");
+
+            return builder.ToString();
+        }
+
+        public static string StructArrayField<T>(StructArrayFieldView<T> view) where T : IViewable
+        {
+            var builder = new StringBuilder();
+
+            WriteRange(builder, view);
+
+            builder.Append(view.FieldName);
+            builder.Append(" (");
+            builder.Append(view.StructName);
+            builder.Append("[])");
 
             return builder.ToString();
         }

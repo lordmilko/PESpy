@@ -7,12 +7,15 @@ namespace PESpy.View
     {
         internal ref struct BitFieldWriter
         {
-            private List<IView> fields;
+            private Span<IView> fields;
             private int offset;
             private int bitsUsed;
             private int maxSize;
+            private int fieldIndex;
 
-            public BitFieldWriter(int offset, List<IView> fields, int bytes)
+            //The caller must ensure that the pooled list is expanded to be able to fit
+            //all of the required fields
+            public BitFieldWriter(int offset, Span<IView> fields, int bytes)
             {
                 this.offset = offset;
                 this.fields = fields;
@@ -49,7 +52,7 @@ namespace PESpy.View
 
                 bitsUsed += bits;
 
-                fields.Add(element);
+                fields[fieldIndex++] = element;
             }
 
             public void Dispose()

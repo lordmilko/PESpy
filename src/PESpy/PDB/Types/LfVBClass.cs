@@ -12,7 +12,7 @@ namespace PESpy.PDB
         private const int attrOffset = 2;
         private const int indexOffset = 4;
         private const int vbptrOffset = 8;
-                                                                        
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfVBClass* value;
 

@@ -35,7 +35,7 @@ namespace PESpy.Ecma335
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.BlobEntry, this, ViewKind.Metadata_Guid, StructSize);
 
-        int IViewable.NumChildren() => 2;
+        int IViewable.NumChildren() => length == 0 ? 1 : 2;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -46,6 +46,9 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
+                    if (length == 0)
+                        throw new IndexOutOfRangeException();
+
                     structWriter.WriteField("Value", lengthSize, Value);
                     break;
 

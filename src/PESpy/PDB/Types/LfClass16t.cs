@@ -81,7 +81,13 @@ namespace PESpy.PDB
         #endregion
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) => throw new System.NotImplementedException(); //TypType.ReadString(value->name, symbolAccessor);
+        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        {
+            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+            //I am assuming I need to use normal ST/UTF parsing logic
+            return TypType.ReadString(value->data + bytesRead, symbolAccessor);
+        }
 
         internal SymString GetUniqueName(ISymbolAccessor? symbolAccessor)
         {

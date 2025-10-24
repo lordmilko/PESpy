@@ -381,11 +381,11 @@ namespace PESpy
                     break;
 
                 case 6:
-                    structWriter.WriteField(nameof(AddressOfRawData), AddressOfRawDataOffset, AddressOfRawDataOffset, AddressOfRawData);
+                    structWriter.WriteField(nameof(AddressOfRawData), AddressOfRawDataOffset, AddressOfRawData);
                     break;
 
                 case 7:
-                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, PointerToRawDataOffset, PointerToRawData);
+                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, PointerToRawData);
                     break;
 
                 default:

@@ -5,7 +5,7 @@ namespace PESpy
 {
     public partial class VsVersionInfo
     {
-        public class StringFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
+        public class StringFileInfo : IViewableValue //This is a class so that it can be null without needing to use Nullable<T>
         {
         private const int LengthOffset = 0;
         private const int ValueLengthOffset = 2;

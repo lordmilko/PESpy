@@ -8,7 +8,7 @@ namespace PESpy
     /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure that provides information on how an 64-bit stack frame should be unwound.
     /// </summary>
     [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
-    public struct RuntimeFunction : IValue, IViewable
+    public struct RuntimeFunction : IViewableValue
     {
         private const int BeginAddressOffset = 0;
         private const int EndAddressOffset = 4;

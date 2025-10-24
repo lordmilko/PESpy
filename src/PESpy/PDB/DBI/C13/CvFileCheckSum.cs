@@ -6,7 +6,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //CV_FileCheckSum (from Roslyn)
-    public readonly struct CvFileCheckSum : IValue, IViewable
+    public readonly struct CvFileCheckSum : IViewableValue
     {
         private const int nameOffset = 0;
         private const int lenOffset = 4;

@@ -224,25 +224,28 @@ namespace PESpy
 
         int IViewable.NumChildren()
         {
-            get
+            const int baseCount = 2;
+
+            switch (Symbol)
             {
-                const int baseCount = 2;
+                case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
+                case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                    throw new NotImplementedException();
 
-                switch (Symbol)
-                {
-                    case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
-                    case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
-                        throw new NotImplementedException();
+                case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                    return baseCount + ((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!).Length;
 
-                    case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
-                    case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
-                    case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
-                    case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
-                        return baseCount + 1;
+                case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                    return baseCount + ((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!).Length;
 
-                    default: //ntoskrnl
-                        return baseCount + ((ImageBaseRelocation[]) Data!).Length;
-                }
+                case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                    return baseCount + ((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!).Length;
+
+                case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                    return baseCount + 1;
+
+                default: //ntoskrnl
+                    return baseCount + ((ImageBaseRelocation[]) Data!).Length;
             }
         }
 
@@ -258,28 +261,35 @@ namespace PESpy
                     structWriter.WriteField(nameof(BaseRelocSize), BaseRelocSizeOffset, BaseRelocSize);
                     break;
 
-                case 2:
-                    structWriter.WriteInline((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!);
-                    break;
-
-                case 3:
-                    structWriter.WriteInline((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!);
-                    break;
-
-                case 4:
-                    structWriter.WriteInline((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!);
-                    break;
-
-                case 5:
-                    structWriter.WriteInline((ImageFunctionOverrideHeader) Data!);
-                    break;
-
-                case 6:
-                    structWriter.WriteInline((ImageBaseRelocation[]) Data!);
-                    break;
-
                 default:
-                    throw new IndexOutOfRangeException();
+                    switch (Symbol)
+                    {
+                        case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
+                        case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                            Debug.Assert(false, $"Writing {Symbol} is not implemented");
+                            break;
+
+                        case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                            structWriter.WriteInline(((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!)[index - 2]);
+                            break;
+
+                        case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                            structWriter.WriteInline(((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!)[index - 2]);
+                            break;
+
+                        case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                            structWriter.WriteInline(((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!)[index - 2]);
+                            break;
+
+                        case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                            structWriter.WriteInline((ImageFunctionOverrideHeader) Data!);
+                            break;
+
+                        default: //ntoskrnl
+                            structWriter.WriteInline(((ImageBaseRelocation[]) Data!)[index - 2]);
+                            break;
+                    }
+                    break;
             }
         }
 

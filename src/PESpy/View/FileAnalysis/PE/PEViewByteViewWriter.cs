@@ -15,6 +15,8 @@ namespace PESpy.View
 
         protected internal override unsafe IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
         {
+            //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
+
             var pViewByte = _fileAccessor.GetViewByte(value.Offset, out _);
             pViewByte->Kind = ViewByteKind.Data;
             _fileAccessor.AddName(value.Offset, pViewByte, name);

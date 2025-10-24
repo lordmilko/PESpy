@@ -1,7 +1,9 @@
-﻿namespace PESpy.PDB
+﻿using PESpy.View;
+
+namespace PESpy.PDB
 {
     //Type is made up
-    public readonly struct MergedAssemblyInfo
+    public readonly struct MergedAssemblyInfo : IViewableValue
     {
         public Timestamp Timestamp { get; }
 
@@ -45,6 +47,21 @@
 
             VersionInfo = new VsVersionInfo(chunk.Slice(8));
             Name = chunk.PeekUtf8NullTerminatedString(8 + VersionInfo.Length);
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            throw new System.NotImplementedException();
+
+        int IViewable.NumChildren() => throw new System.NotImplementedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            throw new System.NotImplementedException();
         }
 
         public override string ToString()

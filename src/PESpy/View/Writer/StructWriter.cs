@@ -1,1039 +1,837 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using ClrDebug;
 using ClrDebug.PDB;
+using PESpy.Ecma335;
 using PESpy.PDB;
 using Enum = System.Enum;
 using SN = PESpy.PDB.SN;
 
 namespace PESpy.View
 {
-    public partial class ViewWriter
+    public ref struct StructWriter
     {
-        internal ref struct StructWriter
+        private readonly ViewWriter _viewWriter;
+        private readonly int _parentOffset;
+
+        internal IView? Field;
+        internal IView[]? EagerFields;
+
+        internal ViewWriter ViewWriter => _viewWriter;
+        internal int ParentOffset => _parentOffset;
+
+        internal StructWriter(ViewWriter viewWriter, int parentOffset)
         {
-            private string structName;
-            private ViewKind kind;
-            private int startOffset;
-            private int currentOffset;
-            private ViewWriter viewWriter;
-            private List<IView> fields;
-            private bool shouldAdd;
-
-#if DEBUG
-            private HashSet<long> globalFields => viewWriter.globalFields;
-#endif
-
-            public int Size => currentOffset - startOffset;
-
-            internal StructWriter(string name, int startOffset, ViewKind kind, ViewWriter viewWriter, bool shouldAdd)
-            {
-                structName = name;
-                this.startOffset = startOffset;
-                this.kind = kind;
-                currentOffset = startOffset;
-                this.viewWriter = viewWriter;
-                fields = viewWriter.RentList();
-                this.shouldAdd = shouldAdd;
-            }
-
-            internal StructWriter(int startOffset, ViewWriter viewWriter)
-            {
-                this.startOffset = startOffset;
-                currentOffset = startOffset;
-                this.viewWriter = viewWriter;
-                fields = viewWriter.RentList();
-
-                kind = default;
-                shouldAdd = default;
-                structName = default;
-            }
-
-            public void WriteField(string name, byte value) =>
-                WriteFieldInternal(name, value, sizeof(byte));
-
-            #region Int16
-
-            /// <summary>
-            /// Writes an <see cref="IFieldView"/> to a <see cref="StructView"/>.
-            /// </summary>
-            /// <param name="name">The name of the field to write.</param>
-            /// <param name="value">The value to use in the field.</param>
-            public void WriteField(string name, short value) =>
-                WriteFieldInternal(name, value, sizeof(short));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, ushort value) =>
-                WriteFieldInternal(name, value, sizeof(short));
-
-            #endregion
-            #region Int32
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, int value) =>
-                WriteFieldInternal(name, value, sizeof(int));
-
-            public void Write7BitField(string name, int value, int size) =>
-                WriteFieldInternal(name, value, size);
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, uint value) =>
-                WriteFieldInternal(name, value, sizeof(int));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, Timestamp value) =>
-                WriteFieldInternal(name, value, sizeof(int));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, long value) =>
-                WriteFieldInternal(name, value, sizeof(long));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, ulong value) =>
-                WriteFieldInternal(name, value, sizeof(long));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, float value) =>
-                WriteFieldInternal(name, value, sizeof(float));
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, double value) =>
-                WriteFieldInternal(name, value, sizeof(double));
-
-            public void WriteField(string name, PN value) =>
-                WriteFieldInternal(name, value, sizeof(uint));
-
-            public void WriteField(string name, SN value) =>
-                WriteFieldInternal(name, value, sizeof(ushort));
-
-            public void WriteField(string name, SN value, int size) =>
-                WriteFieldInternal(name, value, size);
-
-            public void WriteField(string name, IMOD value) =>
-                WriteFieldInternal(name, value, sizeof(ushort));
-
-            public void WriteField(string name, ISECT value) =>
-                WriteFieldInternal(name, value, sizeof(ushort));
-
-            public void WriteValue(LEAF_ENUM_e value, int size) =>
-                WriteValue(currentOffset, value, size, ViewKind.Value);
-
-            public unsafe void WriteNumericData(string name, byte* pValue)
-            {
-                var leaf = *(LEAF_ENUM_e*) pValue;
-
-                if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
-                {
-                    //The data does not contain a special leaf
-                    WriteField(name, (ushort) leaf);
-                    return;
-                }
-
-                WriteValue(leaf, sizeof(ushort));
-
-                pValue += sizeof(ushort);
-
-                switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
-                {
-                    case LEAF_ENUM_e.LF_CHAR:
-                        WriteField(name, *pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_SHORT:
-                        WriteField(name, *(short*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_USHORT:
-                        WriteField(name, *(ushort*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_LONG:
-                        WriteField(name, *(int*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_ULONG:
-                        WriteField(name, *(uint*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_REAL32:
-                    case LEAF_ENUM_e.LF_REAL64:
-                    case LEAF_ENUM_e.LF_REAL80:
-                    case LEAF_ENUM_e.LF_REAL128:
-                        throw new NotImplementedException();
-
-                    case LEAF_ENUM_e.LF_QUADWORD:
-                        WriteField(name, *(long*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_UQUADWORD:
-                        WriteField(name, *(ulong*) pValue);
-                        break;
-
-                    case LEAF_ENUM_e.LF_REAL48:
-                    case LEAF_ENUM_e.LF_COMPLEX32:
-                    case LEAF_ENUM_e.LF_COMPLEX64:
-                    case LEAF_ENUM_e.LF_COMPLEX80:
-                    case LEAF_ENUM_e.LF_COMPLEX128:
-                    case LEAF_ENUM_e.LF_VARSTRING:
-                    case LEAF_ENUM_e.LF_OCTWORD:
-                    case LEAF_ENUM_e.LF_UOCTWORD:
-                    case LEAF_ENUM_e.LF_DECIMAL:
-                    case LEAF_ENUM_e.LF_DATE:
-                    case LEAF_ENUM_e.LF_UTF8STRING:
-                    case LEAF_ENUM_e.LF_REAL16:
-                        throw new NotImplementedException();
-
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-
-            #endregion
-            #region Enum
-
-            public void WriteField<T>(string name, T value, int size) where T : Enum =>
-                WriteFieldInternal(name, value, size);
-
-            #endregion
-            #region Array
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, NativeSpan<byte> value)
-            {
-                //A field with a length of 0 will calculate itself as having a negative size (since if it starts at 0 and is 2 large it ends at 1)
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length);
-            }
-
-            public void WriteField(string name, byte[] value)
-            {
-                Debug.Assert(value.Length != 0);
-
-                WriteFieldInternal(name, value, value.Length);
-            }
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, NativeSpan<short> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 2);
-            }
-
-            public void WriteField(string name, NativeSpan<ushort> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 2);
-            }
-
-            public void WriteField(string name, ushort[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 2);
-            }
-
-            public void WriteField(string name, NativeSpan<PN> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            public void WriteField(string name, NativeSpan<int> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            /// <inheritdoc cref="WriteField(string, short)"/>
-            public void WriteField(string name, int[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            public void WriteField(string name, PN[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            public void WriteField(string name, CV_typ_t[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            public void WriteField(string name, CV_ItemId[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * 4);
-            }
-
-            public void WriteUTF8NullTerminatedField(string name, string[] value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                var size = 0;
-
-                foreach (var item in value)
-                    size += item.Length + 1;
-
-                WriteFieldInternal(name, value, size);
-            }
-
-            #endregion
-            #region Pointer
-
-            public void WritePointerField(string name, long value)
-            {
-                if (((PEViewWriter) viewWriter).Is32Bit)
-                    WriteFieldInternal(name, (int) value, sizeof(int));
-                else
-                    WriteFieldInternal(name, value, sizeof(long));
-            }
-
-            public void WritePointerField(string name, ulong value)
-            {
-                if (((PEViewWriter) viewWriter).Is32Bit)
-                    WriteFieldInternal(name, (uint) value, sizeof(int));
-                else
-                    WriteFieldInternal(name, value, sizeof(long));
-            }
-
-            public void WriteVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                //Assert that the global has already been written
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAPointerField<T>(string name, VA<T[]> value) where T : IViewable, IValue
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                //Assert that the global has already been written
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteSmallVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
-            {
-                WriteField(name, (int) value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteLargeVAPointerField<T>(string name, VA<T> value) where T : IViewable, IValue
-            {
-                WriteField(name, (long) value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteSmallVAPointerField<T>(string name, VA<T[]> value) where T : IViewable, IValue
-            {
-                WriteField(name, (int) value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAPointerField(string name, VA<long> value, ViewKind valueKind)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAPointerField(string name, VA<ulong> value, ViewKind valueKind)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAPointerField(string name, VA<ulong[]> value, ViewKind valueKind)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAPointerField(string name, VA<int[]> value, ViewKind valueKind)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            #endregion
-            #region String
-
-            public void WriteAnsiNullTerminatedField(string name, string value)
-            {
-                WriteFieldInternal(name, value, value.Length + 1);
-            }
-
-            public void WriteAnsiNullTerminatedField(string name, AnsiString value)
-            {
-                WriteFieldInternal(name, value, value.Length + 1);
-            }
-
-            public void WriteAnsiFixedLengthField(string name, FixedAnsiString value)
-            {
-                WriteFieldInternal(name, value, value.Length);
-            }
-
-            public unsafe void WriteLengthPrefixedAnsiField(string name, FixedAnsiString value)
-            {
-                WriteValue(currentOffset, (byte) value.Length, 1, ViewKind.String);
-                WriteFieldInternal(name, value, value.Length);
-            }
-
-            public void WriteUTF8NullTerminatedField(string name, string value)
-            {
-                WriteFieldInternal(name, value, value.Length + 1);
-            }
-
-            public void WriteUTF8NullTerminatedField(string name, Utf8String value)
-            {
-                WriteFieldInternal(name, value, value.Length + 1);
-            }
-
-            public void WriteUTF8FixedLengthField(string name, FixedUtf8String value)
-            {
-                WriteFieldInternal(name, value, value.Length);
-            }
-
-            public void WriteUTF16NullTerminatedField(string name, string value)
-            {
-                WriteFieldInternal(name, value, (value.Length + 1) * 2);
-            }
-
-            public void WriteUTF16NullTerminatedField(string name, Utf16String value)
-            {
-                WriteFieldInternal(name, value, (value.Length + 1) * 2);
-            }
-
-            public void WriteNullTerminatedField(string name, NullTerminatedString value)
-            {
-                switch (value.Kind)
-                {
-                    case StringKind.ANSI:
-                    case StringKind.UTF8:
-                        WriteFieldInternal(name, value, value.Length + 1);
-                        break;
-
-                    default:
-                        Debug.Assert(value.Kind == StringKind.UTF16);
-                        WriteFieldInternal(name, value, (value.Length + 1) * 2);
-                        break;
-                }
-            }
-
-            public void WriteNullPaddedAnsiField(string name, FixedAnsiString value, int length) => WriteFieldInternal(name, value, length);
-
-            public void WriteNullPaddedUTF8Field(string name, string value, int length) => WriteFieldInternal(name, value, length);
-
-            public void WriteNullPaddedUTF8Field(string name, FixedUtf8String value, int length) => WriteFieldInternal(name, value, length);
-
-            public void WriteSymStringField(string name, SymString value) => WriteFieldInternal(name, value, value.Length + 1);
-
-            public void WriteUTF16Field(string name, string value, int numChars)
-            {
-                WriteFieldInternal(name, value, numChars * 2);
-            }
-
-            public void WriteUTF16Field(string name, FixedUtf16String value, int numChars)
-            {
-                WriteFieldInternal(name, value.ToString(), numChars * 2);
-            }
-
-            #endregion
-            #region RVA
-
-            public void WriteRVAPointerField(string name, RVA<long> value)
-            {
-                WriteField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            public void WriteRVAField(string name, RVA<ulong[]> value)
-            {
-                WritePointerField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            public void WriteRVAAnsiNullTerminatedField(string name, RVA<string> value)
-            {
-                WritePointerField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            public void WriteVAAnsiNullTerminatedField(string name, VA<string> value)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid && value.ListedAddress != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteVAAnsiNullTerminatedField(string name, VA<AnsiString> value)
-            {
-                WritePointerField(name, value.ListedAddress);
-
-#if DEBUG
-                if (value.IsValid && value.ListedAddress != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedAddress));
-                }
-#endif
-            }
-
-            public void WriteRVAAnsiNullTerminatedField(string name, RVA<AnsiString> value)
-            {
-                WriteField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset), $"Did not write field '{name}' in WriteGlobals");
-                }
-#endif
-            }
-
-            public void WriteRVAField<T>(string name, RVA<T> value) where T : IViewable, IValue
-            {
-                WriteField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            public void WriteRVAField<T>(string name, RVA<T[]> value) where T : IViewable, IValue
-            {
-                WriteField(name, (int) value.ListedOffset);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            #endregion
-
-            public void WriteField(string name, CV_lvar_attr value) =>
-                WriteFieldInternal(name, value, sizeof(int) + sizeof(short) + sizeof(short));
-
-            public void WriteField(string name, CV_RANGEATTR value) =>
-                WriteFieldInternal(name, value, sizeof(short));
-
-            public void WriteField(string name, CV_GENERIC_FLAG value) =>
-                WriteFieldInternal(name, value, sizeof(short));
-
-            public void WriteField(string name, CV_SEPCODEFLAGS value) =>
-                WriteFieldInternal(name, value, sizeof(int));
-
-            public void WriteField(string name, CV_LVAR_ADDR_RANGE value) =>
-                WriteFieldInternal(name, value, sizeof(int) + sizeof(short) + sizeof(short));
-
-            public void WriteField(string name, NativeSpan<CV_LVAR_ADDR_GAP> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, (sizeof(short) + sizeof(short)) * value.Length);
-            }
-
-            public void WriteField(string name, NativeSpan<CV_typ_t> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * sizeof(int));
-            }
-
-            public void WriteField(string name, NativeSpan<CV_ItemId> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * sizeof(int));
-            }
-
-            public void WriteField(string name, NativeSpan<CV_typ16_t> value)
-            {
-                if (value.Length == 0)
-                    return;
-
-                WriteFieldInternal(name, value, value.Length * sizeof(short));
-            }
-
-            public void WriteField(string name, BinaryAnnotationList value)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void WriteByteBlob(int offset, int size)
-            {
-                fields.AddRange(viewWriter.CreateByteBlob(ref offset, size));
-                currentOffset += size;
-            }
-
-            public void WriteField(string name, Guid guid) =>
-                WriteFieldInternal(name, guid, 16);
-
-            /// <summary>
-            /// Writes an <see cref="IStructView"/> inside of a <see cref="FieldView{T}"/>.<para/>
-            /// This contrasts with <see cref="WriteInline{T}(T)"/> which writes an <see cref="IStructView"/> directly
-            /// without a containing <see cref="FieldView{T}"/>.
-            /// </summary>
-            /// <typeparam name="T">The type of structure to write.</typeparam>
-            /// <param name="name">The name of the field to write.</param>
-            /// <param name="value">The structure to encapsulate in the field.</param>
-            public void WriteStructField<T>(string name, T value) where T : IViewable
-            {
-                var oldOffset = viewWriter.UnmanagedOffset;
-                viewWriter.UnmanagedOffset = currentOffset;
-                var view = (IStructView) value.WriteStruct(viewWriter)!;
-                viewWriter.UnmanagedOffset = oldOffset;
-
-                WriteFieldInternal(name, view, view.Size);
-            }
-
-            public void WriteStructField<T>(string name, T[] value) where T : IViewable
-            {
-                var oldOffset = viewWriter.UnmanagedOffset;
-                viewWriter.UnmanagedOffset = currentOffset;
-
-                using var results = new PooledList<IView>();
-
-                var size = 0;
-
-                for (var i = 0; i < value.Length; i++)
-                {
-                    ref var item = ref value[i];
-
-                    var result = (IStructView) item.WriteStruct(viewWriter)!;
-
-                    if (result != null)
-                    {
-                        size += result.Size;
-                        results.Add(result);
-                    }
-                }
-
-                viewWriter.UnmanagedOffset = oldOffset;
-
-                WriteFieldInternal(name, results.ToArray(), size);
-            }
-
-            public void WriteInline<T>(T value) where T : IViewable
-            {
-                //If this is a PDB File, you can have an outer struct with 3 fields: A, B, C. A is an int, so uses
-                //the chunk of the parent. B. is a complex struct so gets a new chunk all of its own, and then C
-                //is also an int. If A crosses a page boundary, B's Offset will report the location of the new page,
-                //whereas C won't, because it's using the parent struct's chunk. C will only get its correct offset
-                //during splitting
-                Debug.Assert(viewWriter is PDBViewWriter || ((IValue) value).Offset == currentOffset);
-
-                var startIndex = fields.Count;
-
-                var oldOffset = viewWriter.UnmanagedOffset;
-                viewWriter.UnmanagedOffset = currentOffset;
-                var result = value.WriteStruct(viewWriter);
-
-                if (result != null)
-                    fields.Add(result);
-
-                viewWriter.UnmanagedOffset = oldOffset;
-
-                var fieldsSize = 0;
-
-                for (var i = startIndex; i < fields.Count; i++)
-                    fieldsSize += fields[i].Size;
-
-                currentOffset += fieldsSize;
-            }
-
-            public void WriteInline<T>(T[] value) where T : IViewable
-            {
-                var startIndex = fields.Count;
-
-                viewWriter.Push(fields);
-
-                var oldOffset = viewWriter.UnmanagedOffset;
-
-                for (var i = 0; i < value.Length; i++)
-                {
-                    viewWriter.UnmanagedOffset = currentOffset;
-                    value[i].WriteView(viewWriter);
-                    currentOffset += fields[startIndex + i].Size;
-            public void WriteInline(in GuardCFFunctionTable value)
-            public void WriteInline<T>(RVA<T> value, ViewKind kind) where T : IViewable, IValue
-            {
-                fields.Add(new ValueView<int>(currentOffset, value.ListedOffset, sizeof(int), kind));
-                currentOffset += sizeof(int);
-
-#if DEBUG
-                if (value.IsValid && value.ListedOffset != 0)
-                {
-                    Debug.Assert(globalFields.Contains(value.ListedOffset));
-                }
-#endif
-            }
-
-            public void WriteInline<TParent, TChild>(in TParent value) where TParent : IEnumerable<TChild> where TChild : IViewable
-            {
-                var startIndex = fields.Count;
-                var oldOffset = viewWriter.UnmanagedOffset;
-
-                foreach (var item in value)
-                {
-                    viewWriter.UnmanagedOffset = currentOffset;
-                    var result = ((IViewable) item).WriteStruct(viewWriter);
-
-                    if (result != null)
-                    {
-                        fields.Add(result);
-                        currentOffset += result.Size;
-                    }
-                }
-
-                viewWriter.UnmanagedOffset = oldOffset;
-
-                viewWriter.Pop();
-            }
-
-            public void WriteInline<T>(NativeSpan<T> value) where T : unmanaged, IViewable
-            {
-                var startIndex = fields.Count;
-
-                viewWriter.Push(fields);
-
-                var oldOffset = viewWriter.UnmanagedOffset;
-
-                for (var i = 0; i < value.Length; i++)
-                {
-                    viewWriter.UnmanagedOffset = currentOffset;
-                    var child = value[i].WriteStruct(viewWriter);
-
-                    if (child != null)
-                    {
-                        fields.Add(child);
-                        currentOffset += child.Size;
-                    }
-                }
-
-                viewWriter.UnmanagedOffset = oldOffset;
-
-                viewWriter.Pop();
-            }
-
-            public unsafe void WriteInline<T>(RawValue<T> value, ViewKind kind) where T : unmanaged
-            {
-                fields.Add(new ValueView<T>(value.Offset, value.Value, sizeof(T), kind));
-                currentOffset += sizeof(T);
-            }
-
-            public void WriteInlineAnsiNullTerminated(RawValue<string> value)
-            {
-                var size = value.Value.Length + 1;
-                fields.Add(new ValueView<string>(value.Offset, value.Value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            public void WriteInlineAnsiNullTerminated(RawValue<string>[] value)
-            {
-                foreach (var item in value)
-                    WriteInlineAnsiNullTerminated(item);
-            }
-
-            public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)
-            {
-                var size = value.Value.Length + 1;
-                Debug.Assert(currentOffset == value.Offset);
-                fields.Add(new ValueView<AnsiString>(value.Offset, value.Value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            public void WriteInlineAnsiNullTerminated(AnsiString value)
-            {
-                var size = value.Length + 1;
-                fields.Add(new ValueView<AnsiString>(currentOffset, value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            public void WriteInlineFixedAnsiString(FixedAnsiString value)
-            {
-                var size = value.Length;
-                fields.Add(new ValueView<FixedAnsiString>(currentOffset, value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            public void WriteInlineUtf16NullTerminated(FixedUtf16String value, int size)
-            {
-                fields.Add(new ValueView<FixedUtf16String>(currentOffset, value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            //We're pretending we're UTF8 because a newer version uses UTF8 but we're actually ANSI
-            public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value)
-            {
-                Debug.Assert(currentOffset == value.Offset); //We only pass the inner string to WriteInlineFixedAnsiString, so our offset bookkeeping better line up!
-                WriteValue(value.Offset, (byte) value.Value.Length, 1, ViewKind.String);
-                WriteInlineFixedAnsiString(new FixedAnsiString(value.Value.Value, value.Value.Length)); //+1 for the prefixed length
-            }
-
-            public void WriteInlineAnsiNullTerminated(RawValue<AnsiString>[] value)
-            {
-                foreach (var item in value)
-                    WriteInlineAnsiNullTerminated(item);
-            }
-
-            public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value)
-            {
-                var size = value.Value.Length + 1;
-                fields.Add(new ValueView<Utf8String>(value.Offset, value.Value, size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            //For when it's meant to be null terminated but we've had to convert it to fixed e.g. because older versions require fixed so we're pretending we're fixed too
-            public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value)
-            {
-                var size = value.Value.Length + 1;
-                fields.Add(new ValueView<Utf8String>(value.Offset, new Utf8String(value.Value.Value), size, ViewKind.String));
-                currentOffset += size;
-            }
-
-            public void WriteInlineUtf8NullTerminated(RawValue<Utf8String>[] value)
-            {
-                foreach (var item in value)
-                    WriteInlineUtf8NullTerminated(item);
-            }
-
-            public unsafe BitFieldWriter WriteBitFields<TSize>() where TSize : unmanaged
-            {
-                //Our child writer can't store a reference to us (and even though we're both ref structs, it seems to me that trying to assign ourselves still creates a copy).
-                //So pre-emptively increase the number of bytes written; our child writer will then assert that the specified number of bytes is what was written
-                var off = currentOffset;
-                var bytes = sizeof(TSize);
-                currentOffset += bytes;
-                return new BitFieldWriter(off, fields, bytes);
-            }
-
-            /// <summary>
-            /// Creates a writer around a synthetic structure that encapsulates two or more bitfield values.
-            /// </summary>
-            /// <param name="name">The name to give the synthetic structure.</param>
-            /// <param name="kind">The kind of the synthetic structure.</param>
-            /// <returns>A writer that creates a synthetic structure around two or more bitfield values.</returns>
-            public unsafe StructBitFieldWriter WriteStructBitField<TSize>(FixedUtf8String name, ViewKind kind) where TSize : unmanaged
-            {
-                //Our child writer can't store a reference to us (and even though we're both ref structs, it seems to me that trying to assign ourselves still creates a copy).
-                //So pre-emptively increase the number of bytes written; our child writer will then assert that the specified number of bytes is what was written
-                var off = currentOffset;
-                var bytes = sizeof(TSize);
-                currentOffset += bytes;
-                return new StructBitFieldWriter(name, off, kind, fields, bytes, viewWriter);
-            }
-
-            private void WriteFieldInternal<T>(string name, T value, int size)
-            {
-                //We will be writing a lot of primative values (Int16's, Int32's, etc). We do not want each value to be boxed,
-                //as that will cause a large number of (duplicated) allocations. The CLR does not know that the number "2" has been
-                //boxed before, so you'll have a lot of wasted memory for boxes storing the same value.
-
-                fields.Add(new FieldView<T>(currentOffset, name, value, size));
-                currentOffset += size;
-            }
-
-            public void WriteValue<T>(int offset, in T value, int size, ViewKind kind)
-            {
-                fields.Add(new ValueView<T>(offset, value, size, kind));
-                currentOffset += size;
-            }
-
-            #region Paged
-
-            /* We have an array of something that is known to exist at a given offset and is not wrapped in an IValue. We want to list the individual values separately
-             * in the output, however the array itself may have spanned multiple pages. We will therefore do the math in figuring out which page each value starts in.
-             * In the case where a given value extends past the end of a given page, this is OK: during merging we will detect this and convert the value into a split value */
-
-            public unsafe void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
-            {
-                using var p = viewWriter.CreatePagedWriter(startRelativeOffset, block, false);
-
-                foreach (var item in value)
-                    p.WriteValue(item, SymType.GetSymbolLength(item, value.symbolAccessor), ViewKind.SymType);
-            }
-
-            #endregion
-
-            //Should only be used for OBJ files
-            public unsafe void WriteValue(int offset, SymTypeList value)
-            {
-                var written = 0;
-
-                foreach (var item in value)
-                {
-                    var totalLength = SymType.GetSymbolLength(item, value.symbolAccessor);
-                    fields.Add(new ValueView<SymType>(offset + written, item, totalLength, ViewKind.SymType));
-                    written += totalLength;
-                }
-
-                currentOffset += written;
-            }
-
-            public bool NeedAlignment(int target, out int required)
-            {
-                var size = Size;
-                var alignedSize = ((int) size + (target - 1)) & (~(target - 1));
-
-                required = alignedSize - size;
-                return required != 0;
-            }
-
-            //There is a difference between aligning to a addresses and simply aligning the size.
-            //A value might be on an unaligned address but still need to have an aligned size
-            public void Align(int target)
-            {
-                if (NeedAlignment(target, out var required))
-                {
-                    var views = viewWriter.CreateByteBlob(ref currentOffset, required);
-                    fields.AddRange(views);
-                }
-            }
-
-            public void AlignMax(int target, int structLength)
-            {
-                //The length may or may not be aligned, the nature of that alignment may or may not be even.
-                //e.g. the length couldbe 59 bytes and 58 were used, so if you align to 60 you've now overcorrected!
-                if (NeedAlignment(target, out var required))
-                {
-                    required = Math.Min(required, structLength - Size);
-                    var views = viewWriter.CreateByteBlob(ref currentOffset, required);
-                    fields.AddRange(views);
-                }
-            }
-
-            public void Pad(int length)
-            {
-                var views = viewWriter.CreateByteBlob(ref currentOffset, length);
-                fields.AddRange(views);
-            }
-
-            [Conditional("DEBUG")]
-            public void VerifyLength(int length)
-            {
-                Debug.Assert(Size == length, $"Length of {structName} was not correct");
-            }
-
-            public IView[] ToArray() => fields.ToArray();
-
-            public void Dispose()
-            {
-                if (shouldAdd)
-                {
-                    var structView = new StructView(startOffset, structName, fields.ToArray(), Size, kind);
-
-                    viewWriter.AddView(structView);    
-                }
-                
-                viewWriter?.ReturnList(fields);
+            _viewWriter = viewWriter;
+            _parentOffset = parentOffset;
+            Field = default;
+            EagerFields = default;
+        }
+
+        internal static Exception GetEagerLoadOnlyException() =>
+            new NotSupportedException($"This type is too complex to support direct indexing. Use {nameof(ViewChildList)} instead.");
+
+        internal EagerStructWriter CreateEagerWriter() => new EagerStructWriter(this);
+
+        internal ISymbolAccessor GetSymbolAccessor() => _viewWriter.GetSymbolAccessor();
+
+        //Write a ByteBlob to ensure the specified alignment of the contents of the struct, or throw if we're already aligned, in which case
+        //the caller shouldn't be asking us to align again
+        internal IMAGE_FILE_MACHINE GetMachine(in MemoryChunk chunk) => throw new NotImplementedException();
+
+        internal static bool NeedsEagerChildren(ViewKind kind)
+        {
+            //Certain types involve very complex packing and aligning logic; so much so that a lot of extra work would be involved
+            //if we were to try and recompute where we're up to with each successive child index that we try to access. As such, for
+            //these troublesome types, we special case these and provide a mechanism to get all of their children in one go
+
+            switch (kind)
+            {
+                case ViewKind.CvDebugSSubsectionHeader:
+                case ViewKind.StreamTable:
+                case ViewKind.PogoData:
+
+                case ViewKind.LfFieldList:
+                case ViewKind.LfFieldList16t:
+                case ViewKind.StringFileInfo:
+
+                case ViewKind.VsVersionInfo:
+                case ViewKind.StringTable:
+                case ViewKind.StringTable_String:
+                case ViewKind.VarFileInfo:
+                case ViewKind.VarFileInfo_Var:
+
+                case ViewKind.ImageCorILMethodTiny:
+                case ViewKind.ImageCorILMethodFat:
+                case ViewKind.ImageLoadConfigDirectory:
+                case ViewKind.UnwindInfo:
+                    return true;
+
+                default:
+                    return false;
             }
         }
+
+        internal void AlignOrThrow(int bytesUsed)
+        {
+            var paddingSize = ((bytesUsed + 3) & ~3) - bytesUsed;
+
+            if (paddingSize > 0)
+                WriteByteBlob(bytesUsed, paddingSize);
+            else
+                throw new IndexOutOfRangeException();
+        }
+
+        internal static int GetNumChildrenAlign4(int numChildren, int bytesUsed)
+        {
+            if (bytesUsed != ((bytesUsed + 3) & ~3))
+                return numChildren + 1; //Used bytes are not 32-bit aligned; we'll need to add padding
+
+            return numChildren;
+        }
+
+        #region Byte
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, byte value) =>
+            RelayField(name, relativeOffset, value, sizeof(byte));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, sbyte value) =>
+            RelayField(name, relativeOffset, value, sizeof(sbyte));
+
+        #endregion
+        #region Int16
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, short value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, ushort value) =>
+            RelayField(name, relativeOffset, value, sizeof(ushort));
+
+        #endregion
+        #region Int32
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, int value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, uint value) =>
+            RelayField(name, relativeOffset, value, sizeof(uint));
+
+        #endregion
+        #region Int64
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, long value) =>
+            RelayField(name, relativeOffset, value, sizeof(long));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, ulong value) =>
+            RelayField(name, relativeOffset, value, sizeof(ulong));
+
+        #endregion
+        #region Float / Double
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, float value) =>
+            RelayField(name, relativeOffset, value, sizeof(float));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, double value) =>
+            RelayField(name, relativeOffset, value, sizeof(double));
+
+        #endregion
+        #region Strings
+        #region Ansi
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteAnsiNullTerminatedField(string name, int relativeOffset, string value) =>
+            RelayField(name, relativeOffset, value, value.Length + 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteAnsiNullTerminatedField(string name, int relativeOffset, AnsiString value) =>
+            RelayField(name, relativeOffset, value, value.Length + 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteAnsiFixedLengthField(string name, int relativeOffset, FixedAnsiString value) =>
+            RelayField(name, relativeOffset, value, value.Length);
+        #region Utf8
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf8NullTerminatedField(string name, int relativeOffset, string value) =>
+            RelayField(name, relativeOffset, value, value.Length + 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf8NullTerminatedField(string name, int relativeOffset, Utf8String value) =>
+            RelayField(name, relativeOffset, value, value.Length + 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf8FixedLengthField(string name, int relativeOffset, FixedUtf8String value) =>
+            RelayField(name, relativeOffset, value, value.Length);
+
+        #endregion
+        #region Utf16
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16NullTerminatedField(string name, int relativeOffset, string value) =>
+            RelayField(name, relativeOffset, value, (value.Length + 1) * 2);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16FixedLengthField(string name, int relativeOffset, FixedUtf16String value) =>
+            RelayField(name, relativeOffset, value, value.Length * 2);
+
+        //Sometimes you can have a fixed length field that ends in a null terminator; in that case, we need to report the true length
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16FixedLengthField(string name, int relativeOffset, FixedUtf16String value, int length) =>
+            RelayField(name, relativeOffset, value, length * 2);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16NullTerminatedField(string name, int relativeOffset, Utf16String value) =>
+            RelayField(name, relativeOffset, value, (value.Length + 1) * 2);
+
+        #endregion
+        #region Null Padded
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteNullPaddedAnsiField(string name, int relativeOffset, FixedAnsiString value, int length) => RelayField(name, relativeOffset, value, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteNullPaddedUtf8Field(string name, int relativeOffset, FixedUtf8String value, int length) => RelayField(name, relativeOffset, value, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteNullPaddedUtf8Field(string name, int relativeOffset, string value, int length) => RelayField(name, relativeOffset, value, length);
+
+        #endregion
+        #region Other
+
+        public void WriteNullTerminatedField(string name, int relativeOffset, NullTerminatedString value)
+        {
+            switch (value.Kind)
+            {
+                case StringKind.ANSI:
+                case StringKind.UTF8:
+                    RelayField(name, relativeOffset, value, value.Length + 1);
+                    break;
+
+                default:
+                    Debug.Assert(value.Kind == StringKind.UTF16);
+                    RelayField(name, relativeOffset, value, (value.Length + 1) * 2);
+                    break;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteSymStringField(string name, int relativeOffset, SymString value) => RelayField(name, relativeOffset, value, value.Length + 1);
+
+        #endregion
+        #endregion
+        #region Pointer
+
+        public void WritePointerField(string name, int relativeOffset, long value)
+        {
+            if (((PEViewWriter) _viewWriter).Is32Bit)
+                RelayField(name, relativeOffset, (int) value, sizeof(int));
+            else
+                RelayField(name, relativeOffset, value, sizeof(long));
+        }
+
+        public void WritePointerField(string name, int relativeOffset, ulong value)
+        {
+            if (((PEViewWriter) _viewWriter).Is32Bit)
+                RelayField(name, relativeOffset, (uint) value, sizeof(int));
+            else
+                RelayField(name, relativeOffset, value, sizeof(long));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField<T>(string name, int relativeOffset, VA<T[]> value) where T : IViewable, IValue
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteSmallVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, (int) value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteLargeVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, (long) value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteSmallVAPointerField<T>(string name, int relativeOffset, VA<T[]> value) where T : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, (int) value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<long> value, ViewKind valueKind)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong> value, ViewKind valueKind)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong[]> value, ViewKind valueKind)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<int[]> value, ViewKind valueKind)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAAnsiNullTerminatedField(string name, int relativeOffset, VA<string> value)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAAnsiNullTerminatedField(string name, int relativeOffset, VA<AnsiString> value)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        #endregion
+        #region RVA
+
+        //The fact that the target is a pointer is irrelevant; it's still just an RVA
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAPointerField(string name, int relativeOffset, RVA<long> value)
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAField(string name, int relativeOffset, RVA<ulong[]> value)
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAAnsiNullTerminatedField(string name, int relativeOffset, RVA<string> value)
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAAnsiNullTerminatedField(string name, int relativeOffset, RVA<AnsiString> value)
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAField<T>(string name, int relativeOffset, RVA<T> value) where T : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteRVAField<T>(string name, int relativeOffset, RVA<T[]> value) where T : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, value.ListedOffset);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        #endregion
+        #region Typedefs
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_typ_t value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_typ16_t value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, PN value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        //Sometimes this is 32-bit; it's up to the caller to say what they want
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, SN value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, SN value, int size) =>
+            RelayField(name, relativeOffset, value, size);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, IMOD value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, ISECT value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        #endregion
+        #region Enums
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField<T>(string name, int relativeOffset, T value, int size) where T : Enum =>
+            RelayField(name, relativeOffset, value, size);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+        #endregion
+        #region Structs
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, Guid guid) =>
+            RelayField(name, relativeOffset, guid, 16);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, Timestamp value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_lvar_attr value) =>
+            RelayField(name, relativeOffset, value, sizeof(int) + sizeof(short) + sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_RANGEATTR value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_GENERIC_FLAG value) =>
+            RelayField(name, relativeOffset, value, sizeof(short));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_SEPCODEFLAGS value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_LVAR_ADDR_RANGE value) =>
+            RelayField(name, relativeOffset, value, sizeof(int) + sizeof(short) + sizeof(short));
+        #region Arrays
+        #region Byte[]
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<byte> value)
+        {
+            //A field with a length of 0 will calculate itself as having a negative size (since if it starts at 0 and is 2 large it ends at 1)
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length);
+        }
+
+        public void WriteField(string name, int relativeOffset, byte[] value)
+        {
+            Debug.Assert(value.Length > 0);
+            RelayField(name, relativeOffset, value, value.Length);
+        }
+
+        #endregion
+        #region Int16[]
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<short> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 2);
+        }
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<ushort> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 2);
+        }
+
+        public void WriteField(string name, int relativeOffset, ushort[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 2);
+        }
+
+        #endregion
+        #region Int32[]
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<int> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        public void WriteField(string name, int relativeOffset, int[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        #endregion
+        #region String[]
+
+        public void WriteUtf8NullTerminatedField(string name, int relativeOffse, string[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            var size = 0;
+
+            foreach (var item in value)
+                size += item.Length + 1;
+
+            RelayField(name, relativeOffse, value, size);
+        }
+
+        #endregion
+        #region Typedefs[]
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<PN> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        public void WriteField(string name, int relativeOffset, PN[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_typ_t> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(int));
+        }
+
+        public void WriteField(string name, int relativeOffset, CV_typ_t[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_typ16_t> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(short));
+        }
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_ItemId> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(int));
+        }
+
+        public void WriteField(string name, int relativeOffset, CV_ItemId[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * 4);
+        }
+
+        #endregion
+        #region Structs
+
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_LVAR_ADDR_GAP> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, (sizeof(short) + sizeof(short)) * value.Length);
+        }
+
+        #endregion
+        #endregion
+        #region Ecma
+        #region Heap
+
+        internal void WriteStringHeapIndex(string name, int relativeOffset, StringIndex index)
+        {
+            if (((PEViewWriter) _viewWriter).MetadataReader.StringIndexSize == 4)
+                WriteField(name, relativeOffset, (int) index);
+            else
+                WriteField(name, relativeOffset, (ushort) index);
+        }
+
+        internal void WriteBlobHeapIndex(string name, int relativeOffset, BlobIndex index)
+        {
+            if (((PEViewWriter) _viewWriter).MetadataReader.BlobIndexSize == 4)
+                WriteField(name, relativeOffset, (int) index);
+            else
+                WriteField(name, relativeOffset, (ushort) index);
+        }
+
+        internal void WriteBlobHeapIndex(string name, int relativeOffset, DocumentNameBlobIndex index)
+        {
+            if (((PEViewWriter) _viewWriter).MetadataReader.BlobIndexSize == 4)
+                WriteField(name, relativeOffset, (int) index);
+            else
+                WriteField(name, relativeOffset, (ushort) index);
+        }
+
+        internal void WriteGuidHeapIndex(string name, int relativeOffset, GuidIndex index)
+        {
+            if (((PEViewWriter) _viewWriter).MetadataReader.GuidIndexSize == 4)
+                WriteField(name, relativeOffset, (int) index);
+            else
+                WriteField(name, relativeOffset, (ushort) index);
+        }
+
+        #endregion
+        #region Coded
+
+        internal void WriteTypeDefOrRefIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeDefOrRefSize);
+
+        internal void WriteHasConstantIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasConstantSize);
+
+        internal void WriteHasCustomAttributeIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomAttributeSize);
+
+        internal void WriteHasFieldMarshalIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasFieldMarshalSize);
+
+        internal void WriteHasDeclSecurityIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasDeclSecuritySize);
+
+        internal void WriteMemberRefParentIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberRefParentSize);
+
+        internal void WriteHasSemanticsIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasSemanticsSize);
+
+        internal void WriteMethodDefOrRefIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MethodDefOrRefSize);
+
+        internal void WriteMemberForwardedIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberForwardedSize);
+
+        internal void WriteImplementationIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ImplementationSize);
+
+        internal void WriteCustomAttributeTypeIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.CustomAttributeTypeSize);
+
+        internal void WriteResolutionScopeIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ResolutionScopeSize);
+
+        internal void WriteTypeOrMethodDefIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeOrMethodDefSize);
+
+        //Portable PDB
+
+        internal void WriteHasCustomDebugInformationIndex(string name, int relativeOffset, int value) =>
+            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomDebugInformationSize);
+
+        private void WriteIndex(string name, int relativeOffset, int index, int indexSize)
+        {
+            if (indexSize == 4)
+                WriteField(name, relativeOffset, index);
+            else
+                WriteField(name, relativeOffset, (ushort) index);
+        }
+
+        internal void WriteSimpleIndex(string name, int relativeOffset, int value, TableKind kind)
+        {
+            var size = ((PEViewWriter) _viewWriter).MetadataReader.GetSimpleIndexSize(kind);
+
+            WriteIndex(name, relativeOffset, value, size);
+        }
+
+        #endregion
+        #endregion
+        #region String (RawValue)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value) =>
+            RelayInline(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInlineSymString(RawValue<SymString> value) =>
+            RelayInline(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+
+        #endregion
+        #endregion
+        #region ByteBlob
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteByteBlob(int relativeOffset, int size) =>
+            _viewWriter.WriteByteBlob(_parentOffset, relativeOffset, size, ref this);
+
+        #endregion
+        #region StructField
+
+        internal void WriteStructField<T>(string name, int relativeOffset, T value) where T : unmanaged, IViewable =>
+            _viewWriter.WriteStructField(name, _parentOffset, relativeOffset, value, ref this);
+        internal void WriteStructField<T>(string name, T value) where T : IViewableValue =>
+            _viewWriter.WriteStructField(name, value, ref this);
+
+        internal void WriteStructField<T>(string name, T[] value) where T : IViewableValue =>
+            _viewWriter.WriteStructField(name, value, ref this);
+
+        #endregion
+        #region BitField
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, byte value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, short value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, ushort value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, int value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, uint value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField(string name, int relativeOffset, bool value, int size, int bits)
+        {
+            //Don't know if it could be possible to have a bool that occupies 2 bytes, so make the caller think about what the size of the field is instead of just assuming all bools are 1 byte
+            Debug.Assert(bits == 1, $"Writing a bool that is supposed to occupy {bits} bits is not implemented");
+
+            RelayBitField(name, relativeOffset, (byte) (value ? 1 : 0), size, bits);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBitField<T>(string name, int relativeOffset, T value, int size, int bits) =>
+            RelayBitField(name, relativeOffset, value, size, bits);
+
+        #endregion
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RelayField<T>(string name, int relativeOffset, T value, int size) =>
+            _viewWriter.WriteField(name, _parentOffset, relativeOffset, value, size, ref this);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RelayBitField<T>(string name, int relativeOffset, T value, int size, int bits) =>
+            _viewWriter.WriteBitField(name, _parentOffset, relativeOffset, value, size, bits, ref this);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RelayInline<T>(int valueOffset, T value, int size, ViewKind kind) =>
+            _viewWriter.WriteValue(_parentOffset, valueOffset - _parentOffset, value, size, kind, ref this);
     }
 }

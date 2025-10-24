@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public struct FuncInfo : IValue, IViewable
+    public struct FuncInfo : IViewableValue
     {
         /* FuncInfo can have a completely different structure if _EH_RELATIVE_FUNCINFO is defined.
          * ehdate.h makes several references on fields that apply when _EH_RELATIVE_FUNCINFO is defined

@@ -68,6 +68,8 @@ namespace PESpy.View
             }
         }
 
+        public abstract bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex);
+
         public ViewEntity GetEntity(int address)
         {
             var pViewByte = GetViewByte(address, out var sectionIndex);
@@ -126,6 +128,8 @@ namespace PESpy.View
         }
 
         public abstract unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength);
+
+        internal abstract MemoryChunk GetMemoryChunk(int rva);
 
         #region ViewByte
 
@@ -188,22 +192,23 @@ namespace PESpy.View
         #endregion
         #region View Info
 
-        internal ViewByte* SetIsFunction(int address, int sectionIndex)
+        internal ViewByte* SetIsFunction(int targetAddress, int sectionIndex)
         {
-            var pViewByte = GetViewByteForSection(address, sectionIndex);
+            var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
 
             pViewByte->IsFunction = true;
 
             return pViewByte;
         }
 
-        internal ViewByte* AddData(int address, int rva, int sectionIndex, int length)
+        internal ViewByte* AddData(int targetAddress, int sectionIndex, ViewByteDataKind dataKind, int length)
         {
-            var pViewByte = GetViewByteForSection(address, sectionIndex);
+            var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
 
             //We should not be thinking that something was code and then erroneously declaring that actually it's data
             Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Data);
             pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = dataKind;
 
             var pEnd = pViewByte + length;
 
@@ -216,46 +221,84 @@ namespace PESpy.View
             return pViewByte;
         }
 
+        internal ViewByte* AddString(int targetAddress, int sectionIndex, bool isWide, int numBytes)
+        {
+            var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
+
+            Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Data);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.String;
+            pViewByte->IsWide = isWide;
+
+            var pEnd = pViewByte + numBytes;
+
+            for (var i = pViewByte + 1; i < pEnd; i++)
+            {
+                Debug.Assert(i->Kind == ViewByteKind.Unknown);
+                i->Kind = ViewByteKind.Body;
+            }
+
+            return pViewByte;
+        }
+
         #region Name
 
-        internal void AddName(int address, ViewByte* pViewByte, FixedUtf8String name)
+        internal void AddName(int targetAddress, ViewByte* pViewByte, FixedUtf8String name)
         {
             Debug.Assert(name.Length > 0);
 
-            if (!_infoMap.TryGetValue(address, out var data))
+            if (!_infoMap.TryGetValue(targetAddress, out var data))
             {
                 data = new ViewInfo();
             }
 
             data.Name = name;
 
-            _infoMap[address] = data;
+            _infoMap[targetAddress] = data;
 
             pViewByte->HasName = true;
         }
 
-        public FixedUtf8String GetName(int address) => _infoMap[address].Name;
+        public FixedUtf8String GetName(int targetAddress) => _infoMap[targetAddress].Name;
 
         #endregion
         #region Struct
 
-        internal void AddStructKind(int address, ViewKind kind)
+        internal void AddStruct(int targetAddress, int sectionIndex, FixedUtf8String name, ViewKind kind, int length)
         {
-            if (!_infoMap.TryGetValue(address, out var data))
+            var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Struct;
+
+            AddName(targetAddress, pViewByte, name);
+            AddStructKind(targetAddress, kind);
+
+            var pEnd = pViewByte + length;
+
+            for (var i = pViewByte + 1; i < pEnd; i++)
+            {
+                Debug.Assert(i->Kind == ViewByteKind.Unknown);
+                i->Kind = ViewByteKind.Body;
+            }
+        }
+
+        internal void AddStructKind(int targetAddress, ViewKind kind)
+        {
+            if (!_infoMap.TryGetValue(targetAddress, out var data))
             {
                 data = new ViewInfo();
             }
 
             data.ViewKind = kind;
 
-            _infoMap[address] = data;
+            _infoMap[targetAddress] = data;
         }
 
-        public ViewKind GetStructKind(int address) => _infoMap[address].ViewKind;
+        public ViewKind GetStructKind(int targetAddress) => _infoMap[targetAddress].ViewKind;
 
-        public bool TryGetStructKind(int address, out ViewKind kind)
+        public bool TryGetStructKind(int targetAddress, out ViewKind kind)
         {
-            if (_infoMap.TryGetValue(address, out var value))
+            if (_infoMap.TryGetValue(targetAddress, out var value))
             {
                 kind = value.ViewKind;
                 return true;

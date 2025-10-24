@@ -63,7 +63,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.STORAGESIGNATURE, this, ViewKind.StorageSignature, StructSize);
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, StructSize);
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -90,11 +90,7 @@ namespace PESpy
                     break;
 
                 case 5:
-                    structWriter.WriteUtf8FixedLengthField("pVersion", VersionOffset, Version);
-                    break;
-
-                case 6:
-                    structWriter.AlignOrThrow(StructSize);
+                    structWriter.WriteNullPaddedUtf8Field("pVersion", VersionOffset, Version, VersionStringLength);
                     break;
 
                 default:

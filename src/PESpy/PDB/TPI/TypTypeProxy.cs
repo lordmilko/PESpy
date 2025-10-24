@@ -6,24 +6,48 @@ namespace PESpy.PDB
 {
     class TypTypeProxy
     {
-        private TypType typType;
+        private LfEasy easy;
 
         public TypTypeProxy(TypType typType)
         {
-            this.typType = typType;
+            this.easy = (LfEasy) typType;
+        }
+
+        public TypTypeProxy(LfEasy easy)
+        {
+            this.easy = easy;
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public object Value => ObjectTypTypeDispatcher.Instance.Dispatch(typType);
+        public object Value
+        {
+            get
+            {
+                var value = ObjectTypTypeDispatcher.Instance.Dispatch(easy);
 
-        public static string DebuggerDisplay(TypType typType)
+                //Protect against a recursive lookup loop in the debugger
+                if (value is LfEasy t)
+                {
+                    return new
+                    {
+                        t.leaf
+                    };
+                }
+
+                return value;
+            }
+        }
+
+        public static string DebuggerDisplay(TypType typType) => DebuggerDisplay((LfEasy) typType);
+
+        public static string DebuggerDisplay(LfEasy easy)
         {
             var builder = new StringBuilder();
-            builder.Append("[").Append(typType.leaf).Append("]");
+            builder.Append("[").Append(easy.leaf).Append("]");
 
-            var value = ObjectTypTypeDispatcher.Instance.Dispatch(typType);
+            var value = ObjectTypTypeDispatcher.Instance.Dispatch(easy);
 
-            var defaultStr = typType.leaf.ToString();
+            var defaultStr = easy.leaf.ToString();
 
             var str = value.ToString();
 

@@ -24,43 +24,92 @@ namespace PESpy.PDB
             {
                 //Based on my reading of cvinfo.h, leaves >= 0x200 but less than 0x1000 and >= 0x1200 and < 1500 are only referenced from other type records,
                 //and therefore don't have lengths. However, this is is not correct. Some of these items do nicely fit into ranges, but other's (such as LF_MEMBER) don't.
-                //As such I think the safest thing to do is just to switch on the various types that are known to be sub-leaves, and return
-                //a 0 typlen for all of them (since technically speaking they don't have this field)
+                //On the one hand, you could say that the safest thing to do for these types is to just return 0 to indicate they're not a real TYPTYPE*, but given you can't
+                //even get to these without digging into a field list, and I want to have a way to get at the lengths of these, we _will_ lookup the length of each type and
+                //return it to the caller
                 switch (value->leaf)
                 {
                     case LEAF_ENUM_e.LF_BCLASS_16t:
+                        return (ushort) ((LfBClass16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_BCLASS:
+                        return (ushort) ((LfBClass) this).StructSize;
+
                     case LEAF_ENUM_e.LF_ENUMERATE:
                     case LEAF_ENUM_e.LF_ENUMERATE_ST:
+                        return (ushort) ((LfEnumerate) this).StructSize;
+
                     case LEAF_ENUM_e.LF_FRIENDCLS_16t:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_FRIENDCLS:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_FRIENDFCN_16t:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_FRIENDFCN:
                     case LEAF_ENUM_e.LF_FRIENDFCN_ST:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_INDEX_16t:
+                        return LfIndex16t.StructSize;
+
                     case LEAF_ENUM_e.LF_INDEX:
+                        return LfIndex.StructSize;
+
                     case LEAF_ENUM_e.LF_IVBCLASS_16t:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_IVBCLASS:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_MEMBER_16t:
+                        return (ushort) ((LfMember16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_MEMBER:
                     case LEAF_ENUM_e.LF_MEMBER_ST:
+                        return (ushort) ((LfMember) this).StructSize;
+
                     case LEAF_ENUM_e.LF_METHOD_16t:
+                        return (ushort) ((LfMethod16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_METHOD:
                     case LEAF_ENUM_e.LF_METHOD_ST:
+                        return (ushort) ((LfMethod) this).StructSize;
+
                     case LEAF_ENUM_e.LF_NESTTYPE_16t:
+                        return (ushort) ((LfNestType16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_NESTTYPE:
                     case LEAF_ENUM_e.LF_NESTTYPE_ST:
+                        return (ushort) ((LfNestType) this).StructSize;
+
                     case LEAF_ENUM_e.LF_ONEMETHOD_16t:
+                        return (ushort) ((LfOneMethod16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_ONEMETHOD:
                     case LEAF_ENUM_e.LF_ONEMETHOD_ST:
+                        return (ushort) ((LfOneMethod) this).StructSize;
+
                     case LEAF_ENUM_e.LF_STMEMBER_16t:
+                        return (ushort) ((LfSTMember16t) this).StructSize;
+
                     case LEAF_ENUM_e.LF_STMEMBER:
                     case LEAF_ENUM_e.LF_STMEMBER_ST:
+                        return (ushort) ((LfSTMember) this).StructSize;
+
                     case LEAF_ENUM_e.LF_VBCLASS_16t:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_VBCLASS:
+                        throw new NotImplementedException();
+
                     case LEAF_ENUM_e.LF_VFUNCTAB_16t:
+                        return LfVFuncTab16t.StructSize;
+
                     case LEAF_ENUM_e.LF_VFUNCTAB:
-                        return 0;
+                        return LfVFuncTab.StructSize;
 
                     default:
                         return *(ushort*) ((byte*) value - 2);
@@ -122,6 +171,7 @@ namespace PESpy.PDB
         }
 
         public static implicit operator LfEasy(lfEasy* value) => new LfEasy(value);
+        public static implicit operator lfEasy*(LfEasy value) => value.value;
 
         public static implicit operator LfAlias(LfEasy easy) => new LfAlias((lfAlias*) (byte*) easy.value);
         public static implicit operator LfArgList(LfEasy easy) => new LfArgList((lfArgList*) (byte*) easy.value);

@@ -10,7 +10,7 @@ namespace PESpy
     /// Specific types of unwind codes are modelled via sub-classes of this class.
     /// </summary>
     [DebuggerDisplay("CodeOffset = {CodeOffset}, UnwindOp = {UnwindOp}")]
-    public abstract class UnwindCode : IValue, IViewable
+    public abstract class UnwindCode : IViewableValue
     {
         private const int CodeOffsetOffset = 0;
         private const int UnwindOpOffset = 1;

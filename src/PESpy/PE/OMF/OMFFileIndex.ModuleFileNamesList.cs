@@ -15,14 +15,14 @@ namespace PESpy
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public RawValue<FixedUtf8String>[] Items => list.ToArray();
+        public RawValue<SymString>[] Items => list.ToArray();
     }
 
     public partial class OMFFileIndex
     {
         [DebuggerDisplay("Count = {Count}")]
         [DebuggerTypeProxy(typeof(ModuleFileNamesListDebugView))]
-        public readonly struct ModuleFileNamesList : IEnumerable<RawValue<FixedUtf8String>>
+        public readonly struct ModuleFileNamesList : IEnumerable<RawValue<SymString>>
         {
             private readonly MemoryChunk namesChunk;
             private readonly NativeSpan<int> offsets;
@@ -37,7 +37,7 @@ namespace PESpy
                 this.isLengthPrefixedString = isLengthPrefixedString;
             }
 
-            public RawValue<FixedUtf8String> this[int index]
+            public RawValue<SymString> this[int index]
             {
                 get
                 {
@@ -50,27 +50,18 @@ namespace PESpy
 
             public Enumerator GetEnumerator() => new Enumerator(namesChunk, offsets, isLengthPrefixedString);
 
-            IEnumerator<RawValue<FixedUtf8String>> IEnumerable<RawValue<FixedUtf8String>>.GetEnumerator() => GetEnumerator();
+            IEnumerator<RawValue<SymString>> IEnumerable<RawValue<SymString>>.GetEnumerator() => GetEnumerator();
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-            internal static RawValue<FixedUtf8String> ReadString(MemoryChunk namesChunk, int offset, bool isLengthPrefixedString)
+            internal static RawValue<SymString> ReadString(MemoryChunk namesChunk, int offset, bool isLengthPrefixedString)
             {
-                if (isLengthPrefixedString)
-                {
-                    var strLen = namesChunk.PeekByte(offset);
-                    var str = namesChunk.PeekUtf8FixedLength(offset + 1, strLen);
-                    return new RawValue<FixedUtf8String>(namesChunk.AbsoluteOffset + offset, str);
-                }
-                else
-                {
-                    var str = namesChunk.PeekAnsiNullTerminatedString(offset);
+                var str = namesChunk.PeekSymString(offset);
 
-                    return new RawValue<FixedUtf8String>(namesChunk.AbsoluteOffset + offset, (FixedUtf8String) str);
-                }
+                return new RawValue<SymString>(namesChunk.AbsoluteOffset + offset, str);
             }
 
-            public struct Enumerator : IEnumerator<RawValue<FixedUtf8String>>
+            public struct Enumerator : IEnumerator<RawValue<SymString>>
             {
                 private int offsetIndex;
                 private readonly MemoryChunk namesChunk;
@@ -102,7 +93,7 @@ namespace PESpy
                     return false;
                 }
 
-                public RawValue<FixedUtf8String> Current { get; private set; }
+                public RawValue<SymString> Current { get; private set; }
 
                 object IEnumerator.Current => Current;
 

@@ -9,7 +9,7 @@ namespace PESpy
     /// Represents the <see cref="VS_FIXEDFILEINFO"/> structure.
     /// </summary>
     [DebuggerDisplay("File = {FileVersion.ToString(),nq}, Product = {ProductVersion.ToString(),nq}")]
-    public class VsFixedFileInfo : IValue, IViewable //This is a class so that it can be null without needing to use Nullable<T>
+    public class VsFixedFileInfo : IViewableValue //This is a class so that it can be null without needing to use Nullable<T>
     {
         public const uint FixedFileInfoSignature = 0xFEEF04BD;
         private const int SignatureOffset = 0;

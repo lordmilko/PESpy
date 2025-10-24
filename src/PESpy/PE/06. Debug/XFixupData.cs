@@ -7,15 +7,20 @@ namespace PESpy
     [DebuggerDisplay("Type = {Type}, Rva = {Rva}, RvaTarget = {RvaTarget}, Extra = {Extra}")]
     public readonly struct XFixupData : IValue, IViewable
     {
+        private const int TypeOffset = 0;
+        private const int ExtraOffset = 2;
+        private const int RvaOffset = 4;
+        private const int RvaTargetOffset = 8;
+
         //PEAnatomist thinks that these types correspond with the IMAGE_REL_* type used in ImageRelocation. So if the IMAGE_FILE_MACHINE
         //is I386, use ImageRelI386
-        public short Type => chunk.PeekInt16(0);
+        public short Type => chunk.PeekInt16(TypeOffset);
 
-        public short Extra => chunk.PeekInt16(2);
+        public short Extra => chunk.PeekInt16(ExtraOffset);
 
-        public int Rva => chunk.PeekInt32(4);
+        public int Rva => chunk.PeekInt32(RvaOffset);
 
-        public int RvaTarget => chunk.PeekInt32(8);
+        public int RvaTarget => chunk.PeekInt32(RvaTargetOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -42,24 +47,24 @@ namespace PESpy
 
         int IViewable.NumChildren() => 4;
 
-        void IViewable.WriteChild(int index, ViewWriter viewWriter)
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             switch (index)
             {
                 case 0:
-                    viewWriter.WriteField("wType", Type);
+                    structWriter.WriteField("wType", TypeOffset, Type);
                     break;
 
                 case 1:
-                    viewWriter.WriteField("wExtra", Extra);
+                    structWriter.WriteField("wExtra", ExtraOffset, Extra);
                     break;
 
                 case 2:
-                    viewWriter.WriteField("rva", Rva);
+                    structWriter.WriteField("rva", RvaOffset, Rva);
                     break;
 
                 case 3:
-                    viewWriter.WriteField("rvaTarget", RvaTarget);
+                    structWriter.WriteField("rvaTarget", RvaTargetOffset, RvaTarget);
                     break;
 
                 default:

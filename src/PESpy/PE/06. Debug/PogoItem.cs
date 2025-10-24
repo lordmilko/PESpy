@@ -7,7 +7,7 @@ namespace PESpy
     /// <summary>
     /// Represents a Profile Guided Optimization entry. This type does not have a well-known native struct declaration.
     /// </summary>
-    public readonly struct PogoItem : IValue, IViewable
+    public readonly struct PogoItem : IViewableValue
     {
         private const int RVAOffset = 0;
         private const int SizeOffset = 4;

@@ -6,7 +6,7 @@ namespace PESpy.PDB
 {
     //todo: nope, use struct, and we can use a framedatalist here instead of allocating
 
-    public class RvaAndFrameData : IValue, IViewable //Will be boxed so should be class
+    public class RvaAndFrameData : IViewableValue //Will be boxed so should be class
     {
         private const int RVAOffset = 0;
         public int RVA => chunk.PeekInt32(RVAOffset);

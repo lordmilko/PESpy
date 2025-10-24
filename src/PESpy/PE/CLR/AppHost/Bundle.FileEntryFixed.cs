@@ -5,7 +5,7 @@ namespace PESpy
 {
     public static partial class Bundle
     {
-        private const int OffsetOffset = 8;
+        private const int OffsetOffset = 0;
         private const int SizeOffset = 8;
         private const int CompressedSizeOffset = 16;
         private const int TypeOffsetWithCompressedSize = 24;

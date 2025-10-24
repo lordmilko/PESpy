@@ -4,6 +4,7 @@
 [assembly: InternalsVisibleTo("PESpy.PowerShell")]
 [assembly: InternalsVisibleTo("PESpy.Tests")]
 [assembly: InternalsVisibleTo("PESpyUI")]
+[assembly: InternalsVisibleTo("PESpy (App)")]
 [assembly: InternalsVisibleTo("ReAnalyze")]
 [assembly: InternalsVisibleTo("ReFlow")]
 [assembly: InternalsVisibleTo("ReDbg")]

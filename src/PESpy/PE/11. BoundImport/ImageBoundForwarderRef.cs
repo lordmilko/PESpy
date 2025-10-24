@@ -79,11 +79,11 @@ namespace PESpy
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(OffsetModuleName), OffsetModuleNameOffset, OffsetModuleNameOffset, OffsetModuleName);
+                    structWriter.WriteField(nameof(OffsetModuleName), OffsetModuleNameOffset, OffsetModuleName);
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(Reserved), ReservedOffset, ReservedOffset, Reserved);
+                    structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
                     break;
 
                 default:

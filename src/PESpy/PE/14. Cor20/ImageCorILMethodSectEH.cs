@@ -5,7 +5,7 @@ using PESpy.View;
 namespace PESpy
 {
     //Top level structure that encapsulates all EH related structures
-    public readonly struct ImageCorILMethodSectEH : IValue, IViewable
+    public readonly struct ImageCorILMethodSectEH : IViewableValue
     {
         private const int SectOffset = 0;
         private const int ReservedOffset = ImageCorILMethodSect.TinySize;
@@ -102,15 +102,15 @@ namespace PESpy
             {
                 case 0:
                     if (isFat)
-                        structWriter.WriteStructField("SectFat", SectOffset, Sect);
+                        structWriter.WriteStructField("SectFat", Sect);
                     else
-                        structWriter.WriteStructField("SectSmall", SectOffset, Sect);
+                        structWriter.WriteStructField("SectSmall", Sect);
 
                     break;
 
                 case 1:
                     if (isFat)
-                        structWriter.WriteStructField("Clauses", relativeOffset: ImageCorILMethodSect.FatSize, Clauses);
+                        structWriter.WriteStructField("Clauses", Clauses);
                     else
                         structWriter.WriteField(nameof(Reserved), ReservedOffset, Reserved);
 
@@ -120,7 +120,7 @@ namespace PESpy
                     if (isFat)
                         throw new IndexOutOfRangeException();
                     else
-                        structWriter.WriteStructField("Clauses", relativeOffset: ImageCorILMethodSect.TinySize + sizeof(short), Clauses);
+                        structWriter.WriteStructField("Clauses", Clauses);
 
                     break;
 

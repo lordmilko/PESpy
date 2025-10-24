@@ -123,7 +123,7 @@ namespace PESpy.PDB
                     break;
 
                 case 5:
-                    structWriter.WriteStructField(nameof(tpihash), tpihashOffset, tpihash);
+                    structWriter.WriteStructField(nameof(tpihash), tpihash);
                     break;
 
                 default:

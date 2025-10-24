@@ -40,7 +40,9 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+        public SymType Symbol => GetSymbol(null);
+
+        internal SymType GetSymbol(ISymbolAccessor? symbolAccessor) => SymType.GetSymbol(value, imod, ibSym, symbolAccessor);
 
         internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
 
@@ -68,7 +70,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.REFSYM2, this, ViewKind.RefSym2, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {

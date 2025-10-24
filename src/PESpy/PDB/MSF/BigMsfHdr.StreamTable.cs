@@ -22,6 +22,7 @@ namespace PESpy.PDB
         {
             private const int NumStreamsOffset = 0;
             private const int StreamSizesOffset = 4;
+            private const int StreamPagesOffset = 8;
 
             //snMac
             public int NumStreams => chunk.PeekInt32(NumStreamsOffset);
@@ -106,25 +107,27 @@ namespace PESpy.PDB
             IView? IViewable.WriteStruct(ViewWriter writer) =>
                 writer.NewStruct(Strings.StreamTable, this, ViewKind.StreamTable, StructSize);
 
-            int IViewable.NumChildren() => 2 + StreamPages.Length;
+            int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
-        void IViewable.WriteChild(int index, ref StructWriter structWriter)
-        {
-            switch (index)
+            void IViewable.WriteChild(int index, ref StructWriter structWriter)
             {
-                case 0:
-                    structWriter.WriteField("NumStreams", NumStreamsOffset, NumStreams);
-                    break;
+                //Some streams may have no pages associated with them, so the safest thing for us to write eager
 
-                case 1:
-                    structWriter.WriteField("StreamSizes", StreamSizesOffset, StreamSizes.ToArray());
-                    break;
+                if (index != -1)
+                    throw StructWriter.GetEagerLoadOnlyException();
 
-                default:
-                    var i = index - 2;
+                using var s = structWriter.CreateEagerWriter();
+
+                s.WriteField("NumStreams", NumStreams);
+                s.WriteField("StreamSizes", StreamSizes);
+
+                for (var i = 0; i < StreamPages.Length; i++)
+                {
                     var item = StreamPages[i];
-                    structWriter.WriteField($"PageList ({i})", item);
-                    break;
+                    s.WriteField($"PageList ({i})", item);
+                }
+
+                structWriter.EagerFields = s.ToArray();
             }
         }
     }

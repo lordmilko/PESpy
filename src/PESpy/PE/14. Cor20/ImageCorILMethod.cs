@@ -193,54 +193,58 @@ namespace PESpy
             return size;
         }
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
             var kind = (CorILMethodFlags) ((int) Flags & Extensions.CorILMethod_FormatMask);
 
-            using var s = viewWriter.CreateStruct(parent);
+            using var s = structWriter.CreateEagerWriter();
 
             switch (kind)
             {
                 case CorILMethodFlags.TinyFormat:
                 case CorILMethodFlags.TinyFormat1:
-                {
-                    //The bit shifts make it very confusing, but per ECMA 335 II.25.4.2 the format is as follows
-                    using (var b = s.WriteBitFields<byte>())
                     {
-                        b.WriteField("Flags", Flags, 2);
-                        b.WriteField("CodeSize", CodeSize, 6);
-                    }
+                        //The bit shifts make it very confusing, but per ECMA 335 II.25.4.2 the format is as follows
+                        using (var b = s.WriteBitFields<byte>(2))
+                        {
+                            b.WriteField("Flags", Flags, 2);
+                            b.WriteField("CodeSize", CodeSize, 6);
+                        }
 
-                    s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
-                    break;
-                }
+                        s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
+                        break;
+                    }
 
                 case CorILMethodFlags.FatFormat:
-                {
-                    using (var b = s.WriteBitFields<uint>())
                     {
-                        b.WriteField(nameof(Flags), Flags, 12);
-                        b.WriteField(nameof(Size), Size, 4);
-                        b.WriteField(nameof(MaxStack), MaxStack, 16);
+                        using (var b = s.WriteBitFields<uint>(3))
+                        {
+                            b.WriteField(nameof(Flags), Flags, 12);
+                            b.WriteField(nameof(Size), Size, 4);
+                            b.WriteField(nameof(MaxStack), MaxStack, 16);
+                        }
+
+                        s.WriteField(nameof(CodeSize), CodeSize);
+                        s.WriteField(nameof(LocalVarSigTok), LocalVarSigTok);
+                        s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
+
+                        if (EHSections.Length > 0)
+                        {
+                            s.Align(4);
+
+                            s.WriteInline(EHSections);
+                        }
+
+                        break;
                     }
-
-                    s.WriteField(nameof(CodeSize), CodeSize);
-                    s.WriteField(nameof(LocalVarSigTok), LocalVarSigTok);
-                    s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
-
-                    if (EHSections.Length > 0)
-                    {
-                        s.Align(4);
-
-                        s.WriteInline(EHSections);
-                    }
-
-                    break;
-                }
             }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

@@ -15,13 +15,15 @@ namespace PESpy.View.Builder
     {
         private IFile file;
 
-        private PooledList<IView> sortedStructs;
+        private GapBuffer<IView> sortedStructs;
+
         private HashSet<IView>? delayNameViews;
 
         private PooledList<DirectoryInfo> discoveredDataDirectories;
 
         private int nextStructIndex;
         private int nextDataDirectoryIndex;
+        private ViewWriter viewWriter;
         private IView? nextValue;
         private DirectoryInfo? directory;
         private ByteViewProvider byteViewProvider;
@@ -31,22 +33,25 @@ namespace PESpy.View.Builder
         private PooledList<IView> currentList;
         private PooledList<IView> repeatingTypeList;
 
-        internal Merger(IFile file, List<IView> sortedStructs, ByteViewProvider byteViewProvider) : this(file, sortedStructs, default, default, byteViewProvider)
+        internal Merger(IFile file, ViewWriter viewWriter, List<IView> sortedStructs, ByteViewProvider byteViewProvider) :
+            this(file, viewWriter, sortedStructs, default, default, byteViewProvider)
         {
         }
 
         internal Merger(
             IFile file,
+            ViewWriter viewWriter,
             List<IView> sortedStructs,
             HashSet<IView>? delayNameViews,
             PooledList<DirectoryInfo> discoveredDataDirectories,
-            Extension extension)
+            ByteViewProvider byteViewProvider)
         {
             this.file = file;
-            this.sortedStructs = new PooledList<IView>(sortedStructs);
+            this.viewWriter = viewWriter;
+            this.sortedStructs = new GapBuffer<IView>(sortedStructs);
             this.delayNameViews = delayNameViews;
             this.discoveredDataDirectories = discoveredDataDirectories;
-            this.extension = extension;
+            this.byteViewProvider = byteViewProvider;
 
             nextStructIndex = default;
             nextDataDirectoryIndex = default;
@@ -62,7 +67,6 @@ namespace PESpy.View.Builder
 
         public void Dispose()
         {
-            sortedStructs.Dispose();
             discoveredDataDirectories.Dispose();
 
             masterList.Dispose();
@@ -315,7 +319,7 @@ namespace PESpy.View.Builder
                                     for (var i = 0; i < rawPages.Length; i++)
                                         arr[i] = rawPages[i];
 
-                                    siPageList = arr;
+                                    siPageList = arr.AsSpan(0, rawPages.Length);
                                 }
                             }
                             else if (siIndex == -2)
@@ -428,7 +432,7 @@ end:
                         throw new NotImplementedException();
                     }
 
-                    for (var j = 0; j < directory.Children.Length; j++)
+                    for (var j = 0; j < directory.Children.Count; j++)
                     {
                         var child = directory.Children[j];
 
@@ -472,7 +476,7 @@ end:
 
                                 var junkStart = replacementEnd;
 
-                                var views = extension.ReadBytes(ref junkStart, lastChildEnd, null, null, getRVA, false);
+                                var views = byteViewProvider.ReadBytes(ref junkStart, lastChildEnd, null, null, getRVA, false);
 
                                 //This method messes with global state. Backup our global state so that we can restore it afterwards
 
@@ -500,11 +504,11 @@ end:
                                     repeatingTypeList = oldRepeatingTypeList;
                                     repeatingGroupMode = oldRepeatingGroupMode;
                                     currentList = oldCurrentList;
-                                }                                
+                                }
                             }
 
                             //Add all other children after the junk we're replacing in the directory to the new list of children
-                            for (var l = k; l < directory.Children.Length; l++)
+                            for (var l = k; l < directory.Children.Count; l++)
                                 newViews.Add(directory.Children[l]);
 
                             //We've got everything we need now. Patch the original directory!
@@ -516,6 +520,8 @@ end:
                     throw new NotImplementedException();
                 }
             }
+
+            //If we're calling BuildSection multiple times, that will repeatedly clear the master list! So we need to make sure we don't do that
 
             throw new NotImplementedException();
         }
@@ -539,7 +545,7 @@ end:
             {
                 //We've been building up the members of a directory
 
-                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), file is PDBFile ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
+                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), viewWriter, file is PDBFile ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
 
                 masterList.Add(directoryRegion);
             }
@@ -574,6 +580,17 @@ end:
 
                 case RepeatingGroupMode.LogicalRegion:
                     regionKind = ((LogicalRegionView) repeatingTypeList[0]).Kind;
+
+                    if (regionKind == ViewKind.ImportAddressTable)
+                    {
+                        //Prevent ImportAddressTable entries from being wrapped in a repeating item region; ImportAddressTable items
+                        //will be wrapped in the Import Address Table directory
+                        currentList.AddRange(repeatingTypeList);
+                        repeatingTypeList.Clear();
+                        repeatingGroupMode = 0;
+                        return;
+                    }
+
                     break;
 
                 case RepeatingGroupMode.ImportFunctionNames:
@@ -593,7 +610,7 @@ end:
             for (var i = 0; i < repeatingTypeList.Count; i++)
                 size += repeatingTypeList[i].Size;
 
-            currentList.Add(new LogicalRegionView(repeatingTypeList[0].Offset, regionKind.GetDescription(), repeatingTypeList.ToArray(), regionKind, size));
+            currentList.Add(new LogicalRegionView(repeatingTypeList[0].Offset, regionKind.GetDescription(), repeatingTypeList.ToArray(), viewWriter, regionKind, size));
             repeatingTypeList.Clear();
             repeatingGroupMode = 0;
         }
@@ -617,7 +634,7 @@ end:
                 }
             }
 
-            var views = extension.ReadBytes(ref rva, end, null, getRealOffset, getRVA, isOverlay);
+            var views = byteViewProvider.ReadBytes(ref rva, end, null, getRealOffset, getRVA, isOverlay);
 
             if (isOverlay && views == null)
             {

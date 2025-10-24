@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct SrcHeaderOut : IValue, IViewable
+    public readonly struct SrcHeaderOut : IViewableValue
     {
         private const int cbOffset = 0;
         private const int verOffset = 4;

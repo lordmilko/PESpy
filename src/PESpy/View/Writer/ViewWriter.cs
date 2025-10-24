@@ -191,7 +191,7 @@ namespace PESpy.View
             /* People are going to give us absolute offsets into the file, so we need to be able to operate against the global file pointer.
              * However, we don't want to be reading past the end of this nested file. So we'll say that the length of the byte view is from
              * the beginning of the outer file, right up until the end of this nested file
-             * 
+             *
              * Furthermore, since the pointer inside the nested PEFile is relative to its start, we need to rewind back to the very start of the file, so that we can offset
              * against it using global addresses
              */
@@ -259,7 +259,7 @@ namespace PESpy.View
 
                 if (valueView != null)
                     AddView(valueView);
-            
+
                 Pop();
             }
         }
@@ -429,7 +429,7 @@ namespace PESpy.View
                     viewOffset,
                     byteBlob.Bytes,
                     default
-                );                
+                );
             }
 
             return null;
@@ -787,7 +787,7 @@ namespace PESpy.View
             if (!shouldAdd)
                 return null;
 
-            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, viewWriter ?? this);
+            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, NestedViewWriter ?? this);
 
             return view;
         }
@@ -878,15 +878,6 @@ namespace PESpy.View
             return new RegionWriter(viewOffset, name, kind, this, false, scopeKind, shouldAdd);
         }
 
-        internal MetadataRowWriter CreateMetadataRow<T>(FixedUtf8String name, in T value, ViewKind kind) where T : IValue
-        {
-            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
-            
-            return new MetadataRowWriter(name, viewOffset, kind, (PEViewWriter) this, shouldAdd);
-        }
-
-        internal MetadataRowWriter CreateMetadataRow(IView parent) => new MetadataRowWriter(parent.Offset, (PEViewWriter) this);
-
         internal IView[]? CreateByteBlob(ref int currentOffset, int size)
         {
             var views = byteViewProvider.ReadBytes(ref currentOffset, currentOffset + size, null, getRealOffset, null, false);
@@ -942,26 +933,45 @@ namespace PESpy.View
 
             parent.WriteChild(index, ref structWriter);
 
-            return structWriter.Field;
+            //If you're asking for a child, you should be using a ViewWriter that supports creating child entities
+            Debug.Assert(structWriter.Field != null);
+
+            return structWriter.Field!;
+        }
+
+        public IView[] GetChildren<TParent>(int parentOffset, TParent parent) where TParent : IViewable
+        {
+            var structWriter = new StructWriter(this, parentOffset);
+
+            //For entities that only support eager loading, -1 is the magic index
+            parent.WriteChild(-1, ref structWriter);
+
+            Debug.Assert(structWriter.EagerFields != null);
+
+            return structWriter.EagerFields;
         }
 
         [Conditional("DEBUG")]
         internal void VerifyXRef<T>(VA<T> value)
         {
+#if DEBUG
             //Assert that the global has already been written
             if (value.IsValid)
             {
                 Debug.Assert(globalFields.Contains(value.ListedAddress));
             }
+#endif
         }
 
         [Conditional("DEBUG")]
         internal void VerifyXRef<T>(RVA<T> value)
         {
+#if DEBUG
             if (value.IsValid && value.ListedOffset != 0)
             {
                 Debug.Assert(globalFields.Contains(value.ListedOffset));
             }
+#endif
         }
 
         private void AddViews(IList<IView> views)
@@ -1019,6 +1029,70 @@ namespace PESpy.View
             ref StructWriter structWriter)
         {
             structWriter.Field = new ValueView<T>(parentOffset + fieldOffset, value, size, kind);
+        }
+
+        internal void WriteStructField<T>(
+            string fieldName,
+            int parentOffset,
+            int relativeOffset,
+            T value,
+            ref StructWriter structWriter) where T : IViewable
+        {
+            var oldOffset = UnmanagedOffset;
+            UnmanagedOffset = parentOffset + relativeOffset;
+
+            WriteStructField<T>(fieldName, value, ref structWriter);
+
+            UnmanagedOffset = oldOffset;
+        }
+
+        internal void WriteStructField<T>(
+            string fieldName,
+            int parentOffset,
+            int relativeOffset,
+            T[] value,
+            ref StructWriter structWriter) where T : unmanaged, IViewable
+        {
+            var oldOffset = UnmanagedOffset;
+            UnmanagedOffset = parentOffset + relativeOffset;
+
+            WriteStructField<T>(fieldName, value, ref structWriter);
+
+            UnmanagedOffset = oldOffset;
+        }
+
+        internal void WriteStructField<T>(
+            string fieldName,
+            T value,
+            ref StructWriter structWriter) where T : IViewable
+        {
+            //I don't think we need to write globals, those should have already been written
+
+            var view = (StructView<T>) value.WriteStruct(this);
+
+            structWriter.Field = new StructFieldView<T>(
+                view,
+                fieldName
+            );
+        }
+
+        internal void WriteStructField<T>(
+            string fieldName,
+            T[] value,
+            ref StructWriter structWriter) where T : IViewable
+        {
+            var results = new StructView<T>[value.Length];
+
+            for (var i = 0; i < results.Length; i++)
+            {
+                //I don't think we need to write globals, those should have already been written
+                results[i] = (StructView<T>) value[i].WriteStruct(this);
+            }
+
+            structWriter.Field = new StructArrayFieldView<T>(
+                results,
+                fieldName
+            );
         }
 
         internal List<IView> RentList()

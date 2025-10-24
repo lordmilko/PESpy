@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -99,6 +101,7 @@ namespace PESpy.PDB
                         break;
 
                     #endregion
+                    #region LfIVBClass
 
                     case LEAF_ENUM_e.LF_IVBCLASS_16t:
                         throw new NotImplementedException();
@@ -106,10 +109,14 @@ namespace PESpy.PDB
                     case LEAF_ENUM_e.LF_IVBCLASS:
                         throw new NotImplementedException();
 
+                    #endregion
                     #region LfMember
 
                     case LEAF_ENUM_e.LF_MEMBER_16t:
-                        throw new NotImplementedException();
+                        var member16t = new LfMember16t((lfMember_16t*) item);
+                        pos += member16t.GetStructSize(symbolAccessor);
+                        fields.Add(easy);
+                        break;
 
                     case LEAF_ENUM_e.LF_MEMBER:
                     case LEAF_ENUM_e.LF_MEMBER_ST:
@@ -183,12 +190,16 @@ namespace PESpy.PDB
                         break;
 
                     #endregion
+                    #region LFVBClass
 
                     case LEAF_ENUM_e.LF_VBCLASS_16t:
                         throw new NotImplementedException();
 
                     case LEAF_ENUM_e.LF_VBCLASS:
                         throw new NotImplementedException();
+
+                    #endregion
+                    #region LFVFuncTab
 
                     case LEAF_ENUM_e.LF_VFUNCTAB_16t:
                         fields.Add(easy);
@@ -199,6 +210,8 @@ namespace PESpy.PDB
                         fields.Add(easy);
                         pos += LfVFuncTab.StructSize;
                         break;
+
+                    #endregion
 
                     default:
                         throw new NotImplementedException($"Don't know how to handle a sub-leaf of type '{easy.leaf}'");
@@ -217,6 +230,223 @@ namespace PESpy.PDB
             return fields.ToArray();
         }
 
+        internal static void WriteChild(ushort typlen, LEAF_ENUM_e leaf, byte* data, int index, ref StructWriter structWriter)
+        {
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
+
+            s.WriteField(nameof(typlen), typlen);
+            s.WriteField(nameof(leaf), leaf, sizeof(ushort));
+
+            //We need to write any padding, so we need to parse this manually here
+
+            var pos = 0;
+
+            //Our length includes the size of our "leaf" field in it
+            var length = typlen - sizeof(ushort);
+
+            var symbolAccessor = structWriter.GetSymbolAccessor();
+
+            while (pos < length)
+            {
+                var item = data + pos;
+
+                var easy = new LfEasy((lfEasy*) item);
+
+                switch (easy.leaf)
+                {
+                    #region LfBClass
+
+                    case LEAF_ENUM_e.LF_BCLASS_16t:
+                        var bClass16t = new LfBClass16t((lfBClass_16t*) item);
+                        pos += bClass16t.StructSize;
+                        s.WriteUnmanagedInline(bClass16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_BCLASS:
+                        var bClass = new LfBClass((lfBClass*) item);
+                        pos += bClass.StructSize;
+                        s.WriteUnmanagedInline(bClass);
+                        break;
+
+                    #endregion
+                    #region LfEnumerate
+
+                    case LEAF_ENUM_e.LF_ENUMERATE:
+                    case LEAF_ENUM_e.LF_ENUMERATE_ST:
+                        //We need to account for the standard length of an lfEnumerate (4), the size of the value,
+                        //and the length of the name, which may or may not be length prefixed
+                        var enumerate = new LfEnumerate((lfEnumerate*) item);
+                        pos += enumerate.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(enumerate);
+                        break;
+
+                    #endregion
+                    #region LfFriendCls
+
+                    case LEAF_ENUM_e.LF_FRIENDCLS_16t:
+                        throw new NotImplementedException();
+
+                    case LEAF_ENUM_e.LF_FRIENDCLS:
+                        throw new NotImplementedException();
+
+                    #endregion
+                    #region LfFriendFcn
+
+                    case LEAF_ENUM_e.LF_FRIENDFCN_16t:
+                        throw new NotImplementedException();
+
+                    case LEAF_ENUM_e.LF_FRIENDFCN:
+                    case LEAF_ENUM_e.LF_FRIENDFCN_ST:
+                        throw new NotImplementedException();
+
+                    #endregion
+                    #region LfIndex
+
+                    case LEAF_ENUM_e.LF_INDEX_16t:
+                        s.WriteUnmanagedInline(new LfIndex16t((lfIndex_16t*) item));
+                        pos += LfIndex16t.StructSize;
+                        break;
+
+                    case LEAF_ENUM_e.LF_INDEX:
+                        s.WriteUnmanagedInline(new LfIndex((lfIndex*) item));
+                        pos += LfIndex.StructSize;
+                        break;
+
+                    #endregion
+                    #region LfIVBClass
+
+                    case LEAF_ENUM_e.LF_IVBCLASS_16t:
+                        throw new NotImplementedException();
+
+                    case LEAF_ENUM_e.LF_IVBCLASS:
+                        throw new NotImplementedException();
+
+                    #endregion
+                    #region LfMember
+
+                    case LEAF_ENUM_e.LF_MEMBER_16t:
+                        var member16t = new LfMember16t((lfMember_16t*) item);
+                        pos += member16t.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(member16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_MEMBER:
+                    case LEAF_ENUM_e.LF_MEMBER_ST:
+                        var member = new LfMember((lfMember*) item);
+                        pos += member.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(member);
+                        break;
+
+                    #endregion
+                    #region LfMethod
+
+                    case LEAF_ENUM_e.LF_METHOD_16t:
+                        var method16t = new LfMethod16t((lfMethod_16t*) item);
+                        pos += method16t.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(method16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_METHOD:
+                    case LEAF_ENUM_e.LF_METHOD_ST:
+                        var method = new LfMethod((lfMethod*) item);
+                        pos += method.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(method);
+                        break;
+
+                    #endregion
+                    #region LfNestType
+
+                    case LEAF_ENUM_e.LF_NESTTYPE_16t:
+                        var nestType16t = new LfNestType16t((lfNestType_16t*) item);
+                        pos += nestType16t.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(nestType16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_NESTTYPE:
+                    case LEAF_ENUM_e.LF_NESTTYPE_ST:
+                        var nestType = new LfNestType((lfNestType*) item);
+                        pos += nestType.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(nestType);
+                        break;
+
+                    #endregion
+                    #region LfOneMethod
+
+                    case LEAF_ENUM_e.LF_ONEMETHOD_16t:
+                        var oneMethod16t = new LfOneMethod16t((lfOneMethod_16t*) item);
+                        pos += oneMethod16t.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(oneMethod16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_ONEMETHOD:
+                    case LEAF_ENUM_e.LF_ONEMETHOD_ST:
+                        var oneMethod = new LfOneMethod((lfOneMethod*) item);
+                        pos += oneMethod.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(oneMethod);
+                        break;
+
+                    #endregion
+                    #region LfSTMember
+
+                    case LEAF_ENUM_e.LF_STMEMBER_16t:
+                        var staticMember16t = new LfSTMember16t((lfSTMember_16t*) item);
+                        pos += staticMember16t.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(staticMember16t);
+                        break;
+
+                    case LEAF_ENUM_e.LF_STMEMBER:
+                    case LEAF_ENUM_e.LF_STMEMBER_ST:
+                        var staticMember = new LfSTMember((lfSTMember*) item);
+                        pos += staticMember.GetStructSize(symbolAccessor);
+                        s.WriteUnmanagedInline(staticMember);
+                        break;
+
+                    #endregion
+                    #region LFVBClass
+
+                    case LEAF_ENUM_e.LF_VBCLASS_16t:
+                        throw new NotImplementedException();
+
+                    case LEAF_ENUM_e.LF_VBCLASS:
+                        throw new NotImplementedException();
+
+                    #endregion
+                    #region LFVFuncTab
+
+                    case LEAF_ENUM_e.LF_VFUNCTAB_16t:
+                        s.WriteUnmanagedInline(new LfVFuncTab16t((lfVFuncTab_16t*) item));
+                        pos += LfVFuncTab16t.StructSize;
+                        break;
+
+                    case LEAF_ENUM_e.LF_VFUNCTAB:
+                        s.WriteUnmanagedInline(new LfVFuncTab((lfVFuncTab*) item));
+                        pos += LfVFuncTab.StructSize;
+                        break;
+
+                    #endregion
+
+                    default:
+                        throw new System.NotImplementedException();
+                }
+
+                //Skip pad bytes
+                var val = (data + pos);
+
+                //If you have LF_PAD2, what you'll actually have is LF_PAD2, LF_PAD1
+                while (pos < length && (*val & (byte) LEAF_ENUM_e.LF_PAD0) == (byte) LEAF_ENUM_e.LF_PAD0)
+                {
+                    s.WriteValue((LEAF_ENUM_e) (*val), sizeof(byte));
+                    pos++;
+                    val++;
+                }
+            }
+
+            structWriter.EagerFields = s.ToArray();
+        }
+
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf
 
@@ -224,5 +454,17 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfFieldList, this, ViewKind.LfFieldList, typlen + sizeof(short));
+
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => WriteChild(typlen, leaf, value->data, index, ref structWriter);
     }
 }

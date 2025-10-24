@@ -5,7 +5,7 @@ namespace PESpy
 {
     public partial class VsVersionInfo
     {
-        public readonly struct Var : IValue, IViewable
+        public readonly struct Var : IViewableValue
         {
         private const int LengthOffset = 0;
         private const int ValueLengthOffset = 2;

@@ -44,7 +44,9 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public SymType Symbol => SymType.GetSymbol(value, imod, ibSym);
+        public SymType Symbol => GetSymbol(null);
+
+        internal SymType GetSymbol(ISymbolAccessor? symbolAccessor) => SymType.GetSymbol(value, imod, ibSym, symbolAccessor);
 
         internal SymString GetName(ISymbolAccessor? symbolAccessor)
         {

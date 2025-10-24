@@ -5,7 +5,7 @@ using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    internal unsafe class PEFileAccessor : FileAccessor
+    internal unsafe class PEFileAccessor : FileAccessor, ISectionDataAccessor
     {
         /// <summary>
         /// Gets the <see cref="PEFile"/> that this object provides access to.
@@ -157,6 +157,23 @@ namespace PESpy.View
                     break;
             }
         }
+
+        internal override MemoryChunk GetMemoryChunk(int rva)
+        {
+            if (!PEFile.TryGetValueChunkFromSectionOrHeader(rva, out var chunk))
+                throw new NotImplementedException();
+
+            return chunk;
+        }
+
+        public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>
+            _lookupCache.TryGetSectionInfo(rva, out targetAddress, out sectionIndex, out _);
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, out byte* pByte, out int remainingLength) =>
+            _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, out pByte, out remainingLength);
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength) =>
+            _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, sectionIndex, out pByte, out remainingLength);
 
         internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor() =>
             new PEFileThreadLocalSectionDataAccessor(PEFile);

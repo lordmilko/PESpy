@@ -14,6 +14,8 @@ namespace PESpy
         public const int IMAGE_ENCLAVE_SHORT_ID_LENGTH = 16;
         public const int IMAGE_ENCLAVE_LONG_ID_LENGTH = 32;
 
+        private const int SizeOffset = 0;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal int LockPrefixTableOffset => 24 + (2 * chunk.PointerSize);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -145,8 +147,6 @@ namespace PESpy
                 }
 
                 return lockPrefixTable;
-
-                
             }
         }
 
@@ -708,9 +708,18 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.IMAGE_LOAD_CONFIG_DIRECTORY, this, ViewKind.ImageLoadConfigDirectory, Size);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //Way too complex to write manually; we don't know how many fields there are, only how big we are.
+            //So we basically just keep writing fields until we run out of space
+            //using var s = structWriter.CreateEagerWriter();
+
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteField(nameof(Size), Size);
 
@@ -765,14 +774,14 @@ namespace PESpy
                         break;
 
                     case 12:
-                        if (((PEViewWriter) viewWriter).Is32Bit)
+                        if (s.Is32Bit())
                             s.WriteField(nameof(ProcessHeapFlags), ProcessHeapFlags); //Flags
                         else
                             s.WritePointerField(nameof(ProcessAffinityMask), ProcessAffinityMask); //Don't think this is flags
                         break;
 
                     case 13:
-                        if (((PEViewWriter) viewWriter).Is32Bit)
+                        if (s.Is32Bit())
                             s.WritePointerField(nameof(ProcessAffinityMask), ProcessAffinityMask); //Don't think this is flags
                         else
                             s.WriteField(nameof(ProcessHeapFlags), ProcessHeapFlags); //Flags
@@ -934,8 +943,7 @@ namespace PESpy
                 }
             }
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

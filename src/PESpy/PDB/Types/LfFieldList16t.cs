@@ -1,5 +1,7 @@
+﻿using System;
 using System.Diagnostics;
 using ClrDebug.PDB;
+using PESpy.View;
 
 namespace PESpy.PDB
 {
@@ -26,7 +28,18 @@ namespace PESpy.PDB
         internal LfFieldList16t(lfFieldList_16t* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read data");
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(Strings.lfFieldList_16t, this, ViewKind.LfFieldList16t, typlen + sizeof(short));
+
+        int IViewable.NumChildren() => 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => LfFieldList.WriteChild(typlen, leaf, value->data, index, ref structWriter);
     }
 }

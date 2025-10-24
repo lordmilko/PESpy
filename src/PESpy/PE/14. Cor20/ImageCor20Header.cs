@@ -89,7 +89,7 @@ namespace PESpy
                     break;
 
                 case 3:
-                    structWriter.WriteStructField("MetaData", MetadataOffset, Metadata);
+                    structWriter.WriteStructField("MetaData", Metadata);
                     break;
 
                 case 4:
@@ -101,27 +101,27 @@ namespace PESpy
                     break;
 
                 case 6:
-                    structWriter.WriteStructField(nameof(Resources), ResourcesOffset, Resources);
+                    structWriter.WriteStructField(nameof(Resources), Resources);
                     break;
 
                 case 7:
-                    structWriter.WriteStructField(nameof(StrongNameSignature), StrongNameSignatureOffset, StrongNameSignature);
+                    structWriter.WriteStructField(nameof(StrongNameSignature), StrongNameSignature);
                     break;
 
                 case 8:
-                    structWriter.WriteStructField(nameof(CodeManagerTable), CodeManagerTableOffset, CodeManagerTable);
+                    structWriter.WriteStructField(nameof(CodeManagerTable), CodeManagerTable);
                     break;
 
                 case 9:
-                    structWriter.WriteStructField(nameof(VTableFixups), VTableFixupsOffset, VTableFixups);
+                    structWriter.WriteStructField(nameof(VTableFixups), VTableFixups);
                     break;
 
                 case 10:
-                    structWriter.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumpsOffset, ExportAddressTableJumps);
+                    structWriter.WriteStructField(nameof(ExportAddressTableJumps), ExportAddressTableJumps);
                     break;
 
                 case 11:
-                    structWriter.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeaderOffset, ManagedNativeHeader);
+                    structWriter.WriteStructField(nameof(ManagedNativeHeader), ManagedNativeHeader);
                     break;
 
                 default:

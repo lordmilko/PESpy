@@ -4,7 +4,7 @@ using PESpy.View;
 namespace PESpy
 {
     //Describes a section header. Contained in another structure such as ImageCorILMethodSectEH based on the value found in Kind
-    public readonly struct ImageCorILMethodSect : IValue, IViewable //IMAGE_COR_ILMETHOD_SECT_SMALL / IMAGE_COR_ILMETHOD_SECT_FAT
+    public readonly struct ImageCorILMethodSect : IViewableValue //IMAGE_COR_ILMETHOD_SECT_SMALL / IMAGE_COR_ILMETHOD_SECT_FAT
     {
         public CorILMethodSect Kind { get; }
 

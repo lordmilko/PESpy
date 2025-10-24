@@ -170,7 +170,7 @@ namespace PESpy
                 for (var i = 0; i < children.Length; i++)
                 {
                     var child = children[i];
-                    s.WriteInline((IViewable) child);
+                    s.WriteInline((IViewableValue) child);
 
                     if (i < children.Length - 1)
                         s.Align(4);
