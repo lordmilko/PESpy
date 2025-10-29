@@ -18,6 +18,8 @@ namespace PESpy.Ecma335
 
         internal TypeRefTable(int numRows, int resolutionScopeIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.38
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -30,10 +32,10 @@ namespace PESpy.Ecma335
             RowSize = TypeNamespaceOffset + stringIndexSize;
         }
 
-        public Index GetResolutionScope(TypeRefIndex index)
+        public CodedIndex GetResolutionScope(TypeRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ResolutionScopeOffset, isBigResolutionScopeIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ResolutionScopeOffset, isBigResolutionScopeIndex, CodedIndexType.ResolutionScope);
         }
 
         public StringIndex GetTypeName(TypeRefIndex index)

@@ -17,6 +17,8 @@ namespace PESpy.Ecma335
 
         internal MethodSpecTable(int numRows, int methodDefOrRefIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.29
+
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
 
@@ -28,10 +30,10 @@ namespace PESpy.Ecma335
             RowSize = InstantiationOffset + blobIndexSize;
         }
 
-        public Index GetMethod(MethodSpecIndex index)
+        public CodedIndex GetMethod(MethodSpecIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + MethodOffset, isBigMethodDefOrRefIndex, CodedIndexType.MethodDefOrRef);
         }
 
         public BlobIndex GetInstantiation(MethodSpecIndex index)

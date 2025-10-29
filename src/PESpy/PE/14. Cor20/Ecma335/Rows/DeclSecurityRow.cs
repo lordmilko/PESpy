@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
         //SecurityAction does not have all of the values that CorDeclSecurity has
         public CorDeclSecurity Action => table.GetAction(RowIndex);
 
-        public Index Parent => table.GetParent(RowIndex);
+        public CodedIndex Parent => table.GetParent(RowIndex);
 
         public BlobIndex PermissionSet => table.GetPermissionSet(RowIndex);
 
@@ -48,7 +48,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
-                    structWriter.WriteHasDeclSecurityIndex(nameof(Parent), table.ParentOffset, (int) Parent);
+                    structWriter.WriteHasDeclSecurityIndex(nameof(Parent), table.ParentOffset, Parent);
                     break;
 
                 case 2:

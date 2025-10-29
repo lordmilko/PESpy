@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public TypeDefIndex Class => table.GetClass(RowIndex);
 
-        public Index Interface => table.GetInterface(RowIndex);
+        public CodedIndex Interface => table.GetInterface(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -44,7 +44,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
-                    structWriter.WriteTypeDefOrRefIndex(nameof(Interface), table.InterfaceOffset, (int) Interface);
+                    structWriter.WriteTypeDefOrRefIndex(nameof(Interface), table.InterfaceOffset, Interface);
                     break;
 
                 default:

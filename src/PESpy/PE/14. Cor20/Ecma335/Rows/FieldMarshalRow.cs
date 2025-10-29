@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
     {
         public FieldMarshalIndex RowIndex { get; }
 
-        public Index Parent => table.GetParent(RowIndex);
+        public CodedIndex Parent => table.GetParent(RowIndex);
 
         public BlobIndex NativeType => table.GetNativeType(RowIndex);
 
@@ -40,7 +40,7 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteHasFieldMarshalIndex(nameof(Parent), table.ParentOffset, (int) Parent);
+                    structWriter.WriteHasFieldMarshalIndex(nameof(Parent), table.ParentOffset, Parent);
                     break;
 
                 case 1:

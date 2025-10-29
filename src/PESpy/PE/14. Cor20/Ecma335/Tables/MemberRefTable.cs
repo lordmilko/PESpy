@@ -20,6 +20,8 @@ namespace PESpy.Ecma335
 
         internal MemberRefTable(int numRows, int memberRefParentIndexSize, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.25
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
@@ -34,10 +36,10 @@ namespace PESpy.Ecma335
             RowSize = SignatureOffset + blobIndexSize;
         }
 
-        public Index GetClass(MemberRefIndex index)
+        public CodedIndex GetClass(MemberRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigMemberRefParentIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ClassOffset, isBigMemberRefParentIndex, CodedIndexType.MemberRefParent);
         }
 
         public StringIndex GetName(MemberRefIndex index)

@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public StringIndex Name => table.GetName(RowIndex);
 
-        public Index EventType => table.GetEventType(RowIndex);
+        public CodedIndex EventType => table.GetEventType(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -51,7 +51,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 2:
-                    structWriter.WriteTypeDefOrRefIndex(nameof(EventType), table.EventTypeOffset, (int) EventType);
+                    structWriter.WriteTypeDefOrRefIndex(nameof(EventType), table.EventTypeOffset, EventType);
                     break;
 
                 default:

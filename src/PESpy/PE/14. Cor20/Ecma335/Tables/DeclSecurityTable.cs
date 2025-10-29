@@ -19,6 +19,8 @@ namespace PESpy.Ecma335
 
         internal DeclSecurityTable(int numRows, int hasDeclSecurityIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.11
+
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
 
@@ -37,10 +39,10 @@ namespace PESpy.Ecma335
             return (CorDeclSecurity) tableChunk.PeekUInt16(rowOffset + ActionOffset);
         }
 
-        public Index GetParent(DeclSecurityIndex index)
+        public CodedIndex GetParent(DeclSecurityIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasDeclSecurityIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ParentOffset, isBigHasDeclSecurityIndex, CodedIndexType.HasDeclSecurity);
         }
 
         public BlobIndex GetPermissionSet(DeclSecurityIndex index)

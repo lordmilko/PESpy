@@ -20,6 +20,8 @@ namespace PESpy.Ecma335
 
         internal GenericParamTable(int numRows, int typeOrMethodDefIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.20
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -45,10 +47,10 @@ namespace PESpy.Ecma335
             return (CorGenericParamAttr) tableChunk.PeekUInt16(rowOffset + FlagsOffset);
         }
 
-        public Index GetOwner(GenericParamIndex index)
+        public CodedIndex GetOwner(GenericParamIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + OwnerOffset, isBigTypeOrMethodDefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + OwnerOffset, isBigTypeOrMethodDefIndex, CodedIndexType.TypeOrMethodDef);
         }
 
         public StringIndex GetName(GenericParamIndex index)

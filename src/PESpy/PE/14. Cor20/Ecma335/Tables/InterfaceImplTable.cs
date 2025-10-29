@@ -14,6 +14,8 @@
 
         internal InterfaceImplTable(int numRows, int typeDefIndexSize, int typeDefOrRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.23
+
             this.tableChunk = tableChunk;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
@@ -30,10 +32,10 @@
             return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
         }
 
-        public Index GetInterface(InterfaceImplIndex index)
+        public CodedIndex GetInterface(InterfaceImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + InterfaceOffset, isBigTypeDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + InterfaceOffset, isBigTypeDefOrRefIndex, CodedIndexType.TypeDefOrRef);
         }
 
         public int GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

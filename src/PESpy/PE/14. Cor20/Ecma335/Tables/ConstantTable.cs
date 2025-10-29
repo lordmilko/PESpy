@@ -45,10 +45,10 @@ namespace PESpy.Ecma335
             return tableChunk.PeekByte(rowOffset + PaddingOffset);
         }
 
-        public Index GetParent(ConstantIndex index)
+        public CodedIndex GetParent(ConstantIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasConstantIndexSize);
+            return tableChunk.PeekCodedIndex(rowOffset + ParentOffset, isBigHasConstantIndexSize, CodedIndexType.HasConstant);
         }
 
         public BlobIndex GetValue(ConstantIndex index)

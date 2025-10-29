@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public MethodDefIndex Method => table.GetMethod(RowIndex);
 
-        public Index Association => table.GetAssociation(RowIndex);
+        public CodedIndex Association => table.GetAssociation(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -51,7 +51,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 2:
-                    structWriter.WriteHasSemanticsIndex(nameof(Association), table.AssociationOffset, (int) Association);
+                    structWriter.WriteHasSemanticsIndex(nameof(Association), table.AssociationOffset, Association);
                     break;
 
                 default:

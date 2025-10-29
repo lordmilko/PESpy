@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        public Index Extends => table.GetExtends(RowIndex);
+        public CodedIndex Extends => table.GetExtends(RowIndex);
 
         public FieldIndex FieldList => table.GetFieldList(RowIndex);
 
@@ -61,7 +61,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 3:
-                    structWriter.WriteTypeDefOrRefIndex(nameof(Extends), table.ExtendsOffset, (int) Extends);
+                    structWriter.WriteTypeDefOrRefIndex(nameof(Extends), table.ExtendsOffset, Extends);
                     break;
 
                 case 4:

@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
     {
         public TypeRefIndex RowIndex { get; }
 
-        public Index ResolutionScope => table.GetResolutionScope(RowIndex);
+        public CodedIndex ResolutionScope => table.GetResolutionScope(RowIndex);
 
         public StringIndex TypeName => table.GetTypeName(RowIndex);
 
@@ -42,7 +42,7 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteResolutionScopeIndex(nameof(ResolutionScope), table.ResolutionScopeOffset, (int) ResolutionScope);
+                    structWriter.WriteResolutionScopeIndex(nameof(ResolutionScope), table.ResolutionScopeOffset, ResolutionScope);
                     break;
 
                 case 1:

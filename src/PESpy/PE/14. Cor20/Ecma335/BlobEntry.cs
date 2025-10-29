@@ -27,6 +27,8 @@ namespace PESpy.Ecma335
             this.length = length;
         }
 
+        public ByteReader GetReader() => new ByteReader(start + lengthSize, length);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

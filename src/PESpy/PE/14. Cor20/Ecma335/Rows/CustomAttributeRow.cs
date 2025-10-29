@@ -9,9 +9,12 @@ namespace PESpy.Ecma335
     {
         public CustomAttributeIndex RowIndex { get; }
 
-        public Index Parent => table.GetParent(RowIndex);
+        public CodedIndex Parent => table.GetParent(RowIndex);
 
-        public Index Type => table.GetType(RowIndex);
+        //While this property is called Type as per II.22.10,
+        //it's really a MethodDef or MemberRef describing
+        //the constructor of the attribute
+        public CodedIndex Type => table.GetType(RowIndex);
 
         public BlobIndex Value => table.GetValue(RowIndex);
 
@@ -42,11 +45,11 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteHasCustomAttributeIndex(nameof(Parent), table.ParentOffset, (int) Parent);
+                    structWriter.WriteHasCustomAttributeIndex(nameof(Parent), table.ParentOffset, Parent);
                     break;
 
                 case 1:
-                    structWriter.WriteCustomAttributeTypeIndex(nameof(Type), table.TypeOffset, (int) Type);
+                    structWriter.WriteCustomAttributeTypeIndex(nameof(Type), table.TypeOffset, Type);
                     break;
 
                 case 2:

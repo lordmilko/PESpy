@@ -14,6 +14,8 @@
 
         internal GenericParamConstraintTable(int numRows, int genericParamIndexSize, int typeDefOrRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.21
+
             this.tableChunk = tableChunk;
 
             isBigGenericParamIndex = genericParamIndexSize == 4;
@@ -30,10 +32,10 @@
             return (GenericParamIndex) tableChunk.PeekEcmaIndex(rowOffset + OwnerOffset, isBigGenericParamIndex);
         }
 
-        public Index GetConstraint(GenericParamConstraintIndex index)
+        public CodedIndex GetConstraint(GenericParamConstraintIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ConstraintOffset, isBigTypeDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ConstraintOffset, isBigTypeDefOrRefIndex, CodedIndexType.TypeDefOrRef);
         }
 
         public int GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

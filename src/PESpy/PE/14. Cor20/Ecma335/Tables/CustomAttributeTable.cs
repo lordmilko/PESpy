@@ -14,10 +14,19 @@ namespace PESpy.Ecma335
         private readonly bool isBigCustomAttributeTypeIndexSize;
         private readonly bool isBigBlobIndexSize;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal CustomAttributeTable(int numRows, int hasCustomAttributeIndexSize, int customAttributeTypeIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal CustomAttributeTable(
+            int numRows,
+            bool isSorted,
+            int hasCustomAttributeIndexSize,
+            int customAttributeTypeIndexSize,
+            int blobIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
@@ -34,16 +43,16 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(CustomAttributeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public Index GetParent(CustomAttributeIndex index)
+        public CodedIndex GetParent(CustomAttributeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomAttributeIndexSize);
+            return tableChunk.PeekCodedIndex(rowOffset + ParentOffset, isBigHasCustomAttributeIndexSize, CodedIndexType.HasCustomAttribute);
         }
 
-        public Index GetType(CustomAttributeIndex index)
+        public CodedIndex GetType(CustomAttributeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + TypeOffset, isBigCustomAttributeTypeIndexSize);
+            return tableChunk.PeekCodedIndex(rowOffset + TypeOffset, isBigCustomAttributeTypeIndexSize, CodedIndexType.CustomAttributeType);
         }
 
         public BlobIndex GetValue(CustomAttributeIndex index)

@@ -39,25 +39,25 @@ namespace PESpy.Ecma335
             GuidIndexSize = ((heapSizes & HeapSizes.HEAP_GUID_4) != 0) ? 4 : 2;
             BlobIndexSize = ((heapSizes & HeapSizes.HEAP_BLOB_4) != 0) ? 4 : 2;
 
-            TypeDefOrRefSize        = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.TypeDefOrRef);
-            HasConstantSize         = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasConstant);
-            HasCustomAttributeSize  = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasCustomAttribute);
-            HasFieldMarshalSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasFieldMarshal);
-            HasDeclSecuritySize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasDeclSecurity);
-            MemberRefParentSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.MemberRefParent);
-            HasSemanticsSize        = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasSemantics);
-            MethodDefOrRefSize      = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.MethodDefOrRef);
-            MemberForwardedSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.MemberForwarded);
-            ImplementationSize      = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.Implementation);
-            CustomAttributeTypeSize = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.CustomAttributeType);
-            ResolutionScopeSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.ResolutionScope);
-            TypeOrMethodDefSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.TypeOrMethodDef);
+            TypeDefOrRefSize        = GetCodedIndexSize(rowCounts, isMinimalDelta, TypeDefOrRefTag.CandidateTables,        TypeDefOrRefTag.LargeRowThreshold);
+            HasConstantSize         = GetCodedIndexSize(rowCounts, isMinimalDelta, HasConstantTag.CandidateTables,         HasConstantTag.LargeRowThreshold);
+            HasCustomAttributeSize  = GetCodedIndexSize(rowCounts, isMinimalDelta, HasCustomAttributeTag.CandidateTables,  HasCustomAttributeTag.LargeRowThreshold);
+            HasFieldMarshalSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, HasFieldMarshalTag.CandidateTables,     HasFieldMarshalTag.LargeRowThreshold);
+            HasDeclSecuritySize     = GetCodedIndexSize(rowCounts, isMinimalDelta, HasDeclSecurityTag.CandidateTables,     HasDeclSecurityTag.LargeRowThreshold);
+            MemberRefParentSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, MemberRefParentTag.CandidateTables,     MemberRefParentTag.LargeRowThreshold);
+            HasSemanticsSize        = GetCodedIndexSize(rowCounts, isMinimalDelta, HasSemanticsTag.CandidateTables,        HasSemanticsTag.LargeRowThreshold);
+            MethodDefOrRefSize      = GetCodedIndexSize(rowCounts, isMinimalDelta, MethodDefOrRefTag.CandidateTables,      MethodDefOrRefTag.LargeRowThreshold);
+            MemberForwardedSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, MemberForwardedTag.CandidateTables,     MemberForwardedTag.LargeRowThreshold);
+            ImplementationSize      = GetCodedIndexSize(rowCounts, isMinimalDelta, ImplementationTag.CandidateTables,      ImplementationTag.LargeRowThreshold);
+            CustomAttributeTypeSize = GetCodedIndexSize(rowCounts, isMinimalDelta, CustomAttributeTypeTag.CandidateTables, CustomAttributeTypeTag.LargeRowThreshold);
+            ResolutionScopeSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, ResolutionScopeTag.CandidateTables,     ResolutionScopeTag.LargeRowThreshold);
+            TypeOrMethodDefSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, TypeOrMethodDefTag.CandidateTables,     TypeOrMethodDefTag.LargeRowThreshold);
 
             //Portable PDB
-            HasCustomDebugInformationSize = GetCodedIndexSize(rowCounts, isMinimalDelta, CodedIndexTag.HasCustomDebugInformation);
+            HasCustomDebugInformationSize = GetCodedIndexSize(rowCounts, isMinimalDelta, HasCustomDebugInformationTag.CandidateTables, HasCustomDebugInformationTag.LargeRowThreshold);
         }
 
-        internal static int GetCodedIndexSize(int[] rowCounts, bool isMinimalDelta, CodedIndexTag tag)
+        internal static int GetCodedIndexSize(int[] rowCounts, bool isMinimalDelta, TableMask candidateTables, int largeRowThreshold)
         {
             /* A coded index is an index that can reference one of several potential tables. Which table, and the index to then use in that table,
              * are stored in a compact format. e.g. a TypeDefOrReg coded index is an index that targets either the TypeDef, TypeRef or TypeSpec table.
@@ -85,10 +85,10 @@ namespace PESpy.Ecma335
 
             foreach (var rowCount in rowCounts)
             {
-                if (((ulong) tag.CandidateTables & bit) != 0)
+                if (((ulong) candidateTables & bit) != 0)
                 {
                     //LargeRowThreshold is 2^(16 – (log n))
-                    var isBigTable = rowCount > tag.LargeRowThreshold;
+                    var isBigTable = rowCount > largeRowThreshold;
 
                     if (isBigTable)
                         return 4;

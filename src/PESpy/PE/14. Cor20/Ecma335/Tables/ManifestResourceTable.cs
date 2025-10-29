@@ -20,6 +20,8 @@ namespace PESpy.Ecma335
 
         internal ManifestResourceTable(int numRows, int stringIndexSize, int implementationIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.24
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -51,10 +53,10 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
-        public Index GetImplementation(ManifestResourceIndex index)
+        public CodedIndex GetImplementation(ManifestResourceIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ImplementationOffset, isBigImplementationIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ImplementationOffset, isBigImplementationIndex, CodedIndexType.Implementation);
         }
 
         public int GetRowOffset(ManifestResourceIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

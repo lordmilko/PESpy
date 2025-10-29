@@ -3,7 +3,7 @@
     //This is part of our internal API for parsing ECMA-335 metadata, hence not part of the enums folder
 
     //Name is made up
-    internal enum TableKind : byte
+    public enum TableKind : byte
     {
         Module = 0x00,
         TypeRef = 0x01,

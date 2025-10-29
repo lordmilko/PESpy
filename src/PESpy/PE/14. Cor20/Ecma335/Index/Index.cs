@@ -11,7 +11,11 @@ namespace PESpy.Ecma335
     {
         public readonly int RowId;
 
-        public Index(int rowId)
+        //CorTokenType only captures publically consumed indices. It doesn't capture internal ones
+
+        //The type of a handle is not stored on disk; it's either implied by the spec, or is stored as a coded index
+        //which we've just decoded and turned into an index with a known type
+        internal Index(int rowId)
         {
             RowId = rowId;
         }
@@ -19,6 +23,8 @@ namespace PESpy.Ecma335
         public static explicit operator Index(int value) => new Index(value);
 
         public static explicit operator int(Index value) => value.RowId;
+
+        public override string ToString() => RowId.ToString();
     }
 
     public readonly struct AssemblyOSIndex

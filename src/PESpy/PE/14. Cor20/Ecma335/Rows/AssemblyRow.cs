@@ -38,6 +38,8 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

@@ -15,6 +15,8 @@
 
         internal MethodImplTable(int numRows, int typeDefIndexSize, int methodDefOrRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.27
+
             this.tableChunk = tableChunk;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
@@ -32,16 +34,16 @@
             return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ClassOffset, isBigTypeDefIndex);
         }
 
-        public Index GetMethodBody(MethodImplIndex index)
+        public CodedIndex GetMethodBody(MethodImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodBodyOffset, isBigMethodDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + MethodBodyOffset, isBigMethodDefOrRefIndex, CodedIndexType.MethodDefOrRef);
         }
 
-        public Index GetMethodDeclaration(MethodImplIndex index)
+        public CodedIndex GetMethodDeclaration(MethodImplIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MethodDeclarationOffset, isBigMethodDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + MethodDeclarationOffset, isBigMethodDefOrRefIndex, CodedIndexType.MethodDefOrRef);
         }
 
         public int GetRowOffset(MethodImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

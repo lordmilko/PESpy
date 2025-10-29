@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public GenericParamIndex Owner => table.GetOwner(RowIndex);
 
-        public Index Constraint => table.GetConstraint(RowIndex);
+        public CodedIndex Constraint => table.GetConstraint(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -44,7 +44,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
-                    structWriter.WriteTypeDefOrRefIndex(nameof(Constraint), table.ConstraintOffset, (int) Constraint);
+                    structWriter.WriteTypeDefOrRefIndex(nameof(Constraint), table.ConstraintOffset, Constraint);
                     break;
 
                 default:

@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
     {
         public MemberRefIndex RowIndex { get; }
 
-        public Index Class => table.GetClass(RowIndex);
+        public CodedIndex Class => table.GetClass(RowIndex);
 
         public StringIndex Name => table.GetName(RowIndex);
 
@@ -42,7 +42,7 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteMemberRefParentIndex(nameof(Class), table.ClassOffset, (int) Class);
+                    structWriter.WriteMemberRefParentIndex(nameof(Class), table.ClassOffset, Class);
                     break;
 
                 case 1:

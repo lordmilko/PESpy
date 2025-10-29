@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
     {
         public CustomDebugInformationIndex RowIndex { get; }
 
-        public Index Parent => table.GetParent(RowIndex);
+        public CodedIndex Parent => table.GetParent(RowIndex);
 
         public GuidIndex Kind => table.GetKind(RowIndex);
 
@@ -40,7 +40,7 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteHasCustomDebugInformationIndex(nameof(Parent), table.ParentOffset, (int) Parent);
+                    structWriter.WriteHasCustomDebugInformationIndex(nameof(Parent), table.ParentOffset, Parent);
                     break;
 
                 case 1:

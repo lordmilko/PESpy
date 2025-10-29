@@ -21,6 +21,8 @@ namespace PESpy.Ecma335
 
         internal ExportedTypeTable(int numRows, int stringIndexSize, int implementationIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.14
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -59,10 +61,10 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap);
         }
 
-        public Index GetImplementation(ExportedTypeIndex index)
+        public CodedIndex GetImplementation(ExportedTypeIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ImplementationOffset, isBigImplementationIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ImplementationOffset, isBigImplementationIndex, CodedIndexType.Implementation);
         }
 
         public int GetRowOffset(ExportedTypeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

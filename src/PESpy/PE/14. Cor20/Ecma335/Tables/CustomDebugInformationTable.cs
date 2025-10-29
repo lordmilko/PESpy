@@ -34,10 +34,10 @@ namespace PESpy.Ecma335
             RowSize = ValueOffset + blobIndexSize;
         }
 
-        public Index GetParent(CustomDebugInformationIndex index)
+        public CodedIndex GetParent(CustomDebugInformationIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasCustomDebugInformationIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ParentOffset, isBigHasCustomDebugInformationIndex, CodedIndexType.HasCustomDebugInformation);
         }
 
         public GuidIndex GetKind(CustomDebugInformationIndex index)

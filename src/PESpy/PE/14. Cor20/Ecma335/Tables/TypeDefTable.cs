@@ -31,6 +31,8 @@ namespace PESpy.Ecma335
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.37
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -66,10 +68,10 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap);
         }
 
-        public Index GetExtends(TypeDefIndex index)
+        public CodedIndex GetExtends(TypeDefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ExtendsOffset, isBigTypeDefOrRefIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ExtendsOffset, isBigTypeDefOrRefIndex, CodedIndexType.TypeDefOrRef);
         }
 
         public FieldIndex GetFieldList(TypeDefIndex index)

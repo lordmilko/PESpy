@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
 
         public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        public Index Implementation => table.GetImplementation(RowIndex);
+        public CodedIndex Implementation => table.GetImplementation(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -63,7 +63,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 4:
-                    structWriter.WriteImplementationIndex(nameof(Implementation), table.ImplementationOffset, (int) Implementation);
+                    structWriter.WriteImplementationIndex(nameof(Implementation), table.ImplementationOffset, Implementation);
                     break;
 
                 default:

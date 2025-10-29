@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
     {
         public MethodSpecIndex RowIndex { get; }
 
-        public Index Method => table.GetMethod(RowIndex);
+        public CodedIndex Method => table.GetMethod(RowIndex);
 
         public BlobIndex Instantiation => table.GetInstantiation(RowIndex);
 
@@ -40,7 +40,7 @@ namespace PESpy.Ecma335
             switch (index)
             {
                 case 0:
-                    structWriter.WriteMethodDefOrRefIndex(nameof(Method), table.MethodOffset, (int) Method);
+                    structWriter.WriteMethodDefOrRefIndex(nameof(Method), table.MethodOffset, Method);
                     break;
 
                 case 1:

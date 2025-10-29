@@ -366,9 +366,11 @@ namespace PESpy.Ecma335
             {
                 CustomAttributeTable = new CustomAttributeTable(
                     numRows,
+                    (Header.Sorted & TableMask.CustomAttribute) != 0,
                     sizes.HasCustomAttributeSize,
                     sizes.CustomAttributeTypeSize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -648,6 +650,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.BlobIndexSize,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -953,6 +956,75 @@ namespace PESpy.Ecma335
 
             #endregion
             #endregion
+        }
+
+        internal static int BinarySearchEcmaIndex(
+            in MemoryChunk tableChunk,
+            int rowCount,
+            int rowSize,
+            int fieldOffset,
+            uint targetValue,
+            bool isIndexBig)
+        {
+            var lo = 0;
+            var hi = rowCount - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                var value = tableChunk.PeekEcmaIndex(mid * rowSize + fieldOffset, isIndexBig);
+
+                if (targetValue > value)
+                    lo = mid + 1;
+                else if (targetValue < value)
+                    hi = mid - 1;
+                else
+                    return mid;
+            }
+
+            return -1;
+        }
+
+        internal static void BinarySearchEcmaIndexRange(
+            in MemoryChunk tableChunk,
+            int rowCount,
+            int rowSize,
+            int fieldOffset,
+            uint targetValue,
+            bool isIndexBig,
+            out int startRowNumber,
+            out int endRowNumber)
+        {
+            var rowNumber = BinarySearchEcmaIndex(
+                tableChunk,
+                rowCount,
+                rowSize,
+                fieldOffset,
+                targetValue,
+                isIndexBig
+            );
+
+            if (rowNumber == -1)
+            {
+                startRowNumber = -1;
+                endRowNumber = -1;
+                return;
+            }
+
+            //We've found a random location that matches our target value.
+            //Trace backwards and forwards to find the range of items where our
+            //target value is found
+
+            startRowNumber = rowNumber;
+
+            while (startRowNumber >= 0 && tableChunk.PeekEcmaIndex((startRowNumber - 1) * rowSize + fieldOffset, isIndexBig) == targetValue)
+                startRowNumber--;
+
+            endRowNumber = rowNumber;
+
+            while (endRowNumber + 1 < rowCount && tableChunk.PeekEcmaIndex((endRowNumber + 1) * rowSize + fieldOffset, isIndexBig) == targetValue)
+                endRowNumber++;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

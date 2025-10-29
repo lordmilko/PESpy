@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
 
         public CorPinvokeMap MappingFlags => table.GetMappingFlags(RowIndex);
 
-        public Index MemberForwarded => table.GetMemberForwarded(RowIndex);
+        public CodedIndex MemberForwarded => table.GetMemberForwarded(RowIndex);
 
         public StringIndex ImportName => table.GetImportName(RowIndex);
 
@@ -49,7 +49,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
-                    structWriter.WriteMemberForwardedIndex(nameof(MemberForwarded), table.MemberForwardedOffset, (int) MemberForwarded);
+                    structWriter.WriteMemberForwardedIndex(nameof(MemberForwarded), table.MemberForwardedOffset, MemberForwarded);
                     break;
 
                 case 2:

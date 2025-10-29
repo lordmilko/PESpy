@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public CorGenericParamAttr Flags => table.GetFlags(RowIndex);
 
-        public Index Owner => table.GetOwner(RowIndex);
+        public CodedIndex Owner => table.GetOwner(RowIndex);
 
         public StringIndex Name => table.GetName(RowIndex);
 
@@ -53,7 +53,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 2:
-                    structWriter.WriteTypeOrMethodDefIndex(nameof(Owner), table.OwnerOffset, (int) Owner);
+                    structWriter.WriteTypeOrMethodDefIndex(nameof(Owner), table.OwnerOffset, Owner);
                     break;
 
                 case 3:

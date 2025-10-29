@@ -15,6 +15,18 @@ namespace PESpy.Ecma335
             this.getBlobHeap = getBlobHeap;
         }
 
+        public ByteReader GetReader()
+        {
+            var blobHeap = getBlobHeap();
+
+            if (blobHeap == null)
+                throw new NotImplementedException();
+
+            var blob = blobHeap.GetBlob(Offset);
+
+            return blob.GetReader();
+        }
+
         public static explicit operator BlobIndex(int value) => new BlobIndex(value, default);
 
         //Can't use implicit operator here, as for some reason this has a backwards effect of allowing other indices to be passed to our tables, due to the presence of a general purpose int indexer

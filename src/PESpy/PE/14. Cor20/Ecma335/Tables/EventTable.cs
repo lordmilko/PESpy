@@ -19,6 +19,8 @@ namespace PESpy.Ecma335
 
         internal EventTable(int numRows, int stringIndexSize, int typeDefOrRefIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.13
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -43,10 +45,10 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
-        public Index GetEventType(EventIndex index)
+        public CodedIndex GetEventType(EventIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + EventTypeOffset, isBigTypeDefOrRefIndexSize);
+            return tableChunk.PeekCodedIndex(rowOffset + EventTypeOffset, isBigTypeDefOrRefIndexSize, CodedIndexType.TypeDefOrRef);
         }
 
         public int GetRowOffset(EventIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

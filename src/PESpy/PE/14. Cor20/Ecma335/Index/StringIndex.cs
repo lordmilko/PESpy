@@ -18,6 +18,18 @@ namespace PESpy.Ecma335
 
         //Can't use implicit operator here, as for some reason this has a backwards effect of allowing other indices to be passed to our tables, due to the presence of a general purpose int indexer
         public static explicit operator int(StringIndex value) => value.Offset;
+        
+        public bool Equals(string value)
+        {
+            if (value == null)
+                return false;
+
+            var stringHeap = getStringHeap();
+
+            var str = stringHeap.GetString(Offset).Value;
+
+            return str.Equals(value);
+        }
 
         public override string ToString()
         {

@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public byte Padding => table.GetPadding(RowIndex);
 
-        public Index Parent => table.GetParent(RowIndex);
+        public CodedIndex Parent => table.GetParent(RowIndex);
 
         public BlobIndex Value => table.GetValue(RowIndex);
 
@@ -53,7 +53,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case 2:
-                    structWriter.WriteHasConstantIndex(nameof(Parent), table.ParentOffset, (int) Parent);
+                    structWriter.WriteHasConstantIndex(nameof(Parent), table.ParentOffset, Parent);
                     break;
 
                 case 3:

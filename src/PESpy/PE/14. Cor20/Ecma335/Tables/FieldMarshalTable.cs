@@ -17,6 +17,8 @@ namespace PESpy.Ecma335
 
         internal FieldMarshalTable(int numRows, int hasFieldMarshalIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.17
+
             this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
 
@@ -28,10 +30,10 @@ namespace PESpy.Ecma335
             RowSize = NativeTypeOffset + blobIndexSize;
         }
 
-        public Index GetParent(FieldMarshalIndex index)
+        public CodedIndex GetParent(FieldMarshalIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigHasFieldMarshalIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + ParentOffset, isBigHasFieldMarshalIndex, CodedIndexType.HasFieldMarshal);
         }
 
         public BlobIndex GetNativeType(FieldMarshalIndex index)

@@ -17,6 +17,8 @@ namespace PESpy.Ecma335
 
         internal MethodSemanticsTable(int numRows, int methodDefIndexSize, int hasSemanticsIndexSize, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.28
+
             this.tableChunk = tableChunk;
 
             hasBigMethodDefIndex = methodDefIndexSize == 4;
@@ -40,10 +42,10 @@ namespace PESpy.Ecma335
             return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, hasBigMethodDefIndex);
         }
 
-        public Index GetAssociation(MethodSemanticsIndex index)
+        public CodedIndex GetAssociation(MethodSemanticsIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + AssociationOffset, hasBigHasSemanticsIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + AssociationOffset, hasBigHasSemanticsIndex, CodedIndexType.HasSemantics);
         }
 
         public int GetRowOffset(MethodSemanticsIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;

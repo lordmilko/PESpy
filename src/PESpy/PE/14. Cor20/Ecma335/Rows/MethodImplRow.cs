@@ -11,9 +11,9 @@ namespace PESpy.Ecma335
 
         public TypeDefIndex Class => table.GetClass(RowIndex);
 
-        public Index MethodBody => table.GetMethodBody(RowIndex);
+        public CodedIndex MethodBody => table.GetMethodBody(RowIndex);
 
-        public Index MethodDeclaration => table.GetMethodDeclaration(RowIndex);
+        public CodedIndex MethodDeclaration => table.GetMethodDeclaration(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -46,11 +46,11 @@ namespace PESpy.Ecma335
                     break;
 
                 case 1:
-                    structWriter.WriteMethodDefOrRefIndex(nameof(MethodBody), table.MethodBodyOffset, (int) MethodBody);
+                    structWriter.WriteMethodDefOrRefIndex(nameof(MethodBody), table.MethodBodyOffset, MethodBody);
                     break;
 
                 case 2:
-                    structWriter.WriteMethodDefOrRefIndex(nameof(MethodDeclaration), table.MethodDeclarationOffset, (int) MethodDeclaration);
+                    structWriter.WriteMethodDefOrRefIndex(nameof(MethodDeclaration), table.MethodDeclarationOffset, MethodDeclaration);
                     break;
 
                 default:

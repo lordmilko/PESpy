@@ -21,6 +21,8 @@ namespace PESpy.Ecma335
 
         internal ImplMapTable(int numRows, int memberForwardedIndexSize, int stringIndexSize, int moduleRefIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
         {
+            //II.22.22
+
             this.tableChunk = tableChunk;
             this.stringHeap = stringHeap;
 
@@ -41,10 +43,10 @@ namespace PESpy.Ecma335
             return (CorPinvokeMap) tableChunk.PeekUInt16(rowOffset + MappingFlagsOffset);
         }
 
-        public Index GetMemberForwarded(ImplMapIndex index)
+        public CodedIndex GetMemberForwarded(ImplMapIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (Index) tableChunk.PeekEcmaIndex(rowOffset + MemberForwardedOffset, isBigMemberForwardedIndex);
+            return tableChunk.PeekCodedIndex(rowOffset + MemberForwardedOffset, isBigMemberForwardedIndex, CodedIndexType.MemberForwarded);
         }
 
         public StringIndex GetImportName(ImplMapIndex index)
