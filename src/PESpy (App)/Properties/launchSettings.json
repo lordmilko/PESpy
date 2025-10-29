@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PESpy (App)": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

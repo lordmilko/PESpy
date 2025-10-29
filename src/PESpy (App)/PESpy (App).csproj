@@ -1,0 +1,79 @@
+﻿<Project>
+
+  <!-- We manually import Sdk.props/Sdk.targets so that we can overwrite the NativeBinary value that is set in targets
+       so that we can rename ourselves to PESpy.exe while publishing for NativeAOT -->
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  
+  <Import Project="$(Build)ClrDebug.props" />
+	<Import Project="$(Build)ReFlow.props" />
+  <Import Project="$(Build)PInvoke.props" />
+  <Import Project="$(Build)SizeHacks.props" />
+	<Import Project="$(Build)SymHelp.props" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <RootNamespace>PESpy</RootNamespace>
+
+    <!-- Generate Sizoscope debug logs -->
+    <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
+    <IlcGenerateDgmlFile>true</IlcGenerateDgmlFile>
+
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_IsPublishing)' != 'yes'">
+    <TargetFrameworks>net5.0-windows</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'yes'">
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\PESpy\PESpy.csproj" />
+    
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Memory" Version="4.5.5" PrivateAssets="all" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+
+		<PackageReference Include="System.Reflection.Metadata" Version="9.0.0" />
+		<PackageReference Include="System.Text.Json" Version="9.0.0" />
+		<PackageReference Include="Iced" Version="1.21.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  
+  <!-- The following shenanigans allow us to rename ourselves to be PESpy.exe while publishing NativeAOT -->
+
+  <PropertyGroup>
+    <NativeBinary>$(NativeOutputPath)$(NativeBinaryPrefix)PESpy$(NativeBinaryExt)</NativeBinary>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  
+  <!-- NativeAOT hooks ComputeFilesToPublish to change the IntermediateAssembly to the one it wants to use.
+       We hook it to change it to the one _we_ want to use -->
+
+  <Target Name="PESpyIntermediateAssemblyName" AfterTargets="ComputeLinkedFilesToPublish">
+    <ItemGroup>
+      <_PESpyIntermediateAssembly Include="@(IntermediateAssembly->'$(NativeOutputPath)PESpy$(NativeBinaryExt)')" />
+      <IntermediateAssembly Remove="@(IntermediateAssembly)" />
+      <IntermediateAssembly Include="@(_PESpyIntermediateAssembly)" />
+    </ItemGroup>
+
+    <!-- Needed for CopyNativeBinary -->
+    <PropertyGroup>
+      <TargetName>PESpy</TargetName>
+    </PropertyGroup>
+  </Target>
+
+</Project>
