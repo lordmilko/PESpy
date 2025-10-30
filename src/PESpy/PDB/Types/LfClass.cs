@@ -81,25 +81,25 @@ namespace PESpy.PDB
         #endregion
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
             TypType.ExtractNumericData(value->data, out _, out var bytesRead);
 
             //I am assuming I need to use normal ST/UTF parsing logic
-            return TypType.ReadString(value->data + bytesRead, symbolAccessor);
+            return TypType.ReadString(value->data + bytesRead, codeViewAccessor);
         }
 
-        internal SymString GetUniqueName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetUniqueName(ICodeViewAccessor? codeViewAccessor)
         {
             if (property.hasuniquename)
             {
                 TypType.ExtractNumericData(value->data, out _, out var bytesRead);
 
                 //I am assuming I need to use normal ST/UTF parsing logic
-                var name = TypType.ReadString(value->data + bytesRead, symbolAccessor);
+                var name = TypType.ReadString(value->data + bytesRead, codeViewAccessor);
 
                 //I am assuming I need to use normal ST/UTF parsing logic
-                return TypType.ReadString(value->data + bytesRead + name.Length + 1, symbolAccessor); //+1 because it's either null terminated or length prefixed
+                return TypType.ReadString(value->data + bytesRead + name.Length + 1, codeViewAccessor); //+1 because it's either null terminated or length prefixed
             }
 
             return default;

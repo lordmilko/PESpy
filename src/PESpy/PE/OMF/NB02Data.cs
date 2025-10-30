@@ -3,7 +3,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public class NB02Data : ICodeView, IViewable
+    public class NB02Data : ICodeViewData, IViewable
     {
         public int LfoDir { get; }
 

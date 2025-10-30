@@ -35,7 +35,7 @@ namespace PESpy.View
 
         internal EagerStructWriter CreateEagerWriter() => new EagerStructWriter(this);
 
-        internal ISymbolAccessor GetSymbolAccessor() => _viewWriter.GetSymbolAccessor();
+        internal ICodeViewAccessor GetSymbolAccessor() => _viewWriter.GetSymbolAccessor();
 
         //Write a ByteBlob to ensure the specified alignment of the contents of the struct, or throw if we're already aligned, in which case
         //the caller shouldn't be asking us to align again

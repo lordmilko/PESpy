@@ -81,13 +81,13 @@ namespace PESpy.PDB
             //Debug.Assert(condition, message);
         }
 
-        internal static SymString ReadString(byte* ptr, ISymbolAccessor? symbolAccessor = null)
+        internal static SymString ReadString(byte* ptr, ICodeViewAccessor? codeViewAccessor = null)
         {
             //We are length prefixed if we're a PDB with impv <= PDBImpvVC98 or are an OBJ file < C13
             bool isLengthPrefixedData;
 
-            if (symbolAccessor != null)
-                isLengthPrefixedData = symbolAccessor.HasLengthPrefixedStrings;
+            if (codeViewAccessor != null)
+                isLengthPrefixedData = codeViewAccessor.HasLengthPrefixedStrings;
             else
                 isLengthPrefixedData = SymbolMemoryTracker.IsLengthPrefixedData((long) ptr);
 

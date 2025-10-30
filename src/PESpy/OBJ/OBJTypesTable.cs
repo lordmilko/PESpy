@@ -30,19 +30,19 @@ namespace PESpy.OBJ
                     var sig = Signature;
                     var isLengthPrefixed = sig == CV_SIGNATURE.C7 || sig == CV_SIGNATURE.C11;
 
-                    ISymbolAccessor symbolAccessor = null;
+                    ICodeViewAccessor codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        symbolAccessor = new OBJSymbolAccessor((OBJFile) b.File, isLengthPrefixed);
+                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, isLengthPrefixed);
                     }
                     else
                     {
                         var s = (GlobalSubMemoryBlock) block;
-                        symbolAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, isLengthPrefixed);
+                        codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, isLengthPrefixed);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
                     types = new TypTypeList(chunk.Pointer + 4, Length - 4);
                 }
 

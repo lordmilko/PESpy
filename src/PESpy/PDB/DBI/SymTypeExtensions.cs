@@ -12,11 +12,11 @@ namespace PESpy.PDB
         public static unsafe bool TryGetRVA(in this SymType symType, out int rva) =>
             TryGetRVA(symType, null, out rva);
 
-        internal static unsafe bool TryGetRVA(in this SymType symType, ISymbolAccessor? symbolAccessor, out int rva)
+        internal static unsafe bool TryGetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out int rva)
         {
             if (TryGetOffSeg(symType, out var off, out var seg))
             {
-                var rawRva = SymType.GetRelativeVirtualAddress((SYMTYPE*) symType, seg, off, symbolAccessor);
+                var rawRva = SymType.GetRelativeVirtualAddress((SYMTYPE*) symType, seg, off, codeViewAccessor);
 
                 //Data symbols can have a section index of 0, indicating they don't physically exist
                 if (rawRva != null)
@@ -47,9 +47,9 @@ namespace PESpy.PDB
 
         public static SymString GetName(in this SymType symType) => GetName(symType, null);
 
-        internal static SymString GetName(in this SymType symType, ISymbolAccessor? symbolAccessor)
+        internal static SymString GetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
-            if (!TryGetName(symType, symbolAccessor, out var name))
+            if (!TryGetName(symType, codeViewAccessor, out var name))
                 throw new NotImplementedException();
 
             return name;
@@ -58,83 +58,83 @@ namespace PESpy.PDB
         public static bool TryGetName(in this SymType symType, out SymString name) =>
             TryGetName(symType, null, out name);
 
-        internal static bool TryGetName(in this SymType symType, ISymbolAccessor? symbolAccessor, out SymString name)
+        internal static bool TryGetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out SymString name)
         {
             switch (symType.rectyp)
             {
                 case S_MANREGREL_ST:
                 case S_MANREGREL:
                 case S_ATTR_REGREL:
-                    name = ((AttrRegRel) symType).GetName(symbolAccessor);
+                    name = ((AttrRegRel) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_MANREGISTER_ST:
                 case S_MANREGISTER:
                 case S_ATTR_REGISTER:
-                    name = ((AttrRegSym) symType).GetName(symbolAccessor);
+                    name = ((AttrRegSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_MANSLOT_ST:
                 case S_MANSLOT:
-                    name = ((AttrSlotSym) symType).GetName(symbolAccessor);
+                    name = ((AttrSlotSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_BLOCK16:
                 case S_WITH16:
-                    name = ((BlockSym16) symType).GetName(symbolAccessor);
+                    name = ((BlockSym16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_BLOCK32_ST:
                 case S_WITH32_ST:
                 case S_BLOCK32:
                 case S_WITH32:
-                    name = ((BlockSym32) symType).GetName(symbolAccessor);
+                    name = ((BlockSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_BPREL16:
-                    name = ((BPRelSym16) symType).GetName(symbolAccessor);
+                    name = ((BPRelSym16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_BPREL32_ST:
                 case S_BPREL32:
-                    name = ((BPRelSym32) symType).GetName(symbolAccessor);
+                    name = ((BPRelSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_BPREL32_16t:
-                    name = ((BPRelSym3216t) symType).GetName(symbolAccessor);
+                    name = ((BPRelSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
                 //case S_COMPILE:
-                //    name = ((CFlagSym) symType).GetName(symbolAccessor);
+                //    name = ((CFlagSym) symType).GetName(codeViewAccessor);
                 //    return true;
 
                 case S_COFFGROUP:
-                    name = ((CoffGroupSym) symType).GetName(symbolAccessor);
+                    name = ((CoffGroupSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 //case S_COMPILE2_ST:
                 //case S_COMPILE2:
-                //    name = ((CompileSym) symType).GetName(symbolAccessor);
+                //    name = ((CompileSym) symType).GetName(codeViewAccessor);
                 //    return true;
 
                 //case S_COMPILE3:
-                //    name = ((CompileSym3) symType).GetName(symbolAccessor);
+                //    name = ((CompileSym3) symType).GetName(codeViewAccessor);
                 //    return true;
 
                 case S_CONSTANT_ST:
                 case S_CONSTANT:
                 case S_MANCONSTANT:
-                    name = ((ConstSym) symType).GetName(symbolAccessor);
+                    name = ((ConstSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_CONSTANT_16t:
-                    name = ((ConstSym16t) symType).GetName(symbolAccessor);
+                    name = ((ConstSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LDATA16:
                 case S_GDATA16:
                 case S_PUB16:
-                    name = ((DataSym16) symType).GetName(symbolAccessor);
+                    name = ((DataSym16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LDATA32_ST:
@@ -149,7 +149,7 @@ namespace PESpy.PDB
                 case S_GTHREAD32:
                 case S_LMANDATA:
                 case S_GMANDATA:
-                    name = ((DataSym32) symType).GetName(symbolAccessor);
+                    name = ((DataSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LDATA32_16t:
@@ -157,67 +157,67 @@ namespace PESpy.PDB
                 case S_PUB32_16t:
                 case S_LTHREAD32_16t:
                 case S_GTHREAD32_16t:
-                    name = ((DataSym3216t) symType).GetName(symbolAccessor);
+                    name = ((DataSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_GDATA_HLSL:
                 case S_LDATA_HLSL:
-                    name = ((DataSymHLSL) symType).GetName(symbolAccessor);
+                    name = ((DataSymHLSL) symType).GetName(codeViewAccessor);
                     return true;
 
                 //DataSymHLSL32
                 //DataSymHLSL32Ex
 
                 case S_EXPORT:
-                    name = ((ExportSym) symType).GetName(symbolAccessor);
+                    name = ((ExportSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_FILESTATIC:
-                    name = ((FileStaticSym) symType).GetName(symbolAccessor);
+                    name = ((FileStaticSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_MANFRAMEREL_ST:
                 case S_MANFRAMEREL:
                 case S_ATTR_FRAMEREL:
-                    name = ((FrameRelSym) symType).GetName(symbolAccessor);
+                    name = ((FrameRelSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LABEL16:
-                    name = ((LabelSym16) symType).GetName(symbolAccessor);
+                    name = ((LabelSym16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LABEL32_ST:
                 case S_LABEL32:
-                    name = ((LabelSym32) symType).GetName(symbolAccessor);
+                    name = ((LabelSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LOCAL_DPC_GROUPSHARED:
-                    name = ((LocalDPCGroupSharedSym) symType).GetName(symbolAccessor);
+                    name = ((LocalDPCGroupSharedSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LOCAL:
-                    name = ((LocalSym) symType).GetName(symbolAccessor);
+                    name = ((LocalSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_GMANPROC_ST:
                 case S_LMANPROC_ST:
                 case S_GMANPROC:
                 case S_LMANPROC:
-                    name = ((ManProcSym) symType).GetName(symbolAccessor);
+                    name = ((ManProcSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_OBJNAME_ST:
                 case S_OBJNAME:
-                    name = ((ObjNameSym) symType).GetName(symbolAccessor);
+                    name = ((ObjNameSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_PDBMAP:
-                    name = ((PdbMap) symType).GetName(symbolAccessor);
+                    name = ((PdbMap) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROC16:
                 case S_GPROC16:
-                    name = ((ProcSym16) symType).GetName(symbolAccessor);
+                    name = ((ProcSym16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROC32_ST:
@@ -228,12 +228,12 @@ namespace PESpy.PDB
                 case S_GPROC32_ID:
                 case S_LPROC32_DPC:
                 case S_LPROC32_DPC_ID:
-                    name = ((ProcSym32) symType).GetName(symbolAccessor);
+                    name = ((ProcSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROC32_16t:
                 case S_GPROC32_16t:
-                    name = ((ProcSym3216t) symType).GetName(symbolAccessor);
+                    name = ((ProcSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROCIA64_ST:
@@ -242,7 +242,7 @@ namespace PESpy.PDB
                 case S_GPROCIA64:
                 case S_LPROCIA64_ID:
                 case S_GPROCIA64_ID:
-                    name = ((ProcSymIA64) symType).GetName(symbolAccessor);
+                    name = ((ProcSymIA64) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROCMIPS_ST:
@@ -251,27 +251,27 @@ namespace PESpy.PDB
                 case S_GPROCMIPS:
                 case S_LPROCMIPS_ID:
                 case S_GPROCMIPS_ID:
-                    name = ((ProcSymMips) symType).GetName(symbolAccessor);
+                    name = ((ProcSymMips) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LPROCMIPS_16t:
                 case S_GPROCMIPS_16t:
-                    name = ((ProcSymMips16t) symType).GetName(symbolAccessor);
+                    name = ((ProcSymMips16t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_PUB32_ST:
                 case S_PUB32:
-                    name = ((PubSym32) symType).GetName(symbolAccessor);
+                    name = ((PubSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REF_MINIPDB:
-                    name = ((RefMiniPdb) symType).GetName(symbolAccessor);
+                    name = ((RefMiniPdb) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_PROCREF_ST:
                 case S_DATAREF_ST:
                 case S_LPROCREF_ST:
-                    name = ((RefSym) symType).GetName(symbolAccessor);
+                    name = ((RefSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_PROCREF:
@@ -279,62 +279,62 @@ namespace PESpy.PDB
                 case S_LPROCREF:
                 case S_ANNOTATIONREF:
                 case S_TOKENREF:
-                    name = ((RefSym2) symType).GetName(symbolAccessor);
+                    name = ((RefSym2) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REGREL16:
-                    name = ((RegRel16) symType).GetName(symbolAccessor);
+                    name = ((RegRel16) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REGREL32_ST:
                 case S_REGREL32:
-                    name = ((RegRel32) symType).GetName(symbolAccessor);
+                    name = ((RegRel32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REGREL32_16t:
-                    name = ((RegRel3216t) symType).GetName(symbolAccessor);
+                    name = ((RegRel3216t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REGISTER_ST:
                 case S_REGISTER:
-                    name = ((RegSym) symType).GetName(symbolAccessor);
+                    name = ((RegSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_REGISTER_16t:
-                    name = ((RegSym16t) symType).GetName(symbolAccessor);
+                    name = ((RegSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_SECTION:
-                    name = ((SectionSym) symType).GetName(symbolAccessor);
+                    name = ((SectionSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_LOCALSLOT_ST:
                 case S_PARAMSLOT_ST:
                 case S_LOCALSLOT:
                 case S_PARAMSLOT:
-                    name = ((SlotSym32) symType).GetName(symbolAccessor);
+                    name = ((SlotSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_THUNK32_ST:
                 case S_THUNK32:
-                    name = ((ThunkSym32) symType).GetName(symbolAccessor);
+                    name = ((ThunkSym32) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_UDT_ST:
                 case S_COBOLUDT_ST:
                 case S_UDT:
                 case S_COBOLUDT:
-                    name = ((UdtSym) symType).GetName(symbolAccessor);
+                    name = ((UdtSym) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_UDT_16t:
                 case S_COBOLUDT_16t:
-                    name = ((UdtSym16t) symType).GetName(symbolAccessor);
+                    name = ((UdtSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
                 case S_UNAMESPACE_ST:
                 case S_UNAMESPACE:
-                    name = ((UNameSpace) symType).GetName(symbolAccessor);
+                    name = ((UNameSpace) symType).GetName(codeViewAccessor);
                     return true;
 
                 default:
@@ -646,7 +646,7 @@ namespace PESpy.PDB
         /// <returns>True if the specified symbol is code. Otherwise, false</returns>
         public static unsafe bool IsCode(in this SymType symType) => IsCode(symType, null);
 
-        internal static unsafe bool IsCode(in this SymType symType, ISymbolAccessor? symbolAccessor)
+        internal static unsafe bool IsCode(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
             /* From mapping DIA symbols to PDB symbols by RVA, the following symbol kinds have been observed to have code or be functions:
              *
@@ -714,7 +714,7 @@ namespace PESpy.PDB
                     return false;
             }
 
-            if (SymType.TryGetSectionCharacteristics(symType, seg, off, symbolAccessor, out var characteristics))
+            if (SymType.TryGetSectionCharacteristics(symType, seg, off, codeViewAccessor, out var characteristics))
             {
                 if ((characteristics & IMAGE_SCN.CNT_CODE) != 0)
                     return true;

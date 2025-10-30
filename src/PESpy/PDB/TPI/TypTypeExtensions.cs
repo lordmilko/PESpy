@@ -239,7 +239,7 @@ namespace PESpy.PDB
         public static bool TryGetName(in this TypType typType, out SymString name) =>
             TryGetName(typType, null, out name);
 
-        internal static bool TryGetName(in this TypType typType, ISymbolAccessor? symbolAccessor, out SymString name)
+        internal static bool TryGetName(in this TypType typType, ICodeViewAccessor? codeViewAccessor, out SymString name)
         {
             TypType? underlying;
 
@@ -248,24 +248,24 @@ namespace PESpy.PDB
                 //LfAlias
                 case LF_ALIAS:
                 case LF_ALIAS_ST:
-                    name = ((LfAlias) typType).GetName(symbolAccessor);
+                    name = ((LfAlias) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfArray
                 case LF_ARRAY:
                 case LF_ARRAY_ST:
-                    name = ((LfArray) typType).GetName(symbolAccessor);
+                    name = ((LfArray) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfArray16t
                 case LF_ARRAY_16t:
-                    name = ((LfArray16t) typType).GetName(symbolAccessor);
+                    name = ((LfArray16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    name = ((LfClass16t) typType).GetName(symbolAccessor);
+                    name = ((LfClass16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfClass
@@ -274,160 +274,160 @@ namespace PESpy.PDB
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
                 case LF_INTERFACE:
-                    name = ((LfClass) typType).GetName(symbolAccessor);
+                    name = ((LfClass) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
                 case LF_ONEMETHOD_ST:
-                    name = ((LfOneMethod) typType).GetName(symbolAccessor);
+                    name = ((LfOneMethod) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfOneMethod16t
                 case LF_ONEMETHOD_16t:
-                    name = ((LfOneMethod16t) typType).GetName(symbolAccessor);
+                    name = ((LfOneMethod16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    name = ((LfUnion16t) typType).GetName(symbolAccessor);
+                    name = ((LfUnion16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    name = ((LfUnion) typType).GetName(symbolAccessor);
+                    name = ((LfUnion) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfDimArray16t
                 case LF_DIMARRAY_16t:
-                    name = ((LfDimArray16t) typType).GetName(symbolAccessor);
+                    name = ((LfDimArray16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfDimArray
                 case LF_DIMARRAY:
                 case LF_DIMARRAY_ST:
-                    name = ((LfDimArray) typType).GetName(symbolAccessor);
+                    name = ((LfDimArray) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    name = ((LfEnum16t) typType).GetName(symbolAccessor);
+                    name = ((LfEnum16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    name = ((LfEnum) typType).GetName(symbolAccessor);
+                    name = ((LfEnum) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfFriendFcn16t
                 case LF_FRIENDFCN_16t:
-                    name = ((LfFriendFcn16t) typType).GetName(symbolAccessor);
+                    name = ((LfFriendFcn16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfFriendFcn
                 case LF_FRIENDFCN:
                 case LF_FRIENDFCN_ST:
-                    name = ((LfFriendFcn) typType).GetName(symbolAccessor);
+                    name = ((LfFriendFcn) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfFuncId
                 case LF_FUNC_ID:
-                    name = ((LfFuncId) typType).GetName(symbolAccessor);
+                    name = ((LfFuncId) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfManaged
                 case LF_MANAGED:
                 case LF_MANAGED_ST:
-                    name = ((LfManaged) typType).GetName(symbolAccessor);
+                    name = ((LfManaged) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMember16t
                 case LF_MEMBER_16t:
-                    name = ((LfMember16t) typType).GetName(symbolAccessor);
+                    name = ((LfMember16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
-                    name = ((LfMember) typType).GetName(symbolAccessor);
+                    name = ((LfMember) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
                 case LF_MEMBERMODIFY_ST:
-                    name = ((LfMemberModify) typType).GetName(symbolAccessor);
+                    name = ((LfMemberModify) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMethod
                 case LF_METHOD:
                 case LF_METHOD_ST:
-                    name = ((LfMethod) typType).GetName(symbolAccessor);
+                    name = ((LfMethod) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMethod16t
                 case LF_METHOD_16t:
-                    name = ((LfMethod16t) typType).GetName(symbolAccessor);
+                    name = ((LfMethod16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfMFuncId
                 case LF_MFUNC_ID:
-                    name = ((LfMFuncId) typType).GetName(symbolAccessor);
+                    name = ((LfMFuncId) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestType
                 case LF_NESTTYPE:
                 case LF_NESTTYPE_ST:
-                    name = ((LfNestType) typType).GetName(symbolAccessor);
+                    name = ((LfNestType) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestType16t
                 case LF_NESTTYPE_16t:
-                    name = ((LfNestType16t) typType).GetName(symbolAccessor);
+                    name = ((LfNestType16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
-                    name = ((LfNestTypeEx) typType).GetName(symbolAccessor);
+                    name = ((LfNestTypeEx) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfPreComp
                 case LF_PRECOMP:
                 case LF_PRECOMP_ST:
-                    name = ((LfPreComp) typType).GetName(symbolAccessor);
+                    name = ((LfPreComp) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfPreComp16t
                 case LF_PRECOMP_16t:
-                    name = ((LfPreComp16t) typType).GetName(symbolAccessor);
+                    name = ((LfPreComp16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
                 case LF_STMEMBER_ST:
-                    name = ((LfSTMember) typType).GetName(symbolAccessor);
+                    name = ((LfSTMember) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfSTMember16t
                 case LF_STMEMBER_16t:
-                    name = ((LfSTMember16t) typType).GetName(symbolAccessor);
+                    name = ((LfSTMember16t) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfStringId
                 case LF_STRING_ID:
-                    name = ((LfStringId) typType).GetName(symbolAccessor);
+                    name = ((LfStringId) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfTypeServer
                 case LF_TYPESERVER:
                 case LF_TYPESERVER_ST:
-                    name = ((LfTypeServer) typType).GetName(symbolAccessor);
+                    name = ((LfTypeServer) typType).GetName(codeViewAccessor);
                     return true;
 
                 //LfTypeServer2
                 case LF_TYPESERVER2:
-                    name = ((LfTypeServer2) typType).GetName(symbolAccessor);
+                    name = ((LfTypeServer2) typType).GetName(codeViewAccessor);
                     return true;
 
                 case LF_MODIFIER_16t:

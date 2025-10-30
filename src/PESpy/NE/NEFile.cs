@@ -199,10 +199,10 @@ namespace PESpy
         #endregion
         #region OMFData
 
-        private ICodeView? codeViewData;
+        private ICodeViewData? codeViewData;
         private bool hasTriedCodeViewData;
 
-        public unsafe ICodeView? CodeViewData
+        public unsafe ICodeViewData? CodeViewData
         {
             get
             {

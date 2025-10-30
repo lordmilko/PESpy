@@ -14,7 +14,7 @@ namespace PESpy
     /// <summary>
     /// Represents a CodeView Program Database (PDB) file.
     /// </summary>
-    public abstract unsafe class PDBFile : IFile, IViewable, ISymbolAccessor, IDisposable
+    public abstract unsafe class PDBFile : IFile, IViewable, ICodeViewAccessor, IDisposable
     {
         public static PDBFile FromFile(string path, bool writable = false)
         {
@@ -989,9 +989,9 @@ namespace PESpy
 
         #region ISymbolAccessor
 
-        ImageSectionHeader[]? ISymbolAccessor.GetSectionHeaders() => DBI?.SectionHdr;
+        ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr;
 
-        SymType ISymbolAccessor.GetModuleSymbol(ushort imod, int ibSym)
+        SymType ICodeViewAccessor.GetModuleSymbol(ushort imod, int ibSym)
         {
             var modules = DBI?.Modules;
 
@@ -1015,7 +1015,7 @@ namespace PESpy
 
         private bool? hasLengthPrefixedStrings;
 
-        bool ISymbolAccessor.HasLengthPrefixedStrings
+        bool ICodeViewAccessor.HasLengthPrefixedStrings
         {
             get
             {
@@ -1028,8 +1028,8 @@ namespace PESpy
             }
         }
 
-        int? ISymbolAccessor.GetRelativeVirtualAddress(ushort seg, int off) =>
-            SymType.GetRelativeVirtualAddressFromSectionHeaders(((ISymbolAccessor) this).GetSectionHeaders(), seg, off);
+        int? ICodeViewAccessor.GetRelativeVirtualAddress(ushort seg, int off) =>
+            SymType.GetRelativeVirtualAddressFromSectionHeaders(((ICodeViewAccessor) this).GetSectionHeaders(), seg, off);
 
         #endregion
         #region IViewable

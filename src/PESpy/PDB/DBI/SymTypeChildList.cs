@@ -26,7 +26,7 @@ namespace PESpy.PDB
         private readonly byte* bufferStart;
         private readonly BLOCKSYM* parentStart;
         private readonly byte* parentEnd;
-        private readonly ISymbolAccessor symbolAccessor;
+        private readonly ICodeViewAccessor codeViewAccessor;
 
         private int? count;
 
@@ -37,7 +37,7 @@ namespace PESpy.PDB
                 if (count == null)
                 {
                     //We store a pointer to the first parent, so we need to skip over that
-                    var p = ((byte*) parentStart) + SymType.GetSymbolLength((SYMTYPE*) parentStart, symbolAccessor);
+                    var p = ((byte*) parentStart) + SymType.GetSymbolLength((SYMTYPE*) parentStart, codeViewAccessor);
                     var e = parentEnd;
 
                     var c = 0;
@@ -51,7 +51,7 @@ namespace PESpy.PDB
                         if (SymType.IsBlockSym(s->rectyp))
                             p = bufferStart + ((BLOCKSYM*) s)->pEnd;
 
-                        p += SymType.GetSymbolLength((SYMTYPE*) p, symbolAccessor);
+                        p += SymType.GetSymbolLength((SYMTYPE*) p, codeViewAccessor);
                     }
 
                     count = c;
@@ -61,10 +61,10 @@ namespace PESpy.PDB
             }
         }
 
-        internal SymTypeChildList(BLOCKSYM* parent, ISymbolAccessor symbolAccessor = null)
+        internal SymTypeChildList(BLOCKSYM* parent, ICodeViewAccessor codeViewAccessor = null)
         {
             parentStart = parent;
-            this.symbolAccessor = symbolAccessor;
+            this.codeViewAccessor = codeViewAccessor;
 
             //The first few fields of BLOCKSYM / BLOCKSYM16 / BLOCKSYM32 that describe the parent and
             //end of the block sym are the same in both 16-bit and 32-bit
@@ -79,7 +79,7 @@ namespace PESpy.PDB
             count = default;
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(bufferStart, (byte*) parentStart, parentEnd, symbolAccessor);
+        public Enumerator GetEnumerator() => new Enumerator(bufferStart, (byte*) parentStart, parentEnd, codeViewAccessor);
 
         IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
@@ -90,14 +90,14 @@ namespace PESpy.PDB
             private byte* bufferStart;
             private byte* ptr;
             private readonly byte* end;
-            private readonly ISymbolAccessor symbolAccessor;
+            private readonly ICodeViewAccessor codeViewAccessor;
 
-            internal Enumerator(byte* bufferStart, byte* ptr, byte* end, ISymbolAccessor symbolAccessor)
+            internal Enumerator(byte* bufferStart, byte* ptr, byte* end, ICodeViewAccessor codeViewAccessor)
             {
                 this.bufferStart = bufferStart;
                 this.ptr = ptr;
                 this.end = end;
-                this.symbolAccessor = symbolAccessor;
+                this.codeViewAccessor = codeViewAccessor;
                 Current = default;
             }
 
@@ -105,7 +105,7 @@ namespace PESpy.PDB
             {
                 var next = (SYMTYPE*) ptr; //Previous
 
-                next = (SYMTYPE*) (((byte*) next) + SymType.GetSymbolLength(next, symbolAccessor));
+                next = (SYMTYPE*) (((byte*) next) + SymType.GetSymbolLength(next, codeViewAccessor));
 
                 if (next < end)
                 {

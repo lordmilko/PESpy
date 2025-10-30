@@ -5,7 +5,7 @@ namespace PESpy
 {
     //Unified interface for allowing different kinds of files to provide access to symbols. e.g. PDB files represent modules as MODI,
     //NB05 vs NB05+ has different orderings that are used for CodeView subsections, etc
-    internal interface ISymbolAccessor
+    internal interface ICodeViewAccessor
     {
         ImageSectionHeader[]? GetSectionHeaders();
 

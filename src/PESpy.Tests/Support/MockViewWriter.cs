@@ -6,18 +6,18 @@ namespace PESpy.Tests
 {
     internal class MockViewWriter : ViewWriter
     {
-        private ISymbolAccessor symbolAccessor;
+        private ICodeViewAccessor codeViewAccessor;
 
-        internal override ISymbolAccessor GetSymbolAccessor() => symbolAccessor;
+        internal override ICodeViewAccessor GetSymbolAccessor() => codeViewAccessor;
 
-        public unsafe MockViewWriter(ISymbolAccessor symbolAccessor, byte* mmf, int length) : base(new MockByteViewProvider(mmf, length), ViewMode.Default, TryGetViewOffset, null)
+        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, byte* mmf, int length) : base(new MockByteViewProvider(mmf, length), ViewMode.Default, TryGetViewOffset, null)
         {
-            this.symbolAccessor = symbolAccessor;
+            this.codeViewAccessor = codeViewAccessor;
         }
 
-        public unsafe MockViewWriter(ISymbolAccessor symbolAccessor, ByteViewProvider byteViewProvider) : base(byteViewProvider, ViewMode.Default, TryGetViewOffset, null)
+        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, ByteViewProvider byteViewProvider) : base(byteViewProvider, ViewMode.Default, TryGetViewOffset, null)
         {
-            this.symbolAccessor = symbolAccessor;
+            this.codeViewAccessor = codeViewAccessor;
         }
 
         private static bool TryGetViewOffset(int offset, out int viewOffset)

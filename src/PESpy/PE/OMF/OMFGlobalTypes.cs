@@ -31,14 +31,14 @@ namespace PESpy
         private readonly MemoryChunk chunk;
         private readonly int typeInfoStart;
 
-        internal unsafe OMFGlobalTypes(in MemoryChunk chunk, int length, NB05SymbolAccessor symbolAccessor)
+        internal unsafe OMFGlobalTypes(in MemoryChunk chunk, int length, NB05SymbolAccessor codeViewAccessor)
         {
             this.chunk = chunk;
 
             //In NB07/NB08, each type offset is relative to the beginning of OMFGlobalTypes. In NB09 each type offset is relative to
             //the beginning of the area where the type names are listed. Despite what the PDF says, these do not appear to be type "names",
             //but rather just regular old TYPTYPE records
-            switch (symbolAccessor.CodeViewSig)
+            switch (codeViewAccessor.CodeViewSig)
             {
                 //The spec only calls upt NB07 and NB08, but what about NB05 and NB06?
                 case CodeViewSig.NB05:
@@ -57,7 +57,7 @@ namespace PESpy
                     break;
             }
 
-            SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
+            SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
         }
 
         public Enumerator GetEnumerator() => new Enumerator(typeInfoStart == 0 ? chunk : chunk.Slice(typeInfoStart), typeOffset);

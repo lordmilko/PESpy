@@ -26,7 +26,7 @@ namespace PESpy.PDB
         public LfEasy[] fields => GetFields(typlen - sizeof(ushort), value->data, null);
 
         //We share the same logic for LfFIeldList and LfFieldList16t
-        internal static LfEasy[] GetFields(int length, byte* ptr, ISymbolAccessor? symbolAccessor)
+        internal static LfEasy[] GetFields(int length, byte* ptr, ICodeViewAccessor? codeViewAccessor)
         {
             //pdbdump.cpp!strForFieldList only shows how to handle a couple of these; NT 4 shows how to handle all of them
 
@@ -64,7 +64,7 @@ namespace PESpy.PDB
                         //We need to account for the standard length of an lfEnumerate (4), the size of the value,
                         //and the length of the name, which may or may not be length prefixed
                         var enumerate = new LfEnumerate((lfEnumerate*) item);
-                        pos += enumerate.GetStructSize(symbolAccessor);
+                        pos += enumerate.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -114,14 +114,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_MEMBER_16t:
                         var member16t = new LfMember16t((lfMember_16t*) item);
-                        pos += member16t.GetStructSize(symbolAccessor);
+                        pos += member16t.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
                     case LEAF_ENUM_e.LF_MEMBER:
                     case LEAF_ENUM_e.LF_MEMBER_ST:
                         var member = new LfMember((lfMember*) item);
-                        pos += member.GetStructSize(symbolAccessor);
+                        pos += member.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -130,14 +130,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_METHOD_16t:
                         var method16t = new LfMethod16t((lfMethod_16t*) item);
-                        pos += method16t.GetStructSize(symbolAccessor);
+                        pos += method16t.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
                     case LEAF_ENUM_e.LF_METHOD:
                     case LEAF_ENUM_e.LF_METHOD_ST:
                         var method = new LfMethod((lfMethod*) item);
-                        pos += method.GetStructSize(symbolAccessor);
+                        pos += method.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -146,14 +146,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_NESTTYPE_16t:
                         var nestType16t = new LfNestType16t((lfNestType_16t*) item);
-                        pos += nestType16t.GetStructSize(symbolAccessor);
+                        pos += nestType16t.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
                     case LEAF_ENUM_e.LF_NESTTYPE:
                     case LEAF_ENUM_e.LF_NESTTYPE_ST:
                         var nestType = new LfNestType((lfNestType*) item);
-                        pos += nestType.GetStructSize(symbolAccessor);
+                        pos += nestType.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -162,14 +162,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_ONEMETHOD_16t:
                         var oneMethod16t = new LfOneMethod16t((lfOneMethod_16t*) item);
-                        pos += oneMethod16t.GetStructSize(symbolAccessor);
+                        pos += oneMethod16t.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
                     case LEAF_ENUM_e.LF_ONEMETHOD:
                     case LEAF_ENUM_e.LF_ONEMETHOD_ST:
                         var oneMethod = new LfOneMethod((lfOneMethod*) item);
-                        pos += oneMethod.GetStructSize(symbolAccessor);
+                        pos += oneMethod.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -178,14 +178,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_STMEMBER_16t:
                         var staticMember16t = new LfSTMember((lfSTMember*) item);
-                        pos += staticMember16t.GetStructSize(symbolAccessor);
+                        pos += staticMember16t.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
                     case LEAF_ENUM_e.LF_STMEMBER:
                     case LEAF_ENUM_e.LF_STMEMBER_ST:
                         var staticMember = new LfSTMember((lfSTMember*) item);
-                        pos += staticMember.GetStructSize(symbolAccessor);
+                        pos += staticMember.GetStructSize(codeViewAccessor);
                         fields.Add(easy);
                         break;
 
@@ -247,7 +247,7 @@ namespace PESpy.PDB
             //Our length includes the size of our "leaf" field in it
             var length = typlen - sizeof(ushort);
 
-            var symbolAccessor = structWriter.GetSymbolAccessor();
+            var codeViewAccessor = structWriter.GetSymbolAccessor();
 
             while (pos < length)
             {
@@ -279,7 +279,7 @@ namespace PESpy.PDB
                         //We need to account for the standard length of an lfEnumerate (4), the size of the value,
                         //and the length of the name, which may or may not be length prefixed
                         var enumerate = new LfEnumerate((lfEnumerate*) item);
-                        pos += enumerate.GetStructSize(symbolAccessor);
+                        pos += enumerate.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(enumerate);
                         break;
 
@@ -329,14 +329,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_MEMBER_16t:
                         var member16t = new LfMember16t((lfMember_16t*) item);
-                        pos += member16t.GetStructSize(symbolAccessor);
+                        pos += member16t.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(member16t);
                         break;
 
                     case LEAF_ENUM_e.LF_MEMBER:
                     case LEAF_ENUM_e.LF_MEMBER_ST:
                         var member = new LfMember((lfMember*) item);
-                        pos += member.GetStructSize(symbolAccessor);
+                        pos += member.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(member);
                         break;
 
@@ -345,14 +345,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_METHOD_16t:
                         var method16t = new LfMethod16t((lfMethod_16t*) item);
-                        pos += method16t.GetStructSize(symbolAccessor);
+                        pos += method16t.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(method16t);
                         break;
 
                     case LEAF_ENUM_e.LF_METHOD:
                     case LEAF_ENUM_e.LF_METHOD_ST:
                         var method = new LfMethod((lfMethod*) item);
-                        pos += method.GetStructSize(symbolAccessor);
+                        pos += method.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(method);
                         break;
 
@@ -361,14 +361,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_NESTTYPE_16t:
                         var nestType16t = new LfNestType16t((lfNestType_16t*) item);
-                        pos += nestType16t.GetStructSize(symbolAccessor);
+                        pos += nestType16t.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(nestType16t);
                         break;
 
                     case LEAF_ENUM_e.LF_NESTTYPE:
                     case LEAF_ENUM_e.LF_NESTTYPE_ST:
                         var nestType = new LfNestType((lfNestType*) item);
-                        pos += nestType.GetStructSize(symbolAccessor);
+                        pos += nestType.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(nestType);
                         break;
 
@@ -377,14 +377,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_ONEMETHOD_16t:
                         var oneMethod16t = new LfOneMethod16t((lfOneMethod_16t*) item);
-                        pos += oneMethod16t.GetStructSize(symbolAccessor);
+                        pos += oneMethod16t.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(oneMethod16t);
                         break;
 
                     case LEAF_ENUM_e.LF_ONEMETHOD:
                     case LEAF_ENUM_e.LF_ONEMETHOD_ST:
                         var oneMethod = new LfOneMethod((lfOneMethod*) item);
-                        pos += oneMethod.GetStructSize(symbolAccessor);
+                        pos += oneMethod.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(oneMethod);
                         break;
 
@@ -393,14 +393,14 @@ namespace PESpy.PDB
 
                     case LEAF_ENUM_e.LF_STMEMBER_16t:
                         var staticMember16t = new LfSTMember16t((lfSTMember_16t*) item);
-                        pos += staticMember16t.GetStructSize(symbolAccessor);
+                        pos += staticMember16t.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(staticMember16t);
                         break;
 
                     case LEAF_ENUM_e.LF_STMEMBER:
                     case LEAF_ENUM_e.LF_STMEMBER_ST:
                         var staticMember = new LfSTMember((lfSTMember*) item);
-                        pos += staticMember.GetStructSize(symbolAccessor);
+                        pos += staticMember.GetStructSize(codeViewAccessor);
                         s.WriteUnmanagedInline(staticMember);
                         break;
 

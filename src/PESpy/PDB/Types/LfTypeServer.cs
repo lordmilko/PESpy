@@ -31,7 +31,7 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->name, symbolAccessor);
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => TypType.ReadString(value->name, codeViewAccessor);
 
         #endregion
 

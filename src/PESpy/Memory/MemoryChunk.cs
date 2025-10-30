@@ -129,7 +129,7 @@ namespace PESpy
         {
             var pdbFile = this.PDBFile();
 
-            if (((ISymbolAccessor) pdbFile).HasLengthPrefixedStrings)
+            if (((ICodeViewAccessor) pdbFile).HasLengthPrefixedStrings)
                 return new SymString(Pointer + offset + 1, isLengthPrefixed: true);
 
             return new SymString(Pointer + offset, isLengthPrefixed: false);

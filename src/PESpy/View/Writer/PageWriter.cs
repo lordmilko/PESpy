@@ -59,7 +59,7 @@ namespace PESpy.View
                     IncrementOffset(typType.len + sizeof(short));
             }
 
-            public unsafe void WriteStruct(SymType symType, ViewSymTypeDispatcher dispatcher, ISymbolAccessor? symbolAccessor)
+            public unsafe void WriteStruct(SymType symType, ViewSymTypeDispatcher dispatcher, ICodeViewAccessor? codeViewAccessor)
             {
                 viewWriter.UnmanagedOffset = pageStart + relativeOffset;
 
@@ -71,7 +71,7 @@ namespace PESpy.View
                     IncrementOffset(view.Size);
                 }
                 else
-                    IncrementOffset(SymType.GetSymbolLength(symType, symbolAccessor));
+                    IncrementOffset(SymType.GetSymbolLength(symType, codeViewAccessor));
             }
 
             public void WriteValue<T>(in T value, int size, ViewKind kind)

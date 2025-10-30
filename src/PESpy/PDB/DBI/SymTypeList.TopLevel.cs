@@ -11,17 +11,17 @@ namespace PESpy.PDB
             private readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before the CV_SIGNATURE begins
             private readonly byte* ptr;
             private readonly byte* end;
-            private readonly ISymbolAccessor? symbolAccessor;
+            private readonly ICodeViewAccessor? codeViewAccessor;
 
-            internal TopLevel(byte* start, byte* ptr, byte* end, ISymbolAccessor? symbolAccessor)
+            internal TopLevel(byte* start, byte* ptr, byte* end, ICodeViewAccessor? codeViewAccessor)
             {
                 this.start = start;
                 this.ptr = ptr;
                 this.end = end;
-                this.symbolAccessor = symbolAccessor;
+                this.codeViewAccessor = codeViewAccessor;
             }
 
-            public Enumerator GetEnumerator() => new Enumerator(start, ptr, end, symbolAccessor);
+            public Enumerator GetEnumerator() => new Enumerator(start, ptr, end, codeViewAccessor);
 
             IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
@@ -32,15 +32,15 @@ namespace PESpy.PDB
                 private readonly byte* start;
                 private byte* ptr;
                 private readonly byte* end;
-                private readonly ISymbolAccessor? symbolAccessor;
+                private readonly ICodeViewAccessor? codeViewAccessor;
 
-                internal Enumerator(byte* start, byte* ptr, byte* end, ISymbolAccessor? symbolAccessor)
+                internal Enumerator(byte* start, byte* ptr, byte* end, ICodeViewAccessor? codeViewAccessor)
                 {
                     this.start = start;
                     this.ptr = ptr;
                     this.end = end;
                     Current = default;
-                    this.symbolAccessor = symbolAccessor;
+                    this.codeViewAccessor = codeViewAccessor;
                 }
 
                 public bool MoveNext()
@@ -57,10 +57,10 @@ namespace PESpy.PDB
                             var block = (BLOCKSYM*) ptr;
 
                             ptr = start + block->pEnd; //If there's no children, myOff will be the same as pEnd
-                            ptr += SymType.GetSymbolLength((SYMTYPE*) ptr, symbolAccessor);
+                            ptr += SymType.GetSymbolLength((SYMTYPE*) ptr, codeViewAccessor);
                         }
                         else
-                            ptr += SymType.GetSymbolLength(Current, symbolAccessor);
+                            ptr += SymType.GetSymbolLength(Current, codeViewAccessor);
 
                         return true;
                     }

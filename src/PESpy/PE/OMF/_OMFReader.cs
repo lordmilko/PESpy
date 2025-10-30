@@ -28,7 +28,7 @@ namespace PESpy
         //startAddress should be the start address of the file
         //length should be the total length of the file
         //globalBlock should be a block that is capable of accessing the entire file
-        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out ICodeView? omfData)
+        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out ICodeViewData? omfData)
         {
             var endOfFile = startAddress + length;
 
@@ -414,7 +414,7 @@ namespace PESpy
 
             var entries = new OMFDirEntry[dirHeader.cDir];
 
-            NB05SymbolAccessor symbolAccessor = null;
+            NB05SymbolAccessor codeViewAccessor = null;
             var file = chunk.File();
 
             switch (sig)
@@ -422,9 +422,9 @@ namespace PESpy
                 case CodeViewSig.NB05:
                 {
                     if (file is DOSFile d)
-                        symbolAccessor = new DOSNB05SymbolAccessor(d);
+                        codeViewAccessor = new DOSNB05SymbolAccessor(d);
                     else
-                        symbolAccessor = new NB05SymbolAccessor(file);
+                        codeViewAccessor = new NB05SymbolAccessor(file);
                 }
                 break;
 
@@ -436,9 +436,9 @@ namespace PESpy
                 case CodeViewSig.NB11:
                 {
                     if (file is DOSFile d)
-                        symbolAccessor = new DOSNB09SymbolAccessor(d);
+                        codeViewAccessor = new DOSNB09SymbolAccessor(d);
                     else
-                        symbolAccessor = new NB09SymbolAccessor(file);
+                        codeViewAccessor = new NB09SymbolAccessor(file);
                 }
                 break;
 
@@ -462,20 +462,20 @@ namespace PESpy
             );
 
             //We need to set this prior to writing the entries, as OMFGlobalTypes needs to know what CodeView version we are
-            symbolAccessor.data = data;
+            codeViewAccessor.data = data;
 
             for (var i = 0; i < dirHeader.cDir; i++)
             {
-                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, symbolAccessor, ref lastSignature);
+                entries[i] = new OMFDirEntry(chunk.Slice(offset), chunk, codeViewAccessor, ref lastSignature);
 
                 offset += OMFDirEntry.StructSize;
             }
 
             Debug.Assert(lastSignature != default);
-            symbolAccessor.CvSignature = lastSignature;
+            codeViewAccessor.CvSignature = lastSignature;
 
             //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
-            symbolAccessor.HasLengthPrefixedStrings = lastSignature != CV_SIGNATURE.C13;
+            codeViewAccessor.HasLengthPrefixedStrings = lastSignature != CV_SIGNATURE.C13;
 
             return data;
         }

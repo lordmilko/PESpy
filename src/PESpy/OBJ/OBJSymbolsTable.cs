@@ -53,20 +53,20 @@ namespace PESpy.OBJ
                     var block = chunk.block;
 
                     //C7 and C11 use ST strings
-                    ISymbolAccessor symbolAccessor = null;
+                    ICodeViewAccessor codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        symbolAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
                     }
                     else
                     {
                         var s = (GlobalSubMemoryBlock) block;
-                        symbolAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
+                        codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c6Symbols = new SymTypeList(chunk.Pointer, 0, Length, symbolAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+                    c6Symbols = new SymTypeList(chunk.Pointer, 0, Length, codeViewAccessor);
                 }
 
                 return c6Symbols;
@@ -87,20 +87,20 @@ namespace PESpy.OBJ
                     var block = chunk.block;
 
                     //C7 and C11 use ST strings
-                    ISymbolAccessor symbolAccessor = null;
+                    ICodeViewAccessor codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        symbolAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
                     }
                     else
                     {
                         var s = (GlobalSubMemoryBlock) block;
-                        symbolAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
+                        codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
-                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4, symbolAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4, codeViewAccessor);
                 }
 
                 return c7Symbols;

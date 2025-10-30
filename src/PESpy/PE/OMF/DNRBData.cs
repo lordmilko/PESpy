@@ -4,7 +4,7 @@ using PESpy.View;
 namespace PESpy
 {
     //The data generally appears to be in the same format as NB02
-    public class DNRBData : ICodeView, IViewable //Type is made up
+    public class DNRBData : ICodeViewData, IViewable //Type is made up
     {
         public CodeViewSig Signature { get; }
 

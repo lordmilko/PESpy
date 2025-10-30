@@ -4,7 +4,7 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    internal class LongImportLibraryMemberSymbolAccessor : ISymbolAccessor
+    internal class LongImportLibraryMemberSymbolAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; }
 

@@ -56,19 +56,19 @@ namespace PESpy
         internal OMFDirEntry(
             in MemoryChunk chunk,
             in MemoryChunk outerChunk,
-            NB05SymbolAccessor symbolAccessor,
+            NB05SymbolAccessor codeViewAccessor,
             ref CV_SIGNATURE lastSignature)
         {
             this.chunk = chunk;
             Data = default;
-            Data = GetData(SubSection, outerChunk.Slice(lfo), cb, symbolAccessor, ref lastSignature);
+            Data = GetData(SubSection, outerChunk.Slice(lfo), cb, codeViewAccessor, ref lastSignature);
         }
 
         private static unsafe object GetData(
             SST subSection,
             in MemoryChunk valueChunk,
             int length,
-            NB05SymbolAccessor symbolAccessor,
+            NB05SymbolAccessor codeViewAccessor,
             ref CV_SIGNATURE lastSignature)
         {
             /* NT 4 defines several types which I think have been renamed in modern headers (see newdeb.h) for the CV 4.0
@@ -99,7 +99,7 @@ namespace PESpy
                         case CV_SIGNATURE.C11:
                             Debug.Assert(lastSignature == default || lastSignature == signature); //We expect all signatures should be the same
                             lastSignature = signature;
-                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, symbolAccessor);
+                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
                             return new OMFModuleTypes(valueChunk.AbsoluteOffset, signature, new TypTypeList(valueChunk.Pointer + 4, length - 4));
 
                         case CV_SIGNATURE.C13:
@@ -125,8 +125,8 @@ namespace PESpy
                         case CV_SIGNATURE.C11:
                             Debug.Assert(lastSignature == default || lastSignature == signature); //We expect all signatures should be the same
                             lastSignature = signature;
-                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, symbolAccessor);
-                            return new OMFModuleSymbols(valueChunk, signature, new SymTypeList(valueChunk.Pointer, sizeof(int), length - sizeof(int), symbolAccessor));
+                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
+                            return new OMFModuleSymbols(valueChunk, signature, new SymTypeList(valueChunk.Pointer, sizeof(int), length - sizeof(int), codeViewAccessor));
 
                         case CV_SIGNATURE.C13:
                         default:
@@ -194,12 +194,12 @@ namespace PESpy
                     var hash = new OMFSymHash(valueChunk);
 
                     //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, symbolAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
 
                     if (lastSignature == default)
                         lastSignature = CV_SIGNATURE.C11;
 
-                    var symbols = new SymTypeList(valueChunk.Pointer, OMFSymHash.StructSize, hash.cbSymbol, symbolAccessor);
+                    var symbols = new SymTypeList(valueChunk.Pointer, OMFSymHash.StructSize, hash.cbSymbol, codeViewAccessor);
 
                     var symbolHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol, hash.cbHSym);
                     var addressHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol + hash.cbHSym, hash.cbHAddr);
@@ -208,7 +208,7 @@ namespace PESpy
                 }
 
                 case SST.sstGlobalTypes:
-                    return new OMFGlobalTypes(valueChunk, length, symbolAccessor);
+                    return new OMFGlobalTypes(valueChunk, length, codeViewAccessor);
 
                 case SST.sstMPC:
                     throw new NotImplementedException();

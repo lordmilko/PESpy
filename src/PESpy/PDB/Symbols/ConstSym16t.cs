@@ -54,11 +54,11 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
             TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
 
-            return SymType.ReadString(raw, (byte*) &raw->value + bytesRead, symbolAccessor);
+            return SymType.ReadString(raw, (byte*) &raw->value + bytesRead, codeViewAccessor);
         }
 
         #endregion

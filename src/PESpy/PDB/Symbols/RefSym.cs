@@ -46,17 +46,17 @@ namespace PESpy.PDB
 
         public SymType Symbol => GetSymbol(null);
 
-        internal SymType GetSymbol(ISymbolAccessor? symbolAccessor) => SymType.GetSymbol(value, imod, ibSym, symbolAccessor);
+        internal SymType GetSymbol(ICodeViewAccessor? codeViewAccessor) => SymType.GetSymbol(value, imod, ibSym, codeViewAccessor);
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
-            symbolAccessor ??= SymbolMemoryTracker.GetAccessor((long) value);
+            codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) value);
 
             //If we're NB11, there isn't a hidden name after us
-            if (symbolAccessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
+            if (codeViewAccessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
                 return default;
 
-            return SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort), symbolAccessor);
+            return SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort), codeViewAccessor);
         }
 
         #endregion

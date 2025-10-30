@@ -16,7 +16,7 @@ namespace PESpy
          * As such, these pointers cannot contain any state, which presents a problem when they want to display strings (which may or may not
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
-        private static readonly List<(long start, long end, ISymbolAccessor? file)> globalAccessorRanges = new();
+        private static readonly List<(long start, long end, ICodeViewAccessor? file)> globalAccessorRanges = new();
         private static readonly ReaderWriterLockSlim globalMemoryRangesLock = new ReaderWriterLockSlim();
 
         internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
@@ -64,7 +64,7 @@ namespace PESpy
             }
         }
 
-        internal static unsafe void RegisterCVSymbolMemory(in MemoryChunk chunk, ISymbolAccessor symbolAccessor)
+        internal static unsafe void RegisterCVSymbolMemory(in MemoryChunk chunk, ICodeViewAccessor codeViewAccessor)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
@@ -77,7 +77,7 @@ namespace PESpy
                 {
                     //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
 
-                    InsertEntry(block, globalAccessorRanges, symbolAccessor);
+                    InsertEntry(block, globalAccessorRanges, codeViewAccessor);
                 }
             }
             finally
@@ -87,13 +87,13 @@ namespace PESpy
         }
 
         //This should only be used by unit tests, because we don't track whether a given address has been added yet
-        internal static unsafe void RegisterSymbolMemory(byte* memory, int length, ISymbolAccessor symbolAccessor)
+        internal static unsafe void RegisterSymbolMemory(byte* memory, int length, ICodeViewAccessor codeViewAccessor)
         {
             globalMemoryRangesLock.EnterWriteLock();
 
             try
             {
-                InsertEntry(memory, length, globalAccessorRanges, symbolAccessor);
+                InsertEntry(memory, length, globalAccessorRanges, codeViewAccessor);
             }
             finally
             {
@@ -140,13 +140,13 @@ namespace PESpy
             return start;
         }
 
-        internal static ISymbolAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges, out _);
+        internal static ICodeViewAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges, out _);
 
         internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalAccessorRanges, out _)?.HasLengthPrefixedStrings ?? false;
 
-        private static ISymbolAccessor? FindItem(
+        private static ICodeViewAccessor? FindItem(
             long address,
-            List<(long start, long end, ISymbolAccessor? value)> list,
+            List<(long start, long end, ICodeViewAccessor? value)> list,
             out long start)
         {
             if (address == 0)

@@ -22,7 +22,7 @@ namespace PESpy.View
 
         public IReadOnlyList<IView> Current => new ReadOnlyCollection<IView>(globalList);
 
-        internal virtual ISymbolAccessor GetSymbolAccessor() => throw new NotImplementedException();
+        internal virtual ICodeViewAccessor GetSymbolAccessor() => throw new NotImplementedException();
 
         internal void Clear() => globalList.Clear();
 
@@ -300,7 +300,7 @@ namespace PESpy.View
                     UnmanagedOffset += view.Size;
                 }
                 else
-                    UnmanagedOffset += SymType.GetSymbolLength(item, value.symbolAccessor);
+                    UnmanagedOffset += SymType.GetSymbolLength(item, value.codeViewAccessor);
             }
 
             UnmanagedOffset = oldOffset;
@@ -342,7 +342,7 @@ namespace PESpy.View
             var dispatcher = SymTypeDispatcher;
 
             foreach (var item in value)
-                p.WriteStruct(item, dispatcher, value.symbolAccessor);
+                p.WriteStruct(item, dispatcher, value.codeViewAccessor);
 
             UnmanagedOffset = oldOffset;
         }

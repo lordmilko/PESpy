@@ -110,18 +110,18 @@ namespace PESpy.LIB
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
-        internal ISymbolAccessor? RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        internal ICodeViewAccessor? RegisterC13SymbolMemory(MemoryChunk dataChunk)
         {
             lock (c13SymbolMemoryLock)
             {
                 if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
                 {
-                    var symbolAccessor = new LongImportLibraryMemberSymbolAccessor(this, false);
+                    var codeViewAccessor = new LongImportLibraryMemberSymbolAccessor(this, false);
 
                     //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, symbolAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
 
-                    return symbolAccessor;
+                    return codeViewAccessor;
                 }
 
                 return null;

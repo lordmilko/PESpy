@@ -3,7 +3,7 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    internal class OBJSymbolAccessor : ISymbolAccessor
+    internal class OBJSymbolAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; }
 

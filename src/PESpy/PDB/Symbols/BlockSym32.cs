@@ -52,7 +52,7 @@ namespace PESpy.PDB
 
         public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) => SymType.ReadString(value, value->name, symbolAccessor);
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 
         #endregion
 

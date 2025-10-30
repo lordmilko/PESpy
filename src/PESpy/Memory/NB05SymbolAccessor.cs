@@ -22,7 +22,7 @@ namespace PESpy
 
     //In NB05, sections are ordered
     //https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
-    internal class NB05SymbolAccessor : ISymbolAccessor
+    internal class NB05SymbolAccessor : ICodeViewAccessor
     {
         protected IFile file;
         internal NB05Data data; //Set after construction

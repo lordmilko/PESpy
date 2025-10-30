@@ -46,12 +46,12 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
             TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
 
             //I am assuming I need to use normal ST/UTF parsing logic
-            return TypType.ReadString(raw->value + bytesRead, symbolAccessor);
+            return TypType.ReadString(raw->value + bytesRead, codeViewAccessor);
         }
 
         #endregion
@@ -62,11 +62,11 @@ namespace PESpy.PDB
 
         internal int StructSize => GetStructSize(null);
 
-        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        internal int GetStructSize(ICodeViewAccessor? codeViewAccessor)
         {
             TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
 
-            var str = TypType.ReadString(raw->value + bytesRead, symbolAccessor);
+            var str = TypType.ReadString(raw->value + bytesRead, codeViewAccessor);
 
             return FixedStructSize + bytesRead + str.Length + 1;
         }

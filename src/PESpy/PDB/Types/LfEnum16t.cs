@@ -40,15 +40,15 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) => TypType.ReadString(value->Name, symbolAccessor);
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => TypType.ReadString(value->Name, codeViewAccessor);
 
-        internal SymString GetUniqueName(ISymbolAccessor? symbolAccessor)
+        internal SymString GetUniqueName(ICodeViewAccessor? codeViewAccessor)
         {
             if (property.hasuniquename)
             {
-                var name = TypType.ReadString(value->Name, symbolAccessor);
+                var name = TypType.ReadString(value->Name, codeViewAccessor);
 
-                var uniqueName = TypType.ReadString(value->Name + name.Length + 1, symbolAccessor);
+                var uniqueName = TypType.ReadString(value->Name + name.Length + 1, codeViewAccessor);
 
                 return uniqueName;
             }

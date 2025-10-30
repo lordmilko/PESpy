@@ -146,10 +146,10 @@ namespace PESpy.PDB
 
             var dataChunk = DataChunk;
 
-            var symbolAccessor = RegisterC13SymbolMemory(dataChunk);
+            var codeViewAccessor = RegisterC13SymbolMemory(dataChunk);
 
             //Don't need to adjust the data + length to account for the header
-            return new SymTypeList(dataChunk.Pointer, 0, Length, symbolAccessor);
+            return new SymTypeList(dataChunk.Pointer, 0, Length, codeViewAccessor);
         }
 
         public CvDebugSLinesHeader GetLines()
@@ -450,14 +450,14 @@ namespace PESpy.PDB
                 throw new InvalidOperationException($"Expected a section of type '{type}' however the actual type was '{Type}'");
         }
 
-        private ISymbolAccessor? RegisterC13SymbolMemory(in MemoryChunk dataChunk)
+        private ICodeViewAccessor? RegisterC13SymbolMemory(in MemoryChunk dataChunk)
         {
-            ISymbolAccessor? symbolAccessor;
+            ICodeViewAccessor? codeViewAccessor;
 
             if (dataChunk.block is PagedMemoryBlock block)
             {
                 block.PDBFile!.RegisterC13SymbolMemory(dataChunk);
-                symbolAccessor = block.PDBFile;
+                codeViewAccessor = block.PDBFile;
             }
             else
             {
@@ -466,17 +466,17 @@ namespace PESpy.PDB
                 if (dataChunk.block is GlobalMemoryBlock b)
                 {
                     var objFile = (OBJFile) b.File;
-                    symbolAccessor = objFile.RegisterC13SymbolMemory(dataChunk);
+                    codeViewAccessor = objFile.RegisterC13SymbolMemory(dataChunk);
                 }
                 else
                 {
                     var s = (GlobalSubMemoryBlock) dataChunk.block;
                     var member = (LongImportLibraryMember) s.Owner;
-                    symbolAccessor = member.RegisterC13SymbolMemory(dataChunk);
+                    codeViewAccessor = member.RegisterC13SymbolMemory(dataChunk);
                 }
             }
 
-            return symbolAccessor;
+            return codeViewAccessor;
         }
 
         public override string ToString()

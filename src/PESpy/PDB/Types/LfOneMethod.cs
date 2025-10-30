@@ -44,8 +44,8 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ISymbolAccessor? symbolAccessor) =>
-            TypType.ReadString(((byte*) value->vbaseoff) + (HasIntro() ? sizeof(int) : 0), symbolAccessor);
+        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) =>
+            TypType.ReadString(((byte*) value->vbaseoff) + (HasIntro() ? sizeof(int) : 0), codeViewAccessor);
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace PESpy.PDB
 
         internal int StructSize => GetStructSize(null);
 
-        internal int GetStructSize(ISymbolAccessor? symbolAccessor)
+        internal int GetStructSize(ICodeViewAccessor? codeViewAccessor)
         {
             var strOff = 0;
 
