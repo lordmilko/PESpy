@@ -31,7 +31,7 @@ namespace PESpy.PDB
 
         public bool TryGetSection(ISECT seg, int off, out SC40 sc) => TryGetSection(Entries, seg, off, out sc);
 
-        internal static bool TryGetSection<T>(NativeSpan<T> entries, ISECT seg, int off, out T match) where T : unmanaged, ISC40
+        internal static bool TryGetSection<T>(NativeSpan<T> entries, ISECT seg, int off, out T match) where T : unmanaged, ISC20
         {
             //Binary search section contribs to find a contrib that matches the given section index and contains the given offset
 

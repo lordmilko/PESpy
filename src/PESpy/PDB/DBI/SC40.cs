@@ -82,17 +82,17 @@ namespace PESpy.PDB
             }
         }
 
-        #region ISC40
+        #region ISC20 / ISC40
 
-        ISECT ISC40.isect => isect;
+        ISECT ISC20.isect => isect;
 
-        int ISC40.off => off;
+        int ISC20.off => off;
 
-        int ISC40.cb => cb;
+        int ISC20.cb => cb;
 
         IMAGE_SCN ISC40.dwCharacteristics => dwCharacteristics;
 
-        IMOD ISC40.imod => imod;
+        IMOD ISC20.imod => imod;
 
         #endregion
     }

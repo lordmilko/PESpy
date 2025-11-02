@@ -4,7 +4,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //Seems to be used with NT 4 MODI
-    public struct SC20 : IViewable
+    public struct SC20 : ISC20, IViewable
     {
         private const int isectOffset = 0;
         private const int padding1Offset = 2;
@@ -68,5 +68,17 @@ namespace PESpy.PDB
                     throw new IndexOutOfRangeException();
             }
         }
+
+        #region ISC20
+
+        ISECT ISC20.isect => isect;
+
+        int ISC20.off => off;
+
+        int ISC20.cb => cb;
+
+        IMOD ISC20.imod => imod;
+
+        #endregion
     }
 }

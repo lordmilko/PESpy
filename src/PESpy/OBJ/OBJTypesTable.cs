@@ -34,7 +34,7 @@ namespace PESpy.OBJ
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, isLengthPrefixed);
+                        codeViewAccessor = new OBJFileCodeViewAccessor((OBJFile) b.File, isLengthPrefixed);
                     }
                     else
                     {
@@ -53,6 +53,7 @@ namespace PESpy.OBJ
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
+        private int[] indexToOffsetMap;
 
         /// <summary>
         /// Gets the number of bytes contained in the table.
@@ -67,6 +68,37 @@ namespace PESpy.OBJ
 #if STRESS_TEST
             _ = Types;
 #endif
+        }
+
+        internal unsafe TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+        {
+            //Make sure the symbol accessor is registered
+            _ = List;
+
+            if (indexToOffsetMap == null)
+            {
+                var p = chunk.Pointer + 4;
+                var l = Length;
+
+                var i = 0;
+                var off = 0;
+
+                using var results = new PooledList<int>();
+
+                while (off < l)
+                {
+                    var t = (TYPTYPE*) (p + off);
+
+                    results.Add(off);
+
+                    i++;
+                    off += t->len + 2;
+                }
+
+                indexToOffsetMap = results.ToArray();
+            }
+
+            return types.GetTypeFromOffset(indexToOffsetMap[typeIndex - 0x1000]);
         }
 
         public unsafe void CopyTo(Span<byte> destination)

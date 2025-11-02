@@ -274,6 +274,8 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => throw new NotImplementedException();
+
         internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
         {
             viewDisassembler?.Initialize(this);

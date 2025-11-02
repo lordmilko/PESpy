@@ -4,8 +4,12 @@ namespace PESpy.View
 {
     public interface IFieldView : IView
     {
+        /// <summary>
+        /// Gets the name of the field.
+        /// </summary>
         string Name { get; }
         object Value { get; }
+        string ValueType { get; }
     }
 
     /// <summary>
@@ -23,6 +27,8 @@ namespace PESpy.View
 
         object IFieldView.Value => Value!;
 
+        public string ValueType => typeof(TValue).Name;
+
         public int Size { get; private set; }
 
         public ViewKind Kind => ViewKind.Field;
@@ -37,8 +43,10 @@ namespace PESpy.View
             //We can't assert that we have a size because the first item in the ECMA 335 blob heap is an empty array
         }
 
+        [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitField(this);
 
+        [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitField(this);
 
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)

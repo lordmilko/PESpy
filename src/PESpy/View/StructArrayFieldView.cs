@@ -37,6 +37,8 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public StructView<TValue>[] Value { get; }
 
+        public string ValueType => $"{typeof(TValue).Name}[]";
+
         IStructView[] IStructArrayFieldView.Value => Value.Cast<IStructView>().ToArray();
 
         string IFieldView.Name => FieldName;

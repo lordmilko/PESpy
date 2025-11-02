@@ -14,12 +14,14 @@ namespace PESpy
         private readonly HttpResponseMessage response;
         private readonly Stream stream;
         private readonly long length;
+        private readonly ILocatorProgress? progress;
 
-        public HttpProgressStream(HttpResponseMessage response, Stream stream, long length)
+        public HttpProgressStream(HttpResponseMessage response, Stream stream, long length, ILocatorProgress? progress)
         {
             this.response = response;
             this.stream = stream;
             this.length = length;
+            this.progress = progress;
         }
 
         public override bool CanRead => stream.CanRead;
@@ -47,6 +49,8 @@ namespace PESpy
             totalRead += result;
 
             var percent = (double) totalRead / length * 100;
+
+            progress?.NotifyProgress(percent, totalRead, (int) length);
 
             return result;
         }

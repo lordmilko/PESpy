@@ -57,7 +57,7 @@ namespace PESpy.OBJ
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                        codeViewAccessor = new OBJFileCodeViewAccessor((OBJFile) b.File, true);
                     }
                     else
                     {
@@ -91,7 +91,7 @@ namespace PESpy.OBJ
 
                     if (block is GlobalMemoryBlock b)
                     {
-                        codeViewAccessor = new OBJSymbolAccessor((OBJFile) b.File, true);
+                        codeViewAccessor = new OBJFileCodeViewAccessor((OBJFile) b.File, true);
                     }
                     else
                     {

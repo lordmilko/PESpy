@@ -183,6 +183,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
+        private ISymbolAccessor symbolAccessor;
 
         private readonly object c13SymbolMemoryLock = new object();
         private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
@@ -196,7 +197,7 @@ namespace PESpy
             FileName = fileName;
             Name = Path.GetFileName(fileName);
 
-            FileHeader = null!;
+            FileHeader = default;
             SectionHeaders = null!;
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
@@ -286,6 +287,9 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
+        //There isn't really "one" symbol accessor; each section may have its own accessor with its own rules
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
+
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -329,7 +333,7 @@ namespace PESpy
             {
                 if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
                 {
-                    var codeViewAccessor = new OBJSymbolAccessor(this, false);
+                    var codeViewAccessor = new OBJFileCodeViewAccessor(this, false);
 
                     //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
                     SymbolMemoryTracker.RegisterCVSymbolMemory(dataChunk, codeViewAccessor);

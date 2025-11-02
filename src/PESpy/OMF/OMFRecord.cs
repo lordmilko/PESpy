@@ -25,7 +25,11 @@ namespace PESpy.OMF
             this.value = value;
         }
 
-        public OMFRecordType RecordType => *(OMFRecordType*) value;
+        public OMFRecordType RecordType => (OMFRecordType) (*value & ~1);
+
+        public bool Is32Bit => (*value & 1) == 1;
+
+        public byte RawRecordType => *value;
 
         public ushort RecordLength => *(ushort*) (value + 1);
 

@@ -3,13 +3,13 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    internal class OBJSymbolAccessor : ICodeViewAccessor
+    internal class OBJFileCodeViewAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; }
 
         private OBJFile objFile;
 
-        public OBJSymbolAccessor(OBJFile objFile, bool hasLengthPrefixedStrings)
+        public OBJFileCodeViewAccessor(OBJFile objFile, bool hasLengthPrefixedStrings)
         {
             this.objFile = objFile;
             HasLengthPrefixedStrings = hasLengthPrefixedStrings;

@@ -279,6 +279,7 @@ namespace PESpy.Ecma335
                     stringIndexSize,
                     sizes.BlobIndexSize,
                     sizes.GetSimpleIndexSize(TableKind.Param),
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -956,6 +957,58 @@ namespace PESpy.Ecma335
 
             #endregion
             #endregion
+        }
+
+        //e.g. for TypeDef.FieldList, TypeDef.MethodList
+        internal static int BinarySearchEcmaIndexList(
+            in MemoryChunk tableChunk,
+            int rowCount,
+            int rowSize,
+            int fieldListOffset,
+            uint targetValue,
+            bool isIndexBig)
+        {
+            var lo = 0; //Start row number
+            var hi = rowCount - 1; //End row number
+
+            var startValue = tableChunk.PeekEcmaIndex(lo * rowSize + fieldListOffset, isIndexBig);
+            var endValue = tableChunk.PeekEcmaIndex(hi * rowSize + fieldListOffset, isIndexBig);
+
+            if (hi == 1)
+            {
+                if (targetValue >= endValue)
+                    return hi;
+
+                return lo;
+            }
+
+            while (hi - lo > 1)
+            {
+                if (targetValue <= startValue)
+                    return targetValue == startValue ? lo : lo - 1;
+
+                if (targetValue >= endValue)
+                    return targetValue == endValue ? hi : hi + 1;
+
+                var mid = (lo + hi) / 2;
+
+                var midValue = tableChunk.PeekEcmaIndex(mid * rowSize + fieldListOffset, isIndexBig);
+
+                if (targetValue > midValue)
+                {
+                    lo = mid;
+                    startValue = midValue;
+                }
+                else if (targetValue < midValue)
+                {
+                    hi = mid;
+                    endValue = midValue;
+                }
+                else
+                    return mid;
+            }
+
+            return lo;
         }
 
         internal static int BinarySearchEcmaIndex(

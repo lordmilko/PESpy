@@ -20,7 +20,7 @@ namespace PESpy.PDB
         //sig. If "z" (reproducible" is specified in the open mode, sig is 1.
         //Otherwise, if a sigInitial was specified to OpenEx2W, that is used. Otherwise,
         //the result of the function time(0) is used
-        public uint Signature //By default this comes from the C time() function, so we need to make unsigned in case the high bit is set
+        public Timestamp Signature //By default this comes from the C time() function, so we need to make unsigned in case the high bit is set
         {
             get => chunk.PeekUInt32(SignatureOffset);
             set => chunk.PokeUInt32(SignatureOffset, value);

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 using PESpy.View;
 
 namespace PESpy.LIB
@@ -64,6 +66,15 @@ namespace PESpy.LIB
             }
         }
 
+        public IEnumerable<T> GetSectionData<T>(string name) where T : class
+        {
+            for (var i = 0; i < SectionHeaders.Length; i++)
+            {
+                if (SectionHeaders[i].Name == name)
+                    yield return Unsafe.As<T>(SectionData[i]);
+            }
+        }
+
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly object c13SymbolMemoryLock = new object();
@@ -98,6 +109,8 @@ namespace PESpy.LIB
                 {
                     if (item is RawValue<FixedUtf8String> s)
                         writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, ViewKind.Value); //todo: use more specific view kind
+                    else if (item is RawValue<NativeSpan<byte>> b)
+                        writer.WriteGlobal(b.Offset, b.Value, b.Value.Length, ViewKind.Value);
                     else
                         writer.WriteGlobal((IViewable) item);
                 }
@@ -126,6 +139,11 @@ namespace PESpy.LIB
 
                 return null;
             }
+        }
+
+        public void SaveAs(string path)
+        {
+            File.WriteAllBytes(path, chunk.PeekNativeSpan<byte>(ImageArchiveMemberHeader.StructSize, chunk.Remaining - ImageArchiveMemberHeader.StructSize).ToArray());
         }
 
         public override string ToString()

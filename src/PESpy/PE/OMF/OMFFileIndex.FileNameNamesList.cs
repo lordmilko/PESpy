@@ -29,7 +29,7 @@ namespace PESpy
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public RawValue<FixedUtf8String>[] Items => enumerator.ToArray();
+        public RawValue<SymString>[] Items => enumerator.ToArray();
     }
 
     public partial class OMFFileIndex
@@ -62,7 +62,7 @@ namespace PESpy
                 }
             }
 
-            public FixedUtf8String GetString(int offset) => ModuleFileNamesList.ReadString(namesChunk, offset, isLengthPrefixedString).Value;
+            public SymString GetString(int offset) => ModuleFileNamesList.ReadString(namesChunk, offset, isLengthPrefixedString).Value;
 
             /// <summary>
             /// Provides access to a flat enumeration of all of the files contained in this jagged array.
@@ -127,7 +127,7 @@ namespace PESpy
 
             [DebuggerDisplay("Count = {offsets.Length}")]
             [DebuggerTypeProxy(typeof(FlatEnumeratorDebugView))]
-            public struct FlatEnumerator : IEnumerable<RawValue<FixedUtf8String>>, IEnumerator<RawValue<FixedUtf8String>>
+            public struct FlatEnumerator : IEnumerable<RawValue<SymString>>, IEnumerator<RawValue<SymString>>
             {
                 private int offsetIndex;
                 private readonly MemoryChunk namesChunk;
@@ -161,13 +161,13 @@ namespace PESpy
                     return false;
                 }
 
-                public RawValue<FixedUtf8String> Current { get; private set; }
+                public RawValue<SymString> Current { get; private set; }
 
                 object IEnumerator.Current => Current;
 
                 public FlatEnumerator GetEnumerator() => new FlatEnumerator(namesChunk, offsets, isLengthPrefixedString);
 
-                IEnumerator<RawValue<FixedUtf8String>> IEnumerable<RawValue<FixedUtf8String>>.GetEnumerator() => GetEnumerator();
+                IEnumerator<RawValue<SymString>> IEnumerable<RawValue<SymString>>.GetEnumerator() => GetEnumerator();
 
                 IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

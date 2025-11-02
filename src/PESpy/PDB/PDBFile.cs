@@ -552,6 +552,8 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         internal PDBGlobalMemoryBlock globalBlock;
+        private ImageSectionHeader[]? fallbackSectionHeaders;
+        private ISymbolAccessor symbolAccessor; //Separate type so you can dispose the accessor without accidentally disposing the main file
 
         private readonly object c13SymbolMemoryLock = new object();
         private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
@@ -590,6 +592,9 @@ namespace PESpy
             globalBlock = null!;
             StreamTable = null!;
         }
+
+        public void SetFallbackSectionHeaders(ImageSectionHeader[] sectionHeaders) =>
+            fallbackSectionHeaders = sectionHeaders;
 
         ~PDBFile()
         {
@@ -960,7 +965,7 @@ namespace PESpy
             if (sectionContribs == null)
                 return false;
 
-            var sectionHeaders = dbi.SectionHdr;
+            var sectionHeaders = dbi.SectionHdr ?? fallbackSectionHeaders;
 
             if (sectionHeaders == null || sectionNumber > sectionHeaders.Length)
                 return false;
@@ -1071,6 +1076,8 @@ namespace PESpy
 
             return (FileView) writer.Finalize();
         }
+
+        public ISymbolAccessor GetSymbolAccessor() => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
         internal ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

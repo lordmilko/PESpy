@@ -16,7 +16,6 @@ namespace PESpy.PDB
         private const int reclenOffset = 0;
         private const int rectypOffset = 2;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SYMTYPE* value;
 
         public ushort reclen => value->reclen;

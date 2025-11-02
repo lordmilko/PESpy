@@ -2,14 +2,14 @@
 
 namespace PESpy.Native
 {
-    //ProdItem
+    //Per Windows 2000
     [StructLayout(LayoutKind.Sequential)]
     internal struct PRODITEM
     {
         /// <summary>
         /// Product identity
         /// </summary>
-        public int dwProdid;
+        public PRODID dwProdid;
 
         /// <summary>
         /// Count of objects built with that product

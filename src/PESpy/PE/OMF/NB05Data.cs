@@ -19,9 +19,13 @@ namespace PESpy
 
         public int Offset => chunk.AbsoluteOffset;
 
+        private ICodeViewAccessor codeViewAccessor;
+
+        public ICodeViewAccessor GetCodeViewAccessor() => codeViewAccessor;
+
         private readonly MemoryChunk chunk;
 
-        internal NB05Data(in MemoryChunk chunk, CodeViewSig sig, int lfoBase, int lfoDir, in OMFDirHeader dirHeader, OMFDirEntry[] dirEntries)
+        internal NB05Data(in MemoryChunk chunk, CodeViewSig sig, int lfoBase, int lfoDir, in OMFDirHeader dirHeader, OMFDirEntry[] dirEntries, ICodeViewAccessor codeViewAccessor)
         {
             this.chunk = chunk;
             LfoDir = lfoDir;
@@ -29,6 +33,7 @@ namespace PESpy
             LfoBase = lfoBase;
             this.dirHeader = dirHeader;
             DirEntries = dirEntries;
+            this.codeViewAccessor = codeViewAccessor;
         }
 
         public bool TryGetSegName(int offset, out AnsiString str)

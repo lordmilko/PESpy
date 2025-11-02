@@ -2,7 +2,7 @@
 
 namespace PESpy.PDB
 {
-    public interface ISC40
+    public interface ISC20
     {
         public ISECT isect { get; }
 
@@ -10,8 +10,11 @@ namespace PESpy.PDB
 
         public int cb { get; }
 
-        public IMAGE_SCN dwCharacteristics { get; }
-
         public IMOD imod { get; }
+    }
+
+    public interface ISC40 : ISC20
+    {
+        public IMAGE_SCN dwCharacteristics { get; }
     }
 }

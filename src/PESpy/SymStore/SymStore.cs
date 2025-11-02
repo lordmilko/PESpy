@@ -11,6 +11,7 @@ namespace PESpy
             ReadOnlySpan<char> searchPath,
             SymStoreKey key,
             SymStoreKey? altKey,
+            ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
             //Construct a SymStore chain
@@ -50,14 +51,19 @@ namespace PESpy
                 }
             }
 
-            return CascadeStoreAsync(key, altKey, store, cancellationToken);
+            return CascadeStoreAsync(key, altKey, store, progress, cancellationToken);
         }
 
-        private static async ValueTask<(string? filePath, SymStoreKey? keyUsed)> CascadeStoreAsync(SymStoreKey key, SymStoreKey? altKey, SymStore store, CancellationToken cancellationToken)
+        private static async ValueTask<(string? filePath, SymStoreKey? keyUsed)> CascadeStoreAsync(
+            SymStoreKey key,
+            SymStoreKey? altKey,
+            SymStore store,
+            ILocatorProgress progress,
+            CancellationToken cancellationToken)
         {
             SymStoreKey? keyUsed = null;
 
-            var fileAndStream = await store!.CascadeAsync(key, cancellationToken).ConfigureAwait(false);
+            var fileAndStream = await store!.CascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream != null)
                 keyUsed = key;
@@ -65,7 +71,7 @@ namespace PESpy
             {
                 if (altKey != null)
                 {
-                    fileAndStream = await store!.CascadeAsync(altKey.Value, cancellationToken).ConfigureAwait(false);
+                    fileAndStream = await store!.CascadeAsync(altKey.Value, progress, cancellationToken).ConfigureAwait(false);
 
                     if (fileAndStream != null)
                         keyUsed = altKey;
@@ -88,15 +94,15 @@ namespace PESpy
             BackingStore = backingStore;
         }
 
-        public async ValueTask<(SymStoreFile file, Stream stream)?> CascadeAsync(SymStoreKey key, CancellationToken cancellationToken)
+        public async ValueTask<(SymStoreFile file, Stream stream)?> CascadeAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
-            var fileAndStream = await GetFileAsync(key, cancellationToken).ConfigureAwait(false);
+            var fileAndStream = await GetFileAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    fileAndStream = await BackingStore.CascadeAsync(key, cancellationToken).ConfigureAwait(false);
+                    fileAndStream = await BackingStore.CascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
                     if (fileAndStream != null)
                     {
@@ -117,7 +123,7 @@ namespace PESpy
             return fileAndStream;
         }
 
-        protected abstract ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, CancellationToken cancellationToken);
+        protected abstract ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken);
 
         protected abstract ValueTask<(SymStoreFile file, Stream stream)?> SaveFileAsync(SymStoreKey key, SymStoreFile file, Stream stream, CancellationToken cancellationToken);
     }

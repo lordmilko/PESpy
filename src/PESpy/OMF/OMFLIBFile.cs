@@ -172,6 +172,8 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => throw new NotImplementedException();
+
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
         public void Dispose()

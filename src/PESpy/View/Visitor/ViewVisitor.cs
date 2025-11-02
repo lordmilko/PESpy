@@ -1,7 +1,10 @@
-﻿namespace PESpy.View
+﻿using System.Diagnostics;
+
+namespace PESpy.View
 {
     public abstract class ViewVisitor
     {
+        [DebuggerStepThrough]
         public virtual void Visit(IView view) => view.Accept(this);
 
         protected internal abstract void VisitAsm(IAsmView view);

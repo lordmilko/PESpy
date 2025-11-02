@@ -14,7 +14,7 @@ namespace PESpy
             DirectoryName = directoryName;
         }
 
-        protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, CancellationToken cancellationToken)
+        protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 

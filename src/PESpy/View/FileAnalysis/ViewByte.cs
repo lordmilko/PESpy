@@ -239,6 +239,36 @@ namespace PESpy.View
 
         #endregion
 
+        public unsafe int GetLength(ViewByte* limit)
+        {
+            Debug.Assert(Kind != ViewByteKind.Body);
+
+            fixed (ViewByte* me = &this)
+            {
+                var i = me + 1;
+
+                while (i < limit && i->Kind == ViewByteKind.Body)
+                    i++;
+
+                return (int) (i - me);
+            }
+        }
+
+        public unsafe int GetUnknownLength(ViewByte* limit)
+        {
+            Debug.Assert(limit->Kind == ViewByteKind.Unknown);
+
+            fixed (ViewByte* me = &this)
+            {
+                var i = me + 1;
+
+                while (i < limit && i->Kind == ViewByteKind.Unknown)
+                    i++;
+
+                return (int) (i - me);
+            }
+        }
+
         public override string ToString()
         {
             return Kind.ToString();

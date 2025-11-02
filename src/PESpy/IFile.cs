@@ -82,10 +82,13 @@ namespace PESpy
         int Length { get; }
 
         FileView GetView();
+
+        //If no symbol accessor could be found, returns the NullSymbolAccessor
+        ISymbolAccessor GetSymbolAccessor();
     }
 
     internal interface IFileWithCodeViewData
     {
-        ICodeView? CodeViewData { get; }
+        ICodeViewData? CodeViewData { get; }
     }
 }

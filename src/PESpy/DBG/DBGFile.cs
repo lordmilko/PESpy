@@ -63,6 +63,8 @@ namespace PESpy
 
         public int Length => globalBlock.Length;
 
+        private ISymbolAccessor symbolAccessor;
+
         internal unsafe DBGFile(string fileName, in MemoryMappedFileHolder mmf)
         {
             this.mmf = mmf;
@@ -196,6 +198,17 @@ namespace PESpy
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
+        }
+
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        {
+            if (symbolAccessor != null)
+                return symbolAccessor;
+
+            if (!ImageDebugDirectory.TryGetSymbolAccessor(this, DebugTable, out symbolAccessor))
+                symbolAccessor = NullSymbolAccessor.Instance;
+
+            return symbolAccessor;
         }
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);

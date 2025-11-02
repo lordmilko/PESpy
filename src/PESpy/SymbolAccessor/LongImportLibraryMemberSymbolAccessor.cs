@@ -1,11 +1,15 @@
-﻿using ClrDebug.PDB;
+﻿using System.Linq;
+using ClrDebug.PDB;
 using PESpy.LIB;
+using PESpy.OBJ;
 using PESpy.PDB;
 
 namespace PESpy
 {
     internal class LongImportLibraryMemberSymbolAccessor : ICodeViewAccessor
     {
+        private OBJTypesTable typesTable;
+
         public bool HasLengthPrefixedStrings { get; }
 
         private LongImportLibraryMember longImportLibraryMember;
@@ -28,7 +32,15 @@ namespace PESpy
 
         public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
         {
-            throw new System.NotImplementedException();
+            if (typesTable == null)
+            {
+                typesTable = longImportLibraryMember.GetSectionData<OBJTypesTable>(".debug$T").FirstOrDefault();
+
+                if (typesTable == null)
+                    throw new System.NotImplementedException();
+            }
+
+            return typesTable.GetTypTypeFromIndex(typeIndex);
         }
 
         public TypType GetTypTypeFromIndex(CV_ItemId typeIndex)

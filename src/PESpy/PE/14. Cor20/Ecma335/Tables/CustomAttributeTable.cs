@@ -29,6 +29,7 @@ namespace PESpy.Ecma335
             in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasCustomAttributeIndexSize = hasCustomAttributeIndexSize == 4;

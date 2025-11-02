@@ -49,6 +49,30 @@ namespace PESpy
             }
         }
 
+        //Allocate an MMF for storing data that we'll copy in (e.g. used for decompressing an embedded portable PDB)
+        public MemoryMappedFileHolder(int length)
+        {
+            mmf = MemoryMappedFile.CreateNew(null, length);
+            mma = mmf.CreateViewAccessor();
+            Length = length;
+
+#if NETSTANDARD
+            RuntimeHelpers.PrepareConstrainedRegions();
+#endif
+
+            try
+            {
+                //Empty; needed to make constrained region work
+            }
+            finally
+            {
+                //While MMA does have some helper methods on it that can be used to read certain value types,
+                //it acquires/releases the pointer after each value read, inside of a try/finally block, which I feel
+                //adds a bit of overhead
+                mma.SafeMemoryMappedViewHandle.AcquirePointer(ref Address);
+            }
+        }
+
         //Fake
         public MemoryMappedFileHolder(byte* address, long length)
         {

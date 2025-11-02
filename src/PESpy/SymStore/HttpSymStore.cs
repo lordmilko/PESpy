@@ -36,16 +36,18 @@ namespace PESpy
             Uri = uri;
         }
 
-        protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, CancellationToken cancellationToken)
+        protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
             if (!Uri.TryCreate(Uri, key.Index, out var requestUri))
                 throw new NotImplementedException();
 
-            return GetWithProgressAsync(requestUri, cancellationToken);
+            return GetWithProgressAsync(requestUri, progress, cancellationToken);
         }
 
-        private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(Uri requestUri, CancellationToken cancellationToken)
+        private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(Uri requestUri, ILocatorProgress progress, CancellationToken cancellationToken)
         {
+            progress?.NotifyRequest(requestUri);
+
             //We can't dispose the response immediately if we want to later read the stream
             var response = await Client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
@@ -53,6 +55,8 @@ namespace PESpy
 
             try
             {
+                progress?.NotifyResponse((int) response.StatusCode);
+
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
                     var length = response.Content.Headers.ContentLength;
@@ -65,10 +69,10 @@ namespace PESpy
                     //Transfer ownership of the response to the progress stream
                     dispose = false;
 
-                    return new(new SymStoreFile(requestUri.AbsoluteUri), new HttpProgressStream(response, stream, length.Value));
+                    return new(new SymStoreFile(requestUri.AbsoluteUri), new HttpProgressStream(response, stream, length.Value, progress));
                 }
 
-                return default; //temp
+                return default;
             }
             finally
             {

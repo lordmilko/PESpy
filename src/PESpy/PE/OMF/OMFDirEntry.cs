@@ -201,8 +201,43 @@ namespace PESpy
 
                     var symbols = new SymTypeList(valueChunk.Pointer, OMFSymHash.StructSize, hash.cbSymbol, codeViewAccessor);
 
-                    var symbolHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol, hash.cbHSym);
-                    var addressHashTable = valueChunk.PeekNativeSpan<byte>(OMFSymHash.StructSize + hash.cbSymbol + hash.cbHSym, hash.cbHAddr);
+                    var symbolHashTableChunk = valueChunk.Slice(OMFSymHash.StructSize + hash.cbSymbol);
+                    var addressHashTableChunk = valueChunk.Slice(OMFSymHash.StructSize + hash.cbSymbol + hash.cbHSym);
+
+                    IValue symbolHashTable;
+
+                    switch (hash.symhash)
+                    {
+                        case 2:
+                        case 6:
+                            symbolHashTable = SymHash32(symbolHashTableChunk, hash.symhash, hash.cbSymbol);
+                            break;
+
+                        case 10:
+                            symbolHashTable = SymHash32Long(symbolHashTableChunk, hash.symhash, hash.cbSymbol);
+                            break;
+
+                            default:
+                                symbolHashTable = new ByteBlob(symbolHashTableChunk, hash.cbHSym);
+                                break;
+                        }
+
+                    IValue addressHashTable;
+
+                    //Unlike dumpsym7.cpp, we have a unified algorithm for processing all hash table types
+                    switch (hash.addrhash)
+                    {
+                        case 4:
+                        case 5:
+                        case 8:
+                        case 12:
+                            addressHashTable = AddrHash32(addressHashTableChunk, hash.addrhash);
+                            break;
+
+                        default:
+                            addressHashTable = new ByteBlob(addressHashTableChunk, hash.cbHAddr);
+                            break;
+                    }
 
                     return new OMFHashedSymbols(hash, symbols, symbolHashTable, addressHashTable);
                 }
@@ -244,6 +279,148 @@ namespace PESpy
 
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(SST)} '{subSection}'");
+            }
+        }
+
+        private static IValue SymHash32(in MemoryChunk chunk, int symhash, int cbHSym)
+        {
+            //Not implemented
+
+            //Note: we should remove the cbHSym parameter once we implement this
+            return new ByteBlob(chunk, cbHSym);
+        }
+
+        private static IValue SymHash32Long(in MemoryChunk chunk, int symhash, int cbHSym)
+        {
+            //Not implemented
+
+            //Note: we should remove the cbHSym parameter once we implement this
+            return new ByteBlob(chunk, cbHSym);
+        }
+
+        private static IValue AddrHash32(in MemoryChunk chunk, int addrhash)
+        {
+            /* https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
+             * PDF page 86, and also dumpsym7.cpp!AddrHash32
+             * 
+             * Based on my analysis of dumpsym7.cpp!AddrHash32 and AddrHash32NB09, there are essentially 3 major formats for representing the address
+             * hash table
+             * 
+             * 1. 4 byte offset counts, 8 byte offset table entries (type 12)
+             * 3. 2 byte offset counts, 8 byte offset table entries (type 8: NB09)
+             * 3. 2 byte offset counts, 4 byte offset table entries (types 4 and 5)
+             * 
+             * dumpsym7.cpp splits the NB09 case out into its own function (AddrHash32NB09).
+             * We combine all of the logic in one big function, and then emit the appropriate type of hash
+             * table object based on the required format
+             */
+
+            var cSeg = chunk.PeekUInt16(0);
+            var pad = chunk.PeekUInt16(2);
+
+            //rgulSeg
+            var segmentTable = chunk.PeekNativeSpan<int>(4, cSeg);
+
+            var offsetCountsOffset = sizeof(short) + sizeof(short) + (cSeg * sizeof(int));
+
+            /* What follows is now variable:
+             * 1. addrhash 12 has 4 byte offset counts, 8 byte offset table records
+             * 2. addrhash 8 has 2 byte offset counts, 8 byte offset table records
+             * 3. addrhash 5 has 2 byte offset counts, padding if cSeg was odd, 4 byte offset table records
+             * 4. addrhash 4 has 2 byte offset counts, 4 byte offset table records
+             */
+
+            NativeSpan<ushort> offsetCounts16 = default;
+            NativeSpan<int> offsetCounts32 = default;
+
+            NativeSpan<(int symbolOffset, int sectionRelativeOffset)>[] offsetTable32 = default;
+            NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[] offsetTable16 = default;
+
+            ushort segCountPadding = 0;
+
+            int read;
+
+            switch (addrhash)
+            {
+                case 4:
+                case 5:
+                case 8:
+                    //2 byte offset counts
+                    offsetCounts16 = chunk.PeekNativeSpan<ushort>(offsetCountsOffset, cSeg);
+                    read = offsetCountsOffset + (cSeg * sizeof(ushort));
+                    break;
+
+                case 12:
+                    //4 byte offset counts
+                    offsetCounts32 = chunk.PeekNativeSpan<int>(offsetCountsOffset, cSeg);
+                    read = offsetCountsOffset + (cSeg * sizeof(int));
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            //dumpsym7.cpp doesn't even seem to know what this means, but it seems to me that it's saying that when the hash mode is 5,
+            //there must be an even number of offset counts, so if the count is odd, apply padding before reading the actual offset table
+            if (addrhash == 5 && (cSeg & 1) != 0)
+            {
+                segCountPadding = chunk.PeekUInt16(read);
+                read += sizeof(short);
+            }
+
+            //Following this, we then have the offset table, which is essentially a jagged array containing offsetCounts[i] items
+
+            switch (addrhash)
+            {
+                case 4:
+                case 5:
+                    offsetTable16 = new NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[cSeg];
+
+                    for (var i = 0; i < cSeg; i++)
+                    {
+                        var count = offsetCounts16[i];
+
+                        //The first value is the offset of the given symbol in the symbol chunk.
+                        //The second value is the section relative offset of that symbol
+                        offsetTable16[i] = chunk.PeekNativeSpan<(ushort, ushort)>(read, count);
+
+                        read += (count * (sizeof(ushort) + sizeof(ushort)));
+                    }
+                    break;
+
+                case 8:
+                case 12:
+                    offsetTable32 = new NativeSpan<(int symbolOffset, int sectionRelativeOffset)>[cSeg];
+
+                    for (var i = 0; i < cSeg; i++)
+                    {
+                        var count = offsetCounts32[i];
+
+                        //The first value is the offset of the given symbol in the symbol chunk.
+                        //The second value is the section relative offset of that symbol
+                        offsetTable32[i] = chunk.PeekNativeSpan<(int, int)>(read, count);
+
+                        read += (count * (sizeof(int) + sizeof(int)));
+                    }
+                    break;
+            }
+
+            switch (addrhash)
+            {
+                case 4:
+                    return new AddrHash32v4(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable16);
+
+                case 5:
+                    return new AddrHash32v5(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, segCountPadding, offsetTable16);
+
+                case 8:
+                    return new AddrHash32v8(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable32);
+
+                case 12:
+                    return new AddrHash32v12(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts32, offsetTable32);
+
+                default:
+                    throw new NotImplementedException();
             }
         }
 

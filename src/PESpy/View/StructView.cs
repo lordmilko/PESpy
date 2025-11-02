@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -89,8 +87,10 @@ namespace PESpy.View
 
         public ViewKind Kind { get; }
 
+        [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStruct(this);
 
+        [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitStruct(this);
 
         private readonly TValue value;

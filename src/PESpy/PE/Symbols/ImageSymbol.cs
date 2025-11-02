@@ -4,7 +4,10 @@ using PESpy.View;
 
 namespace PESpy
 {
-    //@comp.id.Value apparently has the compiler type in the top 16 bits and the compiler id version in the bottom?
+    //Rich Headers essentially capture the @comp.id of compilands. When the ImageSymbol is for @comp.id,
+    //the value has the same meaning as rich headers
+
+    //Another symbol with special meaning is @feat.00
 
     public struct ImageSymbol : IValue, IViewable
     {

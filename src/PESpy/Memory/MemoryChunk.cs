@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using PESpy.Ecma335;
 
 namespace PESpy
 {
@@ -214,6 +215,10 @@ namespace PESpy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PeekEcmaIndex(int offset, bool isBig) =>
             isBig ? PeekInt32(offset) : PeekUInt16(offset);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CodedIndex PeekCodedIndex(int offset, bool isBig, CodedIndexType type) =>
+            new CodedIndex(isBig ? PeekInt32(offset) : PeekUInt16(offset), type);
 
         public int PeekCorCompressedInteger(int offset, out byte bytesRead)
         {

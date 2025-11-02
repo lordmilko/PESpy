@@ -12,8 +12,8 @@
 
         NoReturn = 0x20,
 
-        IsIL =0x30,
+        IsIL = 0x40,
 
-        //0x40, 0x50, 0x60 and 0x70 unused
+        //Because this is flags, we can only store 3 values
     }
 }

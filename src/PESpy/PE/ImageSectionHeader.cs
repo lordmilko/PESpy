@@ -226,6 +226,26 @@ namespace PESpy
             }
         }
 
+        //Section numbers are 1 based
+        public static bool TryGetSectionAndOffset(ImageSectionHeader[] sectionHeaders, int rva, out PDB.ISECT sectionNumber, out int relativeOffset)
+        {
+            for (var i = 0; i < sectionHeaders.Length; i++)
+            {
+                ref var sectionHeader = ref sectionHeaders[i];
+
+                if (rva >= sectionHeader.VirtualAddress && rva <= sectionHeader.VirtualAddress + sectionHeader.VirtualSize)
+                {
+                    relativeOffset = rva - sectionHeader.VirtualAddress;
+                    sectionNumber = (ushort) (i + 1);
+                    return true;
+                }
+            }
+
+            sectionNumber = default;
+            relativeOffset = default;
+            return false;
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteSmallVAPointerField(PointerToRelocations, fieldOffset: PointerToRelocationsOffset);

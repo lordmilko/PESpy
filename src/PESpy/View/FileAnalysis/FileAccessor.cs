@@ -151,7 +151,7 @@ namespace PESpy.View
             return &accessor.pViewBytes[relativeOffset];
         }
 
-        public ViewByte* GetViewByte(int address, out int sectionAccessorIndex)
+        public ViewByte* GetViewByte(int targetAddress, out int sectionAccessorIndex)
         {
             var low = 0;
             var high = SectionAccessors.Length - 1;
@@ -162,11 +162,11 @@ namespace PESpy.View
 
                 ref var current = ref SectionAccessors[mid];
 
-                if (address >= current.StartAddress)
+                if (targetAddress >= current.StartAddress)
                 {
-                    if (address < current.EndAddress) //I think EndRVA could potentially be equal to the start of the next section, so we need to do < and not <=, since we did start+length to get the end
+                    if (targetAddress < current.EndAddress) //I think EndRVA could potentially be equal to the start of the next section, so we need to do < and not <=, since we did start+length to get the end
                     {
-                        var relativeOffset = address - current.StartAddress;
+                        var relativeOffset = targetAddress - current.StartAddress;
 
                         //todo: test having a section whose end is right next to the next section, and we stick ourselves in the middle
                         //and cause problems by sharing an address with the startaddress of the section
@@ -186,7 +186,7 @@ namespace PESpy.View
                 }
             }
 
-            throw new InvalidOperationException($"Failed to locate the {nameof(ViewByte)} associated with address 0x{address:X}");
+            throw new InvalidOperationException($"Failed to locate the {nameof(ViewByte)} associated with address 0x{targetAddress:X}");
         }
 
         #endregion

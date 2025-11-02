@@ -11,11 +11,13 @@ namespace PESpy
 
         //See the comments in OMFSymHash about how to parse these
 
-        public NativeSpan<byte> SymbolHashTable { get; }
+        public IValue SymbolHashTable { get; }
 
-        public NativeSpan<byte> AddressHashTable { get; }
+        public IValue AddressHashTable { get; }
 
-        public OMFHashedSymbols(OMFSymHash hash, SymTypeList symbols, NativeSpan<byte> symbolHashTable, NativeSpan<byte> addressHashTable)
+        public SymType GetSymbolFromOffset(int offset) => Symbols.GetSymbolFromOffset(offset);
+
+        public OMFHashedSymbols(OMFSymHash hash, SymTypeList symbols, IValue symbolHashTable, IValue addressHashTable)
         {
             Hash = hash;
             Symbols = symbols;

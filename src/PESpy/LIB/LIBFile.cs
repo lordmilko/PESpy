@@ -41,6 +41,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
+        private ISymbolAccessor symbolAccessor;
 
         private bool disposed;
 
@@ -235,6 +236,8 @@ namespace PESpy
 
             return (FileView) writer.Finalize();
         }
+
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

@@ -458,7 +458,8 @@ namespace PESpy
                 lfoBaseOff,
                 lfoDir,
                 dirHeader,
-                entries
+                entries,
+                codeViewAccessor
             );
 
             //We need to set this prior to writing the entries, as OMFGlobalTypes needs to know what CodeView version we are

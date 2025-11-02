@@ -51,6 +51,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
+        private ISymbolAccessor symbolAccessor;
         private bool disposed;
 
         internal unsafe OMFFile(string fileName, in MemoryMappedFileHolder mmf)
@@ -74,11 +75,6 @@ namespace PESpy
                 while (ptr < end)
                 {
                     var record = new OMFRecord(ptr);
-
-                    var recordType = (byte) record.RecordType;
-
-                    if (recordType < 0xCA && (recordType & 1) == 1)
-                        throw new InvalidOperationException("32-bit record types are not yet supported");
 
 #if DEBUG
                     //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
@@ -107,6 +103,8 @@ namespace PESpy
         {
             throw new NotImplementedException();
         }
+
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new OMFFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

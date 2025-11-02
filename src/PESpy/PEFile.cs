@@ -588,7 +588,7 @@ namespace PESpy
         private bool hasTriedRichHeader;
 
         /// <summary>
-        /// Gets the undocumented Rich Header which describes the build environment that was used to create the file.<para/>
+        /// Gets the undocumented Rich Header which describes the build environment that was used to create the executable.<para/>
         /// If the file does not have a Rich Header, this property returns <see langword="null"/>.
         /// </summary>
         public RichHeader? RichHeader
@@ -618,12 +618,12 @@ namespace PESpy
         /// <summary>
         /// Gets the <see cref="IMAGE_NT_HEADERS.FileHeader"/> field that represents the file header of the image.
         /// </summary>
-        public ImageFileHeader FileHeader => ntHeaders.FileHeader;
+        public ref readonly ImageFileHeader FileHeader => ref ntHeaders.FileHeader;
 
         /// <summary>
         /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
-        public ImageOptionalHeader OptionalHeader => ntHeaders.OptionalHeader;
+        public ref readonly ImageOptionalHeader OptionalHeader => ref ntHeaders.OptionalHeader;
 
         #endregion
         #region SectionHeaders
@@ -2095,6 +2095,71 @@ namespace PESpy
 
         public FileView GetView() => GetView(ViewMode.Default);
 
+        private ISymbolAccessor? symbolAccessor;
+
+        public ISymbolAccessor GetSymbolAccessor()
+        {
+            if (symbolAccessor != null)
+                return symbolAccessor;
+
+            if (Locator.TryLocate(this, out var artifacts, out _))
+            {
+                switch (artifacts.BestKind)
+                {
+                    case Locator.ArtifactKind.PDB:
+                        if (Detector.TryOpenFile(artifacts.PDBPath, out var pdbFile))
+                        {
+                            if (pdbFile.Kind == FileKind.PDB)
+                                ((PDBFile) pdbFile).SetFallbackSectionHeaders(SectionHeaders);
+
+                            //Even if it's not actually a PDBFile, it's still an IFIle so it may have an ISymbolAccessor
+                            symbolAccessor = new ExternalFileSymbolAccessor(pdbFile);
+                        }
+                        else
+                            symbolAccessor = NullSymbolAccessor.Instance;
+
+                        return symbolAccessor;
+
+                    case Locator.ArtifactKind.DBG:
+                        if (Detector.TryOpenFile(artifacts.DBGPath, out var dbgFile))
+                        {
+                            //Even if it's not actually a DBGFile, it's still an IFile so it may have an ISymbolAccessor
+                            symbolAccessor = new ExternalFileSymbolAccessor(dbgFile);
+                        }
+                        else
+                            symbolAccessor = NullSymbolAccessor.Instance;
+
+                        return symbolAccessor;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                //No external symbols; try internal. Prefer CodeView, fallback to COFF
+                if (!ImageDebugDirectory.TryGetSymbolAccessor(this, debugTable, out symbolAccessor))
+                {
+                    //I don't know if it's guaranteed that if you have COFF symbols that they'll be pointed to by an
+                    //IMAGE_DEBUG_TYPE_COFF debug directory entry, so just check the image file header anyway
+
+                    var coff = FileHeader.PointerToSymbolTable.ValueOrDefault;
+
+                    if (coff != null)
+                    {
+                        symbolAccessor = new CoffSymbolAccessor(coff, sectionHeaders);
+                        return symbolAccessor;
+                    }
+                }
+                else
+                    return symbolAccessor;
+            }
+
+            //Fail: use NullSymbolAccessor
+            symbolAccessor = NullSymbolAccessor.Instance;
+            return symbolAccessor;
+        }
+
         /// <summary>
         /// Gets a <see cref="FileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
         /// </summary>
@@ -2498,15 +2563,9 @@ namespace PESpy
 
         internal bool TryGetValueChunkFromSectionOrHeader(int rva, out MemoryChunk chunk)
         {
-            if (rva == 0)
-            {
-                chunk = default;
-                return false;
-            }
-
             if (rva < OptionalHeader.SizeOfHeaders)
             {
-                chunk = new MemoryChunk(headerBlock, 0);
+                chunk = new MemoryChunk(headerBlock, rva);
                 return true;
             }
 
@@ -2844,7 +2903,7 @@ namespace PESpy
             return false;
         }
 
-        ICodeView IFileWithCodeViewData.CodeViewData => throw new NotImplementedException(); //todo: try and lookup the relevant codeview debug table
+        ICodeViewData IFileWithCodeViewData.CodeViewData => throw new NotImplementedException(); //todo: try and lookup the relevant codeview debug table
 
         #endregion
 
@@ -2887,7 +2946,9 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter) => throw new NotSupportedException();
+        int IViewable.NumChildren() => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {
@@ -2901,6 +2962,8 @@ namespace PESpy
 
             if (disposing)
             {
+                symbolAccessor?.Dispose();
+
                 headerBlock.Dispose();
 
                 if (sectionBlocks != null)

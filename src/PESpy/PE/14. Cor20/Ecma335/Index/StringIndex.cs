@@ -31,6 +31,16 @@ namespace PESpy.Ecma335
             return str.Equals(value);
         }
 
+        public Utf8String GetString()
+        {
+            var stringHeap = getStringHeap();
+
+            if (stringHeap == null)
+                throw new NotImplementedException();
+
+            return stringHeap.GetString(Offset).Value;
+        }
+
         public override string ToString()
         {
             var stringHeap = getStringHeap();

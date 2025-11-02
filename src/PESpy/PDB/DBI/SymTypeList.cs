@@ -66,6 +66,8 @@ namespace PESpy.PDB
             this.codeViewAccessor = codeViewAccessor;
         }
 
+        public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (ptr + offset);
+
         public TopLevel GetTopLevel() => new TopLevel(start, ptr, end, codeViewAccessor);
 
         //Copies all symbols (does not include any CV_SIGNATURE) to the destination buffer

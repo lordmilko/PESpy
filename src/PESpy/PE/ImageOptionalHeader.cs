@@ -8,7 +8,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_OPTIONAL_HEADER32"/> / <see cref="IMAGE_OPTIONAL_HEADER64"/> structure.
     /// </summary>
-    public class ImageOptionalHeader : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
+    public class ImageOptionalHeader : IViewableValue //Structs return copies from properties, and ref properties don't display properly in the debugger
     {
         private const int MagicOffset = 0;
         private const int MajorLinkerVersionOffset = 2;

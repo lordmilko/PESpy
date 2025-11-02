@@ -79,11 +79,11 @@ namespace PESpy
                     break;
 
                 case 1:
-                    structWriter.WriteInline(FileHeader);
+                    structWriter.WriteStructField(nameof(FileHeader), FileHeader);
                     break;
 
                 case 2:
-                    structWriter.WriteInline(OptionalHeader);
+                    structWriter.WriteStructField(nameof(OptionalHeader), OptionalHeader);
                     break;
 
                 default:

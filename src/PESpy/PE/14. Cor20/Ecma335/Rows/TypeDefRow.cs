@@ -18,8 +18,14 @@ namespace PESpy.Ecma335
 
         public CodedIndex Extends => table.GetExtends(RowIndex);
 
+        //This is really just the first entry in the type's fields.
+        //It runs to either the last row of the field table, or the start of the next type's
+        //FieldList
         public FieldIndex FieldList => table.GetFieldList(RowIndex);
 
+        //This is really just the first entry in the type's methods.
+        //It runs to either the last row of the method table, or the start of the next type's
+        //MethodList
         public MethodDefIndex MethodList => table.GetMethodList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);

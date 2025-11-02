@@ -13,6 +13,10 @@ using PESpy;
 
 namespace PESpy
 {
+    /// <summary>
+    /// Represents a non-allocating string builder capable of being backed
+    /// by either stack memory or a rented array.
+    /// </summary>
     internal ref partial struct ValueStringBuilder
     {
         private string DebuggerDisplay => ToString();
@@ -164,11 +168,7 @@ namespace PESpy
 
             int remaining = _pos - index;
             _chars.Slice(index, remaining).CopyTo(_chars.Slice(index + count));
-            s
-#if !NET
-                .AsSpan()
-#endif
-                .CopyTo(_chars.Slice(index));
+            s.AsSpan().CopyTo(_chars.Slice(index));
             _pos += count;
         }
 
@@ -289,11 +289,7 @@ namespace PESpy
 
             var target = chars.Slice(pos);
 
-            s
-#if !NET
-                .AsSpan()
-#endif
-                .CopyTo(target);
+            s.AsSpan().CopyTo(target);
 
             for (var i = s.Length; i < requiredLength; i++)
                 target[i] = c;
@@ -331,11 +327,7 @@ namespace PESpy
                 Grow(s.Length);
             }
 
-            s
-#if !NET
-                .AsSpan()
-#endif
-                .CopyTo(_chars.Slice(pos));
+            s.AsSpan().CopyTo(_chars.Slice(pos));
             _pos += s.Length;
         }
 

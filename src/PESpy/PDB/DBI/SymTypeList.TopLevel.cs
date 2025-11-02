@@ -13,6 +13,8 @@ namespace PESpy.PDB
             private readonly byte* end;
             private readonly ICodeViewAccessor? codeViewAccessor;
 
+            public ICodeViewAccessor GetCodeViewAccessor() => codeViewAccessor;
+
             internal TopLevel(byte* start, byte* ptr, byte* end, ICodeViewAccessor? codeViewAccessor)
             {
                 this.start = start;

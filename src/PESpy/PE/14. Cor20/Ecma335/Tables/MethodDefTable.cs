@@ -18,13 +18,23 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigParamIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
-        internal MethodDefTable(int numRows, int stringIndexSize, int blobIndexSize, int paramIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal MethodDefTable(
+            int numRows,
+            int stringIndexSize,
+            int blobIndexSize,
+            int paramIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(numRows)
         {
             this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 

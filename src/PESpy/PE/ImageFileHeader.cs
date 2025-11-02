@@ -9,7 +9,7 @@ namespace PESpy
     /// <summary>
     /// Represents a the <see cref="IMAGE_FILE_HEADER"/> structure that describes the COFF header format.
     /// </summary>
-    public class ImageFileHeader : IValue, IViewable //Structs return copies from properties, and ref properties don't display properly in the debugger
+    public struct ImageFileHeader : IViewableValue
     {
         private const int MachineOffset = 0;
         private const int NumberOfSectionsOffset = 2;

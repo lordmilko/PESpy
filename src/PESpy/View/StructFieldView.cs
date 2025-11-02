@@ -24,13 +24,17 @@ namespace PESpy.View
 
         public StructView<TValue> Value { get; }
 
+        public string ValueType => typeof(TValue).Name;
+
         IStructView IStructFieldView.Value => Value;
 
         string IFieldView.Name => FieldName;
         object IFieldView.Value => Value!;
 
+        [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStructField(this);
 
+        [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitStructField(this);
 
         public StructFieldView(StructView<TValue> value, string fieldName)

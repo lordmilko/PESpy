@@ -169,6 +169,18 @@ namespace PESpy
             _pos += value.Length;
         }
 
+        public void Append(Utf8String value)
+        {
+            int pos = _pos;
+            if (pos > _chars.Length - value.Length)
+            {
+                Grow(value.Length);
+            }
+
+            value.CopyTo(_chars.Slice(_pos));
+            _pos += value.Length;
+        }
+
         private unsafe void AppendSlow(string s)
         {
             int pos = _pos;
