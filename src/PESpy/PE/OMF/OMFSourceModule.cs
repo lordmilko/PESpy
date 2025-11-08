@@ -1,6 +1,6 @@
 ﻿namespace PESpy
 {
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public struct OMFSourceModule : IValue
     {
         public ushort cFile => chunk.PeekUInt16(0);

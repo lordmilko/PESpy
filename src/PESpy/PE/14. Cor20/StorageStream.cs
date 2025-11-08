@@ -43,12 +43,8 @@ namespace PESpy
                 {
                     var peFile = chunk.PEFile();
 
-                    int metadataRootOffset;
-
-                    if (peFile != null!)
-                        metadataRootOffset = peFile.EcmaMetadata!.Offset;
-                    else
-                        metadataRootOffset = chunk.PortablePDBFile().EcmaMetadata.Offset;
+                    //There's multiple sources of metadata: IMAGE_COR20_HEADER, Portable PDB and
+                    //even NGEN, so we need the caller to tell us what the root of their metadata is
 
                     var offset = metadataRootOffset + iOffset;
 
@@ -114,10 +110,12 @@ namespace PESpy
         private int BytesUsed => FixedStructSize + Name.Length + 1;
 
         private readonly MemoryChunk chunk;
+        private readonly int metadataRootOffset;
 
-        internal StorageStream(in MemoryChunk chunk)
+        internal StorageStream(in MemoryChunk chunk, int metadataRootOffset)
         {
             this.chunk = chunk;
+            this.metadataRootOffset = metadataRootOffset;
 
             //We want to be able to switch on the name so we need to allocate
             Name = chunk.PeekUtf8NullTerminatedString(NameOffset).ToString();

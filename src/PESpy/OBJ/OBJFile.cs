@@ -7,6 +7,7 @@ using ClrDebug;
 using PESpy.OBJ;
 using PESpy.View;
 using PESpy.View.Builder;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -245,7 +246,7 @@ namespace PESpy
              * - 112 (p -> ?)  -> the section provides the precompiled header offset and size. There is no reader
              * - 115 (s -> sy) -> localSymbolFileReader
              */
-            if (anonHeader.Sig1 == IMAGE_FILE_MACHINE.UNKNOWN && anonHeader.Sig2 == -1)
+            if (anonHeader.Sig1 == IMAGE_FILE_MACHINE_UNKNOWN && anonHeader.Sig2 == -1)
             {
                 int anonStructSize = 0;
 
@@ -303,21 +304,58 @@ namespace PESpy
         {
             writer.WriteGlobal(AnonObjectHeader);
             writer.WriteGlobal(FileHeader);
-            writer.WriteGlobal(SectionHeaders);
 
-            foreach (var item in SectionData)
+            var sectionHeaders = SectionHeaders;
+
+            writer.WriteGlobal(sectionHeaders);
+
+            WriteGlobals(writer, sectionHeaders, SectionData);
+        }
+
+        internal static void WriteGlobals(
+            ViewWriter writer,
+            ImageSectionHeader[] sectionHeaders,
+            object[] sectionData)
+        {
+            for (var i = 0; i < sectionHeaders.Length; i++)
             {
-                if (item == null)
+                var data = sectionData[i];
+
+                if (data == null)
                     continue;
 
-                if (item is IViewable v)
+                if (data is IViewable v)
                     writer.WriteGlobal(v);
-                else if (item is RawValue<FixedUtf8String> s)
-                    writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, ViewKind.Value);
-                else if (item is RawValue<NativeSpan<byte>> b)
-                    continue;
+                else if (data is RawValue<FixedUtf8String> s)
+                {
+                    ref var header = ref sectionHeaders[i];
+                    var sectionName = header.Name;
+
+                    ViewKind kind;
+
+                    if (sectionName == ".drectve")
+                        kind = ViewKind.drectve;
+                    else
+                        throw new NotImplementedException();
+
+                    writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, kind);
+                }
+                else if (data is RawValue<NativeSpan<byte>> b)
+                {
+                    ref var header = ref sectionHeaders[i];
+                    var sectionName = header.Name;
+
+                    ViewKind kind;
+
+                    if (sectionName == ".text$mn")
+                        kind = ViewKind.text_mn;
+                    else
+                        throw new NotImplementedException();
+
+                    writer.WriteGlobal(b.Offset, b.Value, b.Value.Length, kind);
+                }
                 else
-                    throw new NotImplementedException($"Don't know how to write a value of type {item.GetType().Name}");
+                    throw new NotImplementedException($"Don't know how to write a value of type {data.GetType().Name}");
             }
         }
 

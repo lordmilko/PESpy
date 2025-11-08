@@ -9,7 +9,7 @@ using PESpy.View;
 namespace PESpy
 {
     //NT 4 refers to this as the CV 4.0 dnt/DNT
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct OMFDirEntry : IValue, IViewable
     {

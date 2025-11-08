@@ -13,7 +13,7 @@ namespace PESpy
     /// without as rich an API as <see cref="PEFile"/><para/>
     /// This type is only usable on Windows.
     /// </summary>
-    public unsafe class FastPEFile : IDisposable
+    internal unsafe class FastPEFile : IDisposable
     {
         #region Static
 
@@ -107,7 +107,7 @@ namespace PESpy
         {
             var optionalHeader = &((IMAGE_NT_HEADERS*) NtHeaders)->OptionalHeader;
 
-            if (optionalHeader->Magic == PEMagic.PE32Plus)
+            if (optionalHeader->Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                 return ((IMAGE_DATA_DIRECTORY*) ((IMAGE_OPTIONAL_HEADER64*) optionalHeader)->DataDirectory) + (int) kind;
 
             return ((IMAGE_DATA_DIRECTORY*) optionalHeader->DataDirectory) + (int) kind;
@@ -117,7 +117,7 @@ namespace PESpy
         {
             var optionalHeader = &((IMAGE_NT_HEADERS*) NtHeaders)->OptionalHeader;
 
-            if (optionalHeader->Magic == PEMagic.PE32Plus)
+            if (optionalHeader->Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC)
             {
                 var optionalHeader64 = (IMAGE_OPTIONAL_HEADER64*) optionalHeader;
 
@@ -204,7 +204,7 @@ namespace PESpy
             rva = default;
             ordinalPlusBase = default;
 
-            var pDirectoryEntry = GetDirectoryEntry(IMAGE_DIRECTORY_ENTRY.EXPORT);
+            var pDirectoryEntry = GetDirectoryEntry(IMAGE_DIRECTORY_ENTRY.IMAGE_DIRECTORY_ENTRY_EXPORT);
 
             if (pDirectoryEntry->VirtualAddress == 0 || pDirectoryEntry->Size == 0)
                 return false;
@@ -242,9 +242,9 @@ namespace PESpy
             return false;
         }
 
-        public void EnumerateResources(ResourceType resourceType, Func<ResourceNameContext, bool> resourceName, Func<ResourceFoundContext, bool> resourceFound)
+        public void EnumerateResources(RT resourceType, Func<ResourceNameContext, bool> resourceName, Func<ResourceFoundContext, bool> resourceFound)
         {
-            var pDataDirectory = GetDirectoryEntry(IMAGE_DIRECTORY_ENTRY.RESOURCE);
+            var pDataDirectory = GetDirectoryEntry(IMAGE_DIRECTORY_ENTRY.IMAGE_DIRECTORY_ENTRY_RESOURCE);
 
             if (pDataDirectory->VirtualAddress == 0)
                 return;
@@ -263,7 +263,7 @@ namespace PESpy
         private bool EnumerateDirectory(
             int offset,
             IntPtr rootAddress,
-            ResourceType resourceType,
+            RT resourceType,
             Func<ResourceNameContext, bool> resourceName,
             Func<ResourceFoundContext, bool> resourceFound,
             ResourceLevel level)
@@ -291,7 +291,7 @@ namespace PESpy
                             if (nameIsString)
                                 continue;
 
-                            var actualResourceType = (ResourceType) nameOffset;
+                            var actualResourceType = (RT) nameOffset;
 
                             if (resourceType != actualResourceType)
                                 continue;

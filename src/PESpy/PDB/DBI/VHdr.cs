@@ -5,7 +5,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     [DebuggerDisplay("{ulHdr} / {ulVer}")]
-    public readonly struct VHdr : IValue, IViewable
+    public readonly struct VHdr : IViewableValue
     {
         //Enum name made up
         public enum Hdr : uint

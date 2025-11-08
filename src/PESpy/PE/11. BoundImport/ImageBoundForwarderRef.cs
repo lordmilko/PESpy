@@ -62,7 +62,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //The ImageBoundImportDescriptor can share the same name
-            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageBoundImportName, OffsetModuleNameOffset);
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageBoundImportName, Offset, OffsetModuleNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

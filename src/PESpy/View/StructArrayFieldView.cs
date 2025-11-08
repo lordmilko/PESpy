@@ -44,6 +44,8 @@ namespace PESpy.View
         string IFieldView.Name => FieldName;
         object IFieldView.Value => Value!;
 
+        public FieldViewFlags Flags => default;
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStructArrayField(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitStructArrayField(this);

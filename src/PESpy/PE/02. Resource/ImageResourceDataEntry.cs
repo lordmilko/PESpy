@@ -4,6 +4,7 @@ using System.Text;
 using PESpy.Native;
 using PESpy.View;
 using static PESpy.ClrDebugResource;
+using static PESpy.RT;
 
 namespace PESpy
 {
@@ -79,48 +80,48 @@ namespace PESpy
                         var type = Type;
                         IValue? value;
 
-                        if (type is ResourceType t)
+                        if (type is RT t)
                         {
                             switch (t)
                             {
-                                case ResourceType.Cursor:
-                                case ResourceType.Bitmap:
-                                case ResourceType.Icon:
-                                case ResourceType.Menu:
-                                case ResourceType.Dialog:
-                                case ResourceType.String: //https://devblogs.microsoft.com/oldnewthing/20040130-00/?p=40813
-                                case ResourceType.FontDir:
-                                case ResourceType.Font:
-                                case ResourceType.Accelerator:
+                                case RT_CURSOR:
+                                case RT_BITMAP:
+                                case RT_ICON:
+                                case RT_MENU:
+                                case RT_DIALOG:
+                                case RT_STRING: //https://devblogs.microsoft.com/oldnewthing/20040130-00/?p=40813
+                                case RT_FONTDIR:
+                                case RT_FONT:
+                                case RT_ACCELERATOR:
                                     goto default;
 
-                                case ResourceType.RCData:
+                                case RT_RCDATA:
                                     if (!TryParseRCData(valueChunk, out value))
                                         goto default;
 
                                     break;
 
-                                case ResourceType.MessageTable:
+                                case RT_MESSAGETABLE:
                                     value = new MessageResourceData(valueChunk);
                                     break;
 
-                                case ResourceType.GroupCursor:
-                                case ResourceType.GroupIcon:
+                                case RT_GROUP_CURSOR:
+                                case RT_GROUP_ICON:
                                     goto default;
 
-                                case ResourceType.Version:
+                                case RT_VERSION:
                                     value = new VsVersionInfo(valueChunk);
                                     break;
 
-                                case ResourceType.DlgInclude:
-                                case ResourceType.PlugPlay:
-                                case ResourceType.Vxd:
-                                case ResourceType.AniCursor:
-                                case ResourceType.AniIcon:
-                                case ResourceType.Html:
+                                case RT_DLGINCLUDE:
+                                case RT_PLUGPLAY:
+                                case RT_VXD:
+                                case RT_ANICURSOR:
+                                case RT_ANIICON:
+                                case RT_HTML:
                                     goto default;
 
-                                case ResourceType.Manifest:
+                                case RT_MANIFEST:
                                     //Note that the manifest may start with a UTF-8 BOM
                                     value = new RawValue<FixedUtf8String>(valueChunk.AbsoluteOffset, new FixedUtf8String(valueChunk.Pointer, Size));
                                     break;
@@ -195,7 +196,7 @@ namespace PESpy
                 if (parent.NameOrId.NameIsString)
                     return parent.NameOrId.NameOffset.ToString();
 
-                return ((ResourceType) parent.NameOrId.Id);
+                return (RT) parent.NameOrId.Id;
             }
         }
 

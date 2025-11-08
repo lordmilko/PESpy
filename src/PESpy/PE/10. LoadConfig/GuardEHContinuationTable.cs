@@ -41,7 +41,7 @@ namespace PESpy
 
             //See GuardCFFunctionTable for info
             //https://windows-internals.com/cet-on-windows/
-            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
+            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
         }
 
         public Entry this[int index]
@@ -118,7 +118,7 @@ namespace PESpy
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {
-                //No globals
+                writer.WriteRVAXRef(Offset, FunctionOffset, Function);
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>

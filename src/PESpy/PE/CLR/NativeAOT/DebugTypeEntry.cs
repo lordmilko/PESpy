@@ -87,8 +87,10 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAAnsiNullTerminatedField(TypeName, ViewKind.DebugTypeEntry_TypeName, fieldOffset: TypeNameOffset);
-            writer.WriteVAAnsiNullTerminatedField(FieldName, ViewKind.DebugTypeEntry_FieldName, fieldOffset: FieldNameOffset);
+            var structOffset = Offset;
+
+            writer.WriteVAAnsiNullTerminatedField(TypeName, ViewKind.DebugTypeEntry_TypeName, structOffset, fieldOffset: TypeNameOffset);
+            writer.WriteVAAnsiNullTerminatedField(FieldName, ViewKind.DebugTypeEntry_FieldName, structOffset, fieldOffset: FieldNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

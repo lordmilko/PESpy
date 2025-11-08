@@ -62,12 +62,12 @@ namespace PESpy
             writer.WriteGlobalField(Offset + (5 * sizeof(int)), "version", Version, sizeof(short));
 
             writer.WriteGlobal(Modules);
-            writer.WriteGlobal(Publics.Offset, Publics.Value, SecOffset[2] - SecOffset[1], ViewKind.Value);
-            writer.WriteGlobal(Types.Offset, Types.Value, SecOffset[3] - SecOffset[2], ViewKind.Value);
-            writer.WriteGlobal(Symbols.Offset, Symbols.Value, SecOffset[4] - SecOffset[3], ViewKind.Value);
+            writer.WriteGlobal(Publics.Offset, Publics.Value, SecOffset[2] - SecOffset[1], ViewKind.DNRB_Publics);
+            writer.WriteGlobal(Types.Offset, Types.Value, SecOffset[3] - SecOffset[2], ViewKind.DNRB_Types);
+            writer.WriteGlobal(Symbols.Offset, Symbols.Value, SecOffset[4] - SecOffset[3], ViewKind.DNRB_Symbols);
 
             var sourceLinesLength = Length - (SecOffset[4] - Offset) - 8; //There's an 8 byte CVINFO at the end
-            writer.WriteGlobal(SourceLines.Offset, SourceLines.Value, sourceLinesLength, ViewKind.Value);
+            writer.WriteGlobal(SourceLines.Offset, SourceLines.Value, sourceLinesLength, ViewKind.DNRB_SourceLines);
 
             var cvInfoOffset = (Offset + Length) - 8;
             writer.WriteGlobalField(cvInfoOffset, "signature", Signature, sizeof(int));

@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using ClrDebug;
-using ClrDebug.DIA;
 using PESpy.Ecma335;
 using PESpy.View.Builder;
-using static System.Collections.Specialized.BitVector32;
 
 namespace PESpy.View
 {
@@ -18,7 +14,7 @@ namespace PESpy.View
     {
         private PEFile peFile;
 
-        public bool Is32Bit => peFile.OptionalHeader.Magic == PEMagic.PE32;
+        public bool Is32Bit => peFile.Is32Bit;
 
         IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk) => peFile.FileHeader.Machine;
 
@@ -258,7 +254,7 @@ namespace PESpy.View
             {
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.HelperTable, "NGEN HelperTable Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.ImportSections, "NGEN ImportSections Directory");
-                AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy0, "NGEN Dummy0 Directory");
+                AddVirtualDirectory(ref dataDirectories, ngenHeader.ImportTable, "NGEN ImportTable Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.StubsData, "NGEN StubsData Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.VersionInfo, "NGEN VersionInfo Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.Dependencies, "NGEN Dependencies Directory");
@@ -274,6 +270,26 @@ namespace PESpy.View
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy2, "NGEN Dummy2 Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy3, "NGEN Dummy3 Directory");
                 AddVirtualDirectory(ref dataDirectories, ngenHeader.Dummy4, "NGEN Dummy4 Directory");
+
+                var ngenCodeManagerTable = peFile.NgenCodeManagerTable;
+
+                if (ngenCodeManagerTable != null)
+                {
+                    AddVirtualDirectory(ref dataDirectories, ngenCodeManagerTable.HotCode, "NGEN CodeManager HotCode Directory");
+                    AddVirtualDirectory(ref dataDirectories, ngenCodeManagerTable.Code, "NGEN CodeManager Code Directory");
+                    AddVirtualDirectory(ref dataDirectories, ngenCodeManagerTable.ColdCode, "NGEN CodeManager ColdCode Directory");
+                    AddVirtualDirectory(ref dataDirectories, ngenCodeManagerTable.ROData, "NGEN CodeManager ROData Directory");
+                }
+
+                var ngenImportSections = peFile.NgenImportSections;
+
+                if (ngenImportSections != null)
+                {
+                    foreach (var importSection in ngenImportSections)
+                    {
+                        AddVirtualDirectory(ref dataDirectories, importSection.Section, $"NGEN Import {importSection.Type} Directory");
+                    }
+                }
             }
 
             #endregion

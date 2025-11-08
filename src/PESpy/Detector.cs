@@ -5,6 +5,7 @@ using PESpy.Native;
 using PESpy.NE;
 using PESpy.OMF;
 using PESpy.PDB;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 //Having out IFile? is confusing from an API standpoint because the caller has to keep doing file! whenever they use it when we returned true.
 //Attributes to say we have a value when we return true haven't worked for me in the past
@@ -267,7 +268,7 @@ namespace PESpy
 
             switch ((IMAGE_FILE_MACHINE) twoLetterSignature)
             {
-                case IMAGE_FILE_MACHINE.UNKNOWN:
+                case IMAGE_FILE_MACHINE_UNKNOWN:
                     if (length >= AnonObjectHeader.StructSize && *(short*) (mmf.Address + 2) == -1) //Sig1: IMAGE_FILE_MACHINE_UNKNOWN and Sig2: -1
                     {
                         //Anon Header Obj
@@ -276,35 +277,35 @@ namespace PESpy
                     }
                     break;
 
-                case IMAGE_FILE_MACHINE.I386:
-                case IMAGE_FILE_MACHINE.R3000:
-                case IMAGE_FILE_MACHINE.R4000:
-                case IMAGE_FILE_MACHINE.R10000:
-                case IMAGE_FILE_MACHINE.WCEMIPSV2:
-                case IMAGE_FILE_MACHINE.ALPHA:
-                case IMAGE_FILE_MACHINE.SH3:
-                case IMAGE_FILE_MACHINE.SH3DSP:
-                case IMAGE_FILE_MACHINE.SH3E:
-                case IMAGE_FILE_MACHINE.SH4:
-                case IMAGE_FILE_MACHINE.SH5:
-                case IMAGE_FILE_MACHINE.ARM:
-                case IMAGE_FILE_MACHINE.THUMB:
-                case IMAGE_FILE_MACHINE.ARMNT:
-                case IMAGE_FILE_MACHINE.AM33:
-                case IMAGE_FILE_MACHINE.POWERPC:
-                case IMAGE_FILE_MACHINE.POWERPCFP:
-                case IMAGE_FILE_MACHINE.IA64:
-                case IMAGE_FILE_MACHINE.MIPS16:
-                case IMAGE_FILE_MACHINE.ALPHA64: //Same value as AXP64
-                case IMAGE_FILE_MACHINE.MIPSFPU:
-                case IMAGE_FILE_MACHINE.MIPSFPU16:
-                case IMAGE_FILE_MACHINE.TRICORE:
-                case IMAGE_FILE_MACHINE.CEF:
-                case IMAGE_FILE_MACHINE.EBC:
-                case IMAGE_FILE_MACHINE.AMD64:
-                case IMAGE_FILE_MACHINE.M32R:
-                case IMAGE_FILE_MACHINE.ARM64:
-                case IMAGE_FILE_MACHINE.CEE:
+                case IMAGE_FILE_MACHINE_I386:
+                case IMAGE_FILE_MACHINE_R3000:
+                case IMAGE_FILE_MACHINE_R4000:
+                case IMAGE_FILE_MACHINE_R10000:
+                case IMAGE_FILE_MACHINE_WCEMIPSV2:
+                case IMAGE_FILE_MACHINE_ALPHA:
+                case IMAGE_FILE_MACHINE_SH3:
+                case IMAGE_FILE_MACHINE_SH3DSP:
+                case IMAGE_FILE_MACHINE_SH3E:
+                case IMAGE_FILE_MACHINE_SH4:
+                case IMAGE_FILE_MACHINE_SH5:
+                case IMAGE_FILE_MACHINE_ARM:
+                case IMAGE_FILE_MACHINE_THUMB:
+                case IMAGE_FILE_MACHINE_ARMNT:
+                case IMAGE_FILE_MACHINE_AM33:
+                case IMAGE_FILE_MACHINE_POWERPC:
+                case IMAGE_FILE_MACHINE_POWERPCFP:
+                case IMAGE_FILE_MACHINE_IA64:
+                case IMAGE_FILE_MACHINE_MIPS16:
+                case IMAGE_FILE_MACHINE_ALPHA64: //Same value as AXP64
+                case IMAGE_FILE_MACHINE_MIPSFPU:
+                case IMAGE_FILE_MACHINE_MIPSFPU16:
+                case IMAGE_FILE_MACHINE_TRICORE:
+                case IMAGE_FILE_MACHINE_CEF:
+                case IMAGE_FILE_MACHINE_EBC:
+                case IMAGE_FILE_MACHINE_AMD64:
+                case IMAGE_FILE_MACHINE_M32R:
+                case IMAGE_FILE_MACHINE_ARM64:
+                case IMAGE_FILE_MACHINE_CEE:
                     if (length >= ImageFileHeader.StructSize)
                     {
                         var numSections = (*(ushort*) (mmf.Address + 2));
@@ -355,36 +356,36 @@ namespace PESpy
         {
             switch (machine)
             {
-                case IMAGE_FILE_MACHINE.UNKNOWN:
-                case IMAGE_FILE_MACHINE.I386:
-                case IMAGE_FILE_MACHINE.R3000:
-                case IMAGE_FILE_MACHINE.R4000:
-                case IMAGE_FILE_MACHINE.R10000:
-                case IMAGE_FILE_MACHINE.WCEMIPSV2:
-                case IMAGE_FILE_MACHINE.ALPHA:
-                case IMAGE_FILE_MACHINE.SH3:
-                case IMAGE_FILE_MACHINE.SH3DSP:
-                case IMAGE_FILE_MACHINE.SH3E:
-                case IMAGE_FILE_MACHINE.SH4:
-                case IMAGE_FILE_MACHINE.SH5:
-                case IMAGE_FILE_MACHINE.ARM:
-                case IMAGE_FILE_MACHINE.THUMB:
-                case IMAGE_FILE_MACHINE.ARMNT:
-                case IMAGE_FILE_MACHINE.AM33:
-                case IMAGE_FILE_MACHINE.POWERPC:
-                case IMAGE_FILE_MACHINE.POWERPCFP:
-                case IMAGE_FILE_MACHINE.IA64:
-                case IMAGE_FILE_MACHINE.MIPS16:
-                case IMAGE_FILE_MACHINE.ALPHA64: //Same value as AXP64
-                case IMAGE_FILE_MACHINE.MIPSFPU:
-                case IMAGE_FILE_MACHINE.MIPSFPU16:
-                case IMAGE_FILE_MACHINE.TRICORE:
-                case IMAGE_FILE_MACHINE.CEF:
-                case IMAGE_FILE_MACHINE.EBC:
-                case IMAGE_FILE_MACHINE.AMD64:
-                case IMAGE_FILE_MACHINE.M32R:
-                case IMAGE_FILE_MACHINE.ARM64:
-                case IMAGE_FILE_MACHINE.CEE:
+                case IMAGE_FILE_MACHINE_UNKNOWN:
+                case IMAGE_FILE_MACHINE_I386:
+                case IMAGE_FILE_MACHINE_R3000:
+                case IMAGE_FILE_MACHINE_R4000:
+                case IMAGE_FILE_MACHINE_R10000:
+                case IMAGE_FILE_MACHINE_WCEMIPSV2:
+                case IMAGE_FILE_MACHINE_ALPHA:
+                case IMAGE_FILE_MACHINE_SH3:
+                case IMAGE_FILE_MACHINE_SH3DSP:
+                case IMAGE_FILE_MACHINE_SH3E:
+                case IMAGE_FILE_MACHINE_SH4:
+                case IMAGE_FILE_MACHINE_SH5:
+                case IMAGE_FILE_MACHINE_ARM:
+                case IMAGE_FILE_MACHINE_THUMB:
+                case IMAGE_FILE_MACHINE_ARMNT:
+                case IMAGE_FILE_MACHINE_AM33:
+                case IMAGE_FILE_MACHINE_POWERPC:
+                case IMAGE_FILE_MACHINE_POWERPCFP:
+                case IMAGE_FILE_MACHINE_IA64:
+                case IMAGE_FILE_MACHINE_MIPS16:
+                case IMAGE_FILE_MACHINE_ALPHA64: //Same value as AXP64
+                case IMAGE_FILE_MACHINE_MIPSFPU:
+                case IMAGE_FILE_MACHINE_MIPSFPU16:
+                case IMAGE_FILE_MACHINE_TRICORE:
+                case IMAGE_FILE_MACHINE_CEF:
+                case IMAGE_FILE_MACHINE_EBC:
+                case IMAGE_FILE_MACHINE_AMD64:
+                case IMAGE_FILE_MACHINE_M32R:
+                case IMAGE_FILE_MACHINE_ARM64:
+                case IMAGE_FILE_MACHINE_CEE:
                     return true;
 
                 default:

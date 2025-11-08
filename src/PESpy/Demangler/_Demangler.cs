@@ -202,7 +202,7 @@ namespace PESpy
         /// <param name="str">The symbol name that should be demangled.</param>
         /// <param name="symbolTree">The <see cref="DemangleTree"/> that contains the result of the demangling.</param>
         /// <returns>Whether the specified string could be successfully parsed.</returns>
-        public static unsafe bool TryParse(SymString str, out DemangleTree symbolTree)
+        public static unsafe bool TryParse(FixedUtf8String str, out DemangleTree symbolTree)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -223,7 +223,7 @@ namespace PESpy
             }
         }
 
-        public static unsafe void ParseString(SymString str, ref Utf8StringBuilder builder, UNDNAME flags)
+        public static unsafe void ParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -244,7 +244,7 @@ namespace PESpy
             }
         }
 
-        public static int ParseString(SymString str, Span<byte> outputSpan, UNDNAME flags)
+        public static int ParseString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
         {
             var builder = new Utf8StringBuilder(outputSpan);
 
@@ -300,7 +300,7 @@ namespace PESpy
             }
         }
 
-        public static unsafe string ParseString(SymString str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
+        public static unsafe string ParseString(FixedUtf8String str, UNDNAME flags = UNDNAME.UNDNAME_COMPLETE)
         {
             var textWriter = new TextWindow(str.Value, str.Length);
 
@@ -317,7 +317,7 @@ namespace PESpy
             }
         }
 
-        public static unsafe bool TryParseString(SymString str, UNDNAME flags, out string result)
+        public static unsafe bool TryParseString(FixedUtf8String str, UNDNAME flags, out string result)
         {
             var textWriter = new TextWindow(str.Value, str.Length);
 

@@ -86,6 +86,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
+        private ISymbolAccessor symbolAccessor;
 
         private bool disposed;
 
@@ -114,11 +115,18 @@ namespace PESpy
             Dispose(false);
         }
 
-        private void ReadVXDHeaders()
+        private unsafe void ReadVXDHeaders()
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
 
             vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
+
+            /* Is it possible for LE files to contain OMF symbols? I tried to compile a VXD that generates either a PDB
+             * or embedded OMF symbols, but no symbols were ever generated. I also couldn't find any VXD files in Windows 95
+             * that contained any embedded OMF symbols. So for now, we'll just assert that no OMF symbols exist, and if we find
+             * they do we'll add support for them */
+
+            Debug.Assert(!OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out var codeViewData));
         }
 
         public unsafe FileView GetView()
@@ -129,7 +137,8 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => throw new NotImplementedException();
+        //We need to update this if we ever find OMF data inside a LE file
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= NullSymbolAccessor.Instance;
 
         internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
         {

@@ -203,7 +203,7 @@ namespace PESpy
                     else
                         name = default;
 
-                    if (sig1 == IMAGE_FILE_MACHINE.UNKNOWN && sig2 == IMPORT_OBJECT_HEADER.IMPORT_OBJECT_HDR_SIG2)
+                    if (sig1 == IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_UNKNOWN && sig2 == IMPORT_OBJECT_HEADER.IMPORT_OBJECT_HDR_SIG2)
                     {
                         //Short format
 

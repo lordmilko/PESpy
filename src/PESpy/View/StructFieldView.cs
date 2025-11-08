@@ -31,6 +31,8 @@ namespace PESpy.View
         string IFieldView.Name => FieldName;
         object IFieldView.Value => Value!;
 
+        public FieldViewFlags Flags => default;
+
         [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStructField(this);
 

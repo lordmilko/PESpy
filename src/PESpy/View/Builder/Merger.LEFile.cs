@@ -52,20 +52,20 @@ namespace PESpy.View.Builder
                 }
     #endif
                 int index = 0;
-                ReadTable("Object Table",             offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Object Page Map",          offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Resource Table",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Resident Name Table",      offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Entry Table",              offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Module Directive Table",   offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Per-Page Checksum",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Fixup Page Table",         offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Fixup Record Table",       offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Import Module Name Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Enumerated Data Pages",    offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Iterated Data Map",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadTable("Non-Resident Names Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results);
-                ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, vxdHeader.DebugInfoLength);
+                ReadTable("Object Table",             offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ObjectTable);
+                ReadTable("Object Page Map",          offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ObjectPageMap);
+                ReadTable("Resource Table",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ResourceTable);
+                ReadTable("Resident Name Table",      offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ResidentNameTable);
+                ReadTable("Entry Table",              offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_EntryTable);
+                ReadTable("Module Directive Table",   offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ModuleDirectiveTable);
+                ReadTable("Per-Page Checksum",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_PerPageChecksum);
+                ReadTable("Fixup Page Table",         offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_FixupPageTable);
+                ReadTable("Fixup Record Table",       offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_FixupRecordTable);
+                ReadTable("Import Module Name Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_ImportModuleNameTable);
+                ReadTable("Enumerated Data Pages",    offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_EnumeratedDataPages);
+                ReadTable("Iterated Data Map",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_IteratedDataMap);
+                ReadTable("Non-Resident Names Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_NonResidentNamesTable);
+                ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, vxdHeader.DebugInfoLength, ViewKind.LE_DebugInfo);
                 Debug.Assert(index == offsets.Length);
 
                 return results.ToArray();
@@ -76,7 +76,14 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ReadTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadTable(
+            string name,
+            int[] offsets,
+            in ImageVXDHeader vxdHeader,
+            ref int index,
+            ref int lastSectionEnd,
+            ref PooledList<IView> results,
+            ViewKind kind)
         {
             var current = offsets[index];
             index++;
@@ -114,12 +121,20 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, kind, length));
 
             lastSectionEnd = end;
         }
 
-        private void ReadLastTable(string name, int[] offsets, in ImageVXDHeader vxdHeader, ref int index, ref int lastSectionEnd, ref PooledList<IView> results, int length)
+        private void ReadLastTable(
+            string name,
+            int[] offsets,
+            in ImageVXDHeader vxdHeader,
+            ref int index,
+            ref int lastSectionEnd,
+            ref PooledList<IView> results,
+            int length,
+            ViewKind kind)
         {
             var current = offsets[index];
             Debug.Assert(index == offsets.Length - 1); //This should be the last entry
@@ -134,7 +149,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, kind, length));
 
             lastSectionEnd = end;
         }

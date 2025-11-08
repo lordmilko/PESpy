@@ -78,7 +78,7 @@ namespace PESpy
         /// <summary>
         /// The flags that indicate the attributes of the file.
         /// </summary>
-        public ImageFile Characteristics => (ImageFile) chunk.PeekUInt16(CharacteristicsOffset);
+        public IMAGE_FILE Characteristics => (IMAGE_FILE) chunk.PeekUInt16(CharacteristicsOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -101,7 +101,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //ImageCoffSymbolsHeader can declare the Coff Symbol Table as well
-            writer.WriteUniqueVAPointerField(PointerToSymbolTable, PointerToSymbolTableOffset);
+            writer.WriteUniqueVAPointerField(PointerToSymbolTable, Offset, PointerToSymbolTableOffset);
         }
 
         IView? IViewable.WriteStruct(PESpy.View.ViewWriter writer) =>

@@ -101,20 +101,12 @@ namespace PESpy.LIB
             //These will be encapsulated inside a region by the merger
             writer.WriteGlobal(ArchiveHeader);
             writer.WriteGlobal(FileHeader);
-            writer.WriteGlobal(SectionHeaders);
 
-            foreach (var item in SectionData)
-            {
-                if (item != null)
-                {
-                    if (item is RawValue<FixedUtf8String> s)
-                        writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, ViewKind.Value); //todo: use more specific view kind
-                    else if (item is RawValue<NativeSpan<byte>> b)
-                        writer.WriteGlobal(b.Offset, b.Value, b.Value.Length, ViewKind.Value);
-                    else
-                        writer.WriteGlobal((IViewable) item);
-                }
-            }
+            var sectionHeaders = SectionHeaders;
+
+            writer.WriteGlobal(sectionHeaders);
+
+            OBJFile.WriteGlobals(writer, sectionHeaders, SectionData);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

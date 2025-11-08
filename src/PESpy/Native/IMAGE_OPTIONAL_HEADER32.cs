@@ -28,13 +28,13 @@ namespace PESpy.Native
         public int SizeOfImage;
         public int SizeOfHeaders;
         public uint CheckSum;
-        public ImageSubsystem Subsystem;
-        public ImageDllCharacteristics DllCharacteristics;
+        public IMAGE_SUBSYSTEM Subsystem;
+        public IMAGE_DLLCHARACTERISTICS DllCharacteristics;
         public int SizeOfStackReserve;
         public int SizeOfStackCommit;
         public int SizeOfHeapReserve;
         public int SizeOfHeapCommit;
-        public ImageLoaderFlags LoaderFlags;
+        public IMAGE_LOADER_FLAGS LoaderFlags;
         public int NumberOfRvaAndSizes;
 
         //Array of data directories

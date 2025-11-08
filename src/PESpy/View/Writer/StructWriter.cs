@@ -56,6 +56,7 @@ namespace PESpy.View
                 case ViewKind.LfFieldList:
                 case ViewKind.LfFieldList16t:
                 case ViewKind.StringFileInfo:
+                case ViewKind.NameTable:
 
                 case ViewKind.VsVersionInfo:
                 case ViewKind.StringTable:
@@ -106,19 +107,19 @@ namespace PESpy.View
         #region Int16
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, short value) =>
-            RelayField(name, relativeOffset, value, sizeof(short));
+        public void WriteField(string name, int relativeOffset, short value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(short), flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, ushort value) =>
-            RelayField(name, relativeOffset, value, sizeof(ushort));
+        public void WriteField(string name, int relativeOffset, ushort value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(ushort), flags);
 
         #endregion
         #region Int32
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, int value) =>
-            RelayField(name, relativeOffset, value, sizeof(int));
+        public void WriteField(string name, int relativeOffset, int value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(int), flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteField(string name, int relativeOffset, uint value) =>
@@ -128,8 +129,8 @@ namespace PESpy.View
         #region Int64
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, long value) =>
-            RelayField(name, relativeOffset, value, sizeof(long));
+        public void WriteField(string name, int relativeOffset, long value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(long), flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteField(string name, int relativeOffset, ulong value) =>
@@ -233,26 +234,26 @@ namespace PESpy.View
         #endregion
         #region Pointer
 
-        public void WritePointerField(string name, int relativeOffset, long value)
+        public void WritePointerField(string name, int relativeOffset, long value, FieldViewFlags flags = default)
         {
             if (((PEViewWriter) _viewWriter).Is32Bit)
-                RelayField(name, relativeOffset, (int) value, sizeof(int));
+                RelayField(name, relativeOffset, (int) value, sizeof(int), flags);
             else
-                RelayField(name, relativeOffset, value, sizeof(long));
+                RelayField(name, relativeOffset, value, sizeof(long), flags);
         }
 
-        public void WritePointerField(string name, int relativeOffset, ulong value)
+        public void WritePointerField(string name, int relativeOffset, ulong value, FieldViewFlags flags = default)
         {
             if (((PEViewWriter) _viewWriter).Is32Bit)
-                RelayField(name, relativeOffset, (uint) value, sizeof(int));
+                RelayField(name, relativeOffset, (uint) value, sizeof(int), flags);
             else
-                RelayField(name, relativeOffset, value, sizeof(long));
+                RelayField(name, relativeOffset, value, sizeof(long), flags);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -260,7 +261,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField<T>(string name, int relativeOffset, VA<T[]> value) where T : IViewable, IValue
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -276,7 +277,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLargeVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
         {
-            WriteField(name, relativeOffset, (long) value.ListedAddress);
+            WriteField(name, relativeOffset, (long) value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -284,7 +285,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSmallVAPointerField<T>(string name, int relativeOffset, VA<T[]> value) where T : IViewable, IValue
         {
-            WriteField(name, relativeOffset, (int) value.ListedAddress);
+            WriteField(name, relativeOffset, (int) value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -292,7 +293,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField(string name, int relativeOffset, VA<long> value, ViewKind valueKind)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -300,7 +301,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField(string name, int relativeOffset, VA<ulong> value, ViewKind valueKind)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -308,7 +309,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField(string name, int relativeOffset, VA<ulong[]> value, ViewKind valueKind)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -316,7 +317,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAPointerField(string name, int relativeOffset, VA<int[]> value, ViewKind valueKind)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -324,7 +325,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAAnsiNullTerminatedField(string name, int relativeOffset, VA<string> value)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -332,7 +333,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAAnsiNullTerminatedField(string name, int relativeOffset, VA<AnsiString> value)
         {
-            WritePointerField(name, relativeOffset, value.ListedAddress);
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -344,7 +345,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAPointerField(string name, int relativeOffset, RVA<long> value)
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -352,7 +353,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAField(string name, int relativeOffset, RVA<ulong[]> value)
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -360,7 +361,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAAnsiNullTerminatedField(string name, int relativeOffset, RVA<string> value)
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -368,7 +369,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAAnsiNullTerminatedField(string name, int relativeOffset, RVA<AnsiString> value)
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -376,7 +377,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAField<T>(string name, int relativeOffset, RVA<T> value) where T : IViewable, IValue
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -384,7 +385,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteRVAField<T>(string name, int relativeOffset, RVA<T[]> value) where T : IViewable, IValue
         {
-            WriteField(name, relativeOffset, value.ListedOffset);
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -427,6 +428,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteField<T>(string name, int relativeOffset, T value, int size) where T : Enum =>
             RelayField(name, relativeOffset, value, size);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         #endregion
@@ -694,48 +696,48 @@ namespace PESpy.View
         #endregion
         #region Coded
 
-        internal void WriteTypeDefOrRefIndex(string name, int relativeOffset, int value) =>
+        internal void WriteTypeDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeDefOrRefSize);
 
-        internal void WriteHasConstantIndex(string name, int relativeOffset, int value) =>
+        internal void WriteHasConstantIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasConstantSize);
 
-        internal void WriteHasCustomAttributeIndex(string name, int relativeOffset, int value) =>
+        internal void WriteHasCustomAttributeIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomAttributeSize);
 
-        internal void WriteHasFieldMarshalIndex(string name, int relativeOffset, int value) =>
+        internal void WriteHasFieldMarshalIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasFieldMarshalSize);
 
-        internal void WriteHasDeclSecurityIndex(string name, int relativeOffset, int value) =>
+        internal void WriteHasDeclSecurityIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasDeclSecuritySize);
 
-        internal void WriteMemberRefParentIndex(string name, int relativeOffset, int value) =>
+        internal void WriteMemberRefParentIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberRefParentSize);
 
         internal void WriteHasSemanticsIndex(string name, int relativeOffset, int value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasSemanticsSize);
 
-        internal void WriteMethodDefOrRefIndex(string name, int relativeOffset, int value) =>
+        internal void WriteMethodDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MethodDefOrRefSize);
 
-        internal void WriteMemberForwardedIndex(string name, int relativeOffset, int value) =>
+        internal void WriteMemberForwardedIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberForwardedSize);
 
-        internal void WriteImplementationIndex(string name, int relativeOffset, int value) =>
+        internal void WriteImplementationIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ImplementationSize);
 
-        internal void WriteCustomAttributeTypeIndex(string name, int relativeOffset, int value) =>
+        internal void WriteCustomAttributeTypeIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.CustomAttributeTypeSize);
 
-        internal void WriteResolutionScopeIndex(string name, int relativeOffset, int value) =>
+        internal void WriteResolutionScopeIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ResolutionScopeSize);
 
-        internal void WriteTypeOrMethodDefIndex(string name, int relativeOffset, int value) =>
+        internal void WriteTypeOrMethodDefIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeOrMethodDefSize);
 
         //Portable PDB
 
-        internal void WriteHasCustomDebugInformationIndex(string name, int relativeOffset, int value) =>
+        internal void WriteHasCustomDebugInformationIndex(string name, int relativeOffset, CodedIndex value) =>
             WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomDebugInformationSize);
 
         private void WriteIndex(string name, int relativeOffset, int index, int indexSize)
@@ -778,6 +780,10 @@ namespace PESpy.View
 
         internal void WriteStructField<T>(string name, int relativeOffset, T value) where T : unmanaged, IViewable =>
             _viewWriter.WriteStructField(name, _parentOffset, relativeOffset, value, ref this);
+
+        internal void WriteStructField<T>(string name, int relativeOffset, T[] value) where T : unmanaged, IViewable =>
+            _viewWriter.WriteStructField(name, _parentOffset, relativeOffset, value, ref this);
+
         internal void WriteStructField<T>(string name, T value) where T : IViewableValue =>
             _viewWriter.WriteStructField(name, value, ref this);
 
@@ -823,15 +829,15 @@ namespace PESpy.View
         #endregion
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RelayField<T>(string name, int relativeOffset, T value, int size) =>
-            _viewWriter.WriteField(name, _parentOffset, relativeOffset, value, size, ref this);
+        private void RelayField<T>(string name, int relativeOffset, T value, int size, FieldViewFlags flags = default) =>
+            _viewWriter.WriteField(name, _parentOffset, relativeOffset, value, size, flags, ref this);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RelayBitField<T>(string name, int relativeOffset, T value, int size, int bits) =>
             _viewWriter.WriteBitField(name, _parentOffset, relativeOffset, value, size, bits, ref this);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RelayInline<T>(int valueOffset, T value, int size, ViewKind kind) =>
+        private void RelayInlineAbsoluteOffset<T>(int valueOffset, T value, int size, ViewKind kind) =>
             _viewWriter.WriteValue(_parentOffset, valueOffset - _parentOffset, value, size, kind, ref this);
     }
 }

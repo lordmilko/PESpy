@@ -131,7 +131,7 @@ namespace PESpy.PDB
                 get
                 {
                     if (PSGsiHdr.nThunks == 0)
-                        return default; 
+                        return default;
 
                     return chunk.PeekNativeSpan<SO>(SectionMapOffset, PSGsiHdr.nSects);
                 }

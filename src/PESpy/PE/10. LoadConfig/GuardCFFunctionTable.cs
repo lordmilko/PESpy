@@ -55,7 +55,7 @@ namespace PESpy
              *     targets have metadata
              */
 
-            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
+            metadataSize = (byte) ((int) (flags & IMAGE_GUARD.IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> ImageLoadConfigDirectory.CF_FUNCTION_TABLE_SIZE_SHIFT);
         }
 
         public Entry this[int index]
@@ -156,6 +156,8 @@ namespace PESpy
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {
+                writer.WriteRVAXRef(Offset, FunctionOffset, Function);
+
                 //We do not need to write the listed address, because the address wasn't listed!
                 //We calculated it based on the address stored in Function
                 if (XFG != null && XFG.Value.IsValid)

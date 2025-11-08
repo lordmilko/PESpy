@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -46,9 +47,10 @@ namespace PESpy
             }
 
             //To be used only for basic parsing, without any allocating
-            internal TextWindow(SymString str, int length)
+            internal TextWindow(byte* buffer, int length, bool basicParsing)
             {
-                this.buffer = str.Value;
+                Debug.Assert(basicParsing);
+                this.buffer = buffer;
                 this.length = length;
                 Position = 0;
 

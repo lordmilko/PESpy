@@ -159,9 +159,11 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(UnwindMap, fieldOffset: UnwindMapOffset);
-            writer.WriteRVAField(TryBlockMap, fieldOffset: TryBlockMapOffset);
-            writer.WriteRVAField(IPToStateMap, fieldOffset: IPToStateMapOffset);
+            var structOffset = Offset;
+
+            writer.WriteRVAField(UnwindMap, structOffset, fieldOffset: UnwindMapOffset);
+            writer.WriteRVAField(TryBlockMap, structOffset, fieldOffset: TryBlockMapOffset);
+            writer.WriteRVAField(IPToStateMap, structOffset, fieldOffset: IPToStateMapOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

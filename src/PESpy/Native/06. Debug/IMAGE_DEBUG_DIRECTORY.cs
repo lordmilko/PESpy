@@ -10,7 +10,7 @@ namespace PESpy.Native
         public uint TimeDateStamp;
         public ushort MajorVersion;
         public ushort MinorVersion;
-        public ImageDebugType Type;
+        public IMAGE_DEBUG_TYPE Type;
         public int SizeOfData;
         public int AddressOfRawData;
         public int PointerToRawData;

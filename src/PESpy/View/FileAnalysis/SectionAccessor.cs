@@ -69,6 +69,8 @@ namespace PESpy.View
             }
         }
 
+        public bool Contains(int targetAddress) => targetAddress >= StartAddress && targetAddress < EndAddress;
+
         public bool IsEmpty => StartAddress == EndAddress;
 
         //Special ctor in the case a section is empty

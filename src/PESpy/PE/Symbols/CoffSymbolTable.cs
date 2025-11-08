@@ -48,7 +48,7 @@ namespace PESpy
         }
 
         //I believe that the StringTableSize describes the size of the string table, in bytes, _including the size of this value_
-        public int StringTableSize => chunk.PeekInt32(numberOfSymbols * ImageSymbol.StructSize);
+        public int StringTableSize => chunk.PeekInt32(StringTableSizeOffset);
 
         private RawValue<AnsiString>[]? strings;
 
@@ -59,7 +59,7 @@ namespace PESpy
                 if (strings == null)
                 {
                     //NumberOfSymbols includes AUX symbols as well
-                    var offset = numberOfSymbols * ImageSymbol.StructSize;
+                    var offset = StringTableSizeOffset;
 
                     var stringTableSize = chunk.PeekInt32(offset);
 

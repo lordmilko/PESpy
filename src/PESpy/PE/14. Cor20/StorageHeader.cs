@@ -46,7 +46,7 @@ namespace PESpy
 
         private readonly MemoryChunk chunk;
 
-        internal StorageHeader(in MemoryChunk chunk)
+        internal StorageHeader(in MemoryChunk chunk, int metadataRootOffset)
         {
             this.chunk = chunk;
 
@@ -58,7 +58,7 @@ namespace PESpy
 
             for (var i = 0; i < Streams; i++)
             {
-                var stream = new StorageStream(chunk.Slice(read));
+                var stream = new StorageStream(chunk.Slice(read), metadataRootOffset);
                 streamHeaders[i] = stream;
                 read += (StorageStream.FixedStructSize + stream.Name.Length + 1 + 3) & ~3;
             }

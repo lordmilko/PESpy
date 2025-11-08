@@ -5,13 +5,23 @@
     {
         //Unlike ViewByteCodeFlags, this is not flags so we can store 8 values
 
-        Byte = 0,
-        Int16 = 0x10,
-        Int32 = 0x20,
-        Int64 = 0x30,
-        Float = 0x40,
-        String = 0x50,
-        Struct = 0x60,
-        Padding = 0x70
+        Unknown = 0,
+
+        //byte, short, int, long
+        //Which one is determined by the length
+        Integer = 0x10,
+
+        //float, double
+        //Which one is determined by the length
+        Decimal = 0x20,
+
+        //It's a random global value that happens to be an enum
+        Enum = 0x30,
+
+        String = 0x40,
+        Struct = 0x50,
+        Padding = 0x60,
+
+        //0x70 unused
     }
 }

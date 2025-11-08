@@ -81,7 +81,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), viewWriter, ViewKind.NonResidentNameTable, length));
+            results.Add(new LogicalRegionView(start, "Non-Resident Name Table", BuildSection(start, end), viewWriter, ViewKind.NE_NonResidentNameTable, length));
 
             lastSectionEnd = end;
         }

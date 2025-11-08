@@ -189,9 +189,44 @@ namespace PESpy
             Debug.Assert(FileAddressOfRelocationTable > 0x1C || FileAddressOfNewExeHeader != 0, "Encountered a file without an extended header. Consider making the getters for the extended headers return default values when the extended header is known to be not present");
         }
 
+        internal static string GetDescription(string fieldName)
+        {
+            return fieldName switch
+            {
+                nameof(IMAGE_DOS_HEADER.e_magic) => "Magic number",
+                nameof(IMAGE_DOS_HEADER.e_cblp) => "Bytes on last page of file",
+                nameof(IMAGE_DOS_HEADER.e_cp) => "Pages in file",
+                nameof(IMAGE_DOS_HEADER.e_crlc) => "Relocations",
+                nameof(IMAGE_DOS_HEADER.e_cparhdr) => "Size of header in paragraphs",
+                nameof(IMAGE_DOS_HEADER.e_minalloc) => "Minimum extra paragraphs needed",
+                nameof(IMAGE_DOS_HEADER.e_maxalloc) => "Maximum extra paragraphs needed",
+                nameof(IMAGE_DOS_HEADER.e_ss) => "Initial (relative) SS value",
+                nameof(IMAGE_DOS_HEADER.e_sp) => "Initial SP value",
+                nameof(IMAGE_DOS_HEADER.e_csum) => "Checksum",
+                nameof(IMAGE_DOS_HEADER.e_ip) => "Initial IP value",
+                nameof(IMAGE_DOS_HEADER.e_cs) => "Initial (relative) CS value",
+                nameof(IMAGE_DOS_HEADER.e_lfarlc) => "File address of relocation table",
+                nameof(IMAGE_DOS_HEADER.e_ovno) => "Overlay number",
+                nameof(IMAGE_DOS_HEADER.e_res) => "Reserved words",
+                nameof(IMAGE_DOS_HEADER.e_oemid) => "OEM identifier (for e_oeminfo)",
+                nameof(IMAGE_DOS_HEADER.e_oeminfo) => "OEM information; e_oemid specific",
+                nameof(IMAGE_DOS_HEADER.e_res2) => "Reserved words",
+                nameof(IMAGE_DOS_HEADER.e_lfanew) => "File address of new exe header",
+            };
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            var structOffset = Offset;
+
+            switch (chunk.File().Kind)
+            {
+                case FileKind.PE:
+                case FileKind.NE:
+                case FileKind.LE:
+                    writer.WriteOffsetXRef(structOffset, FileAddressOfNewExeHeaderOffset, FileAddressOfNewExeHeader);
+                    break;
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -204,7 +239,7 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_magic), MagicOffset, Magic);
+                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_magic), MagicOffset, Magic, FieldViewFlags.HexString);
                     break;
 
                 case 1:
@@ -252,7 +287,7 @@ namespace PESpy
                     break;
 
                 case 12:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfarlc), FileAddressOfRelocationTableOffset, FileAddressOfRelocationTable);
+                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfarlc), FileAddressOfRelocationTableOffset, FileAddressOfRelocationTable, FieldViewFlags.Address);
                     break;
 
                 case 13:
@@ -276,7 +311,7 @@ namespace PESpy
                     break;
 
                 case 18:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfanew), FileAddressOfNewExeHeaderOffset, (int) FileAddressOfNewExeHeader);
+                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfanew), FileAddressOfNewExeHeaderOffset, (int) FileAddressOfNewExeHeader, FieldViewFlags.Address);
                     break;
 
                 default:

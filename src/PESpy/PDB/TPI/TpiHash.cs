@@ -5,7 +5,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //TpiHash
-    public readonly struct TpiHash : IValue, IViewable
+    public readonly struct TpiHash : IViewableValue
     {
         private const int snOffset = 0;
         private const int snPadOffset = 2;

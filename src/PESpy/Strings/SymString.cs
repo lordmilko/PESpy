@@ -91,6 +91,7 @@ namespace PESpy
         public static implicit operator SymString(Utf8String value) => new SymString(value.Value, isLengthPrefixed: false);
 
         public static implicit operator SymString(AnsiString value) => new SymString(value.Value, isLengthPrefixed: false);
+        public static implicit operator SymString(FixedAnsiString value) => new SymString(value.Value, isLengthPrefixed: false);
 
         public static implicit operator FixedUtf8String(SymString value) => new FixedUtf8String(value.Value, value.Length);
 

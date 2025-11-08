@@ -133,7 +133,7 @@ namespace PESpy
             this.chunk = chunk;
 
             signature = new StorageSignature(chunk);
-            header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3)); //Align to next 4 byte boundary
+            header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), Offset); //Align to next 4 byte boundary
         }
 
         private void EnsureHeaps()

@@ -6,7 +6,7 @@ namespace PESpy.Native
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct IMAGE_DEBUG_MISC
     {
-        public ImageDebugMiscType DataType;
+        public IMAGE_DEBUG_MISC_TYPE DataType;
         public int Length;
 
         public byte Unicode;

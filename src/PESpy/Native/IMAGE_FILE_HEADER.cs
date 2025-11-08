@@ -12,6 +12,6 @@ namespace PESpy.Native
         public int PointerToSymbolTable;
         public int NumberOfSymbols;
         public ushort SizeOfOptionalHeader;
-        public ImageFile Characteristics;
+        public IMAGE_FILE Characteristics;
     }
 }

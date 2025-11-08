@@ -14,10 +14,13 @@ namespace PESpy.View
 
         public DirectoryInfo[] DataDirectories { get; set; }
 
+        public override IFile File => PEFile;
+
         /* To reduce the cost of having to constantly lookup what section a given RVA belongs to and whether that section
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when
          * we're constantly looking up values that likely all belong to the same section */
         private PESectionLookupCache _lookupCache;
+        private ISymbolAccessor _symbolAccessor;
 
         public PEFileAccessor(PEFile peFile) : base(peFile.Is32Bit ? 32 : 64)
         {

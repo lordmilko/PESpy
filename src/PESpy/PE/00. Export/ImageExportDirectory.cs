@@ -433,12 +433,15 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageExportDirectory_Name, fieldOffset: NameOffset);
+            var structOffset = Offset;
+
+            writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageExportDirectory_Name, structOffset, fieldOffset: NameOffset);
 
             if (AddressOfFunctions.IsValid)
             {
                 using var r = writer.CreateRegion(
                     AddressOfFunctions.ActualOffset,
+                    structOffset,
                     AddressOfFunctionsOffset,
                     "Export Address Table",
                     ViewKind.ExportAddressTable,
@@ -463,6 +466,7 @@ namespace PESpy
             {
                 using var r = writer.CreateRegion(
                     AddressOfNames.ActualOffset,
+                    structOffset,
                     AddressOfNamesOffset,
                     "Export Names Table",
                     ViewKind.ExportNamesTable,
@@ -484,6 +488,7 @@ namespace PESpy
             {
                 using var r = writer.CreateRegion(
                     AddressOfNameOrdinals.ActualOffset,
+                    structOffset,
                     AddressOfNameOrdinalsOffset,
                     "Export Ordinals Table",
                     ViewKind.ExportOrdinalsTable,

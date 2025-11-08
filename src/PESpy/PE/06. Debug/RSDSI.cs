@@ -64,7 +64,7 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("dwSig", SignatureOffset, Signature, sizeof(uint));
+                    structWriter.WriteField("dwSig", SignatureOffset, (int) Signature, FieldViewFlags.HexString);
                     break;
 
                 case 1:

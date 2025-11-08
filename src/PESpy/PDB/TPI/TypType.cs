@@ -138,6 +138,7 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_REAL64:
                 case LEAF_ENUM_e.LF_REAL80:
                 case LEAF_ENUM_e.LF_REAL128:
+                    throw new NotImplementedException();
 
                 case LEAF_ENUM_e.LF_QUADWORD:
                 case LEAF_ENUM_e.LF_UQUADWORD:
@@ -157,8 +158,11 @@ namespace PESpy.PDB
                 case LEAF_ENUM_e.LF_DATE:
                 case LEAF_ENUM_e.LF_UTF8STRING:
                 case LEAF_ENUM_e.LF_REAL16:
+                    throw new NotImplementedException();
 
-            return new FixedUtf8String(ptr, utf8.Length);
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         public static implicit operator TypType(TYPTYPE* value) => new TypType(value);

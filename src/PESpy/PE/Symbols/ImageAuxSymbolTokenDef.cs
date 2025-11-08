@@ -5,7 +5,7 @@ namespace PESpy
     //IMAGE_AUX_SYMBOL_TOKEN_DEF
     public readonly struct ImageAuxSymbolTokenDef : IValue
     {
-        public ImageAuxSymbolType bAuxType => (ImageAuxSymbolType) chunk.PeekByte(0);
+        public IMAGE_AUX_SYMBOL_TYPE bAuxType => (IMAGE_AUX_SYMBOL_TYPE) chunk.PeekByte(0);
 
         public byte bReserved => chunk.PeekByte(1);
 

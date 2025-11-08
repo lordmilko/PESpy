@@ -7,7 +7,7 @@ namespace PESpy
 {
     //Typically OMF* structs are only used for older CodeView formats, however OMFSegMap is definitely what is used
     //by DBI. The data is deserialized from the PDB into bufSecMap which is regularly casted to OMFSegMap*
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct OMFSegMapDesc : IValue, IViewable
     {

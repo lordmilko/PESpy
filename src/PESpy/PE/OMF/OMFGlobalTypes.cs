@@ -8,7 +8,7 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     [DebuggerDisplay("{flags.sig} Global Types ({cType.ToString(),nq})")]
     public class OMFGlobalTypes : IEnumerable<TypType>
     {

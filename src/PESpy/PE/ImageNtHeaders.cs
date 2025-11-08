@@ -62,6 +62,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.RelayGlobals(FileHeader);
+            writer.RelayGlobals(OptionalHeader);
         }
 
         //We don't care about representing that there's a 64-bit version of the structure
@@ -75,7 +76,7 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(Signature), SignatureOffset, Signature);
+                    structWriter.WriteField(nameof(Signature), SignatureOffset, Signature, FieldViewFlags.HexString);
                     break;
 
                 case 1:

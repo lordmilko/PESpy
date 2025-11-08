@@ -1,0 +1,16 @@
+﻿namespace PESpy
+{
+    public enum GeneralProfilingDataFlags
+    {
+        // Important: update ibcmerge.cs if you change these
+        // ZapImage.h depends on 0xFFFFFFFF being an invalid flag value. If this
+        // changes, update ReadFlagWithMemory in that file.
+        // Important: make sure these don't collide with TypeProfilingDataFlags or MethodProfilingDataFlags
+        // These grow downward from CORBBTPROF_TOKEN_MAX_NUM_FLAGS-1 to minimize the chance of collision
+        ProfilingFlags_MetaData = 31, // 0x800...
+        CommonMetaData = 30, // 0x400...
+        RidMap = 29, // 0x200...
+        RVAFieldData = 28, // 0x100...
+        ProfilingFlags_MetaDataSearch = 27, // 0x080...
+    }
+}

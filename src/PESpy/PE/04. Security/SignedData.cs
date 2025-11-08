@@ -73,9 +73,13 @@ namespace PESpy
             }
         }
 
+        //If we're compiling for Native AOT, touching the certificate
+        //will bring in a whole bunch of stuff we don't want
+#if !NATIVEAOT
         public override string ToString()
         {
             return Certificate.ToString();
         }
+#endif
     }
 }

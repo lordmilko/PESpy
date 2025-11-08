@@ -127,7 +127,7 @@ namespace PESpy.View
                 if (value)
                     CodeFlags |= ViewByteCodeFlags.NoReturn;
                 else
-                    CodeFlags |= ~ViewByteCodeFlags.NoReturn;
+                    CodeFlags &= ~ViewByteCodeFlags.NoReturn;
             }
         }
 
@@ -139,7 +139,7 @@ namespace PESpy.View
                 if (value)
                     CodeFlags |= ViewByteCodeFlags.IsIL;
                 else
-                    CodeFlags |= ~ViewByteCodeFlags.IsIL;
+                    CodeFlags &= ~ViewByteCodeFlags.IsIL;
             }
         }
 
@@ -174,10 +174,7 @@ namespace PESpy.View
             {
                 switch (DataKind)
                 {
-                    case ViewByteDataKind.Byte:
-                    case ViewByteDataKind.Int16:
-                    case ViewByteDataKind.Int32:
-                    case ViewByteDataKind.Int64:
+                    case ViewByteDataKind.Integer:
                         return DataFlag;
 
                     default:
@@ -188,10 +185,7 @@ namespace PESpy.View
             {
                 switch (DataKind)
                 {
-                    case ViewByteDataKind.Byte:
-                    case ViewByteDataKind.Int16:
-                    case ViewByteDataKind.Int32:
-                    case ViewByteDataKind.Int64:
+                    case ViewByteDataKind.Integer:
                         DataFlag = value;
                         break;
 
@@ -234,7 +228,7 @@ namespace PESpy.View
         private bool DataFlag
         {
             get => (_value & DataMask) != 0;
-            set => _value = (byte) (((byte) (_value & ~DataMask)) | (byte) (value ? 1 : 0));
+            set => _value = (byte) (((byte) (_value & ~DataMask)) | (byte) (value ? (byte) (1 << 7) : 0));
         }
 
         #endregion
@@ -256,7 +250,7 @@ namespace PESpy.View
 
         public unsafe int GetUnknownLength(ViewByte* limit)
         {
-            Debug.Assert(limit->Kind == ViewByteKind.Unknown);
+            Debug.Assert(Kind == ViewByteKind.Unknown);
 
             fixed (ViewByte* me = &this)
             {

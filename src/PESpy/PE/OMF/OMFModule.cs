@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public struct OMFModule : IValue, IViewable
     {
         private const int ovlNumberOffset = 0;

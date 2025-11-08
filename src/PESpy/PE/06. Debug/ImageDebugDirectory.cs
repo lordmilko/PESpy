@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
+using static PESpy.IMAGE_DEBUG_TYPE;
 
 namespace PESpy
 {
@@ -51,7 +52,7 @@ namespace PESpy
         /// <summary>
         /// The format of debugging information.
         /// </summary>
-        public ImageDebugType Type => (ImageDebugType) chunk.PeekUInt32(TypeOffset);
+        public IMAGE_DEBUG_TYPE Type => (IMAGE_DEBUG_TYPE) chunk.PeekUInt32(TypeOffset);
 
         /// <summary>
         /// The size of the debug data (not including the debug directory itself).
@@ -84,23 +85,23 @@ namespace PESpy
                     {
                         switch (Type)
                         {
-                            case ImageDebugType.Unknown:
+                            case IMAGE_DEBUG_TYPE_UNKNOWN:
                                 if (SizeOfData == 0)
                                     return null;
 
                                 goto default;
 
-                            case ImageDebugType.Coff:
+                            case IMAGE_DEBUG_TYPE_COFF:
                             {
                                 data = new ImageCoffSymbolsHeader(valueChunk);
                                 break;
                             }
 
-                            case ImageDebugType.CodeView:
+                            case IMAGE_DEBUG_TYPE_CODEVIEW:
                                 data = ReadCodeView(valueChunk, SizeOfData);
                                 break;
 
-                            case ImageDebugType.FPO:
+                            case IMAGE_DEBUG_TYPE_FPO:
                             {
                                 var numEntries = SizeOfData / FpoData.StructSize;
 
@@ -113,14 +114,14 @@ namespace PESpy
                                 break;
                             }
 
-                            case ImageDebugType.Misc:
+                            case IMAGE_DEBUG_TYPE_MISC:
                                 data = new ImageDebugMisc(valueChunk);
                                 break;
 
-                            case ImageDebugType.Exception:
+                            case IMAGE_DEBUG_TYPE_EXCEPTION:
                                 goto default;
 
-                            case ImageDebugType.Fixup:
+                            case IMAGE_DEBUG_TYPE_FIXUP:
                             {
                                 var entries = new XFixupData[SizeOfData / XFixupData.StructSize];
 
@@ -131,12 +132,12 @@ namespace PESpy
                                 break;
                             }
 
-                            case ImageDebugType.OmapToSrc: //OMAP type?
-                            case ImageDebugType.OmapFromSrc: //OMAP type?
-                            case ImageDebugType.Borland:
+                            case IMAGE_DEBUG_TYPE_OMAP_TO_SRC: //OMAP type?
+                            case IMAGE_DEBUG_TYPE_OMAP_FROM_SRC: //OMAP type?
+                            case IMAGE_DEBUG_TYPE_BORLAND:
                                 goto default;
 
-                            case ImageDebugType.Reserved10:
+                            case IMAGE_DEBUG_TYPE_RESERVED10:
                                 //C:\Windows\system32\FM20.dll has this with a size of 4. Nobody knows what to do with this directory however
                                 //Format seems to be BB 00 and then two more bytes. aspnet_filter.dll had BB 03
                                 if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
@@ -148,19 +149,19 @@ namespace PESpy
                                     data = default;
                                 break;
 
-                            case ImageDebugType.Clsid:
+                            case IMAGE_DEBUG_TYPE_CLSID:
                                 goto default;
 
-                            case ImageDebugType.VCFeature:
+                            case IMAGE_DEBUG_TYPE_VC_FEATURE:
                                 data = new VCFeature(valueChunk);
                                 break;
 
-                            case ImageDebugType.Pogo:
+                            case IMAGE_DEBUG_TYPE_POGO:
                                 //Are they maybe called IMAGE_POGO_BLOCK and IMAGE_POGO_INFO? Need more citations
                                 data = ReadPogo(valueChunk, SizeOfData);
                                 break;
 
-                            case ImageDebugType.ILTCG:
+                            case IMAGE_DEBUG_TYPE_ILTCG:
                                 //I've seen this with size 0
                                 if (SizeOfData != 0)
                                     goto default;
@@ -168,10 +169,10 @@ namespace PESpy
                                     data = default;
                                 break;
 
-                            case ImageDebugType.MPX:
+                            case IMAGE_DEBUG_TYPE_MPX:
                                 goto default;
 
-                            case ImageDebugType.Reproducible:
+                            case IMAGE_DEBUG_TYPE_REPRO:
                                 //dotnet/runtime says that this directory must be empty, but that's not true, it can sometimes have a hash.
                                 //it can also sometimes be empty as well
                                 if (SizeOfData != 0)
@@ -180,22 +181,22 @@ namespace PESpy
                                     data = default;
                                 break;
 
-                            case ImageDebugType.EmbeddedPortablePdb:
+                            case IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB:
                                 data = new EmbeddedPortablePdb(valueChunk, SizeOfData);
                                 break;
 
-                            case ImageDebugType.SPGO:
+                            case IMAGE_DEBUG_TYPE_SPGO:
                                 goto default;
 
-                            case ImageDebugType.PdbChecksum:
+                            case IMAGE_DEBUG_TYPE_PDB_CHECKSUM:
                                 data = new PdbChecksum(valueChunk, SizeOfData);
                                 break;
 
-                            case ImageDebugType.ExDllCharacteristics:
+                            case IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS:
                                 if (SizeOfData == 4)
                                 {
-                                    var value = (ImageDllCharacteristicsEx) valueChunk.PeekInt32(0);
-                                    data = new RawValue<ImageDllCharacteristicsEx>(valueChunk.AbsoluteOffset, value);
+                                    var value = (IMAGE_DLLCHARACTERISTICS_EX) valueChunk.PeekInt32(0);
+                                    data = new RawValue<IMAGE_DLLCHARACTERISTICS_EX>(valueChunk.AbsoluteOffset, value);
                                 }
                                 else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
                                     data = new ByteBlob(valueChunk, SizeOfData);
@@ -203,7 +204,7 @@ namespace PESpy
                                     data = default;
                                 break;
 
-                            case ImageDebugType.R2RPerfMap:
+                            case IMAGE_DEBUG_TYPE_R2R_PERFMAP:
                             default:
 #if DEBUG
                                 Debug.Assert(false, $"Reading a debug directory of type '{Type}' with size {SizeOfData} is not implemented");
@@ -336,7 +337,7 @@ namespace PESpy
             {
                 if (Data is IViewable v)
                     writer.WriteGlobal(v);
-                else if (Data is RawValue<ImageDllCharacteristicsEx> r)
+                else if (Data is RawValue<IMAGE_DLLCHARACTERISTICS_EX> r)
                     writer.WriteGlobal(r.Offset, r.Value, sizeof(int), ViewKind.ExDllCharacteristics);
                 else if (Data is FpoData[] f)
                     writer.WriteGlobal(f);
@@ -391,6 +392,57 @@ namespace PESpy
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        internal static bool TryGetSymbolAccessor(IFile file, ImageDebugDirectory[]? debugTable, out ISymbolAccessor symbolAccessor)
+        {
+            if (debugTable == null)
+            {
+                symbolAccessor = default;
+                return false;
+            }
+
+            //Prefer CodeView, and fallback to COFF
+
+            NB05Data codeView = null;
+            CoffSymbolTable coff = null;
+
+            for (var i = 0; i < debugTable.Length; i++)
+            {
+                ref var debugDirectory = ref debugTable[i];
+
+                switch (debugDirectory.Type)
+                {
+                    case IMAGE_DEBUG_TYPE_CODEVIEW:
+                        codeView = debugDirectory.Data as NB05Data;
+                        break;
+
+                    case IMAGE_DEBUG_TYPE_COFF:
+                        coff = ((ImageCoffSymbolsHeader) debugDirectory.Data!).LvaToFirstSymbol.ValueOrDefault;
+                        break;
+                }
+            }
+
+            if (codeView != null)
+            {
+                symbolAccessor = (ISymbolAccessor) codeView.GetCodeViewAccessor();
+                return true;
+            }
+
+            if (coff != null)
+            {
+                var sectionHeaders = file.Kind switch
+                {
+                    FileKind.PE => ((PEFile) file).SectionHeaders,
+                    FileKind.DBG => ((DBGFile) file).SectionHeaders,
+                };
+
+                symbolAccessor = new CoffSymbolAccessor(coff, sectionHeaders);
+                return true;
+            }
+
+            symbolAccessor = default;
+            return false;
         }
 
         public override string ToString()

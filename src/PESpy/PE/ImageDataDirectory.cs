@@ -56,11 +56,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress);
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress, FieldViewFlags.Address);
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(Size), SizeOffset, Size);
+                    structWriter.WriteField(nameof(Size), SizeOffset, Size, FieldViewFlags.Size);
                     break;
 
                 default:

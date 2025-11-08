@@ -171,10 +171,13 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            var structOffset = Offset;
+
             if (DebugTypeEntries.IsValid)
             {
                 using var r = writer.CreateRegion(
                     DebugTypeEntries.ActualOffset,
+                    structOffset,
                     FixedStructSize,
                     "DebugTypeEntries",
                     ViewKind.DebugTypeEntries,
@@ -191,6 +194,7 @@ namespace PESpy
             {
                 using var r = writer.CreateRegion(
                     GlobalValueEntries.ActualOffset,
+                    structOffset,
                     FixedStructSize + chunk.PointerSize,
                     "GlobalValueEntries",
                     ViewKind.GlobalValueEntries,

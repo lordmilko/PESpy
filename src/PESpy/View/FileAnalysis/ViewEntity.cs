@@ -19,20 +19,34 @@ namespace PESpy.View
         List<XRef> XRefs;
         public bool HasChildren;
 
-        internal ViewEntity(in SectionAccessor sectionAccessor, int sectionAccessorOffset, int sectionAccessorLength, Dictionary<int, ViewInfo> infoMap)
+        public NativeSpan<byte> Bytes => new NativeSpan<byte>(_pData, Length);
+
+        private byte* _pData;
+
+        internal ViewEntity(in SectionAccessor sectionAccessor, int sectionAccessorOffset, int sectionAccessorLength, IntPtr pBytes, Dictionary<int, ViewInfo> infoMap)
             : this(
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
                   pStart: sectionAccessor.pViewBytes,
                   pEnd: sectionAccessor.pViewBytes + sectionAccessorLength,
+                  pBytes,
                   infoMap)
         {
         }
 
-        internal ViewEntity(int targetAddress, ViewByte* pViewByte, ViewByte* pStart, ViewByte* pEnd, Dictionary<int, ViewInfo> infoMap)
+        internal ViewEntity(
+            int targetAddress,
+            ViewByte* pViewByte,
+            ViewByte* pStart,
+            ViewByte* pEnd,
+            IntPtr pBytes,
+            Dictionary<int, ViewInfo> infoMap)
         {
             TargetAddress = targetAddress;
             ViewByte = pViewByte;
+
+            var relativeOffset = (int) (pViewByte - pStart);
+            var pData = pBytes + relativeOffset;
 
             var body = pViewByte + 1;
 
@@ -49,7 +63,7 @@ namespace PESpy.View
 
                 HasChildren = true;
             }
-            else if (ViewByte->Kind == ViewByteKind.Code && false)
+            else if (ViewByte->Kind == ViewByteKind.Code)
             {
                 //If this is the first instruction of a code chunk, roll all the code up into one chunk
 
@@ -69,7 +83,11 @@ namespace PESpy.View
                             isFirstCode = false;
                             break;
 
-                        default:
+                    while (body < pEnd)
+                    {
+                        if (body->Kind == ViewByteKind.Body || body->Kind == ViewByteKind.Code)
+                            body++;
+                        else
                             break;
                     }
                 }
@@ -92,28 +110,79 @@ namespace PESpy.View
             Name = byteData.Name;
             Kind = byteData.ViewKind;
             XRefs = byteData.XRefs;
+            _pData = (byte*) pData;
+        }
 
-            Length = (int) (body - pViewByte);
+        public bool Contains(int targetAddress) => targetAddress >= TargetAddress && targetAddress < (TargetAddress + Length);
+
+        internal void ToString(ref ValueStringBuilder.NonRef builder)
+        {
+            if (ViewByte == default)
+                return;
+
+            if (ViewByte->Kind == ViewByteKind.Data && ViewByte->DataKind == ViewByteDataKind.String)
+            {
+                if (ViewByte->IsWide)
+                {
+                    builder.Append("L\"");
+
+                    var name = new FixedUtf16String((char*) (byte*) Bytes, Length / 2);
+                    builder.AppendEscaped(name);
+                }
+                else
+                {
+                    builder.Append('\"');
+                    builder.AppendEscaped(Name);
+                }
+
+                builder.Append('\"');
+            }
+            else if (ViewByte->Kind == ViewByteKind.Data && ViewByte->DataKind == ViewByteDataKind.Padding)
+            {
+                builder.Append("Padding (");
+
+                var @byte = *(byte*) Bytes;
+
+                if (@byte != 0)
+                    builder.Append("0x");
+
+                builder.AppendHex(@byte);
+                builder.Append(')');
+            }
+            else if (ViewByte->Kind == ViewByteKind.Unknown)
+            {
+                builder.Append("Unknown (");
+                builder.Append(Length);
+                builder.Append(')');
+            }
+            else if (Name.Length > 0)
+            {
+                builder.Append(Name);
+            }
+            else if (Kind != 0)
+                builder.Append(Kind.ToString());
+            else if (ViewByte->Kind == ViewByteKind.Data)
+                builder.Append(ViewByte->DataKind.ToString());
+            else if (ViewByte->Kind == ViewByteKind.Code && ViewByte->IsFunction)
+                builder.Append("Function");
+            else
+                builder.Append(ViewByte->Kind.ToString());
         }
 
         public override string ToString()
         {
-            if (ViewByte == default)
-                return base.ToString();
+            var builder = new ValueStringBuilder.NonRef(100);
 
-            if (Name.Length > 0)
-                return Name.ToString();
+            try
+            {
+                ToString(ref builder);
 
-            if (Kind != 0)
-                return Kind.ToString();
-
-            if (ViewByte->Kind == ViewByteKind.Data)
-                return ViewByte->DataKind.ToString();
-
-            if (ViewByte->Kind == ViewByteKind.Code && ViewByte->IsFunction)
-                return "Function";
-
-            return ViewByte->Kind.ToString();
+                return builder.ToString();
+            }
+            finally
+            {
+                builder.Dispose();
+            }
         }
     }
 }

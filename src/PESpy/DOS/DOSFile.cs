@@ -136,7 +136,25 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => throw new NotImplementedException();
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        {
+            if (CodeViewData != null)
+            {
+                switch (CodeViewData.Signature)
+                {
+                    case CodeViewSig.DNRB:
+                    case CodeViewSig.NB00:
+                    case CodeViewSig.NB01:
+                    case CodeViewSig.NB02:
+                        throw new NotImplementedException("Don't now how to construct an ISymbolAccessor for NB02 style symbols");
+
+                    default:
+                        return (ISymbolAccessor) ((NB05Data) CodeViewData).GetCodeViewAccessor();
+                }
+            }
+
+            return NullSymbolAccessor.Instance;
+        }
 
         internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
         {

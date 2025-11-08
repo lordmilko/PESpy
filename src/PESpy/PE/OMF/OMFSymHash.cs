@@ -42,7 +42,7 @@ namespace PESpy
      * I can sort of see how the OMFHASH enum might marry up with the functions shown in dumpsym7.cpp
      */
 
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public readonly struct OMFSymHash : IValue, IViewable
     {
         private const int symhashOffset = 0;

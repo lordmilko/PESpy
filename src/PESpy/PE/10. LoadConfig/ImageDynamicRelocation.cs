@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.View;
+using static PESpy.IMAGE_DYNAMIC_RELOCATION_KIND;
 
 namespace PESpy
 {
@@ -10,7 +11,7 @@ namespace PESpy
         private const int SymbolOffset = 0;
         private int BaseRelocSizeOffset => chunk.PointerSize;
 
-        public ImageDynamicRelocationKind Symbol => (ImageDynamicRelocationKind) chunk.PeekPointer(SymbolOffset);
+        public IMAGE_DYNAMIC_RELOCATION_KIND Symbol => (IMAGE_DYNAMIC_RELOCATION_KIND) chunk.PeekPointer(SymbolOffset);
 
         public SpecialAddressKind SpecialKind
         {
@@ -59,13 +60,13 @@ namespace PESpy
 
                     switch (Symbol)
                     {
-                        case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
-                        case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE: //1
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE: //2
                             Debug.Assert(false, $"Reading {Symbol} is not implemented");
                             data = null;
                             break;
 
-                        case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER: //3
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
                             using var list = new PooledList<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
@@ -97,7 +98,7 @@ namespace PESpy
                             break;
                         }
 
-                        case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER: //4
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
                             using var list = new PooledList<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
@@ -129,7 +130,7 @@ namespace PESpy
                             break;
                         }
 
-                        case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH: //5
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
                             using var list = new PooledList<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
@@ -161,7 +162,7 @@ namespace PESpy
                             break;
                         }
 
-                        case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                        case IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE: //7
                         {
                             var read = chunk.PointerSize + 4;
                             data = new ImageFunctionOverrideHeader(chunk.Slice(read), BaseRelocSize);
@@ -228,20 +229,20 @@ namespace PESpy
 
             switch (Symbol)
             {
-                case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
-                case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE: //1
+                case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE: //2
                     throw new NotImplementedException();
 
-                case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                case IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER: //3
                     return baseCount + ((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!).Length;
 
-                case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                case IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER: //4
                     return baseCount + ((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!).Length;
 
-                case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                case IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH: //5
                     return baseCount + ((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!).Length;
 
-                case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                case IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE: //7
                     return baseCount + 1;
 
                 default: //ntoskrnl
@@ -264,24 +265,24 @@ namespace PESpy
                 default:
                     switch (Symbol)
                     {
-                        case ImageDynamicRelocationKind.GUARD_RF_PROLOGUE: //1
-                        case ImageDynamicRelocationKind.GUARD_RF_EPILOGUE: //2
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE: //1
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE: //2
                             Debug.Assert(false, $"Writing {Symbol} is not implemented");
                             break;
 
-                        case ImageDynamicRelocationKind.GUARD_IMPORT_CONTROL_TRANSFER: //3
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER: //3
                             structWriter.WriteInline(((ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>[]) Data!)[index - 2]);
                             break;
 
-                        case ImageDynamicRelocationKind.GUARD_INDIR_CONTROL_TRANSFER: //4
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER: //4
                             structWriter.WriteInline(((ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>[]) Data!)[index - 2]);
                             break;
 
-                        case ImageDynamicRelocationKind.GUARD_SWITCHTABLE_BRANCH: //5
+                        case IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH: //5
                             structWriter.WriteInline(((ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>[]) Data!)[index - 2]);
                             break;
 
-                        case ImageDynamicRelocationKind.FUNCTION_OVERRIDE: //7
+                        case IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE: //7
                             structWriter.WriteInline((ImageFunctionOverrideHeader) Data!);
                             break;
 
@@ -315,7 +316,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            if (Enum.IsDefined(typeof(ImageDynamicRelocationKind), Symbol))
+            if (Enum.IsDefined(typeof(IMAGE_DYNAMIC_RELOCATION_KIND), Symbol))
                 return Symbol.ToString();
 
             var specialKind = SpecialKind;

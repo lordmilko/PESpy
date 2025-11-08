@@ -24,10 +24,10 @@ namespace PESpy.Native
         public short SectionNumber;
 
         [FieldOffset(14)]
-        public ImageSymType Type;
+        public IMAGE_SYM_TYPE Type;
 
         [FieldOffset(16)]
-        public ImageSymClass StorageClass;
+        public IMAGE_SYM_CLASS StorageClass;
 
         [FieldOffset(17)]
         public byte NumberOfAuxSymbols;

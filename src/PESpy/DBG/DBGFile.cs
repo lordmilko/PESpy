@@ -227,7 +227,7 @@ namespace PESpy
                 using var r = writer.CreateRegion(offset, "Exported Names", ViewKind.ExportedNames, true);
 
                 foreach (var item in names)
-                    r.WriteInlineAnsiNullTerminatedValue(item);
+                    r.WriteInlineAnsiNullTerminatedValue(item, ViewKind.ExportedNames_Entry);
             }
 
             writer.WriteGlobal(DebugTable);

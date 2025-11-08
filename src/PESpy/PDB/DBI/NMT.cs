@@ -99,7 +99,9 @@ namespace PESpy.PDB
             //From nmt::reload, if the vhdr does not have known "allowed" values, the whole thing apparently needs to be rehashed
             var v = vhdr;
 
-            if (v.ulHdr != VHdr.Hdr.verHdr || v.ulVer == 0)
+            if (v.ulHdr != VHdr.Hdr.verHdr || v.ulVer > VHdr.Ver.verLongHash) //the check is against verCur which is verLongHash
+                throw new NotImplementedException("Converting the NMT hash format is not implemented");
+
             var n = NumOffsets;
 
             var i = (int) (hashSz(str, v.ulVer) % n);
@@ -125,6 +127,22 @@ namespace PESpy.PDB
                 i = (i + 1 < n) ? (i + 1) : 0;
             }
         }
+
+        private unsafe uint hashSz(FixedUtf8String str, VHdr.Ver ver)
+        {
+            switch (ver)
+            {
+                case VHdr.Ver.verLongHash:
+                    return Hasher.lhashPbCb(str.Value, str.Length, uint.MaxValue);
+
+                case VHdr.Ver.verLongHashV2:
+                    return HasherV2.lhashPbCb(str.Value, str.Length, uint.MaxValue);
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(VHdr.Ver)} '{ver}'");
+            }
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals
@@ -133,9 +151,17 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(PESpy.Strings.NameTable, this, ViewKind.NameTable, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //We need to sort the strings and check we only write each one once, so we need
+            //to eager load
+
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteInline(vhdr);
             s.WriteField("Name Buffer Size", NameBufferSize);
@@ -154,8 +180,7 @@ namespace PESpy.PDB
             s.WriteField("Offsets", Offsets);
             s.WriteField("Num Strings", NumStrings);
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

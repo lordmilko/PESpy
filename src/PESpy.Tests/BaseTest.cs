@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,8 +9,11 @@ using System.Reflection;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
+using PESpy.LIB;
+using PESpy.PDB;
 using PESpy.PowerShell;
 using PESpy.View;
+using static PESpy.IMAGE_DEBUG_TYPE;
 
 namespace PESpy.Tests
 {
@@ -288,26 +292,24 @@ namespace PESpy.Tests
         //assert that the values of each XRef matches the expected source and destination passed in from the caller
 
         internal void TestXRefs<T>(
-            params Action<PEXRefViewWriter.XRef>[] verifiers)
+            params Action<XRefVerifier>[] actions)
         {
-            var rawValue = GetStruct<T, T>(out var fs);
+            var verifier = new XRefVerifier(typeof(T).Name);
 
-            using var fs1 = fs;
+            bool ShouldExclude(PropertyInfo propertyInfo)
+            {
+                if (propertyInfo.DeclaringType == typeof(ImageDelayLoadDescriptor))
+                    return propertyInfo.Name == nameof(ImageDelayLoadDescriptor.UnloadInformationTable); //I don't think this is present in unloaded modules
 
-            fs1.Seek(0, SeekOrigin.Begin);
-            var peFile = PEFile.FromStream(fs1, false);
+                if (propertyInfo.DeclaringType == typeof(ImageLoadConfigDirectory))
+                    return propertyInfo.Name == nameof(ImageLoadConfigDirectory.LockPrefixTable); //Haven't been able to find anything with LockPrefixTable
 
-            var viewWriter = new PEXRefViewWriter(peFile);
+                return false;
+            }
 
             ((IViewable) rawValue).WriteGlobals(viewWriter);
 
-            var xrefProperties = rawValue.GetType().GetProperties()
-                .Where(p => typeof(IRVA).IsAssignableFrom(p.PropertyType) || typeof(IVA).IsAssignableFrom(p.PropertyType))
-                .Where(p =>
-                {
-                    //An XRef won't be written if a given RVA property is empty or not valid, which kind of messes up our tests.
-                    //Ideally, we want every test to be testing against a value that does have an RVA, but in some cases that's not possible
-                    var value = p.GetValue(rawValue);
+            Debug.Assert(xrefProperties.Length > 0);
 
                     if (value is IRVA r)
                         return r.IsValid;
@@ -444,18 +446,35 @@ namespace PESpy.Tests
                 nameof(CoffSymbolTable)           => (CoffSymbolTable)            GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value,
                 nameof(ImageSymbol)               => (ImageSymbol)                GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value.Symbols[0],
                 nameof(ImageAuxSymbol)            => (ImageAuxSymbol)             GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value.Symbols[1].AuxSymbols[0],
-                nameof(RSDSI)                     => (RSDSI)                      GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
-                nameof(NB10I)                     => (NB10I)                      GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.CodeView).Data,
-                nameof(FpoData)                   => ((FpoData[])                 GetFile(WellKnownTestModule.ctl3d32, out fs).DebugTable?.First(t => t.Type == ImageDebugType.FPO).Data)?[0],
-                nameof(ImageDebugMisc)            => (ImageDebugMisc)             GetFile(WellKnownTestModule.mfc40, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Misc).Data,
-                nameof(VCFeature)                 => (VCFeature)                  GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == ImageDebugType.VCFeature).Data,
-                nameof(PogoData)                  => (PogoData)                   GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Pogo).Data,
-                nameof(PogoItem)                  => (PogoItem)                   ((PogoData) GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Pogo).Data).Entries[0],
-                nameof(Reproducible)              => (Reproducible?)              GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Reproducible).Data,
-                nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetSampleFile(Sample.MPDB_DLL, out fs).DebugTable?.First(t => t.Type == ImageDebugType.EmbeddedPortablePdb).Data, //todo: need a test module that has an embedded portable pdb
-                nameof(PdbChecksum)               => (PdbChecksum?)               GetSampleFile(Sample.R2R_DLL, out fs).DebugTable?.First(t => t.Type == ImageDebugType.PdbChecksum).Data, //todo: need a test module that has a pdb checksum
-                nameof(ImageDllCharacteristicsEx) => (GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == ImageDebugType.ExDllCharacteristics)),
+                nameof(RSDSI)                     => (RSDSI)                      GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_CODEVIEW).Data,
+                nameof(NB10I)                     => (NB10I)                      GetFile(WellKnownTestModule.crtdll, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_CODEVIEW).Data,
+                nameof(FpoData)                   => ((FpoData[])                 GetFile(WellKnownTestModule.ctl3d32, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_FPO).Data)?[0],
+                nameof(ImageDebugMisc)            => (ImageDebugMisc)             GetFile(WellKnownTestModule.mfc40, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_MISC).Data,
+                nameof(VCFeature)                 => (VCFeature)                  GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_VC_FEATURE).Data,
+                nameof(PogoData)                  => (PogoData)                   GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_POGO).Data,
+                nameof(PogoItem)                  => (PogoItem)                   ((PogoData) GetSampleFile(Sample.SingleFileApp_EXE, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_POGO).Data).Entries[0],
+                nameof(Reproducible)              => (Reproducible?)              GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_REPRO).Data,
+                nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetSampleFile(Sample.MPDB_DLL, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB).Data, //todo: need a test module that has an embedded portable pdb
+                nameof(PdbChecksum)               => (PdbChecksum?)               GetSampleFile(Sample.R2R_DLL, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_PDB_CHECKSUM).Data, //todo: need a test module that has a pdb checksum
+                nameof(IMAGE_DLLCHARACTERISTICS_EX) => (GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS)),
 
+                #region NB05
+
+                nameof(NB05Data)                  => (NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data,
+                nameof(OMFDirHeader)              => ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirHeader,
+                nameof(OMFDirEntry)               => ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[0],
+                nameof(OMFModule)                 => (OMFModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[0].Data,
+                nameof(OMFSegDesc)                => (OMFSegDesc) ((OMFModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[0].Data).SegInfo[0],
+                nameof(OMFModuleSymbols)          => (OMFModuleSymbols) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[115].Data,
+                nameof(OMFSourceModule)           => (OMFSourceModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[116].Data,
+                nameof(OMFSourceFile)             => ((OMFSourceModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[116].Data).baseSrcFile[0],
+                nameof(OMFSourceLine)             => ((OMFSourceModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[116].Data).baseSrcFile[0].baseSrcLn[0],
+                nameof(OMFHashedSymbols)          => (OMFHashedSymbols) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[286].Data,
+                nameof(OMFSymHash)                => (OMFSymHash) ((OMFHashedSymbols) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[286].Data).Hash,
+                nameof(OMFGlobalTypes)            => (OMFGlobalTypes) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[290].Data,
+                nameof(OMFFileIndex)              => (OMFFileIndex) ((NB05Data) GetSampleFile(Sample.VC50_EXE, out fs).DebugTable[2].Data).DirEntries[292].Data,
+
+                #endregion
                 #endregion
                 #region Copyright Table (7)
                 #endregion
@@ -572,7 +591,7 @@ namespace PESpy.Tests
                 //9: ManifestAssemblyMvids
                 //10: CrossModuleInlineInfo
 
-                nameof(RuntimeInfo)              => GetSampleFile(Sample.SingleFileApp_EXE, out fs).RuntimeInfo,
+                nameof(RuntimeInfo)              => GetSampleFile(Sample.SingleFileApp_EXE, out fs).DotNetRuntimeInfo,
 
                 nameof(AppHostSignature)         => GetSampleFile(Sample.SingleFileApp_EXE, out fs).AppHostSignature,
                 "Bundle.Manifest"                => (GetSampleFile(Sample.SingleFileApp_EXE, out fs).AppHostSignature).BundleHeaderOffset.Value,
@@ -592,6 +611,38 @@ namespace PESpy.Tests
                 nameof(ImageCorVTableFixup)      => GetSampleFile(Sample.Interop_Core_DLL, out fs).Cor20VTableFixups[0],
 
                 #endregion
+                #region PDB
+
+                nameof(NMT) => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).NameMap,
+
+                nameof(DBIHdr)                   => (DBIHdr) GetSampleFile<PDBFile>(Sample.VC40_PDB, out fs).DBI.DbiHdr, //Don't have a PDB for VC50; 40 is the latest we have that is DBIHdr
+                nameof(NewDBIHdr)                => (NewDBIHdr) GetSampleFile<PDBFile>(Sample.VC60_PDB, out fs).DBI.DbiHdr,
+
+                nameof(Modi)   => (Modi) GetSampleFile<PDBFile>(Sample.VC40_PDB, out fs).DBI.Modules[0],
+                nameof(Modi20) => (Modi20) GetSampleFile<PDBFile>(Sample.VC20_PDB, out fs).DBI.Modules[0],
+                nameof(Modi50) => (Modi50) GetSampleFile<PDBFile>(Sample.VC50_PDB, out fs).DBI.Modules[0],
+                nameof(Modi60) => (Modi60) GetSampleFile<PDBFile>(Sample.VC60_PDB, out fs).DBI.Modules[0],
+
+                nameof(DbgDataHdr) => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).DBI.DbgHdr,
+
+                nameof(CvDebugSSubsectionHeader) => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).DBI.Modules[1].C13Lines[0],
+
+                nameof(HDR) => GetSampleFile<PDBFile>(Sample.VC60_PDB, out fs).TPI.Hdr,
+                nameof(HDR_16t) => GetSampleFile<PDBFile>(Sample.VC40_PDB, out fs).TPI.Hdr,
+
+                "MsfHdr.StreamTable"    => (MsfHdr.StreamTable) GetSampleFile<PDBFile>(Sample.VC60_PDB, out fs).StreamTable,
+                "BigMsfHdr.StreamTable" => (BigMsfHdr.StreamTable) GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).StreamTable,
+
+                #endregion
+                #region LIB
+
+                nameof(ImageArchiveMemberHeader) => GetSampleFile<LIBFile>(Sample.VS22_LIB, out fs).FirstLinkerMember.ArchiveHeader,
+                nameof(FirstLinkerMember)        => GetSampleFile<LIBFile>(Sample.VS22_LIB, out fs).FirstLinkerMember,
+                nameof(SecondLinkerMember)       => GetSampleFile<LIBFile>(Sample.VS22_LIB, out fs).SecondLinkerMember,
+                nameof(ShortImportLibraryMember) => GetSampleFile<LIBFile>(Sample.VS22_LIB, out fs).ImportLibrary[3],
+                nameof(LongImportLibraryMember)  => GetSampleFile<LIBFile>(Sample.VS22_LIB, out fs).ImportLibrary[0],
+
+                #endregion
                 //_ => throw new NotImplementedException($"Don't know how to handle type '{typeof(T).Name}'")
                 _ => throw new AssertInconclusiveException($"Don't know how to handle type '{typeof(TSelector).Name}'")
             };
@@ -602,7 +653,7 @@ namespace PESpy.Tests
             return (TVerifier) rawValue;
         }
 
-        private static PEFile GetFile(SymStoreKey key, out Stream fs)
+        protected static PEFile GetFile(SymStoreKey key, out Stream fs)
         {
             var path = Locator.Locate(key);
 
@@ -620,6 +671,22 @@ namespace PESpy.Tests
             var peFile = PEFile.FromStream(fs, false);
 
             return peFile;
+        }
+
+        protected static T GetSampleFile<T>(string path, out Stream fs) where T : IFile
+        {
+            fs = File.OpenRead(path);
+
+            return (T) Detector.OpenFile(path);
+        }
+
+        protected static T GetSampleFile<T>(string path, out IFile file, out Stream fs) where T : IFile
+        {
+            fs = File.OpenRead(path);
+
+            file = Detector.OpenFile(path);
+
+            return (T) file;
         }
 
         private static PEFile GetNativeAOTProcessStream(out Stream stream)
@@ -709,6 +776,15 @@ namespace PESpy.Tests
             if (type == typeof(Timestamp) && value is uint u)
                 value = (Timestamp) u;
 
+            if (type == typeof(ClrDebug.PDB.CV_typ_t))
+                value = (ClrDebug.PDB.CV_typ_t) (int) value;
+
+            if (type == typeof(ClrDebug.PDB.CV_off32_t))
+                value = (ClrDebug.PDB.CV_off32_t) (int) value;
+
+            if (type == typeof(DbiHdrVersion))
+                value = (DbiHdrVersion) (int) value;
+
             return value;
         }
 
@@ -768,124 +844,9 @@ namespace PESpy.Tests
 
                 var properties = typeof(T).GetProperties().Where(p => p.Name != "Offset" && p.Name != "StructSize" && p.GetIndexParameters().Length == 0).ToArray();
 
-                string GetValue(PropertyInfo propertyInfo, bool cast)
-                {
-                    var value = propertyInfo.GetValue(rawValue);
-
-                    if (value == null)
-                        return "null";
-
-                    if (value.GetType().IsGenericType && value.GetType().GetGenericTypeDefinition() == typeof(RawValue<>))
-                        value = value.GetType().GetProperty("Value").GetGetMethod().Invoke(value, null);
-
-                    if (value is IRVA r)
-                        value = r.ListedOffset;
-
-                    if (value is IVA v)
-                        value = v.ListedAddress;
-
-                    if (value is bool b)
-                    {
-                        if (cast)
-                            return "(byte) " + (b ? 1 : 0);
-
-                        return b ? "true" : "false";
-                    }
-
-                    if (propertyInfo.PropertyType.IsEnum)
-                    {
-                        var items = value.ToString().Split(", ").Select(v => $"{propertyInfo.PropertyType.Name}.{v}").ToArray();
-
-                        if (items.Length == 1)
-                            return items[0];
-
-                        return "(" + string.Join(" | ", items) + ")";
-                    }
-
-                    var typeCode = Type.GetTypeCode(propertyInfo.PropertyType);
-
-                    string GetTypeName(TypeCode typeCode)
-                    {
-#pragma warning disable CS8509
-                        return typeCode switch
-#pragma warning restore CS8509
-                        {
-                            TypeCode.SByte => "sbyte",
-                            TypeCode.Byte => "byte",
-                            TypeCode.Int16 => "short",
-                            TypeCode.UInt16 => "ushort",
-                            TypeCode.Int32 => "int",
-                            TypeCode.UInt32 => "uint",
-                            TypeCode.Int64 => "long",
-                            TypeCode.UInt64 => "ulong",
-                        };
-                    }
-
-                    switch (typeCode)
-                    {
-                        case TypeCode.SByte:
-                        case TypeCode.Byte:
-                        case TypeCode.Int16:
-                        case TypeCode.UInt16:
-                        case TypeCode.Int32:
-                        case TypeCode.UInt32:
-                        case TypeCode.Int64:
-                        case TypeCode.UInt64:
-                            if (cast && typeCode != TypeCode.Int32)
-                                return "(" + GetTypeName(typeCode) + ") " + value;
-
-                            return value.ToString();
-                    }
-
-                    if (value is string s)
-                        return $"\"{s}\"";
-
-                    if (value.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IString<,>)))
-                        return $"\"{value}\"";
-
-                    if (value is Timestamp)
-                        return $"\"{value}\"";
-
-                    if (value is Guid g)
-                        return $"new Guid(\"{g}\")";
-
-                    if (propertyInfo.PropertyType.IsArray)
-                    {
-                        var arr = (Array) value;
-
-                        var elementType = propertyInfo.PropertyType.GetElementType();
-
-                        var tc = Type.GetTypeCode(elementType);
-
-                        if (tc == TypeCode.Object)
-                            return "null";
-
-                        var typeName = GetTypeName(tc);
-
-                        var arrayBuilder = new StringBuilder();
-                        arrayBuilder.Append("new ").Append(typeName).Append("[]{");
-
-                        for (var i = 0; i < arr.Length; i++)
-                        {
-                            var item = arr.GetValue(i);
-
-                            arrayBuilder.Append(item);
-
-                            if (i < arr.Length - 1)
-                                arrayBuilder.Append(", ");
-                        }
-
-                        arrayBuilder.Append("}");
-
-                        return arrayBuilder.ToString();
-                    }
-
-                    return value.ToString();
-                }
-
                 for (var i = 0; i < properties.Length; i++)
                 {
-                    var value = GetValue(properties[i], false);
+                    var value = GetAssertValue(rawValue, properties[i], false);
 
                     builder.Append("    v => v.").Append(properties[i].Name).Append(" == ").Append(value);
 
@@ -945,7 +906,7 @@ namespace PESpy.Tests
 
                 for (var i = 0; i < properties.Length; i++)
                 {
-                    var value = GetValue(properties[i], true);
+                    var value = GetAssertValue(rawValue, properties[i], true);
 
                     builder.Append($"        c => c.VerifyField(name: \"{properties[i].Name}\", value: {value})");
 
@@ -966,6 +927,120 @@ namespace PESpy.Tests
             }
         }
 
+        internal static string GetAssertValue(object rawValue, PropertyInfo propertyInfo, bool cast)
+        {
+            var value = propertyInfo.GetValue(rawValue);
+
+            if (value == null)
+                return "null";
+
+            if (value.GetType().IsGenericType && value.GetType().GetGenericTypeDefinition() == typeof(RawValue<>))
+                value = value.GetType().GetProperty("Value").GetGetMethod().Invoke(value, null);
+
+            if (value is IRVA r)
+                value = r.ListedOffset;
+
+            if (value is IVA v)
+                value = v.ListedAddress;
+
+            if (value is bool b)
+            {
+                if (cast)
+                    return "(byte) " + (b ? 1 : 0);
+
+                return b ? "true" : "false";
+            }
+
+            if (propertyInfo.PropertyType.IsEnum)
+            {
+                var items = value.ToString().Split(", ").Select(v => $"{propertyInfo.PropertyType.Name}.{v}").ToArray();
+
+                if (items.Length == 1)
+                    return items[0];
+
+                return "(" + string.Join(" | ", items) + ")";
+            }
+
+            var typeCode = Type.GetTypeCode(propertyInfo.PropertyType);
+
+            string GetTypeName(TypeCode typeCode)
+            {
+#pragma warning disable CS8509
+                return typeCode switch
+#pragma warning restore CS8509
+                {
+                    TypeCode.SByte => "sbyte",
+                    TypeCode.Byte => "byte",
+                    TypeCode.Int16 => "short",
+                    TypeCode.UInt16 => "ushort",
+                    TypeCode.Int32 => "int",
+                    TypeCode.UInt32 => "uint",
+                    TypeCode.Int64 => "long",
+                    TypeCode.UInt64 => "ulong",
+                };
+            }
+
+            switch (typeCode)
+            {
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Int16:
+                case TypeCode.UInt16:
+                case TypeCode.Int32:
+                case TypeCode.UInt32:
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
+                    if (cast && typeCode != TypeCode.Int32)
+                        return "(" + GetTypeName(typeCode) + ") " + value;
+
+                    return value.ToString();
+            }
+
+            if (value is string s)
+                return $"\"{s}\"";
+
+            if (value.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IString<,>)))
+                return $"\"{value}\"";
+
+            if (value is Timestamp)
+                return $"\"{value}\"";
+
+            if (value is Guid g)
+                return $"new Guid(\"{g}\")";
+
+            if (value is TypOrEnumType t)
+                value = (ClrDebug.PDB.CV_typ_t) t;
+
+            if (propertyInfo.PropertyType.IsArray)
+            {
+                var arr = (Array) value;
+
+                var elementType = propertyInfo.PropertyType.GetElementType();
+
+                var tc = Type.GetTypeCode(elementType);
+
+                if (tc == TypeCode.Object)
+                    return "null";
+
+                var typeName = GetTypeName(tc);
+
+                var arrayBuilder = new StringBuilder();
+                arrayBuilder.Append("new ").Append(typeName).Append("[]{");
+
+                for (var i = 0; i < arr.Length; i++)
+                {
+                    var item = arr.GetValue(i);
+
+                    arrayBuilder.Append(item);
+
+                    if (i < arr.Length - 1)
+                        arrayBuilder.Append(", ");
+                }
+
+                arrayBuilder.Append("}");
+
+                return arrayBuilder.ToString();
+            }
         #endregion
     }
 }

@@ -150,17 +150,20 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            var structOffset = Offset;
+
             //We tag delay imports so that we can group together delay import names (written as a child of the tagged delay import) separately
             //from regular import names
             using var _ = writer.EnterTag(ViewTag.DelayImport);
 
-            writer.WriteRVAAnsiNullTerminatedField(DllNameRVA, ViewKind.ImageDelayLoadDescriptor_DllNameRVA, fieldOffset: DllNameRVAOffset);
-            writer.WriteRVAPointerField(ModuleHandleRVA, ModuleHandleRVAOffset);
+            writer.WriteRVAAnsiNullTerminatedField(DllNameRVA, ViewKind.ImageDelayLoadDescriptor_DllNameRVA, structOffset, fieldOffset: DllNameRVAOffset);
+            writer.WriteRVAPointerField(ModuleHandleRVA, structOffset, fieldOffset: ModuleHandleRVAOffset);
 
             if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
             {
                 using var r = writer.CreateScopedRegion(
                     ImportAddressTableRVA.ActualOffset,
+                    structOffset,
                     ImportAddressTableRVAOffset,
                     $"[DelayImportAddressTable] {DllNameRVA}",
                     ViewKind.DelayImportAddressTable,
@@ -177,6 +180,7 @@ namespace PESpy
             {
                 using var r = writer.CreateScopedRegion(
                     ImportNameTableRVA.ActualOffset,
+                    structOffset,
                     ImportNameTableRVAOffset,
                     $"[DelayImportLookupTable] {DllNameRVA}",
                     ViewKind.DelayImportLookupTable,
@@ -193,6 +197,7 @@ namespace PESpy
             {
                 using var r = writer.CreateScopedRegion(
                     UnloadInformationTable.ActualOffset,
+                    structOffset,
                     UnloadInformationTableOffset,
                     $"[DelayUnloadInformationTable] {DllNameRVA}",
                     ViewKind.DelayUnloadInformationTable,

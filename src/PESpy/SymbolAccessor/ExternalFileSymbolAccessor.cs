@@ -17,6 +17,8 @@
             symbolAccessor = file.GetSymbolAccessor();
         }
 
+        internal ISymbolAccessor GetUnderlyingSymbolAccessorUnsafe() => symbolAccessor;
+
         public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement) =>
             symbolAccessor.TryGetNameFromAddress(targetAddress, out name, out displacement);
 

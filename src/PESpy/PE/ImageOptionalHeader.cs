@@ -40,7 +40,7 @@ namespace PESpy
         private int SizeOfHeapCommitOffset => 72 + (3 * chunk.PointerSize);
         private int LoaderFlagsOffset => 72 + (4 * chunk.PointerSize);
         private int NumberOfRvaAndSizesOffset => 76 + (4 * chunk.PointerSize);
-        private int ExportTableDirectoryOffset => 80 + (4 * chunk.PointerSize);
+        internal int ExportTableDirectoryOffset => 80 + (4 * chunk.PointerSize);
         private int ImportTableDirectoryOffset => 88 + (4 * chunk.PointerSize);
         private int ResourceTableDirectoryOffset => 96 + (4 * chunk.PointerSize);
         private int ExceptionTableDirectoryOffset => 104 + (4 * chunk.PointerSize);
@@ -187,12 +187,12 @@ namespace PESpy
         /// <summary>
         /// The subsystem that is required to run this image.
         /// </summary>
-        public ImageSubsystem Subsystem => (ImageSubsystem) chunk.PeekUInt16(SubsystemOffset);
+        public IMAGE_SUBSYSTEM Subsystem => (IMAGE_SUBSYSTEM) chunk.PeekUInt16(SubsystemOffset);
 
         /// <summary>
         /// The DLL characteristics of the image.
         /// </summary>
-        public ImageDllCharacteristics DllCharacteristics => (ImageDllCharacteristics) chunk.PeekUInt16(DllCharacteristicsOffset);
+        public IMAGE_DLLCHARACTERISTICS DllCharacteristics => (IMAGE_DLLCHARACTERISTICS) chunk.PeekUInt16(DllCharacteristicsOffset);
 
         /// <summary>
         /// The size of the stack to reserve. Only <see cref="SizeOfStackCommit"/> is committed;
@@ -219,7 +219,7 @@ namespace PESpy
         /// <summary>
         /// This member is obsolete.
         /// </summary>
-        public ImageLoaderFlags LoaderFlags => (ImageLoaderFlags) chunk.PeekUInt32(LoaderFlagsOffset);
+        public IMAGE_LOADER_FLAGS LoaderFlags => (IMAGE_LOADER_FLAGS) chunk.PeekUInt32(LoaderFlagsOffset);
 
         /// <summary>
         /// The number of data-directory entries in the remainder of the <see cref="ImageOptionalHeader"/>. Each describes a location and size.
@@ -358,7 +358,24 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            //Anyone who doesn't have globals will return a null directory.
+            //We have a specialized RelayGlobals overload that checks if there's actually a VirtualAddress
+
+            writer.RelayGlobals(ExportTableDirectory);
+            writer.RelayGlobals(ImportTableDirectory);
+            writer.RelayGlobals(ResourceTableDirectory);
+            writer.RelayGlobals(ExceptionTableDirectory);
+            writer.RelayPhysicalGlobals(SecurityTableDirectory);
+            writer.RelayGlobals(BaseRelocationTableDirectory);
+            writer.RelayGlobals(DebugTableDirectory);
+            writer.RelayGlobals(CopyrightTableDirectory);
+            writer.RelayGlobals(GlobalPointerTableDirectory);
+            writer.RelayGlobals(ThreadLocalStorageTableDirectory);
+            writer.RelayGlobals(LoadConfigTableDirectory);
+            writer.RelayPhysicalGlobals(BoundImportTableDirectory);
+            writer.RelayGlobals(ImportAddressTableDirectory);
+            writer.RelayGlobals(DelayImportTableDirectory);
+            writer.RelayGlobals(CorHeaderTableDirectory);
         }
 
         //We don't care about representing that there's a 32 and 64-bit versions of the structure
@@ -402,15 +419,15 @@ namespace PESpy
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(SizeOfCode), SizeOfCodeOffset, SizeOfCode);
+                    structWriter.WriteField(nameof(SizeOfCode), SizeOfCodeOffset, SizeOfCode, FieldViewFlags.Size);
                     break;
 
                 case 4:
-                    structWriter.WriteField(nameof(SizeOfInitializedData), SizeOfInitializedDataOffset, SizeOfInitializedData);
+                    structWriter.WriteField(nameof(SizeOfInitializedData), SizeOfInitializedDataOffset, SizeOfInitializedData, FieldViewFlags.Size);
                     break;
 
                 case 5:
-                    structWriter.WriteField(nameof(SizeOfUninitializedData), SizeOfUninitializedDataOffset, SizeOfUninitializedData);
+                    structWriter.WriteField(nameof(SizeOfUninitializedData), SizeOfUninitializedDataOffset, SizeOfUninitializedData, FieldViewFlags.Size);
                     break;
 
                 case 6:
@@ -427,15 +444,15 @@ namespace PESpy
                 #region Windows Specific Fields
 
                 case 8:
-                    structWriter.WritePointerField(nameof(ImageBase), ImageBaseOffset, ImageBase);
+                    structWriter.WritePointerField(nameof(ImageBase), ImageBaseOffset, ImageBase, FieldViewFlags.Address);
                     break;
 
                 case 9:
-                    structWriter.WriteField(nameof(SectionAlignment), SectionAlignmentOffset, SectionAlignment);
+                    structWriter.WriteField(nameof(SectionAlignment), SectionAlignmentOffset, SectionAlignment, FieldViewFlags.Size);
                     break;
 
                 case 10:
-                    structWriter.WriteField(nameof(FileAlignment), FileAlignmentOffset, FileAlignment);
+                    structWriter.WriteField(nameof(FileAlignment), FileAlignmentOffset, FileAlignment, FieldViewFlags.Size);
                     break;
 
                 case 11:
@@ -467,11 +484,11 @@ namespace PESpy
                     break;
 
                 case 18:
-                    structWriter.WriteField(nameof(SizeOfImage), SizeOfImageOffset, SizeOfImage);
+                    structWriter.WriteField(nameof(SizeOfImage), SizeOfImageOffset, SizeOfImage, FieldViewFlags.Size);
                     break;
 
                 case 19:
-                    structWriter.WriteField(nameof(SizeOfHeaders), SizeOfHeadersOffset, SizeOfHeaders);
+                    structWriter.WriteField(nameof(SizeOfHeaders), SizeOfHeadersOffset, SizeOfHeaders, FieldViewFlags.Size);
                     break;
 
                 case 20:
@@ -487,19 +504,19 @@ namespace PESpy
                     break;
 
                 case 23:
-                    structWriter.WritePointerField(nameof(SizeOfStackReserve), SizeOfStackReserveOffset, SizeOfStackReserve);
+                    structWriter.WritePointerField(nameof(SizeOfStackReserve), SizeOfStackReserveOffset, SizeOfStackReserve, FieldViewFlags.Size);
                     break;
 
                 case 24:
-                    structWriter.WritePointerField(nameof(SizeOfStackCommit), SizeOfStackCommitOffset, SizeOfStackCommit);
+                    structWriter.WritePointerField(nameof(SizeOfStackCommit), SizeOfStackCommitOffset, SizeOfStackCommit, FieldViewFlags.Size);
                     break;
 
                 case 25:
-                    structWriter.WritePointerField(nameof(SizeOfHeapReserve), SizeOfHeapReserveOffset, SizeOfHeapReserve);
+                    structWriter.WritePointerField(nameof(SizeOfHeapReserve), SizeOfHeapReserveOffset, SizeOfHeapReserve, FieldViewFlags.Size);
                     break;
 
                 case 26:
-                    structWriter.WritePointerField(nameof(SizeOfHeapCommit), SizeOfHeapCommitOffset, SizeOfHeapCommit);
+                    structWriter.WritePointerField(nameof(SizeOfHeapCommit), SizeOfHeapCommitOffset, SizeOfHeapCommit, FieldViewFlags.Size);
                     break;
 
                 case 27:
@@ -514,63 +531,63 @@ namespace PESpy
                 #region Directory Entries
 
                 case 29:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT (0)]", ExportTableDirectoryOffset, ExportTableDirectory, 0, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_EXPORT (0)", ExportTableDirectoryOffset, ExportTableDirectory, 0, ref structWriter);
                     break;
 
                 case 30:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT (1)]", ImportTableDirectoryOffset, ImportTableDirectory, 1, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_IMPORT (1)", ImportTableDirectoryOffset, ImportTableDirectory, 1, ref structWriter);
                     break;
 
                 case 31:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE (2)]", ResourceTableDirectoryOffset, ResourceTableDirectory, 2, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_RESOURCE (2)", ResourceTableDirectoryOffset, ResourceTableDirectory, 2, ref structWriter);
                     break;
 
                 case 32:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)]", ExceptionTableDirectoryOffset, ExceptionTableDirectory, 3, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)", ExceptionTableDirectoryOffset, ExceptionTableDirectory, 3, ref structWriter);
                     break;
 
                 case 33:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY (4)]", SecurityTableDirectoryOffset, SecurityTableDirectory, 4, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_SECURITY (4)", SecurityTableDirectoryOffset, SecurityTableDirectory, 4, ref structWriter);
                     break;
 
                 case 34:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC (5)]", BaseRelocationTableDirectoryOffset, BaseRelocationTableDirectory, 5, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_BASERELOC (5)", BaseRelocationTableDirectoryOffset, BaseRelocationTableDirectory, 5, ref structWriter);
                     break;
 
                 case 35:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG (6)]", DebugTableDirectoryOffset, DebugTableDirectory, 6, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_DEBUG (6)", DebugTableDirectoryOffset, DebugTableDirectory, 6, ref structWriter);
                     break;
 
                 case 36:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_COPYRIGHT / IMAGE_DIRECTORY_ENTRY_ARCHITECTURE (7)]", CopyrightTableDirectoryOffset, CopyrightTableDirectory, 7, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_COPYRIGHT (7)", CopyrightTableDirectoryOffset, CopyrightTableDirectory, 7, ref structWriter);
                     break;
 
                 case 37:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)]", GlobalPointerTableDirectoryOffset, GlobalPointerTableDirectory, 8, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)", GlobalPointerTableDirectoryOffset, GlobalPointerTableDirectory, 8, ref structWriter);
                     break;
 
                 case 38:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS (9)]", ThreadLocalStorageTableDirectoryOffset, ThreadLocalStorageTableDirectory, 9, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_TLS (9)", ThreadLocalStorageTableDirectoryOffset, ThreadLocalStorageTableDirectory, 9, ref structWriter);
                     break;
 
                 case 39:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)]", LoadConfigTableDirectoryOffset, LoadConfigTableDirectory, 10, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)", LoadConfigTableDirectoryOffset, LoadConfigTableDirectory, 10, ref structWriter);
                     break;
 
                 case 40:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)]", BoundImportTableDirectoryOffset, BoundImportTableDirectory, 11, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)", BoundImportTableDirectoryOffset, BoundImportTableDirectory, 11, ref structWriter);
                     break;
 
                 case 41:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT (12)]", ImportAddressTableDirectoryOffset, ImportAddressTableDirectory, 12, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_IAT (12)", ImportAddressTableDirectoryOffset, ImportAddressTableDirectory, 12, ref structWriter);
                     break;
 
                 case 42:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)]", DelayImportTableDirectoryOffset, DelayImportTableDirectory, 13, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)", DelayImportTableDirectoryOffset, DelayImportTableDirectory, 13, ref structWriter);
                     break;
 
                 case 43:
-                    WriteDirectoryOrThrow("DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)]", CorHeaderTableDirectoryOffset, CorHeaderTableDirectory, 14, ref structWriter);
+                    WriteDirectoryOrThrow("IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)", CorHeaderTableDirectoryOffset, CorHeaderTableDirectory, 14, ref structWriter);
                     break;
 
                 case 44:

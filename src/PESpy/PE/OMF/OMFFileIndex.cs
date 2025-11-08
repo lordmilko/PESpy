@@ -19,7 +19,7 @@ namespace PESpy
     /// <summary>
     /// Represents the file information pointed to by <see cref="SST.sstFileIndex"/> and <see cref="NewDBIHdr.cbFileInfo"/>.
     /// </summary>
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public partial class OMFFileIndex : IValue, IViewable
     {
         private const int NumModulesOffset = 0;

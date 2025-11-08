@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace PESpy
 {
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public struct OMFSourceFile : IValue
     {
         public ushort cSeg => chunk.PeekUInt16(0);

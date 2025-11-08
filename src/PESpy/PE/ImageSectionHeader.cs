@@ -248,8 +248,10 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteSmallVAPointerField(PointerToRelocations, fieldOffset: PointerToRelocationsOffset);
-            writer.WriteSmallVAPointerField(PointerToLineNumbers, fieldOffset: PointerToLineNumbersOffset);
+            var structOffset = Offset;
+
+            writer.WriteSmallVAPointerField(PointerToRelocations, structOffset, fieldOffset: PointerToRelocationsOffset);
+            writer.WriteSmallVAPointerField(PointerToLineNumbers, structOffset, fieldOffset: PointerToLineNumbersOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

@@ -95,7 +95,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //The ImageBoundForwarderRef can share the same target
-            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageBoundImportName, OffsetModuleNameOffset);
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageBoundImportName, Offset, fieldOffset: OffsetModuleNameOffset);
 
             writer.RelayGlobals(Refs);
         }

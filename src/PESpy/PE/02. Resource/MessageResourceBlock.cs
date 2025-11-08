@@ -72,7 +72,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(OffsetToEntries, OffsetToEntriesOffset);
+            writer.WriteRVAField(OffsetToEntries, Offset, OffsetToEntriesOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

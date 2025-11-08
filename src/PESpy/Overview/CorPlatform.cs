@@ -21,7 +21,7 @@ namespace PESpy
 
             public override string ToString()
             {
-                if (magic == PEMagic.PE32Plus)
+                if (magic == PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                     return "x64";
 
                 //The spec says it's illegal to say 32BITPREFERRED without also saying 32BITREQUIRED, however I tested this

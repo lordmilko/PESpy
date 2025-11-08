@@ -178,12 +178,15 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            var structOffset = Offset;
+
             using var _ = writer.EnterTag(ViewTag.Import);
 
             if (OriginalFirstThunk.IsValid && OriginalFirstThunk.ListedOffset != 0)
             {
                 using var r = writer.CreateScopedRegion(
                     OriginalFirstThunk.ActualOffset,
+                    structOffset,
                     OriginalFirstThunkOffset,
                     $"[ImportLookupTable] {Name}",
                     ViewKind.ImportLookupTable,
@@ -197,12 +200,13 @@ namespace PESpy
             }
 
             //This name may also be written by ImageEnclaveImport
-            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImportName, fieldOffset: NameOffset);
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImportName, structOffset, fieldOffset: NameOffset);
 
             if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
             {
                 using var r = writer.CreateScopedRegion(
                     FirstThunk.ActualOffset,
+                    structOffset,
                     FirstThunkOffset,
                     $"[ImportAddressTable] {Name}",
                     ViewKind.ImportAddressTable,

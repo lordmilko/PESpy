@@ -49,6 +49,8 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal int GuardXFGTableDispatchFunctionPointerOffset => 64 + (29 * chunk.PointerSize);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int CastGuardOsDeterminedFailureModeOffset => 64 + (30 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal int GuardMemcpyFunctionPointerOffset => 64 + (31 * chunk.PointerSize);
 
         /// <summary>
@@ -295,27 +297,28 @@ namespace PESpy
         #endregion
         #region Windows SDK 8.1+
 
+        private VA<long> guardCFCheckFunctionPointer;
+
         /// <summary>
         /// The VA where Control Flow Guard check-function pointer is stored.
         /// </summary>
-        private VA<long> guardCFCheckFunctionPointer;
-
         public VA<long> GuardCFCheckFunctionPointer =>
             GetFunctionPointer(ref guardCFCheckFunctionPointer, chunk.TryPeekPointer(GuardCFCheckFunctionPointerOffset, Size));
+
+        private VA<long> guardCFDispatchFunctionPointer;
 
         /// <summary>
         /// The VA where Control Flow Guard dispatch-function pointer is stored.
         /// </summary>
-        private VA<long> guardCFDispatchFunctionPointer;
-
         public VA<long> GuardCFDispatchFunctionPointer =>
             GetFunctionPointer(ref guardCFDispatchFunctionPointer, chunk.TryPeekPointer(GuardCFDispatchFunctionPointerOffset, Size));
 
-        /// <summary>
-        /// The VA of the sorted table of RVAs of each Control Flow Guard function in the image.
-        /// </summary>
         private VA<GuardCFFunctionTable> guardCFFunctionTable;
 
+        /// <summary>
+        /// The VA of the sorted table of RVAs of each Control Flow Guard function in the image.<para/>
+        /// __guard_fids_table
+        /// </summary>
         public VA<GuardCFFunctionTable> GuardCFFunctionTable
         {
             get
@@ -378,11 +381,11 @@ namespace PESpy
             }
         }
 
+        private VA<GuardAddressTakenIatEntryTable> guardAddressTakenIatEntryTable;
+
         /// <summary>
         /// The VA where Control Flow Guard address taken IAT table is stored.
         /// </summary>
-        private VA<GuardAddressTakenIatEntryTable> guardAddressTakenIatEntryTable;
-
         public VA<GuardAddressTakenIatEntryTable> GuardAddressTakenIatEntryTable
         {
             get
@@ -417,11 +420,11 @@ namespace PESpy
         /// </summary>
         public long GuardAddressTakenIatEntryCount => chunk.TryPeekPointer(48 + (15 * chunk.PointerSize), Size);
 
+        private VA<GuardLongJumpTargetTable> guardLongJumpTargetTable;
+
         /// <summary>
         /// The VA where Control Flow Guard long jump target table is stored.
         /// </summary>
-        private VA<GuardLongJumpTargetTable> guardLongJumpTargetTable;
-
         public VA<GuardLongJumpTargetTable> GuardLongJumpTargetTable
         {
             get
@@ -580,6 +583,9 @@ namespace PESpy
 
         private VA<GuardEHContinuationTable> guardEHContinuationTable;
 
+        /// <summary>
+        /// __guard_eh_cont_table
+        /// </summary>
         public VA<GuardEHContinuationTable> GuardEHContinuationTable
         {
             get
@@ -629,7 +635,10 @@ namespace PESpy
         public VA<long> GuardXFGTableDispatchFunctionPointer =>
             GetFunctionPointer(ref guardXFGTableDispatchFunctionPointer, chunk.TryPeekPointer(GuardXFGTableDispatchFunctionPointerOffset, Size));
 
-        public long CastGuardOsDeterminedFailureMode => chunk.TryPeekPointer(64 + (30 * chunk.PointerSize), Size);
+        private VA<long> castGuardOsDeterminedFailureMode;
+
+        public VA<long> CastGuardOsDeterminedFailureMode => 
+            GetFunctionPointer(ref castGuardOsDeterminedFailureMode, chunk.TryPeekPointer(CastGuardOsDeterminedFailureModeOffset, Size));
 
         #endregion
         #region Windows SDK 10.0.22621+
@@ -678,31 +687,51 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAPointerField(LockPrefixTable, ViewKind.LockPrefixTable, fieldOffset: LockPrefixTableOffset); //9
+            var structOffset = Offset;
 
-            writer.WriteVAPointerField(SecurityCookie, ViewKind.SecurityCookie, fieldOffset: SecurityCookieOffset); //17
-            writer.WriteVAPointerField(SEHandlerTable, ViewKind.SEHandlerTable, fieldOffset: SEHandlerTableOffset); //18
+            #region LockPrefixTable
 
-            writer.WriteVAPointerField(GuardCFCheckFunctionPointer, ViewKind.GuardCFCheckFunctionPointer, fieldOffset: GuardCFCheckFunctionPointerOffset); //20
-            writer.WriteVAPointerField(GuardCFDispatchFunctionPointer, ViewKind.GuardCFDispatchFunctionPointer, fieldOffset: GuardCFDispatchFunctionPointerOffset); //21
+            var lockPrefixTable = LockPrefixTable;
+            var lockPrefixTableOffset = LockPrefixTableOffset;
 
-            writer.WriteVAPointerField(GuardCFFunctionTable, fieldOffset: GuardCFFunctionTableOffset); //22
-            writer.WriteVAPointerField(GuardAddressTakenIatEntryTable, fieldOffset: GuardAddressTakenIatEntryTableOffset); //26
-            writer.WriteVAPointerField(GuardLongJumpTargetTable, fieldOffset: GuardLongJumpTargetTableOffset); //28
+            writer.WriteVAPointerField(lockPrefixTable, ViewKind.LockPrefixTable, structOffset, fieldOffset: lockPrefixTableOffset); //9
+            writer.WriteVAXRef(structOffset, lockPrefixTableOffset, lockPrefixTable);
 
-            writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer, fieldOffset: GuardRFFailureRoutineFunctionPointerOffset); //33
+            #endregion
 
-            writer.WriteRVAField(DynamicValueRelocTableOffset, DynamicValueRelocTableOffsetOffset);
+            writer.WriteVAPointerField(SecurityCookie, ViewKind.SecurityCookie, structOffset, fieldOffset: SecurityCookieOffset); //17
 
-            writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer, fieldOffset: GuardRFVerifyStackPointerFunctionPointerOffset); //37
+            #region SEHandlerTable
 
-            writer.WriteVAPointerField(EnclaveConfigurationPointer, fieldOffset: EnclaveConfigurationPointerOffset); //40
-            writer.WriteVAPointerField(GuardEHContinuationTable, fieldOffset: GuardEHContinuationTableOffset); //42
+            var seHandlerTable = SEHandlerTable;
+            var seHandlerTableOffset = SEHandlerTableOffset;
 
-            writer.WriteVAPointerField(GuardXFGCheckFunctionPointer, ViewKind.GuardXFGCheckFunctionPointer, fieldOffset: GuardXFGCheckFunctionPointerOffset); //44
-            writer.WriteVAPointerField(GuardXFGDispatchFunctionPointer, ViewKind.GuardXFGDispatchFunctionPointer, fieldOffset: GuardXFGDispatchFunctionPointerOffset); //45
-            writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer, fieldOffset: GuardXFGTableDispatchFunctionPointerOffset); //46
-            writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer, fieldOffset: GuardMemcpyFunctionPointerOffset); //48
+            writer.WriteVAPointerField(seHandlerTable, ViewKind.SEHandlerTable, structOffset, fieldOffset: seHandlerTableOffset); //18
+            writer.WriteVAXRef(structOffset, seHandlerTableOffset, seHandlerTable);
+
+            #endregion
+
+            writer.WriteVAPointerField(GuardCFCheckFunctionPointer, ViewKind.GuardCFCheckFunctionPointer, structOffset, fieldOffset: GuardCFCheckFunctionPointerOffset); //20
+            writer.WriteVAPointerField(GuardCFDispatchFunctionPointer, ViewKind.GuardCFDispatchFunctionPointer, structOffset, fieldOffset: GuardCFDispatchFunctionPointerOffset); //21
+
+            writer.WriteVAPointerField(GuardCFFunctionTable, structOffset, fieldOffset: GuardCFFunctionTableOffset); //22
+            writer.WriteVAPointerField(GuardAddressTakenIatEntryTable, structOffset, fieldOffset: GuardAddressTakenIatEntryTableOffset); //26
+            writer.WriteVAPointerField(GuardLongJumpTargetTable, structOffset, fieldOffset: GuardLongJumpTargetTableOffset); //28
+
+            writer.WriteVAPointerField(GuardRFFailureRoutineFunctionPointer, ViewKind.GuardRFFailureRoutineFunctionPointer, structOffset, fieldOffset: GuardRFFailureRoutineFunctionPointerOffset); //33
+
+            writer.WriteRVAField(DynamicValueRelocTableOffset, structOffset, fieldOffset: DynamicValueRelocTableOffsetOffset);
+
+            writer.WriteVAPointerField(GuardRFVerifyStackPointerFunctionPointer, ViewKind.GuardRFVerifyStackPointerFunctionPointer, structOffset, fieldOffset: GuardRFVerifyStackPointerFunctionPointerOffset); //37
+
+            writer.WriteVAPointerField(EnclaveConfigurationPointer, structOffset, fieldOffset: EnclaveConfigurationPointerOffset); //40
+            writer.WriteVAPointerField(GuardEHContinuationTable, structOffset, fieldOffset: GuardEHContinuationTableOffset); //42
+
+            writer.WriteVAPointerField(GuardXFGCheckFunctionPointer, ViewKind.GuardXFGCheckFunctionPointer, structOffset, fieldOffset: GuardXFGCheckFunctionPointerOffset); //44
+            writer.WriteVAPointerField(GuardXFGDispatchFunctionPointer, ViewKind.GuardXFGDispatchFunctionPointer, structOffset, fieldOffset: GuardXFGDispatchFunctionPointerOffset); //45
+            writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer, structOffset, fieldOffset: GuardXFGTableDispatchFunctionPointerOffset); //46
+            writer.WriteVAPointerField(CastGuardOsDeterminedFailureMode, ViewKind.CastGuardOsDeterminedFailureMode, structOffset, fieldOffset: CastGuardOsDeterminedFailureModeOffset); //47
+            writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer, structOffset, fieldOffset: GuardMemcpyFunctionPointerOffset); //48
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -838,7 +867,7 @@ namespace PESpy
                     #region Windows SDK 10.0.10586.0+
 
                     case 25:
-                        s.WriteInline(CodeIntegrity);
+                        s.WriteStructField(nameof(CodeIntegrity), CodeIntegrity, ImageLoadConfigCodeIntegrity.StructSize);
                         break;
 
                     case 26:
@@ -929,7 +958,7 @@ namespace PESpy
                         break;
 
                     case 47:
-                        s.WritePointerField(nameof(CastGuardOsDeterminedFailureMode), CastGuardOsDeterminedFailureMode);
+                        s.WriteVAPointerField(nameof(CastGuardOsDeterminedFailureMode), CastGuardOsDeterminedFailureMode, ViewKind.CastGuardOsDeterminedFailureMode);
                         break;
 
                     #endregion

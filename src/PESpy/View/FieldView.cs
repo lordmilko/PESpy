@@ -10,10 +10,12 @@ namespace PESpy.View
         string Name { get; }
         object Value { get; }
         string ValueType { get; }
+
+        FieldViewFlags Flags { get; }
     }
 
     /// <summary>
-    /// Provides a view over a named field in a <see cref="StructView"/>.
+    /// Provides a view over a named field in an <see cref="IStructView"/>.
     /// </summary>
     /// <typeparam name="TValue">The type of value contained in the field.</typeparam>
     [DebuggerDisplay("{ViewDebuggerDisplay.Field(this),nq}")]
@@ -33,12 +35,15 @@ namespace PESpy.View
 
         public ViewKind Kind => ViewKind.Field;
 
-        public FieldView(int offset, string name, TValue value, int size)
+        public FieldViewFlags Flags { get; }
+
+        public FieldView(int offset, string name, TValue value, int size, FieldViewFlags flags)
         {
             Offset = offset;
             Name = name;
             Value = value;
             Size = size;
+            Flags = flags;
 
             //We can't assert that we have a size because the first item in the ECMA 335 blob heap is an empty array
         }
@@ -66,10 +71,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff);
+                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff, Flags);
             }
 
-            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff);
+            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff, Flags);
             second.Previous = first;
             first.Next = second;
 
@@ -86,7 +91,7 @@ namespace PESpy.View
                 throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
             }
 
-            return new FieldView<TValue>(newOffset, Name, Value, Size);
+            return new FieldView<TValue>(newOffset, Name, Value, Size, Flags);
         }
     }
 
@@ -96,7 +101,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitFieldView(int offset, string name, TValue value, int size) : base(offset, name, value, size)
+        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags) : base(offset, name, value, size, flags)
         {
         }
     }

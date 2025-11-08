@@ -18,9 +18,9 @@ namespace PESpy
 /// <summary>
 /// Specifies the certificate revision.
 /// </summary>
-        public WinCertRevision Revision => (WinCertRevision) chunk.PeekUInt16(RevisionOffset);
+        public WIN_CERT_REVISION Revision => (WIN_CERT_REVISION) chunk.PeekUInt16(RevisionOffset);
 
-        public WinCertType CertificateType => (WinCertType) chunk.PeekUInt16(CertificateTypeOffset);
+        public WIN_CERT_TYPE CertificateType => (WIN_CERT_TYPE) chunk.PeekUInt16(CertificateTypeOffset);
 
         private IValue? certificate;
 
@@ -34,7 +34,7 @@ namespace PESpy
 
                     switch (CertificateType)
                     {
-                        case WinCertType.SignedData:
+                        case WIN_CERT_TYPE.WIN_CERT_TYPE_PKCS_SIGNED_DATA:
                             //PKCS SignedData is in ASN.1 format, which is a crazy complicated encoding. BouncyCastle.Cryptography can parse these values easily with new X509CertificateParser().ReadCertificate(bytes);
                             //There's also a new .NET library System.Formats.Asn1 that you can use to parse ASN.1 values yourself, however it is very unintuitive. You can easily create a certificate without any external
                             //libraries by doing new X509Certificate2(bytes), but the whole point is that we want to describe what each byte is doing.

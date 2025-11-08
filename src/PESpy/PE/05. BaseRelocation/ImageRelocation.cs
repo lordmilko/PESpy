@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -16,7 +17,7 @@ namespace PESpy
         private const int TypeOffset = 8;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string DebuggerDisplay => $"VirtualAddress = {VirtualAddress}, SymbolTableIndex = {SymbolTableIndex}, Type = {(ImageRelI386) Type} (I386) / {(ImageRelAmd64) Type} (Amd64)";
+        private string DebuggerDisplay => $"VirtualAddress = {VirtualAddress}, SymbolTableIndex = {SymbolTableIndex}, Type = {(IMAGE_REL_I386) Type} (I386) / {(IMAGE_REL_AMD64) Type} (Amd64)";
 
         public int VirtualAddress => chunk.PeekInt32(VirtualAddressOffset);
 
@@ -73,73 +74,73 @@ namespace PESpy
 
                     switch (machine)
                     {
-                        case IMAGE_FILE_MACHINE.UNKNOWN:
+                        case IMAGE_FILE_MACHINE_UNKNOWN:
                             goto default;
 
-                        case IMAGE_FILE_MACHINE.I386:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelI386) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_I386:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_I386) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.R3000:
-                        case IMAGE_FILE_MACHINE.R4000:
-                        case IMAGE_FILE_MACHINE.R10000:
-                        case IMAGE_FILE_MACHINE.WCEMIPSV2:
+                        case IMAGE_FILE_MACHINE_R3000:
+                        case IMAGE_FILE_MACHINE_R4000:
+                        case IMAGE_FILE_MACHINE_R10000:
+                        case IMAGE_FILE_MACHINE_WCEMIPSV2:
                             goto default;
 
-                        case IMAGE_FILE_MACHINE.ALPHA:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelAlpha) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_ALPHA:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_ALPHA) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.SH3:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelSh3) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_SH3:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_SH3) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.SH3DSP:
-                        case IMAGE_FILE_MACHINE.SH3E:
-                        case IMAGE_FILE_MACHINE.SH4:
-                        case IMAGE_FILE_MACHINE.SH5:
-                        case IMAGE_FILE_MACHINE.ARM:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelArm) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_SH3DSP:
+                        case IMAGE_FILE_MACHINE_SH3E:
+                        case IMAGE_FILE_MACHINE_SH4:
+                        case IMAGE_FILE_MACHINE_SH5:
+                        case IMAGE_FILE_MACHINE_ARM:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_ARM) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.THUMB:
-                        case IMAGE_FILE_MACHINE.ARMNT:
-                        case IMAGE_FILE_MACHINE.AM33:
-                        case IMAGE_FILE_MACHINE.POWERPC:
-                        case IMAGE_FILE_MACHINE.POWERPCFP:
-                        case IMAGE_FILE_MACHINE.IA64:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelIa64) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_THUMB:
+                        case IMAGE_FILE_MACHINE_ARMNT:
+                        case IMAGE_FILE_MACHINE_AM33:
+                        case IMAGE_FILE_MACHINE_POWERPC:
+                        case IMAGE_FILE_MACHINE_POWERPCFP:
+                        case IMAGE_FILE_MACHINE_IA64:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_IA64) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.MIPS16:
-                        case IMAGE_FILE_MACHINE.ALPHA64:
-                        case IMAGE_FILE_MACHINE.MIPSFPU:
-                        case IMAGE_FILE_MACHINE.MIPSFPU16:
-                        case IMAGE_FILE_MACHINE.TRICORE:
+                        case IMAGE_FILE_MACHINE_MIPS16:
+                        case IMAGE_FILE_MACHINE_ALPHA64:
+                        case IMAGE_FILE_MACHINE_MIPSFPU:
+                        case IMAGE_FILE_MACHINE_MIPSFPU16:
+                        case IMAGE_FILE_MACHINE_TRICORE:
                             goto default;
 
-                        case IMAGE_FILE_MACHINE.CEF:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelCef) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_CEF:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_CEF) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.EBC:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelEbc) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_EBC:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_EBC) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.AMD64:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelAmd64) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_AMD64:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_AMD64) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.M32R:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelM32R) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_M32R:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_M32R) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.ARM64:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelArm64) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_ARM64:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_ARM64) Type, sizeof(short));
                             break;
 
-                        case IMAGE_FILE_MACHINE.CEE:
-                            structWriter.WriteField(nameof(Type), TypeOffset, (ImageRelCee) Type, sizeof(short));
+                        case IMAGE_FILE_MACHINE_CEE:
+                            structWriter.WriteField(nameof(Type), TypeOffset, (IMAGE_REL_CEE) Type, sizeof(short));
                             break;
 
                         default:

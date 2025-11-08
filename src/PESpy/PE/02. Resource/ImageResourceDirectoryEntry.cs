@@ -91,14 +91,14 @@ namespace PESpy
         /// Gets the type of resource contained in this directory entry.<para/>
         /// If this directory entry is not the top level directory entry, or has a string identifier, this member returns <see langword="null"/>.
         /// </summary>
-        public ResourceType? Type
+        public RT? Type
         {
             get
             {
                 if (Parent != null || NameOrId.NameIsString)
                     return null;
 
-                return (ResourceType) NameOrId.Id;
+                return (RT) NameOrId.Id;
             }
         }
 
@@ -123,13 +123,15 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            var structOffset = Offset;
+
             if (NameOrId.NameIsString)
-                writer.WriteRVAField(NameOrId.NameOffset, fieldOffset: NameOrIdOffset);
+                writer.WriteRVAField(NameOrId.NameOffset, structOffset, fieldOffset: NameOrIdOffset);
 
             if (dataAndDirectoryUnion.DataIsDirectory)
-                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToDirectory, fieldOffset: DataAndDirectoryOffset);
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToDirectory, structOffset, fieldOffset: DataAndDirectoryOffset);
             else
-                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToData, fieldOffset: DataAndDirectoryOffset);
+                writer.WriteRVAField(dataAndDirectoryUnion.OffsetToData, structOffset, fieldOffset: DataAndDirectoryOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

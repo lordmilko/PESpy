@@ -16,7 +16,7 @@ namespace PESpy
         private const int ReservedOffset = 9;
         private const int DataOffset = 12;
 
-        public ImageDebugMiscType DataType => (ImageDebugMiscType) chunk.PeekUInt32(DataTypeOffset);
+        public IMAGE_DEBUG_MISC_TYPE DataType => (IMAGE_DEBUG_MISC_TYPE) chunk.PeekUInt32(DataTypeOffset);
 
         public int Length => chunk.PeekInt32(LengthOffset);
 

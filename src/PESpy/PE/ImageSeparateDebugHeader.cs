@@ -29,7 +29,7 @@ namespace PESpy
 
         public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(MachineOffset);
 
-        public ImageFile Characteristics => (ImageFile) chunk.PeekUInt16(CharacteristicsOffset);
+        public IMAGE_FILE Characteristics => (IMAGE_FILE) chunk.PeekUInt16(CharacteristicsOffset);
 
         public uint TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 

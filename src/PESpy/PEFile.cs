@@ -64,7 +64,7 @@ namespace PESpy
 
         public EcmaMetadata? EcmaMetadata => peFile.EcmaMetadata;
 
-        public object? Cor20Resources => peFile.Cor20Resources;
+        public ManifestResource[]? Cor20Resources => peFile.Cor20Resources;
 
         public object? Cor20StrongNameSignature => peFile.Cor20StrongNameSignature;
 
@@ -84,27 +84,29 @@ namespace PESpy
 
         public CorCompileHeader? NgenHeader => peFile.NgenHeader;
 
-        public object? NgenHelperTable => peFile.NgenHelperTable;
+        public NgenHelperEntry[]? NgenHelperTable => peFile.NgenHelperTable;
 
-        public object? NgenImportSections => peFile.NgenImportSections;
+        public CorCompileImportSection[]? NgenImportSections => peFile.NgenImportSections;
+
+        public CorCompileImportTableEntry[]? NgenImportTable => peFile.NgenImportTable;
 
         public object? NgenStubsData => peFile.NgenStubsData;
 
-        public object? NgenVersionInfo => peFile.NgenVersionInfo;
+        public CorCompileVersionInfo? NgenVersionInfo => peFile.NgenVersionInfo;
 
-        public object? NgenDependencies => peFile.NgenDependencies;
+        public CorCompileDepepdency[]? NgenDependencies => peFile.NgenDependencies;
 
-        public object? NgenDebugMap => peFile.NgenDebugMap;
+        public int[]? NgenDebugMap => peFile.NgenDebugMap;
 
-        public object? NgenModuleImage => peFile.NgenModuleImage;
+        public ByteBlob? NgenModuleImage => peFile.NgenModuleImage;
 
-        public object? NgenCodeManagerTable => peFile.NgenCodeManagerTable;
+        public CorCompileCodeManagerEntry? NgenCodeManagerTable => peFile.NgenCodeManagerTable;
 
         public object? NgenProfileDataList => peFile.NgenProfileDataList;
 
-        public object? NgenManifestMetaData => peFile.NgenManifestMetaData;
+        public EcmaMetadata? NgenManifestMetaData => peFile.NgenManifestMetaData;
 
-        public object? NgenVirtualSectionsTable => peFile.NgenVirtualSectionsTable;
+        public CorCompileVirtualSectionInfo[]? NgenVirtualSectionsTable => peFile.NgenVirtualSectionsTable;
 
         public object? NgenEEInfoTable => peFile.NgenEEInfoTable;
 
@@ -186,8 +188,28 @@ namespace PESpy
         /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
         /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.</param>
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
-        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true) =>
-            new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded, null);
+        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true)
+        {
+#if NETSTANDARD
+            if (true)
+#else
+            if (OperatingSystem.IsWindows())
+#endif
+            {
+                if (NativeMethods.GetProcessId(hProcess) == NativeMethods.GetCurrentProcessId())
+                {
+                    var moduleInfo = new MODULEINFO();
+
+                    if (NativeMethods.GetModuleInformation(hProcess, moduleBase, &moduleInfo, sizeof(MODULEINFO)) != 0)
+                    {
+                        //Fast path: just memory map it
+                        return new PEFile(null, new MemoryMappedFileHolder((byte*) moduleBase, moduleInfo.SizeOfImage), isLoaded);
+                    }
+                }
+            }
+
+            return new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded, null);
+        }
 
         public static PEFile FromStream(Stream stream, bool isLoadedImage, string? fileName = null)
         {
@@ -247,7 +269,7 @@ namespace PESpy
 
                             switch (debugDirectory.Type)
                             {
-                                case ImageDebugType.CodeView:
+                                case IMAGE_DEBUG_TYPE_CODEVIEW:
                                 {
                                     var data = (ICodeViewPDB?) debugDirectory.Data;
 
@@ -278,7 +300,7 @@ namespace PESpy
                                     break;
                                 }
 
-                                case ImageDebugType.Misc:
+                                case IMAGE_DEBUG_TYPE_MISC:
                                 {
                                     var data = (ImageDebugMisc?) debugDirectory.Data;
 
@@ -364,7 +386,7 @@ namespace PESpy
                         {
                             ref var debugDir = ref debugTable[i];
 
-                            if (debugDir.Type == ImageDebugType.CodeView)
+                            if (debugDir.Type == IMAGE_DEBUG_TYPE_CODEVIEW)
                             {
                                 if (debugDir.Data is ICodeViewPDB p)
                                 {
@@ -412,7 +434,7 @@ namespace PESpy
                                                     {
                                                         debugDir = ref debugTable[j];
 
-                                                        if (debugDir.Type == ImageDebugType.CodeView)
+                                                        if (debugDir.Type == IMAGE_DEBUG_TYPE_CODEVIEW)
                                                         {
                                                             anyBetterPDB = true;
                                                             i = j - 1; //Skip ahead to it (i is about to be incremented to j after this loop ends)
@@ -450,7 +472,7 @@ namespace PESpy
                         {
                             ref var debugDir = ref debugTable[i];
 
-                            if (debugDir.Type == ImageDebugType.Misc)
+                            if (debugDir.Type == IMAGE_DEBUG_TYPE_MISC)
                             {
                                 var data = (ImageDebugMisc) debugDir.Data!;
                                 key = SymStoreKey.FromMisc(data.Data.ToString(), FileHeader.TimeDateStamp, OptionalHeader.SizeOfImage);
@@ -776,15 +798,11 @@ namespace PESpy
         #endregion
         #region Exception Table (3)
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private RuntimeFunction[]? exceptionTable;
-
-#if PEFAST
         /// <summary>
         /// Gets the exception table pointed to by <see cref="ImageOptionalHeader.ExceptionTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_EXCEPTION) containing information used to unwind stack frames during exception handling.<para/>
         /// If the image does not have an exception table, this property returns <see langword="null"/>.
         /// </summary>
-        public RuntimeFunctionList ExceptionTable
+        public RuntimeFunctionList? ExceptionTable
         {
             get
             {
@@ -1216,12 +1234,12 @@ namespace PESpy
         #endregion
         #region Cor20Resources
 
-        private object? cor20Resources;
+        private ManifestResource[]? cor20Resources;
 
         /// <summary>
         /// Gets the data pointed to by the <see cref="ImageCor20Header.Resources"/> directory.
         /// </summary>
-        public object? Cor20Resources
+        public ManifestResource[]? Cor20Resources
         {
             get
             {
@@ -1235,8 +1253,27 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            cor20Resources = null;
-                            throw new NotImplementedException();
+                            //The managed resources are described by the manifest resources table
+
+                            var resourceTable = EcmaMetadata?.CompressedModelHeap?.ManifestResourceTable;
+
+                            if (resourceTable != null)
+                            {
+                                //Only rows with a RID of 0 should be processed (per nidump.cpp)
+                                using var results = new PooledList<ManifestResource>();
+
+                                foreach (var row in resourceTable)
+                                {
+                                    if (row.Implementation.RowId != 0)
+                                        continue;
+
+                                    var data = chunk.Slice(row.ResourceOffset);
+
+                                    results.Add(new ManifestResource(row, data));
+                                }
+
+                                cor20Resources = results.ToArray();
+                            }
                         }
                     }
                 }
@@ -1522,12 +1559,12 @@ namespace PESpy
 
         #region NgenHelperTable
 
-        private object? ngenHelperTable;
+        private NgenHelperEntry[]? ngenHelperTable;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.HelperTable"/> directory.
         /// </summary>
-        public object? NgenHelperTable
+        public NgenHelperEntry[]? NgenHelperTable
         {
             get
             {
@@ -1541,8 +1578,25 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenHelperTable = null;
-                            throw new NotImplementedException();
+                            var read = 0;
+
+                            var pointerSize = chunk.PointerSize;
+
+                            using var results = new PooledList<NgenHelperEntry>();
+
+                            while (read < table.Size)
+                            {
+                                var item = chunk.PeekUnmanaged<NgenHelperEntry>(read);
+
+                                results.Add(item);
+
+                                if (item.IsPointer)
+                                    read += pointerSize;
+                                else
+                                    read += NgenHelperEntry.HELPER_TABLE_ENTRY_LEN;
+                            }
+
+                            ngenHelperTable = results.ToArray();
                         }
                     }
                 }
@@ -1554,12 +1608,12 @@ namespace PESpy
         #endregion
         #region NgenImportSections
 
-        private object? ngenImportSections;
+        private CorCompileImportSection[]? ngenImportSections;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ImportSections"/> directory.
         /// </summary>
-        public object? NgenImportSections
+        public CorCompileImportSection[]? NgenImportSections
         {
             get
             {
@@ -1573,13 +1627,53 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenImportSections = null;
-                            throw new NotImplementedException();
+                            var results = new CorCompileImportSection[table.Size / CorCompileImportSection.StructSize];
+
+                            for (var i = 0; i < results.Length; i++)
+                                results[i] = new CorCompileImportSection(chunk.Slice(i * CorCompileImportSection.StructSize));
+
+                            ngenImportSections = results;
                         }
                     }
                 }
 
                 return ngenImportSections;
+            }
+        }
+
+        #endregion
+        #region NgenImportTable
+
+        private CorCompileImportTableEntry[]? ngenImportTable;
+
+        /// <summary>
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ImportTable"/> directory.
+        /// </summary>
+        public CorCompileImportTableEntry[]? NgenImportTable
+        {
+            get
+            {
+                if (ngenImportTable == null)
+                {
+                    var ngen = NgenHeader;
+
+                    if (ngen != null)
+                    {
+                        var table = ngen.ImportTable;
+
+                        if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
+                        {
+                            var results = new CorCompileImportTableEntry[table.Size / CorCompileImportTableEntry.StructSize];
+
+                            for (var i = 0; i < results.Length; i++)
+                                results[i] = new CorCompileImportTableEntry(chunk.Slice(i * CorCompileImportTableEntry.StructSize));
+
+                            ngenImportTable = results;
+                        }
+                    }
+                }
+
+                return ngenImportTable;
             }
         }
 
@@ -1618,12 +1712,12 @@ namespace PESpy
         #endregion
         #region NgenVersionInfo
 
-        private object? ngenVersionInfo;
+        private CorCompileVersionInfo? ngenVersionInfo;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.VersionInfo"/> directory.
         /// </summary>
-        public object? NgenVersionInfo
+        public CorCompileVersionInfo? NgenVersionInfo
         {
             get
             {
@@ -1637,8 +1731,7 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenVersionInfo = null;
-                            throw new NotImplementedException();
+                            ngenVersionInfo = new CorCompileVersionInfo(chunk);
                         }
                     }
                 }
@@ -1650,12 +1743,12 @@ namespace PESpy
         #endregion
         #region NgenDependencies
 
-        private object? ngenDependencies;
+        private CorCompileDepepdency[]? ngenDependencies;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.Dependencies"/> directory.
         /// </summary>
-        public object? NgenDependencies
+        public CorCompileDepepdency[]? NgenDependencies
         {
             get
             {
@@ -1669,8 +1762,12 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenDependencies = null;
-                            throw new NotImplementedException();
+                            var results = new CorCompileDepepdency[table.Size / CorCompileDepepdency.StructSize];
+
+                            for (var i = 0; i < results.Length; i++)
+                                results[i] = new CorCompileDepepdency(chunk.Slice(i * CorCompileDepepdency.StructSize));
+
+                            ngenDependencies = results;
                         }
                     }
                 }
@@ -1682,12 +1779,12 @@ namespace PESpy
         #endregion
         #region NgenDebugMap
 
-        private object? ngenDebugMap;
+        private int[]? ngenDebugMap;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.DebugMap"/> directory.
         /// </summary>
-        public object? NgenDebugMap
+        public int[]? NgenDebugMap
         {
             get
             {
@@ -1701,8 +1798,13 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenDebugMap = null;
-                            throw new NotImplementedException();
+                            //Seems to relate to the .dbgmap section
+
+                            //The map consists of an array of CORCOMPILE_DEBUG_RID_ENTRY entries
+                            //This is a typedef of CORCOMPILE_DEBUG_ENTRY
+                            //which is itself a typedef of ULONG
+
+                            ngenDebugMap = chunk.PeekNativeSpan<int>(0, table.Size / sizeof(int)).ToArray();
                         }
                     }
                 }
@@ -1714,12 +1816,12 @@ namespace PESpy
         #endregion
         #region NgenModuleImage
 
-        private object? ngenModuleImage;
+        private ByteBlob? ngenModuleImage;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ModuleImage"/> directory.
         /// </summary>
-        public object? NgenModuleImage
+        public ByteBlob? NgenModuleImage
         {
             get
             {
@@ -1733,8 +1835,11 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenModuleImage = null;
-                            throw new NotImplementedException();
+                            //The module directory consists of an internal CLR Module data structure persisted to disk.
+                            //I don't feel like this would be a backwards compatible data structure; either way, too complex
+                            //for now so we'll just return a byte blob
+
+                            ngenModuleImage = new ByteBlob(chunk, table.Size);
                         }
                     }
                 }
@@ -1746,12 +1851,12 @@ namespace PESpy
         #endregion
         #region NgenCodeManagerTable
 
-        private object? ngenCodeManagerTable;
+        private CorCompileCodeManagerEntry? ngenCodeManagerTable;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.CodeManagerTable"/> directory.
         /// </summary>
-        public object? NgenCodeManagerTable
+        public CorCompileCodeManagerEntry? NgenCodeManagerTable
         {
             get
             {
@@ -1765,8 +1870,7 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenCodeManagerTable = null;
-                            throw new NotImplementedException();
+                            ngenCodeManagerTable = new CorCompileCodeManagerEntry(chunk);
                         }
                     }
                 }
@@ -1810,12 +1914,12 @@ namespace PESpy
         #endregion
         #region NgenManifestMetaData
 
-        private object? ngenManifestMetaData;
+        private EcmaMetadata? ngenManifestMetaData;
 
         /// <summary>
-        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ProfileDataList"/> directory.
+        /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.ManifestMetaData"/> directory.
         /// </summary>
-        public object? NgenManifestMetaData
+        public EcmaMetadata? NgenManifestMetaData
         {
             get
             {
@@ -1828,10 +1932,7 @@ namespace PESpy
                         var table = ngen.ManifestMetaData;
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
-                        {
-                            ngenManifestMetaData = null;
-                            throw new NotImplementedException();
-                        }
+                            ngenManifestMetaData = new EcmaMetadata(chunk);
                     }
                 }
 
@@ -1842,12 +1943,12 @@ namespace PESpy
         #endregion
         #region NgenVirtualSectionsTable
 
-        private object? ngenVirtualSectionsTable;
+        private CorCompileVirtualSectionInfo[]? ngenVirtualSectionsTable;
 
         /// <summary>
         /// Gets the data pointed to by the NGEN <see cref="CorCompileHeader.VirtualSectionsTable"/> directory.
         /// </summary>
-        public object? NgenVirtualSectionsTable
+        public CorCompileVirtualSectionInfo[]? NgenVirtualSectionsTable
         {
             get
             {
@@ -1861,8 +1962,12 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            ngenVirtualSectionsTable = null;
-                            throw new NotImplementedException();
+                            var results = new CorCompileVirtualSectionInfo[table.Size / CorCompileVirtualSectionInfo.StructSize];
+
+                            for (var i = 0; i < results.Length; i++)
+                                results[i] = new CorCompileVirtualSectionInfo(chunk.Slice(i * CorCompileVirtualSectionInfo.StructSize));
+
+                            ngenVirtualSectionsTable = results;;
                         }
                     }
                 }
@@ -2097,7 +2202,7 @@ namespace PESpy
 
         private ISymbolAccessor? symbolAccessor;
 
-        public ISymbolAccessor GetSymbolAccessor()
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
         {
             if (symbolAccessor != null)
                 return symbolAccessor;
@@ -2130,6 +2235,10 @@ namespace PESpy
                             symbolAccessor = NullSymbolAccessor.Instance;
 
                         return symbolAccessor;
+
+                    case Locator.ArtifactKind.EmbeddedPortablePdb:
+                        symbolAccessor = new PortablePDBFileSymbolAccessor(PortablePDBFile.FromEmbeddedFile((EmbeddedPortablePdb) DebugTable[artifacts.EmbeddedPortablePdbIndex.Value].Data));
+                        break;
 
                     default:
                         throw new NotImplementedException();
@@ -2238,9 +2347,9 @@ namespace PESpy
         //it's faster to do lazy initialization of our core header types. However, once you start
         //accessing members multiple times, it quickly becomes faster to preload everything
 
-        internal PEFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal PEFile(string fileName, in MemoryMappedFileHolder mmf, bool isLoadedImage = false)
         {
-            IsLoadedImage = false;
+            IsLoadedImage = isLoadedImage;
 
             FileName = fileName;
             Name = Path.GetFileName(fileName);
@@ -2251,7 +2360,7 @@ namespace PESpy
                 blockProvider = localProvider;
                 headerBlock = new LocalHeaderMemoryBlock(localProvider);
                 InitializeHeaders();
-                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
             }
             catch
             {
@@ -2273,7 +2382,7 @@ namespace PESpy
                 blockProvider = localProvider;
                 headerBlock = new LocalHeaderMemoryBlock(localProvider, startOffset);
                 InitializeHeaders();
-                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
             }
             catch
             {
@@ -2303,7 +2412,7 @@ namespace PESpy
 
                 InitializeHeaders();
 
-                remoteProvider.is32Bit = OptionalHeader.Magic == PEMagic.PE32;
+                remoteProvider.is32Bit = OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
             }
             catch
             {
@@ -2318,7 +2427,7 @@ namespace PESpy
             ntHeaders = new ImageNtHeaders(new MemoryChunk(headerBlock, dosHeader.FileAddressOfNewExeHeader));
 
             //ImageOptionalHeader cannot be meaningfully read until the pointer size is known
-            headerBlock.Is32Bit = ntHeaders.OptionalHeader.Magic == PEMagic.PE32;
+            headerBlock.Is32Bit = ntHeaders.OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
 
             //If the header block was not big enough to store the size of the image, resize it before anyone has started using the PEFile.
             //If the PEFile is a memory mapped file, this is a no-op
@@ -2595,12 +2704,13 @@ namespace PESpy
             return false;
         }
 
+        //If the caller might pass in 0, it's on them to not do that
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {
-            if (offset == 0)
+            if (offset < OptionalHeader.SizeOfHeaders)
             {
-                chunk = default;
-                return false;
+                chunk = new MemoryChunk(headerBlock, offset);
+                return true;
             }
 
             if (TryGetSectionBlockFromOffset(offset, out var block, out var relativeOffset))

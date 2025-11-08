@@ -53,7 +53,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAAnsiNullTerminatedField(Name, ViewKind.GlobalValueEntry_Name, fieldOffset: NameOffset);
+            writer.WriteVAAnsiNullTerminatedField(Name, ViewKind.GlobalValueEntry_Name, Offset, fieldOffset: NameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

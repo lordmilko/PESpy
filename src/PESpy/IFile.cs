@@ -84,7 +84,7 @@ namespace PESpy
         FileView GetView();
 
         //If no symbol accessor could be found, returns the NullSymbolAccessor
-        ISymbolAccessor GetSymbolAccessor();
+        ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null);
     }
 
     internal interface IFileWithCodeViewData

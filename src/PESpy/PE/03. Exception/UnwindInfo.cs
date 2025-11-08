@@ -393,6 +393,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            var structOffset = Offset;
+
             if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
             {
                 var fieldOffset = 4 + (((CountOfCodes + 1) & ~1) * 2) + 4; //4 fixed bytes + CountOfCodes aligned to an even number + ExceptionHandler
@@ -400,9 +402,9 @@ namespace PESpy
                 var data = ExceptionData;
 
                 if (data is RVA<FuncInfoV1> r1)
-                    writer.WriteRVAField(r1, fieldOffset);
+                    writer.WriteRVAField(r1, structOffset, fieldOffset);
                 else if (data is RVA<FuncInfo> r2)
-                    writer.WriteRVAField(r2, fieldOffset);
+                    writer.WriteRVAField(r2, structOffset, fieldOffset);
                 //else if (data is RVA<FuncInfo4> r4)
                 //    writer.WriteRVAField(r4, fieldOffset);
             }

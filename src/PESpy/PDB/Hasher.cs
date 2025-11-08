@@ -8,6 +8,8 @@
             var numLeadingWords = length / 4;
             uint hash = 0;
 
+            //The native version uses duff's device, which can't be done in C# because it requires being able to fall
+            //through the cases in a switch statement
             for (var i = 0; i < numLeadingWords; i++)
             {
                 hash ^= *(uint*) data;

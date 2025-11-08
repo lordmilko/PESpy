@@ -72,7 +72,7 @@ namespace PESpy
         {
             internal const int StructSize = sizeof(ushort);
 
-            public ImageRelBased Type => (ImageRelBased) (Value >> 12);
+            public IMAGE_REL_BASED Type => (IMAGE_REL_BASED) (Value >> 12);
 
             public short Offset => (short) (Value & 0x0FFF);
 

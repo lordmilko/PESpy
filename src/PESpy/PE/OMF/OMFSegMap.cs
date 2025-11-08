@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    [Source(SourceKind.cvexefmt)]
+    [Source(SourceKind.cvexefmt_h)]
     public class OMFSegMap : IValue, IViewable //Class as it may not be present
     {
         private const int cSegOffset = 0;

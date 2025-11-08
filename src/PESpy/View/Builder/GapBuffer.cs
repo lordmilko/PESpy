@@ -281,6 +281,12 @@ namespace PESpy
                 Capacity = (Count + length) * 2;
         }
 
+        public void Clear()
+        {
+            gapStart = 0;
+            gapEnd = buffer.Length;
+        }
+
         public override string ToString()
         {
             if (typeof(T) == typeof(char))

@@ -36,13 +36,13 @@ namespace PESpy
 
         public ushort SectionNumber => chunk.PeekUInt16(SectionNumberOffset);
 
-        public ImageSymType Type => (ImageSymType) chunk.PeekUInt16(TypeOffset);
+        public IMAGE_SYM_TYPE Type => (IMAGE_SYM_TYPE) chunk.PeekUInt16(TypeOffset);
 
-        public ImageSymType BasicType => (ImageSymType) ((ushort) Type & N_BTMASK);
+        public IMAGE_SYM_TYPE BasicType => (IMAGE_SYM_TYPE) ((ushort) Type & N_BTMASK);
 
-        public ImageSymDType DerivedType => (ImageSymDType) (((ushort) Type & N_TMASK) >> N_BTSHIFT);
+        public IMAGE_SYM_DTYPE DerivedType => (IMAGE_SYM_DTYPE) (((ushort) Type & N_TMASK) >> N_BTSHIFT);
 
-        public ImageSymClass StorageClass => (ImageSymClass) chunk.PeekByte(StorageClassOffset);
+        public IMAGE_SYM_CLASS StorageClass => (IMAGE_SYM_CLASS) chunk.PeekByte(StorageClassOffset);
 
         public byte NumberOfAuxSymbols => chunk.PeekByte(NumberOfAuxSymbolsOffset);
 
