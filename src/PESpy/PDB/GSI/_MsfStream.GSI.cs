@@ -15,7 +15,13 @@ namespace PESpy.PDB
 
             public NativeSpan<HRFile> HashRecords { get; }
 
-            public int[] Buckets { get; }
+            //Only present in V7
+            public NativeSpan<int> BucketsBitmap { get; }
+
+            public NativeSpan<int> BucketOffsets { get; }
+
+            //Gets the in-memory representation of the buckets
+            public (int StartIndex, int Count)[] Buckets { get; }
 
             public GlobalSymTypeList Symbols { get; }
 
@@ -38,7 +44,10 @@ namespace PESpy.PDB
                 else
                     iphrHash = 4096;
 
+                //gsi1::readHash
+
                 var gsiHdr = new GSIHashHdr(chunk);
+
                 if (gsiHdr.verSignature == GSIHashHdr.hdrSignature && gsiHdr.verHdr == GSIHashSCImpv.GSIHashSCImpvV70)
                 {
                     GsiHdr = gsiHdr;
@@ -81,6 +90,8 @@ namespace PESpy.PDB
                             //This gives us a bitmap that describes the status of all of the buckets in the hashmap.
                             var bitmap = chunk.PeekNativeSpan<int>(read, numBitMapInts); //Read as int so that we can easily count its bits
 
+                            BucketsBitmap = bitmap;
+
                             read += cbphr;
 
                             int numBitsSet = 0;
@@ -89,12 +100,12 @@ namespace PESpy.PDB
                             for (var i = 0; i < bitmap.Length; i++)
                                 numBitsSet += CountBits((uint) bitmap[i]);
 
-                            var bitArray = new BitArray(bitmap.ToArray());
-
                             var offsets = chunk.PeekNativeSpan<int>(read, numBitsSet);
+                            BucketOffsets = offsets;
+
                             var offsetIndex = 0;
 
-                            var results = new int[iphrHash + 1];
+                            var results = new (int StartIndex, int Count)[iphrHash + 1];
 
                             for (var i = 0; i <= iphrHash; i++)
                             {
@@ -104,27 +115,49 @@ namespace PESpy.PDB
                                  * 1. Convert each HRFile item to an in-memory representation called "HR"
                                  * 2. Make each bucket item point to the in-memory "HR" item that it is associated with
                                  *
-                                 * Each HRFile record is 8 bytes, while each HR record is 24 (todo: 24? or 12?) bytes. Each bucket that contains a value
-                                 * contains a 12-byte offset. PDB1 takes this 12 byte offset, and uses it to index into the memory area
-                                 * that is being used by HRFile items, and reinterprets it as a HR item. As the buffer containing the HRFile
-                                 * items had an extra HR's worth of data allocated at the front, this prevents the data we're reinterpreting
-                                 * as a HR from overwriting a HRFile that we haven't processed yet. A pointer to this under construction
-                                 * HR is then stored in the bucket location that originally contained the 12 byte offset, and then the actual
-                                 * HRFile that we're up to is retrieved, and stored in the dodgy HR. Assigning the HRFile to the HR pointer
-                                 * causes the HRFile to be properly laid out within the HR's memory region
+                                 * Each HRFile record is 8 bytes, while each HR record is 2x ptr + sizeof(int) bytes (12 bytes in x86).
+                                 * Each bucket that contains a value contains a 12-byte offset. PDB1 takes this 12 byte offset, and uses
+                                 * it to index into the memory area that is being used by HRFile items, and reinterprets it as a HR item.
+                                 * As the buffer containing the HRFile items had an extra HR's worth of data allocated at the front, this
+                                 * prevents the data we're reinterpreting as a HR from overwriting a HRFile that we haven't processed yet.
+                                 * A pointer to this under construction HR is then stored in the bucket location that originally contained
+                                 * the 12 byte offset, and then the actual HRFile that we're up to is retrieved, and stored in the dodgy HR.
+                                 * Assigning the HRFile to the HR pointer causes the HRFile to be properly laid out within the HR's memory region
                                  *
                                  * This is way too nuts. All we really do is divide the offset by 12 (which is the size of HROffsetCalc).
                                  * I think that HROffsetCalc is only really used in 64-bit and is needed due to the fact that they want to store
                                  * a pointer, rather than the raw offset itself. We are just storing offsets so we don't need to worry about
                                  * any of this nonsense
-                                 *
-                                 * todo: its a 12 bit offset? or its an offset * 12?
                                  */
-                                if (bitArray[i])
-                                    results[i] = offsets[offsetIndex++] / 12;
+
+                                var wordIndex = i >> 5; // divide by 32
+                                var bitIndex = i & 31;
+                                var isSet = wordIndex < bitmap.Length && ((bitmap[wordIndex] >> bitIndex) & 1) != 0;
+
+                                if (isSet)
+                                {
+                                    var startIndex = offsets[offsetIndex++] / 12;
+                                    int count;
+
+                                    //gsi.cpp does not keep track of the count; they instead create an in-memory linked list
+                                    //within GSI1::fixHashIn which uses some mind bending logic that I think ultimately is equivalent
+                                    //to the following for knowing how many entries are in each bucket (except they iterate backwards)
+                                    if (offsetIndex < offsets.Length - 1)
+                                        count = (offsets[offsetIndex] / 12) - startIndex; //We've incremented offsetIndex to the next item
+                                    else
+                                        count = hashRecords.Length - startIndex;
+
+                                    results[i] = (startIndex, count);
+                                }
                                 else
-                                    results[i] = -1;
+                                    results[i] = (-1, 0);
                             }
+
+                            //How many entries are in each bucket? offsets stores a value that when divided by 12
+                            //gives us an index into our HashRecords array. This can therefore
+                            //indirectly be used to tell us the number of items in a given bucket:
+                            //the number of entries is equal to the distance between offsets[i]/12 and offsets[i+1]/12,
+                            //or the end of the HashRecords array if i == HashRecords.Length - 1
 
                             Buckets = results;
                         }
@@ -155,7 +188,69 @@ namespace PESpy.PDB
                     HashRecords = hashRecords;
 
                     Debug.Assert(hrFileLength >= 0);
-                    Buckets = chunk.PeekNativeSpan<int>(hrFileLength, numBuckets).ToArray();
+
+                    var buckets = chunk.PeekNativeSpan<int>(hrFileLength, numBuckets);
+
+                    BucketOffsets = buckets;
+
+                    //The buckets list embedded in the file already contains -1 in every slot
+                    //where there is no value. So in order to calculate the length of each item
+                    //we need to manually traverse the list
+
+                    var i = 0;
+
+                    var results = new (int StartIndex, int Count)[numBuckets];
+
+                    while (i < buckets.Length)
+                    {
+                        var value = buckets[i];
+
+                        if (value == -1)
+                        {
+                            results[i] = (-1, 0);
+                            i++;
+                        }
+                        else
+                        {
+                            //Find the next item that has a value
+
+                            var oldI = i;
+                            var startIndex = value / 12;
+
+                            i++;
+
+                            while (true)
+                            {
+                                if (i < buckets.Length)
+                                {
+                                    value = buckets[i];
+
+                                    if (value == -1)
+                                    {
+                                        results[i] = (-1, 0);
+                                        i++;
+                                    }
+                                    else
+                                    {
+                                        //Found the next item!
+                                        results[oldI] = (startIndex, (value / 12) - startIndex);
+
+                                        //Don't increment i; we'll find the end of _that_ item on the next loop
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    //The last item goes all the way to the end
+
+                                    results[oldI] = (startIndex, hashRecords.Length - startIndex);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    Buckets = results;
 
                     if (hashRecords.Length > 0)
                     {
@@ -169,8 +264,16 @@ namespace PESpy.PDB
                 }
             }
 
+            //Note that lhashPbCb tolower's the input string, which means this performs
+            //a case insensitive lookup
             public unsafe bool TryGetSymbol(string name, out SymType symType)
             {
+                //gsi1::HashSym
+
+                //Note that HashSym has a facility where you can "resume", which enables you to retrieve
+                //multiple symbols that match the given name (which is important because the name is hashed
+                //case insensitively, so there could be multiple matches)
+
                 var bytes = Encoding.UTF8.GetBytes(name);
 
                 fixed (byte* pName = bytes)
@@ -185,17 +288,47 @@ namespace PESpy.PDB
                         return false;
                     }
 
-                    var offset = buckets[hash];
+                    var bucket = buckets[hash];
 
-                    if (offset >= HashRecords.Length)
+                    var i = 0;
+
+                    while (bucket.StartIndex < HashRecords.Length && i < bucket.Count)
                     {
-                        symType = default;
-                        return false;
+                        //This indexes into HashRecords
+                        var localSymType = Symbols[bucket.StartIndex + i];
+
+                        var pdbFile = chunk.PDBFile();
+
+                        if (!localSymType.TryGetName(pdbFile, out var symbolName))
+                        {
+                            symType = default;
+                            return false;
+                        }
+
+                        var compareResult = ((FixedUtf8String) symbolName).CompareToIgnoreCase(new FixedUtf8String(pName, bytes.Length));
+
+                        if (compareResult == 0)
+                        {
+                            symType = localSymType;
+                            return true;
+                        }
+
+                        /* HashSym says that their HR records are sorted by name, so they can bail out
+                         * early if the comparison is not less than the target name. I can't see how/where
+                         * this sort is occurring, and the on disk symbols are _not_ sorted by name within
+                         * a given bucket. So instead, we keep track of the size of each bucket, and just iterate
+                         * over all symbols within the bucket to see if we find a match */
+
+                        //Try the next record
+
+                        i++;
                     }
 
-                    symType = Symbols[offset];
-                    return true;
+                    symType = default;
+                    return false;
                 }
+            }
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static int CountBits(uint u)
             {
@@ -227,12 +360,21 @@ namespace PESpy.PDB
                 {
                     //If we have a GsiHdr, the following should implicitly be true
                     Debug.Assert(GsiHdr.verSignature == GSIHashHdr.hdrSignature && GsiHdr.verHdr == GSIHashSCImpv.GSIHashSCImpvV70);
-                    writer.WritePagedGlobal<HRFile>(chunk.RelativeOffset + GSIHashHdr.StructSize, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
+
+                    var offset = chunk.RelativeOffset + GSIHashHdr.StructSize;
+
+                    writer.WritePagedGlobal<HRFile>(offset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
+                    offset += (HashRecords.Length * HRFile.StructSize);
+
+                    writer.WritePagedGlobal<int>(offset, (PagedMemoryBlock) chunk.block, BucketsBitmap, ViewKind.HashBucketsBitmap);
+                    offset += BucketsBitmap.Length * sizeof(int);
+
+                    writer.WritePagedGlobal<int>(offset, (PagedMemoryBlock) chunk.block, BucketOffsets, ViewKind.HashBuckets);
                 }
                 else
                 {
                     writer.WritePagedGlobal<HRFile>(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
-                    writer.WritePagedGlobal<int>(chunk.RelativeOffset + (HashRecords.Length * HRFile.StructSize), (PagedMemoryBlock) chunk.block, Buckets, ViewKind.HashBuckets);
+                    writer.WritePagedGlobal<int>(chunk.RelativeOffset + (HashRecords.Length * HRFile.StructSize), (PagedMemoryBlock) chunk.block, BucketOffsets, ViewKind.HashBuckets);
                 }
             }
         }

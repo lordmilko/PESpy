@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
@@ -62,19 +63,19 @@ namespace PESpy.PDB
         {
             switch (symType.rectyp)
             {
-                case S_MANREGREL_ST:
+                case S_MANREGREL_ST: //Not supported by DIA
                 case S_MANREGREL:
                 case S_ATTR_REGREL:
                     name = ((AttrRegRel) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_MANREGISTER_ST:
+                case S_MANREGISTER_ST: //Not supported by DIA
                 case S_MANREGISTER:
                 case S_ATTR_REGISTER:
                     name = ((AttrRegSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_MANSLOT_ST:
+                case S_MANSLOT_ST: //Not supported by DIA
                 case S_MANSLOT:
                     name = ((AttrSlotSym) symType).GetName(codeViewAccessor);
                     return true;
@@ -84,8 +85,8 @@ namespace PESpy.PDB
                     name = ((BlockSym16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_BLOCK32_ST:
-                case S_WITH32_ST:
+                case S_BLOCK32_ST: //Not supported by DIA
+                case S_WITH32_ST: //Not supported by DIA
                 case S_BLOCK32:
                 case S_WITH32:
                     name = ((BlockSym32) symType).GetName(codeViewAccessor);
@@ -95,12 +96,12 @@ namespace PESpy.PDB
                     name = ((BPRelSym16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_BPREL32_ST:
+                case S_BPREL32_ST: //Not supported by DIA
                 case S_BPREL32:
                     name = ((BPRelSym32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_BPREL32_16t:
+                case S_BPREL32_16t: //Not supported by DIA
                     name = ((BPRelSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -112,7 +113,7 @@ namespace PESpy.PDB
                     name = ((CoffGroupSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                //case S_COMPILE2_ST:
+                //case S_COMPILE2_ST: //Not supported by DIA
                 //case S_COMPILE2:
                 //    name = ((CompileSym) symType).GetName(codeViewAccessor);
                 //    return true;
@@ -121,13 +122,13 @@ namespace PESpy.PDB
                 //    name = ((CompileSym3) symType).GetName(codeViewAccessor);
                 //    return true;
 
-                case S_CONSTANT_ST:
+                case S_CONSTANT_ST: //Not supported by DIA
                 case S_CONSTANT:
                 case S_MANCONSTANT:
                     name = ((ConstSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_CONSTANT_16t:
+                case S_CONSTANT_16t: //Not supported by DIA
                     name = ((ConstSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -137,12 +138,12 @@ namespace PESpy.PDB
                     name = ((DataSym16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LDATA32_ST:
-                case S_GDATA32_ST:
-                case S_LTHREAD32_ST:
-                case S_GTHREAD32_ST:
-                case S_LMANDATA_ST:
-                case S_GMANDATA_ST:
+                case S_LDATA32_ST: //Not supported by DIA
+                case S_GDATA32_ST: //Not supported by DIA
+                case S_LTHREAD32_ST: //Not supported by DIA
+                case S_GTHREAD32_ST: //Not supported by DIA
+                case S_LMANDATA_ST: //Not supported by DIA
+                case S_GMANDATA_ST: //Not supported by DIA
                 case S_LDATA32:
                 case S_GDATA32:
                 case S_LTHREAD32:
@@ -152,11 +153,11 @@ namespace PESpy.PDB
                     name = ((DataSym32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LDATA32_16t:
-                case S_GDATA32_16t:
-                case S_PUB32_16t:
-                case S_LTHREAD32_16t:
-                case S_GTHREAD32_16t:
+                case S_LDATA32_16t: //Not supported by DIA
+                case S_GDATA32_16t: //Not supported by DIA
+                case S_PUB32_16t: //Not supported by DIA
+                case S_LTHREAD32_16t: //Not supported by DIA
+                case S_GTHREAD32_16t: //Not supported by DIA
                     name = ((DataSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -176,7 +177,7 @@ namespace PESpy.PDB
                     name = ((FileStaticSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_MANFRAMEREL_ST:
+                case S_MANFRAMEREL_ST: //Not supported by DIA
                 case S_MANFRAMEREL:
                 case S_ATTR_FRAMEREL:
                     name = ((FrameRelSym) symType).GetName(codeViewAccessor);
@@ -186,7 +187,7 @@ namespace PESpy.PDB
                     name = ((LabelSym16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LABEL32_ST:
+                case S_LABEL32_ST: //Not supported by DIA
                 case S_LABEL32:
                     name = ((LabelSym32) symType).GetName(codeViewAccessor);
                     return true;
@@ -199,14 +200,14 @@ namespace PESpy.PDB
                     name = ((LocalSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_GMANPROC_ST:
-                case S_LMANPROC_ST:
+                case S_GMANPROC_ST: //Not supported by DIA
+                case S_LMANPROC_ST: //Not supported by DIA
                 case S_GMANPROC:
                 case S_LMANPROC:
                     name = ((ManProcSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_OBJNAME_ST:
+                case S_OBJNAME_ST: //Not supported by DIA
                 case S_OBJNAME:
                     name = ((ObjNameSym) symType).GetName(codeViewAccessor);
                     return true;
@@ -220,8 +221,8 @@ namespace PESpy.PDB
                     name = ((ProcSym16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LPROC32_ST:
-                case S_GPROC32_ST:
+                case S_LPROC32_ST: //Not supported by DIA
+                case S_GPROC32_ST: //Not supported by DIA
                 case S_LPROC32:
                 case S_GPROC32:
                 case S_LPROC32_ID:
@@ -231,13 +232,13 @@ namespace PESpy.PDB
                     name = ((ProcSym32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LPROC32_16t:
-                case S_GPROC32_16t:
+                case S_LPROC32_16t: //Not supported by DIA
+                case S_GPROC32_16t: //Not supported by DIA
                     name = ((ProcSym3216t) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LPROCIA64_ST:
-                case S_GPROCIA64_ST:
+                case S_LPROCIA64_ST: //Not supported by DIA
+                case S_GPROCIA64_ST: //Not supported by DIA
                 case S_LPROCIA64:
                 case S_GPROCIA64:
                 case S_LPROCIA64_ID:
@@ -245,8 +246,8 @@ namespace PESpy.PDB
                     name = ((ProcSymIA64) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LPROCMIPS_ST:
-                case S_GPROCMIPS_ST:
+                case S_LPROCMIPS_ST: //Not supported by DIA
+                case S_GPROCMIPS_ST: //Not supported by DIA
                 case S_LPROCMIPS:
                 case S_GPROCMIPS:
                 case S_LPROCMIPS_ID:
@@ -254,12 +255,12 @@ namespace PESpy.PDB
                     name = ((ProcSymMips) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LPROCMIPS_16t:
-                case S_GPROCMIPS_16t:
+                case S_LPROCMIPS_16t: //Not supported by DIA
+                case S_GPROCMIPS_16t: //Not supported by DIA
                     name = ((ProcSymMips16t) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_PUB32_ST:
+                case S_PUB32_ST: //Not supported by DIA
                 case S_PUB32:
                     name = ((PubSym32) symType).GetName(codeViewAccessor);
                     return true;
@@ -268,9 +269,9 @@ namespace PESpy.PDB
                     name = ((RefMiniPdb) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_PROCREF_ST:
-                case S_DATAREF_ST:
-                case S_LPROCREF_ST:
+                case S_PROCREF_ST: //Not supported by DIA
+                case S_DATAREF_ST: //Not supported by DIA
+                case S_LPROCREF_ST: //Not supported by DIA
                     name = ((RefSym) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -286,21 +287,21 @@ namespace PESpy.PDB
                     name = ((RegRel16) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_REGREL32_ST:
+                case S_REGREL32_ST: //Not supported by DIA
                 case S_REGREL32:
                     name = ((RegRel32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_REGREL32_16t:
+                case S_REGREL32_16t: //Not supported by DIA
                     name = ((RegRel3216t) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_REGISTER_ST:
+                case S_REGISTER_ST: //Not supported by DIA
                 case S_REGISTER:
                     name = ((RegSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_REGISTER_16t:
+                case S_REGISTER_16t: //Not supported by DIA
                     name = ((RegSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -308,31 +309,31 @@ namespace PESpy.PDB
                     name = ((SectionSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_LOCALSLOT_ST:
-                case S_PARAMSLOT_ST:
+                case S_LOCALSLOT_ST: //Not supported by DIA
+                case S_PARAMSLOT_ST: //Not supported by DIA
                 case S_LOCALSLOT:
                 case S_PARAMSLOT:
                     name = ((SlotSym32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_THUNK32_ST:
+                case S_THUNK32_ST: //Not supported by DIA
                 case S_THUNK32:
                     name = ((ThunkSym32) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_UDT_ST:
-                case S_COBOLUDT_ST:
+                case S_UDT_ST: //Not supported by DIA
+                case S_COBOLUDT_ST: //Not supported by DIA
                 case S_UDT:
                 case S_COBOLUDT:
                     name = ((UdtSym) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_UDT_16t:
-                case S_COBOLUDT_16t:
+                case S_UDT_16t: //Not supported by DIA
+                case S_COBOLUDT_16t: //Not supported by DIA
                     name = ((UdtSym16t) symType).GetName(codeViewAccessor);
                     return true;
 
-                case S_UNAMESPACE_ST:
+                case S_UNAMESPACE_ST: //Not supported by DIA
                 case S_UNAMESPACE:
                     name = ((UNameSpace) symType).GetName(codeViewAccessor);
                     return true;
@@ -359,8 +360,8 @@ namespace PESpy.PDB
                 }
                 break;
 
-                case S_PUB32_16t:
-                {
+                case S_PUB32_16t: //Not supported by DIA
+                    {
                     var dataSym = (DataSym3216t) symType;
 
                     if (dataSym.name.StartsWith("?"))
@@ -372,7 +373,7 @@ namespace PESpy.PDB
                 break;
 
 
-                case S_PUB32_ST:
+                case S_PUB32_ST: //Not supported by DIA
                 case S_PUB32:
                 {
                     var pubSym = (PubSym32) symType;
@@ -413,8 +414,8 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_BLOCK32_ST:
-                case S_WITH32_ST:
+                case S_BLOCK32_ST: //Not supported by DIA
+                case S_WITH32_ST: //Not supported by DIA
                 case S_BLOCK32:
                 case S_WITH32:
                 {
@@ -458,12 +459,12 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LDATA32_ST:
-                case S_GDATA32_ST:
-                case S_LTHREAD32_ST:
-                case S_GTHREAD32_ST:
-                case S_LMANDATA_ST:
-                case S_GMANDATA_ST:
+                case S_LDATA32_ST: //Not supported by DIA
+                case S_GDATA32_ST: //Not supported by DIA
+                case S_LTHREAD32_ST: //Not supported by DIA
+                case S_GTHREAD32_ST: //Not supported by DIA
+                case S_LMANDATA_ST: //Not supported by DIA
+                case S_GMANDATA_ST: //Not supported by DIA
                 case S_LDATA32:
                 case S_GDATA32:
                 case S_LTHREAD32:
@@ -477,12 +478,12 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LDATA32_16t:
-                case S_GDATA32_16t:
-                case S_PUB32_16t:
-                case S_LTHREAD32_16t:
-                case S_GTHREAD32_16t:
-                {
+                case S_LDATA32_16t: //Not supported by DIA
+                case S_GDATA32_16t: //Not supported by DIA
+                case S_PUB32_16t: //Not supported by DIA
+                case S_LTHREAD32_16t: //Not supported by DIA
+                case S_GTHREAD32_16t: //Not supported by DIA
+                    {
                     var sym = ((DataSym3216t) symType);
                     off = sym.off;
                     seg = sym.seg;
@@ -497,7 +498,7 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LABEL32_ST:
+                case S_LABEL32_ST: //Not supported by DIA
                 case S_LABEL32:
                 {
                     var sym = ((LabelSym32) symType);
@@ -506,8 +507,8 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_GMANPROC_ST:
-                case S_LMANPROC_ST:
+                case S_GMANPROC_ST: //Not supported by DIA
+                case S_LMANPROC_ST: //Not supported by DIA
                 case S_GMANPROC:
                 case S_LMANPROC:
                 {
@@ -526,8 +527,8 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LPROC32_ST:
-                case S_GPROC32_ST:
+                case S_LPROC32_ST: //Not supported by DIA
+                case S_GPROC32_ST: //Not supported by DIA
                 case S_LPROC32:
                 case S_GPROC32:
                 case S_LPROC32_ID:
@@ -541,17 +542,17 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LPROC32_16t:
-                case S_GPROC32_16t:
-                {
+                case S_LPROC32_16t: //Not supported by DIA
+                case S_GPROC32_16t: //Not supported by DIA
+                    {
                     var sym = ((ProcSym3216t) symType);
                     off = sym.off;
                     seg = sym.seg;
                     return true;
                 }
 
-                case S_LPROCIA64_ST:
-                case S_GPROCIA64_ST:
+                case S_LPROCIA64_ST: //Not supported by DIA
+                case S_GPROCIA64_ST: //Not supported by DIA
                 case S_LPROCIA64:
                 case S_GPROCIA64:
                 case S_LPROCIA64_ID:
@@ -563,8 +564,8 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LPROCMIPS_ST:
-                case S_GPROCMIPS_ST:
+                case S_LPROCMIPS_ST: //Not supported by DIA
+                case S_GPROCMIPS_ST: //Not supported by DIA
                 case S_LPROCMIPS:
                 case S_GPROCMIPS:
                 case S_LPROCMIPS_ID:
@@ -576,16 +577,16 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_LPROCMIPS_16t:
-                case S_GPROCMIPS_16t:
-                {
+                case S_LPROCMIPS_16t: //Not supported by DIA
+                case S_GPROCMIPS_16t: //Not supported by DIA
+                    {
                     var sym = ((ProcSymMips16t) symType);
                     off = sym.off;
                     seg = sym.seg;
                     return true;
                 }
 
-                case S_PUB32_ST:
+                case S_PUB32_ST: //Not supported by DIA
                 case S_PUB32:
                 {
                     var sym = ((PubSym32) symType);
@@ -604,7 +605,7 @@ namespace PESpy.PDB
                     return true;
                 }
 
-                case S_THUNK32_ST:
+                case S_THUNK32_ST: //Not supported by DIA
                 case S_THUNK32:
                 {
                     var sym = ((ThunkSym32) symType);
@@ -615,9 +616,9 @@ namespace PESpy.PDB
 
                 //ref symbols don't have a seg, but they may point to something that does!
 
-                case S_PROCREF_ST:
-                case S_DATAREF_ST:
-                case S_LPROCREF_ST:
+                case S_PROCREF_ST: //Not supported by DIA
+                case S_DATAREF_ST: //Not supported by DIA
+                case S_LPROCREF_ST: //Not supported by DIA
                     return ((RefSym) symType).Symbol.TryGetOffSeg(out off, out seg);
 
                 case S_PROCREF:
@@ -681,8 +682,8 @@ namespace PESpy.PDB
                 }
 
                 case S_PUB32:
-                case S_PUB32_ST:
-                {
+                case S_PUB32_ST: //Not supported by DIA
+                    {
                     var value = (PubSym32) symType;
 
                     //I don't know which flags should be used for saying "it's code". e.g. could you have a function but not code?
@@ -702,8 +703,8 @@ namespace PESpy.PDB
                     break;
                 }
 
-                case S_PUB32_16t:
-                {
+                case S_PUB32_16t: //Not supported by DIA
+                    {
                     var value = (DataSym3216t) symType;
                     seg = value.seg;
                     off = value.off;
@@ -850,16 +851,16 @@ namespace PESpy.PDB
                 case S_GPROC16:
 
                 //ProcSym3216t
-                case S_LPROC32_16t:
-                case S_GPROC32_16t:
+                case S_LPROC32_16t: //Not supported by DIA
+                case S_GPROC32_16t: //Not supported by DIA
 
                 //ProcSymMips16t
-                case S_LPROCMIPS_16t:
-                case S_GPROCMIPS_16t:
+                case S_LPROCMIPS_16t: //Not supported by DIA
+                case S_GPROCMIPS_16t: //Not supported by DIA
 
                 //ProcSym32
-                case S_LPROC32_ST:
-                case S_GPROC32_ST:
+                case S_LPROC32_ST: //Not supported by DIA
+                case S_GPROC32_ST: //Not supported by DIA
                 case S_LPROC32:
                 case S_GPROC32:
                 case S_LPROC32_ID:
@@ -868,8 +869,8 @@ namespace PESpy.PDB
                 case S_LPROC32_DPC_ID:
 
                 //ProcSymMips
-                case S_LPROCMIPS_ST:
-                case S_GPROCMIPS_ST:
+                case S_LPROCMIPS_ST: //Not supported by DIA
+                case S_GPROCMIPS_ST: //Not supported by DIA
                 case S_LPROCMIPS:
                 case S_GPROCMIPS:
                 case S_LPROCMIPS_ID:
@@ -878,16 +879,16 @@ namespace PESpy.PDB
                 //Not sure if FRAMEPROC should be included
 
                 //ProcSymIA64
-                case S_LPROCIA64_ST:
-                case S_GPROCIA64_ST:
+                case S_LPROCIA64_ST: //Not supported by DIA
+                case S_GPROCIA64_ST: //Not supported by DIA
                 case S_LPROCIA64:
                 case S_GPROCIA64:
                 case S_LPROCIA64_ID:
                 case S_GPROCIA64_ID:
 
                 //ManProcSym
-                case S_GMANPROC_ST:
-                case S_LMANPROC_ST:
+                case S_GMANPROC_ST: //Not supported by DIA
+                case S_LMANPROC_ST: //Not supported by DIA
                 case S_GMANPROC:
                 case S_LMANPROC:
 
@@ -920,7 +921,7 @@ namespace PESpy.PDB
                 case S_THUNK16:
 
                 //ThunkSym32
-                case S_THUNK32_ST:
+                case S_THUNK32_ST: //Not supported by DIA
                 case S_THUNK32:
                     return true;
 
@@ -934,9 +935,9 @@ namespace PESpy.PDB
             switch (symType.rectyp)
             {
                 //RefSym
-                case S_PROCREF_ST:
-                case S_DATAREF_ST:
-                case S_LPROCREF_ST:
+                case S_PROCREF_ST: //Not supported by DIA
+                case S_DATAREF_ST: //Not supported by DIA
+                case S_LPROCREF_ST: //Not supported by DIA
 
                 //RefSym2
                 case S_PROCREF:
@@ -1412,6 +1413,12 @@ namespace PESpy.PDB
 
                 //Inlinee (42)
                 //TaggedUnionCase (43)
+
+                default:
+                    return SymTagEnum.Null;
+            }
+        }
+
         public static DataKind GetDataKind(in this SymType symType)
         {
             //I am only aware of this being valid for symbols that resolve to SymTagData
@@ -1437,11 +1444,19 @@ namespace PESpy.PDB
                 case S_GDATA_HLSL32:
                 case S_GDATA_HLSL32_EX:
                     return DataKind.DataIsGlobal;
+
+                case S_MANYREG:
+                    throw new NotImplementedException();
+
+                case S_BPREL32: // DataIsLocal / DataIsParam (if typind > 0)
+                    throw new NotImplementedException();
+
                 case S_LDATA32:
                 case S_LTHREAD32:
                     //There is logic for these to either be DataIsStaticLocal / DataIsFileStatic however GetTheData::disp_S_LDATA32/disp_S_LTHREAD32 sets the relevant field to 0, the default of static local
                     //is always overwritten with file satic
                     return DataKind.DataIsFileStatic;
+
                 //The following kinds have either CV_LVARFLAGS (or CV_lvar_attr which contains CV_LVARFLAGS)
                 //and are set via msdia140!varAttributeFields. Strictly speaking only S_LOCAL considers whether
                 //fIsParam is set, but it's technically in the flags of all of them
@@ -1463,6 +1478,22 @@ namespace PESpy.PDB
 
                     return flags.fIsParam ? DataKind.DataIsParam : DataKind.DataIsLocal;
                 }
+
+                case S_MANYREG2: //
+                case S_LMANDATA: // DataIsStaticLocal / DataIsFileStatic
+                case S_MANMANYREG: //CV_Lvar_attr -> CV_LVARFLAGS logic?
+                case S_MANMANYREG2: //CV_Lvar_attr -> CV_LVARFLAGS logic?
+                case S_ATTR_MANYREG: //CV_Lvar_attr -> CV_LVARFLAGS logic?
+                case S_LDATA_HLSL: // DataIsStaticLocal / DataIsFileStatic
+                case S_LDATA_HLSL32: // DataIsStaticLocal / DataIsFileStatic
+                case S_LDATA_HLSL32_EX: //DataIsStaticLocal / DataIsFileStatic
+                case S_BPREL32_INDIR: // DataIsLocal /  DataIsParam
+                case S_REGREL32_INDIR: // DataIsLocal /  DataIsParam
+                case S_STATICLOCAL: //
+                    throw new NotImplementedException();
+
+                default:
+                    throw new NotImplementedException();
             }
         }
 
@@ -1495,6 +1526,10 @@ namespace PESpy.PDB
                 case S_GDATA_HLSL32_EX:
                 case S_LDATA_HLSL32_EX:
                 case S_STATICLOCAL:
+                    Debug.Assert(false, "Not implemented");
+                    locationType = default;
+                    return false;
+
                 case S_LDATA32:
                 case S_GDATA32:
                 case S_LMANDATA:
@@ -1502,8 +1537,8 @@ namespace PESpy.PDB
                 case S_LOCAL_DPC_GROUPSHARED:
                 case S_PUB16:
                 case S_PUB32:
-                case S_PUB32_16t:
-                case S_PUB32_ST:
+                case S_PUB32_16t: //Not supported by DIA
+                case S_PUB32_ST: //Not supported by DIA
                     locationType = LocationType.LocIsStatic;
                     return true;
 

@@ -384,7 +384,8 @@ namespace PESpy
         private VA<GuardAddressTakenIatEntryTable> guardAddressTakenIatEntryTable;
 
         /// <summary>
-        /// The VA where Control Flow Guard address taken IAT table is stored.
+        /// The VA where Control Flow Guard address taken IAT table is stored.<para/>
+        /// __guard_iat_table
         /// </summary>
         public VA<GuardAddressTakenIatEntryTable> GuardAddressTakenIatEntryTable
         {
@@ -707,7 +708,7 @@ namespace PESpy
             var seHandlerTableOffset = SEHandlerTableOffset;
 
             writer.WriteVAPointerField(seHandlerTable, ViewKind.SEHandlerTable, structOffset, fieldOffset: seHandlerTableOffset); //18
-            writer.WriteVAXRef(structOffset, seHandlerTableOffset, seHandlerTable);
+            writer.WriteRVAXRef(structOffset, seHandlerTableOffset, seHandlerTable); //SEHandlerTable is pointed to by a VA, but each item in it is an RVA
 
             #endregion
 

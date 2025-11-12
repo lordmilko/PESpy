@@ -142,7 +142,18 @@ namespace PESpy
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {
-                //No globals
+                var structOffset = Offset;
+
+                writer.WriteRVAXRef(structOffset, BeginAddressOffset, BeginAddress);
+                writer.WriteRVAXRef(structOffset, EndAddressOffset, EndAddress);
+
+
+                var handlerAddress = HandlerAddress;
+
+                if (handlerAddress > 1)
+                    writer.WriteRVAXRef(structOffset, HandlerAddressOffset, handlerAddress);
+
+                writer.WriteRVAXRef(structOffset, JumpTargetOffset, JumpTarget);
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>

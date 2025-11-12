@@ -200,7 +200,7 @@ namespace PESpy
             }
 
             //This name may also be written by ImageEnclaveImport
-            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImportName, structOffset, fieldOffset: NameOffset);
+            writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageImportDescriptor_Name, structOffset, fieldOffset: NameOffset);
 
             if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
             {

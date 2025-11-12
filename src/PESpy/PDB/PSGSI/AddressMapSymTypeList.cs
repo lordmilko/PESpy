@@ -19,10 +19,14 @@ namespace PESpy.PDB
         public SymType[] Items => list.ToArray();
     }
 
-    //PERF: don't allocate a massive array of SymType
+    /// <summary>
+    /// Gets the address map, which allows resolving addresses to the symbols that are closest to them.<para/>
+    /// The entry point for resolving the nearest symbol to a given address is <see cref="MsfStream.PSGSI.TryGetNearestSymbol(int, int, out SymType, out int)"/>
+    /// which takes into consideration whether the specified address may be in the thunk table.
+    /// </summary>
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(AddressMapSymTypeListDebugView))]
-    public unsafe class AddressMapSymTypeList : IEnumerable<SymType>
+    public unsafe class AddressMapSymTypeList : IEnumerable<SymType> //PERF: don't allocate a massive array of SymType
     {
         private readonly NativeSpan<int> addressMap;
         private readonly byte* symbolsStart;
@@ -41,6 +45,9 @@ namespace PESpy.PDB
         //if we have an address map, and do checks against thunks
         internal bool GetNearestSymbol(int relativeOffset, int sectionNumber, out SymType symType, out int displacement)
         {
+            //There's two ways of looking up addresses using PSGSI: PSGSI1::NearestSym and EnumPubsByAddr::locate
+            //which has slightly different logic
+
             var low = 0;
             var high = addressMap.Length - 1;
 
@@ -49,6 +56,7 @@ namespace PESpy.PDB
 
             while (low < high)
             {
+                //This is a right biased mid binary search
                 var mid = low + ((high - low + 1) / 2);
 
                 item = (SYMTYPE*) (symbolsStart + addressMap[mid]);
@@ -65,6 +73,12 @@ namespace PESpy.PDB
                     high = mid;
                 }
             }
+
+            item = (SYMTYPE*) (symbolsStart + addressMap[low]);
+
+            //EnumPubsByAddr::locate then does some funny business with m_iPubs and negative numbers, but we're following
+            //NearestSym so we don't need to worry about that
+
             item.TryGetOffSeg(out var itemOff, out var itemSeg);
 
             if (itemSeg == sectionNumber)
@@ -77,6 +91,7 @@ namespace PESpy.PDB
                 var currentItemIndex = low;
 
                 var currentSymbol = item;
+
                 while (currentItemIndex > 0)
                 {
                     var previousItemIndex = currentItemIndex - 1;
@@ -84,7 +99,7 @@ namespace PESpy.PDB
                     var previousSymbol = (SYMTYPE*) (symbolsStart + addressMap[previousItemIndex]);
 
                     /* An example of what causes this to occur from a debug build:
-                     * 
+                     *
                      * we have the following symbols (from first to last)
                      *   __acrt_initialize
                      *   __scrt_stub_for_acrt_initialize
@@ -97,9 +112,29 @@ namespace PESpy.PDB
 
                     if (CompareSectionAndOffset(currentSymbol, previousSymbol) != 0)
                         break;
+
                     currentSymbol = previousSymbol;
                     currentItemIndex = previousItemIndex;
                 }
+
+                low = currentItemIndex;
+            }
+            else
+            {
+                //If the symbol we matched against was the last symbol in the given section before the section we're actually after,
+                //we need to advance to the first symbol in the next section
+
+                while (true)
+                {
+                    low++;
+
+                    if (low >= addressMap.Length)
+                    {
+                        symType = default;
+                        displacement = default;
+                        return false;
+                    }
+
                     item = (SYMTYPE*) (symbolsStart + addressMap[low]);
 
                     item.TryGetOffSeg(out _, out itemSeg);

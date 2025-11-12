@@ -75,7 +75,11 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(UnwindData, Offset, fieldOffset: UnwindDataOffset);
+            var structOffset = Offset;
+
+            writer.WriteRVAXRef(structOffset, BeginAddressOffset, BeginAddress);
+            writer.WriteRVAXRef(structOffset, EndAddressOffset, EndAddress);
+            writer.WriteRVAField(UnwindData, structOffset, fieldOffset: UnwindDataOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -88,11 +92,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(BeginAddress), BeginAddressOffset, BeginAddress);
+                    structWriter.WriteField(nameof(BeginAddress), BeginAddressOffset, BeginAddress, FieldViewFlags.Address);
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(EndAddress), EndAddressOffset, EndAddress);
+                    structWriter.WriteField(nameof(EndAddress), EndAddressOffset, EndAddress, FieldViewFlags.Address);
                     break;
 
                 case 2:

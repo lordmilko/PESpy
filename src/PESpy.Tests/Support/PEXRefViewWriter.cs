@@ -19,9 +19,19 @@ namespace PESpy.Tests
         {
         }
 
-        protected internal override void WriteXRef(int fieldOffset, int targetOffset)
+        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetOffset = targetOffset });
+        }
+
+        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

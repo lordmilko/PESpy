@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -6,9 +7,28 @@ namespace PESpy.PDB
 {
     public static partial class MsfStream
     {
+        internal class PDBDebugView
+        {
+            private PDB pdb;
+
+            public PDBStream PDBHeader => pdb.PDBHeader;
+
+            public NMTNI StreamNameTable => pdb.StreamNameTable;
+
+            public NativeSpan<PdbFeature> Features => pdb.Features;
+
+            public int Offset => pdb.Offset;
+
+            internal PDBDebugView(PDB pdb)
+            {
+                this.pdb = pdb;
+            }
+        }
+
         /// <summary>
         /// Encapsulates the contents of the <see cref="SN.PDB"/> (1) PDB Stream.
         /// </summary>
+        [DebuggerTypeProxy(typeof(PDBDebugView))]
         public class PDB : IValue, IViewable
         {
             public PDBStream PDBHeader { get; }
@@ -28,12 +48,19 @@ namespace PESpy.PDB
             {
                 this.chunk = chunk;
 
-                //Check if the size of exactly PDBStream, and if so if its impvVC2
+                if (chunk.Remaining < PDBStream.StructSize)
+                    throw new BadImageFormatException();
 
                 var impv = (PDBIMPV) chunk.PeekUInt32(0);
 
+                //In microsoft-pdb's pdb.cpp!loadPdbStream, they do exactly this check, and also explicitly
+                //remark that if it's a PDBStream sized thing (meaning there's no stream name table after it), implicitly it should be vc2
                 if (chunk.Remaining == PDBStream.StructSize || impv == PDBIMPV.PDBImpvVC2)
-                    throw new NotImplementedException(); //microsoft-pdb does not support these anymore
+                {
+                    //In NT 4, it's shown that if the size of the stream is exactly sizeof(PDBStream), if the impv is not vc2 this is a format error
+                    PDBHeader = new PDBStream(chunk);
+                    return;
+                }
 
                 //microsoft-pdb only parses the header if impv >= impvVC4 and <= impvVC140. However, we don't know what future
                 //PDBIMPV values Microsoft will add, so we can't be doing such checks

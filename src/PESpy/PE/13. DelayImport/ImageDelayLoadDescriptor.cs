@@ -157,7 +157,7 @@ namespace PESpy
             using var _ = writer.EnterTag(ViewTag.DelayImport);
 
             writer.WriteRVAAnsiNullTerminatedField(DllNameRVA, ViewKind.ImageDelayLoadDescriptor_DllNameRVA, structOffset, fieldOffset: DllNameRVAOffset);
-            writer.WriteRVAPointerField(ModuleHandleRVA, structOffset, fieldOffset: ModuleHandleRVAOffset);
+            writer.WriteRVAPointerField(ModuleHandleRVA, structOffset, fieldOffset: ModuleHandleRVAOffset, ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA);
 
             if (ImportAddressTableRVA.IsValid && ImportAddressTableRVA.ListedOffset != 0)
             {

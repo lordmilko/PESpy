@@ -99,7 +99,7 @@ namespace PESpy.Tests
 
                     nameof(ImageCoffSymbolsHeader) => propertyName switch
                     {
-                        nameof(ImageCoffSymbolsHeader.LvaToFirstSymbol) => GetSampleFile(Sample.VC60_Coff_EXE).DebugTable?.First(t => t.Type == ImageDebugType.Coff).Data
+                        nameof(ImageCoffSymbolsHeader.LvaToFirstSymbol) => GetSampleFile(Sample.VC60_Coff_EXE).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_COFF).Data
                     },
 
                     nameof(ImageEnclaveConfig) => propertyName switch

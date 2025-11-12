@@ -67,6 +67,15 @@ namespace PESpy
             return StringHelpers.Equals(Value, Length, other);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EqualsIgnoreCase(string? other)
+        {
+            if (other == null)
+                return Value == default;
+
+            return StringHelpers.EqualsIgnoreCase(Value, Length, other);
+        }
+
         public int CompareTo(string other)
         {
             throw new NotImplementedException();

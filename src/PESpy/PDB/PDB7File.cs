@@ -1,14 +1,28 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
 {
+    class PDB7FileDebugView : PDBFileDebugView
+    {
+        private PDB7File pdbFile;
+
+        public BigMsfHdr MsfHeader => pdbFile.MsfHeader;
+
+        public SI StreamTableLocation => pdbFile.StreamTableLocation;
+
+        internal PDB7FileDebugView(PDB7File pdbFile) : base(pdbFile)
+        {
+        }
+    }
+
     /// <summary>
     /// Represents a CodeView Program Database v7 (PDB) file.
     /// </summary>
+    [DebuggerTypeProxy(typeof(PDB7FileDebugView))]
     public class PDB7File : PDBFile
     {
         private BigMsfHdr msfHeader;

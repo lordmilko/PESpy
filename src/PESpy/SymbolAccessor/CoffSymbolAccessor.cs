@@ -84,13 +84,13 @@
             {
                 ref var symbol = ref symbols[i];
 
-                if (symbol.StorageClass == ImageSymClass.External)
+                if (symbol.StorageClass == IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_EXTERNAL)
                 {
-                    switch ((ImageSym) symbol.SectionNumber)
+                    switch ((IMAGE_SYM) symbol.SectionNumber)
                     {
-                        case ImageSym.IMAGE_SYM_UNDEFINED:
-                        case ImageSym.IMAGE_SYM_ABSOLUTE:
-                        case ImageSym.IMAGE_SYM_DEBUG:
+                        case IMAGE_SYM.IMAGE_SYM_UNDEFINED:
+                        case IMAGE_SYM.IMAGE_SYM_ABSOLUTE:
+                        case IMAGE_SYM.IMAGE_SYM_DEBUG:
                             continue;
                     }
 

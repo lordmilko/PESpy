@@ -1,13 +1,29 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
 {
+    internal class PDB1FileDebugView
+    {
+        private PDB1File pdbFile;
+
+        public OHDR Hdr => pdbFile.Hdr;
+
+        public C8Rec[] Records => pdbFile.Records;
+
+        internal PDB1FileDebugView(PDB1File pdbFile)
+        {
+            this.pdbFile = pdbFile;
+        }
+    }
+
     /// <summary>
     /// Represents a CodeView Program Database v1 (PDB) file.<para/>
     /// Unlike PDB v2+, PDB v1 does not implement MSF and only contains type records.
     /// </summary>
+    [DebuggerTypeProxy(typeof(PDB1FileDebugView))]
     public unsafe class PDB1File : PDBFile
     {
         private OHDR hdr;

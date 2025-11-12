@@ -104,9 +104,15 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.StreamNameTable, this, ViewKind.StreamNameTable, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //Names need to be sorted and there can be gaps
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
+
+            using var s = structWriter.CreateEagerWriter();
 
             s.WriteField("Name Buffer Size", NameBufferSize);
 
@@ -121,7 +127,7 @@ namespace PESpy.PDB
                 {
                     var gap = name.Offset - lastEnd;
 
-                    s.WriteByteBlob(lastEnd, gap);
+                    s.WriteByteBlob(gap);
 
                     namesWritten += gap;
                 }
@@ -135,14 +141,13 @@ namespace PESpy.PDB
             var namesExtra = NameBufferSize - namesWritten;
 
             if (namesExtra > 0)
-                s.WriteByteBlob(lastEnd, namesExtra);
+                s.WriteByteBlob(namesExtra);
 
             s.WriteInline(NameOffsetToStreamIndexMap);
 
             s.WriteField("niMac", LargestNameIndex);
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+            structWriter.EagerFields = s.ToArray();
         }
     }
 }

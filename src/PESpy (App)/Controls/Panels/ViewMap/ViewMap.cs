@@ -4,9 +4,9 @@ using PESpy.View;
 using PESpy.View.Builder;
 using PInvoke;
 
-namespace PESpy
+namespace PESpy.Controls
 {
-    internal class ViewMap : Window
+    internal class ViewMap : NativeWindow
     {
         //Each section should be at least 3 pixels so that I can draw an outline around the section when I hover over it
         private const int MIN_WIDTH = 3;
@@ -19,10 +19,13 @@ namespace PESpy
         private int _arrowXPos;
         private int _arrowSectionIndex;
         internal int _highlightedSection = -1; //Gets the index of the section that is currently highlighted (or -1 if no section is currently highlighted)
-        private int _positionChangedReentrancyCount;
+        private bool _wasLeftMouseDown;
 
         //Used to create an extra gap above the control
-        private int _yOffset = 400;
+        private int _yOffset = 0;
+
+        private NativeTooltip _tooltip;
+        private int _lastToolTipPos;
 
         private ViewMapPainter _basePainter; //Stores the unhighlighted content
         private ViewMapPainter _highlightPainter; //Stores the current highlighted area
@@ -68,10 +71,53 @@ namespace PESpy
 
         public ViewMap()
         {
+            _tooltip = new NativeTooltip
+            {
+                //Show the tooltip even if PESpy is not the active window; if they hover over the view map,
+                //show the tooltip
+                ShowAlways = true,
+                AutomaticDelay = 0
+            };
+
+            App.PositionChanged += App_PositionChanged;
+
             App.AnalysisCompleted += (s, e) =>
             {
                 ComputeRegions();
+                User32.InvalidateRect(hWnd, ClientRectangle, true);
             };
+        }
+
+        private void App_PositionChanged(object? sender, int e)
+        {
+            if (sender == this || _visualSections == null)
+                return;
+
+            if (e != _arrowAddress)
+            {
+                var sectionAccessors = App.FileAccessor.SectionAccessors;
+
+                for (var i = _visualSections.Length - 1; i >= 0; i--)
+                {
+                    ref var sectionAccessor = ref sectionAccessors[i];
+
+                    if (e >= sectionAccessor.StartAddress)
+                    {
+                        ref var visualSection = ref _visualSections[i];
+
+                        _arrowXPos = visualSection.PhysicalStartPixel + visualSection.GetBestPixel(e, 0, visualSection.Data.Length - 1);
+                        break;
+                    }
+                }
+
+                _arrowAddress = e;
+
+                var hdc = User32.GetDCEx(hWnd, default, GET_DCX_FLAGS.DCX_CACHE);
+
+                WmPaint(hdc);
+
+                User32.ReleaseDC(hWnd, hdc);
+            }
         }
 
         protected override unsafe void WmCreate(ref Message m, CREATESTRUCTW* pCreateStruct)
@@ -196,6 +242,8 @@ namespace PESpy
 
                 //Each section could introduce at most a 1 pixel rounding error, so the number of missing pixels should be less than the number of sections
                 Debug.Assert(missing < sectionAccessors.Length);
+
+                //todo: rent these
                 var indices = new int[sectionAccessors.Length];
                 var lengths = new int[sectionAccessors.Length];
 
@@ -253,7 +301,6 @@ namespace PESpy
                     visualSection.PhysicalStartPixel = start;
                     visualSection.Width = 0;
                     continue;
-                }
                 if (totalPhysicalWidthUsed >= width)
                 {
                     visualSection.Width = 0;
@@ -438,6 +485,8 @@ namespace PESpy
 
         protected override void WmSize(ref Message m, int width, int height)
         {
+            base.WmSize(ref m, width, height);
+
             var hdc = User32.GetDCEx(hWnd, default, GET_DCX_FLAGS.DCX_CACHE);
 
             var clientRect = ClientRectangle;
@@ -452,8 +501,23 @@ namespace PESpy
                 ComputeRegions();
         }
 
-        protected override unsafe void WmMouseMove(int x, int y)
+        protected override void WmMouseDown(ref Message m, int x, int y) => WmMouseMove(ref m, x, y);
+
+        protected override void WmMouseUp(ref Message m, int x, int y)
         {
+            _wasLeftMouseDown = false;
+        }
+
+        //In WinForms we get a mouse move even when clicking; I haven't figured out why, so we'll just relay to this
+        //on mouse down
+        protected override unsafe void WmMouseMove(ref Message m, int x, int y)
+        {
+            /* When the tooltip is shown, another mouse move event will be triggered, which will cause us to show the tooltip again,
+             * etc. Thus, we need to check if we're at the same point that we showed the tooltip, and if so bail out
+             * 
+             * You get MouseMove events as long as the mouse button is pressed (perhaos as a result of the various things we to do hook/capture
+             * the mouse). If you pressed the button and then moved onto this element, you won't get any events */
+
             var visualSections = _visualSections;
 
             if (visualSections == null)
@@ -463,20 +527,74 @@ namespace PESpy
             var isLeftMouseDown = User32.GetKeyState((int) VIRTUAL_KEY.VK_LBUTTON) < 0;
 
             //If we're holding down the left mouse button and dragging the mouse, even if we're outside the canvas, we still want to allow dragging
-            if ((y < _yOffset || y > (COLORLINE_HEIGHT + _yOffset)) && !isLeftMouseDown)
+            if ((y < _yOffset || y > (COLORLINE_HEIGHT + _yOffset)))
             {
-                //Left mouse button has been released, and we've moved out of the canvas
-                WmMouseLeave();
-                return;
+                if (isLeftMouseDown && !_wasLeftMouseDown)
+                {
+                    //We just clicked for the first time and we were out of bounds. Ignore
+                    return;
+                }
+                else if (!isLeftMouseDown)
+                {
+                    //Left mouse button has been released, and we've moved out of the canvas
+                    WmMouseLeave(ref m);
+                    return;
+                }
             }
+
+            _wasLeftMouseDown = true;
 
             //If you click and drag all the way to the left, you can get a negative X coordinate
 
             if (x < 0)
                 x = 0;
+
+            if (x >= Width)
+                x = Width - 1;
+
+            if (!isLeftMouseDown)
+            {
+                if (_lastToolTipPos == x)
+                {
+                    //We can fast path out of this. We don't need to move the arrow, and implicitly the same section
+                    //is still highlighted
+                    return;
+                }
+            }
+
+            //Binary search to find which section we're in
+
+            var sectionIndex = GetVisualSectionUnderCursor(x);
+
+            ref var visualSection = ref visualSections[sectionIndex];
+
+            //This is the section
+            var offset = x - visualSection.PhysicalStartPixel;
+            Debug.Assert(offset < visualSection.Width);
+            var item = visualSection.Data[offset];
+
+            //It seems like we have to call SetToolTip every time in order for it to follow our mouse.
+            //This can cause a bit of flicker unfortunately
+
+            var pViewByte = (ViewByte*) item.pViewByte;
+
+            if (_lastToolTipPos != x)
+            {
+                var tooltipText = GetTooltipText(pViewByte, sectionIndex, item.startAddress, item.pixelAddress);
+
+                //todo: is tooltip.show more performant?
+                _tooltip.SetToolTip(this, tooltipText);
+                _lastToolTipPos = x;
+            }
+
             var needInvalidate = false;
 
             var oldHighlightedSection = _highlightedSection;
+
+            if (_highlightedSection == sectionIndex)
+            {
+                //This section is already highlighted
+            }
             else
             {
                 //We need to re-render everything using the highlighted colors
@@ -485,6 +603,13 @@ namespace PESpy
 
                 needInvalidate = true;
             }
+
+            //If the left mouse button was initially pressed on top of our control, as long as its held down we'll continue
+            //to get mouse move events
+            if (isLeftMouseDown && item.pixelAddress != _arrowAddress)
+            {
+                //todo: the issue now is, when we draw within the .data section in our vc5 file, we get stutter as it goes up and down 1 line
+
                 if (_highlightedSection == _arrowSectionIndex)
                 {
                     //We're still in the same section as before. Which direction are we moving?
@@ -510,26 +635,25 @@ namespace PESpy
                 }
 
                 _arrowAddress = item.pixelAddress;
-                _positionChangedReentrancyCount++;
-                finally
-                {
-                    _positionChangedReentrancyCount--;
-                }
+
+                App.RaisePositionChanged(this, _arrowAddress);
 
                 needInvalidate = true;
-            if (needInvalidate)
-            {
-                //The key to fast painting is to paint what you want _immediately_. Calling Invalidate() and waiting for a WM_PAINT is too slow, as Windows seems to allow these requests to build
-                //up before actually dispatching the WM_PAINT (either that, or the the process of doing the dispatch is also slow)
+            }
                 var hdc = User32.GetDCEx(hWnd, default, GET_DCX_FLAGS.DCX_CACHE);
 
                 WmPaint(hdc);
 
                 User32.ReleaseDC(hWnd, hdc);
             }
-        }
+        protected override void WmMouseLeave(ref Message m)
+        {
+            if (_lastToolTipPos != -1)
+            {
+                _lastToolTipPos = -1;
+                _tooltip.SetToolTip(this, null);
+            }
 
-        protected override void WmMouseLeave()
             if (_highlightedSection != -1)
             {
                 _highlightedSection = -1;
@@ -555,11 +679,7 @@ namespace PESpy
                 else
                     return mid;
             }
-        }
 
-        protected override void WmNcDestroy(ref Message m)
-        {
-            base.WmNcDestroy(ref m);
+            throw new NotImplementedException();
         }
-    }
 }

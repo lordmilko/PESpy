@@ -48,13 +48,13 @@ namespace PESpy.PDB
 
                 //>= 0x1200 && < LF_ST_MAX + LF_TYPESERVER + 16-bit variants that would also be excluded per the above
                 case LF_SKIP:
-                case LF_SKIP_16t:
+                case LF_SKIP_16t: //Not supported by DIA
                 case LF_ARGLIST:
-                case LF_ARGLIST_16t:
+                case LF_ARGLIST_16t: //Not supported by DIA
                 case LF_FIELDLIST:
-                case LF_FIELDLIST_16t:
+                case LF_FIELDLIST_16t: //Not supported by DIA
                 case LF_DERIVED:
-                case LF_DERIVED_16t:
+                case LF_DERIVED_16t: //Not supported by DIA
                 case LF_METHODLIST:
                 case LF_METHODLIST_16t:
                     return null;
@@ -96,32 +96,32 @@ namespace PESpy.PDB
                     return null;
 
                 case LF_ALIAS: //disp_LF_ALIAS
-                case LF_ALIAS_ST:
+                case LF_ALIAS_ST: //Not supported by DIA
                     return SymTagEnum.Typedef;
 
                 case LF_ARRAY: //disp_LF_ARRAY
-                case LF_ARRAY_16t:
-                case LF_ARRAY_ST:
+                case LF_ARRAY_16t: //Not supported by DIA
+                case LF_ARRAY_ST: //Not supported by DIA
                     return SymTagEnum.ArrayType;
                 case LF_CLASS: //disp_LF_CLASS
-                case LF_CLASS_16t:
-                case LF_CLASS_ST:
+                case LF_CLASS_16t: //Not supported by DIA
+                case LF_CLASS_ST: //Not supported by DIA
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
-                case LF_STRUCTURE_16t:
-                case LF_STRUCTURE_ST:
+                case LF_STRUCTURE_16t: //Not supported by DIA
+                case LF_STRUCTURE_ST: //Not supported by DIA
                     return SymTagEnum.UDT;
                 case LF_ENUM: //disp_LF_ENUM
-                case LF_ENUM_16t:
-                case LF_ENUM_ST:
+                case LF_ENUM_16t: //Not supported by DIA
+                case LF_ENUM_ST: //Not supported by DIA
                     return SymTagEnum.Enum;
 
                 case LF_ENUMERATE: //disp_LF_ENUMERATE
-                case LF_ENUMERATE_ST:
+                case LF_ENUMERATE_ST: //Not supported by DIA
                     return SymTagEnum.Data;
 
                 case LF_FRIENDCLS: //disp_LF_FRIENDCLS
-                case LF_FRIENDCLS_16t:
+                case LF_FRIENDCLS_16t: //Not supported by DIA
                     return SymTagEnum.Friend;
 
                 case LF_FRIENDFCN: //disp_LF_FRIENDFCN
@@ -129,18 +129,18 @@ namespace PESpy.PDB
                 case LF_FRIENDFCN_ST:
                     return SymTagEnum.Friend;
                 case LF_MANAGED: //disp_LF_MANAGED
-                case LF_MANAGED_ST:
+                case LF_MANAGED_ST: //Not supported by DIA
                     return SymTagEnum.ManagedType;
 
                 case LF_MATRIX: //disp_LF_MATRIX
                     return SymTagEnum.MatrixType;
 
                 case LF_MEMBER: //disp_LF_MEMBER
-                case LF_MEMBER_16t:
-                case LF_MEMBER_ST:
+                case LF_MEMBER_16t: //Not supported by DIA
+                case LF_MEMBER_ST: //Not supported by DIA
                     return SymTagEnum.Data;
                 case LF_MFUNCTION: //disp_LF_MFUNCTION
-                case LF_MFUNCTION_16t:
+                case LF_MFUNCTION_16t: //Not supported by DIA
                     return SymTagEnum.FunctionType;
 
                 //In MicrosoftPdbSymbolModule.EnumerateTypeSymbols() I remarked that both the modified type and unmodified type represent themselves as being the same SymTagEnum.
@@ -148,21 +148,21 @@ namespace PESpy.PDB
                 case LF_MODIFIER: //disp_LF_MODIFIER
                     return ((LfModifier) typType).type.GetSymTagEnum();
 
-                case LF_MODIFIER_16t:
+                case LF_MODIFIER_16t: //Not supported by DIA
                     return ((LfModifier16t) typType).type.GetSymTagEnum();
 
                 case LF_MODIFIER_EX: //disp_LF_MODIFIER_EX
                     return ((LfModifierEx) typType).type.GetSymTagEnum();
                 case LF_UNION: //disp_LF_UNION
-                case LF_UNION_16t:
-                case LF_UNION_ST:
+                case LF_UNION_16t: //Not supported by DIA
+                case LF_UNION_ST: //Not supported by DIA
                     return SymTagEnum.UDT;
 
                 case LF_UNION2: //disp_LF_UNION2
                     return SymTagEnum.UDT;
 
                 case LF_VBCLASS: //disp_LF_VBCLASS
-                case LF_VBCLASS_16t:
+                case LF_VBCLASS_16t: //Not supported by DIA
                     return SymTagEnum.BaseClass;
 
                 case LF_VECTOR: //disp_LF_VECTOR
@@ -205,30 +205,30 @@ namespace PESpy.PDB
              */
             switch (typType.leaf)
             {
-                case LF_CLASS_16t:
-                case LF_STRUCTURE_16t:
+                case LF_CLASS_16t: //Not supported by DIA
+                case LF_STRUCTURE_16t: //Not supported by DIA
                     return ((LfClass16t) typType).property.fwdref;
 
-                case LF_UNION_16t:
+                case LF_UNION_16t: //Not supported by DIA
                     return ((LfUnion16t) typType).property.fwdref;
 
-                case LF_ENUM_16t:
+                case LF_ENUM_16t: //Not supported by DIA
                     return ((LfEnum16t) typType).property.fwdref;
 
                 case LF_CLASS:
-                case LF_CLASS_ST:
+                case LF_CLASS_ST: //Not supported by DIA
                 case LF_STRUCTURE:
-                case LF_STRUCTURE_ST:
+                case LF_STRUCTURE_ST: //Not supported by DIA
                 case LF_INTERFACE:
                     Debug.Assert(typType.leaf != LF_INTERFACE); //Does Visual Studio 2022 DIA still handle interface forward refs?
                     return ((LfClass) typType).property.fwdref;
 
                 case LF_UNION:
-                case LF_UNION_ST:
+                case LF_UNION_ST: //Not supported by DIA
                     return ((LfUnion) typType).property.fwdref;
 
                 case LF_ENUM:
-                case LF_ENUM_ST:
+                case LF_ENUM_ST: //Not supported by DIA
                     return ((LfEnum) typType).property.fwdref;
                 default:
                     return false;

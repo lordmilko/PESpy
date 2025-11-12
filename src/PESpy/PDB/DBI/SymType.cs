@@ -421,6 +421,9 @@ namespace PESpy.PDB
         public static implicit operator SymType(SYMTYPE* value) => new SymType(value);
         public static implicit operator SYMTYPE*(SymType value) => value.value;
 
+        public static bool operator ==(SymType left, SymType right) => left.value == right.value;
+        public static bool operator !=(SymType left, SymType right) => left.value != right.value;
+
         public static implicit operator AlignSym(SymType symType) => new AlignSym((ALIGNSYM*) symType.value);
         public static implicit operator AnnotationSym(SymType symType) => new AnnotationSym((ANNOTATIONSYM*) symType.value);
         public static implicit operator ArmSwitchTable(SymType symType) => new ArmSwitchTable((ARMSWITCHTABLE*) symType.value);

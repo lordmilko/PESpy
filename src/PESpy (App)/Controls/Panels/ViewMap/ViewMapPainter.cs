@@ -3,7 +3,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.View;
 using PInvoke;
-namespace PESpy
+
+namespace PESpy.Controls
 {
     /// <summary>
     /// Provides facilities for painting a layer of a <see cref="ViewMap"/>.
@@ -60,11 +61,14 @@ namespace PESpy
             Debug.Assert(_hBitmap != default);
             Debug.Assert(!IsValid);
 
-            User32.FillRect(_hMemDC, _clientRect, Window.DefaultBackgroundBrush);
+            User32.FillRect(_hMemDC, _clientRect, NativeWindow.DefaultBackgroundBrush);
 
             var visualSections = _viewMap._visualSections;
             var fileAccessor = App.FileAccessor;
             var sectionAccessors = fileAccessor.SectionAccessors;
+
+            int arrowXPos = -1;
+
             for (var i = 0; i < visualSections.Length; i++)
             {
                 ref var sectionAccessor = ref sectionAccessors[i];
@@ -75,12 +79,14 @@ namespace PESpy
                 ref var visualSection = ref visualSections[i];
 
                 if (visualSection.Width == 0)
-                    continue;
                 DrawSection(start, false, sectionAccessor, visualSection, fileAccessor);
             }
 
             //Below the main area, draw a legend
             DrawLegend();
+
+            IsValid = true;
+        }
 
         private void DrawLegend()
         {
@@ -123,11 +129,6 @@ namespace PESpy
 
                     case 4:
                         text = "Unknown";
-                        hPen = _viewMap._unknownPen;
-                        hBrush = _viewMap._unknownBrush;
-                        break;
-                }
-
                 var hMemDC = _hMemDC;
 
                 Gdi32.SelectObject(hMemDC, hPen);
@@ -184,6 +185,7 @@ namespace PESpy
                 xPos++;
             }
 
+#if DRAW_DIRECTORIES
             if (visualSection.Directories != null)
             {
                 Gdi32.SelectObject(hMemDC, Gdi32.GetStockObject(GET_STOCK_OBJECT_FLAGS.BLACK_PEN));
@@ -218,6 +220,7 @@ namespace PESpy
                     Gdi32.SetTextColor(hMemDC, oldColor);
                 }
             }
+#endif
 
             //Draw the name of the section
 
@@ -242,9 +245,13 @@ namespace PESpy
             ref var visualSection = ref _viewMap._visualSections[_viewMap._highlightedSection];
 
             var start = visualSection.PhysicalStartPixel;
+            if (start > 0)
+                start--;
+
             DrawSection(start, true, sectionAccessor, visualSection, fileAccessor);
 
             DrawHighlightOutline(_hMemDC, visualSection.PhysicalStartPixel, visualSection.Width, ViewMap.COLORLINE_HEIGHT);
+
             IsValid = true;
         }
 
@@ -320,6 +327,12 @@ namespace PESpy
                 case ViewByteKind.Unknown:
                     //C0C0C0
                     return isHighlighted ? _viewMap._unknownHighlightPen : _viewMap._unknownPen;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyTo(in ViewMapPainter painter) => CopyTo(painter._hMemDC);
 

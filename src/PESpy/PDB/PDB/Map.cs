@@ -9,7 +9,7 @@ namespace PESpy.PDB
     //D = domain (key)
     //R = range (value)
     //H = hasher
-    public readonly struct Map<D, R, H> : IValue, IViewable
+    public readonly struct Map<D, R, H> : IViewableValue
         where D : unmanaged, IEquatable<D>
         where H : HashClass<D>
     {
@@ -69,7 +69,8 @@ namespace PESpy.PDB
 
             var size = Size;
             var capacity = Capacity;
-            var presentBits = new BitArray(PresentWords.ToArray());
+
+            var presentWords = PresentWords;
 
             Entry[] entries;
             int[] virtualEntries;
@@ -92,10 +93,14 @@ namespace PESpy.PDB
 
             for (var i = 0; i < capacity; i++)
             {
+                int wordIndex = i >> 5; // divide by 32
+                int bitIndex = i & 31;
+                var isPresent = wordIndex < presentWords.Length && (presentWords[wordIndex] & (1 << bitIndex)) != 0;
+
                 //Suppose the capacity is 6 but the actual size is 4. The capacity being 6 means that at most the 6th bit (at index 5)
                 //is set. In-between bits 0-5, there will be two false ones. We need to locate the 4 set bits within the range of possible
-                //bits. All of the other bits in the BitArray after the capacity should be false and can be ignored
-                if (i < presentBits.Length && presentBits[i]) //In Visual C++ 4, you can have an empty PresentWords
+                //bits. All of the other bits in the present words after the capacity should be false and can be ignored
+                if (isPresent) //In Visual C++ 4, you can have an empty PresentWords
                 {
                     entries[bucketIndex] = new Entry(entryChunk, getValue, valueSize);
                     virtualEntries[i] = bucketIndex;
@@ -108,6 +113,50 @@ namespace PESpy.PDB
             this.virtualEntries = virtualEntries;
         }
 
+        public bool TryFind(D key, out R value, out int physicalEntryIndex)
+        {
+            var n = Capacity;
+
+            /* There are several different methods of hashing the key
+             *
+             * | Enum        | Typedef                                              | Description
+             * |-------------|------------------------------------------------------|--------------|
+             * | hcCast (0)  | HashClass<unsigned long, hcCast>              HcNi   | standard version of the HashClass merely casts the object to a HASH. by convention, this one is always HashClass<H,hcCast>
+             * | hcSig (1)   |                                                      | SIG is an unsigned long (like NI!) and needs a different hash function
+             * | hcKey (2)   |                                                      | KEY is an unsigned long (like NI!) and needs a different hash function
+             * | hcMD5 (4)   |                                                      | simple hash class which hashes using MD5 hash
+             * | hcCRC (5)   |                                                      | hash class with CRC hash
+             * | hcLCast (6) | HashClass<unsigned long, hcLCast>             LHcNi  | casting long hash
+             * |             | HashClass<UINT_PTR, hcLCast>                  HcPtr  |
+             * | hcLPtr (7)  | HashClass2<void *, hcLPtr, cbitsTruncateHash> HcLPtr | casting long pointer hash
+             *
+             * Source uses the following map
+             *
+             * Map<unsigned long,SHO,pdb_internal::HashClass<unsigned long,0>,void,CriticalSectionNop>::find
+             *
+             * D = unsigned long ("domain")
+             * R = SHO
+             * H = pdb_internal::HashClass<unsigned long,0> = HcNi - casts the "domain" D to a HASH (short)
+             * C = void
+             * CS = CriticalSectionNop
+             */
+
+            var h = (int) hasher.GetHashableValue(key) % n;
+            var i = h;
+
+            var presentWords = PresentWords;
+            var deletedWords = DeletedWords;
+
+            do
+            {
+                var wordIndex = i >> 5;
+                var bitIndex = i & 31;
+                var bit = 1 << bitIndex;
+
+                var isPresent = wordIndex < presentWords.Length && (presentWords[wordIndex] & bit) != 0;
+
+                if (isPresent)
+                {
                     var j = virtualEntries[i];
                     var entry = Entries[j];
 
@@ -120,7 +169,9 @@ namespace PESpy.PDB
                 }
                 else
                 {
-                    if (i >= deletedBits.Length || !deletedBits[i])
+                    var isDeleted = wordIndex < deletedWords.Length && (deletedWords[wordIndex] & bit) != 0;
+
+                    if (!isDeleted)
                         break;
                 }
 
@@ -208,7 +259,7 @@ namespace PESpy.PDB
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, default, StructSize);
+                writer.NewStruct(Strings.Entry, this, ViewKind.Map_Entry, StructSize);
 
             int IViewable.NumChildren() => 2;
 
@@ -233,7 +284,7 @@ namespace PESpy.PDB
                         if (typeof(R) == typeof(SN))
                             structWriter.WriteField("Value", sizeof(D), Unsafe.As<R, SN>(ref value), valueSize);
                         else if (typeof(R) == typeof(SrcHeaderOut))
-                            structWriter.WriteStructField("Value", sizeof(D), Unsafe.As<R, SrcHeaderOut>(ref value));
+                            structWriter.WriteStructField("Value", Unsafe.As<R, SrcHeaderOut>(ref value));
                         else
                             Debug.Assert(false);
                         break;

@@ -55,7 +55,7 @@ namespace PESpy
         /// <summary>
         /// Gets the image version listed in <see cref="ImageOptionalHeader.MajorImageVersion"/> and <see cref="ImageOptionalHeader.MinorImageVersion"/>.
         /// </summary>
-        public Version ImageVersion { get; set; }
+        public Version? ImageVersion { get; set; }
 
         /// <summary>
         /// Gets the image version listed in <see cref="ImageOptionalHeader.MajorLinkerVersion"/> and <see cref="ImageOptionalHeader.MinorLinkerVersion"/>.
@@ -69,6 +69,8 @@ namespace PESpy
         /// If no Rich Header is present, or the Rich Header does not specify the linker, this value is <see langword="null"/>.
         /// </summary>
         public string? RichLinkerVersion { get; set; }
+
+        public PRODID RichLinkerProdID { get; set; }
 
         /// <summary>
         /// Gets the subsystem version listed in <see cref="ImageOptionalHeader.MajorSubsystemVersion"/> and <see cref="ImageOptionalHeader.MinorSubsystemVersion"/>.
@@ -108,7 +110,7 @@ namespace PESpy
         public FileOverview.DebuggableAttributeInfo? DebuggableAttribute { get; set; }
 
         public bool IsNativeAOT { get; set; }
-        public Version NativeAOTHeaderVersion { get; set; }
+        public Version? NativeAOTHeaderVersion { get; set; }
 
         /// <summary>
         /// Gets whether an <see cref="AppHostSignature"/> is present.
@@ -125,7 +127,7 @@ namespace PESpy
         /// Gets whether the <see cref="ImageCor20Header.ManagedNativeHeader"/> points to a <see cref="CorCompileHeader"/>.
         /// </summary>
         public bool IsNgen { get; set; }
-        public Version NgenVersion { get; set; }
+        public Version? NgenVersion { get; set; }
 
         /// <summary>
         /// Gets whether the <see cref="ImageCor20Header.ManagedNativeHeader"/> points to a <see cref="ReadyToRunHeader"/>.
@@ -135,7 +137,7 @@ namespace PESpy
         /// <summary>
         /// Gets the version listed in <see cref="ReadyToRunHeader.MajorVersion"/> and <see cref="ReadyToRunHeader.MinorVersion"/>.
         /// </summary>
-        public Version R2RHeaderVersion { get; set; }
+        public Version? R2RHeaderVersion { get; set; }
 
         /// <summary>
         /// Gets whether a <see cref="ImageCor20Header"/> is present.
@@ -145,7 +147,7 @@ namespace PESpy
         /// <summary>
         /// Gets the version listed in <see cref="ImageCor20Header.MajorRuntimeVersion"/> and <see cref="ImageCor20Header.MinorRuntimeVersion"/>.
         /// </summary>
-        public Version Cor20HeaderVersion { get; set; }
+        public Version? Cor20HeaderVersion { get; set; }
 
         #region Debug
 
@@ -179,6 +181,7 @@ namespace PESpy
 
         public PEFileOverview(PEFile peFile, ISymbolAccessor symbolAccessor)
         {
+            //Note: LocalSymbolFile is causing the window to become slightly too large and a scrollbar appears
             if (symbolAccessor is ExternalFileSymbolAccessor e)
                 LocalSymbolFile = e.FileName;
 
@@ -522,6 +525,7 @@ namespace PESpy
 
                     case ProductKind.LINK:
                         RichLinkerVersion = productInfo.ToolFullName;
+                        RichLinkerProdID = prodItem.ProdId;
                         break;
                 }
 

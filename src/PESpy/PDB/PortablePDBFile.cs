@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
 using PESpy.View;
 using PESpy.View.Builder;
 
@@ -16,6 +17,45 @@ namespace PESpy
             try
             {
                 return new PortablePDBFile(fs.Name, mmf);
+            }
+            catch
+            {
+                mmf.Dispose();
+
+                throw;
+            }
+        }
+
+        public static unsafe PortablePDBFile FromEmbeddedFile(EmbeddedPortablePdb embeddedPortablePdb)
+        {
+            var input = new UnmanagedMemoryStream((byte*) embeddedPortablePdb.PortablePdbImage, embeddedPortablePdb.PortablePdbImage.Length);
+
+            using var deflate = new DeflateStream(input, CompressionMode.Decompress, leaveOpen: true);
+
+            if (embeddedPortablePdb.UncompressedSize == 0)
+                throw new InvalidOperationException("Cannot open Embedded Portable PDB: uncompressed size is 0");
+
+            //We want to create an MMF around the data
+
+            var mmf = new MemoryMappedFileHolder(embeddedPortablePdb.UncompressedSize);
+
+            try
+            {
+#if NET
+                var actualLength = deflate.ReadAtLeast(embeddedPortablePdb.PortablePdbImage, embeddedPortablePdb.UncompressedSize, throwOnEndOfStream: false);
+#else
+                using var output = new UnmanagedMemoryStream(mmf.Address, mmf.Length, mmf.Length, FileAccess.Write);
+                deflate.CopyTo(output);
+                var actualLength = (int) output.Position;
+#endif
+
+                if (actualLength != embeddedPortablePdb.UncompressedSize)
+                    throw new BadImageFormatException();
+
+                if (deflate.ReadByte() != -1)
+                    throw new BadImageFormatException(); //We should have read to the end
+
+                return new PortablePDBFile(null, mmf);
             }
             catch
             {
@@ -61,6 +101,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
+        private PortablePDBFileSymbolAccessor symbolAccessor;
 
         private bool disposed;
 
@@ -85,6 +126,8 @@ namespace PESpy
         {
             throw new NotImplementedException();
         }
+
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new PortablePDBFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

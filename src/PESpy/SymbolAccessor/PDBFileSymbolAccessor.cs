@@ -6,11 +6,11 @@ namespace PESpy
     {
         public SymbolAccessorKind Kind => SymbolAccessorKind.PDB;
 
-        private PDBFile pdbFile;
+        internal readonly PDBFile PDBFile;
 
         internal PDBFileSymbolAccessor(PDBFile pdbFile)
         {
-            this.pdbFile = pdbFile;
+            PDBFile = pdbFile;
         }
 
         public bool TryGetAddressFromName(SymString name, out int targetAddress)
@@ -20,9 +20,9 @@ namespace PESpy
 
         public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
         {
-            if (pdbFile.TryGetSymbolByRVA(targetAddress, out var symType, out displacement))
+            if (PDBFile.TryGetSymbolByRVA(targetAddress, out var symType, out displacement))
             {
-                name = symType.GetName(pdbFile);
+                name = symType.GetName(PDBFile);
                 return true;
             }
 

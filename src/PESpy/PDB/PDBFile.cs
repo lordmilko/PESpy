@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;
@@ -11,11 +12,73 @@ using SN = PESpy.PDB.SN;
 
 namespace PESpy
 {
+    internal abstract class PDBFileDebugView
+    {
+        private PDBFile pdbFile;
+
+        public PDBFileKind PDBKind => pdbFile.PDBKind;
+
+        public string Name => pdbFile.Name;
+
+        public string FileName => pdbFile.FileName;
+
+        public FileKind Kind => pdbFile.Kind;
+
+        public int Length => pdbFile.Length;
+
+        public FPM FPM0 => pdbFile.FPM0;
+
+        public FPM FPM1 => pdbFile.FPM1;
+
+        public FPM ActiveFPM => pdbFile.ActiveFPM;
+
+        public int NumPages => pdbFile.NumPages;
+
+        public int PageSize => pdbFile.PageSize;
+
+        public int ActiveFpmPageNo => pdbFile.ActiveFpmPageNo;
+
+        public IStreamTable StreamTable => pdbFile.StreamTable;
+
+        public IStreamTable? PreviousStreamTable => pdbFile.PreviousStreamTable;
+
+        public MsfStream.PDB? PDB => pdbFile.PDB;
+
+        public MsfStream.TPI? TPI => pdbFile.TPI;
+
+        public MsfStream.DBI? DBI => pdbFile.DBI;
+
+        public MsfStream.TPI? IPI => pdbFile.IPI;
+
+        public NMT? NameMap => pdbFile.NameMap;
+
+        public MsfStream.SrcHeaders? SrcHeaders => pdbFile.SrcHeaders;
+
+        public FixedAnsiString SrcSrv => pdbFile.SrcSrv;
+
+        public SourceLinkList SourceLink => pdbFile.SourceLink;
+
+        public MsfStream.GSI? GSI => pdbFile.GSI;
+
+        public MsfStream.PSGSI? PSGSI => pdbFile.PSGSI;
+
+        internal PDBFileDebugView(PDBFile pdbFile)
+        {
+            this.pdbFile = pdbFile;
+        }
+    }
+
     /// <summary>
     /// Represents a CodeView Program Database (PDB) file.
     /// </summary>
     public abstract unsafe class PDBFile : IFile, IViewable, ICodeViewAccessor, IDisposable
     {
+        /// <summary>
+        /// Reads a <see cref="PDBFile"/> from a file on disk.
+        /// </summary>
+        /// <param name="path">The path to the file to read.</param>
+        /// <param name="writable">Whether the file should be opened as writable. Changes can be persisted by calling <see cref="Save"/></param>
+        /// <returns>A <see cref="PDBFile"/> that provides access to the contents of the specified file.</returns>
         public static PDBFile FromFile(string path, bool writable = false)
         {
             //File.OpenWrite opens with FileMode.OpenOrCreate. The file _must_ already exist if we are opening it with an MMF

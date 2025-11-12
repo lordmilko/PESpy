@@ -22,5 +22,10 @@ namespace PESpy
             this.lParam = lParam;
             Result = 0;
         }
+
+        public override string ToString()
+        {
+            return Msg.ToString();
+        }
     }
 }

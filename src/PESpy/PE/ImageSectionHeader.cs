@@ -268,19 +268,19 @@ namespace PESpy
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(VirtualSize), VirtualSizeOffset, VirtualSize);
+                    structWriter.WriteField(nameof(VirtualSize), VirtualSizeOffset, VirtualSize, FieldViewFlags.Size);
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress);
+                    structWriter.WriteField(nameof(VirtualAddress), VirtualAddressOffset, (int) VirtualAddress, FieldViewFlags.Address);
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(SizeOfRawData), SizeOfRawDataOffset, SizeOfRawData);
+                    structWriter.WriteField(nameof(SizeOfRawData), SizeOfRawDataOffset, SizeOfRawData, FieldViewFlags.Size);
                     break;
 
                 case 4:
-                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, (int) PointerToRawData);
+                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, (int) PointerToRawData, FieldViewFlags.Address);
                     break;
 
                 case 5:

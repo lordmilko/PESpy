@@ -1,11 +1,24 @@
-﻿using PESpy.PDB;
+﻿using System.Diagnostics;
+using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
 {
+    class PDB2FileDebugView : PDBFileDebugView
+    {
+        private PDB2File pdbFile;
+
+        public MsfHdr MsfHeader => pdbFile.MsfHeader;
+
+        internal PDB2FileDebugView(PDB2File pdbFile) : base(pdbFile)
+        {
+        }
+    }
+
     /// <summary>
     /// Represents a CodeView Program Database v2 (PDB) file.
     /// </summary>
+    [DebuggerTypeProxy(typeof(PDB2FileDebugView))]
     public class PDB2File : PDBFile
     {
         private MsfHdr msfHeader;
