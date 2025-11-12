@@ -69,16 +69,13 @@ namespace PESpy.PDB
 
         #endregion
 
-        private int BytesUsed
+        private int BytesUsed()
         {
-            get
-            {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
 
-                var str = TypType.ReadString(value->data + bytesRead);
+            var str = TypType.ReadString(value->data + bytesRead);
 
-                return FixedStructSize + bytesRead + str.Length;
-            }
+            return FixedStructSize + bytesRead + str.Length;
         }
 
         internal LfArray16t(lfArray_16t* value)
@@ -94,7 +91,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfArray_16t, this, ViewKind.LfArray16t, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -126,7 +123,7 @@ namespace PESpy.PDB
 
                 case 6:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

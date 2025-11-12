@@ -90,7 +90,7 @@ namespace PESpy.PDB
             sizeof(short)  + //typind
             1;               //flags
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal ProcSym3216t(PROCSYM32_16t* value)
         {
@@ -105,7 +105,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.PROCSYM32_16t, this, ViewKind.ProcSym3216t, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(13, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(13, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -165,7 +165,7 @@ namespace PESpy.PDB
 
                 case 13:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

@@ -44,7 +44,7 @@ namespace PESpy.PDB
             sizeof(int)    + //count
             sizeof(int);     //signature
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal LfPreComp(lfPreComp* value)
         {
@@ -59,7 +59,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfPreComp, this, ViewKind.LfPreComp, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -91,7 +91,7 @@ namespace PESpy.PDB
 
                 case 6:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

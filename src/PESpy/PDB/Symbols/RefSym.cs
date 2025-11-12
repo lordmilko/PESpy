@@ -70,7 +70,7 @@ namespace PESpy.PDB
             sizeof(short);   //usFill
 
         //todo: dont necessarily include the name in all of the symbols that check for nb11 like we do here
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal RefSym(REFSYM* value)
         {
@@ -85,7 +85,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.REFSYM, this, ViewKind.RefSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -121,7 +121,7 @@ namespace PESpy.PDB
 
                 case 7:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

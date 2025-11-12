@@ -71,7 +71,7 @@ namespace PESpy.PDB
             sizeof(short)  + //imod
             sizeof(short);   //data
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal RefMiniPdb(REFMINIPDB* value)
         {
@@ -86,7 +86,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.REFMINIPDB, this, ViewKind.RefMiniPdb, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(12, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(12, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -147,7 +147,7 @@ namespace PESpy.PDB
 
                 case 12:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

@@ -80,16 +80,13 @@ namespace PESpy.PDB
             return FixedStructSize + bytesRead + str.Length + 1;
         }
 
-        private int BytesUsed
+        private int BytesUsed()
         {
-            get
-            {
-                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
 
-                var str = TypType.ReadString(value->offset + bytesRead);
+            var str = TypType.ReadString(value->offset + bytesRead);
 
-                return FixedStructSize + bytesRead + str.Length + 1;
-            }
+            return FixedStructSize + bytesRead + str.Length + 1;
         }
 
         internal LfMember(lfMember* value)

@@ -65,23 +65,20 @@ namespace PESpy.PDB
             sizeof(short)  + //field
             2;               //property
 
-        private int BytesUsed
+        private int BytesUsed()
         {
-            get
+            var name = TypType.ReadString(value->Name);
+
+            var length = FixedStructSize + name.Length + 1;
+
+            if (property.hasuniquename)
             {
-                var name = TypType.ReadString(value->Name);
+                var uniqueName = TypType.ReadString(value->Name + name.Length + 1);
 
-                var length = FixedStructSize + name.Length + 1;
-
-                if (property.hasuniquename)
-                {
-                    var uniqueName = TypType.ReadString(value->Name + name.Length + 1);
-
-                    length += uniquename.Length + 1;
-                }
-
-                return length;
+                length += uniquename.Length + 1;
             }
+
+            return length;
         }
 
         internal LfEnum16t(lfEnum_16t* value)
@@ -97,7 +94,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfEnum_16t, this, ViewKind.LfEnum16t, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -135,7 +132,7 @@ namespace PESpy.PDB
                     if (property.hasuniquename)
                         structWriter.WriteSymStringField(nameof(uniquename), uniquenameOffset, GetUniqueName(structWriter.GetSymbolAccessor()));
                     else
-                        structWriter.AlignOrThrow(BytesUsed);
+                        structWriter.AlignOrThrow(BytesUsed());
 
                     break;
 
@@ -143,7 +140,7 @@ namespace PESpy.PDB
                     if (property.hasuniquename)
                     {
                         //Possible alignment
-                        structWriter.AlignOrThrow(BytesUsed);
+                        structWriter.AlignOrThrow(BytesUsed());
                     }
                     else
                         throw new IndexOutOfRangeException(); //We already aligned above

@@ -66,7 +66,7 @@ namespace PESpy.PDB
             sizeof(byte)   + //flags1
             sizeof(byte);    //flags2
 
-        private int BytesUsed => FixedStructSize + ver.Length + 1;
+        private int BytesUsed() => FixedStructSize + ver.Length + 1;
 
         internal CFlagSym(CFLAGSYM* value)
         {
@@ -81,7 +81,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.CFLAGSYM, this, ViewKind.CFlagSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(12, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(12, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -141,7 +141,7 @@ namespace PESpy.PDB
 
                 case 12:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

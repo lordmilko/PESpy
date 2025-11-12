@@ -67,7 +67,7 @@ namespace PESpy.PDB
             sizeof(short)  + //sampslot
             sizeof(short);   //uavslot
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal DataSymHLSL(DATASYMHLSL* value)
         {
@@ -82,7 +82,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.DATASYMHLSL, this, ViewKind.DataSymHLSL, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(10, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(10, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -130,7 +130,7 @@ namespace PESpy.PDB
 
                 case 10:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

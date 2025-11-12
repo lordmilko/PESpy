@@ -32,7 +32,7 @@ namespace PESpy.PDB
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf
 
-        private int BytesUsed => FixedStructSize + Name.Length + 1;
+        private int BytesUsed() => FixedStructSize + Name.Length + 1;
 
         internal LfManaged(lfManaged* value)
         {
@@ -47,7 +47,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfManaged, this, ViewKind.LfManaged, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -67,7 +67,7 @@ namespace PESpy.PDB
 
                 case 3:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

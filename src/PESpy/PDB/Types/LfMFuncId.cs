@@ -40,7 +40,7 @@ namespace PESpy.PDB
             sizeof(int)    + //parentType
             sizeof(int);     //type
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal LfMFuncId(lfMFuncId* value)
         {
@@ -55,7 +55,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfMFuncId, this, ViewKind.LfMFuncId, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -85,7 +85,7 @@ namespace PESpy.PDB
                     //Note: there's a bunch of unknown bytes at the end. Same with LfFuncId
 
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

@@ -70,16 +70,13 @@ namespace PESpy.PDB
             sizeof(ushort) + //rectyp
             sizeof(int); //typind
 
-        private int BytesUsed
+        private int BytesUsed()
         {
-            get
-            {
-                TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
+            TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
 
-                var str = SymType.ReadString(raw, (byte*) &raw->value + bytesRead);
+            var str = SymType.ReadString(raw, (byte*) &raw->value + bytesRead);
 
-                return FixedStructSize + bytesRead + str.Length + 1;
-            }
+            return FixedStructSize + bytesRead + str.Length + 1;
         }
 
         internal ConstSym(CONSTSYM* value)
@@ -95,7 +92,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.CONSTSYM, this, ViewKind.ConstSym, SymType.GetSymbolLength((SYMTYPE*) raw, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -123,7 +120,7 @@ namespace PESpy.PDB
 
                 case 5:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

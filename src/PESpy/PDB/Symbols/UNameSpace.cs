@@ -36,7 +36,7 @@ namespace PESpy.PDB
             sizeof(ushort) + //reclen
             sizeof(ushort);  //rectyp
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal UNameSpace(UNAMESPACE* value)
         {
@@ -51,7 +51,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.UNAMESPACE, this, ViewKind.UNameSpace, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -71,7 +71,7 @@ namespace PESpy.PDB
 
                 case 3:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

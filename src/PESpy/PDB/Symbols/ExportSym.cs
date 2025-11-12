@@ -64,7 +64,7 @@ namespace PESpy.PDB
             sizeof(short)  + //ordinal
             sizeof(short);   //data
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal ExportSym(EXPORTSYM* value)
         {
@@ -79,7 +79,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.EXPORTSYM, this, ViewKind.ExportSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(11, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(11, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -135,7 +135,7 @@ namespace PESpy.PDB
 
                 case 11:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

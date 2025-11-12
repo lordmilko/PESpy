@@ -67,7 +67,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.INLINESITESYM2, this, ViewKind.InlineSiteSym2, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren => 6;
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -90,7 +90,7 @@ namespace PESpy.PDB
                     break;
 
                 case 4:
-                    viewWriter.WriteField(nameof(inlinee), inlinee);
+                    structWriter.WriteField(nameof(inlinee), inlineeOffset, value->inlinee);
                     break;
 
                 case 5:

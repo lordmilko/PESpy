@@ -42,7 +42,7 @@ namespace PESpy.PDB
             sizeof(ushort) + //leaf
             sizeof(short);   //count
 
-        private int BytesUsed => FixedStructSize + (count * sizeof(short));
+        private int BytesUsed() => FixedStructSize + (count * sizeof(short));
 
         internal LfArgList16t(lfArgList_16t* value)
         {

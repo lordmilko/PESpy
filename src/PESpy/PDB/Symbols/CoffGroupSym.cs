@@ -59,7 +59,7 @@ namespace PESpy.PDB
             sizeof(uint)   + //off
             sizeof(short);   //seg
 
-        private int BytesUsed => FixedStructSize + name.Length + 1;
+        private int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal CoffGroupSym(COFFGROUPSYM* value)
         {
@@ -74,7 +74,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.COFFGROUPSYM, this, ViewKind.CoffGroupSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -110,7 +110,7 @@ namespace PESpy.PDB
 
                 case 7:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

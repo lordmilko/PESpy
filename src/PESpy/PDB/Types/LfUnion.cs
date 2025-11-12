@@ -106,25 +106,22 @@ namespace PESpy.PDB
             2              + //property
             sizeof(int);     //field
 
-        private int BytesUsed
+        private int BytesUsed()
         {
-            get
+            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+
+            var str = TypType.ReadString(value->data + bytesRead);
+
+            var length = bytesRead + str.Length + 1;
+
+            if (property.hasuniquename)
             {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+                var uniqueName = TypType.ReadString(value->data + bytesRead + name.Length + 1);
 
-                var str = TypType.ReadString(value->data + bytesRead);
-
-                var length = bytesRead + str.Length + 1;
-
-                if (property.hasuniquename)
-                {
-                    var uniqueName = TypType.ReadString(value->data + bytesRead + name.Length + 1);
-
-                    length += uniquename.Length + 1;
-                }
-
-                return FixedStructSize + length;
+                length += uniquename.Length + 1;
             }
+
+            return FixedStructSize + length;
         }
 
         internal LfUnion(lfUnion* value)
@@ -140,7 +137,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfUnion, this, ViewKind.LfUnion, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed) + (property.hasuniquename ? 1 : 0);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed()) + (property.hasuniquename ? 1 : 0);
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -178,14 +175,14 @@ namespace PESpy.PDB
                     if (property.hasuniquename)
                         structWriter.WriteSymStringField(nameof(uniquename), uniquenameOffset, GetUniqueName(structWriter.GetSymbolAccessor()));
                     else
-                        structWriter.AlignOrThrow(BytesUsed);
+                        structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 case 8:
                     if (property.hasuniquename)
                     {
                         //Possible alignment
-                        structWriter.AlignOrThrow(BytesUsed);
+                        structWriter.AlignOrThrow(BytesUsed());
                     }
                     else
                         throw new IndexOutOfRangeException(); //We already aligned above

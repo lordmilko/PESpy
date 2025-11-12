@@ -57,7 +57,7 @@ namespace PESpy.PDB
             sizeof(short)  + //reg
             8;               //attr
 
-        internal int BytesUsed => FixedStructSize + name.Length + 1;
+        internal int BytesUsed() => FixedStructSize + name.Length + 1;
 
         internal AttrRegRel(ATTRREGREL* value)
         {
@@ -72,7 +72,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.ATTRREGREL, this, ViewKind.AttrRegRel, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(7, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -108,7 +108,7 @@ namespace PESpy.PDB
 
                 case 7:
                     //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

@@ -139,7 +139,7 @@ namespace PESpy.PDB
 
         internal int StructSize => (FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1 + 3) & ~3; //32-bit aligned
 
-        private int BytesUsed => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
+        private int BytesUsed() => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
 
         private readonly MemoryChunk chunk;
 
@@ -171,7 +171,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MODIv2, this, ViewKind.Modi, StructSize);
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(13, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(13, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -230,7 +230,7 @@ namespace PESpy.PDB
                     break;
 
                 case 13:
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:
