@@ -32,6 +32,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PROCSYMMIPS* value;
 
+        public static implicit operator SymType(ProcSymMips value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="PROCSYMMIPS.reclen"/>
         public ushort reclen => value->reclen;
 

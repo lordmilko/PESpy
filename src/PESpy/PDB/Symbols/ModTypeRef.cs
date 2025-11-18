@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MODTYPEREF* value;
 
+        public static implicit operator SymType(ModTypeRef value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="MODTYPEREF.reclen"/>
         public ushort reclen => value->reclen;
 

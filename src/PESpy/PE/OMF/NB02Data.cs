@@ -1,4 +1,5 @@
 ﻿using System;
+using ClrDebug.OMF;
 using PESpy.View;
 
 namespace PESpy
@@ -34,28 +35,56 @@ namespace PESpy
 
             //Data comes before the headers
 
+            var isLEFile = writer is LEViewWriter;
+
             for (var i = 0; i < DirEntries.Length; i++)
             {
                 ref var entry = ref DirEntries[i];
 
                 var data = entry.Data;
 
-                if (data is IViewable v)
-                    writer.WriteGlobal(v);
-                else if (data is RawValue<OldSymType[]> r1)
-                    writer.WriteGlobal(r1.Offset, r1.Value, entry.cb, ViewKind.Value); //todo: use better kind
-                else if (data is RawValue<OldTypType[]> r2)
-                    writer.WriteGlobal(r2.Offset, r2.Value, entry.cb, ViewKind.Value); //todo: use better kind
-                else if (data is RawValue<pbi[]> r3)
-                    writer.WriteGlobal(r3.Offset, r3.Value, entry.cb, ViewKind.Value); //todo: use better kind
-                else if (data is RawValue<FixedAnsiString[]> r4)
-                    writer.WriteGlobal(r4.Offset, r4.Value, entry.cb, ViewKind.Value); //todo: use better kind
-                else if (data is RawValue<loe[]> r5)
-                    writer.WriteGlobal(r5.Offset, r5.Value, entry.cb, ViewKind.Value); //todo: use better kind
-                else
+                switch (entry.SubSection)
                 {
-                    if (data != null)
-                        throw new NotImplementedException($"Don't know how to write a global of type '{data.GetType().Name}'");
+                    case SST.SSTMODULE: //smd (16-bit) / smd32 (32-bit)
+                        writer.WriteGlobal((IViewable) data);
+                        break;
+
+                    case SST.SSTPUBLIC: //RawValue<pbi[]> (16-bit) / RawValue<pbi[]> (32-bit)
+                        if (isLEFile)
+                            writer.WriteGlobal(((RawValue<pbi32[]>) data).Value);
+                        else
+                            writer.WriteGlobal(((RawValue<pbi[]>) data).Value);
+                        break;
+
+                    case SST.SSTTYPES:
+                    case SST.SSTCOMPACTED: //RawValue<OldTypType[]>
+                        var oldTypType = (RawValue<OldTypType[]>) data;
+                        writer.WriteGlobal(oldTypType.Offset, oldTypType.Value, entry.cb, ViewKind.OldTypType);
+                        break;
+
+                    case SST.SSTSYMBOLS: //RawValue<OldSymType[]>
+                        var oldSymType = (RawValue<OldSymType[]>) data;
+                        writer.WriteGlobal(oldSymType.Offset, oldSymType.Value, entry.cb, ViewKind.OldSymType);
+                        break;
+
+                    case SST.SSTLIBRARIES: //RawValue<FixedAnsiString[]>
+                        var libraries = (RawValue<FixedAnsiString[]>) data;
+                        writer.WriteGlobal(libraries.Offset, libraries.Value, entry.cb, ViewKind.LibraryName);
+                        break;
+
+                    case SST.SSTIMPORTS:
+                        throw new NotImplementedException();
+
+                    case SST.SSTSRCLINES:
+                    case SST.SSTSRCLNSEG:
+                        if (isLEFile)
+                            writer.WriteGlobal(((RawValue<loe32[]>) data).Value);
+                        else
+                            writer.WriteGlobal(((RawValue<loe[]>) data).Value);
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
                 }
             }
 

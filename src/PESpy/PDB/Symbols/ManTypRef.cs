@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MANTYPREF* value;
 
+        public static implicit operator SymType(ManTypRef value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="MANTYPREF.reclen"/>
         public ushort reclen => value->reclen;
 

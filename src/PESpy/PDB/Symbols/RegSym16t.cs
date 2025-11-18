@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly REGSYM_16t* value;
 
+        public static implicit operator SymType(RegSym16t value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="REGSYM_16t.reclen"/>
         public ushort reclen => value->reclen;
 

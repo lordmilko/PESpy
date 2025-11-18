@@ -4,7 +4,7 @@ namespace PESpy.View
 {
     public interface IFileDisassembler
     {
-        void WriteDosStub(FileAccessor fileAccessor, in ByteBlob byteBlob);
+        void WriteDosStub(FileAccessor fileAccessor, FileAnalyzer fileAnalyzer, in ByteBlob byteBlob);
 
         void WorkThreadProc(
             FileAccessor fileAccessor,

@@ -22,10 +22,8 @@
         public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement) =>
             symbolAccessor.TryGetNameFromAddress(targetAddress, out name, out displacement);
 
-        public bool TryGetAddressFromName(SymString name, out int targetAddress)
-        {
-            throw new System.NotImplementedException();
-        }
+        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress) =>
+            symbolAccessor.TryGetAddressFromName(name, out targetAddress);
 
         public void Dispose()
         {

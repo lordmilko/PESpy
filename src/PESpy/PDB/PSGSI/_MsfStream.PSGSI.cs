@@ -398,11 +398,11 @@ namespace PESpy.PDB
                 var thunkNameLength = WriteFakeThunkName(
                     (byte*) buffer,
                     maxRecordLength,
-                    PubSym32.FixedStructSize,
+                    DataSym16.FixedStructSize,
                     thunkRelativeOffset,
                     dataSym16.name,
                     targetDisplacement,
-                    true
+                    false
                 );
 
                 //Now we need to tell the symbol record how big its data actually comes to
@@ -428,11 +428,11 @@ namespace PESpy.PDB
                 var thunkNameLength = WriteFakeThunkName(
                     (byte*) buffer,
                     maxRecordLength,
-                    PubSym32.FixedStructSize,
+                    DataSym3216t.FixedStructSize,
                     thunkRelativeOffset,
                     dataSym3216.name,
                     targetDisplacement,
-                    true
+                    false
                 );
 
                 //Now we need to tell the symbol record how big its data actually comes to

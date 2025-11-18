@@ -27,7 +27,9 @@ namespace PESpy.PDB
             }
         }
 
-        public static SymTagEnum? GetSymTagEnum(in this TypType typType)
+        public static SymTagEnum? GetSymTagEnum(in this TypType typType) =>
+            GetSymTagEnum((LfEasy) typType);
+        public static SymTagEnum? GetSymTagEnum(in this LfEasy lfEasy)
         {
             /* DIA does not return all type symbols when it enumerates types. CAllTypesTrav::next works by iterating over each type index from TiMin to TiMac
              * and then for each record calls TPI1::QueryPbCVRecordForTi(). However, not all type records get sent to the type dispatcher: certain records
@@ -39,10 +41,7 @@ namespace PESpy.PDB
              *   in this range < LF_ID_MAX are safe. Anything >= LF_ID_MAX is excluded
              */
 
-            //todo: well what about lf_bitfield? dia DOES handle it despite it being 0x1205
-            //the dimcon* ones as well
-
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //<= LF_TI16_MAX
 
@@ -56,13 +55,13 @@ namespace PESpy.PDB
                 case LF_DERIVED:
                 case LF_DERIVED_16t: //Not supported by DIA
                 case LF_METHODLIST:
-                case LF_METHODLIST_16t:
+                case LF_METHODLIST_16t: //Not supported by DIA
                     return null;
 
                 //Some types do have dispatchers associated with them, however these dispatchers are only called upon to build up information for an outer,
                 //surfaced type. These inner types do not exist as standalone entities
                 case LF_BITFIELD: //disp_LF_BITFIELD
-                case LF_BITFIELD_16t:
+                case LF_BITFIELD_16t: //Not supported by DIA
                     return null;
 
                 //>= 0x1601 && < LF_CLASS2
@@ -103,6 +102,21 @@ namespace PESpy.PDB
                 case LF_ARRAY_16t: //Not supported by DIA
                 case LF_ARRAY_ST: //Not supported by DIA
                     return SymTagEnum.ArrayType;
+
+                case LF_BARRAY:
+                case LF_BARRAY_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_BCLASS: //disp_LF_BINTERFACE
+                case LF_BCLASS_16t: //Not supported by DIA
+                    return SymTagEnum.BaseClass;
+
+                case LF_BINTERFACE: //disp_LF_BINTERFACE
+                    return SymTagEnum.BaseInterface;
+
+                case LF_BUILDINFO:
+                    throw new NotImplementedException(); //not specifically handled?
+
                 case LF_CLASS: //disp_LF_CLASS
                 case LF_CLASS_16t: //Not supported by DIA
                 case LF_CLASS_ST: //Not supported by DIA
@@ -111,6 +125,39 @@ namespace PESpy.PDB
                 case LF_STRUCTURE_16t: //Not supported by DIA
                 case LF_STRUCTURE_ST: //Not supported by DIA
                     return SymTagEnum.UDT;
+
+                case LF_COBOL0:
+                case LF_COBOL0_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_COBOL1:
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_DEFARG:
+                case LF_DEFARG_16t: //Not supported by DIA
+                case LF_DEFARG_ST: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_DIMARRAY: //disp_LF_DIMARRAY
+                case LF_DIMARRAY_16t: //Not supported by DIA
+                case LF_DIMARRAY_ST: //Not supported by DIA
+                    return SymTagEnum.ArrayType;
+
+                case LF_DIMCONLU: //disp_LF_DIMCONU
+                case LF_DIMCONLU_16t: //Not supported by DIA
+                case LF_DIMCONU:
+                case LF_DIMCONU_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //Either Dimension or Data
+
+                case LF_DIMVARLU:
+                case LF_DIMVARLU_16t: //Not supported by DIA
+                case LF_DIMVARU:
+                case LF_DIMVARU_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //I only see Dimension, but CONU has Data as well so not 100% sure
+
+                case LF_ENDPRECOMP:
+                    throw new NotImplementedException(); //dispatched to empty method
+
                 case LF_ENUM: //disp_LF_ENUM
                 case LF_ENUM_16t: //Not supported by DIA
                 case LF_ENUM_ST: //Not supported by DIA
@@ -125,9 +172,33 @@ namespace PESpy.PDB
                     return SymTagEnum.Friend;
 
                 case LF_FRIENDFCN: //disp_LF_FRIENDFCN
-                case LF_FRIENDFCN_16t:
-                case LF_FRIENDFCN_ST:
+                case LF_FRIENDFCN_16t: //Not supported by DIA
+                case LF_FRIENDFCN_ST: //Not supported by DIA
                     return SymTagEnum.Friend;
+
+                case LF_FUNC_ID:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_HLSL: //disp_LF_HLSL
+                    return SymTagEnum.HLSLType;
+
+                case LF_IFC_RECORD:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_INDEX:
+                case LF_INDEX_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_IVBCLASS: //disp_LF_IVBCLASS
+                case LF_IVBCLASS_16t: //Not supported by DIA
+                    return SymTagEnum.BaseClass;
+
+                case LF_LABEL:
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_LIST:
+                    throw new NotImplementedException(); //not specifically handled?
+
                 case LF_MANAGED: //disp_LF_MANAGED
                 case LF_MANAGED_ST: //Not supported by DIA
                     return SymTagEnum.ManagedType;
@@ -139,6 +210,19 @@ namespace PESpy.PDB
                 case LF_MEMBER_16t: //Not supported by DIA
                 case LF_MEMBER_ST: //Not supported by DIA
                     return SymTagEnum.Data;
+
+                case LF_MEMBERMODIFY:
+                case LF_MEMBERMODIFY_ST: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_METHOD: //disp_LF_METHOD
+                case LF_METHOD_16t: //Not supported by DIA
+                case LF_METHOD_ST: //Not supported by DIA
+                    throw new NotImplementedException();
+
+                case LF_MFUNC_ID:
+                    throw new NotImplementedException(); //not specifically handled?
+
                 case LF_MFUNCTION: //disp_LF_MFUNCTION
                 case LF_MFUNCTION_16t: //Not supported by DIA
                     return SymTagEnum.FunctionType;
@@ -146,13 +230,117 @@ namespace PESpy.PDB
                 //In MicrosoftPdbSymbolModule.EnumerateTypeSymbols() I remarked that both the modified type and unmodified type represent themselves as being the same SymTagEnum.
                 //I have a feeling that what's happening inside disp_LF_MODIFIER is that DIA asks the underlying type to fill in "the rest" of the fields on the SymRowImage
                 case LF_MODIFIER: //disp_LF_MODIFIER
-                    return ((LfModifier) typType).type.GetSymTagEnum();
+                    return ((LfModifier) lfEasy).type.GetSymTagEnum();
 
                 case LF_MODIFIER_16t: //Not supported by DIA
-                    return ((LfModifier16t) typType).type.GetSymTagEnum();
+                    return ((LfModifier16t) lfEasy).type.GetSymTagEnum();
 
                 case LF_MODIFIER_EX: //disp_LF_MODIFIER_EX
-                    return ((LfModifierEx) typType).type.GetSymTagEnum();
+                    return ((LfModifierEx) lfEasy).type.GetSymTagEnum();
+
+                case LF_NESTTYPE: //disp_LF_NESTTYPE
+                case LF_NESTTYPE_16t: //Not supported by DIA
+                case LF_NESTTYPE_ST: //Not supported by DIA
+                    //Something is dispatched to GetData::getTypeData, and that thing gets tagged as SymTagTypedef.
+                    //Is that maybe the symbol inside the outer nested type symbol?
+                    throw new NotImplementedException();
+
+                case LF_NESTTYPEEX: //disp_LF_NESTTYPEEX
+                case LF_NESTTYPEEX_ST: //Not supported by DIA
+                    //Something is dispatched to GetData::getTypeData, and that thing gets tagged as SymTagTypedef.
+                    //Is that maybe the symbol inside the outer nested type symbol?
+                    throw new NotImplementedException();
+
+                case LF_NOTTRAN:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_NULL:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_OEM: //disp_LF_OEM
+                case LF_OEM_16t: //Not supported by DIA
+                    return SymTagEnum.CustomType;
+
+                case LF_OEM2: //disp_LF_OEM2
+                    return SymTagEnum.CustomType;
+
+                case LF_ONEMETHOD: //disp_LF_ONEMETHOD
+                case LF_ONEMETHOD_16t: //Not supported by DIA
+                case LF_ONEMETHOD_ST: //Not supported by DIA
+                    return SymTagEnum.Function;
+
+                case LF_PAD0:
+                case LF_PAD1:
+                case LF_PAD2:
+                case LF_PAD3:
+                case LF_PAD4:
+                case LF_PAD5:
+                case LF_PAD6:
+                case LF_PAD7:
+                case LF_PAD8:
+                case LF_PAD9:
+                case LF_PAD10:
+                case LF_PAD11:
+                case LF_PAD12:
+                case LF_PAD13:
+                case LF_PAD14:
+                case LF_PAD15:
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_POINTER: //disp_LF_POINTER
+                case LF_POINTER_16t: //Not supported by DIA
+                    return SymTagEnum.PointerType;
+
+                case LF_PRECOMP:
+                case LF_PRECOMP_16t: //Not supported by DIA
+                case LF_PRECOMP_ST: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_PROCEDURE: //disp_LF_PROCEDURE
+                case LF_PROCEDURE_16t: //Not supported by DIA
+                    return SymTagEnum.FunctionType;
+
+                case LF_REFSYM:
+                    throw new NotImplementedException();
+
+                case LF_STMEMBER: //disp_LF_STMEMBER
+                case LF_STMEMBER_16t: //Not supported by DIA
+                case LF_STMEMBER_ST: //Not supported by DIA
+                    return SymTagEnum.Data;
+
+                case LF_STRIDED_ARRAY: //disp_LF_STRIDED_ARRAY
+                    throw new NotImplementedException();
+
+                case LF_STRING_ID:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_CLASS2: //disp_LF_STRUCTURE2
+                case LF_STRUCTURE2:
+                case LF_INTERFACE2:
+                    throw new NotImplementedException();
+
+                case LF_TAGGED_UNION:
+                    return SymTagEnum.UDT;
+
+                case LF_TUCASE:
+                    return SymTagEnum.TaggedUnionCase;
+
+                case LF_SUBSTR_LIST:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_TYPESERVER:
+                case LF_TYPESERVER_ST: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_TYPESERVER2:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_UDT_MOD_SRC_LINE:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_UDT_SRC_LINE:
+                    throw new NotImplementedException(); //not specifically handled?
+
                 case LF_UNION: //disp_LF_UNION
                 case LF_UNION_16t: //Not supported by DIA
                 case LF_UNION_ST: //Not supported by DIA
@@ -167,12 +355,30 @@ namespace PESpy.PDB
 
                 case LF_VECTOR: //disp_LF_VECTOR
                     return SymTagEnum.VectorType;
+
+                case LF_VFTABLE:
+                    throw new NotImplementedException(); //not specifically handled?
+
+                case LF_VFTPATH:
+                case LF_VFTPATH_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
+                case LF_VFUNCOFF:
+                case LF_VFUNCOFF_16t: //Not supported by DIA
+                    throw new NotImplementedException(); //dispatched to empty method
+
                 case LF_VFUNCTAB:
-                case LF_VFUNCTAB_16t:
+                case LF_VFUNCTAB_16t: //Not supported by DIA
                     return SymTagEnum.VTable;
 
                 case LF_VTSHAPE: //disp_LF_VFUNCTAB
                     return SymTagEnum.VTableShape;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
         public static bool IsFwdRef(this TypType typType)
         {
             /* Sometimes a given entity may actually be a forward ref. In this scenario,
@@ -230,222 +436,257 @@ namespace PESpy.PDB
                 case LF_ENUM:
                 case LF_ENUM_ST: //Not supported by DIA
                     return ((LfEnum) typType).property.fwdref;
+
+                case LF_CLASS2:
+                case LF_STRUCTURE2:
+                case LF_INTERFACE2:
+                    throw new NotImplementedException(); //Don't know what the structure of these are!
+
+                case LF_UNION2:
+                    throw new NotImplementedException(); //Don't know what the structure of these are!
+
+                case LF_TAGGED_UNION:
+                    //I know that these can be forward ref'd because I see this type listed in msdia140!GetData::fetchClassFromForwardRef
+                    throw new NotImplementedException();
+
                 default:
                     return false;
             }
         }
 
-        public static SymString GetName(in this TypType typType) => GetName(typType, null);
+        public static SymString GetName(in this TypType typType, ICodeViewAccessor? codeViewAccessor = null) =>
+            GetName((LfEasy) typType);
+
+        public static SymString GetName(in this LfEasy lfEasy, ICodeViewAccessor? codeViewAccessor = null)
+        {
+            if (!TryGetName(lfEasy, codeViewAccessor, out var name))
+                throw new InvalidOperationException($"Type '{lfEasy}' does not have a name");
+
+            return name;
+        }
+
         public static bool TryGetName(in this TypType typType, out SymString name) =>
             TryGetName(typType, null, out name);
 
-        internal static bool TryGetName(in this TypType typType, ICodeViewAccessor? codeViewAccessor, out SymString name)
+        public static bool TryGetName(in this TypType typType, ICodeViewAccessor? codeViewAccessor, out SymString name) =>
+            TryGetName(typType, codeViewAccessor, out name);
+
+        public static bool TryGetName(in this LfEasy lfEasy, out SymString name) =>
+            TryGetName(lfEasy, null, out name);
+
+        public static bool TryGetName(in this LfEasy lfEasy, ICodeViewAccessor? codeViewAccessor, out SymString name)
         {
             TypType? underlying;
 
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfAlias
                 case LF_ALIAS:
-                case LF_ALIAS_ST:
-                    name = ((LfAlias) typType).GetName(codeViewAccessor);
+                case LF_ALIAS_ST: //Not supported by DIA
+                    name = ((LfAlias) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfArray
                 case LF_ARRAY:
-                case LF_ARRAY_ST:
-                    name = ((LfArray) typType).GetName(codeViewAccessor);
+                case LF_ARRAY_ST: //Not supported by DIA
+                    name = ((LfArray) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfArray16t
-                case LF_ARRAY_16t:
-                    name = ((LfArray16t) typType).GetName(codeViewAccessor);
+                case LF_ARRAY_16t: //Not supported by DIA
+                    name = ((LfArray16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfClass16t
-                case LF_CLASS_16t:
-                case LF_STRUCTURE_16t:
-                    name = ((LfClass16t) typType).GetName(codeViewAccessor);
+                case LF_CLASS_16t: //Not supported by DIA
+                case LF_STRUCTURE_16t: //Not supported by DIA
+                    name = ((LfClass16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfClass
                 case LF_CLASS:
-                case LF_CLASS_ST:
+                case LF_CLASS_ST: //Not supported by DIA
                 case LF_STRUCTURE:
-                case LF_STRUCTURE_ST:
+                case LF_STRUCTURE_ST: //Not supported by DIA
                 case LF_INTERFACE:
-                    name = ((LfClass) typType).GetName(codeViewAccessor);
+                    name = ((LfClass) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
-                case LF_ONEMETHOD_ST:
-                    name = ((LfOneMethod) typType).GetName(codeViewAccessor);
+                case LF_ONEMETHOD_ST: //Not supported by DIA
+                    name = ((LfOneMethod) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfOneMethod16t
-                case LF_ONEMETHOD_16t:
-                    name = ((LfOneMethod16t) typType).GetName(codeViewAccessor);
+                case LF_ONEMETHOD_16t: //Not supported by DIA
+                    name = ((LfOneMethod16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfUnion16t
-                case LF_UNION_16t:
-                    name = ((LfUnion16t) typType).GetName(codeViewAccessor);
+                case LF_UNION_16t: //Not supported by DIA
+                    name = ((LfUnion16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfUnion
                 case LF_UNION:
-                case LF_UNION_ST:
-                    name = ((LfUnion) typType).GetName(codeViewAccessor);
+                case LF_UNION_ST: //Not supported by DIA
+                    name = ((LfUnion) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfDimArray16t
-                case LF_DIMARRAY_16t:
-                    name = ((LfDimArray16t) typType).GetName(codeViewAccessor);
+                case LF_DIMARRAY_16t: //Not supported by DIA
+                    name = ((LfDimArray16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfDimArray
                 case LF_DIMARRAY:
-                case LF_DIMARRAY_ST:
-                    name = ((LfDimArray) typType).GetName(codeViewAccessor);
+                case LF_DIMARRAY_ST: //Not supported by DIA
+                    name = ((LfDimArray) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfEnum16t
-                case LF_ENUM_16t:
-                    name = ((LfEnum16t) typType).GetName(codeViewAccessor);
+                case LF_ENUM_16t: //Not supported by DIA
+                    name = ((LfEnum16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
-                case LF_ENUM_ST:
-                    name = ((LfEnum) typType).GetName(codeViewAccessor);
+                case LF_ENUM_ST: //Not supported by DIA
+                    name = ((LfEnum) lfEasy).GetName(codeViewAccessor);
+                    return true;
+
+                //LfEnumerate
+                case LF_ENUMERATE:
+                case LF_ENUMERATE_ST:
+                    name = ((LfEnumerate) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfFriendFcn16t
-                case LF_FRIENDFCN_16t:
-                    name = ((LfFriendFcn16t) typType).GetName(codeViewAccessor);
+                case LF_FRIENDFCN_16t: //Not supported by DIA
+                    name = ((LfFriendFcn16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfFriendFcn
                 case LF_FRIENDFCN:
-                case LF_FRIENDFCN_ST:
-                    name = ((LfFriendFcn) typType).GetName(codeViewAccessor);
+                case LF_FRIENDFCN_ST: //Not supported by DIA
+                    name = ((LfFriendFcn) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfFuncId
                 case LF_FUNC_ID:
-                    name = ((LfFuncId) typType).GetName(codeViewAccessor);
+                    name = ((LfFuncId) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfManaged
                 case LF_MANAGED:
-                case LF_MANAGED_ST:
-                    name = ((LfManaged) typType).GetName(codeViewAccessor);
+                case LF_MANAGED_ST: //Not supported by DIA
+                    name = ((LfManaged) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMember16t
-                case LF_MEMBER_16t:
-                    name = ((LfMember16t) typType).GetName(codeViewAccessor);
+                case LF_MEMBER_16t: //Not supported by DIA
+                    name = ((LfMember16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
-                case LF_MEMBER_ST:
-                    name = ((LfMember) typType).GetName(codeViewAccessor);
+                case LF_MEMBER_ST: //Not supported by DIA
+                    name = ((LfMember) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
-                case LF_MEMBERMODIFY_ST:
-                    name = ((LfMemberModify) typType).GetName(codeViewAccessor);
+                case LF_MEMBERMODIFY_ST: //Not supported by DIA
+                    name = ((LfMemberModify) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMethod
                 case LF_METHOD:
-                case LF_METHOD_ST:
-                    name = ((LfMethod) typType).GetName(codeViewAccessor);
+                case LF_METHOD_ST: //Not supported by DIA
+                    name = ((LfMethod) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMethod16t
-                case LF_METHOD_16t:
-                    name = ((LfMethod16t) typType).GetName(codeViewAccessor);
+                case LF_METHOD_16t: //Not supported by DIA
+                    name = ((LfMethod16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfMFuncId
                 case LF_MFUNC_ID:
-                    name = ((LfMFuncId) typType).GetName(codeViewAccessor);
+                    name = ((LfMFuncId) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestType
                 case LF_NESTTYPE:
-                case LF_NESTTYPE_ST:
-                    name = ((LfNestType) typType).GetName(codeViewAccessor);
+                case LF_NESTTYPE_ST: //Not supported by DIA
+                    name = ((LfNestType) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestType16t
-                case LF_NESTTYPE_16t:
-                    name = ((LfNestType16t) typType).GetName(codeViewAccessor);
+                case LF_NESTTYPE_16t: //Not supported by DIA
+                    name = ((LfNestType16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
-                    name = ((LfNestTypeEx) typType).GetName(codeViewAccessor);
+                    name = ((LfNestTypeEx) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfPreComp
                 case LF_PRECOMP:
-                case LF_PRECOMP_ST:
-                    name = ((LfPreComp) typType).GetName(codeViewAccessor);
+                case LF_PRECOMP_ST: //Not supported by DIA
+                    name = ((LfPreComp) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfPreComp16t
-                case LF_PRECOMP_16t:
-                    name = ((LfPreComp16t) typType).GetName(codeViewAccessor);
+                case LF_PRECOMP_16t: //Not supported by DIA
+                    name = ((LfPreComp16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
-                case LF_STMEMBER_ST:
-                    name = ((LfSTMember) typType).GetName(codeViewAccessor);
+                case LF_STMEMBER_ST: //Not supported by DIA
+                    name = ((LfSTMember) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfSTMember16t
-                case LF_STMEMBER_16t:
-                    name = ((LfSTMember16t) typType).GetName(codeViewAccessor);
+                case LF_STMEMBER_16t: //Not supported by DIA
+                    name = ((LfSTMember16t) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfStringId
                 case LF_STRING_ID:
-                    name = ((LfStringId) typType).GetName(codeViewAccessor);
+                    name = ((LfStringId) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfTypeServer
                 case LF_TYPESERVER:
-                case LF_TYPESERVER_ST:
-                    name = ((LfTypeServer) typType).GetName(codeViewAccessor);
+                case LF_TYPESERVER_ST: //Not supported by DIA
+                    name = ((LfTypeServer) lfEasy).GetName(codeViewAccessor);
                     return true;
 
                 //LfTypeServer2
                 case LF_TYPESERVER2:
-                    name = ((LfTypeServer2) typType).GetName(codeViewAccessor);
+                    name = ((LfTypeServer2) lfEasy).GetName(codeViewAccessor);
                     return true;
 
-                case LF_MODIFIER_16t:
-                    underlying = ((LfModifier16t) typType).type.TypTyp;
+                case LF_MODIFIER_16t: //Not supported by DIA
+                    underlying = ((LfModifier16t) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetName(underlying.Value, out name);
                     break;
 
                 case LF_MODIFIER:
-                    underlying = ((LfModifier) typType).type.TypTyp;
+                    underlying = ((LfModifier) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetName(underlying.Value, out name);
                     break;
 
                 case LF_MODIFIER_EX:
-                    underlying = ((LfModifierEx) typType).type.TypTyp;
+                    underlying = ((LfModifierEx) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetName(underlying.Value, out name);
@@ -468,22 +709,22 @@ namespace PESpy.PDB
                     return true;
 
                 case LF_STRUCTURE:
-                case LF_STRUCTURE_16t:
-                case LF_STRUCTURE_ST:
+                case LF_STRUCTURE_16t: //Not supported by DIA
+                case LF_STRUCTURE_ST: //Not supported by DIA
                 case LF_STRUCTURE2:
                     udtKind = UdtKind.UdtStruct;
                     return true;
 
                 case LF_CLASS:
-                case LF_CLASS_16t:
-                case LF_CLASS_ST:
+                case LF_CLASS_16t: //Not supported by DIA
+                case LF_CLASS_ST: //Not supported by DIA
                 case LF_CLASS2:
                     udtKind = UdtKind.UdtClass;
                     return true;
 
                 case LF_UNION:
-                case LF_UNION_16t:
-                case LF_UNION_ST:
+                case LF_UNION_16t: //Not supported by DIA
+                case LF_UNION_ST: //Not supported by DIA
                 case LF_UNION2:
                     udtKind = UdtKind.UdtUnion;
                     return true;
@@ -492,7 +733,7 @@ namespace PESpy.PDB
                     udtKind = UdtKind.UdtTaggedUnion;
                     return true;
 
-                case LF_MODIFIER_16t:
+                case LF_MODIFIER_16t: //Not supported by DIA
                     underlying = ((LfModifier16t) typType).type.TypTyp;
 
                     if (underlying != null)
@@ -661,6 +902,12 @@ namespace PESpy.PDB
                                         basicType = BasicType.btHresult;
                                         length = 4;
                                         break;
+
+                                    default:
+                                        throw new NotImplementedException();
+                                }
+                                break;
+
                             case CV_type_e.CV_SPECIAL2:
                                 var specialType2 = (CV_special2_e) subType;
 
@@ -680,6 +927,13 @@ namespace PESpy.PDB
                                         basicType = BasicType.btBool;
                                         length = 4;
                                         break;
+
+                                    default:
+                                        throw new NotImplementedException();
+                                }
+
+                                break;
+
                             case CV_type_e.CV_SIGNED:
                                 integralType = (CV_integral_e) subType;
 
@@ -789,6 +1043,14 @@ namespace PESpy.PDB
                                         basicType = BasicType.btChar32;
                                         length = 4;
                                         break;
+
+                                    default:
+                                        throw new NotImplementedException();
+                                }
+                                break;
+
+                        default:
+                            throw new NotImplementedException();
                         }
                         break;
                 }
@@ -803,7 +1065,7 @@ namespace PESpy.PDB
             switch (typType.leaf)
             {
                 case LF_ENUM:
-                case LF_ENUM_ST:
+                case LF_ENUM_ST: //Not supported by DIA
                     return TryGetLength(((LfEnum) typType).utype, out length);
 
                 case LF_POINTER:

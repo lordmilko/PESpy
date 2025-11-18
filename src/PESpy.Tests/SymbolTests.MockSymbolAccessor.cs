@@ -4,7 +4,7 @@ using PESpy.PDB;
 
 namespace PESpy.Tests
 {
-    internal class MockSymbolAccessor : ISymbolAccessor
+    internal class MockSymbolAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; set; }
 

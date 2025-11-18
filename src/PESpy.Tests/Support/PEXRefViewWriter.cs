@@ -6,11 +6,11 @@ namespace PESpy.Tests
 {
     internal class PEXRefViewWriter : PEViewWriter
     {
-        [DebuggerDisplay("FieldOffset = {FieldOffset}, TargetOffset = {TargetOffset}")]
+        [DebuggerDisplay("FieldOffset = {FieldOffset}, TargetValue = {TargetValue}")]
         public struct XRef
         {
             public int FieldOffset;
-            public int TargetOffset;
+            public int TargetValue;
         }
 
         public List<XRef> XRefs { get; } = new List<XRef>();
@@ -21,17 +21,17 @@ namespace PESpy.Tests
 
         public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
-            XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetOffset = targetOffset });
+            XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetOffset });
         }
 
         public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
         {
-            throw new System.NotImplementedException();
+            XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }
 
         public override void WriteVAXRef(int structOffset, int fieldOffset, int targetRVA)
         {
-            throw new System.NotImplementedException();
+            XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }
     }
 }

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Windows.Forms;
 #endif
 using PESpy.View;
+using PInvoke;
 #if !WINFORMS
 using UserControl = PESpy.Controls.NativeWindow;
 using ImageList = PESpy.NativeImageList;
@@ -42,6 +43,8 @@ namespace PESpy.Controls
 
         internal unsafe void UpdateListView(TreeNodeEx node)
         {
+            User32.SendMessageW(treeListView.hWnd, (int) WM.WM_SETREDRAW, 0, default);
+
             var fileAccessor = App.FileAccessor;
 
             switch (node.Kind)
@@ -57,6 +60,8 @@ namespace PESpy.Controls
                 default:
                     throw new NotImplementedException();
             }
+
+            User32.SendMessageW(treeListView.hWnd, (int) WM.WM_SETREDRAW, 1, default);
         }
 
         private unsafe void ProcessSingleton(SingletonTreeNode node, FileAccessor fileAccessor)

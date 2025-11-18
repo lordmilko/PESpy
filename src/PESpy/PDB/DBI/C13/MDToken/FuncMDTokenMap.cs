@@ -146,7 +146,7 @@ namespace PESpy.PDB
             }
             else if (i == Entries.Length)
             {
-                structWriter.WriteInline(4 + (Entries.Length * Entry.StructSize), MethodData);
+                structWriter.WriteInline(4 + (Entries.Length * Entry.StructSize), MethodData, ViewKind.FuncMDTokenMap_MethodData);
             }
             else
                 throw new IndexOutOfRangeException();

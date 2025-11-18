@@ -17,5 +17,9 @@
         internal const int ImageNamedStruct = 12;
         internal const int ImageFunction = 13;
         internal const int ImageField = 14;
+        internal const int ImageRocket = 15;
+        internal const int ImageMagnifier = 16;
+        internal const int ImageText = 17;
+        internal const int ImageLog = 18;
     }
 }

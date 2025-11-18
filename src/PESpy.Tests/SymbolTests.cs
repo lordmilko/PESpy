@@ -1,13 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Cryptography;
+using System.Text;
+using ChaosLib;
+using ClrDebug;
+using ClrDebug.DIA;
 using ClrDebug.OMF;
+using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
+using PESpy.OBJ;
 using PESpy.PDB;
+using PESpy.PowerShell;
+using PESpy.View;
+using PInvoke;
+using Stream = System.IO.Stream;
 
 namespace PESpy.Tests
 {
     [TestClass]
-    public class SymbolTests
+    public class SymbolTests : BaseTest
     {
         #region DNRB
 
@@ -47,92 +63,225 @@ namespace PESpy.Tests
         [TestMethod]
         public void Symbols_NB02_SSTMODULE()
         {
-            WithNB02<smd>(SST.SSTMODULE, v =>
-            {
-                Assert.AreEqual("testapp.obj", v.ToString());
-            });
+            //16-bit
+            WithNB02<smd, smd32>(
+                SST.SSTMODULE,
+                _16: v => Assert.AreEqual("testapp.obj", v.ToString()),
+                _32: v => Assert.AreEqual("ebios.obj", v.ToString())
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTPUBLIC()
         {
-            WithNB02<RawValue<pbi[]>>(SST.SSTPUBLIC, v =>
-            {
-                Assert.AreEqual(1, v.Value.Length);
-            });
+            //16-bit
+            WithNB02<RawValue<pbi[]>, RawValue<pbi32[]>>(
+                SST.SSTPUBLIC,
+                _16: v =>
+                {
+                    Assert.AreEqual(1, v.Value.Length);
+
+                    Assert.AreEqual("_main", v.Value[0].ToString());
+                },
+                _32: v =>
+                {
+                    Assert.AreEqual(12, v.Value.Length);
+
+                    Assert.AreEqual("EBIOS_Device_Init", v.Value[11].ToString());
+                }
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTTYPES()
         {
-            WithNB02<RawValue<OldTypType[]>>(SST.SSTTYPES, v =>
-            {
-                Assert.AreEqual(76, v.Value.Length);
-            });
+            //16-bit
+            WithNB02<RawValue<OldTypType[]>>(
+                SST.SSTTYPES,
+                _16: v => Assert.AreEqual(76, v.Value.Length),
+                _32: v => Assert.AreEqual(41, v.Value.Length)
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTSYMBOLS()
         {
-            WithNB02<RawValue<OldSymType[]>>(SST.SSTSYMBOLS, v =>
-            {
-                Assert.AreEqual(6, v.Value.Length);
-            });
+            //16-bit
+            WithNB02<RawValue<OldSymType[]>>(
+                SST.SSTSYMBOLS,
+                _16: v => Assert.AreEqual(6, v.Value.Length),
+                _32: v => Assert.AreEqual(37, v.Value.Length)
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTSRCLINES()
         {
-            WithNB02<RawValue<loe[]>>(SST.SSTSRCLINES, v =>
-            {
-                Assert.AreEqual(1, v.Value.Length);
+            //16-bit
+            WithNB02<RawValue<loe[]>>(
+                SST.SSTSRCLINES,
+                _16: v =>
+                {
+                    Assert.AreEqual(1, v.Value.Length);
 
-                var item = v.Value[0];
+                    var item = v.Value[0];
 
-                Assert.AreEqual("TESTAPP.C", item.ToString());
-                Assert.IsNull(item.Seg);
-            });
+                    Assert.AreEqual("TESTAPP.C", item.ToString());
+                    Assert.IsNull(item.Seg);
+                },
+                _32: v => throw new NotImplementedException()
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTLIBRARIES()
         {
-            WithNB02<RawValue<FixedAnsiString[]>>(SST.SSTLIBRARIES, v =>
-            {
-                Assert.AreEqual(2, v.Value.Length);
-            });
+            //16-bit
+            WithNB02<RawValue<FixedAnsiString[]>>(
+                SST.SSTLIBRARIES,
+                _16: v => Assert.AreEqual(2, v.Value.Length),
+                _32: v => throw new NotImplementedException()
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTIMPORTS()
         {
-            WithNB02<object>(SST.SSTIMPORTS, v =>
-            {
-                throw new NotImplementedException();
-            });
+            //16-bit
+            WithNB02<object>(
+                SST.SSTIMPORTS,
+                _16: v => throw new NotImplementedException(),
+                _32: v => throw new NotImplementedException()
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTCOMPACTED()
         {
-            WithNB02<object>(SST.SSTCOMPACTED, v =>
-            {
-                throw new NotImplementedException();
-            });
+            //16-bit
+            WithNB02<object>(
+                SST.SSTCOMPACTED,
+                _16: v => throw new NotImplementedException(),
+                _32: v => throw new NotImplementedException()
+            );
         }
 
         [TestMethod]
         public void Symbols_NB02_SSTSRCLNSEG()
         {
-            WithNB02<RawValue<loe[]>>(SST.SSTSRCLNSEG, v =>
+            //16-bit
+            WithNB02<RawValue<loe[]>, RawValue<loe32[]>>(
+                SST.SSTSRCLNSEG,
+                _16: v =>
+                {
+                    Assert.AreEqual(1, v.Value.Length);
+
+                    var item = v.Value[0];
+
+                    Assert.AreEqual("testapp.c", item.ToString());
+                    Assert.AreEqual((ushort) 0, item.Seg);
+                },
+                _32: v =>
+                {
+                    Assert.AreEqual(3, v.Value.Length);
+
+                    var item = v.Value[0];
+
+                    Assert.AreEqual("ebios.ASM", item.ToString());
+                    Assert.AreEqual((ushort) 2, item.Seg);
+                }
+            );
+        }
+
+        private void WithNB02<T>(SST sst, Action<T> _16, Action<T> _32) =>
+            WithNB02<T, T>(sst, _16, _32);
+
+        private void WithNB02<T16, T32>(SST sst, Action<T16> _16, Action<T32> _32)
+        {
+            DOSFile dosFile = null;
+            LEFile leFile = null;
+
+            T16 GetData16(string path)
             {
-                Assert.AreEqual(1, v.Value.Length);
+                dosFile = DOSFile.FromFile(path);
 
-                var item = v.Value[0];
+                var fileView = dosFile.GetView();
+                var verifier = new ViewAlignmentVerifier();
+                fileView.Accept(verifier);
 
-                Assert.AreEqual("testapp.c", item.ToString());
-                Assert.AreEqual((ushort) 0, item.Seg);
-            });
+                var nb02 = (NB02Data) dosFile.CodeViewData;
+
+                return (T16) nb02.DirEntries.First(e => e.SubSection == sst).Data;
+            }
+
+            T32 GetData32(string path)
+            {
+                leFile = LEFile.FromFile(path);
+
+                var fileView = leFile.GetView();
+                var verifier = new ViewAlignmentVerifier();
+                fileView.Accept(verifier);
+
+                var nb02 = (NB02Data) leFile.CodeViewData;
+
+                return (T32) nb02.DirEntries.First(e => e.SubSection == sst).Data;
+            }
+
+            try
+            {
+                //16-bit
+                switch (sst)
+                {
+                    //We have 3 samples: C500 (NB00), BC7 (NB01) and C600 (NB02)
+
+                    //Our comments list which sections our samples have
+                    case SST.SSTMODULE:    //NB00, NB01, NB02
+                    case SST.SSTPUBLIC:    //NB00, NB01, NB02
+                    case SST.SSTTYPES:     //NB00, NB01, NB02
+                    case SST.SSTSYMBOLS:   //NB00, NB01, NB02
+                    case SST.SSTLIBRARIES: //NB00, NB01, NB02
+                    case SST.SSTSRCLNSEG:  //NB01, NB02
+                        _16(GetData16(Sample.C600_Symbols_EXE)); //NB02
+                        break;
+
+                    case SST.SSTSRCLINES:  //NB00
+                        _16(GetData16(Sample.C500_EXE)); //NB00
+                        break;
+
+                    case SST.SSTIMPORTS:
+                    case SST.SSTCOMPACTED: //Has the same format as sstType
+                        throw new AssertInconclusiveException();
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                //32-bit
+                switch (sst)
+                {
+                    case SST.SSTMODULE:
+                    case SST.SSTPUBLIC:
+                    case SST.SSTTYPES:
+                    case SST.SSTSYMBOLS:
+                    case SST.SSTIMPORTS:
+                    case SST.SSTCOMPACTED:
+                    case SST.SSTSRCLNSEG:
+                        _32(GetData32(Sample.MASM5_NB00_VXD));
+                        break;
+
+                    case SST.SSTSRCLINES:
+                    case SST.SSTLIBRARIES:
+                        throw new AssertInconclusiveException();
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+            finally
+            {
+                dosFile?.Dispose();
+                leFile?.Dispose();
+            }
         }
 
         #endregion
@@ -199,8 +348,6 @@ namespace PESpy.Tests
                 );
             });
         }
-
-        #endregion
 
         [TestMethod]
         public void Symbols_NB05_sstAlignSym()
@@ -390,50 +537,6 @@ namespace PESpy.Tests
             });
         }
 
-        private void WithNB02<T>(SST sst, Action<T> verify)
-        {
-            DOSFile dosFile = null;
-
-            T GetData(string path)
-            {
-                dosFile = DOSFile.FromFile(path);
-
-                var nb02 = (NB02Data) dosFile.CodeViewData;
-
-                return (T) nb02.DirEntries.First(e => e.SubSection == sst).Data;
-            }
-
-            try
-            {
-                switch (sst)
-                {
-                    //We have 3 samples: C500 (NB00), BC7 (NB01) and C600 (NB02)
-
-                    //Our comments list which sections our samples have
-                    case SST.SSTMODULE:    //NB00, NB01, NB02
-                    case SST.SSTPUBLIC:    //NB00, NB01, NB02
-                    case SST.SSTTYPES:     //NB00, NB01, NB02
-                    case SST.SSTSYMBOLS:   //NB00, NB01, NB02
-                    case SST.SSTLIBRARIES: //NB00, NB01, NB02
-                    case SST.SSTSRCLNSEG:  //NB01, NB02
-                        verify(GetData(Sample.C600_Symbols_EXE)); //NB02
-                        break;
-
-                    case SST.SSTSRCLINES:  //NB00
-                        verify(GetData(Sample.C500_EXE)); //NB00
-                        break;
-
-                    case SST.SSTIMPORTS:
-                    case SST.SSTCOMPACTED: //Has the same format as sstType
-                        throw new AssertInconclusiveException();
-                }
-            }
-            finally
-            {
-                dosFile?.Dispose();
-            }
-        }
-
         private void WithNB05<T>(SST sst, Action<T> verify)
         {
             IFile file = null;
@@ -444,7 +547,7 @@ namespace PESpy.Tests
 
                 if (file is PEFile peFile)
                 {
-                    var nb05Data = (NB05Data) peFile.DebugTable.First(t => t.Type == ImageDebugType.CodeView).Data;
+                    var nb05Data = (NB05Data) peFile.DebugTable.First(t => t.Type == IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_CODEVIEW).Data;
 
                     return (T) nb05Data.DirEntries.First(e => e.SubSection == sst).Data;
                 }
@@ -496,72 +599,37 @@ namespace PESpy.Tests
             {
                 file?.Dispose();
             }
-        #region C13
-
-        [TestMethod]
-        public void Symbols_C13_Symbols()
+        }
         {
-            TestC13<SymTypeList>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS,
-                v =>
-                {
-                    Assert.AreEqual(6, v.Count);
-                }
-            );
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
         }
 
         [TestMethod]
-        public void Symbols_C13_Lines()
+        public void SymType_AttrManyRegSym2_Test()
         {
-            TestC13<CvDebugSLinesHeader>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES,
-                v =>
-                {
-                    //We don't show the name in the debugger display because that would require allocating a fake memory block and/or shipping
-                    //the MODI all over the place, which we don't want to do
-                    Assert.AreEqual(1, v.FileBlocks.Length);
-                }
-            );
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
         }
-
-        [TestMethod]
-        public void Symbols_C13_StringTable()
-        {
-            //Haven't seen it in any PDBs, but it is in OBJ files
-
-            TestC13<RawValue<Utf8String>[]>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE,
-                v =>
-                {
-                    Assert.AreEqual(3, v.Length);
-
-                    Assert.AreEqual("C:\\TestApp\\TestApp.cpp", v[1].ToString());
-                }
-            );
-        }
-
-        [TestMethod]
-        public void Symbols_C13_FileCheckSums()
-        {
             TestC13<CvFileCheckSum[]>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS,
-                v =>
-                {
-                    v.Verify(
-                        "C:\\TestApp\\TestApp.cpp"
-                    );
-                }
+        [TestMethod]
+        public void SymType_AnnotationSym_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x16, 0x00, 0x19, 0x10, 0x23, 0xB0, 0x08, 0x00, 0x01, 0x00, 0x01, 0x00, 0x4E, 0x4F, 0x5F, 0x43, 0x4F, 0x4E, 0x54, 0x52,
+                0x41, 0x43, 0x54, 0x00
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
             );
         }
-
-        [TestMethod]
-        public void Symbols_C13_FrameData()
-        {
-            TestC13<RvaAndFrameData>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA,
-                v =>
-                {
-                    Assert.AreEqual(1, v.FrameData.Length);
                     Assert.AreEqual(true, v.FrameData[0].fIsFunctionStart);
                 }
             );
@@ -586,28 +654,28 @@ namespace PESpy.Tests
                 DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS,
                 v =>
                 {
-                    Assert.AreEqual(1, v.Length);
+        [TestMethod]
+        public void SymType_BlockSym32_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x16, 0x00, 0x03, 0x11, 0x04, 0x00, 0x00, 0x00, 0xBC, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00
+            };
 
-                    var ids = v[0].referenceIds;
-                    Assert.AreEqual(1, ids.Count);
-
-                    var id = ids[0];
-
-                    Assert.AreEqual("0x80004527", id.ToString());
-                }
+            TestStruct<BlockSym32>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_BLOCK32),
+                c => c.VerifyField(name: "pParent", value: 4),
+                c => c.VerifyField(name: "pEnd", value: 188),
+                c => c.VerifyField(name: "len", value: 2),
+                c => c.VerifyField(name: "off", value: 0),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "name", value: ""),
+                c => c.VerifyByteBlob(offset: 4119, value: new byte[] { 0 })
             );
         }
-
-        [TestMethod]
-        public void Symbols_C13_CrossScopeExports()
-        {
-            TestC13<PDB.LocalIdAndGlobalIdPair[]>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS,
-                v =>
-                {
-                    Assert.AreEqual("__vcrt_uninitialize_locks", v[5].localId.ToString());
-                }
-            );
         }
 
         [TestMethod]
@@ -727,6 +795,21 @@ namespace PESpy.Tests
                 fs?.Dispose();
             }
         }
+        private void TestC13<T>(
+            DEBUG_S_SUBSECTION_TYPE type,
+            Action<T> verify)
+        {
+            Stream fs = null;
+            IFile file = null;
+
+            try
+            {
+                CvDebugSSubsectionHeader sectionHeader = type switch
+                {
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS              => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out file, out fs).SectionData[1]).C13SubSections[0],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES                =>                    GetSampleFile<PDBFile>(Sample.VS22_PDB, out file, out fs).DBI.Modules[1].C13Lines[0],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE          => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out file, out fs).SectionData[1]).C13SubSections[5],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS           =>                    GetSampleFile<PDBFile>(Sample.VS22_PDB, out file, out fs).DBI.Modules[1].C13Lines[1],
         }
 
         #endregion

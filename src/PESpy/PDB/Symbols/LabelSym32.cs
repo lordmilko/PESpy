@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly LABELSYM32* value;
 
+        public static implicit operator SymType(LabelSym32 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="LABELSYM32.reclen"/>
         public ushort reclen => value->reclen;
 

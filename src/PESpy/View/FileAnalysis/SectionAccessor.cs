@@ -11,7 +11,8 @@ namespace PESpy.View
     {
         Header,
         Section,
-        Overlay
+        Overlay,
+        Page
     }
 
     /// <summary>
@@ -69,10 +70,6 @@ namespace PESpy.View
             }
         }
 
-        public bool Contains(int targetAddress) => targetAddress >= StartAddress && targetAddress < EndAddress;
-
-        public bool IsEmpty => StartAddress == EndAddress;
-
         //Special ctor in the case a section is empty
         public SectionAccessor(SectionAccessorKind kind, int sectionIndex, int startAddress, string name)
         {
@@ -89,6 +86,10 @@ namespace PESpy.View
             _mma = default!;
             _mmf = default!;
         }
+
+        public bool Contains(int targetAddress) => targetAddress >= StartAddress && targetAddress < EndAddress;
+
+        public bool IsEmpty => StartAddress == EndAddress;
 
         public void Dispose()
         {

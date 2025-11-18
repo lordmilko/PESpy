@@ -9,11 +9,22 @@ namespace PESpy.PDB
 {
     public static partial class SymTypeExtensions
     {
+        //todo: need an overload that also takes a codeviewaccessor
+        public static int GetRVA(in this SymType symType) => GetRVA(symType, null);
+
+        public static int GetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
+        {
+            if (!symType.TryGetRVA(codeViewAccessor, out var rva))
+                throw new InvalidOperationException($"Could not resolve an RVA for symbol '{symType}'");
+
+            return rva;
+        }
+
         //This method _does_ traverse ref symbols
         public static unsafe bool TryGetRVA(in this SymType symType, out int rva) =>
             TryGetRVA(symType, null, out rva);
 
-        internal static unsafe bool TryGetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out int rva)
+        public static unsafe bool TryGetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out int rva)
         {
             if (TryGetOffSeg(symType, out var off, out var seg))
             {
@@ -48,7 +59,7 @@ namespace PESpy.PDB
 
         public static SymString GetName(in this SymType symType) => GetName(symType, null);
 
-        internal static SymString GetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
+        public static SymString GetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
             if (!TryGetName(symType, codeViewAccessor, out var name))
                 throw new NotImplementedException();
@@ -59,7 +70,7 @@ namespace PESpy.PDB
         public static bool TryGetName(in this SymType symType, out SymString name) =>
             TryGetName(symType, null, out name);
 
-        internal static bool TryGetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out SymString name)
+        public static bool TryGetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out SymString name)
         {
             switch (symType.rectyp)
             {
@@ -647,7 +658,7 @@ namespace PESpy.PDB
         /// <returns>True if the specified symbol is code. Otherwise, false</returns>
         public static unsafe bool IsCode(in this SymType symType) => IsCode(symType, null);
 
-        internal static unsafe bool IsCode(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
+        public static unsafe bool IsCode(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
             /* From mapping DIA symbols to PDB symbols by RVA, the following symbol kinds have been observed to have code or be functions:
              *

@@ -2,6 +2,7 @@
 
 namespace PESpy
 {
+    //Writes a list of fixed sized structs where the list is identified by its starting offset
     class OffsetListWriter : ListWriter
     {
         private int _offset;

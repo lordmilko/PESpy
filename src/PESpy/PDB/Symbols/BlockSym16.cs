@@ -22,6 +22,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly BLOCKSYM16* value;
 
+        public static implicit operator SymType(BlockSym16 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="BLOCKSYM16.reclen"/>
         public ushort reclen => value->reclen;
 

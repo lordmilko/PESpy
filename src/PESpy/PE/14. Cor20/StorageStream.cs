@@ -107,7 +107,7 @@ namespace PESpy
             (FixedStructSize +
             Name.Length + 1 + 3) & ~3; //32-bit aligned
 
-        private int BytesUsed => FixedStructSize + Name.Length + 1;
+        private int BytesUsed() => FixedStructSize + Name.Length + 1;
 
         private readonly MemoryChunk chunk;
         private readonly int metadataRootOffset;
@@ -201,7 +201,7 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.STORAGESTREAM, this, ViewKind.StorageStream, StructSize);
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -220,7 +220,7 @@ namespace PESpy
                     break;
 
                 case 3:
-                    structWriter.AlignOrThrow(BytesUsed);
+                    structWriter.AlignOrThrow(BytesUsed());
                     break;
 
                 default:

@@ -10,9 +10,36 @@ namespace PESpy
 
     //VXD files use the Linear Executable (LE) file format
 
+    internal class LEFileDebugView
+    {
+        private LEFile leFile;
+
+        public LEFileDebugView(LEFile leFile)
+        {
+            this.leFile = leFile;
+        }
+
+        public ImageDosHeader DosHeader => leFile.DosHeader;
+
+        public ByteBlob DosStub => leFile.DosStub;
+
+        public ImageVXDHeader VXDHeader => leFile.VXDHeader;
+
+        public string Name => leFile.Name;
+
+        public string FileName => leFile.FileName;
+
+        public FileKind Kind => leFile.Kind;
+
+        public int Length => leFile.Length;
+
+        public ICodeViewData CodeViewData => leFile.CodeViewData;
+    }
+
     /// <summary>
     /// Represents a Linear Executable (LE) file.
     /// </summary>
+    [DebuggerTypeProxy(typeof(LEFileDebugView))]
     public class LEFile : IFile, IViewable, IDisposable
     {
         public static LEFile FromFile(string path)
@@ -84,6 +111,25 @@ namespace PESpy
 
         public int Length => globalBlock.Length;
 
+        private ICodeViewData? codeViewData;
+        private bool hasTriedCodeViewData;
+
+        public unsafe ICodeViewData? CodeViewData
+        {
+            get
+            {
+                //I wasn't able to trick a VXD sample in the Windows 95 DDK into including OMF symbols, but our NB00
+                //Windows 3.1 VXD sample does include symbols, so we know these can exist
+                if (codeViewData == null && !hasTriedCodeViewData)
+                {
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out codeViewData);
+                    hasTriedCodeViewData = true;
+                }
+
+                return codeViewData;
+            }
+        }
+
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
         private ISymbolAccessor symbolAccessor;
@@ -118,15 +164,7 @@ namespace PESpy
         private unsafe void ReadVXDHeaders()
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
-
             vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
-
-            /* Is it possible for LE files to contain OMF symbols? I tried to compile a VXD that generates either a PDB
-             * or embedded OMF symbols, but no symbols were ever generated. I also couldn't find any VXD files in Windows 95
-             * that contained any embedded OMF symbols. So for now, we'll just assert that no OMF symbols exist, and if we find
-             * they do we'll add support for them */
-
-            Debug.Assert(!OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out var codeViewData));
         }
 
         public unsafe FileView GetView()

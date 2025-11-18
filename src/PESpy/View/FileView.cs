@@ -31,7 +31,7 @@ namespace PESpy.View
 
             ViewMode = viewMode;
             Name = name;
-            Offset = children[0].Offset;
+            Offset = children.Length > 0 ? children[0].Offset : 0;
             Size = children.Sum(r => r.Size);
             childProvider = new ViewChildProvider(children);
             this.viewWriter = viewWriter;

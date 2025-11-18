@@ -145,7 +145,7 @@ namespace PESpy
 
             //Section 1: Publics. Matches NB00
             //Some of these offsets and segments seem a bit crazy, but offset is definitely offset, and I've also observed that segment seems to match what we see in the relocations
-            var publics = ReadNB02Publics(chunk.Slice(secOffset[1] - chunk.AbsoluteOffset), secOffset[2] - secOffset[1]);
+            var publics = ReadNB02Publics16(chunk.Slice(secOffset[1] - chunk.AbsoluteOffset), secOffset[2] - secOffset[1]);
 
             //Section 2: Types. Matches NB00
             var types = ReadNB02Types(chunk.Slice(secOffset[2] - chunk.AbsoluteOffset), secOffset[3] - secOffset[2]);
@@ -155,7 +155,7 @@ namespace PESpy
 
             //Section 4: Source Lines. Matches NB00
             var sourceLinesChunk = chunk.Slice(secOffset[4] - chunk.AbsoluteOffset);
-            var sourceLines = ReadNB02SourceLines(chunk.Slice(secOffset[4] - chunk.AbsoluteOffset), sourceLinesChunk.Remaining - 8, false); //Read up to the CVINFO at the end of the file
+            var sourceLines = ReadNB02SourceLines16(chunk.Slice(secOffset[4] - chunk.AbsoluteOffset), sourceLinesChunk.Remaining - 8, false); //Read up to the CVINFO at the end of the file
 
             return new DNRBData(
                 chunk.AbsoluteOffset,
@@ -297,7 +297,7 @@ namespace PESpy
             return data;
         }
 
-        internal static RawValue<pbi[]> ReadNB02Publics(in MemoryChunk valueChunk, int size)
+        internal static RawValue<pbi[]> ReadNB02Publics16(in MemoryChunk valueChunk, int size)
         {
             using var publics = new PooledList<pbi>();
 
@@ -311,6 +311,22 @@ namespace PESpy
             }
 
             return new RawValue<pbi[]>(valueChunk.AbsoluteOffset, publics.ToArray());
+        }
+
+        internal static RawValue<pbi32[]> ReadNB02Publics32(in MemoryChunk valueChunk, int size)
+        {
+            using var publics = new PooledList<pbi32>();
+
+            var read = 0;
+
+            while (read < size)
+            {
+                var item = new pbi32(valueChunk.Slice(read));
+                publics.Add(item);
+                read += item.StructSize;
+            }
+
+            return new RawValue<pbi32[]>(valueChunk.AbsoluteOffset, publics.ToArray());
         }
 
         internal static RawValue<OldSymType[]> ReadNB02Symbols(in MemoryChunk valueChunk, int size)
@@ -361,7 +377,7 @@ namespace PESpy
             return new RawValue<OldTypType[]>(valueChunk.AbsoluteOffset, list.ToArray());
         }
 
-        internal static RawValue<loe[]> ReadNB02SourceLines(in MemoryChunk valueChunk, int size, bool hasSeg)
+        internal static RawValue<loe[]> ReadNB02SourceLines16(in MemoryChunk valueChunk, int size, bool hasSeg)
         {
             //Based on cvdump.cpp!DumpSrcLn, there can be multiple entries
 
@@ -374,7 +390,7 @@ namespace PESpy
 
             while (read < size)
             {
-                var loe = new loe(valueChunk, hasSeg);
+                var loe = new loe(valueChunk.Slice(read), hasSeg);
 
                 read += loe.StructSize;
 
@@ -382,6 +398,24 @@ namespace PESpy
             }
 
             return new RawValue<loe[]>(valueChunk.AbsoluteOffset, results.ToArray());
+        }
+
+        internal static RawValue<loe32[]> ReadNB02SourceLines32(in MemoryChunk valueChunk, int size, bool hasSeg)
+        {
+            var read = 0;
+
+            using var results = new PooledList<loe32>();
+
+            while (read < size)
+            {
+                var loe = new loe32(valueChunk.Slice(read), hasSeg);
+
+                read += loe.StructSize;
+
+                results.Add(loe);
+            }
+
+            return new RawValue<loe32[]>(valueChunk.AbsoluteOffset, results.ToArray());
         }
 
         #endregion

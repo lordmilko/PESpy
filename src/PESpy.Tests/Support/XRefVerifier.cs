@@ -123,10 +123,10 @@ namespace PESpy.Tests
 
                     nameof(ImageExportDirectory) => propertyName switch
                     {
-                        nameof(ImageExportDirectory.Name) => GetStoreFile(WellKnownTestModule.ntdll).ExportTable,
-                        nameof(ImageExportDirectory.AddressOfFunctions) => GetStoreFile(WellKnownTestModule.ntdll).ExportTable,
-                        nameof(ImageExportDirectory.AddressOfNames) => GetStoreFile(WellKnownTestModule.ntdll).ExportTable,
-                        nameof(ImageExportDirectory.AddressOfNameOrdinals) => GetStoreFile(WellKnownTestModule.ntdll).ExportTable
+                        nameof(ImageExportDirectory.Name) => GetStoreFile(WellKnownTestModule.kernel32).ExportTable,
+                        nameof(ImageExportDirectory.AddressOfFunctions) => GetStoreFile(WellKnownTestModule.kernel32).ExportTable,
+                        nameof(ImageExportDirectory.AddressOfNames) => GetStoreFile(WellKnownTestModule.kernel32).ExportTable,
+                        nameof(ImageExportDirectory.AddressOfNameOrdinals) => GetStoreFile(WellKnownTestModule.kernel32).ExportTable
                     },
 
                     nameof(ImageFileHeader) => propertyName switch
@@ -202,8 +202,8 @@ namespace PESpy.Tests
 
                 var xref = xrefs[index];
 
-                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"FieldOffset was not correct. Also TargetOffset is {xref.TargetOffset}");
-                Assert.AreEqual(targetOffset, xref.TargetOffset);
+                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"FieldOffset was not correct. Also TargetOffset is {xref.TargetValue}");
+                Assert.AreEqual(targetOffset, xref.TargetValue);
             }
             finally
             {

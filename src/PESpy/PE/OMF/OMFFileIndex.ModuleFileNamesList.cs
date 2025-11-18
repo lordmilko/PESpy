@@ -56,7 +56,7 @@ namespace PESpy
 
             internal static RawValue<SymString> ReadString(MemoryChunk namesChunk, int offset, bool isLengthPrefixedString)
             {
-                var str = namesChunk.PeekSymString(offset);
+                var str = namesChunk.PeekSymString(offset, isLengthPrefixedString);
 
                 return new RawValue<SymString>(namesChunk.AbsoluteOffset + offset, str);
             }

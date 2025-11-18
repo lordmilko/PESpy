@@ -424,7 +424,8 @@ namespace PESpy
         private VA<GuardLongJumpTargetTable> guardLongJumpTargetTable;
 
         /// <summary>
-        /// The VA where Control Flow Guard long jump target table is stored.
+        /// The VA where Control Flow Guard long jump target table is stored.<para/>
+        /// __guard_longjmp_table
         /// </summary>
         public VA<GuardLongJumpTargetTable> GuardLongJumpTargetTable
         {
@@ -695,8 +696,10 @@ namespace PESpy
             var lockPrefixTable = LockPrefixTable;
             var lockPrefixTableOffset = LockPrefixTableOffset;
 
+            //While I haven't found any samples containing lock prefix table, NT 4 shows the usage
+            //of the lock prefix table, and it's shown to be an array of RVAs
             writer.WriteVAPointerField(lockPrefixTable, ViewKind.LockPrefixTable, structOffset, fieldOffset: lockPrefixTableOffset); //9
-            writer.WriteVAXRef(structOffset, lockPrefixTableOffset, lockPrefixTable);
+            writer.WriteRVAXRef(structOffset, lockPrefixTableOffset, lockPrefixTable);
 
             #endregion
 

@@ -16,6 +16,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ALIGNSYM* value;
 
+        public static implicit operator SymType(AlignSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ALIGNSYM.reclen"/>
         public ushort reclen => value->reclen;
 

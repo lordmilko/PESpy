@@ -77,7 +77,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //This name may also be written by ImageImportDescriptor
-            writer.WriteUniqueRVAAnsiNullTerminatedField(ImportName, ViewKind.ImportName, Offset, fieldOffset: ImportNameOffset);
+            writer.WriteUniqueRVAAnsiNullTerminatedField(ImportName, ViewKind.ImageEnclaveImport_ImportName, Offset, fieldOffset: ImportNameOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

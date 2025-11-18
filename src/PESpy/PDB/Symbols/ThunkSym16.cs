@@ -24,6 +24,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly THUNKSYM16* value;
 
+        public static implicit operator SymType(ThunkSym16 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="THUNKSYM16.reclen"/>
         public ushort reclen => value->reclen;
 

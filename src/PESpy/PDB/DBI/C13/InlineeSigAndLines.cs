@@ -16,6 +16,24 @@ namespace PESpy.PDB
 
         public int Offset { get; }
 
+        internal int StructSize
+        {
+            get
+            {
+                if (Signature == CV_INLINEELINES_SIGNATURE.CV_INLINEE_SOURCE_LINE_SIGNATURE)
+                    return sizeof(int) + (Lines.Length * InlineeSourceLine.StructSize);
+
+                var lines = (InlineeSourceLineEx[]) Lines;
+
+                var size = sizeof(int);
+
+                foreach (var line in lines)
+                    size += line.StructSize;
+
+                return size;
+            }
+        }
+
         internal InlineeSigAndLines(int offset, CV_INLINEELINES_SIGNATURE signature, Array lines)
         {
             Offset = offset;
@@ -28,13 +46,21 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            throw new System.NotImplementedException();
+            writer.NewStruct(Strings.InlineeSigAndLines, this, ViewKind.InlineeSigAndLines, StructSize);
 
-        int IViewable.NumChildren() => throw new System.NotImplementedException();
+        int IViewable.NumChildren() => 1 + Lines.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            throw new System.NotImplementedException();
+            if (index == 0)
+                structWriter.WriteField(nameof(Signature), 0, Signature, sizeof(int));
+            else
+            {
+                if (Signature == CV_INLINEELINES_SIGNATURE.CV_INLINEE_SOURCE_LINE_SIGNATURE)
+                    structWriter.WriteInline(((InlineeSourceLine[]) Lines)[index - 1]);
+                else
+                    structWriter.WriteInline(((InlineeSourceLineEx[]) Lines)[index - 1]);
+            }
         }
     }
 }

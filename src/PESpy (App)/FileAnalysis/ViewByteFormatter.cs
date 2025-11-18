@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using ClrDebug;
 using ClrDebug.DIA;
 using Iced.Intel;
+using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
@@ -25,6 +26,7 @@ namespace PESpy
         private List<PhysicalLine> _physicalLines = new List<PhysicalLine>();
         private List<LogicalLine> _logicalLines = new List<LogicalLine>();
         private readonly IntelAsmWriter _intelAsmWriter;
+        private readonly ViewByteFormatRangeList _formatRanges;
 
         private IntelAsmWriter? _dosStubAsmWriter;
 
@@ -76,11 +78,12 @@ namespace PESpy
         {
             _fileAccessor = fileAccessor;
             _builder = new ValueStringBuilder.NonRef(100);
-            _intelAsmWriter = new IntelAsmWriter(fileAccessor.Bitness, symbolResolver);
+            _formatRanges = new ViewByteFormatRangeList();
+            _intelAsmWriter = new IntelAsmWriter(fileAccessor.Bitness, symbolResolver, _formatRanges); //Format ranges must be specified; if the user doesn't want formats, we'll supply a dummy list
         }
 
         private IntelAsmWriter GetDOSStubAsmWriter() =>
-            _dosStubAsmWriter ??= new IntelAsmWriter(16, null);
+            _dosStubAsmWriter ??= new IntelAsmWriter(16, null, _formatRanges);
         internal void ClearPath() => _path.Clear();
 
         #region Control
@@ -228,7 +231,7 @@ namespace PESpy
                             {
                                 Debug.Assert(firstLogicalLine.Depth >= _path.Count);
 
-                                if (firstLogicalLine.Depth == _path.Count)
+                                if (firstLogicalLine.Depth == _path.Count + 1)
                                 {
                                     //We're at the right depth. Update the path to record where the screen is up to
                                     current.LastChildIndex = i;

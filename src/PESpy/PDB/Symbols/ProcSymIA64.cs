@@ -28,6 +28,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PROCSYMIA64* value;
 
+        public static implicit operator SymType(ProcSymIA64 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="PROCSYMIA64.reclen"/>
         public ushort reclen => value->reclen;
 

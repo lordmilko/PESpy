@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("RVA = 0x{RVA.ToString(\"X\"),nq}, ImplFlags = {ImplFlags}, Flags = {Flags}, Name = {Name.ToString(),nq}, Signature = {Signature}, ParamList = {ParamList}")]
+    [DebuggerDisplay("RVA = 0x{RVA.ToString(\"X\"),nq}, ImplFlags = {ImplFlags}, Flags = {Flags}, Name = {ToString(),nq}, Signature = {Signature}, ParamList = {ParamList}")]
     public readonly struct MethodDefRow : IValue, IViewable
     {
         public MethodDefIndex RowIndex { get; }
@@ -33,6 +33,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public TypeDefRow DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -75,6 +77,27 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            using var builder = new Utf8StringBuilder();
+
+            var declaringType = DeclaringType;
+
+            var ns = declaringType.TypeNamespace.GetString();
+
+            if (ns.Length > 0)
+            {
+                builder.Append(declaringType.TypeNamespace.GetString());
+                builder.Append('.');
+            }
+
+            builder.Append(declaringType.TypeName.GetString());
+            builder.Append('.');
+            builder.Append(Name.GetString());
+
+            return builder.ToString();
         }
     }
 }

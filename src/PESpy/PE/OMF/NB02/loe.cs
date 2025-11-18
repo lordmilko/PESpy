@@ -1,29 +1,28 @@
 ﻿using System;
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
+    [Source(SourceKind.C6DevToolkit)]
     public readonly unsafe struct loe : IValue, IViewable
     {
-        public FixedAnsiString Name
-        {
-            get
-            {
-                var length = chunk.PeekByte(0);
-                return chunk.PeekAnsiFixedLength(1, length);
-            }
-        }
+        private const int NameOffset = 0;
+        private int SegOffset => chunk.PeekByte(0) + 1;
+        private int cOffOffset => chunk.PeekByte(0) + 1 + (hasSeg ? sizeof(ushort) : 0);
+        private int ItemsOffset => cOffOffset + sizeof(short);
 
-        public ushort? Seg => hasSeg ? chunk.PeekUInt16(chunk.PeekByte(0) + 1) : null;
+        public SymString Name => chunk.PeekSymString(NameOffset, isLengthPrefixed: true);
 
-        public ushort cOff => chunk.PeekUInt16(chunk.PeekByte(0) + 1 + (hasSeg ? sizeof(ushort) : 0));
+        public ushort? Seg => hasSeg ? chunk.PeekUInt16(SegOffset) : null;
+
+        public ushort cOff => chunk.PeekUInt16(cOffOffset);
 
         public NativeSpan<LineNumberOffset> Items
         {
             get
             {
-                var off = chunk.PeekByte(0) + 1 + (hasSeg ? sizeof(ushort) : 0);
+                var off = cOffOffset;
 
                 var cOff = chunk.PeekUInt16(off);
 
@@ -46,7 +45,7 @@ namespace PESpy
 
                 return lengthToCount +
                     sizeof(ushort) + //cOff
-                    cOff * (sizeof(ushort) + sizeof(ushort));
+                    cOff * LineNumberOffset.StructSize;
             }
         }
 
@@ -67,21 +66,38 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.loe, this, ViewKind.loe, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => (hasSeg ? 3 : 2) + cOff;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteSymStringField(nameof(Name), NameOffset, Name);
+                    break;
 
-            s.WriteLengthPrefixedAnsiField(nameof(Name), Name);
+                case 1:
+                    if (hasSeg)
+                        structWriter.WriteField(nameof(Seg), SegOffset, Seg.Value);
+                    else
+                        structWriter.WriteField(nameof(cOff), cOffOffset, cOff);
 
-            if (hasSeg)
-                s.WriteField(nameof(Seg), Seg.Value);
+                    break;
 
-            s.WriteField(nameof(cOff), cOff);
+                case 2:
+                    if (hasSeg)
+                        structWriter.WriteField(nameof(cOff), cOffOffset, cOff);
+                    else
+                        structWriter.WriteInline(ItemsOffset, Items[0]);
 
-            s.WriteInline(Items);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                default:
+                    var i = index - (hasSeg ? 3 : 2);
+
+                    structWriter.WriteInline(ItemsOffset + (i * LineNumberOffset.StructSize), Items[i]);
+                    break;
+            }
         }
 
         //Type is made up, fields are not

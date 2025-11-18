@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DISCARDEDSYM* value;
 
+        public static implicit operator SymType(DiscardedSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DISCARDEDSYM.reclen"/>
         public ushort reclen => value->reclen;
 

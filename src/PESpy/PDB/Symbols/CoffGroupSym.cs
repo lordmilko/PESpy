@@ -22,6 +22,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly COFFGROUPSYM* value;
 
+        public static implicit operator SymType(CoffGroupSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="COFFGROUPSYM.reclen"/>
         public ushort reclen => value->reclen;
 

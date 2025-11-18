@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PDBMAP* value;
 
+        public static implicit operator SymType(PdbMap value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="PDBMAP.reclen"/>
         public ushort reclen => value->reclen;
 

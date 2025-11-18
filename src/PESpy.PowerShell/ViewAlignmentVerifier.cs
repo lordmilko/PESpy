@@ -7,9 +7,9 @@ namespace PESpy.PowerShell
     {
         protected override void VisitChildren(IContainerView view)
         {
-            for (var i = 0; i < view.Children.Length; i++)
+            for (var i = 0; i < view.Children.Count; i++)
             {
-                if (i < view.Children.Length - 1)
+                if (i < view.Children.Count - 1)
                 {
                     //The end of current is Offset + Size - 1. We ignore that for the purposes of this comparison,
                     //since we want to know that next immediately follows current (which is true if their start and end are the same

@@ -24,6 +24,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DATASYMHLSL32* value;
 
+        public static implicit operator SymType(DataSymHLSL32 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DATASYMHLSL32.reclen"/>
         public ushort reclen => value->reclen;
 

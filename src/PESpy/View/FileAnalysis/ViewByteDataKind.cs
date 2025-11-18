@@ -18,10 +18,10 @@
         //It's a random global value that happens to be an enum
         Enum = 0x30,
 
-        String = 0x40,
-        Struct = 0x50,
-        Padding = 0x60,
+        Guid = 0x40,
 
-        //0x70 unused
+        String = 0x50,
+        Struct = 0x60,
+        Padding = 0x70,
     }
 }

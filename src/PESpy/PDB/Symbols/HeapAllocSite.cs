@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly HEAPALLOCSITE* value;
 
+        public static implicit operator SymType(HeapAllocSite value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="HEAPALLOCSITE.reclen"/>
         public ushort reclen => value->reclen;
 

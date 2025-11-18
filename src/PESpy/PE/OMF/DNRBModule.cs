@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -12,15 +11,7 @@ namespace PESpy
 
         public NativeSpan<byte> Unknown => chunk.PeekNativeSpan<byte>(UnknownOffset, 30);
 
-        public FixedAnsiString Name
-        {
-            get
-            {
-                //After the 30 bytes at the front is the name
-                var length = chunk.PeekByte(NameOffset);
-                return chunk.PeekAnsiFixedLength(FixedStructSize + 1, length);
-            }
-        }
+        public SymString Name => chunk.PeekSymString(NameOffset, isLengthPrefixed: true);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -54,7 +45,7 @@ namespace PESpy
                     break;
 
                 case 1:
-                    structWriter.WriteLengthPrefixedAnsiField("Name", NameOffset, Name);
+                    structWriter.WriteSymStringField("Name", NameOffset, Name);
                     break;
 
                 default:

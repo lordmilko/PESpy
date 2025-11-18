@@ -136,6 +136,14 @@ namespace PESpy
             return new SymString(Pointer + offset, isLengthPrefixed: false);
         }
 
+        public SymString PeekSymString(int offset, bool isLengthPrefixed)
+        {
+            if (isLengthPrefixed)
+                return new SymString(Pointer + offset + 1, isLengthPrefixed: true);
+
+            return new SymString(Pointer + offset, isLengthPrefixed: false);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PeekBigEndianInt32(int offset)
         {

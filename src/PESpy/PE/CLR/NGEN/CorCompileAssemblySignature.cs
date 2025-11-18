@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace PESpy
 {
     //CORCOMPILE_ASSEMBLY_SIGNATURE
     [Source(SourceKind.corcompile_h)]
+    [DebuggerDisplay("mvid = {mvid}, timeStamp = {timeStamp}, ilImageSize = {ilImageSize}")]
     public readonly struct CorCompileAssemblySignature : IValue
     {
         private const int mvidOffset = 0;

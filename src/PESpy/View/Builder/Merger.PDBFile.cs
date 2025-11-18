@@ -9,6 +9,15 @@ namespace PESpy.View.Builder
     //Merges PDBs that use MSF. PDB v1 does not use MSF
     internal ref partial struct Merger
     {
+        //Not streams, but we need their indices to be in the page number to SI index lookup map for file analysis
+        //lookups (we don't need them for merging)
+        internal const int SPECIAL_STREAM_MASTER_INDEX = -1;
+        internal const int SPECIAL_STREAM_FPM_0 = -2;
+        internal const int SPECIAL_STREAM_FPM_1 = -3;
+
+        internal const int SPECIAL_STREAM_STREAMTABLE = -4;
+        internal const int SPECIAL_STREAM_STREAMTABLE_LOCATION = -5;
+
         internal Dictionary<PN, int> pageNumberToSIIndex;
 
         internal IView[] MergePDB(PooledList<PDBContiguousSectionInfo> contiguousSections)
@@ -24,37 +33,7 @@ namespace PESpy.View.Builder
             if (pdbFile is PDB1File)
                 throw new NotImplementedException("Handling a PDB1File is not implemented");
 
-            var streamInfos = pdbFile.StreamTable.StreamInfos;
-
-            var dict = new Dictionary<PN, int>();
-
-            for (var i = 0; i < streamInfos.Length; i++)
-            {
-                var si = streamInfos[i];
-
-                foreach (var pn in si.PageList)
-                    dict[pn] = i;
-            }
-
-            if (pdbFile is PDB7File v7)
-            {
-                //For the pages that describe the location of the stream table, we list these as being at index -1, which we special case
-                //to know that we need to retrieve the StreamTableLocation.PageList
-                foreach (var page in v7.StreamTableLocation.PageList)
-                    dict[page] = -1;
-
-                //And for the pages that describe the location of the stream table's pages, we list these as being at -2
-                foreach (var page in v7.MsfHeader.PagesOfStreamTablePageList)
-                    dict[page] = -2;
-            }
-            else
-            {
-                //In V2, mpspnpnSt lists the pages of the stream table directly
-                foreach (var page in ((PDB2File) pdbFile).MsfHeader.StreamTablePageList)
-                    dict[page] = -1;
-            }
-
-            pageNumberToSIIndex = dict;
+            pageNumberToSIIndex = GetPageNumberToSIIndex(pdbFile);
 
             var currentPageIndex = 0;
 
@@ -91,7 +70,53 @@ namespace PESpy.View.Builder
                 currentPageIndex = section.GlobalEndIndex + 1;
             }
 
+            if (currentPageIndex < raw.Length)
+                results.AddRange(raw, currentPageIndex, raw.Length - currentPageIndex);
+
             return results.ToArray();
+        }
+
+        internal static Dictionary<PN, int> GetPageNumberToSIIndex(PDBFile pdbFile)
+        {
+            var dict = new Dictionary<PN, int>();
+
+            dict[0] = SPECIAL_STREAM_MASTER_INDEX;
+
+            foreach (var page in pdbFile.FPM0.FpmPages)
+                dict[page] = SPECIAL_STREAM_FPM_0;
+
+            foreach (var page in pdbFile.FPM1.FpmPages)
+                dict[page] = SPECIAL_STREAM_FPM_1;
+
+            var streamInfos = pdbFile.StreamTable.StreamInfos;
+
+            for (var i = 0; i < streamInfos.Length; i++)
+            {
+                var si = streamInfos[i];
+
+                foreach (var pn in si.PageList)
+                    dict[pn] = i;
+            }
+
+            if (pdbFile is PDB7File v7)
+            {
+                //For the pages that describe the location of the stream table, we list these as being at index -1, which we special case
+                //to know that we need to retrieve the StreamTableLocation.PageList
+                foreach (var page in v7.StreamTableLocation.PageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE;
+
+                //And for the pages that describe the location of the stream table's pages, we list these as being at -2
+                foreach (var page in v7.MsfHeader.PagesOfStreamTablePageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE_LOCATION;
+            }
+            else
+            {
+                //In V2, mpspnpnSt lists the pages of the stream table directly
+                foreach (var page in ((PDB2File) pdbFile).MsfHeader.StreamTablePageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE;
+            }
+
+            return dict;
         }
     }
 }

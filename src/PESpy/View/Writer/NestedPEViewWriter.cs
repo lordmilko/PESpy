@@ -31,9 +31,19 @@ namespace PESpy.View
             return outerWriter.NewValue(offset, value, size, kind);
         }
 
-        protected internal override void WriteXRef(int fieldOffset, int targetOffset)
+        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
-            outerWriter.WriteXRef(fieldOffset, targetOffset);
+            outerWriter.WriteOffsetXRef(structOffset, fieldOffset, targetOffset);
+        }
+
+        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+            outerWriter.WriteRVAXRef(structOffset, fieldOffset, targetRVA);
+        }
+
+        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
+        {
+            outerWriter.WriteVAXRef(structOffset, fieldOffset, targetVA);
         }
     }
 }

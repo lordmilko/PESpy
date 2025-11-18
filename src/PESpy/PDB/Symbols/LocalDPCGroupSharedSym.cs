@@ -21,6 +21,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly LOCALDPCGROUPSHAREDSYM* value;
 
+        public static implicit operator SymType(LocalDPCGroupSharedSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="LOCALDPCGROUPSHAREDSYM.reclen"/>
         public ushort reclen => value->reclen;
 

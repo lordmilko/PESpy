@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly POGOINFO* value;
 
+        public static implicit operator SymType(PogoInfo value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="POGOINFO.reclen"/>
         public ushort reclen => value->reclen;
 

@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ENTRYTHISSYM* value;
 
+        public static implicit operator SymType(EntryThisSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ENTRYTHISSYM.reclen"/>
         public ushort reclen => value->reclen;
 

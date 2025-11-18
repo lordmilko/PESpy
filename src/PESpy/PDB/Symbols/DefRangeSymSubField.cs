@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMSUBFIELD* value;
 
+        public static implicit operator SymType(DefRangeSymSubField value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DEFRANGESYMSUBFIELD.reclen"/>
         public ushort reclen => value->reclen;
 

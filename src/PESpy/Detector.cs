@@ -18,7 +18,12 @@ namespace PESpy
         public static IFile OpenFile(string path)
         {
             if (!TryOpenFile(path, out var file))
+            {
+                if (!File.Exists(path))
+                    throw new FileNotFoundException($"Could not find file '{path}'");
+
                 throw new InvalidOperationException($"Failed to detect the type of file '{file}'");
+            }
 
             return file;
         }

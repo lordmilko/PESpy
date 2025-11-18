@@ -41,23 +41,34 @@ namespace PESpy
         internal dnt(in MemoryChunk chunk, in MemoryChunk outerChunk)
         {
             this.chunk = chunk;
-            Data = default;
             Data = GetData(SubSection, outerChunk.Slice(lfo), cb);
         }
 
         private static object GetData(SST subSection, in MemoryChunk valueChunk, int length)
         {
+            var isLEFile = valueChunk.File().Kind == FileKind.LE;
+
             switch (subSection)
             {
                 case SST.SSTMODULE:
-                {
-                    var smd = new smd(valueChunk);
-                    Debug.Assert(smd.StructSize == length);
-                    return smd;
-                }
+                    if (isLEFile)
+                    {
+                        var smd32 = new smd32(valueChunk);
+                        Debug.Assert(smd32.StructSize == length);
+                        return smd32;
+                    }
+                    else
+                    {
+                        var smd = new smd(valueChunk);
+                        Debug.Assert(smd.StructSize == length);
+                        return smd;
+                    }
 
                 case SST.SSTPUBLIC:
-                    return OMFReader.ReadNB02Publics(valueChunk, length);
+                    if (isLEFile)
+                        return OMFReader.ReadNB02Publics32(valueChunk, length);
+                    else
+                        return OMFReader.ReadNB02Publics16(valueChunk, length);
 
                 case SST.SSTTYPES:
                 case SST.SSTCOMPACTED: //Has the same format as SSTTYPES
@@ -94,7 +105,10 @@ namespace PESpy
 
                 case SST.SSTSRCLINES: //Only emitted in NB00. NB01 and NB02 use SSTSRCLNSEG
                 case SST.SSTSRCLNSEG: //Same format as SSTSRCLINES except there's also a segment index
-                    return OMFReader.ReadNB02SourceLines(valueChunk, length, subSection == SST.SSTSRCLNSEG);
+                    if (isLEFile)
+                        return OMFReader.ReadNB02SourceLines32(valueChunk, length, subSection == SST.SSTSRCLNSEG);
+                    else
+                        return OMFReader.ReadNB02SourceLines16(valueChunk, length, subSection == SST.SSTSRCLNSEG);
 
                 default:
                     Debug.Assert(false, $"Don't know how to handle {subSection}");

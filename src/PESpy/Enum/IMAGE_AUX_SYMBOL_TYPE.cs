@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using System;
+
+namespace PESpy
 {
     /// <summary>
     /// Represents the IMAGE_AUX_SYMBOL_TYPE enumeration.

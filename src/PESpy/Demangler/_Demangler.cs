@@ -268,35 +268,23 @@ namespace PESpy
             if (!str.StartsWith("?"))
                 return str;
 
-            var length = str.Length;
-            var maxBytes = Encoding.UTF8.GetMaxByteCount(str.Length);
-            var array = ArrayPool<byte>.Shared.Rent(maxBytes);
+            using var builder = new Utf8StringBuilder(str);
 
-            try
+            fixed (byte* p = builder.AsSpan())
             {
-                fixed (char* c = str)
-                fixed (byte* p = array)
+                var textWriter = new TextWindow(p, builder.Length);
+
+                try
                 {
-                    var actual = Encoding.UTF8.GetBytes(c, str.Length, p, maxBytes);
+                    if (!TryParseInternal(ref textWriter, out var symbolNode))
+                        return str;
 
-                    var textWriter = new TextWindow(p, actual);
-
-                    try
-                    {
-                        if (!TryParseInternal(ref textWriter, out var symbolNode))
-                            return str;
-
-                        return symbolNode.ToString(flags);
-                    }
-                    finally
-                    {
-                        textWriter.Dispose();
-                    }
+                    return symbolNode.ToString(flags);
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(array);
+                finally
+                {
+                    textWriter.Dispose();
+                }
             }
         }
 
@@ -349,57 +337,45 @@ namespace PESpy
             if (!str.StartsWith("??_7"))
                 return false;
 
-            var length = str.Length;
-            var maxBytes = Encoding.UTF8.GetMaxByteCount(str.Length);
-            var array = ArrayPool<byte>.Shared.Rent(maxBytes);
+            using var inputBuilder = new Utf8StringBuilder(str);
 
-            try
+            fixed (byte* p = inputBuilder.AsSpan())
             {
-                fixed (char* c = str)
-                fixed (byte* p = array)
-                {
-                    var actual = Encoding.UTF8.GetBytes(c, str.Length, p, maxBytes);
+                var textWriter = new TextWindow(p, inputBuilder.Length);
 
-                    var textWriter = new TextWindow(p, actual);
+                try
+                {
+                    if (!TryParseInternal(ref textWriter, out var symbolNode))
+                        return false;
+
+                    var vftableSymbol = (SpecialTableSymbolNode) symbolNode;
+
+                    //Name should be a qualified name whose last element is "vftable"
+                    var classNameComponents = vftableSymbol.Name.Components;
+
+                    var ptr = stackalloc char[MaxSymbolName];
+                    var outputBuilder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
 
                     try
                     {
-                        if (!TryParseInternal(ref textWriter, out var symbolNode))
-                            return false;
+                        classNameComponents.Output(ref outputBuilder, UNDNAME.UNDNAME_NAME_ONLY, "::", classNameComponents.Count - 1);
 
-                        var vftableSymbol = (SpecialTableSymbolNode) symbolNode;
-
-                        //Name should be a qualified name whose last element is "vftable"
-                        var classNameComponents = vftableSymbol.Name.Components;
-
-                        var ptr = stackalloc char[MaxSymbolName];
-                        var builder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
-
-                        try
-                        {
-                            classNameComponents.Output(ref builder, UNDNAME.UNDNAME_NAME_ONLY, "::", classNameComponents.Count - 1);
-
-                            className = builder.ToString();
-                        }
-                        finally
-                        {
-                            builder.Dispose();
-                        }
-
-                        if (vftableSymbol.TargetName != null)
-                            targetName = vftableSymbol.TargetName.ToString();
-
-                        return true;
+                        className = outputBuilder.ToString();
                     }
                     finally
                     {
-                        textWriter.Dispose();
+                        outputBuilder.Dispose();
                     }
+
+                    if (vftableSymbol.TargetName != null)
+                        targetName = vftableSymbol.TargetName.ToString();
+
+                    return true;
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(array);
+                finally
+                {
+                    textWriter.Dispose();
+                }
             }
         }
 
@@ -410,38 +386,26 @@ namespace PESpy
             if (str.StartsWith("??_R"))
                 return; //Some type of RTTI descriptor
 
-            var length = str.Length;
-            var maxBytes = Encoding.UTF8.GetMaxByteCount(str.Length);
-            var array = ArrayPool<byte>.Shared.Rent(maxBytes);
+            using var builder = new Utf8StringBuilder(str);
 
-            try
+            fixed (byte* p = builder.AsSpan())
             {
-                fixed (char* c = str)
-                fixed (byte* p = array)
+                var textWriter = new TextWindow(p, builder.Length);
+
+                try
                 {
-                    var actual = Encoding.UTF8.GetBytes(c, str.Length, p, maxBytes);
+                    if (!TryParseInternal(ref textWriter, out var symbolNode))
+                        return;
 
-                    var textWriter = new TextWindow(p, actual);
-
-                    try
+                    if (symbolNode is FunctionSymbolNode f)
                     {
-                        if (!TryParseInternal(ref textWriter, out var symbolNode))
-                            return;
-
-                        if (symbolNode is FunctionSymbolNode f)
-                        {
-                            callback(f);
-                        }
-                    }
-                    finally
-                    {
-                        textWriter.Dispose();
+                        callback(f);
                     }
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(array);
+                finally
+                {
+                    textWriter.Dispose();
+                }
             }
         }
 

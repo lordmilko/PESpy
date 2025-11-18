@@ -18,6 +18,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly UDTSYM* value;
 
+        public static implicit operator SymType(UdtSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="UDTSYM.reclen"/>
         public ushort reclen => value->reclen;
 

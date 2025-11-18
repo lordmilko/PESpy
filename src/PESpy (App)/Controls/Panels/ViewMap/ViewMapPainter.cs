@@ -129,6 +129,14 @@ namespace PESpy.Controls
 
                     case 4:
                         text = "Unknown";
+                        hPen = _viewMap._unknownPen;
+                        hBrush = _viewMap._unknownBrush;
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
                 var hMemDC = _hMemDC;
 
                 Gdi32.SelectObject(hMemDC, hPen);

@@ -68,9 +68,67 @@ namespace PESpy
             this.chunk = chunk;
         }
 
-        public override string ToString()
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            return FileName.ToString();
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.SrcHeaderOut, this, ViewKind.SrcHeaderOut, StructSize);
+
+        int IViewable.NumChildren() => 11;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(cb), cbOffset, cb);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(ver), verOffset, ver);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(sig), sigOffset, sig);
+                    break;
+
+                case 3:
+                    structWriter.WriteField(nameof(cbSource), cbSourceOffset, cbSource);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(niFile), niFileOffset, niFile);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(niObj), niObjOffset, niObj);
+                    break;
+
+                case 6:
+                    structWriter.WriteField(nameof(niVirt), niVirtOffset, niVirt);
+                    break;
+
+                case 7:
+                    structWriter.WriteField(nameof(srccompress), srccompressOffset, srccompress, sizeof(byte));
+                    break;
+
+                case 8:
+                    structWriter.WriteField(nameof(grFlags), grFlagsOffset, grFlags);
+                    break;
+
+                case 9:
+                    structWriter.WriteField(nameof(sPad), sPadOffset, sPad);
+                    break;
+
+                case 10:
+                    structWriter.WriteField(nameof(pv64Reserved2), pv64Reserved2Offset, pv64Reserved2);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

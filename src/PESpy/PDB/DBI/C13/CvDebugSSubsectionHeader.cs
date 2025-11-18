@@ -253,7 +253,7 @@ namespace PESpy.PDB
                 {
                     var entry = new InlineeSourceLineEx(dataChunk.Slice(read));
 
-                    read += InlineeSourceLineEx.FixedStructSize + (entry.countOfExtraFiles * sizeof(int));
+                    read += entry.StructSize;
 
                     list.Add(entry);
                 }
@@ -374,7 +374,7 @@ namespace PESpy.PDB
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
-        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        unsafe void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             if (index != -1)
                 throw StructWriter.GetEagerLoadOnlyException();
@@ -390,7 +390,12 @@ namespace PESpy.PDB
                     if (chunk.block is PagedMemoryBlock p)
                         s.WritePagedValue(chunk.RelativeOffset + 8, p, GetSymbols());
                     else
-                        s.WriteValue(Offset + 8, GetSymbols());
+                    {
+                        var symbols = GetSymbols();
+                        structWriter.ViewWriter.ManualSymbolAccessor = symbols.codeViewAccessor ?? SymbolMemoryTracker.GetAccessor((long) (DataChunk.Pointer + 8));
+                        s.WriteValue(Offset + 8, symbols);
+                        structWriter.ViewWriter.ManualSymbolAccessor = null;
+                    }
                     break;
 
                 case DEBUG_S_LINES:

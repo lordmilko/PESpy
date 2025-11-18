@@ -22,6 +22,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CFLAGSYM* value;
 
+        public static implicit operator SymType(CFlagSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="CFLAGSYM.reclen"/>
         public ushort reclen => value->reclen;
 

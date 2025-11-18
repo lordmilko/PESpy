@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SLOTSYM32* value;
 
+        public static implicit operator SymType(SlotSym32 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="SLOTSYM32.reclen"/>
         public ushort reclen => value->reclen;
 

@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly UNAMESPACE* value;
 
+        public static implicit operator SymType(UNameSpace value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="UNAMESPACE.reclen"/>
         public ushort reclen => value->reclen;
 

@@ -66,7 +66,7 @@
             throw new System.NotImplementedException();
         }
 
-        public bool TryGetAddressFromName(SymString name, out int targetAddress)
+        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
         {
             throw new System.NotImplementedException();
         }

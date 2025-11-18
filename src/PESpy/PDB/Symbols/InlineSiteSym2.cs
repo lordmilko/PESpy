@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly INLINESITESYM2* value;
 
+        public static implicit operator SymType(InlineSiteSym2 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="INLINESITESYM2.reclen"/>
         public ushort reclen => value->reclen;
 
@@ -67,39 +69,24 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.INLINESITESYM2, this, ViewKind.InlineSiteSym2, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => 6;
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            switch (index)
-            {
-                case 0:
-                    structWriter.WriteField(nameof(reclen), reclenOffset, reclen);
-                    break;
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
 
-                case 1:
-                    structWriter.WriteField(nameof(rectyp), rectypOffset, rectyp, sizeof(ushort));
-                    break;
+            using var s = structWriter.CreateEagerWriter();
 
-                case 2:
-                    structWriter.WriteField(nameof(pParent), pParentOffset, pParent);
-                    break;
+            s.WriteField(nameof(rectyp), rectyp, sizeof(ushort));
+            s.WriteField(nameof(reclen), reclen);
+            s.WriteField(nameof(pParent), pParent);
+            s.WriteField(nameof(pEnd), pEnd);
+            s.WriteField(nameof(inlinee), value->inlinee);
+            s.WriteField(nameof(invocations), invocations);
+            s.WriteField(nameof(binaryAnnotations), binaryAnnotations);
 
-                case 3:
-                    structWriter.WriteField(nameof(pEnd), pEndOffset, pEnd);
-                    break;
-
-                case 4:
-                    structWriter.WriteField(nameof(inlinee), inlineeOffset, value->inlinee);
-                    break;
-
-                case 5:
-                    structWriter.WriteField(nameof(invocations), invocationsOffset, invocations);
-                    break;
-
-                default:
-                    throw new IndexOutOfRangeException();
-            }
+            structWriter.EagerFields = s.ToArray();
         }
 
         public override string ToString()

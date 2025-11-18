@@ -13,17 +13,29 @@ namespace PESpy
         public int RelativeIndex;
         public int Top => (LogicalLine.Top - (RelativeIndex * LogicalLine.LineHeight)); //May be off screen
 
-        public readonly int StartIndex;
-        public readonly int EndIndex;
+        public readonly int StartTextIndex;
+        public readonly int EndTextIndex;
 
-        public ReadOnlySpan<char> Text => LogicalLine.GetText(StartIndex, EndIndex - StartIndex);
+        public readonly int StartFormatIndex;
+        public readonly int EndFormatIndex;
+
+        public ReadOnlySpan<char> Text => LogicalLine.GetText(StartTextIndex, EndTextIndex - StartTextIndex);
+
+        public ReadOnlySpan<ViewByteFormatRange> FormatRanges => LogicalLine.GetRanges(StartFormatIndex, EndFormatIndex - StartFormatIndex);
 
         public LogicalLine LogicalLine;
 
-        public PhysicalLine(int startIndex, int endIndex)
+        public PhysicalLine(
+            int startTextIndex,
+            int endTextIndex,
+            int startFormatIndex,
+            int endFormatIndex)
         {
-            StartIndex = startIndex;
-            EndIndex = endIndex;
+            StartTextIndex = startTextIndex;
+            EndTextIndex = endTextIndex;
+
+            StartFormatIndex = startFormatIndex;
+            EndFormatIndex = endFormatIndex;
         }
 
         public override string ToString()

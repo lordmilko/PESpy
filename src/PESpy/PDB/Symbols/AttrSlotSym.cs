@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ATTRSLOTSYM* value;
 
+        public static implicit operator SymType(AttrSlotSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ATTRSLOTSYM.reclen"/>
         public ushort reclen => value->reclen;
 

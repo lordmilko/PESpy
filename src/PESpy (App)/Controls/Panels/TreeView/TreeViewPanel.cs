@@ -2,6 +2,7 @@
 using System.Diagnostics;
 #if WINFORMS
 using System.Windows.Forms;
+using PESpy.PDB;
 #endif
 using PESpy.View;
 using PInvoke;
@@ -75,7 +76,7 @@ namespace PESpy.Controls
             #region Overview / Headers
 
             //Add top-level nodes
-            level1.Add(OverviewNode("Overview", ImageEditAlignment));
+            level1.Add(SpecialPaneNode("Overview", ImageEditAlignment, TreeNodeKind.Overview));
             level1.Add(SingletonNode("IMAGE_DOS_HEADER", ImageStruct, peFile.DosHeader.Offset, ViewKind.ImageDosHeader));
             level1.Add(CodeNode("DOS Stub", ImageDocumentBinary, peFile.DosStub.Offset));
 

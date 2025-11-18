@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using ClrDebug;
 using PESpy.PDB;
 using PESpy.View.Builder;
 
@@ -38,6 +39,7 @@ namespace PESpy.View
         internal Func<int, int>? getRealOffset;
 #if DEBUG
         private HashSet<long> globalFields;
+        internal bool ShouldVerifyXRefs;
 #endif
 
         internal ViewWriter? NestedViewWriter;
@@ -74,6 +76,7 @@ namespace PESpy.View
 
 #if DEBUG
             globalFields = new HashSet<long>();
+            ShouldVerifyXRefs = true;
 #endif
         }
 
@@ -97,6 +100,9 @@ namespace PESpy.View
             globalFields = parentWriter.globalFields;
 #endif
         }
+
+        internal bool TryGetViewOffset(int rva, out int offset) =>
+            tryGetViewOffset(rva, out offset);
 
         private void Push(List<IView> list)
         {
@@ -212,6 +218,23 @@ namespace PESpy.View
             viewable?.WriteGlobals(this);
         }
 
+        public void RelayGlobals(ImageDataDirectory imageDataDirectory)
+        {
+            if (imageDataDirectory.VirtualAddress == 0)
+                return;
+
+            RelayGlobals<ImageDataDirectory>(imageDataDirectory);
+        }
+
+        //The security and bound import tables use physical addresses. Handle them manually
+        public void RelayPhysicalGlobals(ImageDataDirectory imageDataDirectory)
+        {
+            if (imageDataDirectory.VirtualAddress == 0)
+                return;
+
+            WriteOffsetXRef(imageDataDirectory.Offset, fieldOffset: 0, imageDataDirectory.VirtualAddress);
+        }
+
         public void RelayGlobals<T>(T[]? viewable) where T : IViewable
         {
             if (viewable == null)
@@ -306,7 +329,7 @@ namespace PESpy.View
             UnmanagedOffset = oldOffset;
         }
 
-        public void WriteGlobalField<T>(int offset, string name, in T value, int size)
+        public void WriteGlobalField<T>(int offset, string name, in T value, int size, FieldViewFlags flags = default)
         {
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
@@ -316,7 +339,7 @@ namespace PESpy.View
                 {
                     Push(globalList);
 
-                    AddView(new FieldView<T>(offset, name, value, size));
+                    AddView(new FieldView<T>(offset, name, value, size, flags));
 
                     Pop();
                 }
@@ -487,11 +510,11 @@ namespace PESpy.View
         #region Field Globals
         #region Pointer
 
-        public void WriteVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteVAPointerField<T>(VA<T> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -501,11 +524,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteUniqueVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteUniqueVAPointerField<T>(VA<T> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -515,11 +538,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField<T>(VA<T[]> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteVAPointerField<T>(VA<T[]> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -529,11 +552,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteSmallVAPointerField<T>(VA<T> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteSmallVAPointerField<T>(VA<T> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -543,11 +566,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteSmallVAPointerField<T>(VA<T[]> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteSmallVAPointerField<T>(VA<T[]> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -557,11 +580,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField(VA<long> value, ViewKind valueKind, int fieldOffset)
+        public void WriteVAPointerField(VA<long> value, ViewKind valueKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -574,11 +597,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField(VA<ulong> value, ViewKind valueKind, int fieldOffset)
+        public void WriteVAPointerField(VA<ulong> value, ViewKind valueKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -591,11 +614,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField(VA<ulong[]> value, ViewKind valueKind, int fieldOffset)
+        public void WriteVAPointerField(VA<ulong[]> value, ViewKind valueKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -607,11 +630,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField(VA<int[]> value, ViewKind valueKind, int fieldOffset)
+        public void WriteVAPointerField(VA<int[]> value, ViewKind valueKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -624,28 +647,28 @@ namespace PESpy.View
         #endregion
         #region RVA
 
-        public void WriteRVAPointerField(RVA<long> value, int fieldOffset)
+        public void WriteRVAPointerField(RVA<long> value, int structOffset, int fieldOffset, ViewKind kind)
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
 #endif
 
                 if (((PEViewWriter) this).Is32Bit)
-                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), ViewKind.Value);
+                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), kind);
                 else
-                    WriteGlobal(value.ActualOffset, value.Value, sizeof(long), ViewKind.Value);
+                    WriteGlobal(value.ActualOffset, value.Value, sizeof(long), kind);
             }
         }
 
-        public void WriteRVAField(RVA<ulong[]> value, int fieldOffset)
+        public void WriteRVAField(RVA<ulong[]> value, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -655,11 +678,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteRVAAnsiNullTerminatedField(RVA<string> value, ViewKind viewKind, int fieldOffset)
+        public void WriteRVAAnsiNullTerminatedField(RVA<string> value, ViewKind viewKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -669,11 +692,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAAnsiNullTerminatedField(VA<string> value, ViewKind viewKind, int fieldOffset)
+        public void WriteVAAnsiNullTerminatedField(VA<string> value, ViewKind viewKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -683,11 +706,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAAnsiNullTerminatedField(VA<AnsiString> value, ViewKind viewKind, int fieldOffset)
+        public void WriteVAAnsiNullTerminatedField(VA<AnsiString> value, ViewKind viewKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
@@ -697,11 +720,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteRVAAnsiNullTerminatedField(RVA<AnsiString> value, ViewKind viewKind, int fieldOffset)
+        public void WriteRVAAnsiNullTerminatedField(RVA<AnsiString> value, ViewKind viewKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -711,11 +734,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteUniqueRVAAnsiNullTerminatedField(RVA<AnsiString> value, ViewKind viewKind, int fieldOffset)
+        public void WriteUniqueRVAAnsiNullTerminatedField(RVA<AnsiString> value, ViewKind viewKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -725,11 +748,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteRVAField<T>(RVA<T> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteRVAField<T>(RVA<T> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -739,11 +762,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteUniqueRVAField<T>(RVA<T> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteUniqueRVAField<T>(RVA<T> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -753,11 +776,11 @@ namespace PESpy.View
             }
         }
 
-        public void WriteRVAField<T>(RVA<T[]> value, int fieldOffset) where T : IViewable, IValue
+        public void WriteRVAField<T>(RVA<T[]> value, int structOffset, int fieldOffset) where T : IViewable, IValue
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteXRef(fieldOffset, value.ActualOffset);
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
@@ -792,8 +815,35 @@ namespace PESpy.View
             return view;
         }
 
-        protected internal virtual void WriteXRef(int fieldOffset, int targetOffset)
+        //NOTE: anyone that calls this method must provide the _target_ offset, after having resolved an RVA to its physical location
+        public virtual void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
+        }
+
+        public virtual void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+        }
+
+        public void WriteRVAXRef(int structOffset, int fieldOffset, VA<int[]> value)
+        {
+            if (value.IsValid)
+            {
+                for (var i = 0; i < value.Value.Length; i++)
+                    WriteRVAXRef(structOffset, fieldOffset + (i * sizeof(int)), value.Value[i]);
+            }
+        }
+
+        public virtual void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
+        {
+        }
+
+        public void WriteVAXRef(int structOffset, int fieldOffset, VA<int[]> value)
+        {
+            if (value.IsValid)
+            {
+                for (var i = 0; i < value.Value.Length; i++)
+                    WriteVAXRef(structOffset, fieldOffset + (i * sizeof(int)), value.Value[i]);
+            }
         }
 
         internal IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
@@ -830,7 +880,7 @@ namespace PESpy.View
 #endif
             )
         {
-            WriteXRef(fieldOffset, offset);
+            WriteOffsetXRef(structOffset, fieldOffset, offset);
 
 #if DEBUG
             globalFields.Add(listedAddress);
@@ -852,12 +902,13 @@ namespace PESpy.View
         /// <see cref="ImageImportByName"/> instances.
         /// </summary>
         /// <param name="offset">The offset at which the region begins.</param>
+        /// <param name="structOffset">The offset of the struct that contains this region.</param>
         /// <param name="fieldOffset">The offset of the field containing the XRef to this region.</param>
         /// <param name="name">The display name to use for the region.</param>
         /// <param name="kind">The kind of region that will be created.</param>
         /// <param name="scopeKind">The type of entity that this <see cref="RegionWriter"/> should be limited to capturing.</param>
         /// <returns></returns>
-        internal RegionWriter CreateScopedRegion(int offset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
+        internal RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
 #if DEBUG
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
             , int listedOffset
@@ -867,14 +918,14 @@ namespace PESpy.View
         {
             //Offset should be RVA<T>.ActualOffset. It is the caller's responsibility to check RVA<T>.IsValid and RVA<T>.ListedOffset != 0
 
-            WriteXRef(fieldOffset, offset);
+            WriteOffsetXRef(structOffset, fieldOffset, offset);
 
 #if DEBUG
             globalFields.Add(listedOffset);
 #endif
 
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
-            
+
             return new RegionWriter(viewOffset, name, kind, this, false, scopeKind, shouldAdd);
         }
 
@@ -958,7 +1009,7 @@ namespace PESpy.View
             //Assert that the global has already been written
             if (value.IsValid)
             {
-                Debug.Assert(globalFields.Contains(value.ListedAddress));
+                Debug.Assert(!ShouldVerifyXRefs || globalFields.Contains(value.ListedAddress));
             }
 #endif
         }
@@ -969,7 +1020,7 @@ namespace PESpy.View
 #if DEBUG
             if (value.IsValid && value.ListedOffset != 0)
             {
-                Debug.Assert(globalFields.Contains(value.ListedOffset));
+                Debug.Assert(!ShouldVerifyXRefs || globalFields.Contains(value.ListedOffset));
             }
 #endif
         }
@@ -990,9 +1041,10 @@ namespace PESpy.View
             int fieldOffset,
             T value,
             int size,
+            FieldViewFlags flags,
             ref StructWriter structWriter)
         {
-            structWriter.Field = new FieldView<T>(parentOffset + fieldOffset, name, value, size);
+            structWriter.Field = new FieldView<T>(parentOffset + fieldOffset, name, value, size, flags);
         }
 
         internal void WriteBitField<T>(

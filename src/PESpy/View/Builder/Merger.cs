@@ -284,122 +284,128 @@ namespace PESpy.View.Builder
                         //part of the new secondary SplitStructure. Finally, we insert it into the sorted struct list so that
                         //we add it to the next directory
 
-                        /* The current value may exist between 0x1000-0x1120. However, the current directory may only
-                         * span from 0x1000-0x1100, meaning that the bytes at 0x1100-0x1120 need to be split off. However,
-                         * it's actually erroneous to say that these bytes necessarily existed at 0x1100-0x1120; they may have been
-                         * read from a page far, far away from here, e.g. in the 0x4000 range. To figure out the offset
-                         * to use for the split page, we must figure out what our current page is, which stream that's in
-                         * what our index is within that stream, and then what the next page after us is */
+                        var secondStartOffset = GetNextPageOffset((PDBFile) file, nextValue.Offset, pageNumberToSIIndex);
 
-                        var pdbFile = (PDBFile) file;
-                        var currentPage = (PN) (nextValue.Offset / pdbFile.PageSize); //We want the current page, so don't divide up
-                        var siIndex = pageNumberToSIIndex[currentPage];
+                        var (first, second) = ((ISplittableView) nextValue).Split(secondStartOffset, currentDirectory.End);
+                        sortedStructs[nextStructIndex] = first;
 
-                        Span<PN> siPageList;
-
-#if !NET5_0_OR_GREATER
-                        PN[]? rentedArray = null;
-                        try
-#endif
+                        /* While it is true that "most of the time" page numbers run in ascending order, due to the crazy way in which PDBs are constructed,
+                         * you can have a very high page number at the front of the PageList, and then smaller page numbers following it. So, with the value
+                         * we just split out, ideally we want it to belong to an offset that we haven't attempted to process yet. If so, we can just
+                         * find the relevant insertion point and insert it into the sortedStructs array. If we've already gone past the offset where
+                         * that struct should have belonged, we've now got a big mess and are going to need to backtrack and somehow patch up the views
+                         * we've already constructed */
+                        if (second.Offset >= currentDirectory.End)
                         {
-                            if (siIndex == -1)
+                            //Good news! Just insert it into the list
+                            for (var i = nextStructIndex + 1; i < sortedStructs.Count; i++)
                             {
-                                //For the pages of the stream table itself, we list these as belonging to "index -1"
-                                if (pdbFile is PDB7File v7)
+                                if (second.Offset < sortedStructs[i].Offset)
                                 {
-                                    siPageList = v7.StreamTableLocation.PageList;
-                                }
-                                else
-                                {
-                                    //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
-                                    var rawPages = ((PDB2File) pdbFile).MsfHeader.StreamTablePageList;
+                                    //In a very large PDB (with over 500,000 items in sorted structs) the repeated shuffling of items with
+                                    //each insert is very slow. As such, we use a gap buffer instead
 
-                                    var arr = new PN[rawPages.Length];
-
-                                    for (var i = 0; i < rawPages.Length; i++)
-                                        arr[i] = rawPages[i];
-
-                                    siPageList = arr.AsSpan(0, rawPages.Length);
-                                }
-                            }
-                            else if (siIndex == -2)
-                            {
-                                //It's a page describing the location of the stream table's pages
-                                siPageList = ((PDB7File) pdbFile).MsfHeader.PagesOfStreamTablePageList;
-                            }
-                            else
-                            {
-                                var si = pdbFile.StreamTable.StreamInfos[siIndex];
-
-                                siPageList = si.PageList;
-                            }
-
-                            var nextPageFound = false;
-
-                            var secondStartOffset = 0;
-
-                            for (var i = 0; i < siPageList.Length; i++)
-                            {
-                                if (siPageList[i] == currentPage)
-                                {
-                                    //The next page in the list is the one that our split value begins from
-                                    var nextPage = siPageList[i + 1];
-                                    secondStartOffset = nextPage * pdbFile.PageSize;
-                                    nextPageFound = true;
+                                    //This is the insertion point
+                                    sortedStructs.Insert(i, second);
                                     break;
                                 }
                             }
-
-                            if (!nextPageFound)
-                                throw new NotImplementedException();
-
-                            var (first, second) = ((ISplittableView) nextValue).Split(secondStartOffset, currentDirectory.End);
-                            sortedStructs[nextStructIndex] = first;
-
-                            /* While it is true that "most of the time" page numbers run in ascending order, due to the crazy way in which PDBs are constructed,
-                             * you can have a very high page number at the front of the PageList, and then smaller page numbers following it. So, with the value
-                             * we just split out, ideally we want it to belong to an offset that we haven't attempted to process yet. If so, we can just
-                             * find the relevant insertion point and insert it into the sortedStructs array. If we've already gone past the offset where
-                             * that struct should have belonged, we've now got a big mess and are going to need to backtrack and somehow patch up the views
-                             * we've already constructed */
-                            if (second.Offset >= currentDirectory.End)
-                            {
-                                //Good news! Just insert it into the list
-                                for (var i = nextStructIndex + 1; i < sortedStructs.Count; i++)
-                                {
-                                    if (second.Offset < sortedStructs[i].Offset)
-                                    {
-                                        //This is the insertion point
-                                        sortedStructs.Insert(i, second);
-                                        break;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                //Oh boy. We're going to need to patch up data in the masterList, potentially removing junk we defaulted to reading
-                                //and inserting this proper structure instead (and then re-reading junk to fill in any gaps)
-
-                                //Find the item in the masterList that contains this address. Then drill into its children until we find the overlapping items.
-                                //We expect they should be junk: ByteBlobView and ValueView<string> or a LogicalRegionView with any of these items in them.
-                                //There may also be padding.
-                                ReplaceGarbage(second, getRVA);
-                            }
-
-                            nextValue = first;
                         }
-#if !NET5_0_OR_GREATER
-                        finally
+                        else
                         {
-                            if (rentedArray != null)
-                                ArrayPool<PN>.Shared.Return(rentedArray);
+                            //Oh boy. We're going to need to patch up data in the masterList, potentially removing junk we defaulted to reading
+                            //and inserting this proper structure instead (and then re-reading junk to fill in any gaps)
+
+                            //Find the item in the masterList that contains this address. Then drill into its children until we find the overlapping items.
+                            //We expect they should be junk: ByteBlobView and ValueView<string> or a LogicalRegionView with any of these items in them.
+                            //There may also be padding.
+                            ReplaceGarbage(second, getRVA);
                         }
-#endif
+
+                        nextValue = first;
                     }
                 }
 
 end:
                 currentList.Add(nextValue!);
+            }
+        }
+
+        //Given an offset in the current page, gets the offset of the start of the page after it.
+        //If previous is true, returns the offset of the start of the page before it
+        internal static int GetNextPageOffset(
+            PDBFile pdbFile,
+            int offsetInCurrentPage,
+            Dictionary<PN, int> pageNumberToSIIndex,
+            bool previous = false)
+        {
+            /* The current value may exist between 0x1000-0x1120. However, the current directory may only
+             * span from 0x1000-0x1100, meaning that the bytes at 0x1100-0x1120 need to be split off. However,
+             * it's actually erroneous to say that these bytes necessarily existed at 0x1100-0x1120; they may have been
+             * read from a page far, far away from here, e.g. in the 0x4000 range. To figure out the offset
+             * to use for the split page, we must figure out what our current page is, which stream that's in,
+             * what our index is within that stream, and then what the next page after us is */
+
+            var currentPage = (PN) (offsetInCurrentPage / pdbFile.PageSize); //We want the current page, so don't divide up
+            var siIndex = pageNumberToSIIndex[currentPage];
+
+            Span<PN> siPageList;
+
+            //MSF v2 files store their pages as ushort instead of uint, so we rent an array to expand these values to uint
+            //to enable sharing the same pagelist lookup logic
+            PN[] pdbV2PageList = null;
+
+            try
+            {
+                //Get the appropriate page list to search
+
+                if (siIndex == SPECIAL_STREAM_STREAMTABLE)
+                {
+                    if (pdbFile is PDB7File v7)
+                        siPageList = v7.StreamTableLocation.PageList;
+                    else
+                    {
+                        //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
+                        var rawPages = ((PDB2File) pdbFile).MsfHeader.StreamTablePageList;
+
+                        pdbV2PageList = ArrayPool<PN>.Shared.Rent(rawPages.Length);
+
+                        for (var i = 0; i < rawPages.Length; i++)
+                            pdbV2PageList[i] = rawPages[i];
+
+                        siPageList = pdbV2PageList.AsSpan(0, rawPages.Length);
+                    }
+                }
+                else if (siIndex == SPECIAL_STREAM_STREAMTABLE_LOCATION)
+                {
+                    //It's a page describing the location of the stream table's pages
+                    siPageList = ((PDB7File) pdbFile).MsfHeader.PagesOfStreamTablePageList;
+                }
+                else
+                {
+                    var si = pdbFile.StreamTable.StreamInfos[siIndex];
+
+                    siPageList = si.PageList;
+                }
+
+end:
+                currentList.Add(nextValue!);
+                if (previous)
+                {
+                    var previousPage = siPageList[currentIndex - 1];
+                    return previousPage * pdbFile.PageSize;
+                }
+                else
+                {
+                    //The next page in the list is the one that our split value begins from
+                    var nextPage = siPageList[currentIndex + 1];
+                    return nextPage * pdbFile.PageSize;
+                }
+            }
+            finally
+            {
+                if (pdbV2PageList != null)
+                    ArrayPool<PN>.Shared.Return(pdbV2PageList);
             }
         }
 
@@ -440,11 +446,11 @@ end:
                         {
                             //This is the first overlapping child
 
-                            var replacementEnd = replacement.Offset + replacement.Size - 1;
+                            var replacementEnd = replacement.Offset + replacement.Size;
 
                             var k = j + 1;
 
-                            for (; k < directory.Children.Length; k++)
+                            for (; k < directory.Children.Count; k++)
                             {
                                 var endChild = directory.Children[k];
 
@@ -512,7 +518,7 @@ end:
                                 newViews.Add(directory.Children[l]);
 
                             //We've got everything we need now. Patch the original directory!
-                            masterList[i] = new LogicalRegionView(directory.Offset, directory.Name, newViews.ToArray(), directory.Kind, directory.Size);
+                            masterList[i] = new LogicalRegionView(directory.Offset, directory.Name, newViews.ToArray(), viewWriter, directory.Kind, directory.Size);
                             return;
                         }
                     }

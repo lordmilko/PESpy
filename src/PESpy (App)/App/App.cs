@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 #if WINFORMS
 using System.Windows.Forms;
@@ -70,6 +71,9 @@ namespace PESpy
 
         public static void OpenFile(string fileName)
         {
+            if (!File.Exists(fileName))
+                throw new FileNotFoundException($"Could not find file '{fileName}'");
+
             if (Detector.TryOpenFile(fileName, out var file))
             {
                 EnsureThread();
@@ -132,6 +136,13 @@ namespace PESpy
                 try
                 {
                     FileAccessor = FileAnalyzer.Analyze(file, IntelFileDisassembler.Instance, progress);
+
+#if NET7_0_OR_GREATER
+                    //See the comments in FileAnalyzer.cs as to why we do this here, and why we need two GC's
+                    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+#endif
 
                     AnalysisCompleted?.Invoke(null, EventArgs.Empty);
                 }

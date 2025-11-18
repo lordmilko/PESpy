@@ -7,35 +7,17 @@ namespace PESpy.PDB
 {
     public static partial class MsfStream
     {
-        internal class PDBDebugView
-        {
-            private PDB pdb;
-
-            public PDBStream PDBHeader => pdb.PDBHeader;
-
-            public NMTNI StreamNameTable => pdb.StreamNameTable;
-
-            public NativeSpan<PdbFeature> Features => pdb.Features;
-
-            public int Offset => pdb.Offset;
-
-            internal PDBDebugView(PDB pdb)
-            {
-                this.pdb = pdb;
-            }
-        }
-
         /// <summary>
         /// Encapsulates the contents of the <see cref="SN.PDB"/> (1) PDB Stream.
         /// </summary>
-        [DebuggerTypeProxy(typeof(PDBDebugView))]
         public class PDB : IValue, IViewable
         {
+            //Features would only be present if we were at least PDBStream70
+            internal int FeaturesOffset => chunk.RelativeOffset + PDBStream70.StructSize + StreamNameTable.StructSize;
+
             public PDBStream PDBHeader { get; }
 
-            private NMTNI streamNameTable;
-
-            public ref readonly NMTNI StreamNameTable => ref streamNameTable;
+            public NMTNI? StreamNameTable { get; }
 
             //The first entry can be 0 and that's normal
             public NativeSpan<PdbFeature> Features { get; }
@@ -79,9 +61,9 @@ namespace PESpy.PDB
                     headerSize = PDBStream.StructSize;
                 }
 
-                streamNameTable = new NMTNI(chunk.Slice(headerSize));
+                StreamNameTable = new NMTNI(chunk.Slice(headerSize));
 
-                var remainingChunk = chunk.Slice(headerSize + streamNameTable.StructSize);
+                var remainingChunk = chunk.Slice(headerSize + StreamNameTable.StructSize);
 
                 /* Following the end of the stream name table there may be one or more "feature codes"
                  * - impvVC110 (m_fContainIDStream)
@@ -123,9 +105,7 @@ namespace PESpy.PDB
 
                 if (Features.Length > 0)
                 {
-                    var featuresStart = chunk.RelativeOffset + PDBStream70.StructSize + streamNameTable.StructSize;
-
-                    using var p = writer.CreatePagedWriter(featuresStart, (PagedMemoryBlock) chunk.block, global: true);
+                    using var p = writer.CreatePagedWriter(FeaturesOffset, (PagedMemoryBlock) chunk.block, global: true);
 
                     foreach (var feature in Features)
                         p.WriteValue(feature, sizeof(int), ViewKind.PdbFeature);

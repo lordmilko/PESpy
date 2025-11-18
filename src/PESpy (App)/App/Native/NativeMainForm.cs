@@ -63,6 +63,10 @@ namespace PESpy.Controls
         {
         }
 
+        void IFileAnalyzerProgress.PhaseComplete(FileAnalyzerProgressPhase phase, long elapsed)
+        {
+        }
+
         void ILocatorProgress.NotifyRequest(Uri uri)
         {
         }

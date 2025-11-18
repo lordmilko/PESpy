@@ -33,6 +33,19 @@ namespace PESpy.PDB
             sizeof(int) + //nLines
             sizeof(int); //cbBlock
 
+        internal int StructSize
+        {
+            get
+            {
+                var size = FixedStructSize + (lines.Length * CvLine.StructSize);
+
+                if (columns != null)
+                    size += (columns.Length * 4);
+
+                return size;
+            }
+        }
+
         private readonly MemoryChunk chunk;
 
         internal CvDebugSLinesFileBlockHeader(in MemoryChunk chunk, CV_LINES flags)
@@ -56,7 +69,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CV_DebugSLinesFileBlockHeader_t, this, ViewKind.CvDebugSLinesFileBlockHeader, FixedStructSize + (lines.Length * CvLine.StructSize) + (columns.Length * 4));
+            writer.NewStruct(Strings.CV_DebugSLinesFileBlockHeader_t, this, ViewKind.CvDebugSLinesFileBlockHeader, StructSize);
 
         int IViewable.NumChildren() => 2 + lines.Length;
 

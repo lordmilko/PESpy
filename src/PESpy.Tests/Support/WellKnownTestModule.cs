@@ -14,6 +14,7 @@ namespace PESpy.Tests
         public static SymStoreKey DbgEng = new SymStoreKey("dbgeng.dll/2338A182626000/dbgeng.dll", SymStoreKeyKind.PE);
         public static SymStoreKey kdstub = new SymStoreKey("kdstub.dll/0EA20E6D13000/kdstub.dll", SymStoreKeyKind.PE);
         public static SymStoreKey kd_02_15b3 = new SymStoreKey("kd_02_15b3.dll/972BFA0319000/kd_02_15b3.dll", SymStoreKeyKind.PE);
+        public static SymStoreKey kernel32 = new SymStoreKey("kernel32.dll/68379A20c4000/kernel32.dll", SymStoreKeyKind.PE);
         public static SymStoreKey notepad = new SymStoreKey("notepad.exe/A8673AF85a000/notepad.exe", SymStoreKeyKind.PE);
         public static SymStoreKey ntdll = new SymStoreKey("ntdll.dll/BCED4B82217000/ntdll.dll", SymStoreKeyKind.PE);
         public static SymStoreKey ntoskrnl = new SymStoreKey("ntoskrnl.exe/2C33C5081047000/ntoskrnl.exe", SymStoreKeyKind.PE);

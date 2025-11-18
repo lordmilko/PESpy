@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace PESpy.Tests
@@ -372,6 +373,31 @@ namespace PESpy.Tests
             SingleFileApp_PDB = MakePath("14. CLR\\SingleFileApp\\TestApp.pdb");
 
             #endregion
+        }
+
+        public static string[] PDBs
+        {
+            get
+            {
+                return new[]
+                {
+                    VC152_PDB,
+                    VC20_PDB,
+                    VC40_PDB,
+                    VC50_PDB,
+                    VC50_PDB,
+                    VS22_PDB,
+                    VS22_LTCG_PDB,
+                    Framework_PDB,
+                    Interop_PDB,
+                    Interop_Core_PDB,
+                    NativeAOT_PDB,
+                    NGEN_PDB,
+                    NGEN_NI_PDB,
+                    //R2R_PDB,
+                    //SingleFileApp_PDB
+                };
+            }
         }
     }
 }

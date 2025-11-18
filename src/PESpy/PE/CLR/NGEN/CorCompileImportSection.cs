@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using System.Diagnostics;
+
+namespace PESpy
 {
     //CORCOMPILE_IMPORT_SECTION
 
@@ -9,6 +11,7 @@
     /// vs. lazily initialized on first use; hot vs. cold, handles vs. code pointers, etc.
     /// </summary>
     [Source(SourceKind.corcompile_h)]
+    [DebuggerDisplay("SectionRVA = 0x{Section.VirtualAddress.ToString(\"X\"),nq}, SectionSize = {Section.Size.ToString(),nq}, Flags = {Flags}, Type = {Type}, EntrySize = {EntrySize}, Signatures = {Signatures}, AuxiliaryData = {AuxiliaryData}")]
     public readonly struct CorCompileImportSection
     {
         private const int SectionOffset = 0;

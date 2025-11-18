@@ -18,6 +18,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SEARCHSYM* value;
 
+        public static implicit operator SymType(SearchSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="SEARCHSYM.reclen"/>
         public ushort reclen => value->reclen;
 

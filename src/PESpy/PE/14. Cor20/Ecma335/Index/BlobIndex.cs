@@ -49,7 +49,7 @@ namespace PESpy.Ecma335
                     var item = blob.Value[i];
                     builder.AppendHex(item, 2);
 
-                    if (i < value.Length)
+                    if (i < value.Length - 1)
                         builder.Append(" ");
                 }
 

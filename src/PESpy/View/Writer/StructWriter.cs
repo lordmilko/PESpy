@@ -50,24 +50,27 @@ namespace PESpy.View
             switch (kind)
             {
                 case ViewKind.CvDebugSSubsectionHeader:
-                case ViewKind.StreamTable:
-                case ViewKind.PogoData:
-
-                case ViewKind.LfFieldList:
-                case ViewKind.LfFieldList16t:
-                case ViewKind.StringFileInfo:
-                case ViewKind.NameTable:
-
-                case ViewKind.VsVersionInfo:
-                case ViewKind.StringTable:
-                case ViewKind.StringTable_String:
-                case ViewKind.VarFileInfo:
-                case ViewKind.VarFileInfo_Var:
-
+                case ViewKind.InlineSiteSym:
+                case ViewKind.InlineSiteSym2:
                 case ViewKind.ImageCorILMethodTiny:
                 case ViewKind.ImageCorILMethodFat:
                 case ViewKind.ImageLoadConfigDirectory:
+                case ViewKind.LfFieldList:
+                case ViewKind.LfFieldList16t:
+                case ViewKind.LfPointer:
+                case ViewKind.LfPointer16t:
+                case ViewKind.NameTable: //NMT
+                case ViewKind.OMFFileIndex:
+                case ViewKind.PogoData:
+                case ViewKind.StreamNameTable: //NMTNI
+                case ViewKind.StreamTable:
+                case ViewKind.StringFileInfo:
+                case ViewKind.StringTable:
+                case ViewKind.StringTable_String:
                 case ViewKind.UnwindInfo:
+                case ViewKind.VarFileInfo:
+                case ViewKind.VarFileInfo_Var:
+                case ViewKind.VsVersionInfo:
                     return true;
 
                 default:
@@ -162,6 +165,8 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteAnsiFixedLengthField(string name, int relativeOffset, FixedAnsiString value) =>
             RelayField(name, relativeOffset, value, value.Length);
+
+        #endregion
         #region Utf8
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -269,7 +274,7 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSmallVAPointerField<T>(string name, int relativeOffset, VA<T> value) where T : IViewable, IValue
         {
-            WriteField(name, relativeOffset, (int) value.ListedAddress);
+            WriteField(name, relativeOffset, (int) value.ListedAddress, FieldViewFlags.Address);
 
             _viewWriter.VerifyXRef(value);
         }
@@ -402,6 +407,10 @@ namespace PESpy.View
             RelayField(name, relativeOffset, value, sizeof(short));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteField(string name, int relativeOffset, CV_ItemId value) =>
+            RelayField(name, relativeOffset, value, sizeof(int));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteField(string name, int relativeOffset, PN value) =>
             RelayField(name, relativeOffset, value, sizeof(int));
 
@@ -430,6 +439,8 @@ namespace PESpy.View
             RelayField(name, relativeOffset, value, size);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteValue(int relativeOffset, LEAF_ENUM_e value, int size) =>
+            _viewWriter.WriteValue(_parentOffset, relativeOffset, value, size, ViewKind.LeafKind, ref this);
 
         #endregion
         #region Structs
@@ -642,6 +653,17 @@ namespace PESpy.View
             RelayField(name, relativeOffset, value, value.Length * 4);
         }
 
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_off32_t> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(int));
+        }
+
         #endregion
         #region Structs
 
@@ -757,6 +779,100 @@ namespace PESpy.View
 
         #endregion
         #endregion
+        #region Special Formats
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write7BitField(string name, int relativeOffset, int value, int size) =>
+            RelayField(name, relativeOffset, value, size);
+
+        public unsafe void WriteNumericData(string name, int relativeOffset, byte* pValue)
+        {
+            var leaf = *(LEAF_ENUM_e*) pValue;
+
+            if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
+            {
+                //The data does not contain a special leaf
+                WriteField(name, relativeOffset, (ushort) leaf);
+                return;
+            }
+
+            WriteValue(relativeOffset, leaf, sizeof(ushort));
+
+            pValue += sizeof(ushort);
+            relativeOffset += sizeof(ushort);
+
+            switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
+            {
+                case LEAF_ENUM_e.LF_CHAR:
+                    WriteField(name, relativeOffset, * pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_SHORT:
+                    WriteField(name, relativeOffset, * (short*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_USHORT:
+                    WriteField(name, relativeOffset, *(ushort*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_LONG:
+                    WriteField(name, relativeOffset, *(int*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_ULONG:
+                    WriteField(name, relativeOffset, *(uint*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_REAL32:
+                case LEAF_ENUM_e.LF_REAL64:
+                case LEAF_ENUM_e.LF_REAL80:
+                case LEAF_ENUM_e.LF_REAL128:
+                    throw new NotImplementedException();
+
+                case LEAF_ENUM_e.LF_QUADWORD:
+                    WriteField(name, relativeOffset, *(long*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_UQUADWORD:
+                    WriteField(name, relativeOffset, *(ulong*) pValue);
+                    break;
+
+                case LEAF_ENUM_e.LF_REAL48:
+                case LEAF_ENUM_e.LF_COMPLEX32:
+                case LEAF_ENUM_e.LF_COMPLEX64:
+                case LEAF_ENUM_e.LF_COMPLEX80:
+                case LEAF_ENUM_e.LF_COMPLEX128:
+                case LEAF_ENUM_e.LF_VARSTRING:
+                case LEAF_ENUM_e.LF_OCTWORD:
+                case LEAF_ENUM_e.LF_UOCTWORD:
+                case LEAF_ENUM_e.LF_DECIMAL:
+                case LEAF_ENUM_e.LF_DATE:
+                case LEAF_ENUM_e.LF_UTF8STRING:
+                case LEAF_ENUM_e.LF_REAL16:
+                    throw new NotImplementedException();
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        #endregion
+        #region Inline
+
+        public void WriteInline<T>(T value) where T : IValue, IViewable
+        {
+            Field = value.WriteStruct(_viewWriter);
+        }
+
+        public void WriteInline<T>(int relativeOffset, T value) where T : unmanaged, IViewable
+        {
+            var oldOffset = _viewWriter.UnmanagedOffset;
+            _viewWriter.UnmanagedOffset = _parentOffset + relativeOffset;
+
+            Field = value.WriteStruct(_viewWriter);
+
+            _viewWriter.UnmanagedOffset = oldOffset;
+        }
         #region String (RawValue)
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -765,7 +881,7 @@ namespace PESpy.View
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineSymString(RawValue<SymString> value) =>
-            RelayInline(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
 
         #endregion
         #endregion
@@ -839,5 +955,9 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RelayInlineAbsoluteOffset<T>(int valueOffset, T value, int size, ViewKind kind) =>
             _viewWriter.WriteValue(_parentOffset, valueOffset - _parentOffset, value, size, kind, ref this);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RelayInlineRelativeOffset<T>(int relativeOffset, T value, int size, ViewKind kind) =>
+            _viewWriter.WriteValue(_parentOffset, relativeOffset, value, size, kind, ref this);
     }
 }

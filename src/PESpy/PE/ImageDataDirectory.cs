@@ -10,7 +10,7 @@ namespace PESpy
     /// Not to be confused with <see cref="ImageDebugDirectory"/>, which represents an entry within
     /// _the_ debug directory region that may be pointed to by a given <see cref="ImageDataDirectory"/>.
     /// </summary>
-    [DebuggerDisplay("RVA = {VirtualAddress}, Size = {Size}")]
+    [DebuggerDisplay("VirtualAddress = {VirtualAddress}, Size = {Size}")]
     public readonly struct ImageDataDirectory : IViewableValue //Small enough that returning a copy from properties is OK
     {
         private const int VirtualAddressOffset = 0;
@@ -43,7 +43,10 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            //todo: need my AssertWriteGlobalsFollowRules test
+            //nobody is calling writeglobals for this
+
+            writer.WriteRVAXRef(Offset, VirtualAddressOffset, VirtualAddress);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

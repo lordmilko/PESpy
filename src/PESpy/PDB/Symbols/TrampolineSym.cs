@@ -22,6 +22,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly TRAMPOLINESYM* value;
 
+        public static implicit operator SymType(TrampolineSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="TRAMPOLINESYM.reclen"/>
         public ushort reclen => value->reclen;
 

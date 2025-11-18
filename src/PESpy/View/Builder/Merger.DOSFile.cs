@@ -21,7 +21,7 @@
                 results.Add(headerMetadata);
 
                 var data = BuildSection(sizeOfHeaders, startOfOverlay, v => v, v => v);
-                results.Add(new SectionView(startOfOverlay, "Code", data, viewWriter, startOfOverlay - sizeOfHeaders));
+                results.Add(new SectionView(sizeOfHeaders, "Code", data, viewWriter, startOfOverlay - sizeOfHeaders));
 
                 var length = byteViewProvider.FileOrSectionLength;
 

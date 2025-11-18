@@ -1,7 +1,10 @@
-﻿namespace PESpy
+﻿using System.Diagnostics;
+
+namespace PESpy
 {
     //CORCOMPILE_IMPORT_TABLE_ENTRY
     [Source(SourceKind.corcompile_h)]
+    [DebuggerDisplay("wAssemblyRid = {wAssemblyRid}, wModuleRid = {wModuleRid}")]
     public readonly struct CorCompileImportTableEntry : IValue
     {
         private const int wAssemblyRidOffset = 0;

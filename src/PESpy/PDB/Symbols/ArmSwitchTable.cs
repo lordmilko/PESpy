@@ -24,6 +24,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ARMSWITCHTABLE* value;
 
+        public static implicit operator SymType(ArmSwitchTable value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ARMSWITCHTABLE.reclen"/>
         public ushort reclen => value->reclen;
 

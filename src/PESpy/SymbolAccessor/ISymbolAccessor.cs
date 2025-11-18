@@ -29,6 +29,6 @@ namespace PESpy
 
         bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement);
 
-        bool TryGetAddressFromName(SymString name, out int targetAddress);
+        bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress);
     }
 }

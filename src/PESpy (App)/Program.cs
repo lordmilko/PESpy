@@ -1,5 +1,7 @@
 using System;
-using PInvoke;
+#if WINFORMS
+using System.Windows.Forms;
+#endif
 
 namespace PESpy
 {
@@ -34,11 +36,26 @@ namespace PESpy
              * - DesktopBounds
              */
 
+#if WINFORMS
+            try
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                App.MainForm = new MainForm();
+
+                Application.Run(App.MainForm);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"PESpy crashed unexpectedly{Environment.NewLine}{Environment.NewLine}{ex}", "PESpy", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+#else
             //Note that there seems to be an issue with SDK style projects wherein the cursor shows for several seconds when you attempt to debug them in Visual Studio.
             //The selected .NET version doesn't matter
-            App.MainForm = new MainForm();
+            App.NativeMainForm = new NativeMainForm();
 
-            User32.ShowWindow(App.MainForm.hWnd, SHOW_WINDOW_CMD.SW_SHOW);
+            User32.ShowWindow(App.NativeMainForm.hWnd, SHOW_WINDOW_CMD.SW_SHOW);
 
             while (User32.GetMessageW(out var msg, default, default, default))
             {

@@ -24,6 +24,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly SEPCODESYM* value;
 
+        public static implicit operator SymType(SepCodeSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="SEPCODESYM.reclen"/>
         public ushort reclen => value->reclen;
 

@@ -35,12 +35,12 @@ namespace PESpy
                             case file_type_t.native_binary:
                             case file_type_t.assembly:
                                 Debug.Assert(header.CompressedSize == 0);
-                                data = new RawValue<object>((int)header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), valueChunk.AbsoluteOffset));
+                                data = new RawValue<object>((int) header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), valueChunk.AbsoluteOffset));
                                 break;
 
                             case file_type_t.deps_json:
                             case file_type_t.runtime_config_json:
-                                data = new RawValue<object>((int)header.Offset, valueChunk.PeekUtf8FixedLength(0, (int)header.Size));
+                                data = new RawValue<object>((int) header.Offset, valueChunk.PeekUtf8FixedLength(0, (int) header.Size));
                                 break;
 
                             case file_type_t.symbols:
@@ -95,19 +95,33 @@ namespace PESpy
                 //todo: you can have a file entry for the depsjson/runtimeconfig json that point to the same string as is in the outer bundle
                 //but i think its ok cos the merger has logic to handle multiple RuntimeFunction entries pointing to the same UnwindCode anyway
 
-                if (data.Value is PEFile p)
+                if (data.Value != null)
                 {
-                    //You can have a file that says it's PE32 inside of a PE32Plus single file app.
-                    //This causes a problem, because entities want to know the bitness of their parent PEFile.
-                    //As such, we must create a brand new PEFileWriter for this nested PEFile to use
-                    writer.WriteNestedFile(p, (int)Header.Size);
+                    switch (Header.Type)
+                    {
+                        case file_type_t.native_binary:
+                        case file_type_t.assembly:
+                            //You can have a file that says it's PE32 inside of a PE32Plus single file app.
+                            //This causes a problem, because entities want to know the bitness of their parent PEFile.
+                            //As such, we must create a brand new PEFileWriter for this nested PEFile to use
+                            writer.WriteNestedFile((PEFile) data.Value, (int) Header.Size);
+                            break;
+
+                        case file_type_t.deps_json:
+                            var depsJson = (FixedUtf8String) data.Value;
+                            writer.WriteGlobal(data.Offset, depsJson, depsJson.Length, ViewKind.DepsJson);
+                            break;
+
+                        case file_type_t.runtime_config_json:
+                            var runtimeConfigJson = (FixedUtf8String) data.Value;
+                            writer.WriteGlobal(data.Offset, runtimeConfigJson, runtimeConfigJson.Length, ViewKind.RuntimeConfigJson);
+                            break;
+
+                        default:
+                            Debug.Assert(false);
+                            break;
+                    }
                 }
-                else if (data.Value is IViewable v)
-                    writer.WriteGlobal(v);
-                else if (data.Value is FixedUtf8String s)
-                    writer.WriteGlobal(data.Offset, s, s.Length, ViewKind.Value); //todo: more specific view kind?
-                else
-                    throw new NotImplementedException();
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>

@@ -82,6 +82,8 @@ namespace PESpy.View
             {
                 var usage = Kind;
 
+                //I think this is like this because we set the kind to code during disassembly, but may have
+                //already set some code flags?
                 if (usage == ViewByteKind.Data || usage == ViewByteKind.Body)
                     return 0;
 
@@ -232,6 +234,30 @@ namespace PESpy.View
         }
 
         #endregion
+        #region Body
+
+        public ViewByteBodyKind BodyKind
+        {
+            get
+            {
+                var usage = Kind;
+
+                if (usage != ViewByteKind.Body)
+                    return 0;
+
+                return (ViewByteBodyKind) (_value & BodyKindMask);
+            }
+            set
+            {
+                var kind = Kind;
+
+                Debug.Assert(kind == ViewByteKind.Body);
+
+                _value = (byte) (((byte) (_value & ~BodyKindMask)) | (byte) value);
+            }
+        }
+
+        #endregion
 
         public unsafe int GetLength(ViewByte* limit)
         {
@@ -256,7 +282,7 @@ namespace PESpy.View
             {
                 var i = me + 1;
 
-                while (i < limit && i->Kind == ViewByteKind.Unknown)
+                while (i < limit && (i->Kind == ViewByteKind.Unknown || i->Kind == ViewByteKind.Body))
                     i++;
 
                 return (int) (i - me);

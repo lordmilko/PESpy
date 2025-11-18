@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 
 namespace PESpy
 {
     //CORCOMPILE_DEPENDENCY
     [Source(SourceKind.corcompile_h)]
+    [DebuggerDisplay("dwAssemblyRef = {dwAssemblyRef}, dwAssemblyDef = {dwAssemblyDef}, signNativeImage = {signNativeImage}, IsHardBound = {IsHardBound}")]
     public readonly struct CorCompileDepepdency : IValue
     {
         public static readonly Guid INVALID_NGEN_SIGNATURE = new Guid("DB15CD8C-1378-4963-9DF3-14D97E95D1A1");

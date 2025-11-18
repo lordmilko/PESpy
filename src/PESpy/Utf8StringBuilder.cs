@@ -27,6 +27,14 @@ namespace PESpy
             _pos = 0;
         }
 
+        public Utf8StringBuilder(string initial)
+        {
+            var maxLength = Encoding.UTF8.GetMaxByteCount(initial.Length);
+            _arrayToReturnToPool = ArrayPool<byte>.Shared.Rent(maxLength);
+            _chars = _arrayToReturnToPool;
+            _pos = 0;
+        }
+
         public int Length
         {
             get => _pos;
@@ -243,10 +251,14 @@ namespace PESpy
 
         public unsafe FixedUtf8String ToPointer()
         {
-            var buffer = Marshal.AllocHGlobal(_pos);
-            _chars.Slice(0, _pos).CopyTo(new Span<byte>((void*) buffer, Length));
-            return new FixedUtf8String((byte*) buffer, Length);
+            var length = Length;
+
+            var buffer = Marshal.AllocHGlobal(length);
+            _chars.Slice(0, length).CopyTo(new Span<byte>((void*) buffer, length));
+            return new FixedUtf8String((byte*) buffer, length);
         }
+
+        public ReadOnlySpan<byte> AsSpan() => _chars.Slice(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()

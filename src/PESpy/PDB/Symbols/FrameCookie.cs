@@ -21,6 +21,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FRAMECOOKIE* value;
 
+        public static implicit operator SymType(FrameCookie value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="FRAMECOOKIE.reclen"/>
         public ushort reclen => value->reclen;
 

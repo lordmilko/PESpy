@@ -82,5 +82,21 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString()
+        {
+            var ns = TypeNamespace.GetString();
+
+            if (ns.Length == 0)
+                return TypeName.GetString().ToString();
+
+            using var builder = new Utf8StringBuilder();
+
+            builder.Append(ns);
+            builder.Append('.');
+            builder.Append(TypeName.GetString());
+
+            return builder.ToString();
+        }
     }
 }

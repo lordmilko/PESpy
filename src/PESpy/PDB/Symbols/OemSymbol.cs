@@ -18,6 +18,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly OEMSYMBOL* value;
 
+        public static implicit operator SymType(OemSymbol value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="OEMSYMBOL.reclen"/>
         public ushort reclen => value->reclen;
 

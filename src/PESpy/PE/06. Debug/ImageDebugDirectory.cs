@@ -378,15 +378,15 @@ namespace PESpy
                     break;
 
                 case 5:
-                    structWriter.WriteField(nameof(SizeOfData), SizeOfDataOffset, SizeOfData);
+                    structWriter.WriteField(nameof(SizeOfData), SizeOfDataOffset, SizeOfData, FieldViewFlags.Size);
                     break;
 
                 case 6:
-                    structWriter.WriteField(nameof(AddressOfRawData), AddressOfRawDataOffset, AddressOfRawData);
+                    structWriter.WriteField(nameof(AddressOfRawData), AddressOfRawDataOffset, AddressOfRawData, FieldViewFlags.Address);
                     break;
 
                 case 7:
-                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, PointerToRawData);
+                    structWriter.WriteField(nameof(PointerToRawData), PointerToRawDataOffset, PointerToRawData, FieldViewFlags.Address);
                     break;
 
                 default:

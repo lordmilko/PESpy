@@ -13,7 +13,7 @@ namespace PESpy.PDB
     /// to provide contrast with the more general purpose NMT type used for Edit and Continue<para/>
     /// Despite its name, it does not appear to have anything to do with NIs; NIs are simply casted to SIs
     /// </summary>
-    public readonly struct NMTNI : IValue, IViewable
+    public class NMTNI : IValue, IViewable //May not be present
     {
         /* The PDB stream contains a name table that maps named streams to the stream info (SI) index that they begin at
          * (an "NI" - name index in PDB1 terms). PDB1 represents the name table using the NMTNI type, wherein PDB1::loadPdbStream()

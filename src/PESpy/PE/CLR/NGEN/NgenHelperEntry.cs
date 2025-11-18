@@ -1,6 +1,10 @@
-﻿namespace PESpy
+﻿using System.Diagnostics;
+
+namespace PESpy
 {
     //Type is made up
+
+    [DebuggerDisplay("iHelper = {iHelper}, IsPointer = {IsPointer}")]
     public struct NgenHelperEntry
     {
         //On ARM64 it's 16
@@ -8,7 +12,7 @@
 
         internal const uint CORCOMPILE_HELPER_PTR = 0x80000000; // The entry is pointer to the helper (jump thunk otherwise)
 
-        public int dwHelper { get; }
+        public uint dwHelper { get; }
 
         //The top bit may have the CORCOMPILE_HELPER_PTR bit set, so you need to cast to ushort
         //to get the actual index of the helper

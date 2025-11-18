@@ -86,6 +86,52 @@ namespace PESpy.Ecma335
             return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodListOffset, isBigMethodIndex);
         }
 
+        internal TypeDefRow FindTypeContainingMethod(int methodRowId, int numberOfMethods)
+        {
+            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+                tableChunk,
+                Count,
+                RowSize,
+                MethodListOffset,
+                (uint) methodRowId,
+                isBigMethodIndex
+            ) + 1;
+
+            if (row == 0)
+                return default;
+
+            if (row > Count)
+            {
+                if (methodRowId <= numberOfMethods)
+                    return this[Count]; //It's the last type
+
+                return default;
+            }
+
+            var methodList = GetMethodList((TypeDefIndex) row);
+
+            if (methodList.RowId == methodRowId)
+            {
+                //Not 100% clear on why dotnet/runtime does this. You could have multiple types referencing the method?
+
+                while (row < Count)
+                {
+                    var nextRow = row + 1;
+
+                    var nextMethodList = GetMethodList((TypeDefIndex) nextRow);
+
+                    if (nextMethodList.RowId == methodRowId)
+                        row = nextRow;
+                    else
+                        break;
+                }
+
+                return this[row];
+            }
+
+            return this[Count];
+        }
+
         public int GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public TypeDefRow this[TypeDefIndex index] => this[(int) index];

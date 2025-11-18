@@ -1,5 +1,5 @@
 ﻿using System;
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using ClrDebug;
 using PESpy.View.Builder;
 
@@ -13,7 +13,7 @@ namespace PESpy.View
         private readonly PEFile _peFile;
         private PESectionLookupCache _lookupCache;
 
-        internal PEFileAnalyzer(PEFileAccessor fileAccessor, IFileDisassembler? disassembler, IFileAnalyzerProgress? progress) : base(fileAccessor, disassembler)
+        internal PEFileAnalyzer(PEFileAccessor fileAccessor, IFileDisassembler? disassembler, IFileAnalyzerProgress? progress) : base(fileAccessor, disassembler, progress)
         {
             _peFile = fileAccessor.PEFile;
             _lookupCache = new PESectionLookupCache(fileAccessor.PEFile);
@@ -24,6 +24,8 @@ namespace PESpy.View
 
         public override FileAccessor Execute()
         {
+            _progress?.NotifyPhase(FileAnalyzerProgressPhase.DiscoverGlobals);
+
             //Mark all data structures that our PEFile knows about as being data
             ((IViewable) _peFile).WriteGlobals(_viewWriter);
 
@@ -34,13 +36,20 @@ namespace PESpy.View
             //Now try and discover symbols. Symbols can come in many forms: we can have a PDB (old, MSF or portable),
             //OMF CodeView symbols, or even COFF symbols in a CoffSymbolTable. We'll use any symbols we discover to expand
             //upon the code addresses we found in our roots, to ensure we disassemble as much as possible in the PEFile
-            DiscoverSymbols();
+            DiscoverSymbols((PEFileAccessor) _fileAccessor);
 
             //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
             WorkDisasmQueue();
 
+            ExpandUnknownData();
+
             //Go through all remaining untagged bytes and mark any repeated sequences of 0x00 or 0xCC as being padding
             MarkPadding();
+
+#if DEBUG
+            ValidateNames();
+            ValidateBodyReferences();
+#endif
 
             var dataDirectories = new PooledList<DirectoryInfo>();
 
@@ -62,12 +71,14 @@ namespace PESpy.View
 
         private void DiscoverCodeRoots()
         {
+            _progress?.NotifyPhase(FileAnalyzerProgressPhase.DiscoverCodeRoots);
+
             var entryPoint = _peFile.OptionalHeader.AddressOfEntryPoint;
 
             if (entryPoint != 0)
             {
                 if (_lookupCache.TryGetSectionInfo(entryPoint, out var targetAddress, out var sectionIndex, out _))
-                    AddCode(targetAddress, entryPoint, sectionIndex);
+                    AddCode(targetAddress, entryPoint);
             }
 
             ProcessExports();
@@ -101,7 +112,7 @@ namespace PESpy.View
                         {
                             var info = isCode
                                 ? AddCode(targetAddress, address, sectionIndex)
-                                : _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Byte, length: 1); //We don't know how big this data item is yet, so we'll just say it's 1 byte. If we get some symbols, we might be able to do better
+                                : _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, length: 1); //We don't know how big this data item is yet, so we'll just say it's 1 byte. If we get some symbols, we might be able to do better
 
                             if (export.Name.Length > 0)
                                 _fileAccessor.AddName(targetAddress, info, (FixedUtf8String) export.Name);
@@ -128,7 +139,7 @@ namespace PESpy.View
                     if (item.BeginAddress != 0 && lookupCache.TryGetSectionInfo(item.BeginAddress, out var targetAddress, out int sectionIndex, out _))
                     {
                         //todo: apparently the begin address also always denotes the start of a function, based on ida
-                        AddCode(targetAddress, item.BeginAddress, sectionIndex);
+                        AddCode(targetAddress, item.BeginAddress);
                     }
 
                     var unwindData = item.UnwindData;
@@ -148,11 +159,11 @@ namespace PESpy.View
                                 if (lookupCache.TryGetSectionInfo(record.BeginAddress, out targetAddress, out sectionIndex, out _))
                                 {
                                     //End is normally the same as jump target, but not always
-                                    AddCode(targetAddress, record.BeginAddress, sectionIndex);
+                                    AddCode(targetAddress, record.BeginAddress);
                                 }
 
                                 if (lookupCache.TryGetSectionInfo(record.EndAddress, out targetAddress, out sectionIndex, out _))
-                                    AddCode(targetAddress, record.EndAddress, sectionIndex);
+                                    AddCode(targetAddress, record.EndAddress);
 
                                 /* If no custom handler has been specified, this value is EXCEPTION_EXECUTE_HANDLER (1).
                                  * Ostensibly, it should also be possible for this value to be EXCEPTION_CONTINUE_SEARCH (0)
@@ -160,11 +171,11 @@ namespace PESpy.View
                                 if (record.HandlerAddress > 1)
                                 {
                                     if (lookupCache.TryGetSectionInfo(record.HandlerAddress, out targetAddress, out sectionIndex, out _))
-                                        AddCode(targetAddress, record.HandlerAddress, sectionIndex);
+                                        AddCode(targetAddress, record.HandlerAddress);
                                 }
 
                                 if (lookupCache.TryGetSectionInfo(record.JumpTarget, out targetAddress, out sectionIndex, out _))
-                                    AddCode(targetAddress, record.JumpTarget, sectionIndex);
+                                    AddCode(targetAddress, record.JumpTarget);
                             }
                         }
                     }
@@ -191,7 +202,7 @@ namespace PESpy.View
                     foreach (var address in addresses)
                     {
                         if (lookupCache.TryGetSectionInfo((int) address, out var targetAddress, out var sectionIndex, out _))
-                            AddCode(targetAddress, (int)address, sectionIndex);
+                            AddCode(targetAddress, address);
                     }
                 }
 
@@ -206,7 +217,7 @@ namespace PESpy.View
                     foreach (var entry in entries)
                     {
                         if (lookupCache.TryGetSectionInfo(entry.Function, out var targetAddress, out var sectionIndex, out _))
-                            AddCode(targetAddress, entry.Function, sectionIndex);
+                            AddCode(targetAddress, entry.Function);
                     }
                 }
 
@@ -253,7 +264,7 @@ namespace PESpy.View
                         var entry = entries[i];
 
                         if (lookupCache.TryGetSectionInfo(entry.Target, out var targetAddress, out var sectionIndex, out _))
-                            AddCode(targetAddress, entry.Target, sectionIndex);
+                            AddCode(targetAddress, entry.Target);
                     }
                 }
 
@@ -270,7 +281,7 @@ namespace PESpy.View
                         var entry = entries[i];
 
                         if (lookupCache.TryGetSectionInfo(entry.Function, out var targetAddress, out var sectionIndex, out _))
-                            AddCode(targetAddress, entry.Function, sectionIndex);
+                            AddCode(targetAddress, entry.Function);
                     }
                 }
             }

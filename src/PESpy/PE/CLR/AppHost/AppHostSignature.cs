@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -72,6 +71,7 @@ namespace PESpy
             {
                 if (bundleHeaderOffset.ListedAddress == 0)
                 {
+                    //If this is just an apphost (e.g. pwsh.exe) TryGetValueChunkFromPhysicalOffset will return false
                     var offset = chunk.PeekInt64(BundleHeaderOffsetOffset);
 
                     if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) offset, out var valueChunk))
@@ -92,7 +92,8 @@ namespace PESpy
 
         private readonly MemoryChunk chunk;
 
-        internal AppHostSignature(in MemoryChunk chunk)
+        //PEFile implements some rudimentary checks to try and safeguard against false positives where we've got a file
+
         internal AppHostSignature(MemoryBlock block, int index)
         {
             this.chunk = new MemoryChunk(block, index - 8);
@@ -100,7 +101,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteVAPointerField(BundleHeaderOffset, BundleHeaderOffsetOffset);
+            writer.WriteVAPointerField(BundleHeaderOffset, Offset, BundleHeaderOffsetOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

@@ -75,21 +75,12 @@ namespace PESpy.PDB
 
         public unsafe NI Hash(string str)
         {
-            var length = Encoding.UTF8.GetByteCount(str);
+            //We don't need to worry about the \0, it's not hashed
 
-            var buffer = ArrayPool<byte>.Shared.Rent(length); //We don't need to worry about the \0, it's not hashed
+            using var builder = new Utf8StringBuilder(str);
 
-            Encoding.UTF8.GetBytes(str, 0, str.Length, buffer, 0);
-
-            try
-            {
-                fixed (byte* p = buffer)
-                    return Hash(new FixedUtf8String(p, length));
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+            fixed (byte* p = builder.AsSpan())
+                return Hash(new FixedUtf8String(p, builder.Length));
         }
 
         public NI Hash(FixedUtf8String str)

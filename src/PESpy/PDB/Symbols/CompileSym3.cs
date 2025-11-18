@@ -28,6 +28,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly COMPILESYM3* value;
 
+        public static implicit operator SymType(CompileSym3 value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="COMPILESYM3.reclen"/>
         public ushort reclen => value->reclen;
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -18,14 +17,7 @@ namespace PESpy
 
         public ushort type => chunk.PeekUInt16(typeOffset);
 
-        public FixedAnsiString name
-        {
-            get
-            {
-                var length = chunk.PeekByte(nameOffset);
-                return chunk.PeekAnsiFixedLength(7, length);
-            }
-        }
+        public SymString name => chunk.PeekSymString(nameOffset, isLengthPrefixed: true);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -70,7 +62,7 @@ namespace PESpy
                     break;
 
                 case 3:
-                    structWriter.WriteLengthPrefixedAnsiField(nameof(name), nameOffset, name);
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, name);
                     break;
 
                 default:

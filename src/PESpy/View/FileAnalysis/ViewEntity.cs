@@ -12,35 +12,52 @@ namespace PESpy.View
     public unsafe struct ViewEntity
     {
         public ViewByte* ViewByte;
+        public int SectionAccessorIndex;
         public int TargetAddress;
         public FixedUtf8String Name;
+        public FixedUtf16String NameWide;
         public int Length;
         public ViewKind Kind;
-        List<XRef> XRefs;
+        internal SpanAllocatorHandle XRefs;
         public bool HasChildren;
+        public long Displacement;
 
         public NativeSpan<byte> Bytes => new NativeSpan<byte>(_pData, Length);
 
         private byte* _pData;
 
-        internal ViewEntity(in SectionAccessor sectionAccessor, int sectionAccessorOffset, int sectionAccessorLength, IntPtr pBytes, Dictionary<int, ViewInfo> infoMap)
+        internal ViewEntity(
+            ISymbolAccessor symbolAccessor,
+            int sectionAccessorIndex,
+            in SectionAccessor sectionAccessor,
+            int sectionAccessorOffset,
+            int sectionAccessorLength,
+            IntPtr pBytes,
+            Dictionary<int, ViewInfo> infoMap,
+            FixedUtf8String[] names)
             : this(
+                  symbolAccessor: symbolAccessor,
+                  sectionAccessorIndex: sectionAccessorIndex,
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
                   pStart: sectionAccessor.pViewBytes,
                   pEnd: sectionAccessor.pViewBytes + sectionAccessorLength,
                   pBytes,
-                  infoMap)
+                  infoMap,
+                  names)
         {
         }
 
         internal ViewEntity(
+            ISymbolAccessor symbolAccessor,
+            int sectionAccessorIndex,
             int targetAddress,
             ViewByte* pViewByte,
             ViewByte* pStart,
             ViewByte* pEnd,
             IntPtr pBytes,
-            Dictionary<int, ViewInfo> infoMap)
+            Dictionary<int, ViewInfo> infoMap,
+            FixedUtf8String[] names)
         {
             TargetAddress = targetAddress;
             ViewByte = pViewByte;
@@ -56,7 +73,12 @@ namespace PESpy.View
                 while (body < pEnd)
                 {
                     if (body->Kind == ViewByteKind.Body || body->Kind == ViewByteKind.Code)
+                    {
+                        if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                            throw new NotImplementedException();
+
                         body++;
+                    }
                     else
                         break;
                 }
@@ -67,36 +89,84 @@ namespace PESpy.View
             {
                 //If this is the first instruction of a code chunk, roll all the code up into one chunk
 
+                if (symbolAccessor.TryGetNameFromAddress(targetAddress, out var symName, out var disp))
+                {
+                    Name = symName;
+                    Displacement = disp;
+                }
+
                 body = pViewByte - 1;
 
                 var isFirstCode = true;
 
                 while (body > pStart)
                 {
-                    switch (body->Kind)
+                    if (body->Kind == ViewByteKind.Body)
                     {
-                        case ViewByteKind.Body:
-                            body--;
-                            continue;
+                        if (body->BodyKind == ViewByteBodyKind.SplitHead)
+                            throw new NotImplementedException();
 
-                        case ViewByteKind.Code:
-                            isFirstCode = false;
-                            break;
+                        body--;
+                        continue;
+                    }
+                    
+                    if (body->Kind == ViewByteKind.Code)
+                    {
+                        //There was more code before us, so we're not the first code
+                        isFirstCode = false;
+                    }
+
+                    break;
+                }
+
+                if (isFirstCode)
+                {
+                    //Roll up all code after us into us
+
+                    body = pViewByte + 1;
 
                     while (body < pEnd)
                     {
                         if (body->Kind == ViewByteKind.Body || body->Kind == ViewByteKind.Code)
+                        {
+                            if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                                throw new NotImplementedException();
+
                             body++;
+                        }
                         else
                             break;
                     }
+
+                    HasChildren = true;
+                }
+                else
+                {
+                    //Calculate length normally; this will give us the length of a single instruction
+
+                    body = pViewByte + 1;
+
+                    while (body < pEnd)
+                    {
+                        if (body->Kind == ViewByteKind.Body)
+                        {
+                            if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                                throw new NotImplementedException();
+
+                            body++;
+                        }
+                        else
+                            break;
+                    }
+
+                    HasChildren = false;
                 }
             }
-            else
+            else if (ViewByte->Kind == ViewByteKind.Unknown)
             {
                 while (body < pEnd)
                 {
-                    if (body->Kind == ViewByteKind.Body)
+                    if (body->Kind == ViewByteKind.Unknown)
                         body++;
                     else
                         break;
@@ -104,12 +174,43 @@ namespace PESpy.View
 
                 HasChildren = false;
             }
+            else
+            {
+                while (body < pEnd)
+                {
+                    if (body->Kind == ViewByteKind.Body)
+                    {
+                        if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                            throw new NotImplementedException();
 
-            infoMap.TryGetValue(targetAddress, out var byteData);
+                        body++;
+                    }
+                    else
+                        break;
+                }
 
-            Name = byteData.Name;
-            Kind = byteData.ViewKind;
-            XRefs = byteData.XRefs;
+                HasChildren = false;
+            }
+
+            infoMap.TryGetValue(targetAddress, out var viewInfo);
+
+            Length = (int) (body - pViewByte);
+
+            if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String)
+            {
+                if (pViewByte->IsWide)
+                    NameWide = new FixedUtf16String((char*) pData, Length / 2);
+                else
+                    Name = new FixedUtf8String((byte*) pData, Length);
+            }
+            else
+            {
+                if (viewInfo.NameIndex != 0)
+                    Name = names[viewInfo.NameIndex - 1];
+            }
+
+            Kind = viewInfo.ViewKind;
+            XRefs = viewInfo.XRefs;
             _pData = (byte*) pData;
         }
 
@@ -143,9 +244,8 @@ namespace PESpy.View
 
                 var @byte = *(byte*) Bytes;
 
-                if (@byte != 0)
-                    builder.Append("0x");
-
+                //It's confusing in the navigation when we say Padding (0) when other times we say Unknown (3) and 3 is a count not a value
+                builder.Append("0x");
                 builder.AppendHex(@byte);
                 builder.Append(')');
             }
@@ -158,6 +258,12 @@ namespace PESpy.View
             else if (Name.Length > 0)
             {
                 builder.Append(Name);
+
+                if (Displacement != 0)
+                {
+                    builder.Append(Displacement < 0 ? "-0x" : "+0x");
+                    builder.AppendHex((ulong) Math.Abs(Displacement));
+                }
             }
             else if (Kind != 0)
                 builder.Append(Kind.ToString());

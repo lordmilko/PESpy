@@ -6,86 +6,36 @@ namespace PESpy.View
     {
         private readonly FileAccessor _fileAccessor;
         private readonly IFileDisassembler? _fileDisassembler;
+        private readonly FileAnalyzer _fileAnalyzer;
 
         public PEViewByteViewWriter(PEFile peFile, FileAccessor fileAccessor, IFileDisassembler fileDisassembler) : base(peFile)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
+            _fileAnalyzer = fileAnalyzer;
         }
 
         protected internal override unsafe IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
         {
             //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
 
-            var pViewByte = _fileAccessor.GetViewByte(value.Offset, out _);
-            pViewByte->Kind = ViewByteKind.Data;
-            _fileAccessor.AddName(value.Offset, pViewByte, name);
-            _fileAccessor.AddStructKind(value.Offset, kind);
+            //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
+
+            var pViewByte = RegisterStruct(name, value.Offset, kind);
 
             switch (kind)
             {
                 case ViewKind.ImageCorILMethodTiny:
                 {
-                    //The first byte is data, but all of the bytes after it are code
-
                     var val = value;
-
-                    var ilBytes = Unsafe.As<T, ImageCorILMethod>(ref val).ILBytes;
-
-                    var pILViewByte = pViewByte + 1;
-                    pILViewByte->Kind = ViewByteKind.Code;
-                    pILViewByte->IsIL = true;
-
-                    //todo: need to queue up the fact we need to apply the name to this item
-
-                    for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
-                        i->Kind = ViewByteKind.Body;
-
+                    ProcessCorILMethodTiny(pViewByte, Unsafe.As<T, ImageCorILMethod>(ref val));
                     break;
-                }
+                }    
 
                 case ViewKind.ImageCorILMethodFat:
                 {
-                    //The first 12 bytes are data, then we have code, and then after that possibly also some EHSections
-
-                    for (var i = pViewByte + 1; i < pViewByte + 12; i++)
-                        i->Kind = ViewByteKind.Body;
-
                     var val = value;
-
-                    var ilMethod = Unsafe.As<T, ImageCorILMethod>(ref val);
-                    var ilBytes = ilMethod.ILBytes;
-
-                    var pILViewByte = pViewByte + 12;
-                    pILViewByte->Kind = ViewByteKind.Code;
-                    pILViewByte->IsIL = true;
-
-                    for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
-                        i->Kind = ViewByteKind.Body;
-
-                    if (ilMethod.EHSections.Length > 0)
-                    {
-                        var mainBodyEnd = 12 + ilBytes.Length;
-
-                        var alignment = (mainBodyEnd + 3) & ~3;
-
-                        if (alignment > 0)
-                        {
-                            for (var i = pViewByte + mainBodyEnd; i < pViewByte + alignment; i++)
-                            {
-                                i->Kind = ViewByteKind.Data;
-                                i->DataKind = ViewByteDataKind.Padding;
-                            }
-                        }
-
-                        var ehSectionInfo = pViewByte + mainBodyEnd;
-                        ehSectionInfo->Kind = ViewByteKind.Data;
-                        var remainingBytes = structSize - mainBodyEnd;
-
-                        for (var i = ehSectionInfo + 1; i < ehSectionInfo + remainingBytes; i++)
-                            ehSectionInfo->Kind = ViewByteKind.Body;
-                    }
-
+                    ProcessCorILMethodFat(pViewByte, Unsafe.As<T, ImageCorILMethod>(ref val), structSize);
                     break;
                 }
 
@@ -99,12 +49,144 @@ namespace PESpy.View
             return null;
         }
 
+        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
+        {
+            if (targetOffset == 0)
+                return;
+
+            _fileAccessor.AddXRef(structOffset + fieldOffset, targetOffset);
+        }
+
+        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+            if (targetRVA == 0)
+                return;
+
+            if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
+                _fileAccessor.AddXRef(structOffset + fieldOffset, targetAddress);
+        }
+
+        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        private ViewByte* RegisterStruct(FixedUtf8String name, int offset, ViewKind kind)
+        {
+            var pViewByte = _fileAccessor.GetViewByte(offset, out _);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Struct;
+            _fileAnalyzer.AddName(offset, pViewByte, name);
+            _fileAccessor.AddStructKind(offset, kind);
+
+            return pViewByte;
+        }
+
+        private void ProcessCorILMethodTiny(ViewByte* pViewByte, ImageCorILMethod value)
+        {
+            //The first byte is data, but all of the bytes after it are code
+
+            var ilBytes = value.ILBytes;
+
+            var pILViewByte = pViewByte + 1;
+            pILViewByte->Kind = ViewByteKind.Code;
+            pILViewByte->IsIL = true;
+
+                        var alignment = (mainBodyEnd + 3) & ~3;
+
+            for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
+                i->Kind = ViewByteKind.Body;
+        }
+
+        private void ProcessCorILMethodFat(ViewByte* pViewByte, ImageCorILMethod value, int structSize)
+        {
+            //The first 12 bytes are data, then we have code, and then after that possibly also some EHSections
+
+            for (var i = pViewByte + 1; i < pViewByte + 12; i++)
+                i->Kind = ViewByteKind.Body;
+
+            var ilBytes = value.ILBytes;
+
+            var pILViewByte = pViewByte + 12;
+            pILViewByte->Kind = ViewByteKind.Code;
+            pILViewByte->IsIL = true;
+
+            for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
+                i->Kind = ViewByteKind.Body;
+
+            if (value.EHSections.Length > 0)
+            {
+                var mainBodyEnd = 12 + ilBytes.Length;
+
+                var alignment = (mainBodyEnd + 3) & ~3;
+
+                if (alignment > 0)
+                {
+                    for (var i = pViewByte + mainBodyEnd; i < pViewByte + alignment; i++)
+                    {
+                        i->Kind = ViewByteKind.Data;
+                        i->DataKind = ViewByteDataKind.Padding;
+                    }
+                }
+
+                var ehSectionInfo = pViewByte + mainBodyEnd;
+                ehSectionInfo->Kind = ViewByteKind.Data;
+                var remainingBytes = structSize - mainBodyEnd;
+
+                for (var i = ehSectionInfo + 1; i < ehSectionInfo + remainingBytes; i++)
+                    ehSectionInfo->Kind = ViewByteKind.Body;
+            }
+        }
+
         protected internal override unsafe IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)
         {
             _fileAccessor.AddStructKind(offset, kind);
 
             var pViewByte = _fileAccessor.GetViewByte(offset, out _);
             pViewByte->Kind = ViewByteKind.Data;
+
+            switch (kind)
+            {
+                case ViewKind.ImageExportDirectory_Name:
+                case ViewKind.ImageExportDirectory_AddressOfNames_Entry:
+                case ViewKind.Metadata_String:
+                case ViewKind.ImageImportDescriptor_Name:
+                case ViewKind.ImageEnclaveImport_ImportName:
+                case ViewKind.Manifest:
+                case ViewKind.ImageDelayLoadDescriptor_DllNameRVA:
+                    pViewByte->DataKind = ViewByteDataKind.String;
+                    break;
+
+                case ViewKind.Metadata_Guid:
+                    pViewByte->DataKind = ViewByteDataKind.Guid;
+                    break;
+
+                case ViewKind.ImageExportDirectory_AddressOfFunctions_Entry:
+                case ViewKind.ImageExportDirectory_AddressOfNameOrdinals_Entry:
+                case ViewKind.SecurityCookie:
+                case ViewKind.GuardCFCheckFunctionPointer:
+                case ViewKind.GuardCFDispatchFunctionPointer:
+                case ViewKind.XFG:
+                case ViewKind.GuardXFGCheckFunctionPointer:
+                case ViewKind.GuardXFGDispatchFunctionPointer:
+                case ViewKind.GuardXFGTableDispatchFunctionPointer:
+                case ViewKind.GuardMemcpyFunctionPointer:
+                case ViewKind.CastGuardOsDeterminedFailureMode:
+                case ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA:
+                    pViewByte->DataKind = ViewByteDataKind.Integer;
+                    break;
+
+                case ViewKind.ExDllCharacteristics:
+                    pViewByte->DataKind = ViewByteDataKind.Enum;
+                    break;
+
+                case ViewKind.SEHandlerTable:
+                    pViewByte->DataKind = ViewByteDataKind.Struct;
+                    break;
+
+                default:
+                    throw new System.NotImplementedException();
+            }
 
             for (var i = pViewByte + 1; i < pViewByte + size; i++)
                 i->Kind = ViewByteKind.Body;
@@ -178,7 +260,7 @@ namespace PESpy.View
         }
 
         public override void WriteDosStub(in ByteBlob byteBlob) =>
-            _fileDisassembler?.WriteDosStub(_fileAccessor, byteBlob);
+            _fileDisassembler?.WriteDosStub(_fileAccessor, _fileAnalyzer, byteBlob);
 
         public override ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {

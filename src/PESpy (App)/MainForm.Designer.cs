@@ -31,237 +31,279 @@ namespace PESpy
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.toolStrip = new System.Windows.Forms.ToolStrip();
-            this.toolStripDropDownButton = new System.Windows.Forms.ToolStripDropDownButton();
-            this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.splitLeftAndRight = new PESpy.MySplitContainer();
-            this.treeView = new PESpy.Controls.TreeViewPanel();
-            this.imageList = new System.Windows.Forms.ImageList(this.components);
-            this.splitTopAndBottom = new PESpy.MySplitContainer();
-            this.textViewHost = new PESpy.Controls.TextViewHost();
-            this.viewMapHost = new PESpy.Controls.ViewMapHost();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.lblProgress = new System.Windows.Forms.Label();
-            this.overviewPanel = new PESpy.Controls.OverviewPanel();
-            this.listViewPanel = new PESpy.Controls.ListViewPanel();
-            this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.toolStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitLeftAndRight)).BeginInit();
-            this.splitLeftAndRight.Panel1.SuspendLayout();
-            this.splitLeftAndRight.Panel2.SuspendLayout();
-            this.splitLeftAndRight.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitTopAndBottom)).BeginInit();
-            this.splitTopAndBottom.Panel1.SuspendLayout();
-            this.splitTopAndBottom.Panel2.SuspendLayout();
-            this.splitTopAndBottom.SuspendLayout();
-            this.SuspendLayout();
+            toolStrip = new System.Windows.Forms.ToolStrip();
+            toolStripDropDownButton = new System.Windows.Forms.ToolStripDropDownButton();
+            openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            goToToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            toolStripButton1 = new System.Windows.Forms.ToolStripButton();
+            splitLeftAndRight = new MySplitContainer();
+            treeView = new TreeViewPanel();
+            imageList = new System.Windows.Forms.ImageList(components);
+            splitTopAndBottom = new MySplitContainer();
+            textViewHost = new TextViewHost();
+            viewMapHost = new ViewMapHost();
+            progressBar = new System.Windows.Forms.ProgressBar();
+            lblProgress = new System.Windows.Forms.Label();
+            overviewPanel = new OverviewPanel();
+            listViewPanel = new ListViewPanel();
+            openFileDialog = new System.Windows.Forms.OpenFileDialog();
+            toolStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) splitLeftAndRight).BeginInit();
+            splitLeftAndRight.Panel1.SuspendLayout();
+            splitLeftAndRight.Panel2.SuspendLayout();
+            splitLeftAndRight.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) splitTopAndBottom).BeginInit();
+            splitTopAndBottom.Panel1.SuspendLayout();
+            splitTopAndBottom.Panel2.SuspendLayout();
+            splitTopAndBottom.SuspendLayout();
+            SuspendLayout();
             // 
             // toolStrip
             // 
-            this.toolStrip.BackColor = System.Drawing.SystemColors.Control;
-            this.toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.toolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripDropDownButton});
-            this.toolStrip.Location = new System.Drawing.Point(0, 0);
-            this.toolStrip.Name = "toolStrip";
-            this.toolStrip.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.toolStrip.Size = new System.Drawing.Size(1315, 31);
-            this.toolStrip.TabIndex = 0;
-            this.toolStrip.Text = "toolStrip";
+            toolStrip.BackColor = System.Drawing.SystemColors.Control;
+            toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            toolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
+            toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripDropDownButton, toolStripDropDownButton1, toolStripSeparator1, toolStripButton1 });
+            toolStrip.Location = new System.Drawing.Point(0, 0);
+            toolStrip.Name = "toolStrip";
+            toolStrip.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            toolStrip.Size = new System.Drawing.Size(1315, 31);
+            toolStrip.TabIndex = 0;
+            toolStrip.Text = "toolStrip";
             // 
             // toolStripDropDownButton
             // 
-            this.toolStripDropDownButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripDropDownButton.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openToolStripMenuItem});
-            this.toolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripDropDownButton.Name = "toolStripDropDownButton";
-            this.toolStripDropDownButton.ShowDropDownArrow = false;
-            this.toolStripDropDownButton.Size = new System.Drawing.Size(36, 24);
-            this.toolStripDropDownButton.Text = "&File";
+            toolStripDropDownButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            toolStripDropDownButton.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { openToolStripMenuItem });
+            toolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            toolStripDropDownButton.Name = "toolStripDropDownButton";
+            toolStripDropDownButton.ShowDropDownArrow = false;
+            toolStripDropDownButton.Size = new System.Drawing.Size(36, 24);
+            toolStripDropDownButton.Text = "&File";
             // 
             // openToolStripMenuItem
             // 
-            this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(190, 26);
-            this.openToolStripMenuItem.Text = "&Open...";
+            openToolStripMenuItem.Name = "openToolStripMenuItem";
+            openToolStripMenuItem.ShortcutKeys =  System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O;
+            openToolStripMenuItem.Size = new System.Drawing.Size(190, 26);
+            openToolStripMenuItem.Text = "&Open...";
+            // 
+            // toolStripDropDownButton1
+            // 
+            toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { goToToolStripMenuItem });
+            toolStripDropDownButton1.Image = (System.Drawing.Image) resources.GetObject("toolStripDropDownButton1.Image");
+            toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            toolStripDropDownButton1.ShowDropDownArrow = false;
+            toolStripDropDownButton1.Size = new System.Drawing.Size(57, 24);
+            toolStripDropDownButton1.Text = "&Search";
+            // 
+            // goToToolStripMenuItem
+            // 
+            goToToolStripMenuItem.Image = Resource.rocket_fly;
+            goToToolStripMenuItem.Name = "goToToolStripMenuItem";
+            goToToolStripMenuItem.ShortcutKeys =  System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G;
+            goToToolStripMenuItem.Size = new System.Drawing.Size(190, 26);
+            goToToolStripMenuItem.Text = "Go to...";
+            goToToolStripMenuItem.Click += GoTo_Click;
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new System.Drawing.Size(6, 27);
+            // 
+            // toolStripButton1
+            // 
+            toolStripButton1.AutoSize = false;
+            toolStripButton1.Image = Resource.rocket_fly;
+            toolStripButton1.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            toolStripButton1.Name = "toolStripButton1";
+            toolStripButton1.Size = new System.Drawing.Size(92, 24);
+            toolStripButton1.Text = " Go To";
+            toolStripButton1.ToolTipText = "Go To (Ctrl+G)";
+            toolStripButton1.Click += GoTo_Click;
             // 
             // splitLeftAndRight
             // 
-            this.splitLeftAndRight.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitLeftAndRight.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
-            this.splitLeftAndRight.Location = new System.Drawing.Point(0, 31);
-            this.splitLeftAndRight.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.splitLeftAndRight.Name = "splitLeftAndRight";
+            splitLeftAndRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            splitLeftAndRight.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
+            splitLeftAndRight.Location = new System.Drawing.Point(0, 31);
+            splitLeftAndRight.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            splitLeftAndRight.Name = "splitLeftAndRight";
             // 
             // splitLeftAndRight.Panel1
             // 
-            this.splitLeftAndRight.Panel1.Controls.Add(this.treeView);
+            splitLeftAndRight.Panel1.Controls.Add(treeView);
             // 
             // splitLeftAndRight.Panel2
             // 
-            this.splitLeftAndRight.Panel2.Controls.Add(this.splitTopAndBottom);
-            this.splitLeftAndRight.Size = new System.Drawing.Size(1315, 616);
-            this.splitLeftAndRight.SplitterDistance = 301;
-            this.splitLeftAndRight.TabIndex = 1;
-            this.splitLeftAndRight.TabStop = false;
+            splitLeftAndRight.Panel2.Controls.Add(splitTopAndBottom);
+            splitLeftAndRight.Size = new System.Drawing.Size(1315, 778);
+            splitLeftAndRight.SplitterDistance = 301;
+            splitLeftAndRight.TabIndex = 1;
+            splitLeftAndRight.TabStop = false;
             // 
             // treeView
             // 
-            this.treeView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.treeView.HideSelection = false;
-            this.treeView.ImageIndex = 0;
-            this.treeView.ImageList = this.imageList;
-            this.treeView.Location = new System.Drawing.Point(0, 0);
-            this.treeView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.treeView.Name = "treeView";
-            this.treeView.SelectedImageIndex = 0;
-            this.treeView.ShowRootLines = false;
-            this.treeView.Size = new System.Drawing.Size(301, 616);
-            this.treeView.TabIndex = 0;
-            this.treeView.AfterSelect += mainTreeView_AfterSelect;
+            treeView.Dock = System.Windows.Forms.DockStyle.Fill;
+            treeView.HideSelection = false;
+            treeView.ImageIndex = 0;
+            treeView.ImageList = imageList;
+            treeView.Location = new System.Drawing.Point(0, 0);
+            treeView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            treeView.Name = "treeView";
+            treeView.SelectedImageIndex = 0;
+            treeView.ShowRootLines = false;
+            treeView.Size = new System.Drawing.Size(301, 778);
+            treeView.TabIndex = 0;
+            treeView.AfterSelect += mainTreeView_AfterSelect;
             // 
             // imageList
             // 
-            this.imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList.ImageStream")));
-            this.imageList.TransparentColor = System.Drawing.Color.Transparent;
-            this.imageList.Images.SetKeyName(0, "box.png");
-            this.imageList.Images.SetKeyName(1, "database.png");
-            this.imageList.Images.SetKeyName(2, "block.png");
-            this.imageList.Images.SetKeyName(3, "documents-stack.png");
-            this.imageList.Images.SetKeyName(4, "StructurePublic.16.16.png");
-            this.imageList.Images.SetKeyName(5, "folder-struct.png");
-            this.imageList.Images.SetKeyName(6, "document-binary.png");
-            this.imageList.Images.SetKeyName(7, "edit-alignment.png");
-            this.imageList.Images.SetKeyName(8, "money-coin.png");
-            this.imageList.Images.SetKeyName(9, "folders.png");
-            this.imageList.Images.SetKeyName(10, "struct-stack.png");
-            this.imageList.Images.SetKeyName(11, "layers-stack.png");
-            this.imageList.Images.SetKeyName(12, "struct-named.png");
-            this.imageList.Images.SetKeyName(13, "MethodPublic.16.16.png");
-            this.imageList.Images.SetKeyName(14, "FieldPublic.16.16.png");
+            imageList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
+            imageList.ImageStream = (System.Windows.Forms.ImageListStreamer) resources.GetObject("imageList.ImageStream");
+            imageList.TransparentColor = System.Drawing.Color.Transparent;
+            imageList.Images.SetKeyName(0, "box.png");
+            imageList.Images.SetKeyName(1, "database.png");
+            imageList.Images.SetKeyName(2, "block.png");
+            imageList.Images.SetKeyName(3, "documents-stack.png");
+            imageList.Images.SetKeyName(4, "StructurePublic.16.16.png");
+            imageList.Images.SetKeyName(5, "folder-struct.png");
+            imageList.Images.SetKeyName(6, "document-binary.png");
+            imageList.Images.SetKeyName(7, "edit-alignment.png");
+            imageList.Images.SetKeyName(8, "money-coin.png");
+            imageList.Images.SetKeyName(9, "folders.png");
+            imageList.Images.SetKeyName(10, "struct-stack.png");
+            imageList.Images.SetKeyName(11, "layers-stack.png");
+            imageList.Images.SetKeyName(12, "struct-named.png");
+            imageList.Images.SetKeyName(13, "MethodPublic.16.16.png");
+            imageList.Images.SetKeyName(14, "FieldPublic.16.16.png");
+            imageList.Images.SetKeyName(15, "rocket-fly.png");
+            imageList.Images.SetKeyName(16, "magnifier.png");
+            imageList.Images.SetKeyName(17, "edit-style.png");
+            imageList.Images.SetKeyName(18, "script-text.png");
             // 
             // splitTopAndBottom
             // 
-            this.splitTopAndBottom.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitTopAndBottom.Location = new System.Drawing.Point(0, 0);
-            this.splitTopAndBottom.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.splitTopAndBottom.Name = "splitTopAndBottom";
-            this.splitTopAndBottom.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            splitTopAndBottom.Dock = System.Windows.Forms.DockStyle.Fill;
+            splitTopAndBottom.Location = new System.Drawing.Point(0, 0);
+            splitTopAndBottom.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            splitTopAndBottom.Name = "splitTopAndBottom";
+            splitTopAndBottom.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
             // splitTopAndBottom.Panel1
             // 
-            this.splitTopAndBottom.Panel1.AutoScroll = true;
-            this.splitTopAndBottom.Panel1.Controls.Add(this.textViewHost);
-            this.splitTopAndBottom.Panel1.Controls.Add(this.viewMapHost);
-            this.splitTopAndBottom.Panel1.Controls.Add(this.progressBar);
-            this.splitTopAndBottom.Panel1.Controls.Add(this.lblProgress);
+            splitTopAndBottom.Panel1.AutoScroll = true;
+            splitTopAndBottom.Panel1.Controls.Add(textViewHost);
+            splitTopAndBottom.Panel1.Controls.Add(viewMapHost);
+            splitTopAndBottom.Panel1.Controls.Add(progressBar);
+            splitTopAndBottom.Panel1.Controls.Add(lblProgress);
             // 
             // splitTopAndBottom.Panel2
             // 
-            this.splitTopAndBottom.Panel2.Controls.Add(this.overviewPanel);
-            this.splitTopAndBottom.Panel2.Controls.Add(this.listViewPanel);
-            this.splitTopAndBottom.Size = new System.Drawing.Size(1010, 616);
-            this.splitTopAndBottom.SplitterDistance = 349;
-            this.splitTopAndBottom.SplitterWidth = 3;
-            this.splitTopAndBottom.TabIndex = 0;
-            this.splitTopAndBottom.TabStop = false;
+            splitTopAndBottom.Panel2.Controls.Add(overviewPanel);
+            splitTopAndBottom.Panel2.Controls.Add(listViewPanel);
+            splitTopAndBottom.Size = new System.Drawing.Size(1010, 778);
+            splitTopAndBottom.SplitterDistance = 440;
+            splitTopAndBottom.TabIndex = 0;
+            splitTopAndBottom.TabStop = false;
             // 
             // textViewHost
             // 
-            this.textViewHost.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textViewHost.Location = new System.Drawing.Point(0, 38);
-            this.textViewHost.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.textViewHost.Name = "textViewHost";
-            this.textViewHost.Size = new System.Drawing.Size(1010, 311);
-            this.textViewHost.TabIndex = 3;
-            this.textViewHost.Visible = false;
+            textViewHost.Dock = System.Windows.Forms.DockStyle.Fill;
+            textViewHost.Location = new System.Drawing.Point(0, 48);
+            textViewHost.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            textViewHost.Name = "textViewHost";
+            textViewHost.Size = new System.Drawing.Size(1010, 392);
+            textViewHost.TabIndex = 3;
+            textViewHost.Visible = false;
             // 
             // viewMapHost
             // 
-            this.viewMapHost.Dock = System.Windows.Forms.DockStyle.Top;
-            this.viewMapHost.Location = new System.Drawing.Point(0, 0);
-            this.viewMapHost.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.viewMapHost.Name = "viewMapHost";
-            this.viewMapHost.Size = new System.Drawing.Size(1010, 38);
-            this.viewMapHost.TabIndex = 2;
-            this.viewMapHost.Visible = false;
+            viewMapHost.Dock = System.Windows.Forms.DockStyle.Top;
+            viewMapHost.Location = new System.Drawing.Point(0, 0);
+            viewMapHost.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            viewMapHost.Name = "viewMapHost";
+            viewMapHost.Size = new System.Drawing.Size(1010, 48);
+            viewMapHost.TabIndex = 2;
+            viewMapHost.Visible = false;
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(227, 129);
-            this.progressBar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(519, 15);
-            this.progressBar.TabIndex = 1;
+            progressBar.Location = new System.Drawing.Point(227, 161);
+            progressBar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            progressBar.Name = "progressBar";
+            progressBar.Size = new System.Drawing.Size(519, 19);
+            progressBar.TabIndex = 1;
             // 
             // lblProgress
             // 
-            this.lblProgress.AutoSize = true;
-            this.lblProgress.Location = new System.Drawing.Point(454, 110);
-            this.lblProgress.Name = "lblProgress";
-            this.lblProgress.Size = new System.Drawing.Size(44, 16);
-            this.lblProgress.TabIndex = 0;
-            this.lblProgress.Text = "label1";
+            lblProgress.AutoSize = true;
+            lblProgress.Location = new System.Drawing.Point(454, 138);
+            lblProgress.Name = "lblProgress";
+            lblProgress.Size = new System.Drawing.Size(50, 20);
+            lblProgress.TabIndex = 0;
+            lblProgress.Text = "label1";
             // 
             // overviewPanel
             // 
-            this.overviewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.overviewPanel.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.overviewPanel.HideSelection = false;
-            this.overviewPanel.Location = new System.Drawing.Point(0, 0);
-            this.overviewPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.overviewPanel.Name = "overviewPanel";
-            this.overviewPanel.OwnerDraw = true;
-            this.overviewPanel.Size = new System.Drawing.Size(1010, 264);
-            this.overviewPanel.TabIndex = 2;
-            this.overviewPanel.UseCompatibleStateImageBehavior = false;
-            this.overviewPanel.View = System.Windows.Forms.View.Details;
-            this.overviewPanel.Visible = false;
+            overviewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            overviewPanel.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            overviewPanel.Location = new System.Drawing.Point(0, 0);
+            overviewPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            overviewPanel.Name = "overviewPanel";
+            overviewPanel.OwnerDraw = true;
+            overviewPanel.Size = new System.Drawing.Size(1010, 334);
+            overviewPanel.TabIndex = 2;
+            overviewPanel.UseCompatibleStateImageBehavior = false;
+            overviewPanel.View = System.Windows.Forms.View.Details;
+            overviewPanel.Visible = false;
             // 
             // listViewPanel
             // 
-            this.listViewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listViewPanel.Location = new System.Drawing.Point(0, 0);
-            this.listViewPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.listViewPanel.Name = "listViewPanel";
-            this.listViewPanel.Size = new System.Drawing.Size(1010, 264);
-            this.listViewPanel.TabIndex = 0;
-            this.listViewPanel.Visible = false;
+            listViewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            listViewPanel.Location = new System.Drawing.Point(0, 0);
+            listViewPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            listViewPanel.Name = "listViewPanel";
+            listViewPanel.Size = new System.Drawing.Size(1010, 334);
+            listViewPanel.TabIndex = 0;
+            listViewPanel.Visible = false;
             // 
             // openFileDialog
             // 
-            this.openFileDialog.FileName = "openFileDialog1";
+            openFileDialog.FileName = "openFileDialog1";
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1315, 647);
-            this.Controls.Add(this.splitLeftAndRight);
-            this.Controls.Add(this.toolStrip);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.Name = "MainForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "PESpy";
-            this.toolStrip.ResumeLayout(false);
-            this.toolStrip.PerformLayout();
-            this.splitLeftAndRight.Panel1.ResumeLayout(false);
-            this.splitLeftAndRight.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitLeftAndRight)).EndInit();
-            this.splitLeftAndRight.ResumeLayout(false);
-            this.splitTopAndBottom.Panel1.ResumeLayout(false);
-            this.splitTopAndBottom.Panel1.PerformLayout();
-            this.splitTopAndBottom.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitTopAndBottom)).EndInit();
-            this.splitTopAndBottom.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(1315, 809);
+            Controls.Add(splitLeftAndRight);
+            Controls.Add(toolStrip);
+            Icon = (System.Drawing.Icon) resources.GetObject("$this.Icon");
+            Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            Name = "MainForm";
+            StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            Text = "PESpy";
+            toolStrip.ResumeLayout(false);
+            toolStrip.PerformLayout();
+            splitLeftAndRight.Panel1.ResumeLayout(false);
+            splitLeftAndRight.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize) splitLeftAndRight).EndInit();
+            splitLeftAndRight.ResumeLayout(false);
+            splitTopAndBottom.Panel1.ResumeLayout(false);
+            splitTopAndBottom.Panel1.PerformLayout();
+            splitTopAndBottom.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize) splitTopAndBottom).EndInit();
+            splitTopAndBottom.ResumeLayout(false);
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 
@@ -281,5 +323,9 @@ namespace PESpy
         private ListViewPanel listViewPanel;
         private ViewMapHost viewMapHost;
         private TextViewHost textViewHost;
+        private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
+        private System.Windows.Forms.ToolStripMenuItem goToToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripButton toolStripButton1;
     }
 }

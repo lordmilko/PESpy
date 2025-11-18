@@ -21,6 +21,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly REFSYM* value;
 
+        public static implicit operator SymType(RefSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="REFSYM.reclen"/>
         public ushort reclen => value->reclen;
 

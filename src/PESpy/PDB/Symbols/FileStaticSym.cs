@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FILESTATICSYM* value;
 
+        public static implicit operator SymType(FileStaticSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="FILESTATICSYM.reclen"/>
         public ushort reclen => value->reclen;
 

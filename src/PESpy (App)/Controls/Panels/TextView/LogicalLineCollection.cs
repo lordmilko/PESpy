@@ -70,9 +70,11 @@ namespace PESpy
                 }
                 else
                 {
+                    var firstVisibleLineIndex = logicalLine.FirstVisibleLineIndex;
+
                     //Mark the first n lines as hidden
                     for (var j = 0; j < numLinesToRemove; j++)
-                        logicalLine.Lines[j].IsVisible = false;
+                        logicalLine.Lines[firstVisibleLineIndex + j].IsVisible = false;
 
                     numLinesToRemove = 0;
                 }
@@ -108,9 +110,11 @@ namespace PESpy
                 }
                 else
                 {
+                    var lastVisibleLineIndex = logicalLine.LastVisibleLineIndex;
+
                     //Mark the last n lines as hidden
-                    for (var j = numLinesToRemove; j > 0; j--)
-                        logicalLine.Lines[j].IsVisible = false;
+                    for (var j = numLinesToRemove - 1; j >= 0; j--)
+                        logicalLine.Lines[lastVisibleLineIndex - j].IsVisible = false;
 
                     numLinesToRemove = 0;
                 }

@@ -11,6 +11,7 @@ namespace PESpy
     /// </summary>
     public class CoffSymbolTable : IValue, IViewable //Class so that it can be reused with IMAGE_DEBUG_TYPE_COFF
     {
+        private int StringTableSizeOffset => numberOfSymbols * ImageSymbol.StructSize;
         private ImageSymbol[]? symbols;
 
         public ImageSymbol[] Symbols
@@ -126,29 +127,28 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(PESpy.Strings.CoffSymbolTable, this, ViewKind.CoffSymbolTable, StructSize);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        //Note that numberOfSymbols includes aux symbols, so we must use Symbols.Length!
+        int IViewable.NumChildren() => Symbols.Length + 1 + Strings.Length;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            //Note that numberOfSymbols includes aux symbols, so we must use Symbols.Length!
+            if (index < Symbols.Length)
+            {
+                structWriter.WriteInline(Symbols[index]);
+            }
+            else if (index == Symbols.Length)
+            {
+                //Ordinarily, StringTableSize should include its own size (4) in its length. However, sometimes this is not the case, in which case
+                //StructSize above needs to detect this and bump the size by 4
+                structWriter.WriteField("String Table Size", StringTableSizeOffset, StringTableSize);
+            }
+            else
+            {
+                var i = index - (Symbols.Length + 1);
 
-#if DEBUG
-            var beforeSymbols = s.Size;
-#endif
-            s.WriteInline(Symbols);
-
-#if DEBUG
-            var afterSymbols = s.Size;
-            var symbolsWritten = afterSymbols - beforeSymbols;
-            var expectedWritten = numberOfSymbols * ImageSymbol.StructSize;
-            Debug.Assert(expectedWritten == symbolsWritten);
-#endif
-
-            //Ordinarily, StringTableSize should include its own size (4) in its length. However, sometimes this is not the case, in which case
-            //StructSize above needs to detect this and bump the size by 4
-            s.WriteField("String Table Size", StringTableSize);
-            s.WriteInlineAnsiNullTerminated(Strings);
-
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                structWriter.WriteInlineAnsiNullTerminated(Strings[i]);
+            }
         }
     }
 }

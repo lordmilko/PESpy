@@ -28,6 +28,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CONSTSYM_16t* raw;
 
+        public static implicit operator SymType(ConstSym16t value) => new SymType((SYMTYPE*) value.raw);
+
         /// <inheritdoc cref="CONSTSYM_16t.reclen"/>
         public ushort reclen => raw->reclen;
 

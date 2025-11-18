@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace PESpy.PDB
 {
@@ -145,7 +146,7 @@ namespace PESpy.PDB
                 return false;
             }
 
-            public bool TryGetFileHeaders(string fileName, out SrcHeaderOut srcHeaderOut, out int physicalEntryIndex)
+            public unsafe bool TryGetFileHeaders(string fileName, out SrcHeaderOut srcHeaderOut, out int physicalEntryIndex)
             {
                 srcHeaderOut = default;
                 physicalEntryIndex = default;
@@ -158,12 +159,38 @@ namespace PESpy.PDB
                  * and then replaces all \ characters with / */
 
                 NI ni;
+
+                var ptr = Marshal.StringToHGlobalAnsi(fileName);
+
+                try
+                {
+                    var span = new Span<byte>((byte*) ptr, fileName.Length);
+
+                    for (var i = 0; i < span.Length; i++)
+                    {
+                        if (span[i] == '/')
+                            span[i] = (byte) '\\';
+                        else
+                            span[i] = (byte) char.ToLower((char) span[i]);
+                    }
+
+                    ni = nameMap.Hash(new FixedUtf8String((byte*) ptr, fileName.Length));
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
+
+                if (FileHeaderMap.TryFind(ni, out srcHeaderOut, out physicalEntryIndex))
+                    return true;
+
+                return false;
             }
 
             public SrcHeaderOut GetFileHeaders(string fileName)
             {
                 if (!TryGetFileHeaders(fileName, out var srcHeaderOut, out _))
-                    throw new NotImplementedException();
+                    throw new InvalidOperationException($"Failed to find headers for file '{fileName}'");
 
                 return srcHeaderOut;
             }

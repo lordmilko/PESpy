@@ -16,6 +16,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DPCSYMTAGMAP* value;
 
+        public static implicit operator SymType(DPCSymTagMap value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DPCSYMTAGMAP.reclen"/>
         public ushort reclen => value->reclen;
 

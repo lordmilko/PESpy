@@ -36,14 +36,7 @@ namespace PESpy
 
         public byte reserved => chunk.PeekByte(reservedOffset);
 
-        public FixedAnsiString name
-        {
-            get
-            {
-                var length = chunk.PeekByte(nameOffset);
-                return chunk.PeekAnsiFixedLength(nameOffset + 1, length);
-            }
-        }
+        public SymString name => chunk.PeekSymString(nameOffset, isLengthPrefixed: true);
 
         public nsg[] arnsg
         {
@@ -137,7 +130,7 @@ namespace PESpy
                     break;
 
                 case 5:
-                    structWriter.WriteLengthPrefixedAnsiField(nameof(name), nameOffset, name);
+                    structWriter.WriteSymStringField(nameof(name), nameOffset, name);
                     break;
 
                 case 6:

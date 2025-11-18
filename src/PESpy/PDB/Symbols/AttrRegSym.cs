@@ -21,6 +21,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ATTRREGSYM* value;
 
+        public static implicit operator SymType(AttrRegSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ATTRREGSYM.reclen"/>
         public ushort reclen => value->reclen;
 

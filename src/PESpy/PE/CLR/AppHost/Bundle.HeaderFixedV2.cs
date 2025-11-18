@@ -80,8 +80,8 @@ namespace PESpy
                 var depsJson = DepsJson;
                 var runtimeConfigJson = RuntimeConfigJson;
 
-                writer.WriteGlobal(depsJson.Offset, depsJson.Value, depsJson.Value.Length, ViewKind.Value); //todo: better value?
-                writer.WriteGlobal(runtimeConfigJson.Offset, runtimeConfigJson.Value, runtimeConfigJson.Value.Length, ViewKind.Value); //todo: better value?
+                writer.WriteGlobal(depsJson.Offset, depsJson.Value, depsJson.Value.Length, ViewKind.DepsJson);
+                writer.WriteGlobal(runtimeConfigJson.Offset, runtimeConfigJson.Value, runtimeConfigJson.Value.Length, ViewKind.RuntimeConfigJson);
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>

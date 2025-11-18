@@ -44,7 +44,23 @@ namespace PESpy.Controls
             {
                 BeginInvoke(() =>
                 {
-                    ProcessPEFile((PEFileOverview) App.FileAccessor.Overview);
+                    var fileAccessor = App.FileAccessor;
+                    var overview = fileAccessor.Overview;
+
+                    switch (fileAccessor.File.Kind)
+                    {
+                        case FileKind.PE:
+                            ProcessPEFile((PEFileOverview) overview);
+                            break;
+
+                        case FileKind.PDB:
+                            ProcessPDBFile((PDBFileOverview) overview);
+                            break;
+
+                        default:
+                            throw new NotImplementedException();
+
+                    }
                 });
             };
         }

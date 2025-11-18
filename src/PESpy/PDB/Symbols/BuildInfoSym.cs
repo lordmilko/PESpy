@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly BUILDINFOSYM* value;
 
+        public static implicit operator SymType(BuildInfoSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="BUILDINFOSYM.reclen"/>
         public ushort reclen => value->reclen;
 

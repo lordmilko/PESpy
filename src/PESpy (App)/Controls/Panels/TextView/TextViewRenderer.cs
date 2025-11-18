@@ -6,6 +6,18 @@ using PInvoke;
 
 namespace PESpy
 {
+    internal static class Colors
+    {
+        public static readonly COLORREF Address = new COLORREF(0, 0, 0); //Black
+        public static readonly COLORREF Code = new COLORREF(0, 0, 128); //Navy blue
+        public static readonly COLORREF Number = new COLORREF(0, 128, 0); //Green
+        public static readonly COLORREF Symbol = new COLORREF(0, 0, 255); //Bright blue
+        public static readonly COLORREF Import = new COLORREF(255, 0, 255); //Magenta
+        public static readonly COLORREF Byte = new COLORREF(0, 128, 64); //Earth green
+        public static COLORREF String => Number;
+        public static readonly COLORREF Line = new COLORREF(128, 128, 128); //Gray
+    }
+
     public class TextViewRenderer : ISymbolResolver, IDisposable
     {
         public LogicalLineCollection LogicalLines => _lines;
@@ -23,6 +35,8 @@ namespace PESpy
 
         private readonly IGraphics _graphics;
         private readonly FileAccessor _fileAccessor;
+
+        private double NumVisibleLinesDouble => (double) (_height - _yTop) / _graphics.LineHeight;
 
         public TextViewRenderer(IGraphics graphics, FileAccessor fileAccessor, int width, int height, int yTop)
         {
@@ -54,7 +68,7 @@ namespace PESpy
              * Conversely, if we're scrolling up, if prior to the current item is a large number of padding
              * bytes, we need to snap to the start of the padding */
 
-            var numVisibleLinesDouble = (double) (_height - _yTop) / _graphics.LineHeight;
+            var numVisibleLinesDouble = NumVisibleLinesDouble;
             var numVisibleLines = (int) Math.Ceiling(numVisibleLinesDouble);
 
             _formatter.ClearPath();
@@ -74,10 +88,60 @@ namespace PESpy
 
             _graphics.FillBackground(rect);
 
-            var numVisibleLinesDouble = (double) (_height - _yTop) / _graphics.LineHeight;
+            var numVisibleLinesDouble = NumVisibleLinesDouble;
+
+            if (_lines.Count > 0)
+            {
+                RepaintExistingLines(hdc);
+                return;
+            }
             _formatter.StartWithoutOwner(_gotoAddress, (int) Math.Ceiling(numVisibleLinesDouble));
 
             PaintBelow(hdc, numVisibleLinesDouble);
+        }
+
+        private void RepaintExistingLines(HDC hdc)
+        {
+            //Find the first visible line
+
+            var logicalLines = _lines;
+
+            var yPos = 0;
+
+            int numLinesRemaining = 0; //Not used
+
+            var firstLogicalLine = logicalLines[0];
+
+            for (var i = 0; i < firstLogicalLine.Lines.Length; i++)
+            {
+                var physicalLine = firstLogicalLine.Lines[i];
+
+                if (!physicalLine.IsVisible)
+                    continue;
+
+                int right = 0;
+                DrawSingleLineDown(physicalLine, ref yPos, ref right, ref numLinesRemaining, _graphics.LineHeight);
+            }
+
+            //Now paint until we run out of visible lines
+
+            for (var i = 1; i < logicalLines.Count; i++)
+            {
+                var logicalLine = logicalLines[i];
+
+                for (var j = 0; j < logicalLine.Lines.Length; j++)
+                {
+                    var physicalLine = logicalLine.Lines[j];
+
+                    if (!physicalLine.IsVisible)
+                        break;
+
+                    int right = 0;
+                    DrawSingleLineDown(physicalLine, ref yPos, ref right, ref numLinesRemaining, _graphics.LineHeight);
+                }
+            }
+
+            _graphics.CommitMemDC(0, _yTop, _width, _height, 0, 0, hdc);
         }
 
         private void PaintBelow(HDC hdc, double numVisibleLinesDouble)
@@ -86,6 +150,7 @@ namespace PESpy
 
             var logicalLines = formatter.PeekLogicalLines();
             _lines.Append(logicalLines);
+
             var yPos = 0;
             int right = 0;
 
@@ -128,8 +193,31 @@ namespace PESpy
 
                 var lastLogicalLine = _lines.LastLogicalLine;
 
-                foreach (var line in lastLogicalLine.Lines)
+                var i = 0;
+
+                //Watch out: if we've got a great big logical line on screen, it is both the first _and_ last
+                //logical line. We just called ShiftPixelsUp, which has set the first n lines to hidden. If
+                //we just plow ahead here, we're just going to repaint those same lines!
+                if (_lines.Count == 1)
                 {
+                    //Skip past any lines at the start and draw any hidden lines at the end
+
+                    for (; i < lastLogicalLine.Lines.Length; i++)
+                    {
+                        var line = lastLogicalLine.Lines[i];
+
+                        if (line.IsVisible)
+                        {
+                            i++;
+                            break;
+                        }
+                    }
+                }
+
+                for (; i < lastLogicalLine.Lines.Length; i++)
+                {
+                    var line = lastLogicalLine.Lines[i];
+
                     if (line.IsVisible)
                         continue;
 
@@ -227,7 +315,33 @@ end:
 
                 var firstLogicalLine = _lines.FirstLogicalLine;
 
-                for (var i = firstLogicalLine.Lines.Length - 1; i >= 0; i--)
+                //Similar issue to what we have to deal with in ScrollLinesDown: we just called
+                //ShiftPixelsDown, so if there's only one logical line, we need to skip over
+                //the hidden lines at the end and see if there's any available hidden lines
+                //at the start
+
+                var i = firstLogicalLine.Lines.Length - 1;
+
+                if (_lines.Count == 1)
+                {
+                    //Skip over lines until we encounter a visible line
+
+                    for (; i >= 0; i--)
+                    {
+                        var line = firstLogicalLine.Lines[i];
+
+                        if (line.IsVisible)
+                        {
+                            i--;
+                            break;
+                        }
+                    }
+
+                    //Now continue running backwards and see if there's any hidden lines
+                    //once we get past all the visible lines
+                }
+
+                for (; i >= 0; i--)
                 {
                     var line = firstLogicalLine.Lines[i];
 
@@ -396,8 +510,85 @@ end:
             ref int numLinesRemaining,
             int lineHeight)
         {
+            var formatRanges = physicalLine.FormatRanges;
+
             right = 0;
-            _graphics.DrawText(physicalLine.Text, 0, yPos, ref right, lineHeight);
+
+            if (formatRanges.Length > 0)
+            {
+                //Draw using formats
+
+                var text = physicalLine.Text;
+
+                ReadOnlySpan<char> subStr;
+
+                var charsRead = 0;
+
+                var defaultColor = Gdi32.GetTextColor(_graphics.MemDC);
+
+                for (var i = 0; i < formatRanges.Length; i++)
+                {
+                    var format = formatRanges[i];
+
+                    //The offsets stored within the format are relative to the (potentially multiline) logical line,
+                    //so we need to convert these offsets to relative to the current physical line
+                    var formatStart = (format.StartOffset - physicalLine.StartTextIndex) - charsRead;
+                    var formatEnd = (format.EndOffset - physicalLine.StartTextIndex) - charsRead;
+
+                    if (formatStart > 0)
+                    {
+                        //There's text we need to write need to write before the start of the format
+                        subStr = text.Slice(0, formatStart);
+                        charsRead += subStr.Length;
+
+                        //For efficiency, we don't restore the color back to the default after
+                        //every draw, because it'll just get overwritten with whatever the next
+                        //format is. However, if we have an unformatted region, we need to ensure
+                        //that we use the default format
+                        if (charsRead > 0)
+                            Gdi32.SetTextColor(_graphics.MemDC, defaultColor); //todo: use igraphics instead, also get the color from the igraphics in the first place too
+
+                        _graphics.DrawText(subStr, right, yPos, ref right, lineHeight);
+
+                        text = text.Slice(subStr.Length);
+                    }
+
+                    var color = format.Kind switch
+                    {
+                        ViewByteFormatKind.Address => Colors.Address,
+                        ViewByteFormatKind.Code => Colors.Code,
+                        ViewByteFormatKind.Symbol => Colors.Symbol,
+                        ViewByteFormatKind.Number => Colors.Number,
+                        ViewByteFormatKind.String => Colors.String,
+                        ViewByteFormatKind.Byte => Colors.Byte,
+                        ViewByteFormatKind.Line => Colors.Line
+                    };
+
+                    //Now draw using the actual format
+                    subStr = text.Slice(0, formatEnd - formatStart);
+                    charsRead += subStr.Length;
+
+                    Gdi32.SetTextColor(_graphics.MemDC, color);
+
+                    _graphics.DrawText(subStr, right, yPos, ref right, lineHeight);
+
+                    text = text.Slice(subStr.Length);
+                }
+
+                //Make sure we restore the text color to normal!
+                Gdi32.SetTextColor(_graphics.MemDC, defaultColor);
+
+                //If we're not at the end, draw the rest as well
+
+                if (text.Length > 0)
+                {
+                    _graphics.DrawText(text, right, yPos, ref right, lineHeight);
+                }
+            }
+            else
+            {
+                _graphics.DrawText(physicalLine.Text, 0, yPos, ref right, lineHeight);
+            }
 
             yPos += lineHeight;
             physicalLine.IsVisible = true;
@@ -407,6 +598,16 @@ end:
 
         internal unsafe void UpdateScrollBar()
         {
+            //We should never have more logical lines in our buffer than lines than could physically
+            //fit on the screen
+
+#if DEBUG
+            var numVisibleLinesDouble = NumVisibleLinesDouble;
+            var numVisibleLines = (int) Math.Ceiling(numVisibleLinesDouble);
+
+            Debug.Assert(_lines.Count <= numVisibleLines);
+#endif
+
             int pageSize;
             int position = 0;
 

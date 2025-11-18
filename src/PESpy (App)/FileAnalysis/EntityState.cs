@@ -10,6 +10,7 @@ namespace PESpy
         //View specific
         public IView? View;
         public int LastChildIndex = -1;
+        public bool HasChildren;
         public ViewChildList? Children;
 
         //Asm specific
@@ -18,11 +19,12 @@ namespace PESpy
         public bool IsComplete;
         internal IncrementResult LastIncrementResult;
 
-        public EntityState(IView view)
+        public EntityState(IView view, bool hasChildren = true)
         {
             View = view;
             Kind = EntityKind.View;
             StartOffset = view.Offset;
+            HasChildren = hasChildren;
         }
 
         public EntityState(EntityKind kind, int startOffset)

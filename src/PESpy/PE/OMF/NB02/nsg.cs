@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
     /// <summary>
-    /// Information describing each segment in a module<para/>
+    /// Information describing each segment in a module (16-bit / non-<see cref="LEFile"/>)<para/>
     /// "nsg" in the Microsoft C 6.0 Developer's Toolkit Reference; "oldnsg" in cvexefmt.h
     /// </summary>
+    [Source(SourceKind.C6DevToolkit | SourceKind.cvexefmt_h)]
     public readonly struct nsg : IViewableValue
     {
         private const int SegOffset = 0;

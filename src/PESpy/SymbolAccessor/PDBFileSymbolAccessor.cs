@@ -13,9 +13,40 @@ namespace PESpy
             PDBFile = pdbFile;
         }
 
-        public bool TryGetAddressFromName(SymString name, out int targetAddress)
+        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
         {
-            throw new System.NotImplementedException();
+            var psgsi = PDBFile.PSGSI;
+
+            if (psgsi != null)
+            {
+                if (psgsi.TryGetSymbol(name, out var symType))
+                {
+                    if (symType.TryGetRVA(PDBFile, out targetAddress))
+                        return true;
+
+                    //We found the symbol, and it doesn't have an address
+                    return false;
+                }
+            }
+
+            var gsi = PDBFile.GSI;
+
+            if (gsi != null)
+            {
+                if (psgsi.TryGetSymbol(name, out var symType))
+                {
+                    if (symType.TryGetRVA(PDBFile, out targetAddress))
+                        return true;
+
+                    //We found the symbol, and it doesn't have an address
+                    return false;
+                }
+            }
+
+            //Not sure what to do for internal symbols
+
+            targetAddress = default;
+            return false;
         }
 
         public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)

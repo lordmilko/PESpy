@@ -264,9 +264,19 @@ namespace PESpy.PDB
                 }
             }
 
+            public unsafe bool TryGetSymbol(string name, out SymType symType)
+            {
+                using var builder = new Utf8StringBuilder(name);
+
+                fixed (byte* p = builder.AsSpan())
+                {
+                    return TryGetSymbol(new FixedUtf8String(p, builder.Length), out symType);
+                }
+            }
+
             //Note that lhashPbCb tolower's the input string, which means this performs
             //a case insensitive lookup
-            public unsafe bool TryGetSymbol(string name, out SymType symType)
+            public unsafe bool TryGetSymbol(FixedUtf8String name, out SymType symType)
             {
                 //gsi1::HashSym
 
@@ -274,59 +284,54 @@ namespace PESpy.PDB
                 //multiple symbols that match the given name (which is important because the name is hashed
                 //case insensitively, so there could be multiple matches)
 
-                var bytes = Encoding.UTF8.GetBytes(name);
+                var hash = Hasher.lhashPbCb(name.Value, name.Length, (uint) iphrHash);
 
-                fixed (byte* pName = bytes)
+                var buckets = Buckets;
+
+                if (hash > buckets.Length)
                 {
-                    var hash = Hasher.lhashPbCb(pName, bytes.Length, (uint) iphrHash);
+                    symType = default;
+                    return false;
+                }
 
-                    var buckets = Buckets;
+                var bucket = buckets[hash];
 
-                    if (hash > buckets.Length)
+                var i = 0;
+
+                while (bucket.StartIndex < HashRecords.Length && i < bucket.Count)
+                {
+                    //This indexes into HashRecords
+                    var localSymType = Symbols[bucket.StartIndex + i];
+
+                    var pdbFile = chunk.PDBFile();
+
+                    if (!localSymType.TryGetName(pdbFile, out var symbolName))
                     {
                         symType = default;
                         return false;
                     }
 
-                    var bucket = buckets[hash];
+                    var compareResult = ((FixedUtf8String) symbolName).CompareToIgnoreCase(name);
 
-                    var i = 0;
-
-                    while (bucket.StartIndex < HashRecords.Length && i < bucket.Count)
+                    if (compareResult == 0)
                     {
-                        //This indexes into HashRecords
-                        var localSymType = Symbols[bucket.StartIndex + i];
-
-                        var pdbFile = chunk.PDBFile();
-
-                        if (!localSymType.TryGetName(pdbFile, out var symbolName))
-                        {
-                            symType = default;
-                            return false;
-                        }
-
-                        var compareResult = ((FixedUtf8String) symbolName).CompareToIgnoreCase(new FixedUtf8String(pName, bytes.Length));
-
-                        if (compareResult == 0)
-                        {
-                            symType = localSymType;
-                            return true;
-                        }
-
-                        /* HashSym says that their HR records are sorted by name, so they can bail out
-                         * early if the comparison is not less than the target name. I can't see how/where
-                         * this sort is occurring, and the on disk symbols are _not_ sorted by name within
-                         * a given bucket. So instead, we keep track of the size of each bucket, and just iterate
-                         * over all symbols within the bucket to see if we find a match */
-
-                        //Try the next record
-
-                        i++;
+                        symType = localSymType;
+                        return true;
                     }
 
-                    symType = default;
-                    return false;
+                    /* HashSym says that their HR records are sorted by name, so they can bail out
+                     * early if the comparison is not less than the target name. I can't see how/where
+                     * this sort is occurring, and the on disk symbols are _not_ sorted by name within
+                     * a given bucket. So instead, we keep track of the size of each bucket, and just iterate
+                     * over all symbols within the bucket to see if we find a match */
+
+                    //Try the next record
+
+                    i++;
                 }
+
+                symType = default;
+                return false;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

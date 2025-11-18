@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly EXPORTSYM* value;
 
+        public static implicit operator SymType(ExportSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="EXPORTSYM.reclen"/>
         public ushort reclen => value->reclen;
 

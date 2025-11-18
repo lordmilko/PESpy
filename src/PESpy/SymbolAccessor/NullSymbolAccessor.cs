@@ -13,7 +13,7 @@
             return false;
         }
 
-        public bool TryGetAddressFromName(SymString name, out int targetAddress)
+        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
         {
             targetAddress = default;
             return false;

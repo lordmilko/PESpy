@@ -294,8 +294,16 @@ var strings = new[]{
     "CV_DebugSLinesHeader_t",
     "CV_DebugSLinesFileBlockHeader_t",
     "CV_Line_t",
+    "Inlinee Sig And Lines",
+    "InlineeSourceLine",
+    "InlineeSourceLineEx",
     "Func MD Token Map",
     "Type MD Token Map",
+    "CrossScopeReferences",
+    "LocalIdAndGlobalIdPair",
+    "PdbIdScope",
+
+    "SrcHeaderOut",
 
     //Symbols
     "ALIGNSYM",
@@ -541,9 +549,15 @@ var strings = new[]{
     "nsg",
     "nsg32",
     "pbi",
+    "pbi32",
     "smd",
+    "smd32",
     "loe",
+    "loe32",
     "LineNumber Offset",
+    "Library Name",
+    "Old SymType",
+    "Old TypType",
 
     "DNRB Module",
 

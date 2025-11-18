@@ -6,6 +6,22 @@ using DirectoryInfo = PESpy.View.Builder.DirectoryInfo;
 
 namespace PESpy.View
 {
+    internal struct PageInfo
+    {
+        public SI si;
+        public int siIndex;
+        public int pageIndex;
+        public string name;
+
+        public PageInfo(SI si, int siIndex, int pageIndex, string name)
+        {
+            this.si = si;
+            this.siIndex = siIndex;
+            this.pageIndex = pageIndex;
+            this.name = name;
+        }
+    }
+
     public class PDBViewWriter : ViewWriter
     {
         internal PDBFile pdbFile;
@@ -31,8 +47,28 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            using var pages = new PooledList<DirectoryInfo>();
+            var pages = new PooledList<DirectoryInfo>();
+            var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
 
+            try
+            {
+                GetContiguousSectionInfos(pdbFile, ref contiguousSections, ref pages);
+
+                using var merger = new Merger(pdbFile, this, structs, default, pages, byteViewProvider);
+
+                var results = merger.MergePDB(contiguousSections);
+
+                return new FileView(ViewMode.Physical, pdbFile.Name, results, this, ViewKind.PDBFile);
+            }
+            finally
+            {
+                pages.Dispose();
+                contiguousSections.Dispose();
+            }
+        }
+
+        private static Dictionary<int, string> BuildStreamIndexToNameMap(PDBFile pdbFile)
+        {
             var streamIndexToNameMap = new Dictionary<int, string>();
 
             if (pdbFile.PDB != null)
@@ -43,8 +79,6 @@ namespace PESpy.View
                     streamIndexToNameMap.Add(kv.Value, kv.Key);
                 }
             }
-
-            var pageToSIMap = new Dictionary<PN, (SI si, int siIndex, int pageIndex, string name)>();
 
             //Add in global symbol streams
             //todo: not sure how you detect that the stream isnt present
@@ -77,6 +111,20 @@ namespace PESpy.View
                 }
             }
 
+            if (pdbFile.IPI != null)
+            {
+                var hdr = pdbFile.IPI.Hdr;
+
+                if (hdr is HDR h)
+                {
+                    var tpihash = h.tpihash;
+                    streamIndexToNameMap.Add(tpihash.sn, "IPI Hash");
+
+                    if (tpihash.snPad != SN.Nil)
+                        streamIndexToNameMap.Add(tpihash.sn, "IPI Hash (Aux)");
+                }
+            }
+
             if (pdbFile.DBI != null)
             {
                 if (pdbFile.DBI.Modules != null)
@@ -90,7 +138,7 @@ namespace PESpy.View
 
                             var str = module.ToString();
 
-                            var lastIndex = str.LastIndexOfAny(new[] {'\\', '/'});
+                            var lastIndex = str.LastIndexOfAny(new[] { '\\', '/' });
 
                             if (lastIndex != -1 && lastIndex < str.Length - 1)
                                 str = str.Substring(lastIndex);
@@ -137,9 +185,18 @@ namespace PESpy.View
                     if (d.SectionHdrOrig != SN.Nil)
                         streamIndexToNameMap.Add(d.SectionHdrOrig, "SectionHdrOrig");
 
-                    //Don't add Max as it's not a real value
+                    //Max simply represents the highest known stream; there are additional
+                    //streams like XFG data that have been added since microsoft-pdb was published,
+                    //however we don't know what they're called or at which position they are
                 }
             }
+
+            return streamIndexToNameMap;
+        }
+
+        private static Dictionary<PN, PageInfo> BuildPageInfoMap(PDBFile pdbFile, Dictionary<int, string> streamIndexToNameMap)
+        {
+            var pageToSIMap = new Dictionary<PN, PageInfo>();
 
             //Build up a list of pages and which streams reside in each page
             for (var i = 0; i < pdbFile.StreamTable.StreamInfos.Length; i++)
@@ -185,10 +242,15 @@ namespace PESpy.View
                 for (var j = 0; j < item.PageList.Length; j++)
                 {
                     var page = item.PageList[j];
-                    pageToSIMap.Add(page, (item, i, j, name));
+                    pageToSIMap.Add(page, new PageInfo(item, i, j, name));
                 }
             }
 
+            return pageToSIMap;
+        }
+
+        private static Dictionary<int, string> GetSpecialPageMap(PDBFile pdbFile)
+        {
             var specialPageMap = new Dictionary<int, string>();
 
             //As per msf.cpp, the first few pages are special
@@ -289,7 +351,18 @@ namespace PESpy.View
                 }
             }
 
-            using var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
+            return specialPageMap;
+        }
+
+        internal static void GetContiguousSectionInfos(
+            PDBFile pdbFile,
+            ref PooledList<PDBContiguousSectionInfo> contiguousSections,
+            ref PooledList<DirectoryInfo> pages)
+        {
+            var streamIndexToNameMap = BuildStreamIndexToNameMap(pdbFile);
+            var pageToSIMap = BuildPageInfoMap(pdbFile, streamIndexToNameMap);
+
+            var specialPageMap = GetSpecialPageMap(pdbFile);
 
             PDBContiguousSectionInfo currentContiguousSection = default;
 
@@ -304,7 +377,7 @@ namespace PESpy.View
                     string name;
 
                     if (match.name != null)
-                        name = $"'{match.name} ({match.siIndex})'";
+                        name = $"'{match.name} (Stream{match.siIndex})'";
                     else
                         name = $"Stream{match.siIndex}";
 
@@ -357,7 +430,7 @@ namespace PESpy.View
                     }
 
                     nameBuilder.Append(" | " + name);
-                    nameBuilder.Append(" (");
+                    nameBuilder.Append(" (Page ");
                     nameBuilder.Append(match.pageIndex + 1);
                     nameBuilder.Append("/");
                     nameBuilder.Append(match.si.PageList.Length);
@@ -390,12 +463,6 @@ namespace PESpy.View
 
                 pages.Add(new DirectoryInfo(nameBuilder.ToString(), i * pdbFile.PageSize, pdbFile.PageSize));
             }
-
-            using var merger = new Merger(pdbFile, this, structs, default, pages, byteViewProvider);
-
-            var results = merger.MergePDB(contiguousSections);
-
-            return new FileView(ViewMode.Physical, pdbFile.Name, results, this, ViewKind.PDBFile);
         }
     }
 }

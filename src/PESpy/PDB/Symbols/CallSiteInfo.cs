@@ -20,6 +20,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CALLSITEINFO* value;
 
+        public static implicit operator SymType(CallSiteInfo value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="CALLSITEINFO.reclen"/>
         public ushort reclen => value->reclen;
 

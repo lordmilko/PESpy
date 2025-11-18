@@ -6,6 +6,8 @@
         Overview,
         Singleton,
         List,
-        Code
+        Code,
+        Strings,
+        Log
     }
 }

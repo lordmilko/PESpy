@@ -18,6 +18,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ENVBLOCKSYM* value;
 
+        public static implicit operator SymType(EnvBlockSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ENVBLOCKSYM.reclen"/>
         public ushort reclen => value->reclen;
 

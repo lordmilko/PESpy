@@ -5,9 +5,9 @@ using PESpy.View;
 namespace PESpy
 {
     /// <summary>
-    /// Information describing each segment in a module
+    /// Information describing each segment in a module of (32-bit / <see cref="LEFile"/>).
     /// </summary>
-    public readonly struct nsg32 : IValue, IViewable
+    public readonly struct nsg32 : IViewableValue
     {
         private const int SegOffset = 0;
         private const int OffOffset = 2;

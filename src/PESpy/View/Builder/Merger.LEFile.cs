@@ -39,7 +39,7 @@ namespace PESpy.View.Builder
                     vxdHeader.OffsetOfEnumeratedDataPages   != 0 ? vxdHeader.OffsetOfEnumeratedDataPages   - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
                     vxdHeader.OffsetOfIteratedDataMap       != 0 ? vxdHeader.OffsetOfIteratedDataMap       - vxdHeader.Offset : 0,
                     vxdHeader.OffsetOfNonResidentNamesTable != 0 ? vxdHeader.OffsetOfNonResidentNamesTable - vxdHeader.Offset : 0,
-                    vxdHeader.OffsetOfDebugInfo
+                    vxdHeader.OffsetOfDebugInfo != 0 ? vxdHeader.OffsetOfDebugInfo - vxdHeader.Offset : 0
                 };
 
     #if DEBUG
@@ -113,7 +113,8 @@ namespace PESpy.View.Builder
             else
                 next = byteViewProvider.FileOrSectionLength - vxdHeader.Offset;
 
-            //Some offsets are relative to the start of the EXE file, others are relative to the beginning of the LE header
+            //Some offsets are relative to the start of the EXE file, others are relative to the beginning of the LE header.
+            //We account for this by subtracting the vxd header offset from our offsets list, so that the common case of having to add the offset here cancels out
             var start = vxdHeader.Offset + current;
             var length = next - current;
             var end = start + length;

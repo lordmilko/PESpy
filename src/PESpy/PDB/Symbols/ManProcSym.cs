@@ -29,6 +29,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly MANPROCSYM* value;
 
+        public static implicit operator SymType(ManProcSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="MANPROCSYM.reclen"/>
         public ushort reclen => value->reclen;
 

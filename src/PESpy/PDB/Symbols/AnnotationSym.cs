@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ANNOTATIONSYM* value;
 
+        public static implicit operator SymType(AnnotationSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="ANNOTATIONSYM.reclen"/>
         public ushort reclen => value->reclen;
 

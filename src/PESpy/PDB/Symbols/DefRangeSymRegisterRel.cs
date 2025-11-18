@@ -23,6 +23,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMREGISTERREL* value;
 
+        public static implicit operator SymType(DefRangeSymRegisterRel value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DEFRANGESYMREGISTERREL.reclen"/>
         public ushort reclen => value->reclen;
 

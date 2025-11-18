@@ -1,1 +1,2 @@
 M:System.Enum.HasFlag(System.Enum); Enum.HasFlag allocates, even in .NET Core under certain circumstances
+M:System.Text.Encoding.GetBytes(System.String); GetBytes allocates; use Utf8StringBuilder instead

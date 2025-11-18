@@ -33,11 +33,11 @@ namespace PESpy.PDB
 
         public unsafe void SetMagic(string magic)
         {
-            var bytes = Encoding.ASCII.GetBytes(magic);
+            using var builder = new Utf8StringBuilder(magic);
 
-            fixed (byte* p = bytes)
+            fixed (byte* p = builder.AsSpan())
             {
-                var str = new FixedAnsiString(p, bytes.Length);
+                var str = new FixedAnsiString(p, builder.Length);
                 Magic = str;
             }
         }

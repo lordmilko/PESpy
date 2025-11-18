@@ -24,6 +24,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FRAMEPROCSYM* value;
 
+        public static implicit operator SymType(FrameProcSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="FRAMEPROCSYM.reclen"/>
         public ushort reclen => value->reclen;
 

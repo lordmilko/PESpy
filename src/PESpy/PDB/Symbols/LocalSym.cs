@@ -19,6 +19,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly LOCALSYM* value;
 
+        public static implicit operator SymType(LocalSym value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="LOCALSYM.reclen"/>
         public ushort reclen => value->reclen;
 

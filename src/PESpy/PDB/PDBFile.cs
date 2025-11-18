@@ -84,26 +84,31 @@ namespace PESpy
             //File.OpenWrite opens with FileMode.OpenOrCreate. The file _must_ already exist if we are opening it with an MMF
             using var fs = writable ? File.Open(path, FileMode.Open, FileAccess.ReadWrite) : File.OpenRead(path);
 
+            return FromStream(fs);
+        }
+
+        public static PDBFile FromStream(FileStream fileStream)
+        {
             //V2 magic is 44 bytes and a BIGMSF_HDR is close to 60
-            if (fs.Length < 44)
+            if (fileStream.Length < 44)
                 throw new BadImageFormatException("File is not large enough to contain a PDB header");
 
-            var mmf = new MemoryMappedFileHolder(fs);
+            var mmf = new MemoryMappedFileHolder(fileStream);
 
             try
             {
                 var magic = new FixedAnsiString(mmf.Address, 32);
 
                 if (magic == BigMsfHdr.BigHdrMagic)
-                    return new PDB7File(fs.Name, mmf);
+                    return new PDB7File(fileStream.Name, mmf);
 
                 magic = new FixedAnsiString(mmf.Address, 44);
 
                 if (magic == MsfHdr.HdrMagic)
-                    return new PDB2File(fs.Name, mmf);
+                    return new PDB2File(fileStream.Name, mmf);
 
                 if (magic == OHDR.OHdrMagic)
-                    return new PDB1File(fs.Name, mmf);
+                    return new PDB1File(fileStream.Name, mmf);
 
                 if (*(uint*) mmf.Address == StorageSignature.STORAGE_MAGIC_SIG)
                     throw new InvalidOperationException("Portable PDB files cannot be opened using this method. Use PortablePDB.FromFile() instead");
@@ -379,7 +384,8 @@ namespace PESpy
             if (typeIndex.CV_IS_PRIMITIVE())
                 throw new ArgumentException($"Cannot resolve TypType for {nameof(CV_typ_t)} {typeIndex}: type is a primitive type");
 
-            var tpi = TPI;
+            if (stream == null)
+                throw new InvalidOperationException($"Attempted to resolve a type index when no {streamName} stream was present");
 
             if (tpi == null)
                 throw new InvalidOperationException("Attempted to resolve a type index when no TPI stream was present");
@@ -670,7 +676,8 @@ namespace PESpy
             //File.OpenWrite opens the file with FileAccess.Write, but we need ReadWrite to memory map it
             using var fs = File.Open(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
-            //todo: how does microsoft-pdb go about zeroing stuff
+            //IIRC microsoft-pdb doesn't need to worry about zeroing stuff, because it expands the file on disk
+            //and only writes data that has been modified in memory to it
 
             var pageSize = PageSize;
 
@@ -873,7 +880,20 @@ namespace PESpy
                 }
             }
 
-            var globals = GSI;
+            //The symbols in GSI and PSGSI literally come from snSymRecs; they simply target specific items
+
+            var thunkEntries = PSGSI?.ThunkEntries;
+
+            if (thunkEntries != null && thunkEntries.Length > 0)
+            {
+                foreach (var thunkEntry in thunkEntries)
+                {
+                    if (thunkEntry.Thunk != default)
+                        yield return thunkEntry.Thunk;
+                }
+            }
+        }
+
         public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement)
         {
             symType = default;
@@ -956,30 +976,97 @@ namespace PESpy
             if (!psgsi.TryGetNearestSymbol(relativeOffset, sectionNumber, out symType, out displacement))
                 return false;
 
-            //We don't currently support looking for a better symbol
+            /* We have a public symbol, but now we need to see if we can get a better symbol by looking at the symbols within the modules
+             * (which may or may not be present). CAllSymsByAddrTrav next tries to call CBlockByAddrTrav. CBlockByAddrTrav delegates to two
+             * traversers. First it tries to find a symbol from CModSymsByAddrTrav::FInit, and then based on the result of that may call
+             * CBlockByAddrTrav::FInit. There's no fancy caching or anything going on, it's just a linear search. In order to search the
+             * symbols of a given module we first need to know what module the RVA we're looking at belongs to. And this is where the
+             * section contribs come in */
 
+                var symbols = modi.Symbols;
+
+                if (symbols != null)
+                {
+                    if (TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, out var betterSymbol, out var betterSymbolDisplacement))
+                    {
+                        symType = betterSymbol;
+                        displacement = betterSymbolDisplacement;
+                    }
+                }
             return true;
+        }
+
+        internal static bool TryGetBestModuleSymbol(
+            SymTypeList symbols,
+            ushort sectionNumber,
+            int relativeOffset,
+            int scOff,
+            int scEnd,
+            out SymType symType,
+            out int displacement)
+        {
+            /* We've got the section contrib that the target RVA belongs to; we just now need to find the "best" symbol inside of it.
+             * In a Native AOT app you have a great big section contrib which basically contains most of the code. Simply being inside of the
+             * section contrib is not good enough; we need to get whoever's closest! I'm not 100% sure but it seems like symbols may be ordered
+             * by ascending offset, in which case what we can do is keep track of the last "best" symbol. If we go beyond the offset we're asking for,
+             * we've gone too far */
+
+            SYMTYPE* betterSymbol = default;
+            int betterSymbolOffset = relativeOffset;
+
+            foreach (var symbol in symbols.GetTopLevel())
+            {
+                var symTag = symbol.GetSymTagEnum();
+
+                switch (symTag)
+                {
+                    case SymTagEnum.Function:
+                        if (symbol.TryGetOffSeg(out var off, out var seg) && seg == sectionNumber && off >= scOff)
+                        {
+                            if (off <= relativeOffset && off < scEnd)
+                            {
+                                betterSymbol = symbol; //This is the new best symbol
+                                betterSymbolOffset = off;
+                            }
+                            else
+                            {
+                                if (betterSymbol != default)
+                                {
+                                    symType = betterSymbol;
+                                    displacement = relativeOffset - betterSymbolOffset; //todo: recurse deeper into blocks?
+
+                                    return true;
+                                }
+                            }
+                        }
+
+                        break;
+
+                    //S_SEPCODE is SymEnumBlock, but I don't think this means anything
+                    //case ClrDebug.DIA.SymTagEnum.Block:
+
+                    case SymTagEnum.Thunk:
+                        betterSymbol = symbol;
+                        break;
+
+                    default:
+                        Debug.Assert(symbol.rectyp != SYM_ENUM_e.S_TRAMPOLINE); //DIA special handles these somehow
+                        break;
+                }
+            }
+
+            symType = default;
+            displacement = default;
+            return false;
         }
 
         //Section numbers are 1 based
         public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int sectionOffset)
         {
-            var sectionHeaders = DBI?.SectionHdr;
+            var sectionHeaders = DBI?.SectionHdr ?? fallbackSectionHeaders;
 
             if (sectionHeaders != null)
-            {
-                for (var i = 0; i < sectionHeaders.Length; i++)
-                {
-                    ref var sectionHeader = ref sectionHeaders[i];
-
-                    if (rva >= sectionHeader.VirtualAddress && rva <= sectionHeader.VirtualAddress + sectionHeader.VirtualSize)
-                    {
-                        sectionOffset = rva - sectionHeader.VirtualAddress;
-                        sectionNumber = (ushort) (i + 1);
-                        return true;
-                    }
-                }
-            }
+                return ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, rva, out sectionNumber, out sectionOffset);
 
             sectionNumber = default;
             sectionOffset = default;
@@ -1140,7 +1227,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor() => symbolAccessor ??= new PDBFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
         internal ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

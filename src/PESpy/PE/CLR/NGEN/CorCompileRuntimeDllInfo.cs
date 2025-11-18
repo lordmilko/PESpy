@@ -1,7 +1,10 @@
-﻿namespace PESpy
+﻿using System.Diagnostics;
+
+namespace PESpy
 {
     //CORCOMPILE_RUNTIME_DLL_INFO
     [Source(SourceKind.corcompile_h)]
+    [DebuggerDisplay("timeStamp = {timeStamp}, virtualSize = 0x{virtualSize.ToString(\"X\"),nq}")]
     public readonly struct CorCompileRuntimeDllInfo : IValue
     {
         private const int timeStampOffset = 0;

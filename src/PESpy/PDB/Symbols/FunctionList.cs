@@ -18,6 +18,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly FUNCTIONLIST* value;
 
+        public static implicit operator SymType(FunctionList value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="FUNCTIONLIST.reclen"/>
         public ushort reclen => value->reclen;
 

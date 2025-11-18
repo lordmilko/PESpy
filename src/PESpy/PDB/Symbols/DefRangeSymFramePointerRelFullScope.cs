@@ -17,6 +17,8 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE* value;
 
+        public static implicit operator SymType(DefRangeSymFramePointerRelFullScope value) => new SymType((SYMTYPE*) value.value);
+
         /// <inheritdoc cref="DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE.reclen"/>
         public ushort reclen => value->reclen;
 
