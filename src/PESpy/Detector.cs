@@ -5,6 +5,7 @@ using PESpy.Native;
 using PESpy.NE;
 using PESpy.OMF;
 using PESpy.PDB;
+using PESpy.SYM;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 //Having out IFile? is confusing from an API standpoint because the caller has to keep doing file! whenever they use it when we returned true.
@@ -46,7 +47,7 @@ namespace PESpy
 
             try
             {
-                if (TryDetectFile(mmf, length, out var kind, out var subKind))
+                if (TryDetectFile(path, mmf, length, out var kind, out var subKind))
                 {
                     switch (kind)
                     {
@@ -108,6 +109,10 @@ namespace PESpy
                         case FileKind.OMFLIB:
                             file = new OMFLIBFile(fs.Name, mmf);
                             return true;
+
+                        case FileKind.SYM:
+                            file = new SYMFile(fs.Name, mmf);
+                            return true;
                     }
                 }
 
@@ -144,7 +149,7 @@ namespace PESpy
 
             try
             {
-                return TryDetectFile(mmf, length, out fileKind, out fileSubKind);
+                return TryDetectFile(path, mmf, length, out fileKind, out fileSubKind);
             }
             finally
             {
@@ -154,6 +159,7 @@ namespace PESpy
         }
 
         private static unsafe bool TryDetectFile(
+            string path,
             MemoryMappedFileHolder mmf,
             long length,
             out FileKind fileKind,
@@ -351,6 +357,25 @@ namespace PESpy
                         return true;
                     }
                     break;
+            }
+
+            var ext = Path.GetExtension(path);
+
+            if (ext.Equals(".SYM", StringComparison.OrdinalIgnoreCase) && length > (mapdef_s.FixedStructSize + endmap_s.StructSize))
+            {
+
+                var addr = mmf.Address + length;
+
+                var version = *(addr - 1);
+                var release = *(addr - 2);
+
+                //If it's a *.sym file, check the endmap_s for any supported version version >= 3.10 and <= 6.x
+                //6.x was the last version. Versions earlier than 3.10 don't use paragraphs, which we don't currently support
+                if ((version == 3 && release >= 10) || (version > 3 && version < 6) || (version == 6))
+                {
+                    fileKind = FileKind.SYM;
+                    return true;
+                }
             }
 
             //Unknown value. Not a valid file
