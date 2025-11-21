@@ -66,6 +66,8 @@ namespace PESpy.PDB
             return false;
         }
 
+        public Span<byte> AsSpan() => new Span<byte>((byte*) value, len + sizeof(short));
+
         public bool Equals(TypType other) => value == other.value;
 
         public override string ToString()

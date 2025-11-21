@@ -1,0 +1,52 @@
+﻿<#+
+
+    /*********************************************************************************
+     * Get Method Signature                                                          *
+     *********************************************************************************/
+
+    public string GetSignature(string name, string returnType, int i, bool needAwait = true)
+    {
+        if(i == 0)
+            return $"{returnType} {name}";
+        else
+        {
+            if(returnType == "void")
+                returnType = "ValueTask";
+            else
+                returnType = $"ValueTask<{returnType}>";
+        }
+
+        if (needAwait)
+            return $"async {returnType} {name}Async";
+
+        return $"{returnType} {name}Async";
+    }
+
+    /*********************************************************************************
+     * Call Function                                                                 *
+     *********************************************************************************/
+
+    public string CallFunction(string name, string parameters, int i)
+    {
+        if(i == 0)
+            return $"{name}({parameters})";
+        else
+            return $"await {name}Async({parameters}).ConfigureAwait(false)";
+    }
+
+    public string CallFunctionNoAwait(string name, int i)
+    {
+        if(i == 0)
+            return name;
+
+        return $"{name}Async";
+    }
+
+    public string WrapResult(string type, string result, int i)
+    {
+        if(i == 0)
+            return result;
+        else
+            return $"new ValueTask<{type}>({result})";
+    }
+#>

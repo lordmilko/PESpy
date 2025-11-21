@@ -374,7 +374,14 @@ namespace PESpy
 
         #endregion
 
-        public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+        /* tpihash.sn comes from bufMapHash
+         *
+         * TPI1::AddNewTypeRecord appends items to it. You pass in some bytes. A REC is created around the bytes,
+         * and then TPI1::hashPrec hashes the PREC. For versions below impv80, a 16-bit HASH is added. Otherwise,
+         * it's a 32-bit LHASH. A TI -> OFF tuple is then recorded for every 8kb of data written
+         * to the main type record buffer
+         */
+
         public TypType GetTypTypeFromIndex(CV_typ_t typeIndex) => GetTypTypeFromIndex(typeIndex, TPI, "TPI");
 
         public TypType GetTypTypeFromIndex(CV_ItemId typeIndex) => GetTypTypeFromIndex((int) (uint) typeIndex, IPI, "IPI");
@@ -387,71 +394,7 @@ namespace PESpy
             if (stream == null)
                 throw new InvalidOperationException($"Attempted to resolve a type index when no {streamName} stream was present");
 
-            if (tpi == null)
-                throw new InvalidOperationException("Attempted to resolve a type index when no TPI stream was present");
-
-            //In impv70+ there is a table in tpihash that we can use to do a binary search on to get the offset of the type index
-
-            if (TryGetOffsetFromTpiHash(typeIndex, out var offset))
-                return tpi.Types.GetTypeFromOffset(offset);
-
-            throw new NotImplementedException("Retrieving a TypType when the type index is not in the TI to Offset list is not implemented");
-        }
-
-        private NativeSpan<TI_OFF> tiToOffList;
-        private bool hasTriedTiToOffList;
-
-        private bool TryGetOffsetFromTpiHash(CV_typ_t typeIndex, out int offset)
-        {
-            //It seems that not all type indices in a PDB may be in this list
-            offset = default;
-
-            if (tiToOffList.Length == 0)
-            {
-                if (hasTriedTiToOffList)
-                    return false;
-
-                //Caller should have validated we have a TPI
-                if (TPI!.Hdr is HDR h)
-                {
-                    var tpiHash = h.tpihash;
-
-                    if (TryGetStreamChunk(tpiHash.sn, out var chunk))
-                    {
-                        var val = chunk.Slice(tpiHash.offcbTiOff.off);
-
-                        hasTriedTiToOffList = true;
-                        tiToOffList = val.PeekNativeSpan<TI_OFF>(0, tpiHash.offcbTiOff.cb / 8);
-                    }
-                }
-
-                hasTriedTiToOffList = true;
-            }
-
-            var localList = tiToOffList;
-
-            //Binary search for offset
-            int low = 0;
-            int high = localList.Length - 1;
-
-            while (low <= high)
-            {
-                int mid = low + (high - low) / 2;
-
-                var item = localList[mid];
-
-                if (item.ti == typeIndex)
-                {
-                    offset = item.off;
-                    return true;
-                }
-                else if (item.ti < typeIndex)
-                    low = mid + 1;
-                else
-                    high = mid - 1;
-            }
-
-            return false;
+            return stream.GetTypTypeFromIndex(typeIndex);
         }
 
         #region /names
@@ -974,7 +917,7 @@ namespace PESpy
 
             //EnumPubsByAddr::locate
             if (!psgsi.TryGetNearestSymbol(relativeOffset, sectionNumber, out symType, out displacement))
-                return false;
+               return false;
 
             /* We have a public symbol, but now we need to see if we can get a better symbol by looking at the symbols within the modules
              * (which may or may not be present). CAllSymsByAddrTrav next tries to call CBlockByAddrTrav. CBlockByAddrTrav delegates to two

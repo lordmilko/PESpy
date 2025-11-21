@@ -12,6 +12,7 @@ namespace PESpy
 
         internal PDB2FileDebugView(PDB2File pdbFile) : base(pdbFile)
         {
+            this.pdbFile = pdbFile;
         }
     }
 

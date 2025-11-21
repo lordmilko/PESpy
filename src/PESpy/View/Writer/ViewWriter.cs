@@ -23,7 +23,14 @@ namespace PESpy.View
 
         public IReadOnlyList<IView> Current => new ReadOnlyCollection<IView>(globalList);
 
-        internal virtual ICodeViewAccessor GetSymbolAccessor() => throw new NotImplementedException();
+        internal virtual ICodeViewAccessor GetSymbolAccessor()
+        {
+            //We've got a bit of an issue with OBJ files; we can set the accessor when we construct the symbol,
+            //but we then clear it afterwards, so symbols are going to be forced to lookup their appropriate symbol accessor manually
+            return ManualSymbolAccessor;
+        }
+
+        internal ICodeViewAccessor ManualSymbolAccessor { get; set; }
 
         internal void Clear() => globalList.Clear();
 

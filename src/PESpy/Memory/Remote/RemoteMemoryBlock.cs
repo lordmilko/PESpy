@@ -75,7 +75,9 @@ namespace PESpy
 
             if (mmf != null && LocalPointer != default)
             {
+#if NETSTANDARD
                 RuntimeHelpers.PrepareConstrainedRegions();
+#endif
 
                 try
                 {

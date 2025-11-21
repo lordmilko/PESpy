@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
+#if WINFORMS
 using System.Windows.Forms;
+#endif
 using PESpy.View;
 using PInvoke;
+#if !WINFORMS
+using Form = PESpy.Controls.NativeForm;
+#endif
 
-namespace PESpy
+namespace PESpy.Controls
 {
     public partial class GoToDialog : Form
     {
@@ -18,11 +24,15 @@ namespace PESpy
             public FixedUtf8String Name;
             public FixedUtf16String NameWide;
             public int Offset;
+
+            [AllowNull]
             public string Section;
             public int RVA;
             public ulong VA;
 
             public RECT Rect;
+
+            [AllowNull]
             public Bitmap Image;
 
             public int Score;
@@ -165,6 +175,7 @@ namespace PESpy
         public int DefaultWidth => _defaultWidth;
         public int DefaultHeight => _defaultHeight;
 
+        [AllowNull]
         internal FileAccessor _fileAccessor;
         private CancellationTokenSource? _lastCTS;
 
@@ -905,6 +916,7 @@ namespace PESpy
                 var ptr = Marshal.StringToHGlobalAnsi(str);
 
                 TryProcessHex(results, str);
+
                 try
                 {
                     fixed (char* c = str)

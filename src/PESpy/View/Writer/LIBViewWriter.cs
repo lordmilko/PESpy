@@ -20,7 +20,7 @@ namespace PESpy.View
             this.libFile = libFile;
         }
 
-        private static bool TryGetViewOffset(int offset, out int viewoffset)
+        private static new bool TryGetViewOffset(int offset, out int viewoffset)
         {
             viewoffset = offset;
             return true;

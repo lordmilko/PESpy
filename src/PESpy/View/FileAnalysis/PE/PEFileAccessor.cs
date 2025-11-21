@@ -16,11 +16,15 @@ namespace PESpy.View
 
         public override IFile File => PEFile;
 
+        public override bool IsLoaded => PEFile.IsLoadedImage;
+
         /* To reduce the cost of having to constantly lookup what section a given RVA belongs to and whether that section
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when
          * we're constantly looking up values that likely all belong to the same section */
         private PESectionLookupCache _lookupCache;
         private ISymbolAccessor _symbolAccessor;
+
+        private ViewWriter _viewWriter;
 
         public PEFileAccessor(PEFile peFile) : base(peFile.Is32Bit ? 32 : 64)
         {
@@ -120,6 +124,12 @@ namespace PESpy.View
             SectionAccessors = sectionAccessors;
         }
 
+        protected override object CreateOverview()
+        {
+            Debug.Assert(_symbolAccessor != null);
+            return new PEFileOverview(PEFile, _symbolAccessor);
+        }
+
         public override void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
         {
             switch (sectionAccessor.Kind)
@@ -161,12 +171,34 @@ namespace PESpy.View
             }
         }
 
-        internal override MemoryChunk GetMemoryChunk(int rva)
+        internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
         {
             if (!PEFile.TryGetValueChunkFromSectionOrHeader(rva, out var chunk))
-                throw new NotImplementedException();
+                throw new InvalidOperationException($"Failed to resolve a memory chunk for RVA 0x{rva}");
 
             return chunk;
+        }
+
+        internal override MemoryChunk GetMemoryChunkFromAddress(int address)
+        {
+            if (!PEFile.TryGetValueChunkFromPhysicalOffset(address, out var chunk))
+                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+
+            return chunk;
+        }
+
+        protected override ViewWriter GetViewWriter()
+        {
+            if (_viewWriter == null)
+            {
+                _viewWriter = new PEViewWriter(PEFile);
+
+#if DEBUG
+                _viewWriter.ShouldVerifyXRefs = false;
+#endif
+            }
+
+            return _viewWriter;
         }
 
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>
@@ -178,6 +210,64 @@ namespace PESpy.View
         void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength) =>
             _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, sectionIndex, out pByte, out remainingLength);
 
+        internal override bool TryGetDataSymbol(ulong address, int rva, out FixedUtf8String name, out int displacement)
+        {
+            //Stuff like fs:[0] will take us below 0
+            if (rva > 0 && _lookupCache.TryGetSectionInfo((int) rva, out var targetAddress, out _, out _))
+            {
+                if (_infoMap.TryGetValue((int) targetAddress, out var data) && data.NameIndex != 0)
+                {
+                    //Certain symbols have enhanced names, whereas others
+                    //like ImageThunkData exist in pairs: the IAT one might not
+                    //have a name, but we do want to show the name from the ILT one!
+                    //We don't currently do that
+
+                    name = _names[data.NameIndex - 1];
+
+                    Debug.Assert(name.Length > 0);
+                    displacement = 0;
+                    return true;
+                }
+                else
+                {
+                    //Maybe it's a displacement (e.g. a jump within a function). We prefer to ask the infoMap directly where possible
+                    //as this would presumably be faster than having to do a whole lookup
+
+                    //Symbols should have already been discovered prior to us trying to get symbols
+                    if (_symbolAccessor.TryGetNameFromAddress(rva, out var symName, out displacement))
+                    {
+                        name = symName;
+                        return true;
+                    }
+                }
+            }
+
+            name = default;
+            displacement = default;
+            return false;
+        }
+
+        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
+        {
+            if (PEFile.IsLoadedImage)
+            {
+                rva = targetAddress; //SectionAccessor.StartAddress is an RVA, which means address (which is an offset against StartAddress)
+            }
+            else
+            {
+                if (sectionAccessor.SectionIndex == -1)
+                {
+                    rva = default;
+                    return false;
+                }
+
+                ref var section = ref PEFile.SectionHeaders[sectionAccessor.SectionIndex];
+                rva = section.VirtualAddress + (targetAddress - sectionAccessor.StartAddress);
+            }
+
+            return true;
+        }
+
         internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor() =>
             new PEFileThreadLocalSectionDataAccessor(PEFile);
 
@@ -187,5 +277,7 @@ namespace PESpy.View
 
             base.Dispose();
         }
+
+        internal override ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => _symbolAccessor ??= PEFile.GetSymbolAccessor(progress);
     }
 }

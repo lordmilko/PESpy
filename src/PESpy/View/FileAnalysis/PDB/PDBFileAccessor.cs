@@ -117,6 +117,10 @@ namespace PESpy.View
 
             if (dbi.DbiHdr is NewDBIHdr n)
                 return GetBitness(n.wMachine);
+
+            throw new NotImplementedException("Don't know whether DbiHdr strictly indicates the EXE was 16-bit");
+        }
+
         protected override object CreateOverview() => new PDBFileOverview(PDBFile, PDBFile.GetSymbolAccessor());
 
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex)
@@ -141,6 +145,12 @@ namespace PESpy.View
         {
             throw new NotImplementedException();
         }
+
+        internal override MemoryChunk GetMemoryChunkFromAddress(int address)
+        {
+            return new MemoryChunk(PDBFile.globalBlock, address);
+        }
+
         protected override ViewWriter GetViewWriter()
         {
             if (_viewWriter == null)
@@ -193,10 +203,17 @@ namespace PESpy.View
                         return;
 
                     if (pViewByte->BodyKind == ViewByteBodyKind.SplitHead)
+                    {
+                        //break; //It's the start of another body chunk; repeat the outer loop to continue trying to find the head
+                        throw new NotImplementedException("Need to actually do some tests using split head to make sure this logic is correct");
+                    }
+
                     pViewByte--;
                     offset--;
                 }
             }
+
+            throw new InvalidOperationException("Failed to get the origin of a split head");
         }
     }
 }

@@ -8,7 +8,7 @@ namespace PESpy.View
         private readonly IFileDisassembler? _fileDisassembler;
         private readonly FileAnalyzer _fileAnalyzer;
 
-        public PEViewByteViewWriter(PEFile peFile, FileAccessor fileAccessor, IFileDisassembler fileDisassembler) : base(peFile)
+        public PEViewByteViewWriter(PEFile peFile, FileAccessor fileAccessor, IFileDisassembler fileDisassembler, FileAnalyzer fileAnalyzer) : base(peFile)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;

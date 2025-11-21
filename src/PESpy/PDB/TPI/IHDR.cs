@@ -7,6 +7,10 @@ namespace PESpy.PDB
     {
         TPIImpv vers { get; }
 
+        CV_typ_t tiMin { get; }
+
+        CV_typ_t tiMac { get; }
+
         int cbGprec { get; }
 
         int StructSize { get; }

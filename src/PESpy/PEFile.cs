@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -9,6 +8,7 @@ using PESpy.Native;
 using PESpy.View;
 using PESpy.View.Builder;
 using Stream = System.IO.Stream;
+using static PESpy.IMAGE_DEBUG_TYPE;
 
 
 namespace PESpy
@@ -2051,6 +2051,17 @@ namespace PESpy
 
                 if (appHostSignature == null && !hasTriedAppHostSignature)
                 {
+                    //To avoid false positives (wherein we're dealing with an application that merely _reads other applications
+                    //that contain an apphost signature_ we implement the following heuristics: if it's not an EXE, it can't be
+                    //an apphost, and if it contains a managed header it can't be an apphost either
+
+                    if ((FileHeader.Characteristics & IMAGE_FILE.IMAGE_FILE_DLL) != 0 || Cor20Header != null)
+                    {
+                        //Another possible check could be checking whether we've got a codeview entry that targets apphost.pdb
+                        hasTriedAppHostSignature = true;
+                        return null;
+                    }
+
                     //Scanning the entire DLL for the AppHost signature could be slow,
                     //so we don't want the Visual Studio debugger to automatically do this just
                     //because we looked at the properties of the PEFile
@@ -2207,7 +2218,7 @@ namespace PESpy
             if (symbolAccessor != null)
                 return symbolAccessor;
 
-            if (Locator.TryLocate(this, out var artifacts, out _))
+            if (Locator.TryLocate(this, out var artifacts, out _, progress: progress))
             {
                 switch (artifacts.BestKind)
                 {

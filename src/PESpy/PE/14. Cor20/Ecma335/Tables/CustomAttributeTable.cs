@@ -18,6 +18,9 @@ namespace PESpy.Ecma335
         private readonly Func<BlobHeap?> blobHeap;
         private readonly MemoryChunk tableChunk;
 
+        //System.Reflection.Metadata calls this "PtrTable" which I think is a confusing name
+        internal readonly int[]? SortedTable;
+
         internal CustomAttributeTable(
             int numRows,
             bool isSorted,
@@ -40,6 +43,11 @@ namespace PESpy.Ecma335
             TypeOffset = ParentOffset + hasCustomAttributeIndexSize;
             ValueOffset = TypeOffset + customAttributeTypeIndexSize;
             RowSize = ValueOffset + blobIndexSize;
+
+            if (!isSorted)
+            {
+                throw new NotImplementedException("Checking whether we're already sorted, and if not manually sorting us, is not implemented");
+            }
         }
 
         public int GetRowOffset(CustomAttributeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
@@ -60,6 +68,34 @@ namespace PESpy.Ecma335
         {
             var rowOffset = (index.RowId - 1) * RowSize;
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap);
+        }
+
+        internal void GetRange(CodedIndex index, out int firstRowId, out int lastRowId)
+        {
+            if (SortedTable != null)
+                throw new NotImplementedException("Getting the range from the sorted table is not implemented");
+
+            CompressedModelHeap.BinarySearchEcmaIndexRange(
+                tableChunk,
+                Count,
+                RowSize,
+                ParentOffset,
+                (uint) (int) index,
+                isBigHasCustomAttributeIndexSize,
+                out var startRowNumber,
+                out var endRowNumber
+            );
+
+            if (startRowNumber == -1)
+            {
+                firstRowId = 1;
+                lastRowId = 0;
+            }
+            else
+            {
+                firstRowId = startRowNumber + 1;
+                lastRowId = endRowNumber + 1;
+            }
         }
 
         public CustomAttributeRow this[CustomAttributeIndex index] => this[(int) index];

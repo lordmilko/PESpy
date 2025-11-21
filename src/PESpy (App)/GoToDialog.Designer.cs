@@ -1,4 +1,4 @@
-﻿namespace PESpy
+﻿namespace PESpy.Controls
 {
     partial class GoToDialog
     {

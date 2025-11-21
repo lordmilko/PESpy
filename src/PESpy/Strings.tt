@@ -584,6 +584,9 @@ var strings = new[]{
     "__guard_xfg_check_icall_fptr",
     "__guard_xfg_dispatch_icall_fptr",
     "__guard_xfg_table_dispatch_icall_fptr",
+
+    "::<unnamed-tag>",
+    "::__unnamed"
 };
 #>
 namespace PESpy
@@ -607,9 +610,9 @@ namespace PESpy
         }
 #>
         /// <summary>
-        /// <#= str #>
+        /// <#= str.Replace("<", "&lt;").Replace(">", "&gt;") #>
         /// </summary>
-        internal static FixedUtf8String <#= str.Replace("`", string.Empty).Replace("'", string.Empty).Replace(" ", string.Empty).Replace("+", "And").Replace("(", string.Empty).Replace(")", string.Empty) #>
+        internal static FixedUtf8String <#= System.Text.RegularExpressions.Regex.Replace(str, @"[`\'' ():<>\-]", string.Empty).Replace("+", "And") #>
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

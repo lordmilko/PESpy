@@ -104,6 +104,9 @@ namespace PESpy.PDB
 
         public Enumerator GetEnumerator() => new Enumerator(ptr, end);
 
+        //Enumerate starting from the specified offset
+        public Enumerator GetEnumerator(int offset) => new Enumerator(ptr + offset, end);
+
         IEnumerator<TypType> IEnumerable<TypType>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

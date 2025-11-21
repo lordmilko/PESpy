@@ -29,6 +29,7 @@ namespace PESpy.PDB
 
         public static SymTagEnum? GetSymTagEnum(in this TypType typType) =>
             GetSymTagEnum((LfEasy) typType);
+
         public static SymTagEnum? GetSymTagEnum(in this LfEasy lfEasy)
         {
             /* DIA does not return all type symbols when it enumerates types. CAllTypesTrav::next works by iterating over each type index from TiMin to TiMac
@@ -62,7 +63,10 @@ namespace PESpy.PDB
                 //surfaced type. These inner types do not exist as standalone entities
                 case LF_BITFIELD: //disp_LF_BITFIELD
                 case LF_BITFIELD_16t: //Not supported by DIA
-                    return null;
+                    //I saw some weird evidence of DIA seeming to support fields like bitfield and the dimcon* related ones.
+                    //When you've actually got a bitfield field member, the length of the field is the number of bits it occupies, its
+                    //LocationType is LocIsBitField and its sym tag is data
+                    return SymTagEnum.Data;
 
                 //>= 0x1601 && < LF_CLASS2
 
@@ -469,7 +473,7 @@ namespace PESpy.PDB
             TryGetName(typType, null, out name);
 
         public static bool TryGetName(in this TypType typType, ICodeViewAccessor? codeViewAccessor, out SymString name) =>
-            TryGetName(typType, codeViewAccessor, out name);
+            TryGetName((LfEasy) typType, codeViewAccessor, out name);
 
         public static bool TryGetName(in this LfEasy lfEasy, out SymString name) =>
             TryGetName(lfEasy, null, out name);

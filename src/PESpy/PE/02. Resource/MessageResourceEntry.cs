@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
+    //MESSAGE_RESOURCE_ENTRY
+    [Source(SourceKind.winnt_h)]
     public readonly struct MessageResourceEntry : IValue, IViewable
     {
         private const int LengthOffset = 0;
@@ -38,20 +39,32 @@ namespace PESpy
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MESSAGE_RESOURCE_ENTRY, this, ViewKind.MessageResourceEntry, Length);
 
-        IView[] IViewable.GetChildren(IView parent, ViewWriter viewWriter)
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(3, Length);
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            using var s = viewWriter.CreateStruct(parent);
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Length), LengthOffset, Length);
+                    break;
 
-            s.WriteField(nameof(Length), Length);
-            s.WriteField(nameof(Flags), Flags, sizeof(short));
-            s.WriteNullTerminatedField(nameof(Text), Text);
+                case 1:
+                    structWriter.WriteField(nameof(Flags), FlagsOffset, Flags, sizeof(short));
+                    break;
 
-            //I can't find any documentation that says this should be aligned, but I've found that the length can be 2 less than what it's stated it should be
-            if (s.Size < Length)
-                s.Align(4);
+                case 2:
+                    structWriter.WriteNullTerminatedField(nameof(Text), TextOffset, Text);
+                    break;
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
+                case 3:
+                    //Possible alignment
+                    structWriter.AlignOrThrow(Length);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

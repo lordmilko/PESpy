@@ -33,6 +33,8 @@ namespace PESpy
             _arrayToReturnToPool = ArrayPool<byte>.Shared.Rent(maxLength);
             _chars = _arrayToReturnToPool;
             _pos = 0;
+
+            Append(initial);
         }
 
         public int Length

@@ -30,6 +30,73 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
+        public bool TryGetName(out StringIndex namespaceIndex, out StringIndex nameIndex)
+        {
+            if (!TryGetType(out var typeIndex))
+            {
+                namespaceIndex = default;
+                nameIndex = default;
+                return false;
+            }
+
+            return GetTypeNamespaceAndName(typeIndex, out namespaceIndex, out nameIndex);
+        }
+
+        private bool TryGetType(out CodedIndex typeIndex)
+        {
+            var ctor = Type;
+
+            switch (ctor.TableKind)
+            {
+                case TableKind.MemberRef:
+                    typeIndex = table.CompressedModelHeap.MemberRefTable[ctor.RowId].Class;
+                    return true;
+                default:
+                    typeIndex = default;
+                    return false;
+            }
+        }
+
+        private bool GetTypeNamespaceAndName(CodedIndex index, out StringIndex namespaceIndex, out StringIndex nameIndex)
+        {
+            namespaceIndex = default;
+            nameIndex = default;
+
+            if (index.TableKind == TableKind.TypeDef)
+            {
+                var typeDef = table.CompressedModelHeap.TypeDefTable[index.RowId];
+
+                namespaceIndex = typeDef.TypeNamespace;
+                nameIndex = typeDef.TypeName;
+                return true;
+            }
+            else if (index.TableKind == TableKind.TypeRef)
+            {
+                var typeRef = table.CompressedModelHeap.TypeRefTable[index.RowId];
+
+                var resolutionScopeKind = typeRef.ResolutionScope.TableKind;
+
+                //If it's a nested type, it's too complex for us to resolve just based on simple metadata
+                if (resolutionScopeKind == TableKind.TypeRef || resolutionScopeKind == TableKind.TypeDef)
+                    return false;
+
+                namespaceIndex = typeRef.TypeNamespace;
+                nameIndex = typeRef.TypeName;
+                return true;
+            }
+
+            throw new NotImplementedException($"Don't know how to get the type and namespace for an index of type '{index.TableKind}'");
+        }
+
+        //Note: will throw if the custom attribute references an enum or a typeof(something)
+        public CustomAttributeValue<object> DecodeValue() => DecodeValue<object>();
+
+        public CustomAttributeValue<TType> DecodeValue<TType>(ICustomAttributeTypeProvider<TType>? provider = null)
+        {
+            var decoder = new CustomAttributeDecoder<TType>(table.CompressedModelHeap, provider);
+            return decoder.DecodeValue(Type, Value);
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

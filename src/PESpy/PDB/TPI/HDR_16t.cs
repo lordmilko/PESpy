@@ -43,9 +43,13 @@ namespace PESpy.PDB
             set => chunk.PokeUInt16(snHashOffset, value);
         }
 
+        CV_typ_t IHDR.tiMin => tiMin;
+        CV_typ_t IHDR.tiMac => tiMac;
         int IHDR.StructSize => StructSize;
 
         // rest of file is "REC gprec[];"
+
+        public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //vers
@@ -54,8 +58,6 @@ namespace PESpy.PDB
             sizeof(int) + //cbGprec
             sizeof(short) + //snHash
             sizeof(short); //Padding
-
-        public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

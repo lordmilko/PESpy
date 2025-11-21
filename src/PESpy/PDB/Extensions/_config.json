@@ -115,7 +115,7 @@
     "LfBitfield"                 : [ "LF_BITFIELD" ],
     "LfBitfield16t"              : [ "LF_BITFIELD_16t" ],
     "LfBuildInfo"                : [ "LF_BUILDINFO" ],
-    
+
     "LfChar"                     : [ "LF_CHAR" ],
     "LfClass"                    : [ "LF_CLASS_ST", "LF_STRUCTURE_ST", "LF_CLASS", "LF_STRUCTURE", "LF_INTERFACE" ],
     "LfClass16t"                 : [ "LF_CLASS_16t", "LF_STRUCTURE_16t" ],
@@ -150,7 +150,7 @@
     "LfFriendFcn"                : [ "LF_FRIENDFCN", "LF_FRIENDFCN_ST" ],
     "LfFriendFcn16t"             : [ "LF_FRIENDFCN_16t" ],
     "LfFuncId"                   : [ "LF_FUNC_ID" ],
-    
+
     "LfHLSL"                     : [ "LF_HLSL" ],
 
     "LfIndex"                    : [ "LF_INDEX" ],
@@ -159,7 +159,7 @@
     "LfLabel"                    : [ "LF_LABEL" ],
     "LfList"                     : [ "LF_LIST" ],
     "LfLong"                     : [ "LF_LONG" ],
-    
+
     "LfManaged"                  : [ "LF_MANAGED", "LF_MANAGED_ST" ],
     "LfMatrix"                   : [ "LF_MATRIX" ],
     "LfMember"                   : [ "LF_MEMBER", "LF_MEMBER_ST" ],
@@ -175,11 +175,11 @@
     "LfModifier"                 : [ "LF_MODIFIER" ],
     "LfModifier16t"              : [ "LF_MODIFIER_16t" ],
     "LfModifierEx"               : [ "LF_MODIFIER_EX" ],
-    
+
     "LfNestType"                 : [ "LF_NESTTYPE", "LF_NESTTYPE_ST" ],
     "LfNestType16t"              : [ "LF_NESTTYPE_16t" ],
     "LfNestTypeEx"               : [ "LF_NESTTYPEEX", "LF_NESTTYPEEX_ST" ],
-    
+
     "LfOEM16t"                   : [ "LF_OEM_16t" ],
     "LfOneMethod"                : [ "LF_ONEMETHOD", "LF_ONEMETHOD_ST" ],
     "LfOneMethod16t"             : [ "LF_ONEMETHOD_16t" ],
@@ -190,7 +190,7 @@
     "LfPreComp16t"               : [ "LF_PRECOMP_16t" ],
     "LfProc"                     : [ "LF_PROCEDURE" ],
     "LfProc16t"                  : [ "LF_PROCEDURE_16t" ],
-    
+
     "LfReal16"                   : [ "LF_REAL16" ],
     "LfReal32"                   : [ "LF_REAL32" ],
     "LfReal48"                   : [ "LF_REAL48" ],
@@ -215,7 +215,7 @@
     "LfUnion"                    : [ "LF_UNION_ST", "LF_UNION" ],
     "LfUnion16t"                 : [ "LF_UNION_16t" ],
     "LfUShort"                   : [ "LF_USHORT" ],
-    
+
     "LfVarString"                : [ "LF_VARSTRING" ],
     "LfVBClass"                  : [ "LF_VBCLASS" ],
     "LfVBClass16t"               : [ "LF_VBCLASS_16t", "LF_IVBCLASS_16t" ],

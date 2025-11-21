@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using PESpy.PDB;
 using PESpy.View;
 
@@ -16,6 +15,7 @@ namespace PESpy
 
         internal PDB7FileDebugView(PDB7File pdbFile) : base(pdbFile)
         {
+            this.pdbFile = pdbFile;
         }
     }
 

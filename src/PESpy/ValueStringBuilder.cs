@@ -433,6 +433,7 @@ namespace PESpy
 
             _pos = pos;
         }
+
         //From Iced
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AppendHex(

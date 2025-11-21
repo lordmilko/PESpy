@@ -20,11 +20,11 @@ namespace PESpy.View
         }
 
         protected override ViewWriter CreateViewWriter() =>
-                new PEViewByteViewWriter(((PEFileAccessor) _fileAccessor).PEFile, _fileAccessor, _fileDisassembler);
+                new PEViewByteViewWriter(((PEFileAccessor) _fileAccessor).PEFile, _fileAccessor, _fileDisassembler, this);
 
         public override FileAccessor Execute()
         {
-            _progress?.NotifyPhase(FileAnalyzerProgressPhase.DiscoverGlobals);
+            Log(FileAnalyzerProgressPhase.DiscoverGlobals);
 
             //Mark all data structures that our PEFile knows about as being data
             ((IViewable) _peFile).WriteGlobals(_viewWriter);
@@ -41,15 +41,7 @@ namespace PESpy.View
             //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
             WorkDisasmQueue();
 
-            ExpandUnknownData();
-
-            //Go through all remaining untagged bytes and mark any repeated sequences of 0x00 or 0xCC as being padding
-            MarkPadding();
-
-#if DEBUG
-            ValidateNames();
-            ValidateBodyReferences();
-#endif
+            Finalize(expandUnknownData: true);
 
             var dataDirectories = new PooledList<DirectoryInfo>();
 
@@ -71,7 +63,7 @@ namespace PESpy.View
 
         private void DiscoverCodeRoots()
         {
-            _progress?.NotifyPhase(FileAnalyzerProgressPhase.DiscoverCodeRoots);
+            Log(FileAnalyzerProgressPhase.DiscoverCodeRoots);
 
             var entryPoint = _peFile.OptionalHeader.AddressOfEntryPoint;
 
@@ -115,7 +107,7 @@ namespace PESpy.View
                                 : _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, length: 1); //We don't know how big this data item is yet, so we'll just say it's 1 byte. If we get some symbols, we might be able to do better
 
                             if (export.Name.Length > 0)
-                                _fileAccessor.AddName(targetAddress, info, (FixedUtf8String) export.Name);
+                                AddName(targetAddress, info, (FixedUtf8String) export.Name);
                         }
                     }
                 }
@@ -339,18 +331,11 @@ namespace PESpy.View
 
                             Debug.Assert(pILViewByte->Kind == ViewByteKind.Code);
 
-                            _fileAccessor.AddName(targetAddress, pILViewByte, (FixedUtf8String) name.Value);
+                            AddName(targetAddress, pILViewByte, (FixedUtf8String) name.Value);
                         }
                     }
                 }
             }
-        }
-
-        #endregion
-        #region DiscoverSymbols
-
-        private void DiscoverSymbols()
-        {
         }
 
         #endregion

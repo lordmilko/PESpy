@@ -146,7 +146,18 @@ To illustrate this, consider the following
 6. the `BIGMSF_HDR` Stream Table now says that Stream 0 exists on Page 5
 7. And the Stream Table on Page 5 now contains a copy of the `BIGMSF_HDR` that existed in Step 3
 
-Perhaps erroneously, the page(s) that `snSt` spans appear be marked as free in the FPM. In one sense it might be true that they're free (in that the FPM may use them for something else) however in another sense, by virtue of the page being listed in a stream, there *must be* meaningful data there that a PDB reader should be able to read and understand
+The reason for this behavior is as follows:
+1. When `MSF_HB::Commit` -> `MSF_HB::internalReplaceStream` in Step 5 goes to write the new Stream Table to disk, it first checks whether a stream with ID `snSt` already exists. Since the answer is yes, all pages associated with `snSt` (in this case simply Page 3) are freed
+2. However, Page 3 is not actually freed immediately. `mspdbcore.dll` does not allow pages that were committed in a previous transaction to be immediately reused in the transaction they were freed. As such, Page 3 is added to the "delayed free list" `fpmFreed` which will be further discussed below
+3. `MSF_HB::writeNewDataPgs` allocates pages to store the contents of the Stream Table. Page 3 is not actually marked as free yet, and Page 4 is still being used to say that the Stream Table exists in Page 3. As such, a brand new page is allocated: Page 5
+4. The current state of the Stream Table is persisted to disk
+5. A `SI` for `snSt` is then added to the stream table. This `SI` describes the *current* layout of the stream table. However, since the stream table was persisted to disk *before* this `SI` was added, the `snSt` described on disk will effectively be the layout of the *previous* stream table
+6. A temporary `SI` for describing the location of the stream table's pages is then created, and a new page, Page 6, is allocated for storing the fact that the Stream Table now resides in Page 5
+7. The previous page describing the location of the Stream Table, Page 4, is freed
+8. `fpmFreed` is merged into `fpm`
+9. And then the FPM is serialized to disk
+
+This behavior thereby results in the `SI` for `snSt` that was persisted to disk saying that it has data in Page 3, despite the fact that the FPM now says that Page 3 is free
 
 ## Free Page Map
 

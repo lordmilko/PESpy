@@ -456,9 +456,18 @@ namespace PESpy
                     var value = AddressOfFunctions.Value[i];
 
                     if (value.IsForward)
-                        r.WriteAnsiNullTerminatedValue(value.ForwardName);
+                    {
+                        //Write the RVA pointing to the forward name
+                        r.WriteAnsiNullTerminatedValue(value.ForwardName, ViewKind.ImageExportDirectory_AddressOfFunctions_Entry);
+
+                        //Write the forward name itself
+                        writer.WriteRVAAnsiNullTerminatedField(value.ForwardName, ViewKind.ImageExportDirectory_ForwarderName, AddressOfFunctions.ActualOffset, i * sizeof(int));
+                    }
                     else
-                        r.WriteValue((int) value.Address);
+                    {
+                        r.WriteValue((int) value.Address, ViewKind.ImageExportDirectory_AddressOfFunctions_Entry);
+                        writer.WriteRVAXRef(AddressOfFunctions.ActualOffset, i * sizeof(int), value.Address);
+                    }
                 }
             }
 
@@ -480,7 +489,10 @@ namespace PESpy
                 {
                     var value = AddressOfNames.Value[i];
 
-                    r.WriteAnsiNullTerminatedValue(value);
+                    r.WriteAnsiNullTerminatedValue(value, ViewKind.ImageExportDirectory_AddressOfNames_Entry);
+
+                    //Write the name itself
+                    writer.WriteRVAAnsiNullTerminatedField(value, ViewKind.ImageExportDirectory_AddressOfNames_Name, AddressOfNames.ActualOffset, i * sizeof(int));
                 }
             }
 
@@ -498,7 +510,8 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteValues(AddressOfNameOrdinals.Value);
+                //Each value will be written one at a time
+                r.WriteValues(AddressOfNameOrdinals.Value, ViewKind.ImageExportDirectory_AddressOfNameOrdinals_Entry);
             }
         }
 

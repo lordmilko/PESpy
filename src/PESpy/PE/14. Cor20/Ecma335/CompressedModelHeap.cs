@@ -9,6 +9,8 @@ namespace PESpy.Ecma335
     /// </summary>
     public class CompressedModelHeap : IValue, IViewable
     {
+        internal const int EnumEnded = 1 << 24;
+
         public CompressedModelHeader Header { get; }
 
         #region ECMA-335
@@ -1078,6 +1080,14 @@ namespace PESpy.Ecma335
 
             while (endRowNumber + 1 < rowCount && tableChunk.PeekEcmaIndex((endRowNumber + 1) * rowSize + fieldOffset, isIndexBig) == targetValue)
                 endRowNumber++;
+        }
+
+        internal TypeDefRow GetDeclaringType(MethodDefIndex methodDefIndex)
+        {
+            if (MethodPtrTable?.Count > 0)
+                throw new NotImplementedException("Getting the declaring type from a method pointer table is not implemented");
+
+            return TypeDefTable.FindTypeContainingMethod(methodDefIndex.RowId, MethodDefTable.Count);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

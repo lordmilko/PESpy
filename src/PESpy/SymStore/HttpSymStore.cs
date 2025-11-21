@@ -8,8 +8,10 @@ namespace PESpy
 {
     class HttpSymStore : SymStore
     {
-        public Uri Uri { get; }
+        //Don't us the Uri type as it increases our size in NativeAOT
+        public string Uri { get; }
 
+#if !NATIVEAOT
         //We don't want to be constructing a new HttpClient for each request
         private static HttpClient? client;
 
@@ -25,26 +27,31 @@ namespace PESpy
                 return client;
             }
         }
+#endif
 
-        public HttpSymStore(Uri uri, SymStore? backingStore) : base(backingStore)
+        public HttpSymStore(string uri, SymStore? backingStore) : base(backingStore)
         {
-            //Uri.TryCreate drops the end of your base Uri if it does not end in a slash
-
-            if (!uri.AbsoluteUri.EndsWith("/"))
-                uri = new Uri(uri.AbsoluteUri + "/");
+            //Uri.TryCreate drops the end of your base Uri if it does not end in a slash.
+            //However, we're now doing without Uri entirely to reduce the size used in NativeAOT
 
             Uri = uri;
         }
 
+#if !NATIVEAOT
         protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
-            if (!Uri.TryCreate(Uri, key.Index, out var requestUri))
-                throw new NotImplementedException();
+            using var builder = new ValueStringBuilder();
+            builder.Append(Uri);
 
-            return GetWithProgressAsync(requestUri, progress, cancellationToken);
+            if (!Uri.EndsWith("/"))
+                builder.Append('/');
+
+            builder.Append(key.Index);
+
+            return GetWithProgressAsync(builder.ToString(), progress, cancellationToken);
         }
 
-        private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(Uri requestUri, ILocatorProgress progress, CancellationToken cancellationToken)
+        private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(string requestUri, ILocatorProgress progress, CancellationToken cancellationToken)
         {
             progress?.NotifyRequest(requestUri);
 
@@ -69,7 +76,7 @@ namespace PESpy
                     //Transfer ownership of the response to the progress stream
                     dispose = false;
 
-                    return new(new SymStoreFile(requestUri.AbsoluteUri), new HttpProgressStream(response, stream, length.Value, progress));
+                    return new(new SymStoreFile(requestUri), new HttpProgressStream(response, stream, length.Value, progress));
                 }
 
                 return default;
@@ -82,6 +89,17 @@ namespace PESpy
         }
 
         protected override ValueTask<(SymStoreFile file, Stream stream)?> SaveFileAsync(SymStoreKey key, SymStoreFile file, Stream stream, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+#endif
+
+        protected override (SymStoreFile file, Stream stream)? GetFile(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override (SymStoreFile file, Stream stream)? SaveFile(SymStoreKey key, SymStoreFile file, Stream stream, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

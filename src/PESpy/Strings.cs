@@ -6247,5 +6247,31 @@ namespace PESpy
                     return new FixedUtf8String(p, 37);
             }
         }
+
+        /// <summary>
+        /// ::&lt;unnamed-tag&gt;
+        /// </summary>
+        internal static FixedUtf8String unnamedtag
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x3A, 0x3A, 0x3C, 0x75, 0x6E, 0x6E, 0x61, 0x6D, 0x65, 0x64, 0x2D, 0x74, 0x61, 0x67, 0x3E })
+                    return new FixedUtf8String(p, 15);
+            }
+        }
+
+        /// <summary>
+        /// ::__unnamed
+        /// </summary>
+        internal static FixedUtf8String __unnamed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x3A, 0x3A, 0x5F, 0x5F, 0x75, 0x6E, 0x6E, 0x61, 0x6D, 0x65, 0x64 })
+                    return new FixedUtf8String(p, 11);
+            }
+        }
     }
 }

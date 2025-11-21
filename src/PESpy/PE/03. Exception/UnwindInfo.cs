@@ -453,13 +453,13 @@ namespace PESpy
                     if (data is IViewableValue v)
                         s.WriteInline(v);
                     else if (data is RawValue<int> r)
-                        s.WriteInline(r, ViewKind.Value);
+                        s.WriteInline(r, ViewKind.UnwindInfo_ExceptionData);
                     else if (data is RVA<FuncInfoV1> r1)
-                        s.WriteInline(r1, ViewKind.Value);
+                        s.WriteInline(r1, ViewKind.UnwindInfo_ExceptionData);
                     else if (data is RVA<FuncInfo> r2)
-                        s.WriteInline(r2, ViewKind.Value);
+                        s.WriteInline(r2, ViewKind.UnwindInfo_ExceptionData);
                     //else if (data is RVA<FuncInfo4> r4)
-                    //    s.WriteInline(r4, ViewKind.Value);
+                    //    s.WriteInline(r4, ViewKind.UnwindInfo_ExceptionData);
                     else
                         throw new NotImplementedException($"Don't know how to handle a value of type '{data.GetType().Name}'");
                 }
