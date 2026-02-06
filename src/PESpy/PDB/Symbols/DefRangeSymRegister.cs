@@ -95,5 +95,10 @@ namespace PESpy.PDB
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString()
+        {
+            return reg.ToString();
+        }
     }
 }

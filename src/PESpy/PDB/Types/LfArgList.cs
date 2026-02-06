@@ -24,19 +24,7 @@ namespace PESpy.PDB
 
         public int count => value->count;
 
-        public TypOrEnumType[] arg
-        {
-            get
-            {
-                var raw = new Span<CV_typ_t>(value->arg, count);
-                var arr = new TypOrEnumType[raw.Length];
-
-                for (var i = 0; i < arr.Length; i++)
-                    arr[i] = new TypOrEnumType((byte*) value, raw[i]);
-
-                return arr;
-            }
-        }
+        public TypOrEnumTypeList<CV_typ_t> arg => new TypOrEnumTypeList<CV_typ_t>(new NativeSpan<CV_typ_t>(value->arg, count));
 
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf

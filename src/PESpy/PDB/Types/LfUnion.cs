@@ -74,7 +74,7 @@ namespace PESpy.PDB
         #endregion
         #region PESpy
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor)
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
             TypType.ExtractNumericData(value->data, out _, out var bytesRead);
 

@@ -14,6 +14,7 @@ namespace PESpy.PDB
         private const int leafOffset = 2;
         private const int typeOffset = 4;
         private const int countOffset = 8;
+        private const int modsOffset = 10;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly lfModifierEx* value;
@@ -26,6 +27,8 @@ namespace PESpy.PDB
 
         public short count => value->count;
 
+        public NativeSpan<CV_modifier_t> mods => new NativeSpan<CV_modifier_t>(value->mods, count);
+
         internal const int FixedStructSize =
             sizeof(ushort) + //leaf
             sizeof(int)    + //type
@@ -34,7 +37,6 @@ namespace PESpy.PDB
         internal LfModifierEx(lfModifierEx* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read mods");
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -45,7 +47,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfModifierEx, this, ViewKind.LfModifierEx, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => 4;
+        int IViewable.NumChildren() => 5;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -65,6 +67,10 @@ namespace PESpy.PDB
 
                 case 3:
                     structWriter.WriteField(nameof(count), countOffset, count);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(mods), modsOffset, mods);
                     break;
 
                 default:

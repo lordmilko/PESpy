@@ -91,7 +91,6 @@ namespace PESpy.PDB
         internal LfVBClass16t(lfVBClass_16t* value)
         {
             this.value = value;
-            TypType.AssertMissing(false, "Read vbpoff");
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

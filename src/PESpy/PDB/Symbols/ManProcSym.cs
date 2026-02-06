@@ -77,9 +77,15 @@ namespace PESpy.PDB
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
-        public SymTypeChildList Children => new SymTypeChildList((BLOCKSYM*) value);
+        public SymTypeChildList Children => GetChildren(null);
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+        public SymTypeChildList GetChildren(ICodeViewAccessor? codeViewAccessor) => new SymTypeChildList((BLOCKSYM*) value, codeViewAccessor);
+
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewAccessor? codeViewAccessor) => SymType.GetParent((BLOCKSYM*) value, codeViewAccessor);
 
         #endregion
 

@@ -45,7 +45,7 @@ namespace PESpy.PDB
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 
         /* There is no way to get the "underlying" symbol of a PubSym32. The public symbol specifies a section
          * and offset, which can be used to calculate its RVA. It does _not_ behave similarly to a RefSym.

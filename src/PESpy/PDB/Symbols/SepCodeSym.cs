@@ -54,7 +54,7 @@ namespace PESpy.PDB
         public short sect => value->sect;
 
         /// <inheritdoc cref="SEPCODESYM.sectParent"/>
-        public short sectParent => value->sectParent;
+        public ISECT sectParent => value->sectParent;
 
         internal const int StructSize =
             sizeof(ushort) + //reclen
@@ -67,6 +67,18 @@ namespace PESpy.PDB
             sizeof(uint)   + //offParent
             sizeof(short)  + //sect
             sizeof(short);   //sectParent
+
+        #region PESpy
+
+        public SymTypeChildList Children => GetChildren(null);
+
+        public SymTypeChildList GetChildren(ICodeViewAccessor? codeViewAccessor) => new SymTypeChildList((BLOCKSYM*) value, codeViewAccessor);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewAccessor? codeViewAccessor) => SymType.GetParent((BLOCKSYM*) value, codeViewAccessor);
+
+        #endregion
 
         internal SepCodeSym(SEPCODESYM* value)
         {

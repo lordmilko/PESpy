@@ -46,7 +46,7 @@ namespace PESpy.PDB
 
         internal SymType GetSymbol(ICodeViewAccessor? codeViewAccessor) => SymType.GetSymbol(value, imod, ibSym, codeViewAccessor);
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 
         #endregion
 

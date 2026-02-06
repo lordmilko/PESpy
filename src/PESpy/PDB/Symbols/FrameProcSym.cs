@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -115,6 +117,12 @@ namespace PESpy.PDB
 
         /// <inheritdoc cref="FRAMEPROCSYM.pad"/>
         public int pad => value->pad;
+
+        public CV_HREG_e GetLocalBasePointer(IMAGE_FILE_MACHINE machineType) =>
+            PdbExtensions.ExpandEncodedBasePointerReg(machineType, encodedLocalBasePointer);
+
+        public CV_HREG_e GetParamBasePointer(IMAGE_FILE_MACHINE machineType) =>
+            PdbExtensions.ExpandEncodedBasePointerReg(machineType, encodedParamBasePointer);
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

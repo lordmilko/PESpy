@@ -40,7 +40,7 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => TypType.ReadString(value->Name, codeViewAccessor);
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) => TypType.ReadString(value->Name, codeViewAccessor);
 
         internal SymString GetUniqueName(ICodeViewAccessor? codeViewAccessor)
         {

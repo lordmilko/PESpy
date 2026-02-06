@@ -56,7 +56,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="DATASYMHLSL.name"/>
         public SymString name => SymType.ReadString(value, value->name);
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen

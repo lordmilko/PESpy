@@ -44,7 +44,7 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        internal SymString GetName(ICodeViewAccessor? codeViewAccessor) =>
+        public SymString GetName(ICodeViewAccessor? codeViewAccessor) =>
             TypType.ReadString(((byte*) value->vbaseoff) + (HasIntro() ? sizeof(int) : 0), codeViewAccessor);
 
         #endregion
