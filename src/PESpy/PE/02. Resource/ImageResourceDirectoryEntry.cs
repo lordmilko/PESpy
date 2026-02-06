@@ -280,7 +280,7 @@ namespace PESpy
                         var directory = new ImageResourceDirectory(valueChunk, rootRVA, parent);
 
                         OffsetToData = new RVA<ImageResourceDataEntry>(value); //Just store the raw data
-                        OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory, offset, directory);
+                        OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory, valueChunk.AbsoluteOffset, directory);
                     }
                     else
                     {
@@ -296,7 +296,7 @@ namespace PESpy
                     {
                         var data = new ImageResourceDataEntry(valueChunk, parent);
 
-                        OffsetToData = new RVA<ImageResourceDataEntry>(value, offset, data);
+                        OffsetToData = new RVA<ImageResourceDataEntry>(value, valueChunk.AbsoluteOffset, data);
 
                         //Just list what the bottom 31 bits were
                         OffsetToDirectory = new RVA<ImageResourceDirectory>(offsetToDirectory);

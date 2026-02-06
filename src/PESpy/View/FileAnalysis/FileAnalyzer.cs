@@ -21,24 +21,62 @@ namespace PESpy.View
             IFileDisassembler disassembler = null,
             IFileAnalyzerProgress? progress = null)
         {
+            fileAccessor = null;
+
             if (!Detector.TryOpenFile(fileName, out var file))
-            {
-                fileAccessor = null;
                 return false;
+
+            try
+            {
+                fileAccessor = FileAccessor.Create(file);
+
+                Analyze(fileAccessor, disassembler, progress);
+            }
+            catch
+            {
+                fileAccessor?.Dispose();
+                fileAccessor = null;
+
+                file.Dispose();
             }
 
-            fileAccessor = Analyze(file);
             return true;
         }
 
         //Takes control of file, will dispose it when the accessor is disposed
-        public static FileAccessor Analyze(
-            IFile file,
+        public static void Analyze(
+            FileAccessor fileAccessor,
             IFileDisassembler disassembler = null,
             IFileAnalyzerProgress? progress = null)
         {
             var fileAccessor = AnalyzeInternal(file, disassembler, progress);
 
+        private static void AnalyzeInternal(
+            FileAccessor fileAccessor,
+            IFileDisassembler disassembler,
+            IFileAnalyzerProgress? progress)
+        {
+            FileAnalyzer fileAnalyzer = fileAccessor.File.Kind switch
+            {
+                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, disassembler, progress),
+                FileKind.PDB => new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress),
+                //FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, disassembler, progress),
+                //FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, disassembler, progress),
+                _ => throw new NotImplementedException($"Don't know how to analyze a file of type '{fileAccessor.File.Kind}'")
+            };
+
+            fileAnalyzer.Execute();
+        }
+
+        internal static void GCLargeObjectHeap()
+        {
             /* Cleanup the objects on the LOH that were allocated during analysis.
              * It's also important that we compact the LOH as well. It seems that each LOH
              * that exists causes you to pay the full price of having that heap; when I was
@@ -68,45 +106,6 @@ namespace PESpy.View
 #else
             GC.Collect();
 #endif
-
-            sw.Stop();
-
-            var el = sw.ElapsedMilliseconds;
-
-            return fileAccessor;
-        }
-
-        private static FileAccessor AnalyzeInternal(
-            IFile file,
-            IFileDisassembler disassembler,
-            IFileAnalyzerProgress? progress)
-        {
-            try
-            {
-                FileAnalyzer fileAnalyzer = file.Kind switch
-                {
-                    FileKind.PE => new PEFileAnalyzer(new PEFileAccessor((PEFile) file), disassembler, progress),
-                    //FileKind.NE => new NEFileAnalyzer(new NEFileAccessor((NEFile) file), disassembler, progress),
-                    //FileKind.LE => new LEFileAnalyzer(new LEFileAccessor((LEFile) file), disassembler, progress),
-                    //FileKind.DOS => new DOSFileAnalyzer(new DOSFileAccessor((DOSFile) file), disassembler, progress),
-                    //FileKind.DBG => new DBGFileAnalyzer(new DBGFileAccessor((DBGFile) file), disassembler, progress),
-                    //FileKind.PDB => new PDBFileAnalyzer(new PDBFileAccessor((PDBFile) file), disassembler, progress),
-                    //FileKind.PortablePDB => new PortablePDBFileAnalyzer(new PortablePDBFileAccessor((PortablePDBFile) file), disassembler, progress),
-                    //FileKind.OBJ => new OBJFileAnalyzer(new OBJFileAccessor((OBJFile) file), disassembler, progress),
-                    //FileKind.LIB => new LIBFileAnalyzer(new LIBFileAccessor((LIBFile) file), disassembler, progress),
-                    //FileKind.OMF => new OMFFileAnalyzer(new OMFFileAccessor((OMFFile) file), disassembler, progress),
-                    //FileKind.OMFLIB => new OMFLIBFileAnalyzer(new OMFLIBFileAccessor((OMFLIBFile) file), disassembler, progress),
-                    _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
-                };
-
-                return fileAnalyzer.Execute();
-            }
-            catch
-            {
-                file.Dispose();
-
-                throw;
-            }
         }
 
         #endregion
@@ -167,7 +166,7 @@ namespace PESpy.View
 
         protected abstract ViewWriter CreateViewWriter();
 
-        public abstract FileAccessor Execute();
+        public abstract void Execute();
 
         //AddCode can't be on the FileAccessor because it needs to interact with members specific to performing analysis
 
@@ -234,9 +233,11 @@ namespace PESpy.View
 
         protected void DiscoverSymbols(ISectionDataAccessor sectionDataAccessor)
         {
-            Log(FileAnalyzerProgressPhase.DiscoverSymbols);
+            Log(FileAnalyzerProgressPhase.LocateSymbols);
 
             var symbolAccessor = _fileAccessor.GetSymbolAccessor(_progress);
+
+            Log(FileAnalyzerProgressPhase.ProcessSymbols);
 
             if (symbolAccessor is ExternalFileSymbolAccessor e)
                 symbolAccessor = e.GetUnderlyingSymbolAccessorUnsafe();
@@ -247,8 +248,12 @@ namespace PESpy.View
                     ProcessPDBSymbols(((PDBFileSymbolAccessor) symbolAccessor).PDBFile, sectionDataAccessor);
                     break;
 
+                case SymbolAccessorKind.PortablePDB:
+                case SymbolAccessorKind.Null:
+                    break;
+
                 default:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException($"Don't know how to handle a symbol accessor of type '{symbolAccessor.Kind}'");
             }
         }
 
@@ -546,7 +551,7 @@ namespace PESpy.View
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Don't know how to handle symbol '{name}'");
                 }
 
                 return true;

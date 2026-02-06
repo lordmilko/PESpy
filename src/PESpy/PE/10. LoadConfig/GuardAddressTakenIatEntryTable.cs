@@ -21,7 +21,7 @@ namespace PESpy
     }
 
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(GuardCFFunctionTableDebugView))]
+    [DebuggerTypeProxy(typeof(GuardAddressTakenIatEntryTableDebugView))]
     public readonly struct GuardAddressTakenIatEntryTable : IValue, IViewable, IEnumerable<GuardAddressTakenIatEntryTable.Entry>
     {
         public int Count { get; }

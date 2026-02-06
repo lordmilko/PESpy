@@ -26,7 +26,10 @@ namespace PESpy
     /// Encapsulates a Relative Virtual Address (RVA) and the value that it points to.
     /// </summary>
     /// <typeparam name="T">The type of value that the RVA points to.</typeparam>
-    public readonly struct RVA<T> : IRVA, IEquatable<RVA<T>>
+    public readonly struct RVA<T> : IRVA
+#if !NATIVEAOT
+        , IEquatable<RVA<T>>
+#endif
     {
         /// <summary>
         /// Gets the relative virtual address that the <see cref="Value"/> was listed as residing at in the bytes of the PE file.<para/>
@@ -66,16 +69,7 @@ namespace PESpy
             }
         }
 
-        public T? ValueOrDefault
-        {
-            get
-            {
-                if (!IsValid)
-                    return default;
-
-                return value;
-            }
-        }
+        public T? ValueOrDefault => value;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         int IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
@@ -101,6 +95,7 @@ namespace PESpy
             this.value = default;
         }
 
+#if !NATIVEAOT
         #region RVA == RVA
 
         public static bool operator ==(RVA<T> left, RVA<T> right)
@@ -227,5 +222,6 @@ namespace PESpy
 
             return "0x" + ListedOffset.ToString("X") + " : " + typeof(T).Name;
         }
+#endif
     }
 }

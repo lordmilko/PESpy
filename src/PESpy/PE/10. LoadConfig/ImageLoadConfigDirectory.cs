@@ -255,7 +255,8 @@ namespace PESpy
         private VA<int[]> seHandlerTable;
 
         /// <summary>
-        /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.
+        /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.<para/>
+        /// ___safe_se_handler_table
         /// </summary>
         public VA<int[]> SEHandlerTable
         {

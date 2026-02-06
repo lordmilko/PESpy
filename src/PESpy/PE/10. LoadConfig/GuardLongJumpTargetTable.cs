@@ -21,6 +21,8 @@ namespace PESpy
         public GuardLongJumpTargetTable.Entry[] Items => table.ToArray();
     }
 
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(GuardLongJumpTargetTableDebugView))]
     public readonly struct GuardLongJumpTargetTable : IValue, IViewable, IEnumerable<GuardLongJumpTargetTable.Entry>
     {
         public int Count { get; }

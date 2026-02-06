@@ -88,6 +88,29 @@ namespace PESpy
             return new FixedUtf8String(ptr, i);
         }
 
+        //bytesRead includes both the length of the length and the length of the string
+        public FixedUtf8String Peek7BitEncodedUtf8(int offset, out int bytesRead)
+        {
+            var length = Peek7BitEncodedInt32(offset, out var lengthSize);
+
+            var str = PeekUtf8FixedLength(offset + lengthSize, length);
+
+            bytesRead = lengthSize + length;
+
+            return str;
+        }
+
+        public FixedUtf16String Peek7BitEncodedUtf16(int offset, out int bytesRead)
+        {
+            var length = Peek7BitEncodedInt32(offset, out var lengthSize);
+
+            var str = PeekUtf16FixedLength(offset + lengthSize, length / 2);
+
+            bytesRead = lengthSize + length;
+
+            return str;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FixedAnsiString PeekNullPaddedAnsi(int offset, int numChars)
         {

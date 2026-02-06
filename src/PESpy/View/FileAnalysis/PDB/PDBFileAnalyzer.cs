@@ -14,7 +14,7 @@ namespace PESpy.View
         protected override ViewWriter CreateViewWriter() =>
                 new PDBViewByteViewWriter(((PDBFileAccessor) _fileAccessor).PDBFile, _fileAccessor, this, ((PDBFileAccessor) _fileAccessor)._pageNumberToSIIndex);
 
-        public override FileAccessor Execute()
+        public override void Execute()
         {
             Log(FileAnalyzerProgressPhase.DiscoverGlobals);
 
@@ -24,8 +24,6 @@ namespace PESpy.View
             //We're not like PE Files where there might be random data structures we discovered;
             //in a PDB File, we should know how big everything is
             Finalize(expandUnknownData: false);
-
-            return _fileAccessor;
         }
     }
 }

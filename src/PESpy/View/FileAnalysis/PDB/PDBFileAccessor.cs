@@ -180,7 +180,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        internal override ISymbolAccessor GetSymbolAccessor(bool load, ILocatorProgress? progress = null)
         {
             throw new NotImplementedException();
         }

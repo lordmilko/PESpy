@@ -14,11 +14,10 @@ namespace PESpy
 {
     class FileSystemSymStore : SymStore
     {
-        public string DirectoryName { get; }
+        public string DirectoryName => Name;
 
-        public FileSystemSymStore(string directoryName, SymStore? backingStore) : base(backingStore)
+        public FileSystemSymStore(string directoryName, SymStore? backingStore) : base(backingStore, Environment.ExpandEnvironmentVariables(directoryName))
         {
-            DirectoryName = directoryName;
         }
 
         //######################################

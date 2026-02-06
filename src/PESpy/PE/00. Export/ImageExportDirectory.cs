@@ -205,7 +205,7 @@ namespace PESpy
 
                     var functionAddress = functionAddresses[i];
 
-                    if (functionAddress >= exportTableStart && functionAddress <= exportTableEnd)
+                    if (functionAddress >= exportTableStart && functionAddress < exportTableEnd)
                     {
                         //It's a name
                         if (peFile.TryGetValueChunkFromSection(functionAddress, out var valueChunk))

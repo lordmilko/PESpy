@@ -76,6 +76,7 @@ namespace PESpy
             this.value = default;
         }
 
+#if !NATIVEAOT
         #region VA == VA
 
         public static bool operator ==(VA<T> left, VA<T> right)
@@ -205,5 +206,6 @@ namespace PESpy
 
             return "0x" + ListedAddress.ToString("X") + " : " + typeof(T).Name;
         }
+#endif
     }
 }

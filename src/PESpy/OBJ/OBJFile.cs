@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using ClrDebug;
 using PESpy.OBJ;
 using PESpy.View;
 using PESpy.View.Builder;

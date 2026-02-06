@@ -11,8 +11,22 @@ namespace PESpy
     /// Represents an NB02 Directory Entry.<para/>
     /// Described as "DirEntry" in cvexefmt.h, however is listed as "dnt" (Directory eNTry?) in section 3.7 of the Microsoft C 6.0 Developer's Toolkit Reference (https://www.pcjs.org/documents/books/mspl13/c/ctoolkit/)
     /// </summary>
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct dnt : IValue, IViewable
     {
+        private string DebuggerDisplay()
+        {
+            switch (SubSection)
+            {
+                case SST.SSTMODULE:
+                case SST.sstModule:
+                    return $"{SubSection} {Data}";
+
+                default:
+                    return SubSection.ToString();
+            }
+        }
+
         private const int SubSectionOffset = 0;
         private const int iModOffset = 2;
         private const int lfoOffset = 4;

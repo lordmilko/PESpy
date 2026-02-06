@@ -251,6 +251,67 @@ namespace PESpy.PDB
             //FPO
             //Exception
             //Fixup
+
+            private OMAP_DATA[]? omapToSrc;
+
+            //Given an address that is relative to the base address of the image, checks whether this address
+            //was actually the result of an OMAP transformation, and gets the original RVA that the PDB symbols
+            //in the PDB use.
+            public OMAP_DATA[]? OmapToSrc
+            {
+                get
+                {
+                    if (omapToSrc == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.OmapToSrc, out var valueChunk))
+                            {
+                                var numItems = valueChunk.Remaining / 8;
+
+                                omapToSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems).ToArray();
+                            }
+                        }
+                    }
+
+                    return omapToSrc;
+                }
+            }
+
+            private OMAP_DATA[]? omapFromSrc;
+
+            //Given an RVA in a PDB symbol, binary search for the OMAP entry that the RVA would be associated with.
+            //If the "rvaTo" of this entry is not null, then this RVA has a "translated" address that needs to be
+            //taken into consideration.
+            public OMAP_DATA[]? OmapFromSrc
+            {
+                get
+                {
+                    if (omapToSrc == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.OmapFromSrc, out var valueChunk))
+                            {
+                                var numItems = valueChunk.Remaining / 8;
+
+                                omapFromSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems).ToArray();
+                            }
+                        }
+                    }
+
+                    return omapFromSrc;
+                }
+            }
+
             //OmapToSrc
             //OmapFromSrc
 
