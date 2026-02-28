@@ -51,6 +51,35 @@ namespace PESpy
             }
         }
 
+        public unsafe bool TryFindEntry(long rva, out RuntimeFunction runtimeFunction)
+        {
+            var span = new Span<RUNTIME_FUNCTION>(chunk.Pointer, Count);
+
+            var lo = 0;
+            var hi = Count - 1;
+
+            //Based on the logic employed by DbgHelp
+            while (hi >= lo)
+            {
+                var mid = (lo + hi) >> 1;
+
+                ref var entry = ref span[mid];
+
+                if (rva < entry.BeginAddress)
+                    hi = mid - 1;
+                else if (rva >= entry.EndAddress)
+                    lo = mid + 1;
+                else
+                {
+                    runtimeFunction = new RuntimeFunction(chunk.Slice(mid * RuntimeFunction.StructSize));
+                    return true;
+                }
+            }
+
+            runtimeFunction = default;
+            return false;
+        }
+
         public override bool Equals(object obj) => this == obj;
 
         public override int GetHashCode() => chunk.block.GetHashCode();

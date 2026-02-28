@@ -222,7 +222,7 @@ namespace PESpy.PDB
                 case LF_METHOD: //disp_LF_METHOD
                 case LF_METHOD_16t: //Not supported by DIA
                 case LF_METHOD_ST: //Not supported by DIA
-                    throw new NotImplementedException();
+                    return SymTagEnum.Function;
 
                 case LF_MFUNC_ID:
                     throw new NotImplementedException(); //not specifically handled?
@@ -247,7 +247,9 @@ namespace PESpy.PDB
                 case LF_NESTTYPE_ST: //Not supported by DIA
                     //Something is dispatched to GetData::getTypeData, and that thing gets tagged as SymTagTypedef.
                     //Is that maybe the symbol inside the outer nested type symbol?
-                    throw new NotImplementedException();
+                    //An example of this is STL junk in pwsh.exe's exe_start. The type of the embedded_app_name variable
+                    //has LF_NESTEDTYPE children
+                    return SymTagEnum.Typedef;
 
                 case LF_NESTTYPEEX: //disp_LF_NESTTYPEEX
                 case LF_NESTTYPEEX_ST: //Not supported by DIA
@@ -383,7 +385,7 @@ namespace PESpy.PDB
             }
         }
 
-        public static bool IsFwdRef(this TypType typType)
+        public static bool IsFwdRef(this LfEasy lfEasy)
         {
             /* Sometimes a given entity may actually be a forward ref. In this scenario,
              * it doesn't actually contain any fields with useful data. Later on there'll be
@@ -413,33 +415,33 @@ namespace PESpy.PDB
              * To cater for this, we'll add an assert that checks for LF_INTERFACE specifically, so we can double check what DIA does if we ever encounter
              * a PDB that has this symbol type
              */
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 case LF_CLASS_16t: //Not supported by DIA
                 case LF_STRUCTURE_16t: //Not supported by DIA
-                    return ((LfClass16t) typType).property.fwdref;
+                    return ((LfClass16t) lfEasy).property.fwdref;
 
                 case LF_UNION_16t: //Not supported by DIA
-                    return ((LfUnion16t) typType).property.fwdref;
+                    return ((LfUnion16t) lfEasy).property.fwdref;
 
                 case LF_ENUM_16t: //Not supported by DIA
-                    return ((LfEnum16t) typType).property.fwdref;
+                    return ((LfEnum16t) lfEasy).property.fwdref;
 
                 case LF_CLASS:
                 case LF_CLASS_ST: //Not supported by DIA
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST: //Not supported by DIA
                 case LF_INTERFACE:
-                    Debug.Assert(typType.leaf != LF_INTERFACE); //Does Visual Studio 2022 DIA still handle interface forward refs?
-                    return ((LfClass) typType).property.fwdref;
+                    Debug.Assert(lfEasy.leaf != LF_INTERFACE); //Does Visual Studio 2022 DIA still handle interface forward refs?
+                    return ((LfClass) lfEasy).property.fwdref;
 
                 case LF_UNION:
                 case LF_UNION_ST: //Not supported by DIA
-                    return ((LfUnion) typType).property.fwdref;
+                    return ((LfUnion) lfEasy).property.fwdref;
 
                 case LF_ENUM:
                 case LF_ENUM_ST: //Not supported by DIA
-                    return ((LfEnum) typType).property.fwdref;
+                    return ((LfEnum) lfEasy).property.fwdref;
 
                 case LF_CLASS2:
                 case LF_STRUCTURE2:
@@ -701,11 +703,11 @@ namespace PESpy.PDB
             return false;
         }
 
-        public static bool TryGetUdtKind(this TypType typType, out UdtKind udtKind)
+        public static bool TryGetUdtKind(this LfEasy lfEasy, out UdtKind udtKind)
         {
             TypType? underlying;
 
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 case LF_INTERFACE:
                 case LF_INTERFACE2:
@@ -738,21 +740,21 @@ namespace PESpy.PDB
                     return true;
 
                 case LF_MODIFIER_16t: //Not supported by DIA
-                    underlying = ((LfModifier16t) typType).type.TypTyp;
+                    underlying = ((LfModifier16t) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetUdtKind(underlying.Value, out udtKind);
                     break;
 
                 case LF_MODIFIER:
-                    underlying = ((LfModifier) typType).type.TypTyp;
+                    underlying = ((LfModifier) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetUdtKind(underlying.Value, out udtKind);
                     break;
 
                 case LF_MODIFIER_EX:
-                    underlying = ((LfModifierEx) typType).type.TypTyp;
+                    underlying = ((LfModifierEx) lfEasy).type.TypTyp;
 
                     if (underlying != null)
                         return TryGetUdtKind(underlying.Value, out udtKind);
@@ -1063,22 +1065,28 @@ namespace PESpy.PDB
             }
         }
 
-        public static bool TryGetLength(this TypType typType, out int length)
+        public static bool TryGetLength(this LfEasy lfEasy, out int length)
         {
             //This is not an exhaustive list
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 case LF_ENUM:
                 case LF_ENUM_ST: //Not supported by DIA
-                    return TryGetLength(((LfEnum) typType).utype, out length);
+                    return TryGetLength(((LfEnum) lfEasy).utype, out length);
+
+                case LF_ENUM_16t:
+                    throw new NotImplementedException();
+
+                case LF_POINTER_16t:
+                    throw new NotImplementedException();
 
                 case LF_POINTER:
-                    var lfPointer = (LfPointer) typType;
+                    var lfPointer = (LfPointer) lfEasy;
 
                     //msdia140!getPtrData first tries to use the size specified in the record,
                     //but if the size is 0 it looks at the pointer mode instead
 
-                    var ptr = (LfPointer) typType;
+                    var ptr = (LfPointer) lfEasy;
                     var size = ptr.attr.size;
 
                     if (size != 0)
@@ -1086,6 +1094,19 @@ namespace PESpy.PDB
                     else
                         length = ptr.attr.ptrtype == CV_ptrtype_e.CV_PTR_64 ? 8 : 4;
 
+                    return true;
+
+                case LF_ARRAY_16t:
+                    var lfArray16 = (LfArray16t) lfEasy;
+
+                    length = lfArray16.length;
+                    return true;
+
+                case LF_ARRAY:
+                case LF_ARRAY_ST:
+                    var lfArray = (LfArray) lfEasy;
+
+                    length = lfArray.length;
                     return true;
             }
 

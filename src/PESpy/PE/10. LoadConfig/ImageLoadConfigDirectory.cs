@@ -688,6 +688,36 @@ namespace PESpy
             return field;
         }
 
+        internal static unsafe bool TryGetGuardEntry(int rva, int metadataSize, int count, byte* ptr, out int offset)
+        {
+            //The entries are sorted. Binary search for an entry whose Function matches the specified RVA
+
+            var entrySize = sizeof(int) + metadataSize;
+
+            var lo = 0;
+            var hi = count - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2; //>> 1 produces better assembly than /2 when the inputs arent unsigned. Signed division has extra complexity, but I'm not sure if we need to worry about overflow
+
+                offset = mid * entrySize;
+                var midValue = *(int*) (ptr + offset);
+
+                if (rva < midValue)
+                    hi = mid - 1;
+                else if (rva > midValue)
+                    lo = mid + 1;
+                else
+                {
+                    return true;
+                }
+            }
+
+            offset = default;
+            return false;
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             var structOffset = Offset;

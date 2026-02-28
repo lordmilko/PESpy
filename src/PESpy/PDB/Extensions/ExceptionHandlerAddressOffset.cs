@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     exceptionHandlerAddressOffset = ((FrameProcSym) symType).offExHdlr;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        exceptionHandlerAddressOffset = ((FrameProcSym) child).offExHdlr;
+                        return true;
+                    }
+
+                    break;
             }
 
             exceptionHandlerAddressOffset = default;

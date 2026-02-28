@@ -5,10 +5,293 @@
 using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using static ClrDebug.PDB.LEAF_ENUM_e;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.PDB
 {
+    public static partial class TypTypeExtensions
+    {
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_type"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_type"/>
+        /// </summary>
+        public static bool TryGetType(in this LfEasy lfEasy, out TypOrEnumType type)
+        {
+            switch (lfEasy.leaf)
+            {
+                //LfAlias
+                case LF_ALIAS:
+                case LF_ALIAS_ST:
+                    type = ((LfAlias) lfEasy).utype;
+                    return true;
+
+                case LF_ARRAY:
+                case LF_ARRAY_ST:
+                    type = ((LfArray) lfEasy).elemtype;
+                    return true;
+
+                case LF_ARRAY_16t:
+                    throw new System.NotImplementedException();
+
+                //LfBArray
+                case LF_BARRAY:
+                    type = ((LfBArray) lfEasy).utype;
+                    return true;
+
+                //LfBArray16t
+                case LF_BARRAY_16t:
+                    type = ((LfBArray16t) lfEasy).utype;
+                    return true;
+
+                //LfBClass
+                case LF_BCLASS:
+                case LF_BINTERFACE:
+                    type = ((LfBClass) lfEasy).index;
+                    return true;
+
+                //LfBClass16t
+                case LF_BCLASS_16t:
+                    type = ((LfBClass16t) lfEasy).index;
+                    return true;
+
+                //LfBitfield
+                case LF_BITFIELD:
+                    type = ((LfBitfield) lfEasy).type;
+                    return true;
+
+                //LfBitfield16t
+                case LF_BITFIELD_16t:
+                    type = ((LfBitfield16t) lfEasy).type;
+                    return true;
+
+                //LfCobol0
+                case LF_COBOL0:
+                    type = ((LfCobol0) lfEasy).type;
+                    return true;
+
+                //LfCobol016t
+                case LF_COBOL0_16t:
+                    type = ((LfCobol016t) lfEasy).type;
+                    return true;
+
+                //LfDefArg
+                case LF_DEFARG:
+                case LF_DEFARG_ST:
+                    type = ((LfDefArg) lfEasy).type;
+                    return true;
+
+                //LfDefArg16t
+                case LF_DEFARG_16t:
+                    type = ((LfDefArg16t) lfEasy).type;
+                    return true;
+
+                //LfDimArray
+                case LF_DIMARRAY:
+                case LF_DIMARRAY_ST:
+                    type = ((LfDimArray) lfEasy).utype;
+                    return true;
+
+                //LfDimArray16t
+                case LF_DIMARRAY_16t:
+                    type = ((LfDimArray16t) lfEasy).utype;
+                    return true;
+
+                //LfEnum
+                case LF_ENUM:
+                case LF_ENUM_ST:
+                    type = ((LfEnum) lfEasy).utype;
+                    return true;
+
+                //LfEnum16t
+                case LF_ENUM_16t:
+                    type = ((LfEnum16t) lfEasy).utype;
+                    return true;
+
+                //LfFriendCls
+                case LF_FRIENDCLS:
+                    type = ((LfFriendCls) lfEasy).index;
+                    return true;
+
+                //LfFriendCls16t
+                case LF_FRIENDCLS_16t:
+                    type = ((LfFriendCls16t) lfEasy).index;
+                    return true;
+
+                //LfFriendFcn
+                case LF_FRIENDFCN:
+                case LF_FRIENDFCN_ST:
+                    type = ((LfFriendFcn) lfEasy).index;
+                    return true;
+
+                //LfFriendFcn16t
+                case LF_FRIENDFCN_16t:
+                    type = ((LfFriendFcn16t) lfEasy).index;
+                    return true;
+
+                //LfFuncId
+                case LF_FUNC_ID:
+                    type = ((LfFuncId) lfEasy).type;
+                    return true;
+
+                //LfIndex
+                case LF_INDEX:
+                    type = ((LfIndex) lfEasy).index;
+                    return true;
+
+                //LfIndex16t
+                case LF_INDEX_16t:
+                    type = ((LfIndex16t) lfEasy).index;
+                    return true;
+
+                //LfVBClass16t
+                case LF_IVBCLASS_16t:
+                case LF_VBCLASS_16t:
+                    type = ((LfVBClass16t) lfEasy).index;
+                    return true;
+
+                //LfMember
+                case LF_MEMBER:
+                case LF_MEMBER_ST:
+                    type = ((LfMember) lfEasy).index;
+                    return true;
+
+                //LfMember16t
+                case LF_MEMBER_16t:
+                    type = ((LfMember16t) lfEasy).index;
+                    return true;
+
+                //LfMemberModify
+                case LF_MEMBERMODIFY:
+                case LF_MEMBERMODIFY_ST:
+                    type = ((LfMemberModify) lfEasy).index;
+                    return true;
+
+                //LfMFuncId
+                case LF_MFUNC_ID:
+                    type = ((LfMFuncId) lfEasy).type;
+                    return true;
+
+                //LfModifier
+                case LF_MODIFIER:
+                    type = ((LfModifier) lfEasy).type;
+                    return true;
+
+                //LfModifier16t
+                case LF_MODIFIER_16t:
+                    type = ((LfModifier16t) lfEasy).type;
+                    return true;
+
+                //LfModifierEx
+                case LF_MODIFIER_EX:
+                    type = ((LfModifierEx) lfEasy).type;
+                    return true;
+
+                //LfNestType
+                case LF_NESTTYPE:
+                case LF_NESTTYPE_ST:
+                    type = ((LfNestType) lfEasy).index;
+                    return true;
+
+                //LfNestType16t
+                case LF_NESTTYPE_16t:
+                    type = ((LfNestType16t) lfEasy).index;
+                    return true;
+
+                //LfNestTypeEx
+                case LF_NESTTYPEEX:
+                case LF_NESTTYPEEX_ST:
+                    type = ((LfNestTypeEx) lfEasy).index;
+                    return true;
+
+                //LfOneMethod
+                case LF_ONEMETHOD:
+                case LF_ONEMETHOD_ST:
+                    type = ((LfOneMethod) lfEasy).index;
+                    return true;
+
+                //LfOneMethod16t
+                case LF_ONEMETHOD_16t:
+                    type = ((LfOneMethod16t) lfEasy).index;
+                    return true;
+
+                //LfPointer
+                case LF_POINTER:
+                    type = ((LfPointer) lfEasy).utype;
+                    return true;
+
+                //LfPointer16t
+                case LF_POINTER_16t:
+                    type = ((LfPointer16t) lfEasy).utype;
+                    return true;
+
+                //LfSkip
+                case LF_SKIP:
+                    type = ((LfSkip) lfEasy).type;
+                    return true;
+
+                //LfSkip16t
+                case LF_SKIP_16t:
+                    type = ((LfSkip16t) lfEasy).type;
+                    return true;
+
+                //LfSTMember
+                case LF_STMEMBER:
+                case LF_STMEMBER_ST:
+                    type = ((LfSTMember) lfEasy).index;
+                    return true;
+
+                //LfSTMember16t
+                case LF_STMEMBER_16t:
+                    type = ((LfSTMember16t) lfEasy).index;
+                    return true;
+
+                //LfUdtModSrcLine
+                case LF_UDT_MOD_SRC_LINE:
+                    type = ((LfUdtModSrcLine) lfEasy).type;
+                    return true;
+
+                //LfUdtSrcLine
+                case LF_UDT_SRC_LINE:
+                    type = ((LfUdtSrcLine) lfEasy).type;
+                    return true;
+
+                //LfVBClass
+                case LF_VBCLASS:
+                    type = ((LfVBClass) lfEasy).index;
+                    return true;
+
+                //LfVftable
+                case LF_VFTABLE:
+                    type = ((LfVftable) lfEasy).type;
+                    return true;
+
+                //LfVFuncOff
+                case LF_VFUNCOFF:
+                    type = ((LfVFuncOff) lfEasy).type;
+                    return true;
+
+                //LfVFuncOff16t
+                case LF_VFUNCOFF_16t:
+                    type = ((LfVFuncOff16t) lfEasy).type;
+                    return true;
+
+                //LfVFuncTab
+                case LF_VFUNCTAB:
+                    type = ((LfVFuncTab) lfEasy).type;
+                    return true;
+
+                //LfVFuncTab16t
+                case LF_VFUNCTAB_16t:
+                    type = ((LfVFuncTab16t) lfEasy).type;
+                    return true;
+            }
+
+            type = default;
+            return false;
+        }
+    }
+
     public static partial class SymTypeExtensions
     {
         /// <summary>
@@ -277,6 +560,7 @@ namespace PESpy.PDB
                 //RegRel32
                 case S_REGREL32:
                 case S_REGREL32_ST:
+                case S_REGREL32_ENCTMP: //Not supported by DIA
                     type = ((RegRel32) symType).typind;
                     return true;
 

@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_registerType"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_registerType"/>
         /// </summary>
-        public static bool TryGetRegisterType(in this SymType symType, out int registerType)
+        public static bool TryGetRegisterType(in this SymType symType, out CV_HLSLREG_e registerType)
         {
             switch (symType.rectyp)
             {

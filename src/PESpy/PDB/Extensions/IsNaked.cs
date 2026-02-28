@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     isNaked = ((FrameProcSym) symType).fNaked;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        isNaked = ((FrameProcSym) child).fNaked;
+                        return true;
+                    }
+
+                    break;
             }
 
             isNaked = default;

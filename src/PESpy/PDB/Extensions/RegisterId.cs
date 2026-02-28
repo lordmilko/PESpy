@@ -66,6 +66,7 @@ namespace PESpy.PDB
 
                 //RegRel32
                 case S_REGREL32:
+                case S_REGREL32_ENCTMP:
                 case S_REGREL32_ST:
                     registerId = ((RegRel32) symType).reg;
                     return true;

@@ -34,6 +34,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasSecurityChecks = ((FrameProcSym) symType).fSecurityChecks;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasSecurityChecks = ((FrameProcSym) child).fSecurityChecks;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasSecurityChecks = default;

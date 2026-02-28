@@ -1,0 +1,216 @@
+
+
+ Start  Stop   Length Name                   Class
+ 00000H 01379H 0137AH _TEXT                  CODE
+ 0137AH 0137AH 00000H C_ETEXT                ENDCODE
+ 01380H 013B5H 00036H NULL                   BEGDATA
+ 013B6H 015BFH 0020AH _DATA                  DATA
+ 015C0H 015CDH 0000EH CDATA                  DATA
+ 015CEH 015CEH 00000H XIB                    DATA
+ 015CEH 015CEH 00000H XI                     DATA
+ 015CEH 015CEH 00000H XIE                    DATA
+ 015CEH 015CEH 00000H XPB                    DATA
+ 015CEH 015CFH 00002H XP                     DATA
+ 015D0H 015D0H 00000H XPE                    DATA
+ 015D0H 015D0H 00000H XCB                    DATA
+ 015D0H 015D0H 00000H XC                     DATA
+ 015D0H 015D0H 00000H XCE                    DATA
+ 015D0H 015D0H 00000H CONST                  CONST
+ 015D0H 015D7H 00008H HDR                    MSG
+ 015D8H 016D4H 000FDH MSG                    MSG
+ 016D5H 016D6H 00002H PAD                    MSG
+ 016D7H 016D7H 00001H EPAD                   MSG
+ 016D8H 016FDH 00026H _BSS                   BSS
+ 016FEH 016FEH 00000H XOB                    BSS
+ 016FEH 016FEH 00000H XO                     BSS
+ 016FEH 016FEH 00000H XOE                    BSS
+ 01700H 01AFFH 00400H c_common               BSS
+ 01B00H 022FFH 00800H STACK                  STACK
+
+ Origin   Group
+ 0138:0   DGROUP
+
+
+  Address         Publics by Name
+
+ 0138:0044       STKHQQ
+ 0000:12B6       _brkctl
+ 0138:0358       _edata
+ 0138:0780       _end
+ 0138:01F2       _environ
+ 0138:01CE       _errno
+ 0000:0310       _exit
+ 0000:0E5C       _fflush
+ 0000:0F53       _flushall
+ 0000:0F84       _free
+ 0000:0EC4       _isatty
+ 0000:0010       _main
+ 0000:0F92       _malloc
+ 0000:00EA       _printf
+ 0000:0F28       _strlen
+ 0000:0F43       _ultoa
+ 0000:0FD8       _write
+ 0138:009A       __abrkp
+ 0138:004A       __abrktb
+ 0138:009A       __abrktbe
+ 0000:9876  Abs  __acrtmsg
+ 0000:9876  Abs  __acrtused
+ 0138:01C2       __aintdiv
+ 0000:1112       __amalloc
+ 0000:124F       __amallocbrk
+ 0138:0228       __amblksiz
+ 0000:11F3       __amexpand
+ 0000:122D       __amlink
+ 0000:00DF       __amsg_exit
+ 0138:0222       __aseg1
+ 0138:0216       __asegds
+ 0138:0224       __asegn
+ 0138:0226       __asegr
+ 0138:0046       __asizds
+ 0000:0040       __astart
+ 0138:0048       __atopsp
+ 0138:0580       __bufin
+ 0138:0380       __bufout
+ 0000:0E59       __cfltcvt
+ 0138:0214       __cflush
+ 0138:01F4       __child
+ 0000:002A       __chkstk
+ 0000:0261       __cinit
+ 0000:00DC       __cintDIV
+ 0000:10B2       __cltoasub
+ 0000:0E59       __cropzeros
+ 0138:01F6       __csigtab
+ 0000:0353       __ctermsub
+ 0000:10BE       __cxtoa
+ 0138:01D8       __doserrno
+ 0000:126E       __dosret0
+ 0000:1276       __dosretax
+ 0138:01D6       __dosvermajor
+ 0138:01D7       __dosverminor
+ 0000:0327       __exit
+ 0138:01C6       __fac
+ 0000:0E59       __fassign
+ 0000:0D2E       __flsbuf
+ 0000:0E59       __forcdecpt
+ 0138:0242       __fpinit
+ 0000:0F4D       __fptrap
+ 0000:01BF       __ftbuf
+ 0138:009C       __iob
+ 0138:013C       __iob2
+ 0138:01B4       __lastiob
+ 0000:1282       __maperror
+ 0000:0EE6       __myalloc
+ 0000:0F84       __nfree
+ 0000:0F92       __nmalloc
+ 0000:037B       __NMSG_TEXT
+ 0000:03AB       __NMSG_WRITE
+ 0000:0245       __nullcheck
+ 0138:01D8       __oserr
+ 0138:01DA       __osfile
+ 0138:01D6       __osmajor
+ 0138:01D7       __osminor
+ 0000:03D4       __output
+ 0000:0E59       __positive
+ 0138:01D4       __psp
+ 0138:01D2       __pspadr
+ 0000:0BE3       __setargv
+ 0000:0CC8       __setenvp
+ 0000:0120       __stbuf
+ 0138:01D0       __umaskval
+ 0138:01EE       ___argc
+ 0138:01F0       ___argv
+
+  Address         Publics by Value
+
+ 0000:0010       _main
+ 0000:002A       __chkstk
+ 0000:0040       __astart
+ 0000:00DC       __cintDIV
+ 0000:00DF       __amsg_exit
+ 0000:00EA       _printf
+ 0000:0120       __stbuf
+ 0000:01BF       __ftbuf
+ 0000:0245       __nullcheck
+ 0000:0261       __cinit
+ 0000:0310       _exit
+ 0000:0327       __exit
+ 0000:0353       __ctermsub
+ 0000:037B       __NMSG_TEXT
+ 0000:03AB       __NMSG_WRITE
+ 0000:03D4       __output
+ 0000:0BE3       __setargv
+ 0000:0CC8       __setenvp
+ 0000:0D2E       __flsbuf
+ 0000:0E59       __fassign
+ 0000:0E59       __positive
+ 0000:0E59       __cropzeros
+ 0000:0E59       __cfltcvt
+ 0000:0E59       __forcdecpt
+ 0000:0E5C       _fflush
+ 0000:0EC4       _isatty
+ 0000:0EE6       __myalloc
+ 0000:0F28       _strlen
+ 0000:0F43       _ultoa
+ 0000:0F4D       __fptrap
+ 0000:0F53       _flushall
+ 0000:0F84       _free
+ 0000:0F84       __nfree
+ 0000:0F92       __nmalloc
+ 0000:0F92       _malloc
+ 0000:0FD8       _write
+ 0000:10B2       __cltoasub
+ 0000:10BE       __cxtoa
+ 0000:1112       __amalloc
+ 0000:11F3       __amexpand
+ 0000:122D       __amlink
+ 0000:124F       __amallocbrk
+ 0000:126E       __dosret0
+ 0000:1276       __dosretax
+ 0000:1282       __maperror
+ 0000:12B6       _brkctl
+ 0138:0044       STKHQQ
+ 0138:0046       __asizds
+ 0138:0048       __atopsp
+ 0138:004A       __abrktb
+ 0138:009A       __abrktbe
+ 0138:009A       __abrkp
+ 0138:009C       __iob
+ 0138:013C       __iob2
+ 0138:01B4       __lastiob
+ 0138:01C2       __aintdiv
+ 0138:01C6       __fac
+ 0138:01CE       _errno
+ 0138:01D0       __umaskval
+ 0138:01D2       __pspadr
+ 0138:01D4       __psp
+ 0138:01D6       __dosvermajor
+ 0138:01D6       __osmajor
+ 0138:01D7       __osminor
+ 0138:01D7       __dosverminor
+ 0138:01D8       __oserr
+ 0138:01D8       __doserrno
+ 0138:01DA       __osfile
+ 0138:01EE       ___argc
+ 0138:01F0       ___argv
+ 0138:01F2       _environ
+ 0138:01F4       __child
+ 0138:01F6       __csigtab
+ 0138:0214       __cflush
+ 0138:0216       __asegds
+ 0138:0222       __aseg1
+ 0138:0224       __asegn
+ 0138:0226       __asegr
+ 0138:0228       __amblksiz
+ 0138:0242       __fpinit
+ 0138:0358       _edata
+ 0138:0380       __bufout
+ 0138:0580       __bufin
+ 0138:0780       _end
+ 0000:9876  Abs  __acrtused
+ 0000:9876  Abs  __acrtmsg
+
+Line numbers for TESTAPP.OBJ(C:\TESTAPP.C) segment _TEXT
+
+     4 0000:0010     7 0000:0018     8 0000:0022     9 0000:0026
+
+Program entry point at 0000:0040

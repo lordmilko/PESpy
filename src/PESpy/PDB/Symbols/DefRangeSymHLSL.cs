@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -30,7 +31,7 @@ namespace PESpy.PDB
         public SYM_ENUM_e rectyp => value->rectyp;
 
         /// <inheritdoc cref="DEFRANGESYMHLSL.regType"/>
-        public short regType => value->regType;
+        public CV_HLSLREG_e regType => (CV_HLSLREG_e) value->regType;
 
         /// <inheritdoc cref="DEFRANGESYMHLSL.regIndices"/>
         public short regIndices => value->regIndices;
@@ -91,7 +92,7 @@ namespace PESpy.PDB
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(regType), regTypeOffset, regType);
+                    structWriter.WriteField(nameof(regType), regTypeOffset, regType, sizeof(short));
                     break;
 
                 #region BitField

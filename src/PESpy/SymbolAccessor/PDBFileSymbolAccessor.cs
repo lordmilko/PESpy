@@ -49,9 +49,9 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
+        public bool TryGetNameFromAddress(int rva, out SymString name, out int displacement)
         {
-            if (PDBFile.TryGetSymbolByRVA(targetAddress, out var symType, out displacement))
+            if (PDBFile.TryGetSymbolByRVA(rva, out var symType, out displacement))
             {
                 name = symType.GetName(PDBFile);
                 return true;

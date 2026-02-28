@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasEHa = ((FrameProcSym) symType).fAsyncEH;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasEHa = ((FrameProcSym) child).fAsyncEH;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasEHa = default;

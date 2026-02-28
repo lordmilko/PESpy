@@ -36,4 +36,6 @@ C:\C400\TESTAPP.MAP
 C:\C400\TESTAPP.OBJ
 ```
 
-`TESTAPP.EXE` has a `DNRB` signature at the end of the file. I don't currently know what this means (perhaps BRND? Borland?)
+`TESTAPP.EXE` has a `DNRB` signature at the end of the file, which is the original CodeView format
+
+The `*.map` file emitted by default contains line numbers but no publics, which `mapsym.exe` (which I used from Visual C++ 5) rejects since you need to have at least one symbol. Linking with `link TESTAPP.OBJ /MAP` gives you a `*.map` file with publics...but no line numbers. As such, the `LineNumbers\` directory contains a hacked `*.map` file I synthesized by taking the output of `/MAP` and adding the line numbers from without `/MAP` to just before the end (it seems that the placement within the file matters; it ignored the line numbers when they were listed before the publics)

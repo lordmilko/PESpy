@@ -6,7 +6,7 @@ namespace PESpy.PDB
 {
     public static partial class MsfStream
     {
-        public class TPI : IValue, IViewable
+        public class TPI : IValue, IViewable, IDisposable
         {
             internal const uint cchnV7 = 0x1000; // for v7 and previous, we have 4k buckets
             internal const uint cchnV8 = 0x3ffff; // default to 256k - 1buckets
@@ -190,6 +190,11 @@ namespace PESpy.PDB
             int IViewable.NumChildren() => throw new NotSupportedException();
 
             void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
+
+            public void Dispose()
+            {
+                tpiHash?.Dispose();
+            }
         }
     }
 }

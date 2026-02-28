@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     framePadOffset = ((FrameProcSym) symType).offPad;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        framePadOffset = ((FrameProcSym) child).offPad;
+                        return true;
+                    }
+
+                    break;
             }
 
             framePadOffset = default;

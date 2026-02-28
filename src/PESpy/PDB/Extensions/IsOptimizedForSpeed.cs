@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     isOptimizedForSpeed = ((FrameProcSym) symType).fOptSpeed;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        isOptimizedForSpeed = ((FrameProcSym) child).fOptSpeed;
+                        return true;
+                    }
+
+                    break;
             }
 
             isOptimizedForSpeed = default;

@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
+
 #if NET
 using System.Runtime.InteropServices;
 #endif
@@ -90,7 +94,7 @@ namespace PESpy.PDB
         /// <summary>
         /// Represents the stream pointed to by the sn in <see cref="PESpy.PDB.TpiHash.sn"/>.
         /// </summary>
-        public unsafe class TpiHash //This is a stream, not the TpiHash type itself
+        public unsafe class TpiHash : IDisposable //This is a stream, not the TpiHash type itself
         {
             //The following information is contained in TpiHash when the header type is "HDR".
             //If the header type is an older type such as HDR_VC50Interim or HDR_16t, this information
@@ -134,13 +138,16 @@ namespace PESpy.PDB
 
             //TPI1 doesn't just merely store the TYPTYPE* of each record, it also stores the record's associated hash as well. It bundles these items up
             //in an in-memory data structure called PRECEX. It takes a PREC (which is an alias for a TYPTYPE*) and then stores the TYPTYPE* along with its hash
-            private TypeAndHash[] indexToTypeCache;
+            private MemoryMappedFileHolder? _indexToTypeMapMMF;
+            private TypeAndHash* _pIndexToTypeCache;
+            private int _numTypeAndHashItems;
+
+            private Span<TypeAndHash> indexToTypeCache => new Span<TypeAndHash>(_pIndexToTypeCache, _numTypeAndHashItems);
 
             //The hash of a given value gives you a bucket that you're supposed to inspect to get all of the values that collided
             //with the given hash value. That seems like a lot of overhead, so we'll instead store a flat list of a linked list of
             //all of the nodes that share a given collision
-            private SpanAllocatorHandle[] typeToIndexCache;
-            private SpanAllocator<CV_typ_t> typeIndexArena;
+            private TpiHashLookup tpiHashLookup;
 
             private readonly HashDelegate hasher;
 
@@ -155,6 +162,12 @@ namespace PESpy.PDB
             //all types at once. Not present if < impv40
             public NativeSpan<TI_OFF> TiOff32 { get; }
             public NativeSpan<TI_OFF_16t> TiOff16 { get; }
+
+            //mpnitiHead
+            //Used for incremental linking. Note that you're supposed to use this information
+            //to insert items at the head of the hash chain. We don't do this, we're only interested
+            //in modelling the on-disk format.
+            public Map<NI, CV_typ_t, HcNi>? UdtHashAdjustments { get; }
 
             private PDBFile pdbFile;
             private bool synthetic;
@@ -195,9 +208,18 @@ namespace PESpy.PDB
 
                 TiOff32 = chunk.PeekNativeSpan<TI_OFF>(offcbTiOff.off, offcbTiOff.cb / sizeof(TI_OFF));
 
-                //apparently this is related to incremental linking and/or ENC?
+                //This should only be present in files that have been incrementally linked
                 if (offcbHashAdj.cb > 0)
-                    throw new NotImplementedException("Handling hash adjustors is not implemented");
+                {
+                    //Note that we don't actually apply these adjustments to the head of our hash lists;
+                    //we're only interested in capturing what it is on disk
+                    UdtHashAdjustments = new Map<NI, CV_typ_t, HcNi>(
+                        chunk.Slice(offcbHashAdj.off),
+                        c => (CV_typ_t) c.PeekInt32(0),
+                        sizeof(CV_typ_t),
+                        HcNi.Instance
+                    );
+                }
             }
 
             //per tpi.cpp!HDR::operator=(const HDR_16t)
@@ -492,8 +514,17 @@ namespace PESpy.PDB
                 var lo = tiLo - tiMin;
                 var hi = tiHi - tiMin;
 
-                if (indexToTypeCache == null)
-                    indexToTypeCache = new TypeAndHash[tiMac - tiMin];
+                if (_pIndexToTypeCache == null)
+                {
+                    var numEntries = tiMac - tiMin;
+
+                    _indexToTypeMapMMF = new MemoryMappedFileHolder(numEntries * sizeof(TypeAndHash));
+
+                    _pIndexToTypeCache = (TypeAndHash*) _indexToTypeMapMMF.Value.Address;
+                    _numTypeAndHashItems = numEntries;
+                }
+
+                var span = indexToTypeCache;
 
                 for (var i = lo; i < hi; i++)
                 {
@@ -501,7 +532,7 @@ namespace PESpy.PDB
                         return false; //Something has gone catastrophically wrong
 
                     //The hash of each record is calculated and cached for faster lookups when resolving collisions
-                    indexToTypeCache[i] = new TypeAndHash(enumerator.Current);
+                    span[i] = new TypeAndHash(enumerator.Current);
                 }
 
                 return true;
@@ -518,8 +549,14 @@ namespace PESpy.PDB
             //the hash
             public bool TryGetIndexFromTypType(TypType typType, out CV_typ_t typeIndex)
             {
-                if (typeIndexArena == null)
-                    InitializeHashLookup();
+                if (tpiHashLookup == null)
+                {
+                    lock (this)
+                    {
+                        if (tpiHashLookup == null)
+                            InitializeHashLookup();
+                    }
+                }
 
                 var pdbFile = this.pdbFile;
 
@@ -570,6 +607,73 @@ namespace PESpy.PDB
                 }
             }
 
+            //TPI1::QueryTiForUDT
+            public bool TryGetIndexFromName(SymString name, bool ignoreCase, out CV_typ_t typeIndex)
+            {
+                if (tpiHashLookup == null)
+                {
+                    lock (this)
+                    {
+                        if (tpiHashLookup == null)
+                            InitializeHashLookup();
+                    }
+                }
+
+                if (!fEnableQueryTiForUdt)
+                {
+                    typeIndex = default;
+                    return false;
+                }
+
+                var hash = hashUdtName(name);
+
+                var bucket = GetBucket(hash);
+
+                var pdbFile = this.pdbFile;
+
+                foreach (var entry in bucket)
+                {
+                    if (!TryGetTypeAndHash(entry, out var typeAndHash))
+                    {
+                        typeIndex = default;
+                        return false;
+                    }
+
+                    var typType = (TypType) typeAndHash.TypType;
+
+                    if (!fIsGlobalDefnUdt(typType, pdbFile) && !fIsLocalDefnUdtWithUniqueName(typType, pdbFile))
+                        continue;
+
+                    var candidateName = typType.GetName(pdbFile);
+
+                    if (fIsLocalDefnUdtWithUniqueName(typType, pdbFile))
+                    {
+                        if (candidateName.IsLengthPrefixed)
+                            candidateName = new SymString(candidateName.Value + candidateName.Length, true);
+                        else
+                            candidateName = new SymString(candidateName.Value + candidateName.Length + 1, false);
+                    }
+
+                    if (ignoreCase)
+                    {
+                        if (StringHelpers.EqualsIgnoreCase(name.Value, candidateName.Value))
+                        {
+                            typeIndex = entry;
+                            return true;
+                        }
+                    }
+
+                    if (name.AsSpan().SequenceEqual(candidateName.AsSpan()))
+                    {
+                        typeIndex = entry;
+                        return true;
+                    }
+                }
+
+                typeIndex = default;
+                return false;
+            }
+
             /* The top level method for hashing types in TPI1 is QueryTiForCVRecord. This method then splits off into
              * three separate pathways depending on whether the type is for a UDT, UDT Src Line, or non-UDT type record.
              * Fundamentally however, all 3 of these pathways are the same (the UDT pathway has some extra logic that only
@@ -578,13 +682,21 @@ namespace PESpy.PDB
              * the default hashing algorithm that applies for the particular TPI version, as determined by the TPI header.
              * As such, we converge all of these 3 pathways together in this method, allowing the caller to pass in the
              * particular hash that they want to use
+             * 
+             * It's important to note that QueryTiForCVRecord performs _two_ levels of hashing.
+             * It hashes the input based on whatever mode should be used (as described above),
+             * then it hashes the _TypType itself_ via hashPrecFull. QueryTiForUDT functions
+             * very similarly to this method, except it purely hashes based on the input name.
+             * It does not apply a second level hash using hashPrecFull. I believe
+             * that the purpose of QueryTiForUDT is to facilitate translating forward refs
+             * to their primary symbols
              */
 
             private bool HashAndLookupType(uint hash, TypType typType, out CV_typ_t typeIndex)
             {
                 var recHash = hashPrecFull(typType);
 
-                var bucket = typeIndexArena.GetSpan(typeToIndexCache[hash]);
+                var bucket = GetBucket(hash);
 
                 foreach (var entry in bucket)
                 {
@@ -636,7 +748,8 @@ namespace PESpy.PDB
 
                 //fRehashV40ToPchnMap bails out if you're not writing, so it's not relevant to the logic we need to employ here
 
-                var buckets = new List<CV_typ_t>[cHashBuckets];
+                //An array of lists
+                var buckets = new Dictionary<uint, int>();
 
                 //impv70 and below has 2 byte hashes, impv80 has 4 byte hashes
 
@@ -655,15 +768,14 @@ namespace PESpy.PDB
                     {
                         var hash = hashValues[i - tiMin];
 
-                        var bucket = buckets[hash];
-
-                        if (bucket == null)
+                        if (!buckets.TryGetValue(hash, out var bucket))
                         {
-                            bucket = new List<CV_typ_t>();
-                            buckets[hash] = bucket;
+                            buckets[hash] = 1;
                         }
-
-                        bucket.Add(i);
+                        else
+                        {
+                            buckets[hash] = bucket + 1;
+                        }
                     }
                 }
                 else if (synthetic)
@@ -674,15 +786,14 @@ namespace PESpy.PDB
                     {
                         var hash = hashPrec(GetTypTypeFromIndex(i));
 
-                        var bucket = buckets[hash];
-
-                        if (bucket == null)
+                        if (!buckets.TryGetValue(hash, out var bucket))
                         {
-                            bucket = new List<CV_typ_t>();
-                            buckets[hash] = bucket;
+                            buckets[hash] = 1;
                         }
-
-                        bucket.Add(i);
+                        else
+                        {
+                            buckets[hash] = bucket + 1;
+                        }
                     }
                 }
                 else //impv < impv80 + not synthetic
@@ -700,44 +811,98 @@ namespace PESpy.PDB
                     {
                         var hash = hashValues[i - tiMin];
 
-                        var bucket = buckets[hash];
-
-                        if (bucket == null)
+                        if (!buckets.TryGetValue(hash, out var bucket))
                         {
-                            bucket = new List<CV_typ_t>();
-                            buckets[hash] = bucket;
+                            buckets[hash] = 1;
                         }
-
-                        bucket.Add(i);
+                        else
+                        {
+                            buckets[hash] = bucket + 1;
+                        }
                     }
                 }
 
-                //Now that we know which type indices belong to which bucket, we can construct a flat list of all records
-                var allocator = new SpanAllocator<CV_typ_t>(tiMac - tiMin);
+                /* The way you're supposed to decompress the dictionary is you're meant to end up with a ginormous array with 0x3ffff slots
+                 * in it. Each hash then indexes into a slot, which may or may not contain a value. This uses too much memory, so instead
+                 * we use a two level hash based on open addressing, which lets us compress the hash space down to just enough slots
+                 * needed to store the hash records. Open addressing is an alternative hashing mode to the more commonly seen "chained"
+                 * hashing mode */
+                var tpiHashLookup = new TpiHashLookup(buckets, tiMac - tiMin);
 
-                var bucketHandles = new SpanAllocatorHandle[cHashBuckets];
-
-                for (var i = 0; i < bucketHandles.Length; i++)
+                //Now write all the values in
+                if (impv >= TPIImpv.impv80)
                 {
-                    var bucket = buckets[i];
+                    //32-bit
 
-                    if (bucket == null)
-                        continue;
+                    var hashValues = HashValues32;
 
-#if NET
-                    var handle = allocator.Alloc(CollectionsMarshal.AsSpan(bucket));
-#else
-                    var handle = allocator.Alloc(bucket.Count);
-                    var dest = allocator.GetSpan(handle);
+                    var tiMin = this.tiMin;
 
-                    for (var j = 0; j < bucket.Count; j++)
-                        dest[j] = bucket[j];
-#endif
-                    bucketHandles[i] = handle;
+                    for (var i = tiMin; i < tiMac; i++)
+                    {
+                        var hash = hashValues[i - tiMin];
+
+                        var handle = tpiHashLookup[hash];
+
+                        var remaining = buckets[hash];
+                        var pos = handle.Length - remaining;
+
+                        tpiHashLookup.GetSpan(handle)[pos] = i;
+
+                        buckets[hash] = remaining - 1;
+                    }
+                }
+                else if (synthetic)
+                {
+                    var tiMin = this.tiMin;
+
+                    for (var i = tiMin; i < tiMac; i++)
+                    {
+                        var hash = hashPrec(GetTypTypeFromIndex(i));
+
+                        var handle = tpiHashLookup[hash];
+
+                        var remaining = buckets[hash];
+                        var pos = handle.Length - remaining;
+
+                        tpiHashLookup.GetSpan(handle)[pos] = i;
+
+                        buckets[hash] = remaining - 1;
+                    }
+                }
+                else //impv < impv80 + not synthetic
+                {
+                    //16-bit
+
+                    var hashValues = HashValues16;
+
+                    var tiMin = this.tiMin;
+
+                    for (var i = tiMin; i < tiMac; i++)
+                    {
+                        var hash = hashValues[i - tiMin];
+
+                        var handle = tpiHashLookup[hash];
+
+                        var remaining = buckets[hash];
+                        var pos = handle.Length - remaining;
+
+                        tpiHashLookup.GetSpan(handle)[pos] = i;
+
+                        buckets[hash] = remaining - 1;
+                    }
                 }
 
-                typeToIndexCache = bucketHandles;
-                typeIndexArena = allocator;
+                this.tpiHashLookup = tpiHashLookup;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private Span<CV_typ_t> GetBucket(uint hash)
+            {
+                if (!tpiHashLookup.TryGetValue(hash, out var handle))
+                    return default;
+
+                return tpiHashLookup.GetSpan(handle);
             }
 
             private static bool fIsGlobalDefnUdt(TypType typType, PDBFile pdbFile)
@@ -985,6 +1150,21 @@ namespace PESpy.PDB
 
             #endregion
             #endregion
+
+            public void Dispose()
+            {
+                if (_indexToTypeMapMMF != null)
+                {
+                    _indexToTypeMapMMF.Value.Dispose();
+                    _indexToTypeMapMMF = default;
+                }
+
+                if (tpiHashLookup != null)
+                {
+                    tpiHashLookup.Dispose();
+                    tpiHashLookup = null;
+                }
+            }
         }
     }
 }

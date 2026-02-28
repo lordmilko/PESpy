@@ -1,12 +1,13 @@
 ﻿using System;
+using ClrDebug;
 
 namespace PESpy.Native
 {
     //ClrEngineMetrics
-    internal struct CLR_ENGINE_METRICS
+    public struct CLR_ENGINE_METRICS
     {
         public int cbSize;
-        public int dwDbiVersion;
+        public CorDebugInterfaceVersion dwDbiVersion;
         public IntPtr phContinueStartupEvent;
     }
 }

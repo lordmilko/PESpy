@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     strictGSCheck = ((FrameProcSym) symType).fGSCheck;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        strictGSCheck = ((FrameProcSym) child).fGSCheck;
+                        return true;
+                    }
+
+                    break;
             }
 
             strictGSCheck = default;

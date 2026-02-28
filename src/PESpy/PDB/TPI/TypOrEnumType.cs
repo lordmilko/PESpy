@@ -212,6 +212,9 @@ namespace PESpy.PDB
 
         public override string ToString()
         {
+            if (typeId == 0)
+                return "<null>";
+
             if (IsCrossScopeReference)
                 return $"0x{typeId.ToString("X")}";
 

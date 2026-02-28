@@ -13,15 +13,19 @@ namespace PESpy
     {
         public SymStore? BackingStore { get; }
 
-        protected SymStore(SymStore? backingStore)
+        public string Name { get; }
+
+        protected SymStore(SymStore? backingStore, string name)
         {
             BackingStore = backingStore;
+            Name = name;
         }
 
         //######################################
         // GetFile
         //######################################
 
+        //SymStore EntryPoint
         public static (string? filePath, SymStoreKey? keyUsed) GetFile(
             ReadOnlySpan<char> searchPath,
             SymStoreKey key,
@@ -122,6 +126,7 @@ namespace PESpy
         // CascadeStore
         //######################################
 
+        //Top level cascade dispatcher
         private static (string? filePath, SymStoreKey? keyUsed) CascadeStore(
             SymStoreKey key,
             SymStoreKey? altKey,
@@ -129,9 +134,14 @@ namespace PESpy
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
+            //This method functions as the top level dispatcher for the symbol store. The first store in the chain
+            //is queried to see whether it has the key we're looking for. If it has the file, it will return it
+            //immediately; otherwise, it will ask its parent whether it has the file, and if so will copy the file
+            //into itself
+
             SymStoreKey? keyUsed = null;
 
-            var fileAndStream = store!.Cascade(key, progress, cancellationToken);
+            var fileAndStream = store!.GetFileOrCascade(key, progress, cancellationToken);
 
             if (fileAndStream != null)
                 keyUsed = key;
@@ -139,7 +149,7 @@ namespace PESpy
             {
                 if (altKey != null)
                 {
-                    fileAndStream = store!.Cascade(altKey.Value, progress, cancellationToken);
+                    fileAndStream = store!.GetFileOrCascade(altKey.Value, progress, cancellationToken);
 
                     if (fileAndStream != null)
                         keyUsed = altKey;
@@ -163,9 +173,14 @@ namespace PESpy
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
+            //This method functions as the top level dispatcher for the symbol store. The first store in the chain
+            //is queried to see whether it has the key we're looking for. If it has the file, it will return it
+            //immediately; otherwise, it will ask its parent whether it has the file, and if so will copy the file
+            //into itself
+
             SymStoreKey? keyUsed = null;
 
-            var fileAndStream = await store!.CascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
+            var fileAndStream = await store!.GetFileOrCascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream != null)
                 keyUsed = key;
@@ -173,7 +188,7 @@ namespace PESpy
             {
                 if (altKey != null)
                 {
-                    fileAndStream = await store!.CascadeAsync(altKey.Value, progress, cancellationToken).ConfigureAwait(false);
+                    fileAndStream = await store!.GetFileOrCascadeAsync(altKey.Value, progress, cancellationToken).ConfigureAwait(false);
 
                     if (fileAndStream != null)
                         keyUsed = altKey;
@@ -194,28 +209,42 @@ namespace PESpy
         // Cascade
         //#######################################
 
-        public (SymStoreFile file, Stream stream)? Cascade(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
+        public (SymStoreFile file, Stream stream)? GetFileOrCascade(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
+            //Try and get a file from a given store. If the store contains the requested file, we return it immediately.
+            //Otherwise, we ask our parent store whether it has the desired file; if so, we copy it down into ourselves
+            //and return the copy that was created in this store back to the caller
+
             var fileAndStream = GetFile(key, progress, cancellationToken);
 
             if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    fileAndStream = BackingStore.Cascade(key, progress, cancellationToken);
-
-                    if (fileAndStream != null)
+                    try
                     {
-                        var oldStream = fileAndStream.Value.stream;
+                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
 
-                        try
+                        fileAndStream = BackingStore.GetFileOrCascade(key, progress, cancellationToken);
+
+                        if (fileAndStream != null)
                         {
-                            fileAndStream = SaveFile(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken);
+                            var oldStream = fileAndStream.Value.stream;
+
+                            try
+                            {
+                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                fileAndStream = SaveFile(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken);
+                            }
+                            finally
+                            {
+                                oldStream.Dispose();
+                            }
                         }
-                        finally
-                        {
-                            oldStream.Dispose();
-                        }
+                    }
+                    finally
+                    {
+                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
                     }
                 }
             }
@@ -224,28 +253,42 @@ namespace PESpy
         }
 
 #if !NATIVEAOT
-        public async ValueTask<(SymStoreFile file, Stream stream)?> CascadeAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
+        public async ValueTask<(SymStoreFile file, Stream stream)?> GetFileOrCascadeAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
+            //Try and get a file from a given store. If the store contains the requested file, we return it immediately.
+            //Otherwise, we ask our parent store whether it has the desired file; if so, we copy it down into ourselves
+            //and return the copy that was created in this store back to the caller
+
             var fileAndStream = await GetFileAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
             if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    fileAndStream = await BackingStore.CascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
-
-                    if (fileAndStream != null)
+                    try
                     {
-                        var oldStream = fileAndStream.Value.stream;
+                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
 
-                        try
+                        fileAndStream = await BackingStore.GetFileOrCascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
+
+                        if (fileAndStream != null)
                         {
-                            fileAndStream = await SaveFileAsync(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken).ConfigureAwait(false);
+                            var oldStream = fileAndStream.Value.stream;
+
+                            try
+                            {
+                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                fileAndStream = await SaveFileAsync(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                oldStream.Dispose();
+                            }
                         }
-                        finally
-                        {
-                            oldStream.Dispose();
-                        }
+                    }
+                    finally
+                    {
+                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
                     }
                 }
             }

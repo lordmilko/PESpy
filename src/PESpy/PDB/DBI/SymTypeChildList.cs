@@ -61,14 +61,17 @@ namespace PESpy.PDB
             }
         }
 
-        internal SymTypeChildList(BLOCKSYM* parent, ICodeViewAccessor codeViewAccessor = null)
+        //Faster than counting all of the elements
+        public bool IsEmpty => ((byte*) parentStart) + SymType.GetSymbolLength((SYMTYPE*) parentStart, codeViewAccessor) == parentEnd;
+
+        internal SymTypeChildList(BLOCKSYM* parent, ICodeViewAccessor codeViewAccessor)
         {
             parentStart = parent;
             this.codeViewAccessor = codeViewAccessor;
 
             //The first few fields of BLOCKSYM / BLOCKSYM16 / BLOCKSYM32 that describe the parent and
             //end of the block sym are the same in both 16-bit and 32-bit
-            var bufferStart = SymbolMemoryTracker.GetStart((long) parent);
+            var bufferStart = SymbolMemoryTracker.GetStart((long) parent); //todo: this is not very ideal! i feel like with lots of modules loaded it would be faster to lookup the modi or search in public symbols if we have the codeviewaccessor?
 
             if (bufferStart == 0)
                 parentEnd = (byte*) parent;

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -35,21 +36,23 @@ namespace PESpy.PDB
                 private byte* ptr;
                 private readonly byte* end;
                 private readonly ICodeViewAccessor? codeViewAccessor;
+                private SymType current;
 
                 internal Enumerator(byte* start, byte* ptr, byte* end, ICodeViewAccessor? codeViewAccessor)
                 {
                     this.start = start;
                     this.ptr = ptr;
                     this.end = end;
-                    Current = default;
+                    current = default;
                     this.codeViewAccessor = codeViewAccessor;
                 }
 
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public bool MoveNext()
                 {
                     if (ptr < end)
                     {
-                        Current = (SYMTYPE*) ptr;
+                        current = (SYMTYPE*) ptr;
 
                         if (SymType.IsBlockSym(Current.rectyp))
                         {
@@ -67,11 +70,14 @@ namespace PESpy.PDB
                         return true;
                     }
 
-                    Current = default;
                     return false;
                 }
 
-                public SymType Current { get; private set; }
+                public SymType Current
+                {
+                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                    get => current;
+                }
 
                 object IEnumerator.Current => Current;
 

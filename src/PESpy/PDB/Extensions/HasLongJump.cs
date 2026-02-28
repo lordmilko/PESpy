@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasLongJump = ((FrameProcSym) symType).fHasLongJmp;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasLongJump = ((FrameProcSym) child).fHasLongJmp;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasLongJump = default;

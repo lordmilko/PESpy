@@ -39,6 +39,8 @@ namespace PESpy.PDB
             {
                 if (typeof(T) == typeof(CV_ItemId))
                     return new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_ItemId>(ref items[index]));
+                else if (typeof(T) == typeof(CV_typ16_t))
+                    return new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_typ16_t>(ref items[index]));
                 else
                     return new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_typ_t>(ref items[index]));
             }
@@ -69,6 +71,8 @@ namespace PESpy.PDB
                 {
                     if (typeof(T) == typeof(CV_ItemId))
                         Current = new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_ItemId>(ref items[index]));
+                    else if (typeof(T) == typeof(CV_typ16_t))
+                        Current = new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_typ16_t>(ref items[index]));
                     else
                         Current = new TypOrEnumType((byte*) (T*) items, Unsafe.As<T, CV_typ_t>(ref items[index]));
 

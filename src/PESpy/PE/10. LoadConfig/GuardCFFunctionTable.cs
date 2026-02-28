@@ -72,6 +72,18 @@ namespace PESpy
             }
         }
 
+        public unsafe bool TryGetEntry(int rva, out Entry entry)
+        {
+            if (ImageLoadConfigDirectory.TryGetGuardEntry(rva, metadataSize, Count, chunk.Pointer, out var offset))
+            {
+                entry = new Entry(chunk.Slice(offset), metadataSize, chunk.PEFile());
+                return true;
+            }
+
+            entry = default;
+            return false;
+        }
+
         public Enumerator GetEnumerator() => new Enumerator(Count, metadataSize, chunk);
 
         IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => GetEnumerator();

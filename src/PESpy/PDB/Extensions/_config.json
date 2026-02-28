@@ -10,7 +10,7 @@
       "S_END", "S_SKIP", "S_CVRESERVE", "S_ENDARG", "S_VFTABLE16", "S_VFTABLE32_16t", "S_VFTABLE32", "S_RESERVED1", "S_RESERVED2", "S_RESERVED3", "S_RESERVED4", "S_LOCAL_2005", "S_DEFRANGE_2005", "S_DEFRANGE2_2005", "S_INLINESITE_END", "S_PROC_ID_END",
 
       //Known unsupported types
-      "S_FRAMEREG", "S_REF_MINIPDB2", "S_INLINEES", "S_HOTPATCHFUNC", "S_BPREL32_INDIR", "S_REGREL32_INDIR", "S_GPROC32EX", "S_LPROC32EX", "S_GPROC32EX_ID", "S_LPROC32EX_ID", "S_STATICLOCAL", "S_DEFRANGE_REGISTER_REL_INDIR", "S_BPREL32_ENCTMP", "S_REGREL32_ENCTMP", "S_BPREL32_INDIR_ENCTMP", "S_REGREL32_INDIR_ENCTMP", "S_ASSOCIATION", "S_DEFRANGE_CONSTVAL_ON_ENTRY", "S_DEFRANGE_GLOBALSYM_ON_ENTRY"
+      "S_FRAMEREG", "S_REF_MINIPDB2", "S_INLINEES", "S_HOTPATCHFUNC", "S_BPREL32_INDIR", "S_REGREL32_INDIR", "S_GPROC32EX", "S_LPROC32EX", "S_GPROC32EX_ID", "S_LPROC32EX_ID", "S_STATICLOCAL", "S_DEFRANGE_REGISTER_REL_INDIR", "S_BPREL32_ENCTMP", "S_BPREL32_INDIR_ENCTMP", "S_REGREL32_INDIR_ENCTMP", "S_ASSOCIATION", "S_DEFRANGE_CONSTVAL_ON_ENTRY", "S_DEFRANGE_GLOBALSYM_ON_ENTRY"
     ],
     "ObjNameSym":                          [ "S_OBJNAME_ST", "S_OBJNAME" ],
     "ManyRegSym16t":                       [ "S_MANYREG_16t" ],
@@ -45,7 +45,7 @@
     "DataSym32":                           [ "S_LDATA32_ST", "S_GDATA32_ST", "S_LTHREAD32_ST", "S_GTHREAD32_ST", "S_LMANDATA_ST", "S_GMANDATA_ST", "S_LDATA32", "S_GDATA32", "S_LTHREAD32", "S_GTHREAD32", "S_LMANDATA", "S_GMANDATA" ],
     "PubSym32":                            [ "S_PUB32_ST", "S_PUB32" ],
     "ProcSym32":                           [ "S_LPROC32_ST", "S_GPROC32_ST", "S_LPROC32", "S_GPROC32", "S_LPROC32_ID", "S_GPROC32_ID", "S_LPROC32_DPC", "S_LPROC32_DPC_ID" ],
-    "RegRel32":                            [ "S_REGREL32_ST", "S_REGREL32" ],
+    "RegRel32":                            [ "S_REGREL32_ST", "S_REGREL32", "S_REGREL32_ENCTMP" ],
     "ProcSymMips":                         [ "S_LPROCMIPS_ST", "S_GPROCMIPS_ST", "S_LPROCMIPS", "S_GPROCMIPS", "S_LPROCMIPS_ID", "S_GPROCMIPS_ID" ],
     "FrameProcSym":                        [ "S_FRAMEPROC" ],
     "CompileSym":                          [ "S_COMPILE2_ST", "S_COMPILE2" ],
@@ -310,7 +310,7 @@
     "ExportHasExplicitlyAssignedOrdinal":       [ "EXPORTSYM.fOrdinal" ],
     "ExportIsForwarder":                        [ "EXPORTSYM.fForwarder" ],
     "FarReturn":                                [ "CV_PROCFLAGS.CV_PFLAG_FAR" ],
-    "FinalLiveStaticSize":                      [],
+    "FinalLiveStaticSize":                      [ "POGOINFO.staInstLive" ],
     "FramePadOffset":                           [ "FRAMEPROCSYM.offPad" ],
     "FramePadSize":                             [ "FRAMEPROCSYM.cbPad" ],
     "FramePointerPresent":                      [ "!CV_PROCFLAGS.CV_PFLAG_NOFPO" ],
@@ -345,7 +345,7 @@
     "InlSpec":                                  [ "FRAMEPROCSYM.fInlSpec" ],
     "InterruptReturn":                          [ "CV_PROCFLAGS.CV_PFLAG_INT" ],
     "Intrinsic":                                [ "CV_prop_t.intrinsic" ],
-    "Intro":                                    [],
+    "Intro":                                    [ "CV_fldattr_t.mprop == CV_methodprop_e.CV_MTintro" ],
     "IsAcceleratorGroupSharedLocal":            [],
     "IsAcceleratorPointerTagLiveRange":         [],
     "IsAcceleratorStubFunction":                [],
@@ -422,16 +422,17 @@
     "OemSymbolId":                              [],
 
     //Offset only applies when the LocationType is LocIsRegRel or LocIsBitField. Offsets used by RVA's go in the AddressOffset field
-    "Offset":                                   [ { "value": ".off", "condition": [ "LocIsRegRel", "LocIsBitField" ] } ],
+    //todo: S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE's frame pointer also turns into an offset
+    "Offset":                                   [ { "value": [ ".off", ".offset" ], "condition": [ "LocIsRegRel", "LocIsBitField" ] } ],
     "OffsetInUdt":                              [],
     "OptimizedCodeDebugInfo":                   [ "CV_PROCFLAGS.CV_PFLAG_OPTDBGINFO" ],
     "Ordinal":                                  [ "EXPORTSYM.ordinal" ],
     "OverloadedOperator":                       [ "CV_prop_t.ovlops" ],
     "Packed":                                   [ "CV_prop_t.packed" ],
     "ParamBasePointerRegisterId":               [ "ExpandEncodedBasePointerReg(FRAMEPROCSYM.encodedParambasePointer)" ],
-    "PGODynamicInstructionCount":               [],
+    "PGODynamicInstructionCount":               [ "POGOINFO.dynCount" ],
     "PGOEdgeCount":                             [],
-    "PGOEntryCount":                            [],
+    "PGOEntryCount":                            [ "POGOINFO.invocations" ],
     "PhaseName":                                [],
     "Platform":                                 [ "COMPILESYM.machine", "COMPILESYM3.machine" ],
     "PrivateExport":                            [ "EXPORTSYM.fPrivate" ],
@@ -450,7 +451,7 @@
     "SizeInUdt":                                [],
     "Slot":                                     [],
     "SourceFileName":                           [],
-    "StaticSize":                               [],
+    "StaticSize":                               [ "POGOINFO.numInstrs" ],
     "StrictGSCheck":                            [ "FRAMEPROCSYM.fGSCheck" ],
     "Stride":                                   [],
     "SubType":                                  [],
@@ -467,7 +468,8 @@
     "ThunkOrdinal":                             [ "THUNKSYM16.ord", "THUNKSYM32.ord" ],
     "TimeStamp":                                [],
     "Token":                                    [],
-    "Type":                                     [ ".typind" ],
+    //I didn't see any other usages of index on any other types where the type wasn't TypOrEnumType
+    "Type":                                     [ ".typind", ".type", ".utype", ".index", ".elemtype" ],
     "TypeId":                                   [],
     "UavSlot":                                  [ "DATASYMHLSL32.uavslot" ],
     "UdtKind":                                  [],

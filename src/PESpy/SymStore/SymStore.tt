@@ -16,15 +16,19 @@ namespace PESpy
     {
         public SymStore? BackingStore { get; }
 
-        protected SymStore(SymStore? backingStore)
+        public string Name { get; }
+
+        protected SymStore(SymStore? backingStore, string name)
         {
             BackingStore = backingStore;
+            Name = name;
         }
 
         //######################################
         // GetFile
         //######################################
 
+        //SymStore EntryPoint
 <#
 for(int i = 0; i < 2; i++)
 {
@@ -89,6 +93,7 @@ for(int i = 0; i < 2; i++)
         // CascadeStore
         //######################################
 
+        //Top level cascade dispatcher
 <#
 for(int i = 0; i < 2; i++)
 {
@@ -102,9 +107,14 @@ for(int i = 0; i < 2; i++)
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
+            //This method functions as the top level dispatcher for the symbol store. The first store in the chain
+            //is queried to see whether it has the key we're looking for. If it has the file, it will return it
+            //immediately; otherwise, it will ask its parent whether it has the file, and if so will copy the file
+            //into itself
+
             SymStoreKey? keyUsed = null;
 
-            var fileAndStream = <#= CallFunction("store!.Cascade", "key, progress, cancellationToken", i) #>;
+            var fileAndStream = <#= CallFunction("store!.GetFileOrCascade", "key, progress, cancellationToken", i) #>;
 
             if (fileAndStream != null)
                 keyUsed = key;
@@ -112,7 +122,7 @@ for(int i = 0; i < 2; i++)
             {
                 if (altKey != null)
                 {
-                    fileAndStream = <#= CallFunction("store!.Cascade", "altKey.Value, progress, cancellationToken", i) #>;
+                    fileAndStream = <#= CallFunction("store!.GetFileOrCascade", "altKey.Value, progress, cancellationToken", i) #>;
 
                     if (fileAndStream != null)
                         keyUsed = altKey;
@@ -145,28 +155,42 @@ for(int i = 0; i < 2; i++)
     if (i == 1)
         WriteLine("#if !NATIVEAOT");
 #>
-        public <#= GetSignature("Cascade", "(SymStoreFile file, Stream stream)?", i) #>(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
+        public <#= GetSignature("GetFileOrCascade", "(SymStoreFile file, Stream stream)?", i) #>(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
+            //Try and get a file from a given store. If the store contains the requested file, we return it immediately.
+            //Otherwise, we ask our parent store whether it has the desired file; if so, we copy it down into ourselves
+            //and return the copy that was created in this store back to the caller
+
             var fileAndStream = <#= CallFunction("GetFile", "key, progress, cancellationToken", i) #>;
 
             if (fileAndStream == null)
             {
                 if (BackingStore != null)
                 {
-                    fileAndStream = <#= CallFunction("BackingStore.Cascade", "key, progress, cancellationToken", i) #>;
-
-                    if (fileAndStream != null)
+                    try
                     {
-                        var oldStream = fileAndStream.Value.stream;
+                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
 
-                        try
+                        fileAndStream = <#= CallFunction("BackingStore.GetFileOrCascade", "key, progress, cancellationToken", i) #>;
+
+                        if (fileAndStream != null)
                         {
-                            fileAndStream = <#= CallFunction("SaveFile", "key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken", i) #>;
+                            var oldStream = fileAndStream.Value.stream;
+
+                            try
+                            {
+                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                fileAndStream = <#= CallFunction("SaveFile", "key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken", i) #>;
+                            }
+                            finally
+                            {
+                                oldStream.Dispose();
+                            }
                         }
-                        finally
-                        {
-                            oldStream.Dispose();
-                        }
+                    }
+                    finally
+                    {
+                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
                     }
                 }
             }

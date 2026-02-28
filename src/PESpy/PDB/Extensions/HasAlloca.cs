@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasAlloca = ((FrameProcSym) symType).fHasAlloca;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasAlloca = ((FrameProcSym) child).fHasAlloca;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasAlloca = default;

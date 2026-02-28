@@ -181,7 +181,7 @@ function ParseExpression($expr)
                 }
                 else
                 {
-                    throw
+                    throw "Don't know how to handle condition '$condition'"
                 }
             }
         }
@@ -221,7 +221,7 @@ function ParseExpression($expr)
                     EntityType = "Symbols"
                     Body = $expr.value
                 }
-            }       
+            }
         }
 
         $inner
@@ -436,7 +436,7 @@ $body
             $strs += $str
         }
 
-        $fullBody = $strs -join "`r`n"
+        $fullBody = $strs -join "`r`n`r`n"
 
         $output = @"
 ﻿/*************************************************************************

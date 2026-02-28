@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -36,7 +37,7 @@ namespace PESpy.PDB
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         /// <inheritdoc cref="DATASYMHLSL.regType"/>
-        public short regType => value->regType;
+        public CV_HLSLREG_e regType => (CV_HLSLREG_e) value->regType;
 
         /// <inheritdoc cref="DATASYMHLSL.dataslot"/>
         public short dataslot => value->dataslot;
@@ -103,7 +104,7 @@ namespace PESpy.PDB
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(regType), regTypeOffset, regType);
+                    structWriter.WriteField(nameof(regType), regTypeOffset, regType, sizeof(short));
                     break;
 
                 case 4:

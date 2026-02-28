@@ -11,6 +11,8 @@ namespace PESpy
 
         SymType GetModuleSymbol(ushort imod, int ibSym);
 
+        bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement);
+
         /// <summary>
         /// Gets a type from the TPI stream.
         /// </summary>

@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasControlFlowCheck = ((FrameProcSym) symType).fGuardCF;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasControlFlowCheck = ((FrameProcSym) child).fGuardCF;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasControlFlowCheck = default;

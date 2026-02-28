@@ -50,7 +50,7 @@ namespace PESpy
 
             var percent = (double) totalRead / length * 100;
 
-            progress?.NotifyProgress(percent, totalRead, (int) length);
+            progress?.CascadeCopyProgress(percent, totalRead, (int) length);
 
             return result;
         }

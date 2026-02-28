@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     exceptionHandlerAddressSection = ((FrameProcSym) symType).sectExHdlr;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        exceptionHandlerAddressSection = ((FrameProcSym) child).sectExHdlr;
+                        return true;
+                    }
+
+                    break;
             }
 
             exceptionHandlerAddressSection = default;

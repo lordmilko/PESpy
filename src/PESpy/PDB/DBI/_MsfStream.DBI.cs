@@ -397,6 +397,11 @@ namespace PESpy.PDB
 
             private SymTypeList? symbols;
 
+            //snSymRecs contains all symbols used by publics and globals, but also contains junk
+            //unreferenced symbols that may have become obsolete by newer symbols located further on
+            //in the stream. As such, you can't trust that, say, a REFSYM2 pulled directly from this
+            //member actually points to valid data. Only a REFSYM2 that is pointed to by globals is
+            //going to be valid
             public unsafe SymTypeList? Symbols
             {
                 get

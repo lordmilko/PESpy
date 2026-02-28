@@ -98,6 +98,7 @@ namespace PESpy.PDB
             return false;
         }
     }
+
     public static partial class SymTypeExtensions
     {
         /// <summary>

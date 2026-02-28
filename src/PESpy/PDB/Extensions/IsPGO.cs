@@ -28,6 +28,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     isPGO = ((FrameProcSym) symType).fPogoOn;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        isPGO = ((FrameProcSym) child).fPogoOn;
+                        return true;
+                    }
+
+                    break;
             }
 
             isPGO = default;

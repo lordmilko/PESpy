@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     isSafeBuffers = ((FrameProcSym) symType).fSafeBuffers;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        isSafeBuffers = ((FrameProcSym) child).fSafeBuffers;
+                        return true;
+                    }
+
+                    break;
             }
 
             isSafeBuffers = default;

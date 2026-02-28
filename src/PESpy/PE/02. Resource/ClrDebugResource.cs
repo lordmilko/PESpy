@@ -43,9 +43,9 @@ namespace PESpy
 
         public int Version => chunk.PeekInt32(VersionOffset);
         public Guid Signature => chunk.PeekGuid(SignatureOffset);
-        public int DacTimeStamp => chunk.PeekInt32(DacTimeStampOffset);
+        public Timestamp DacTimeStamp => chunk.PeekUInt32(DacTimeStampOffset);
         public int DacSizeOfImage => chunk.PeekInt32(DacSizeOfImageOffset);
-        public int DbiTimeStamp => chunk.PeekInt32(DbiTimeStampOffset);
+        public Timestamp DbiTimeStamp => chunk.PeekUInt32(DbiTimeStampOffset);
         public int DbiSizeOfImage => chunk.PeekInt32(DbiSizeOfImageOffset);
 
         public int Offset => chunk.AbsoluteOffset;

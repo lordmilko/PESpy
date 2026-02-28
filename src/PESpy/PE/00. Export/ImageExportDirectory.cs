@@ -106,6 +106,8 @@ namespace PESpy
             }
         }
 
+        internal int RawAddressOfFunctions => chunk.PeekInt32(AddressOfFunctionsOffset);
+
         private RVA<RVA<AnsiString>[]>? lazyAddressOfNames;
 
         /// <summary>

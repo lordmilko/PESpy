@@ -229,6 +229,7 @@ namespace PESpy.PDB
 
                 case SYM_ENUM_e.S_REGREL32_ST:
                 case SYM_ENUM_e.S_REGREL32:
+                case SYM_ENUM_e.S_REGREL32_ENCTMP:
                     RegRel32((RegRel32) symType);
                     break;
 
@@ -498,7 +499,6 @@ namespace PESpy.PDB
                 case SYM_ENUM_e.S_STATICLOCAL:
                 case SYM_ENUM_e.S_DEFRANGE_REGISTER_REL_INDIR:
                 case SYM_ENUM_e.S_BPREL32_ENCTMP:
-                case SYM_ENUM_e.S_REGREL32_ENCTMP:
                 case SYM_ENUM_e.S_BPREL32_INDIR_ENCTMP:
                 case SYM_ENUM_e.S_REGREL32_INDIR_ENCTMP:
                 case SYM_ENUM_e.S_ASSOCIATION:

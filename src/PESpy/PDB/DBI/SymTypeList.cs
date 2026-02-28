@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -27,7 +28,7 @@ namespace PESpy.PDB
     {
         private readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before the CV_SIGNATURE begins
         private readonly byte* ptr;
-        private readonly byte* end;
+        internal readonly byte* end;
         internal readonly ICodeViewAccessor? codeViewAccessor;
 
         private int? count;
@@ -65,6 +66,9 @@ namespace PESpy.PDB
             this.end = ptr + length;
             this.codeViewAccessor = codeViewAccessor;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(SymType symType) => (SYMTYPE*) symType >= ptr && (SYMTYPE*) symType < end;
 
         public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (ptr + offset);
 
@@ -113,35 +117,41 @@ namespace PESpy.PDB
             private readonly byte* end;
             private readonly ICodeViewAccessor codeViewAccessor;
 
+            private SymType current;
+
             internal Enumerator(byte* ptr, byte* end, ICodeViewAccessor codeViewAccessor)
             {
                 this.ptr = ptr;
                 this.end = end;
-                Current = default;
+                current = default;
                 this.codeViewAccessor = codeViewAccessor;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
                 if (ptr < end)
                 {
-                    Current = (SYMTYPE*) ptr;
+                    current = (SYMTYPE*) ptr;
 
 #if DEBUG
                     //Force resolve the symbol to its actual type so that we can trigger any asserts for un-implemented properties
                     //SymTypeProxy.GetValue(Current);
 #endif
 
-                    ptr += SymType.GetSymbolLength(Current, codeViewAccessor);
+                    ptr += SymType.GetSymbolLength(current, codeViewAccessor);
 
                     return true;
                 }
 
-                Current = default;
                 return false;
             }
 
-            public SymType Current { get; private set; }
+            public SymType Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => current;
+            }
 
             object IEnumerator.Current => Current;
 

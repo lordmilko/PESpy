@@ -20,6 +20,9 @@ namespace PESpy.PDB
         {
             get
             {
+                if (symType == default)
+                    return "<null>";
+
                 var result = ObjectSymTypeDispatcher.Instance.Dispatch(symType);
 
                 if (result is SymType t)
@@ -38,6 +41,9 @@ namespace PESpy.PDB
 
         public static string DebuggerDisplay(SymType symType)
         {
+            if (symType == default)
+                return "<null>";
+
             var builder = new StringBuilder();
             builder.Append("[").Append(symType.rectyp).Append("]");
 

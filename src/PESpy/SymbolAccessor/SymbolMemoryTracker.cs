@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using ClrDebug.PDB;
+using PESpy.PDB;
 
 namespace PESpy
 {

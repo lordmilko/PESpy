@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasInlAsm = ((FrameProcSym) symType).fHasInlAsm;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasInlAsm = ((FrameProcSym) child).fHasInlAsm;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasInlAsm = default;

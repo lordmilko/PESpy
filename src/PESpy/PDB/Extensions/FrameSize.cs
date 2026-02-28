@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     frameSize = ((FrameProcSym) symType).cbFrame;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        frameSize = ((FrameProcSym) child).cbFrame;
+                        return true;
+                    }
+
+                    break;
             }
 
             frameSize = default;

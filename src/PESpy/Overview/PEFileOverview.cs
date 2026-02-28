@@ -558,6 +558,24 @@ namespace PESpy
                 return new FileOverview.NativeSymbol(rva, default, default);
         }
 
+        //If we didn't have a proper symbol accessor at the point where we were trying to resolve symbols,
+        //we may now
+        internal void RefreshSymbols(ISymbolAccessor symbolAccessor)
+        {
+            if (symbolAccessor is ExternalFileSymbolAccessor e)
+                LocalSymbolFile = e.FileName;
+
+            if (EntryPoint != null)
+            {
+                throw new NotImplementedException();
+            }
+
+            if (Cor20NativeEntryPoint != null)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public struct SymbolFile
         {
             public string Name { get; }

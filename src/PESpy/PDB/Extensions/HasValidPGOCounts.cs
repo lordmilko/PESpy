@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasValidPGOCounts = ((FrameProcSym) symType).fValidCounts;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasValidPGOCounts = ((FrameProcSym) child).fValidCounts;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasValidPGOCounts = default;

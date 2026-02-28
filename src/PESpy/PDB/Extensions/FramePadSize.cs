@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     framePadSize = ((FrameProcSym) symType).cbPad;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        framePadSize = ((FrameProcSym) child).cbPad;
+                        return true;
+                    }
+
+                    break;
             }
 
             framePadSize = default;

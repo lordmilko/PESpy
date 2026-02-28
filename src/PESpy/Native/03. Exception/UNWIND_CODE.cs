@@ -4,7 +4,7 @@ namespace PESpy.Native
 {
     //UnwindCode
     [StructLayout(LayoutKind.Explicit)]
-    internal struct UNWIND_CODE
+    public struct UNWIND_CODE
     {
         [FieldOffset(0)]
         public byte CodeOffset;
@@ -14,5 +14,8 @@ namespace PESpy.Native
 
         [FieldOffset(0)]
         public short FrameOffset;
+
+        public UWOP UnwindOp => (UWOP) (UnwindOpAndOpInfo & 0x0F);
+        public byte OpInfo => (byte) ((UnwindOpAndOpInfo & 0xF0) >> 4);
     }
 }

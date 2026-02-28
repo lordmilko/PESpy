@@ -87,6 +87,58 @@ namespace PESpy.PDB
             return StringSymTypeDispatcher.Instance.Dispatch(this);
         }
 
+        //Can't return BlockSym because top level blocks need to show null for their parent
+        internal static SymType GetParent(BLOCKSYM* symType, ICodeViewAccessor? codeViewAccessor)
+        {
+            var pParent = symType->pParent;
+
+            if (pParent == 0 && symType->rectyp != S_SEPCODE) //The parent of a SepCode may potentially be resolvable without having a pParent
+                return default;
+
+            var pStart = SymbolMemoryTracker.GetStart((long) symType);
+
+            return GetParent((BlockSym) symType, pStart, codeViewAccessor);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal unsafe static BlockSym GetParent(BlockSym blockSym, long pStart, ICodeViewAccessor? codeViewAccessor)
+        {
+            var pParent = blockSym.pParent;
+
+            if (blockSym.rectyp == S_SEPCODE)
+            {
+                //I've noticed that on a SEPCODESYM, pParent can be 0. I also notice that in the CV_SEPCODEFLAGS
+                //there's a field fIsLexicalScope. I wonder if fIsLexicalScope tells you whether you can use pParent or not
+
+                var sepCode = (SepCodeSym) (SymType) blockSym;
+
+                if (pParent == 0)
+                {
+                    Debug.Assert(!sepCode.scf.fIsLexicalScope);
+
+                    //We have offParent and sectParent, so we need to use those to try and resolve
+                    //the parent symbol
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) (SymType) blockSym);
+
+                    if (codeViewAccessor.TryGetSymbolBySectionAndOffset(sepCode.sectParent, sepCode.offParent, out var parentSym, out var disp))
+                        return parentSym;
+
+                    return default;
+                }
+                else
+                {
+                    Debug.Assert(sepCode.scf.fIsLexicalScope);
+
+                    return (SymType) (SYMTYPE*) (blockSym.pParent + pStart);
+                }
+            }
+
+            if (pParent == 0)
+                return default;
+
+            return (SymType) (SYMTYPE*) (pParent + pStart);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int GetSymbolLength(SYMTYPE* symType, ICodeViewAccessor? codeViewAccessor)
         {
@@ -198,11 +250,11 @@ namespace PESpy.PDB
 
         //Note: can only be used when a symbol actually came from a PDB File, and not an OBJ file or NB05 record
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool TryPDBGetSectionContrib(SYMTYPE* symType, ushort seg, int off, out SC40 sc)
+        internal static bool TryPDBGetSectionContrib(SYMTYPE* symType, ushort seg, int off, PDBFile? codeViewAccessor, out SC40 sc)
         {
-            var pdbFile = ((PDBFile?) SymbolMemoryTracker.GetAccessor((long) symType));
+            codeViewAccessor ??= ((PDBFile?) SymbolMemoryTracker.GetAccessor((long) symType));
 
-            return TryPDBGetSectionContribInternal(pdbFile, seg, off, out sc);
+            return TryPDBGetSectionContribInternal(codeViewAccessor, seg, off, out sc);
         }
 
         internal static bool TryGetSectionCharacteristics(SYMTYPE* symType, ushort seg, int off, ICodeViewAccessor? codeViewAccessor, out IMAGE_SCN characteristics)
@@ -431,6 +483,7 @@ namespace PESpy.PDB
         public static implicit operator AttrRegRel(SymType symType) => new AttrRegRel((ATTRREGREL*) symType.value);
         public static implicit operator AttrRegSym(SymType symType) => new AttrRegSym((ATTRREGSYM*) symType.value);
         public static implicit operator AttrSlotSym(SymType symType) => new AttrSlotSym((ATTRSLOTSYM*) symType.value);
+        public static implicit operator BlockSym(SymType symType) => new BlockSym((BLOCKSYM*) symType.value);
         public static implicit operator BlockSym16(SymType symType) => new BlockSym16((BLOCKSYM16*) symType.value);
         public static implicit operator BlockSym32(SymType symType) => new BlockSym32((BLOCKSYM32*) symType.value);
         public static implicit operator BPRelSym16(SymType symType) => new BPRelSym16((BPRELSYM16*) symType.value);

@@ -38,6 +38,8 @@ namespace PESpy.PDB
             this.chunk = chunk;
         }
 
+        public static implicit operator InlineeSourceLine(InlineeSourceLineEx value) => new InlineeSourceLine(value.chunk);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

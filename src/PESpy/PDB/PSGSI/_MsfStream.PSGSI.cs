@@ -185,6 +185,11 @@ namespace PESpy.PDB
              * - PSGSI::pbInThunkTable - checks whether a given function is in the thunk table. If so,
              *   we get a fake ILT (Incremental Link Table) item
              * - PSGSI1::fInThunkTable
+             * 
+             * It's important to note that while these items are referred to as "thunks", there are actually two different
+             * types of "thunks". The "thunks" described in PSGSI are specifically thunks that relate to the Incremental
+             * Link Table. For a function that is implemented in terms of an import, your ILT thunk may then point
+             * to _another_ thunk that then points to the import.
              */
 
             //Given the relative offset of a thunk, get the RVA of the function it points to

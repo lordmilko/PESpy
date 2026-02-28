@@ -34,6 +34,8 @@ namespace PESpy
 
             public bool IsEmpty => Position >= length;
 
+            public int Remaining => length - Position;
+
             public TextWindow(byte* buffer, int length)
             {
                 this.buffer = buffer;
@@ -200,6 +202,31 @@ namespace PESpy
                 var str = new FixedUtf8String(buffer + Position, length);
                 Position += length;
                 return str;
+            }
+
+            //This is for a non-mangled number e.g. in a C Symbol
+            internal bool TryParseNumber(out int value)
+            {
+                var remaining = Remaining;
+                var span = new Span<byte>(buffer + Position, remaining);
+
+                value = 0;
+
+                for (var i = 0; i < span.Length; i++)
+                {
+                    var c = span[i];
+
+                    if (c < (byte) '0' || c > (byte) '9')
+                    {
+                        value = default;
+                        return false;
+                    }
+
+                    value = value * 10 + (c - '0');
+                }
+
+                Position += remaining;
+                return true;
             }
 
             public int FindChar(char c)
@@ -532,6 +559,17 @@ namespace PESpy
                 scopedIdentifierNode.Scope = scope;
                 scopedIdentifierNode.Number = number;
                 return scopedIdentifierNode;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public CSymbolNode AllocCSymbol(CallingConv callingConvention, int nameLength)
+            {
+                var cSymbolNode = arena?.CSymbol.Allocate() ?? new CSymbolNode();
+
+                cSymbolNode.CallingConvention = callingConvention;
+                cSymbolNode.SetName(ReadAndAdvance(nameLength));
+
+                return cSymbolNode;
             }
 
             #endregion

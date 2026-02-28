@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     wasInlined = ((FrameProcSym) symType).fWasInlined;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        wasInlined = ((FrameProcSym) child).fWasInlined;
+                        return true;
+                    }
+
+                    break;
             }
 
             wasInlined = default;

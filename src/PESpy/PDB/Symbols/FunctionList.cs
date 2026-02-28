@@ -30,7 +30,7 @@ namespace PESpy.PDB
         public int count => value->count;
 
         /// <inheritdoc cref="FUNCTIONLIST.funcs"/>
-        public NativeSpan<CV_typ_t> funcs => new NativeSpan<CV_typ_t>(value->funcs, count);
+        public TypOrEnumTypeList<CV_typ_t> funcs => new TypOrEnumTypeList<CV_typ_t>(new NativeSpan<CV_typ_t>(value->funcs, count));
 
         public Span<int> invocations
         {
@@ -90,7 +90,7 @@ namespace PESpy.PDB
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(funcs), funcsOffset, funcs);
+                    structWriter.WriteField(nameof(funcs), funcsOffset, new NativeSpan<CV_typ_t>(value->funcs, count));
                     break;
 
                 default:

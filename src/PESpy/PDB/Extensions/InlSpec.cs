@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     inlSpec = ((FrameProcSym) symType).fInlSpec;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        inlSpec = ((FrameProcSym) child).fInlSpec;
+                        return true;
+                    }
+
+                    break;
             }
 
             inlSpec = default;

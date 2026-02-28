@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy
@@ -11,7 +12,7 @@ namespace PESpy
         private const int ContinueStartupEventOffset = 8;
 
         public int Size => chunk.PeekInt32(SizeOffset);
-        public int DbiVersion => chunk.PeekInt32(DbiVersionOffset);
+        public CorDebugInterfaceVersion DbiVersion => (CorDebugInterfaceVersion) chunk.PeekUInt32(DbiVersionOffset);
         public ulong ContinueStartupEvent => chunk.PeekPointer(ContinueStartupEventOffset);
 
         public int Offset => chunk.AbsoluteOffset;
@@ -47,7 +48,7 @@ namespace PESpy
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(DbiVersion), DbiVersionOffset, DbiVersion);
+                    structWriter.WriteField(nameof(DbiVersion), DbiVersionOffset, DbiVersion, sizeof(uint));
                     break;
 
                 case 2:

@@ -23,6 +23,15 @@ namespace PESpy.PDB
                 case S_FRAMEPROC:
                     hasSetJump = ((FrameProcSym) symType).fHasSetJmp;
                     return true;
+
+                default:
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    {
+                        hasSetJump = ((FrameProcSym) child).fHasSetJmp;
+                        return true;
+                    }
+
+                    break;
             }
 
             hasSetJump = default;

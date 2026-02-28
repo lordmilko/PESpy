@@ -305,7 +305,7 @@ namespace PESpy.PDB
 
                     var pdbFile = chunk.PDBFile();
 
-                    if (!localSymType.TryGetName(pdbFile, out var symbolName))
+                    if (!localSymType.TryGetName(out var symbolName, pdbFile))
                     {
                         symType = default;
                         return false;

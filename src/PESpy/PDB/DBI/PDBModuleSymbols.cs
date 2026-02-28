@@ -27,7 +27,14 @@ namespace PESpy.PDB
             List = symbols;
         }
 
-        public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (chunk.Pointer + offset);
+        public unsafe SymType GetSymbolFromOffset(int offset)
+        {
+            var ptr = (SYMTYPE*) (chunk.Pointer + offset);
+
+            Debug.Assert(ptr < List.end);
+
+            return ptr;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

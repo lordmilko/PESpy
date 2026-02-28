@@ -34,6 +34,7 @@ namespace PESpy
         internal NodeArena<AllocWinRTQualifiedBaseIdentifierNode> WinRTQualifiedBaseIdentifier;
         internal NodeArena<NodeArrayNode> NodeArray;
         internal NodeArena<ScopedIdentifierNode> ScopedIdentifier;
+        internal NodeArena<CSymbolNode> CSymbol;
 
         public DemanglerNodeArena()
         {
@@ -64,6 +65,7 @@ namespace PESpy
             WinRTQualifiedBaseIdentifier = new NodeArena<AllocWinRTQualifiedBaseIdentifierNode>(1, () => new AllocWinRTQualifiedBaseIdentifierNode());
             NodeArray                    = new NodeArena<NodeArrayNode>                        (110, () => new NodeArrayNode());
             ScopedIdentifier             = new NodeArena<ScopedIdentifierNode>                 (1, () => new ScopedIdentifierNode());
+            CSymbol                      = new NodeArena<CSymbolNode>                          (1, () => new CSymbolNode());
         }
 
         public void Reset()
@@ -95,6 +97,7 @@ namespace PESpy
             WinRTQualifiedBaseIdentifier.Reset();
             NodeArray.Reset();
             ScopedIdentifier.Reset();
+            CSymbol.Reset();
         }
 
         [DebuggerDisplay("{DebuggerDisplay(),nq}")]

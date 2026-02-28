@@ -13,6 +13,7 @@
             LocalStaticGuardVariable,
             SpecialTableSymbol,
             VariableSymbol,
+            CSymbol,
             SymbolEnd = VariableSymbol,
 
             IdentifierStart,

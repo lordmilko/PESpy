@@ -225,6 +225,12 @@ namespace PESpy
 
         public static unsafe void ParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
         {
+            if (!TryParseString(str, ref builder, flags))
+                builder.Append(str);
+        }
+
+        public static unsafe bool TryParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
+        {
             var textWindow = new TextWindow(str.Value, str.Length);
 
             try
@@ -232,11 +238,10 @@ namespace PESpy
                 if (TryParseInternal(ref textWindow, out var symbol))
                 {
                     symbol.Output(ref builder, flags);
+                    return true;
                 }
-                else
-                {
-                    builder.Append(str);
-                }
+
+                return false;
             }
             finally
             {
@@ -331,54 +336,87 @@ namespace PESpy
             out string className,
             out string targetName)
         {
-            className = default;
-            targetName = default;
-
             if (!str.StartsWith("??_7"))
+            {
+                className = default;
+                targetName = default;
                 return false;
+            }
 
             using var inputBuilder = new Utf8StringBuilder(str);
 
             fixed (byte* p = inputBuilder.AsSpan())
             {
-                var textWriter = new TextWindow(p, inputBuilder.Length);
-
-                try
-                {
-                    if (!TryParseInternal(ref textWriter, out var symbolNode))
-                        return false;
-
-                    var vftableSymbol = (SpecialTableSymbolNode) symbolNode;
-
-                    //Name should be a qualified name whose last element is "vftable"
-                    var classNameComponents = vftableSymbol.Name.Components;
-
-                    var ptr = stackalloc char[MaxSymbolName];
-                    var outputBuilder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
-
-                    try
-                    {
-                        classNameComponents.Output(ref outputBuilder, UNDNAME.UNDNAME_NAME_ONLY, "::", classNameComponents.Count - 1);
-
-                        className = outputBuilder.ToString();
-                    }
-                    finally
-                    {
-                        outputBuilder.Dispose();
-                    }
-
-                    if (vftableSymbol.TargetName != null)
-                        targetName = vftableSymbol.TargetName.ToString();
-
-                    return true;
-                }
-                finally
-                {
-                    textWriter.Dispose();
-                }
+                return CrackVftable(p, inputBuilder.Length, out className, out targetName);
             }
         }
 
+        public static unsafe bool CrackVftable(
+            FixedUtf8String str,
+            out string className,
+            out string targetName)
+        {
+            if (!str.StartsWith("??_7"))
+            {
+                className = default;
+                targetName = default;
+                return false;
+            }
+
+            return CrackVftable(str.Value, str.Length, out className, out targetName);
+        }
+
+        private static unsafe bool CrackVftable(
+            byte* p,
+            int length,
+            out string className,
+            out string targetName)
+        {
+            var textWriter = new TextWindow(p, length);
+
+            try
+            {
+                if (!TryParseInternal(ref textWriter, out var symbolNode))
+                {
+                    className = default;
+                    targetName = default;
+                    return false;
+                }
+
+                var vftableSymbol = (SpecialTableSymbolNode) symbolNode;
+
+                //Name should be a qualified name whose last element is "vftable"
+                var classNameComponents = vftableSymbol.Name.Components;
+
+                var ptr = stackalloc char[MaxSymbolName];
+                var outputBuilder = new Utf8StringBuilder(new Span<byte>(ptr, MaxSymbolName));
+
+                try
+                {
+                    classNameComponents.Output(ref outputBuilder, UNDNAME.UNDNAME_NAME_ONLY, "::", classNameComponents.Count - 1);
+
+                    className = outputBuilder.ToString();
+                }
+                finally
+                {
+                    outputBuilder.Dispose();
+                }
+
+                if (vftableSymbol.TargetName != null)
+                    targetName = vftableSymbol.TargetName.ToString();
+                else
+                    targetName = default;
+
+                return true;
+            }
+            finally
+            {
+                textWriter.Dispose();
+            }
+        }
+
+        //todo: merge these two to be backed by parsefunctioninternal
+        //which can just take the ptr and the length
         public static unsafe void ParseFunction(
             string str,
             Action<FunctionSymbolNode> callback)
@@ -409,9 +447,42 @@ namespace PESpy
             }
         }
 
+        public static unsafe void ParseFunction(
+            FixedUtf8String str,
+            Action<FunctionSymbolNode> callback)
+        {
+            if (str.StartsWith("??_R"))
+                return; //Some type of RTTI descriptor
+
+            var textWriter = new TextWindow(str.Value, str.Length);
+
+            try
+            {
+                if (!TryParseInternal(ref textWriter, out var symbolNode))
+                    return;
+
+                if (symbolNode is FunctionSymbolNode f)
+                {
+                    callback(f);
+                }
+            }
+            finally
+            {
+                textWriter.Dispose();
+            }
+        }
+
         private static bool TryParseInternal(ref TextWindow textWindow, out SymbolNode symbolNode)
         {
             var c = textWindow.PeekChar();
+
+            /* The normal demangler system only supports C++ mangled names, however technically speaking there's
+             * also another category that needs to be supported: calling convention mangling. This is typically
+             * seen in x86 where everything might be stdcall or fastcall, giving you stuff like foo@8. fastcall
+             * is denoted by having a leading @ as well. undname.exe can't handle these; DbgHelp encodes special
+             * logic in SymUnDNameInternal to handle symbols starting with @ or _. It scans forward trying to find
+             * the next @ after these. If it finds one, it trims to that. Otherwise, it just trims the first letter
+             */
 
             switch (c)
             {
@@ -450,6 +521,94 @@ namespace PESpy
 
                         return TryParseDeclarator(ref textWindow, out symbolNode);
                     }
+
+                /* https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names?view=msvc-170#FormatC
+                 * _Foo = cdecl
+                 * _Foo@8 = stdcall
+                 * @Foo@8 = fastcall
+                 * 
+                 * vectorcall is apprently Foo@@8 ?
+                 * In ARM64EC it sasy there's a leading # ?
+                 * 
+                 * In x64, only vectorcall is decorated
+                 */
+
+                case '_':
+                {
+                    if (textWindow.Position != 0)
+                    {
+                        symbolNode = default;
+                        return false;
+                    }
+
+                    //cdecl or stdcall
+                    textWindow.AdvanceChar();
+
+                    var at = textWindow.FindChar('@');
+
+                    if (at == -1)
+                    {
+                        //cdecl
+                        symbolNode = textWindow.AllocCSymbol(CallingConv.Cdecl, textWindow.Remaining);
+                        return true;
+                    }
+                    else
+                    {
+                        //stdcall
+
+                        var cSymbol = textWindow.AllocCSymbol(CallingConv.Stdcall, at);
+
+                        textWindow.AdvanceChar();
+
+                        if (textWindow.TryParseNumber(out var number))
+                        {
+                            cSymbol.ParameterListSize = number;
+                            symbolNode = cSymbol;
+                            return true;
+                        }
+
+                        //There are weird symbols like ___@@_PchSym_@00@KxulyqvxgPillgKxunrmpvimvoUgsivzwklloUmgwooUdldGEDCUlyquivUrDIGUgkkOlyq@tp
+                        //which are not C mangled symbols, they seem to be something to do with pre-compiled headers?
+
+                        symbolNode = default;
+                        return false;
+                    }
+                }
+
+                case '@':
+                {
+                    if (textWindow.Position != 0)
+                    {
+                        symbolNode = default;
+                        return false;
+                    }
+
+                    //fastcall
+
+                    textWindow.AdvanceChar();
+
+                    var at = textWindow.FindChar('@');
+
+                    if (at == -1)
+                    {
+                        symbolNode = default;
+                        return false;
+                    }
+
+                    var cSymbol = textWindow.AllocCSymbol(CallingConv.Fastcall, at);
+
+                    textWindow.AdvanceChar();
+
+                    if (textWindow.TryParseNumber(out var number))
+                    {
+                        cSymbol.ParameterListSize = number;
+                        symbolNode = cSymbol;
+                        return true;
+                    }
+
+                    symbolNode = default;
+                    return false;
+                }
 
                 default:
                     symbolNode = default;
@@ -1260,7 +1419,7 @@ namespace PESpy
 
             TypeNode returnType = null;
 
-            //If the next character is @, it's a structor, which means it doesn't hjave a return type
+            //If the next character is @, it's a structor, which means it doesn't have a return type
             if (!textWindow.TryAdvance('@'))
             {
                 if (!TryParseType(ref textWindow, QualifierMangleMode.Result, out returnType))

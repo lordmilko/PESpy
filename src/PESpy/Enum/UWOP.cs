@@ -51,7 +51,7 @@ namespace PESpy
         SAVE_NONVOL_FAR = 5,
 
         UWOP_EPILOG = 6, //Present in Version 2
-        SPARE_CODE2 = 7,
+        SPARE_CODE = 7,
         SAVE_XMM128 = 8,
 
         /// <summary>

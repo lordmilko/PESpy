@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.View;
 
@@ -50,7 +51,7 @@ namespace PESpy.PDB
         public int bindSlot => value->bindSlot;
 
         /// <inheritdoc cref="DATASYMHLSL32_EX.regType"/>
-        public short regType => value->regType;
+        public CV_HLSLREG_e regType => (CV_HLSLREG_e) value->regType;
 
         /// <inheritdoc cref="DATASYMHLSL32_EX.name"/>
         public SymString name => SymType.ReadString(value, value->name);
@@ -115,7 +116,7 @@ namespace PESpy.PDB
                     break;
 
                 case 7:
-                    structWriter.WriteField(nameof(regType), regTypeOffset, regType);
+                    structWriter.WriteField(nameof(regType), regTypeOffset, regType, sizeof(short));
                     break;
 
                 case 8:

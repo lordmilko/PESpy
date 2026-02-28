@@ -5,7 +5,7 @@ using static ClrDebug.PDB.PdbExtensions;
 namespace PESpy.PDB
 {
     //Type is made up
-    [DebuggerDisplay("{DebuggerDisplay()}")]
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct BinaryAnnotation
     {
         private string DebuggerDisplay()

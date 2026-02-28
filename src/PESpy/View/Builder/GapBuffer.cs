@@ -204,7 +204,10 @@ namespace PESpy
             }
         }
 
-        public ReadOnlySpan<T> GetText(int index, int length)
+
+        public ReadOnlySpan<T> AsSpan() => AsSpan(0, Count);
+
+        public ReadOnlySpan<T> AsSpan(int index, int length)
         {
             if (index < gapStart)
             {

@@ -61,16 +61,13 @@ namespace PESpy.PDB
 
         public static SymString GetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
-            if (!TryGetName(symType, codeViewAccessor, out var name))
+            if (!TryGetName(symType, out var name, codeViewAccessor))
                 throw new NotImplementedException();
 
             return name;
         }
 
-        public static bool TryGetName(in this SymType symType, out SymString name) =>
-            TryGetName(symType, null, out name);
-
-        public static bool TryGetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out SymString name)
+        public static bool TryGetName(in this SymType symType, out SymString name, ICodeViewAccessor? codeViewAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -300,6 +297,7 @@ namespace PESpy.PDB
 
                 case S_REGREL32_ST: //Not supported by DIA
                 case S_REGREL32:
+                case S_REGREL32_ENCTMP: //Not supported by DIA
                     name = ((RegRel32) symType).GetName(codeViewAccessor);
                     return true;
 
@@ -402,7 +400,7 @@ namespace PESpy.PDB
             return false;
         }
 
-        public static bool TryGetOffSeg(in this SymType symType, out int off, out ushort seg)
+        public static bool TryGetOffSeg(in this SymType symType, out int off, out ISECT seg)
         {
             //The following symbol kinds have a "seg" member which indicates they may store an RVA
 
@@ -639,6 +637,14 @@ namespace PESpy.PDB
                 case S_TOKENREF:
                     return ((RefSym2) symType).Symbol.TryGetOffSeg(out off, out seg);
 
+                case S_SEPCODE:
+                {
+                    var sym = ((SepCodeSym) symType);
+                    off = sym.off;
+                    seg = sym.sect;
+                    return true;
+                }
+
                 default:
                     off = default;
                     seg = default;
@@ -705,7 +711,8 @@ namespace PESpy.PDB
 
                     if (value.pubsymflags.fFunction)
                     {
-                        Debug.Assert(value.pubsymflags.fCode); //We assume that fFunction implies fCode
+                        //win32u NtGdiGetPixel (ZwGdiGetPixel in IDA) is code and does not say it's a function. It's basically just a syscall. Still code though
+                        //Debug.Assert(value.pubsymflags.fCode); //We assume that fFunction implies fCode
                         return true;
                     }
 
@@ -1028,7 +1035,7 @@ namespace PESpy.PDB
              * | SymbolDataSimpleImpl<4363,7>              | S_BPREL32               | SymTagData               |               | SymTagData | LocIsRegRel           | DataIsLocal / DataIsParam (if typind > 0)
              * | SymbolDataSimpleImpl<4364,7>              | S_LDATA32               | SymTagData               |               | SymTagData | LocIsStatic           | DataIsStaticLocal / DataIsFileStatic
              * | SymbolDataSimpleImpl<4365,7>              | S_GDATA32               | SymTagData               |               | SymTagData | LocIsStatic           | DataIsGlobal
-             * | SymbolDataSimpleImpl<4369,7>              | S_REGREL32              | SymTagData               |               | SymTagData | LocIsRegRel           | DataIsLocal
+             * | SymbolDataSimpleImpl<4369,7>              | S_REGREL32              | SymTagData               |               | SymTagData | LocIsRegRel           | DataIsLocal / DataIsParam
              * | SymbolDataSimpleImpl<4370,7>              | S_LTHREAD32             | SymTagData               |               | SymTagData | LocIsTLS              | DataIsStaticLocal / DataIsFileStatic
              * | SymbolDataSimpleImpl<4371,7>              | S_GTHREAD32             | SymTagData               |               | SymTagData | LocIsTLS              | DataIsGlobal
              * | SymbolDataSimpleImpl<4375,7>              | S_MANYREG2              | SymTagData               |               | SymTagData |                       |
@@ -1163,9 +1170,9 @@ namespace PESpy.PDB
                 #region CompilandDetails (3)
 
                 case S_COMPILE:
-                case S_COMPILE3:
                 case S_COMPILE2:
                 case S_COMPILE2_ST: //Not supported by DIA
+                case S_COMPILE3:
                     //CompileSym is inspected twice: once to create a SymTagCompilandDetails around the CompileSym record,
                     //and again to create a SymTagCompilandEnv around all of the environment strings hanging off the end of the symbol
                     return SymTagEnum.CompilandDetails;
@@ -1183,6 +1190,8 @@ namespace PESpy.PDB
                 #endregion
                 #region Function (5)
 
+                case S_LPROC16: //Not supported by DIA
+                case S_GPROC16: //Not supported by DIA
                 case S_LPROC32:
                 case S_LPROC32_ST: //Not supported by DIA
                 case S_LPROC32_16t: //Not supported by DIA
@@ -1294,6 +1303,26 @@ namespace PESpy.PDB
                 case S_BPREL32_INDIR:
                 case S_REGREL32_INDIR:
                 case S_STATICLOCAL:
+
+                case S_BPREL32_ENCTMP: //Not supported by DIA
+                case S_BPREL32_INDIR_ENCTMP: //Not supported by DIA
+                case S_REGREL32_ENCTMP: //Not supported by DIA
+                case S_REGREL32_INDIR_ENCTMP: //Not supported by DIA
+
+                //These all should depend on a header symbol (S_LOCAL, S_FILESTATIC, S_LOCAL_DPC_GROUPSHARED).
+                //But if anybody asks, I think it makes sense to say that they're data too
+                case S_DEFRANGE:
+                case S_DEFRANGE_SUBFIELD:
+                case S_DEFRANGE_REGISTER:
+                case S_DEFRANGE_FRAMEPOINTER_REL:
+                case S_DEFRANGE_SUBFIELD_REGISTER:
+                case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
+                case S_DEFRANGE_REGISTER_REL:
+                case S_DEFRANGE_HLSL:
+                case S_DEFRANGE_DPC_PTR_TAG:
+                case S_DEFRANGE_REGISTER_REL_INDIR:
+                case S_DEFRANGE_CONSTVAL_ON_ENTRY:
+                case S_DEFRANGE_GLOBALSYM_ON_ENTRY:
                     return SymTagEnum.Data;
 
                 #endregion
@@ -1430,82 +1459,290 @@ namespace PESpy.PDB
             }
         }
 
-        public static DataKind GetDataKind(in this SymType symType)
+        public static unsafe bool TryGetDataKind(
+            in this SymType symType,
+            out DataKind value,
+            SymType parent = default,
+            ICodeViewAccessor? codeViewAccessor = null)
         {
             //I am only aware of this being valid for symbols that resolve to SymTagData
 
             switch (symType.rectyp)
             {
+                case S_REGISTER_16t: //Not supported by DIA
                 case S_REGISTER:
-                case S_REGREL32:
+                case S_REGISTER_ST: //Not supported by DIA
                 case S_LOCALSLOT:
-                    return DataKind.DataIsLocal;
+                case S_LOCALSLOT_ST: //Not supported by DIA
+                    value = DataKind.DataIsLocal;
+                    return true;
 
                 case S_PARAMSLOT:
-                    return DataKind.DataIsParam;
+                case S_PARAMSLOT_ST: //Not supported by DIA
+                    value = DataKind.DataIsParam;
+                    return true;
 
+                case S_CONSTANT_16t: //Not supported by DIA
                 case S_CONSTANT:
+                case S_CONSTANT_ST: //Not supported by DIA
                 case S_MANCONSTANT:
-                    return DataKind.DataIsConstant;
+                    value = DataKind.DataIsConstant;
+                    return true;
 
+                case S_GDATA32_16t: //Not supported by DIA
                 case S_GDATA32:
+                case S_GDATA32_ST: //Not supported by DIA
                 case S_GTHREAD32:
+                case S_GTHREAD32_ST: //Not supported by DIA
                 case S_GMANDATA:
+                case S_GMANDATA_ST: //Not supported by DIA
                 case S_GDATA_HLSL:
                 case S_GDATA_HLSL32:
                 case S_GDATA_HLSL32_EX:
-                    return DataKind.DataIsGlobal;
+                    value = DataKind.DataIsGlobal;
+                    return true;
 
+                case S_MANYREG_16t: //Not supported by DIA
                 case S_MANYREG:
+                case S_MANYREG_ST: //Not supported by DIA
                     throw new NotImplementedException();
 
-                case S_BPREL32: // DataIsLocal / DataIsParam (if typind > 0)
-                    throw new NotImplementedException();
-
+                case S_LDATA32_16t: //Not supported by DIA
                 case S_LDATA32:
+                case S_LDATA32_ST: //Not supported by DIA
+                case S_LTHREAD32_16t: //Not supported by DIA
                 case S_LTHREAD32:
-                    //There is logic for these to either be DataIsStaticLocal / DataIsFileStatic however GetTheData::disp_S_LDATA32/disp_S_LTHREAD32 sets the relevant field to 0, the default of static local
-                    //is always overwritten with file satic
-                    return DataKind.DataIsFileStatic;
+                case S_LTHREAD32_ST: //Not supported by DIA
+                    //There is logic for these to either be DataIsStaticLocal / DataIsFileStatic however as far as I can see GetTheData::disp_S_LDATA32/disp_S_LTHREAD32 sets the relevant field to 0, the default of static local
+                    //is always overwritten with file static. But this is wrong. It's a static local if the field is literally a local of a function e.g. coreclr ->
+                    //[S_LDATA32] `CallComputeVTables'::`2'::s_pAddrMETHOD__COMWRAPPERS__COMPUTE_VTABLES
+                    if (parent != default)
+                    {
+                        value = DataKind.DataIsStaticLocal;
+                        return true;
+                    }
+
+                    value = DataKind.DataIsFileStatic;
+                    return true;
+
+
+                #region CV_LVARFLAGS
 
                 //The following kinds have either CV_LVARFLAGS (or CV_lvar_attr which contains CV_LVARFLAGS)
                 //and are set via msdia140!varAttributeFields. Strictly speaking only S_LOCAL considers whether
                 //fIsParam is set, but it's technically in the flags of all of them
                 case S_MANFRAMEREL:
+                case S_MANFRAMEREL_ST: //Not supported by DIA
                 case S_MANREGISTER:
+                case S_MANREGISTER_ST: //Not supported by DIA
                 case S_MANSLOT:
+                case S_MANSLOT_ST: //Not supported by DIA
                 case S_MANREGREL:
+                case S_MANREGREL_ST: //Not supported by DIA
+                    throw new NotImplementedException(); //I know they've got CV_LVARFLAGS, but I don't know what their struct is
+
+                //The physical position of the flags in these various struct types is all over the place, so I can't just pretend they all have the same physical
+                //layout and cast to one random type
                 case S_ATTR_FRAMEREL:
-                case S_ATTR_REGISTER:
-                case S_ATTR_REGREL:
-                case S_LOCAL:
-                case S_FILESTATIC:
-                case S_LOCAL_DPC_GROUPSHARED:
-                {
-                    var flags = ((LocalSym) symType).flags;
+                    value = GetLVarDataKind(((FrameRelSym) symType).attr.flags);
+                    return true;
 
-                    if (flags.fIsEnregGlob)
-                        return flags.fIsEnregStat ? DataKind.DataIsFileStatic : DataKind.DataIsGlobal;
+                case S_ATTR_REGISTER: //ATTRREGSYM
+                    value = GetLVarDataKind(((AttrRegSym) symType).attr.flags);
+                    return true;
 
-                    return flags.fIsParam ? DataKind.DataIsParam : DataKind.DataIsLocal;
-                }
+                case S_ATTR_REGREL: //ATTRREGREL
+                    value = GetLVarDataKind(((AttrRegRel) symType).attr.flags);
+                    return true;
+
+                case S_LOCAL: //LOCALSYM
+                    var localSym = (LocalSym) symType;
+
+                    if (localSym.flags.fIsParam && localSym.GetName(codeViewAccessor) == "this")
+                        value = DataKind.DataIsObjectPtr;
+                    else
+                        value = GetLVarDataKind(((LocalSym) symType).flags);
+
+                    return true;
+
+                case S_FILESTATIC: //FILESTATICSYM
+                    value = GetLVarDataKind(((FileStaticSym) symType).flags);
+                    return true;
+
+                case S_LOCAL_DPC_GROUPSHARED: //LOCALDPCGROUPSHAREDSYM
+                    value = GetLVarDataKind(((LocalDPCGroupSharedSym) symType).flags);
+                    return true;
+
+                #endregion
+
+                //msdia140!assignNonAttrLocalVarKind checks for the following items (we've added the ST/16-bit ones ourselves)
+                case S_BPREL16:
+                case S_BPREL32_16t:
+                case S_BPREL32_ST:
+                case S_BPREL32: // DataIsLocal / DataIsParam (if typind > 0)
+                case S_BPREL32_INDIR: // DataIsLocal /  DataIsParam
+                case S_BPREL32_ENCTMP:
+                case S_BPREL32_INDIR_ENCTMP:
+                case S_REGREL16:
+                case S_REGREL32_16t:
+                case S_REGREL32_ST:
+                case S_REGREL32: //todo: apparently some symbols including this can have a $ and hidden text after the null terminated name?
+                case S_REGREL32_INDIR: // DataIsLocal /  DataIsParam
+                case S_REGREL32_ENCTMP:
+                case S_REGREL32_INDIR_ENCTMP:
+                    //Note: include any additional symbols in the list below, GetSymTagEnum, as well as SymHelp's LocalSymbolParser list for simple variable types
+                    if (parent == null)
+                    {
+                        //We can walk backwards to find our parent blocksym
+                        throw new NotImplementedException();
+                    }
+
+                    //DIA calls tiFuncType. Fundamentally, the parent must be a function (which then implies it has a type)
+                    if (parent.IsProc())
+                    {
+                        if (parent.TryGetType(out var maybeFunctionType))
+                        {
+                            var functionType = maybeFunctionType.TypTyp.Value;
+
+                            var numParams = 0;
+
+                            /* When you hve a function foo(int a, ...) the Visual Studio Call Stack window correctly shows
+                             * this as being the signature. How does Visual Studio know that the last argument is varargs?
+                             * 
+                             * - cppdebug!CppEE::CTypeFormatter::GetTypeNameForDisplay sets the parameter to ... when it's
+                             *   a base type parameter of type btNoType
+                             * - Unrelated to this, per msdia140!dParamsVararg considers a parameter to be varargs when
+                             *   it's the last parameter of the arglist, and the type index is 0. This information is not
+                             *   surfaced within DIA; DIA just uses this fact internally to reduce the number of potential
+                             *   args for it to inspect */
+
+                            switch (functionType.leaf)
+                            {
+                                case LEAF_ENUM_e.LF_PROCEDURE:
+                                    var lfProcArgs = ((LfArgList) ((LfProc) functionType).arglist.TypTyp).arg;
+
+                                    numParams = lfProcArgs.Count;
+
+                                    if (numParams > 0 && lfProcArgs[lfProcArgs.Count - 1] == 0)
+                                        numParams--; //Subtract varargs parameter
+
+                                    break;
+
+                                case LEAF_ENUM_e.LF_PROCEDURE_16t:
+                                    var lfProc16tArgs = ((LfArgList16t) ((LfProc16t) functionType).arglist.TypTyp).arg;
+
+                                    numParams = lfProc16tArgs.Count;
+
+                                    if (numParams > 0 && lfProc16tArgs[lfProc16tArgs.Count - 1] == 0)
+                                        numParams--; //Subtract varargs parameter
+
+                                    break;
+
+                                case LEAF_ENUM_e.LF_MFUNCTION:
+                                    var lfMFuncArgs = ((LfArgList) ((LfMFunc) functionType).arglist.TypTyp).arg;
+
+                                    //The LF_ARGLIST does not include "this" in the count, whereas the S_GPROC32
+                                    //_does_ include "this" as a child
+                                    numParams = lfMFuncArgs.Count;
+
+                                    //>1 since we've got our fake "this" in our count
+                                    if (numParams > 1 && lfMFuncArgs[lfMFuncArgs.Count - 1] == 0)
+                                        numParams--; //Subtract varargs parameter
+
+                                    break;
+
+                                case LEAF_ENUM_e.LF_MFUNCTION_16t:
+                                    var lfMFunc16tArgs = ((LfArgList16t) ((LfMFunc16t) functionType).arglist.TypTyp).arg;
+
+                                    numParams = lfMFunc16tArgs.Count + 1;
+
+                                    if (numParams > 1 && lfMFunc16tArgs[lfMFunc16tArgs.Count - 1] == 0)
+                                        numParams--; //Subtract varargs parameter
+
+                                    break;
+
+                                default:
+                                    throw new NotImplementedException();
+                            }
+
+                            var children = ((BlockSym) parent).GetChildren(codeViewAccessor);
+
+                            var numParamsSeen = 0;
+
+                            foreach (var child in children)
+                            {
+                                //If we're being asked about a symbol like S_REGREL32, this is a symbol that only occurs in an "old style" context.
+                                //So we don't need to consider S_LOCAL (which is new style), we just need to answer "as far as old style symbols go,
+                                //is this symbol a parameter or a variable"
+
+                                switch (child.rectyp)
+                                {
+                                    case S_BPREL16:
+                                    case S_BPREL32_16t:
+                                    case S_BPREL32_ST:
+                                    case S_BPREL32:
+                                    case S_BPREL32_INDIR:
+                                    case S_BPREL32_ENCTMP:
+                                    case S_BPREL32_INDIR_ENCTMP:
+                                    case S_REGREL16:
+                                    case S_REGREL32_16t:
+                                    case S_REGREL32_ST:
+                                    case S_REGREL32:
+                                    case S_REGREL32_INDIR:
+                                    case S_REGREL32_ENCTMP:
+                                    case S_REGREL32_INDIR_ENCTMP:
+                                        if (child == symType)
+                                        {
+                                            if (numParamsSeen < numParams)
+                                            {
+                                                value = DataKind.DataIsParam;
+                                                return true;
+                                            }
+                                        }
+
+                                        numParamsSeen++;
+                                        break;
+                                }
+
+                                if ((SYMTYPE*) child >= (SYMTYPE*) symType)
+                                    break;
+                            }
+                            value = DataKind.DataIsLocal;
+                            return true;
+                        }
+                    }
+
+                    //If we can't specifically prove that it's a parameter, then default to local
+                    value = DataKind.DataIsLocal;
+                    return true;
 
                 case S_MANYREG2: //
+                case S_MANYREG2_ST: //Not supported by DIA
                 case S_LMANDATA: // DataIsStaticLocal / DataIsFileStatic
+                case S_LMANDATA_ST: //Not supported by DIA
                 case S_MANMANYREG: //CV_Lvar_attr -> CV_LVARFLAGS logic?
+                case S_MANMANYREG_ST: //Not supported by DIA
                 case S_MANMANYREG2: //CV_Lvar_attr -> CV_LVARFLAGS logic?
+                case S_MANMANYREG2_ST: //Not supported by DIA
                 case S_ATTR_MANYREG: //CV_Lvar_attr -> CV_LVARFLAGS logic?
                 case S_LDATA_HLSL: // DataIsStaticLocal / DataIsFileStatic
                 case S_LDATA_HLSL32: // DataIsStaticLocal / DataIsFileStatic
                 case S_LDATA_HLSL32_EX: //DataIsStaticLocal / DataIsFileStatic
-                case S_BPREL32_INDIR: // DataIsLocal /  DataIsParam
-                case S_REGREL32_INDIR: // DataIsLocal /  DataIsParam
                 case S_STATICLOCAL: //
                     throw new NotImplementedException();
 
                 default:
-                    throw new NotImplementedException();
+                    value = default;
+                    return false;
             }
+        }
+
+        private static DataKind GetLVarDataKind(CV_LVARFLAGS flags)
+        {
+            if (flags.fIsEnregGlob)
+                return flags.fIsEnregStat ? DataKind.DataIsFileStatic : DataKind.DataIsGlobal;
+
+            return flags.fIsParam ? DataKind.DataIsParam : DataKind.DataIsLocal;
         }
 
         public static bool TryGetLocationType(in this SymType symType, out LocationType locationType)
@@ -1515,10 +1752,13 @@ namespace PESpy.PDB
                 case S_REGISTER:
                 case S_MANREGISTER:
                 case S_ATTR_REGISTER:
+                case S_DEFRANGE_REGISTER:
+                case S_DEFRANGE_SUBFIELD_REGISTER:
                     locationType = LocationType.LocIsEnregistered;
                     return true;
 
                 case S_CONSTANT:
+                case S_DEFRANGE_CONSTVAL_ON_ENTRY:
                     locationType = LocationType.LocIsConstant;
                     return true;
 
@@ -1528,7 +1768,7 @@ namespace PESpy.PDB
                 case S_MANMANYREG:
                 case S_MANMANYREG2:
                 case S_ATTR_MANYREG:
-                case S_LOCAL:
+                case S_LOCAL: //If there's no def range symbols, it's LocIsNull, e.g. "this" in coreclr!RangeList::InitBlock (even though the flags are param). Data type will be DataIsObjectPtr in that case
                 case S_GDATA_HLSL:
                 case S_LDATA_HLSL:
                 case S_FILESTATIC:
@@ -1550,14 +1790,22 @@ namespace PESpy.PDB
                 case S_PUB32:
                 case S_PUB32_16t: //Not supported by DIA
                 case S_PUB32_ST: //Not supported by DIA
+                case S_DEFRANGE_GLOBALSYM_ON_ENTRY:
+                case S_BLOCK16:
+                case S_BLOCK32:
+                case S_BLOCK32_ST: //Not supported by DIA
                     locationType = LocationType.LocIsStatic;
                     return true;
 
                 case S_REGREL32:
+                case S_REGREL32_ENCTMP: //Not supported by DIA
                 case S_MANFRAMEREL:
                 case S_MANREGREL:
                 case S_ATTR_FRAMEREL:
                 case S_ATTR_REGREL:
+                case S_DEFRANGE_FRAMEPOINTER_REL:
+                case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
+                case S_DEFRANGE_REGISTER_REL:
                     locationType = LocationType.LocIsRegRel;
                     return true;
 
@@ -1576,6 +1824,13 @@ namespace PESpy.PDB
                     locationType = LocationType.LocIsRegRelAliasIndir;
                     return true;
 
+                case S_DEFRANGE:
+                case S_DEFRANGE_SUBFIELD:
+                case S_DEFRANGE_HLSL:
+                case S_DEFRANGE_DPC_PTR_TAG:
+                case S_DEFRANGE_REGISTER_REL_INDIR:
+                    throw new NotImplementedException();
+
                 default:
                     //msdia140!getDataForProcSym
                     if (symType.IsProc())
@@ -1587,6 +1842,21 @@ namespace PESpy.PDB
                     locationType = default;
                     return false;
             }
+        }
+
+        private static bool TryGetChild(BlockSym blockSym, SYM_ENUM_e kind, out SymType result)
+        {
+            foreach (var child in blockSym.Children)
+            {
+                if (child.rectyp == kind)
+                {
+                    result = child;
+                    return true;
+                }
+            }
+
+            result = default;
+            return false;
         }
     }
 }
