@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using ClrDebug;
+using PESpy.Ecma335;
 using PESpy.View;
 
 namespace PESpy
@@ -46,6 +45,8 @@ namespace PESpy
 
         public mdSignature LocalVarSigTok { get; }
 
+        public StandAloneSigRow? Sig => LocalVarSigTok.Rid == 0 ? null : chunk.PEFile().EcmaMetadata.CompressedModelHeap.StandAloneSigTable.FromToken(LocalVarSigTok);
+
         public int Offset => chunk.AbsoluteOffset;
 
         public ImageCorILMethodSectEH[] EHSections { get; }
@@ -53,6 +54,11 @@ namespace PESpy
         private readonly MemoryChunk chunk;
 
         //It's a bit of a complicated structure due to the fact we're trying to represent a unioned type, so we eagerly read everything
+
+        //Should only be used by ViewProvider for methods we already know are valid
+        internal ImageCorILMethod(in MemoryChunk chunk) : this(chunk, out _)
+        {
+        }
 
         internal ImageCorILMethod(in MemoryChunk chunk, out bool isValid)
         {

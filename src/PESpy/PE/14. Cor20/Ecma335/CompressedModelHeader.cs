@@ -55,6 +55,10 @@ namespace PESpy.Ecma335
 
         private readonly MemoryChunk chunk;
 
+        internal CompressedModelHeader(in MemoryChunk chunk) : this(chunk, out _)
+        {
+        }
+
         internal CompressedModelHeader(in MemoryChunk chunk, out int[] rowCounts)
         {
             this.chunk = chunk;

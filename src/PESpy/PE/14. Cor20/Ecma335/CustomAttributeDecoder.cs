@@ -3,29 +3,47 @@ using ClrDebug;
 
 namespace PESpy.Ecma335
 {
+    //II.23.3 (p293)
     internal readonly struct CustomAttributeDecoder<TType>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
-        private readonly ICustomAttributeTypeProvider<TType>? provider;
+        private readonly CompressedModelHeap _compressedModelHeap;
+        private readonly ICustomAttributeTypeProvider<TType>? _provider;
 
         internal CustomAttributeDecoder(CompressedModelHeap compressedModelHeap, ICustomAttributeTypeProvider<TType> provider)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            this.provider = provider;
+            _compressedModelHeap = compressedModelHeap;
+            _provider = provider;
         }
 
-        public CustomAttributeValue<TType> DecodeValue(CodedIndex ctorIndex, BlobIndex valueIndex)
+        //If a provider was provided, this method is guaranteed to return true
+        internal bool TryDecodeValue(CodedIndex ctorIndex, BlobIndex valueIndex, out CustomAttributeValue<TType> value)
         {
             BlobIndex sigIndex;
+            BlobIndex typeSpecSig = default;
 
             switch (ctorIndex.TableKind)
             {
                 case TableKind.MethodDef:
+                    var methodDef = _compressedModelHeap.MethodDefTable[ctorIndex];
+                    sigIndex = methodDef.Signature;
+                    break;
+
                 case TableKind.MemberRef:
-                    var memberRef = compressedModelHeap.MemberRefTable[ctorIndex.RowId];
+                    var memberRef = _compressedModelHeap.MemberRefTable[ctorIndex];
                     sigIndex = memberRef.Signature;
 
                     if (memberRef.Class.TableKind == TableKind.TypeSpec)
+                    {
+                        var typeSpec = _compressedModelHeap.TypeSpecTable[memberRef.Class];
+                        typeSpecSig = typeSpec.Signature;
+                    }
+
+                    break;
+
+                default:
+                    throw new BadImageFormatException();
+            }
+
             var methodSigReader = sigIndex.GetReader();
             var valueSigReader = valueIndex.GetReader();
 
@@ -58,16 +76,56 @@ namespace PESpy.Ecma335
 
             if (returnType != CorElementType.Void)
                 throw new BadImageFormatException();
-            var fixedArgs = DecodeFixedArgs(ref methodSigReader, ref valueSigReader, paramCount);
-            var namedArgs = DecodeNamedArgs(ref valueSigReader);
 
-            return new CustomAttributeValue<TType>(fixedArgs, namedArgs);
+            ByteReader genericSigReader = default;
+
+            if (typeSpecSig.Offset != 0)
+            {
+                genericSigReader = typeSpecSig.GetReader();
+
+                var corElementType = genericSigReader.ReadCorElementType();
+
+                //Check for a TypeSpec in the form
+                //GENERICINST (CLASS | VALUETYPE) TypeDefOrRefOrSpecEncoded GenArgCount Type
+                if (corElementType == CorElementType.GenericInst)
+                {
+                    corElementType = genericSigReader.ReadCorElementType();
+
+                    if (corElementType != CorElementType.Class && corElementType != CorElementType.ValueType)
+                        throw new BadImageFormatException();
+
+                    var token = genericSigReader.ReadToken();
+
+                    //genericSigReader now points to GenArgCount
+                }
+                else
+                {
+                    genericSigReader = default;
+                }
+            }
+
+            if (!TryDecodeFixedArgs(ref methodSigReader, ref valueSigReader, paramCount, genericSigReader, out var fixedArgs))
+            {
+                value = default;
+                return false;
+            }
+
+            if (!TryDecodeNamedArgs(ref valueSigReader, out var namedArgs))
+            {
+                value = default;
+                return false;
+            }
+
+            value = new CustomAttributeValue<TType>(fixedArgs, namedArgs);
+            return true;
         }
 
-        private CustomAttributeTypedArgument<TType>[] DecodeFixedArgs(
+        private bool TryDecodeFixedArgs(
             ref ByteReader methodSigReader,
             ref ByteReader valueSigReader,
-            int paramCount)
+            int paramCount,
+            ByteReader genericSigReader,
+            out CustomAttributeTypedArgument<TType>[] args)
         {
             /*
              * FixedArg
@@ -87,20 +145,26 @@ namespace PESpy.Ecma335
              */
 
             if (paramCount == 0)
-                return Array.Empty<CustomAttributeTypedArgument<TType>>();
+            {
+                args = Array.Empty<CustomAttributeTypedArgument<TType>>();
+                return true;
+            }
 
-            var args = new CustomAttributeTypedArgument<TType>[paramCount];
+            args = new CustomAttributeTypedArgument<TType>[paramCount];
 
             for (var i = 0; i < paramCount; i++)
             {
-                var argTypeInfo = DecodeFixedArgType(ref methodSigReader);
-                args[i] = DecodeElem(ref valueSigReader, argTypeInfo);
+                if (!TryDecodeFixedArgType(ref methodSigReader, genericSigReader, out var argTypeInfo))
+                    return false;
+
+                if (!TryDecodeElem(ref valueSigReader, argTypeInfo, out args[i]))
+                    return false;
             }
 
-            return args;
+            return true;
         }
 
-        private CustomAttributeNamedArgument<TType>[] DecodeNamedArgs(ref ByteReader valueSigReader)
+        private bool TryDecodeNamedArgs(ref ByteReader valueSigReader, out CustomAttributeNamedArgument<TType>[] args)
         {
             /*
              * NamedArg
@@ -115,9 +179,12 @@ namespace PESpy.Ecma335
             var numNamed = valueSigReader.ReadUInt16();
 
             if (numNamed == 0)
-                return Array.Empty<CustomAttributeNamedArgument<TType>>();
+            {
+                args = Array.Empty<CustomAttributeNamedArgument<TType>>();
+                return true;
+            }
 
-            var args = new CustomAttributeNamedArgument<TType>[numNamed];
+            args = new CustomAttributeNamedArgument<TType>[numNamed];
 
             for (var i = 0; i < numNamed; i++)
             {
@@ -126,17 +193,21 @@ namespace PESpy.Ecma335
                 if (serializationType != CorSerializationType.SERIALIZATION_TYPE_FIELD && serializationType != CorSerializationType.SERIALIZATION_TYPE_PROPERTY)
                     throw new BadImageFormatException();
 
-                var info = DecodeFieldOrPropType(ref valueSigReader);
+                if (!TryDecodeFieldOrPropType(ref valueSigReader, out var info))
+                    return false;
+
                 var name = valueSigReader.ReadSerString();
 
-                var arg = DecodeElem(ref valueSigReader, info);
+                if (!TryDecodeElem(ref valueSigReader, info, out var arg))
+                    return false;
+
                 args[i] = new CustomAttributeNamedArgument<TType>(name, serializationType, arg.Type, arg.Value);
             }
 
-            return args;
+            return true;
         }
 
-        private CustomAttributeTypedArgument<TType> DecodeElem(ref ByteReader valueSigReader, ArgTypeInfo info)
+        private bool TryDecodeElem(ref ByteReader valueSigReader, ArgTypeInfo info, out CustomAttributeTypedArgument<TType> arg)
         {
             /*
              * Elem
@@ -155,7 +226,13 @@ namespace PESpy.Ecma335
              */
 
             if (info.SerializationType == CorSerializationType.SERIALIZATION_TYPE_TAGGED_OBJECT)
-                info = DecodeFieldOrPropType(ref valueSigReader);
+            {
+                if (!TryDecodeFieldOrPropType(ref valueSigReader, out info))
+                {
+                    arg = default;
+                    return false;
+                }
+            }
 
             object? value = null;
 
@@ -216,16 +293,28 @@ namespace PESpy.Ecma335
                 case CorSerializationType.SERIALIZATION_TYPE_TYPE:
                     var typeName = valueSigReader.ReadSerString();
 
-                    if (provider != null)
-                        value = provider.GetTypeFromSerializedName(typeName);
+                    if (_provider != null)
+                        value = _provider.GetTypeFromSerializedName(typeName);
                     else
                         value = typeName;
                     break;
+
+                case CorSerializationType.SERIALIZATION_TYPE_SZARRAY:
+                    if (!TryDecodeArrayArg(ref valueSigReader, info, out var array))
+                    {
+                        arg = default;
+                        return false;
+                    }
+
+                    value = array;
+                    break;
+
                 default:
                     throw new BadImageFormatException();
             }
 
-            return new CustomAttributeTypedArgument<TType>(info.Type, value);
+            arg = new CustomAttributeTypedArgument<TType>(info.Type, value);
+            return true;
         }
 
         private struct ArgTypeInfo
@@ -236,7 +325,7 @@ namespace PESpy.Ecma335
             public CorSerializationType ElementSerializationType; //If we're an array
         }
 
-        private ArgTypeInfo DecodeFixedArgType(ref ByteReader methodSigReader)
+        private bool TryDecodeFixedArgType(ref ByteReader methodSigReader, ByteReader genericSigReader, out ArgTypeInfo info)
         {
             var corElementType = methodSigReader.ReadCorElementType();
 
@@ -246,10 +335,10 @@ namespace PESpy.Ecma335
              * - an enum
              * - string
              * - type
-             * - a boxed FieldorPropType (bool, char, sbyte, byte, short, ushort, int, uint, lon, ulong, float, double, string)
+             * - a boxed FieldOrPropType (bool, char, sbyte, byte, short, ushort, int, uint, lon, ulong, float, double, string)
              */
 
-            var info = new ArgTypeInfo
+            info = new ArgTypeInfo
             {
                 SerializationType = (CorSerializationType) corElementType
             };
@@ -269,15 +358,15 @@ namespace PESpy.Ecma335
                 case CorElementType.R4:
                 case CorElementType.R8:
                 case CorElementType.String: //While string may not be "primitive" per se, it is "simple" in that it's well known
-                    if (provider != null)
-                        info.Type = provider.GetType(corElementType);
+                    if (_provider != null)
+                        info.Type = _provider.GetType(corElementType);
                     break;
 
                 case CorElementType.Object:
                     //Something has been boxed
                     info.SerializationType = CorSerializationType.SERIALIZATION_TYPE_TAGGED_OBJECT;
-                    if (provider != null)
-                        info.Type = provider.GetType(corElementType);
+                    if (_provider != null)
+                        info.Type = _provider.GetType(corElementType);
                     break;
 
                 case CorElementType.ValueType:
@@ -287,16 +376,94 @@ namespace PESpy.Ecma335
                     //You can't not provide a provider when you're dealing with something that
                     //may be a type or an enum; we need to know what to set the serialization type
                     //to for when we actually try and read the value
+                    if (_provider == null)
+                        return false;
+
                     info.Type = GetTypeFromToken(token);
-                    info.SerializationType = provider.IsSystemType(info.Type)
+                    info.SerializationType = _provider.IsSystemType(info.Type)
                         ? CorSerializationType.SERIALIZATION_TYPE_TYPE
-                        : (CorSerializationType) provider.GetUnderlyingEnumType(info.Type);
+                        : (CorSerializationType) _provider.GetUnderlyingEnumType(info.Type);
                     break;
-        private ArgTypeInfo DecodeFieldOrPropType(ref ByteReader valueSigReader)
+
+                case CorElementType.SZArray:
+                    if (_provider == null)
+                        return false;
+
+                    if (!TryDecodeFixedArgType(ref methodSigReader, genericSigReader, out var elementInfo))
+                        return false;
+
+                    info.ElementType = elementInfo.Type;
+                    info.ElementSerializationType = elementInfo.SerializationType;
+                    info.Type = _provider.GetSZArrayType(info.ElementType);
+                    break;
+
+                case CorElementType.Var:
+                    if (genericSigReader.Length == 0)
+                        throw new BadImageFormatException();
+
+                    var parameterIndex = methodSigReader.ReadCompressedInteger();
+                    var numGenericParameters = genericSigReader.ReadCompressedInteger();
+
+                    if (parameterIndex >= numGenericParameters)
+                        throw new BadImageFormatException();
+
+                    //Skip over all of the types in the TypeSpec signature until we get to the type we're actually interested in
+                    while (parameterIndex > 0)
+                    {
+                        SkipType(ref genericSigReader);
+                        parameterIndex--;
+                    }
+
+                    return TryDecodeFixedArgType(ref genericSigReader, default, out info);
+
+                default:
+                    throw new BadImageFormatException();
+            }
+
+            return true;
+        }
+
+        private bool TryDecodeArrayArg(ref ByteReader valueSigReader, ArgTypeInfo info, out CustomAttributeTypedArgument<TType>[]? array)
+        {
+            var count = valueSigReader.ReadInt32();
+
+            if (count == -1)
+            {
+                array = null;
+                return true;
+            }
+
+            if (count == 0)
+            {
+                array = Array.Empty<CustomAttributeTypedArgument<TType>>();
+                return true;
+            }
+
+            if (count < 0)
+                throw new BadImageFormatException();
+
+            var elementInfo = new ArgTypeInfo
+            {
+                Type = info.ElementType,
+                SerializationType = info.ElementSerializationType
+            };
+
+            array = new CustomAttributeTypedArgument<TType>[count];
+
+            for (var i = 0; i < count; i++)
+            {
+                if (!TryDecodeElem(ref valueSigReader, elementInfo, out array[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool TryDecodeFieldOrPropType(ref ByteReader valueSigReader, out ArgTypeInfo info)
         {
             //This is mostly the same as DecodeFixedArgType, except there's special handling for type/enum, and items are dispatched to name-specific methods rather than fixed-specific methods
 
-            var info = new ArgTypeInfo
+            info = new ArgTypeInfo
             {
                 SerializationType = valueSigReader.ReadSerializationType()
             };
@@ -316,23 +483,138 @@ namespace PESpy.Ecma335
                 case CorSerializationType.SERIALIZATION_TYPE_R4:
                 case CorSerializationType.SERIALIZATION_TYPE_R8:
                 case CorSerializationType.SERIALIZATION_TYPE_STRING: //While string may not be "primitive" per se, it is "simple" in that it's well known
-                    if (provider != null)
-                        info.Type = provider.GetType((CorElementType) info.SerializationType);
+                    if (_provider != null)
+                        info.Type = _provider.GetType((CorElementType) info.SerializationType);
                     break;
+
+                case CorSerializationType.SERIALIZATION_TYPE_TYPE:
+                    if (_provider != null)
+                        info.Type = _provider.GetSystemType();
+                    break;
+
+                case CorSerializationType.SERIALIZATION_TYPE_TAGGED_OBJECT:
+                    if (_provider != null)
+                        info.Type = _provider.GetType(CorElementType.Object);
+                    break;
+
+                case CorSerializationType.SERIALIZATION_TYPE_SZARRAY:
+                    if (!TryDecodeFieldOrPropType(ref valueSigReader, out var elementInfo))
+                        return false;
+
+                    info.ElementType = elementInfo.Type;
+                    info.ElementSerializationType = elementInfo.SerializationType;
+
+                    //Even without a provider we can still read the element type; we just can't create it
+
+                    if (_provider != null)
+                        info.Type = _provider.GetSZArrayType(info.ElementType);
+                    break;
+
+                case CorSerializationType.SERIALIZATION_TYPE_ENUM:
+                    //If we don't have a provider, we can't get the underlying type at all
+
+                    if (_provider == null)
+                        return false;
+
+                    var typeName = valueSigReader.ReadSerString();
+                    info.Type = _provider.GetTypeFromSerializedName(typeName);
+                    info.SerializationType = (CorSerializationType) _provider.GetUnderlyingEnumType(info.Type);
+                    break;
+
                 default:
                     throw new BadImageFormatException();
             }
 
-            return info;
+            return true;
         }
 
         private TType GetTypeFromToken(mdToken token)
         {
             return token.Type switch
             {
-                CorTokenType.mdtTypeDef => provider.GetTypeDef((mdTypeDef) token),
-                CorTokenType.mdtTypeRef => provider.GetTypeRef((mdTypeRef) token)
+                CorTokenType.mdtTypeDef => _provider.GetTypeDef(_compressedModelHeap, (mdTypeDef) token),
+                CorTokenType.mdtTypeRef => _provider.GetTypeRef(_compressedModelHeap, (mdTypeRef) token)
             };
+        }
+
+        public static void SkipType(ref ByteReader reader)
+        {
+            var corElementType = reader.ReadCorElementType();
+
+            switch (corElementType)
+            {
+                case CorElementType.Boolean:
+                case CorElementType.Char:
+                case CorElementType.U1:
+                case CorElementType.U2:
+                case CorElementType.U4:
+                case CorElementType.U8:
+                case CorElementType.I1:
+                case CorElementType.I2:
+                case CorElementType.I4:
+                case CorElementType.I8:
+                case CorElementType.R4:
+                case CorElementType.Object:
+                case CorElementType.String:
+                case CorElementType.Void:
+                case CorElementType.TypedByRef:
+                    return;
+
+                case CorElementType.Ptr:
+                case CorElementType.ByRef:
+                case CorElementType.Pinned:
+                case CorElementType.SZArray:
+                    SkipType(ref reader);
+                    break;
+
+                case CorElementType.FnPtr:
+                    throw new NotImplementedException();
+
+                case CorElementType.Array:
+                    SkipType(ref reader);
+                    reader.ReadCompressedInteger(); //rank
+                    var numBounds = reader.ReadCompressedInteger();
+
+                    //Read all the bounds
+                    for (var i = 0; i < numBounds; i++)
+                        reader.ReadCompressedInteger();
+
+                    var numLowerBounds = reader.ReadCompressedInteger();
+
+                    //Read all the lower bounds
+                    for (var i = 0; i < numLowerBounds; i++)
+                    {
+                        reader.ReadCompressedInteger();
+                    }
+                    return;
+
+                case CorElementType.CModReqd:
+                case CorElementType.CModOpt:
+                    reader.ReadToken();
+                    SkipType(ref reader);
+                    break;
+
+                case CorElementType.GenericInst:
+                    SkipType(ref reader);
+                    var numGenericArgs = reader.ReadCompressedInteger();
+
+                    for (var i = 0; i < numGenericArgs; i++)
+                        SkipType(ref reader);
+
+                    break;
+
+                case CorElementType.Var:
+                    reader.ReadCompressedInteger();
+                    break;
+
+                case CorElementType.Class:
+                case CorElementType.ValueArray:
+                    SkipType(ref reader);
+                    break;
+
+                default:
+                    throw new BadImageFormatException();
+            }
         }
     }
 }

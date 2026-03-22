@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class FileTable : Table<FileRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int FlagsOffset;
         internal readonly int NameOffset;
         internal readonly int HashValueOffset;
@@ -14,13 +12,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
+        private readonly CompressedModelHeap compressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal FileTable(int numRows, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal FileTable(
+            int numRows,
+            int stringIndexSize,
+            int blobIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            this.compressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -51,9 +56,12 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashValueOffset, isBigBlobIndex), blobHeap);
         }
 
+        public CustomAttributeList GetCustomAttributes(FileIndex index) =>
+            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.File));
+
         public int GetRowOffset(FileIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FileRow this[FileIndex index] => this[(int) index];
+        public FileRow this[FileIndex index] => GetRow((int) index);
 
         protected override FileRow GetRow(int index) => new FileRow((FileIndex) index, this);
     }

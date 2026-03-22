@@ -17,7 +17,7 @@ namespace PESpy
     /// Represents a non-allocating string builder capable of being backed
     /// by either stack memory or a rented array.
     /// </summary>
-    internal ref partial struct ValueStringBuilder
+    public ref partial struct ValueStringBuilder
     {
         private string DebuggerDisplay => ToString();
 
@@ -361,7 +361,9 @@ namespace PESpy
             _pos += value.Length;
         }
 
-        public unsafe void Append(FixedUtf8String value)
+        public unsafe void Append(FixedUtf8String value) => Append(value.AsSpan());
+
+        public unsafe void Append(Span<byte> value)
         {
             int pos = _pos;
             if (pos > _chars.Length - value.Length)
@@ -369,11 +371,28 @@ namespace PESpy
                 Grow(value.Length);
             }
 
-            var ptr = value.Value;
             var dest = _chars;
 
             for (var i = 0; i < value.Length; i++)
-                dest[pos++] = (char) ptr[i];
+                dest[pos++] = (char) value[i];
+
+            _pos = pos;
+        }
+
+        public void Append(ref Utf8StringBuilder builder)
+        {
+            var value = builder.AsSpan();
+
+            int pos = _pos;
+            if (pos > _chars.Length - value.Length)
+            {
+                Grow(value.Length);
+            }
+
+            var dest = _chars;
+
+            for (var i = 0; i < value.Length; i++)
+                dest[pos++] = (char) value[i];
 
             _pos = pos;
         }
@@ -509,6 +528,59 @@ namespace PESpy
             {
                 if (chars[i] == oldChar)
                     chars[i] = newChar;
+            }
+        }
+
+        public void Replace(ReadOnlySpan<char> oldValue, ReadOnlySpan<char> newValue, int startIndex, int count)
+        {
+            var overallSpan = _chars.Slice(startIndex, count);
+
+            using var indices = new PooledList<int>();
+
+            var pos = 0;
+
+            while (pos < overallSpan.Length)
+            {
+                var index = overallSpan.Slice(pos).IndexOf(oldValue);
+
+                if (index == -1)
+                    break;
+
+                indices.Add(pos + index);
+
+                pos = index + oldValue.Length;
+            }
+                //Write the new values directly. We can immediately start by writing the first value over
+                //the first match
+
+                var spanToEnd = _chars.Slice(startIndex, Length - startIndex);
+
+                var newPos = 0;
+
+                var diff = oldValue.Length - newValue.Length;
+
+                for (var i = 0; i < indices.Count; i++)
+                {
+                    var index = indices[i];
+
+                    var destPos = index - newPos;
+
+                    newValue.CopyTo(spanToEnd.Slice(destPos, newValue.Length));
+
+                    //Shift everything between this item and the one after it down
+
+                    var gapStart = index + oldValue.Length;
+                    var gapEnd = (i < indices.Count - 1 ? indices[i + 1] : spanToEnd.Length);
+
+                    var gapLength = gapEnd - gapStart;
+
+                    if (gapLength > 0)
+                        spanToEnd.Slice(gapStart, gapLength).CopyTo(spanToEnd.Slice(destPos + newValue.Length));
+
+                    newPos += diff;
+                }
+
+                Length -= diff * indices.Count;
             }
         }
 

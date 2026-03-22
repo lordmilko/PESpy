@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("OSPlatformID = {OSPlatformID}, OSMajorVersion = {OSMajorVersion}, OSMinorVersion = {OSMinorVersion}, AssemblyRef = {AssemblyRef}")]
+    [DebuggerDisplay("OSPlatformID = {OSPlatformID}, OSMajorVersion = {OSMajorVersion}, OSMinorVersion = {OSMinorVersion}, AssemblyRef = {AssemblyRefRow}")]
     public readonly struct AssemblyRefOSRow : IValue, IViewable
     {
         public AssemblyRefOSIndex RowIndex { get; }
@@ -16,6 +16,9 @@ namespace PESpy.Ecma335
         public AssemblyRefIndex AssemblyRef => table.GetAssemblyRef(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public AssemblyRefRow AssemblyRefRow => table.CompressedModelHeap.AssemblyRefTable[AssemblyRef];
 
         private readonly AssemblyRefOSTable table;
 

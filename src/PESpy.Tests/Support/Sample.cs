@@ -175,7 +175,7 @@ namespace PESpy.Tests
         public static readonly string VC60_Coff_EXE;
 
         #endregion
-        #region 13. Visual Studio 2022
+        #region 14. Visual Studio 2022
 
         /// <summary>
         /// Visual Studio 2022 Portable Executable<para/>
@@ -194,7 +194,7 @@ namespace PESpy.Tests
         public static readonly string VS22_LTCG_PDB;
 
         #endregion
-        #region 14. CLR
+        #region 15. CLR
 
         public static readonly string Framework_EXE;
         public static readonly string Framework_PDB;
@@ -329,48 +329,48 @@ namespace PESpy.Tests
             VC60_Coff_EXE = MakePath("12. vc60\\CoffSymbolsOnly\\TestApp.exe");
 
             #endregion
-            #region 13. Visual Studio 2022
+            #region 14. Visual Studio 2022
 
-            VS22_EXE = MakePath("13. vs22\\Normal\\TestApp.exe");
-            VS22_EXP = MakePath("13. vs22\\Normal\\TestApp.exp"); //Exports (relating to the lib file)
-            VS22_LIB = MakePath("13. vs22\\Normal\\TestApp.lib");
-            VS22_OBJ = MakePath("13. vs22\\Normal\\TestApp.obj");
-            VS22_PDB = MakePath("13. vs22\\Normal\\TestApp.pdb");
+            VS22_EXE = MakePath("14. vs22\\Normal\\TestApp.exe");
+            VS22_EXP = MakePath("14. vs22\\Normal\\TestApp.exp"); //Exports (relating to the lib file)
+            VS22_LIB = MakePath("14. vs22\\Normal\\TestApp.lib");
+            VS22_OBJ = MakePath("14. vs22\\Normal\\TestApp.obj");
+            VS22_PDB = MakePath("14. vs22\\Normal\\TestApp.pdb");
 
-            VS22_LTCG_EXE = MakePath("13. vs22\\LTCG\\TestApp.exe");
-            VS22_LTCG_EXP = MakePath("13. vs22\\LTCG\\TestApp.exp");
-            VS22_LTCG_LIB = MakePath("13. vs22\\LTCG\\TestApp.lib");
-            VS22_LTCG_OBJ = MakePath("13. vs22\\LTCG\\TestApp.obj");
-            VS22_LTCG_PDB = MakePath("13. vs22\\LTCG\\TestApp.pdb");
+            VS22_LTCG_EXE = MakePath("14. vs22\\LTCG\\TestApp.exe");
+            VS22_LTCG_EXP = MakePath("14. vs22\\LTCG\\TestApp.exp");
+            VS22_LTCG_LIB = MakePath("14. vs22\\LTCG\\TestApp.lib");
+            VS22_LTCG_OBJ = MakePath("14. vs22\\LTCG\\TestApp.obj");
+            VS22_LTCG_PDB = MakePath("14. vs22\\LTCG\\TestApp.pdb");
 
             #endregion
-            #region 14. CLR
+            #region 15. CLR
 
-            Framework_EXE     = MakePath("14. CLR\\framework\\TestApp.exe");
-            Framework_PDB     = MakePath("14. CLR\\framework\\TestApp.pdb");
+            Framework_EXE     = MakePath("15. CLR\\framework\\TestApp.exe");
+            Framework_PDB     = MakePath("15. CLR\\framework\\TestApp.pdb");
 
-            Interop_EXE       = MakePath("14. CLR\\interop\\TestApp.exe");
-            Interop_PDB       = MakePath("14. CLR\\interop\\TestApp.pdb");
+            Interop_EXE       = MakePath("15. CLR\\interop\\TestApp.exe");
+            Interop_PDB       = MakePath("15. CLR\\interop\\TestApp.pdb");
 
-            Interop_Core_DLL  = MakePath("14. CLR\\interop-core\\TestLib.dll");
-            Interop_Core_PDB  = MakePath("14. CLR\\interop-core\\TestLib.pdb");
+            Interop_Core_DLL  = MakePath("15. CLR\\interop-core\\TestLib.dll");
+            Interop_Core_PDB  = MakePath("15. CLR\\interop-core\\TestLib.pdb");
 
-            MPDB_DLL          = MakePath("14. CLR\\MPDB\\TestLib.dll");
+            MPDB_DLL          = MakePath("15. CLR\\MPDB\\TestLib.dll");
 
-            NativeAOT_EXE     = MakePath("14. CLR\\NativeAOT\\TestApp.exe");
-            NativeAOT_PDB     = MakePath("14. CLR\\NativeAOT\\TestApp.pdb");
+            NativeAOT_EXE     = MakePath("15. CLR\\NativeAOT\\TestApp.exe");
+            NativeAOT_PDB     = MakePath("15. CLR\\NativeAOT\\TestApp.pdb");
 
-            NGEN_DLL          = MakePath("14. CLR\\NGEN\\TestLib.dll");
-            NGEN_NI_DLL       = MakePath("14. CLR\\NGEN\\TestLib.ni.dll");
-            NGEN_PDB          = MakePath("14. CLR\\NGEN\\TestLib.pdb");
-            NGEN_NI_PDB       = MakePath("14. CLR\\NGEN\\TestLib.ni.pdb");
+            NGEN_DLL          = MakePath("15. CLR\\NGEN\\TestLib.dll");
+            NGEN_NI_DLL       = MakePath("15. CLR\\NGEN\\TestLib.ni.dll");
+            NGEN_PDB          = MakePath("15. CLR\\NGEN\\TestLib.pdb");
+            NGEN_NI_PDB       = MakePath("15. CLR\\NGEN\\TestLib.ni.pdb");
 
-            R2R_EXE           = MakePath("14. CLR\\R2R\\TestApp.exe");
-            R2R_DLL           = MakePath("14. CLR\\R2R\\TestApp.dll");
-            R2R_PDB           = MakePath("14. CLR\\R2R\\TestApp.pdb");
+            R2R_EXE           = MakePath("15. CLR\\R2R\\TestApp.exe");
+            R2R_DLL           = MakePath("15. CLR\\R2R\\TestApp.dll");
+            R2R_PDB           = MakePath("15. CLR\\R2R\\TestApp.pdb");
 
-            SingleFileApp_EXE = MakePath("14. CLR\\SingleFileApp\\TestApp.exe");
-            SingleFileApp_PDB = MakePath("14. CLR\\SingleFileApp\\TestApp.pdb");
+            SingleFileApp_EXE = MakePath("15. CLR\\SingleFileApp\\TestApp.exe");
+            SingleFileApp_PDB = MakePath("15. CLR\\SingleFileApp\\TestApp.pdb");
 
             #endregion
         }
@@ -385,7 +385,7 @@ namespace PESpy.Tests
                     VC20_PDB,
                     VC40_PDB,
                     VC50_PDB,
-                    VC50_PDB,
+                    VC60_PDB,
                     VS22_PDB,
                     VS22_LTCG_PDB,
                     Framework_PDB,

@@ -1,10 +1,16 @@
 ﻿using System.Diagnostics;
+using ClrDebug;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("[{TableKind}] {RowId}")]
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct CodedIndex
     {
+        private string DebuggerDisplay()
+        {
+            return $"[{TableKind}] {RowId}";
+        }
+
         public CodedIndexType CodedIndexType { get; }
 
         public TableKind TableKind
@@ -26,9 +32,7 @@ namespace PESpy.Ecma335
                     CodedIndexType.CustomAttributeType       => CustomAttributeTypeTag.GetTableKind(Value),
                     CodedIndexType.ResolutionScope           => ResolutionScopeTag.GetTableKind(Value),
                     CodedIndexType.TypeOrMethodDef           => TypeOrMethodDefTag.GetTableKind(Value),
-                    CodedIndexType.HasCustomDebugInformation => HasCustomDebugInformationTag.GetTableKind(Value),
-
-                                
+                    CodedIndexType.HasCustomDebugInformation => HasCustomDebugInformationTag.GetTableKind(Value),        
                 };
             }
         }
@@ -67,6 +71,172 @@ namespace PESpy.Ecma335
             Value = value;
         }
 
-        public static implicit operator int(CodedIndex index) => index.Value;
+        public object GetRow(CompressedModelHeap heap)
+        {
+            if (RowId == 0)
+                return null;
+
+            return TableKind switch
+            {
+                TableKind.Module                 => heap.ModuleTable[this],
+                TableKind.TypeRef                => heap.TypeRefTable[this],
+                TableKind.TypeDef                => heap.TypeDefTable[this],
+                TableKind.FieldPtr               => heap.FieldPtrTable[this],
+                TableKind.Field                  => heap.FieldTable[this],
+                TableKind.MethodPtr              => heap.MethodPtrTable[this],
+                TableKind.MethodDef              => heap.MethodDefTable[this],
+                TableKind.ParamPtr               => heap.ParamPtrTable[this],
+                TableKind.Param                  => heap.ParamTable[this],
+                TableKind.InterfaceImpl          => heap.InterfaceImplTable[this],
+                TableKind.MemberRef              => heap.MemberRefTable[this],
+                TableKind.Constant               => heap.ConstantTable[this],
+                TableKind.CustomAttribute        => heap.CustomAttributeTable[this],
+                TableKind.FieldMarshal           => heap.FieldMarshalTable[this],
+                TableKind.DeclSecurity           => heap.DeclSecurityTable[this],
+                TableKind.ClassLayout            => heap.ClassLayoutTable[this],
+                TableKind.FieldLayout            => heap.FieldLayoutTable[this],
+                TableKind.StandAloneSig          => heap.StandAloneSigTable[this],
+                TableKind.EventMap               => heap.EventMapTable[this],
+                TableKind.EventPtr               => heap.EventPtrTable[this],
+                TableKind.Event                  => heap.EventTable[this],
+                TableKind.PropertyMap            => heap.PropertyMapTable[this],
+                TableKind.PropertyPtr            => heap.PropertyPtrTable[this],
+                TableKind.Property               => heap.PropertyTable[this],
+                TableKind.MethodSemantics        => heap.MethodSemanticsTable[this],
+                TableKind.MethodImpl             => heap.MethodImplTable[this],
+                TableKind.ModuleRef              => heap.ModuleRefTable[this],
+                TableKind.TypeSpec               => heap.TypeSpecTable[this],
+                TableKind.ImplMap                => heap.ImplMapTable[this],
+                TableKind.FieldRva               => heap.FieldRvaTable[this],
+                TableKind.EncLog                 => heap.EncLogTable[this],
+                TableKind.EncMap                 => heap.EncMapTable[this],
+                TableKind.Assembly               => heap.AssemblyTable[this],
+                TableKind.AssemblyProcessor      => heap.AssemblyProcessorTable[this],
+                TableKind.AssemblyOS             => heap.AssemblyOSTable[this],
+                TableKind.AssemblyRef            => heap.AssemblyRefTable[this],
+                TableKind.AssemblyRefProcessor   => heap.AssemblyRefProcessorTable[this],
+                TableKind.AssemblyRefOS          => heap.AssemblyRefOSTable[this],
+                TableKind.File                   => heap.FileTable[this],
+                TableKind.ExportedType           => heap.ExportedTypeTable[this],
+                TableKind.ManifestResource       => heap.ManifestResourceTable[this],
+                TableKind.NestedClass            => heap.NestedClassTable[this],
+                TableKind.GenericParam           => heap.GenericParamTable[this],
+                TableKind.MethodSpec             => heap.MethodSpecTable[this],
+                TableKind.GenericParamConstraint => heap.GenericParamConstraintTable[this],
+
+                //Portable PDB
+                TableKind.Document               => heap.DocumentTable[this],
+                TableKind.MethodDebugInformation => heap.MethodDebugInformationTable[this],
+                TableKind.LocalScope             => heap.LocalScopeTable[this],
+                TableKind.LocalVariable          => heap.LocalVariableTable[this],
+                TableKind.LocalConstant          => heap.LocalConstantTable[this],
+                TableKind.ImportScope            => heap.ImportScopeTable[this],
+                TableKind.StateMachineMethod     => heap.StateMachineMethodTable[this],
+                TableKind.CustomDebugInformation => heap.CustomDebugInformationTable[this],
+            };
+        }
+
+        public static explicit operator int(CodedIndex index) => index.Value;
+
+        //Note that not all table kinds map onto token types, hence this is an explicit cast
+        public static explicit operator mdToken(CodedIndex index)
+        {
+            var type = index.TableKind switch
+            {
+                TableKind.Module => CorTokenType.mdtModule,
+                TableKind.TypeRef => CorTokenType.mdtTypeRef,
+                TableKind.TypeDef => CorTokenType.mdtTypeDef,
+                TableKind.Field => CorTokenType.mdtFieldDef,
+                TableKind.MethodDef => CorTokenType.mdtMethodDef,
+                TableKind.Param => CorTokenType.mdtParamDef,
+                TableKind.InterfaceImpl => CorTokenType.mdtInterfaceImpl,
+                TableKind.MemberRef => CorTokenType.mdtMemberRef,
+                TableKind.CustomAttribute => CorTokenType.mdtCustomAttribute,
+                //Is mdtSignature TableKind.StandAloneSig?
+                TableKind.Event => CorTokenType.mdtEvent,
+                TableKind.Property => CorTokenType.mdtProperty,
+                TableKind.MethodImpl => CorTokenType.mdtMethodImpl,
+                TableKind.ModuleRef => CorTokenType.mdtModuleRef,
+                TableKind.TypeSpec => CorTokenType.mdtTypeSpec,
+                TableKind.Assembly => CorTokenType.mdtAssembly,
+                TableKind.AssemblyRef => CorTokenType.mdtAssemblyRef,
+                TableKind.File => CorTokenType.mdtFile,
+                TableKind.ExportedType => CorTokenType.mdtExportedType,
+                TableKind.ManifestResource => CorTokenType.mdtManifestResource,
+                TableKind.GenericParam  => CorTokenType.mdtGenericParam,
+                TableKind.MethodSpec => CorTokenType.mdtMethodSpec,
+                TableKind.GenericParamConstraint => CorTokenType.mdtGenericParamConstraint
+            };
+
+            return Extensions.TokenFromRid(index.RowId, type);
+        }
+
+        //public override string ToString()
+        //{
+        //    var heap = _heap;
+
+        //    if (RowId == 0)
+        //        return "<null>";
+
+        //    return TableKind switch
+        //    {
+        //        TableKind.Module => heap.ModuleTable[this].ToString(),
+        //        TableKind.TypeRef => heap.TypeRefTable[this].ToString(),
+        //        TableKind.TypeDef => heap.TypeDefTable[this].ToString(),
+        //        //TableKind.FieldPtr => heap.FieldPtrTable[this].ToString(),
+        //        TableKind.Field => heap.FieldTable[this].ToString(),
+        //        //TableKind.MethodPtr => heap.MethodPtrTable[this].ToString(),
+        //        TableKind.MethodDef => heap.MethodDefTable[this].ToString(),
+        //        //TableKind.ParamPtr => heap.ParamPtrTable[this].ToString(),
+        //        TableKind.Param => heap.ParamTable[this].ToString(),
+        //        //TableKind.InterfaceImpl => heap.InterfaceImplTable[this].ToString(),
+        //        TableKind.MemberRef => heap.MemberRefTable[this].ToString(),
+        //        //TableKind.Constant => heap.ConstantTable[this].ToString(),
+        //        TableKind.CustomAttribute => heap.CustomAttributeTable[this].ToString(),
+        //        //TableKind.FieldMarshal => heap.FieldMarshalTable[this].ToString(),
+        //        //TableKind.DeclSecurity => heap.DeclSecurityTable[this].ToString(),
+        //        //TableKind.ClassLayout => heap.ClassLayoutTable[this].ToString(),
+        //        //TableKind.FieldLayout => heap.FieldLayoutTable[this].ToString(),
+        //        //TableKind.StandAloneSig => heap.StandAloneSigTable[this].ToString(),
+        //        //TableKind.EventMap => heap.EventMapTable[this].ToString(),
+        //        //TableKind.EventPtr => heap.EventPtrTable[this].ToString(),
+        //        TableKind.Event => heap.EventTable[this].ToString(),
+        //        //TableKind.PropertyMap => heap.PropertyMapTable[this].ToString(),
+        //        //TableKind.PropertyPtr => heap.PropertyPtrTable[this].ToString(),
+        //        TableKind.Property => heap.PropertyTable[this].ToString(),
+        //        //TableKind.MethodSemantics => heap.MethodSemanticsTable[this].ToString(),
+        //        //TableKind.MethodImpl => heap.MethodImplTable[this].ToString(),
+        //        //TableKind.ModuleRef => heap.ModuleRefTable[this].ToString(),
+        //        TableKind.TypeSpec => heap.TypeSpecTable[this].ToString(),
+        //        //TableKind.ImplMap => heap.ImplMapTable[this].ToString(),
+        //        //TableKind.FieldRva => heap.FieldRvaTable[this].ToString(),
+        //        //TableKind.EncLog => heap.EncLogTable[this].ToString(),
+        //        //TableKind.EncMap => heap.EncMapTable[this].ToString(),
+        //        TableKind.Assembly => heap.AssemblyTable[this].ToString(),
+        //        //TableKind.AssemblyProcessor => heap.AssemblyProcessorTable[this].ToString(),
+        //        //TableKind.AssemblyOS => heap.AssemblyOSTable[this].ToString(),
+        //        TableKind.AssemblyRef => heap.AssemblyRefTable[this].ToString(),
+        //        //TableKind.AssemblyRefProcessor => heap.AssemblyRefProcessorTable[this].ToString(),
+        //        //TableKind.AssemblyRefOS => heap.AssemblyRefOSTable[this].ToString(),
+        //        TableKind.File => heap.FileTable[this].ToString(),
+        //        TableKind.ExportedType => heap.ExportedTypeTable[this].ToString(),
+        //        TableKind.ManifestResource => heap.ManifestResourceTable[this].ToString(),
+        //        //TableKind.NestedClass => heap.NestedClassTable[this].ToString(),
+        //        TableKind.GenericParam => heap.GenericParamTable[this].ToString(),
+        //        TableKind.MethodSpec => heap.MethodSpecTable[this].ToString(),
+        //        //TableKind.GenericParamConstraint => heap.GenericParamConstraintTable[this].ToString(),
+
+        //        //Portable PDB
+        //        TableKind.Document => heap.DocumentTable[this].ToString(),
+        //        //TableKind.MethodDebugInformation => heap.MethodDebugInformationTable[this].ToString(),
+        //        //TableKind.LocalScope => heap.LocalScopeTable[this].ToString(),
+        //        TableKind.LocalVariable => heap.LocalVariableTable[this].ToString(),
+        //        TableKind.LocalConstant => heap.LocalConstantTable[this].ToString(),
+        //        //TableKind.ImportScope => heap.ImportScopeTable[this].ToString(),
+        //        //TableKind.StateMachineMethod => heap.StateMachineMethodTable[this].ToString(),
+        //        //TableKind.CustomDebugInformation => heap.CustomDebugInformationTable[this].ToString()
+        //        _ => base.ToString()
+        //    };
+        //}
     }
 }

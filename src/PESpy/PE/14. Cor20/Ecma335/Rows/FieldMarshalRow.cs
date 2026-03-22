@@ -4,17 +4,21 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Parent = {Parent}, NativeType = {NativeType}")]
+    [DebuggerDisplay("Parent = {ParentRow}, NativeType = {NativeType}")]
     public readonly struct FieldMarshalRow : IValue, IViewable
     {
         public FieldMarshalIndex RowIndex { get; }
 
         public CodedIndex Parent => table.GetParent(RowIndex);
 
+        //System.Reflection.Metadata doesn't seem to parse this? But ILLink does
         public BlobIndex NativeType => table.GetNativeType(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public object ParentRow => Parent.GetRow(table.CompressedModelHeap);
+        
         private readonly FieldMarshalTable table;
 
         internal FieldMarshalRow(FieldMarshalIndex index, FieldMarshalTable table)

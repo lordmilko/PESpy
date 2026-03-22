@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class TypeRefTable : Table<TypeRefRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ResolutionScopeOffset;
         internal readonly int TypeNameOffset;
         internal readonly int TypeNamespaceOffset;
@@ -13,14 +11,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigResolutionScopeIndex;
         private readonly bool isBigStringIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal TypeRefTable(int numRows, int resolutionScopeIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal TypeRefTable(
+            int numRows,
+            int resolutionScopeIndexSize,
+            int stringIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.38
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigResolutionScopeIndex = resolutionScopeIndexSize == 4;
@@ -52,7 +56,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(TypeRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public TypeRefRow this[TypeRefIndex index] => this[(int) index];
+        public TypeRefRow this[TypeRefIndex index] => GetRow((int) index);
 
         protected override TypeRefRow GetRow(int index) => new TypeRefRow((TypeRefIndex) index, this);
     }

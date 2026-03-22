@@ -128,7 +128,7 @@ namespace PESpy
             Dispose(false);
         }
 
-        public unsafe FileView GetView()
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new DOSViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);
@@ -136,7 +136,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null)
         {
             if (CodeViewData != null)
             {

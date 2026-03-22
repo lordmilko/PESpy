@@ -2,17 +2,19 @@
 {
     public sealed class MethodPtrTable : Table<MethodPtrRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int MethodOffset;
 
         private readonly bool isBigMethodIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal MethodPtrTable(int numRows, int methodIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal MethodPtrTable(
+            int numRows,
+            int methodIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigMethodIndex = methodIndexSize == 4;
 
@@ -28,7 +30,7 @@
 
         public int GetRowOffset(MethodPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodPtrRow this[MethodPtrIndex index] => this[(int) index];
+        public MethodPtrRow this[MethodPtrIndex index] => GetRow((int) index);
 
         protected override MethodPtrRow GetRow(int index) => new MethodPtrRow((MethodPtrIndex) index, this);
     }

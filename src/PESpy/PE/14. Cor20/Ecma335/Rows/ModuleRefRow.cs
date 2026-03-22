@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Name = {Name.ToString(),nq}")]
     public readonly struct ModuleRefRow : IValue, IViewable
     {
         public ModuleRefIndex RowIndex { get; }
@@ -22,6 +20,9 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        //Extensions
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -44,6 +45,11 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            return Name.GetString().ToString();
         }
     }
 }

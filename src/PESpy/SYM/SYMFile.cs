@@ -45,6 +45,8 @@ namespace PESpy
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
 
+        private ISymbolAccessor symbolAccessor; //Separate type so you can dispose the accessor without accidentally disposing the main file
+
         private bool disposed;
 
         internal unsafe SYMFile(string fileName, in MemoryMappedFileHolder mmf)
@@ -76,6 +78,9 @@ namespace PESpy
 
             //Apparently there's two versions of sym files: one stores offsets in bytes (MapSym 2.08 - 3.00)
             //and one that stores offsets in paragraphs (3.10). https://win-archaeology.fandom.com/wiki/.SYM_Format
+            //Note that the document on this page is not completely accurate; they think that the first field is the the length
+            //of the file itself; not true - md_spmap * 16 + 4 = the size of the file. But the main point here is that you apparently
+            //have multiple maps compressed within a single SYM file
 
             //Note: if we add support for the earlier version, need to update Detector as well as Detector is using this heuristic
             //to try and detect valid files
@@ -92,20 +97,19 @@ namespace PESpy
                 var seg = new segdef_s(segmentOffset, chunk);
 
                 segments[i] = seg;
+
+                segmentOffset = seg.gd_spsegnext * 16;
             }
 
             Segments = segments;
         }
 
-        public FileView GetView()
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             throw new NotImplementedException();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
-        {
-            throw new NotImplementedException();
-        }
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new SYMFileSymbolAccessor(this);
 
         public void Dispose()
         {
@@ -124,6 +128,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

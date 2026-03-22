@@ -59,6 +59,9 @@ namespace PESpy
             return AsSpan().SequenceEqual(other.AsSpan());
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(ReadOnlySpan<char> other) => AsSpan().SequenceEqual(other);
+
         public int CompareTo(string other) =>
             AsSpan().SequenceCompareTo(other.AsSpan());
 
@@ -77,6 +80,12 @@ namespace PESpy
         public static bool operator ==(string left, FixedUtf16String right) => right.Equals(left);
         public static bool operator !=(string left, FixedUtf16String right) => !right.Equals(left);
 
+        public static bool operator ==(FixedUtf16String left, ReadOnlySpan<char> right) => left.Equals(right);
+        public static bool operator !=(FixedUtf16String left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+        public static bool operator ==(ReadOnlySpan<char> left, FixedUtf16String right) => right.Equals(left);
+        public static bool operator !=(ReadOnlySpan<char> left, FixedUtf16String right) => !right.Equals(left);
+
         public static bool operator ==(FixedUtf16String left, FixedUtf16String right) => right.Equals(left);
         public static bool operator !=(FixedUtf16String left, FixedUtf16String right) => !right.Equals(left);
 
@@ -89,6 +98,9 @@ namespace PESpy
 
             if (obj is string s)
                 return Equals(s);
+
+            if (obj == null)
+                return Value == default;
 
             return false;
         }

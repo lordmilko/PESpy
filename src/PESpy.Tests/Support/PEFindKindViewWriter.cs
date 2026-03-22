@@ -27,7 +27,7 @@ namespace PESpy.Tests
             return base.NewStruct(name, value, kind, structSize);
         }
 
-        protected internal override IView NewValue<T>(int offset, in T value, int size, ViewKind kind)
+        protected internal override IView NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
             if (kind == Kind)
                 Matches.Add(value);

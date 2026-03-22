@@ -1,13 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using PESpy.View;
 
 namespace PESpy.LIB
 {
     public class ShortImportLibraryMember : IImportLibraryMember, IValue,IViewable
     {
-        public AnsiString Name { get; }
+        public AnsiString FileName { get; }
+
+        public AnsiString SymbolName { get; }
 
         public ImageArchiveMemberHeader ArchiveHeader => new ImageArchiveMemberHeader(chunk);
+
+        public bool IsLong => false;
 
         public ImportObjectHeader ImportHeader => new ImportObjectHeader(chunk.Slice(ImageArchiveMemberHeader.StructSize));
 
@@ -19,10 +24,14 @@ namespace PESpy.LIB
 
         private readonly MemoryChunk chunk;
 
-        internal ShortImportLibraryMember(in MemoryChunk chunk, AnsiString name)
+        internal ShortImportLibraryMember(in MemoryChunk chunk, AnsiString fileName, Dictionary<int, AnsiString> symbolNameMap)
         {
             this.chunk = chunk;
-            Name = name;
+            FileName = fileName;
+
+            //May not exist
+            if (symbolNameMap.TryGetValue(Offset, out var symbolName))
+                SymbolName = symbolName;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -47,7 +56,10 @@ namespace PESpy.LIB
 
         public override string ToString()
         {
-            return $"{DllName}!{ImportName}";
+            if (SymbolName.Length == 0)
+                return $"{DllName}!{ImportName}";
+
+            return $"{DllName}!{ImportName} -> {SymbolName}";
         }
     }
 }

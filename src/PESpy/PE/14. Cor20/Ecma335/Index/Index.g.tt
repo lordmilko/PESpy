@@ -13,6 +13,8 @@ namespace PESpy.Ecma335
     {
         public readonly int RowId;
 
+        public bool IsNil => RowId == 0;
+
         //CorTokenType only captures publically consumed indices. It doesn't capture internal ones
 
         //The type of a handle is not stored on disk; it's either implied by the spec, or is stored as a coded index
@@ -91,19 +93,37 @@ for(int i = 0; i < types.Length; i++)
 {
     var type = types[i];
 #>
-    public readonly struct <#= type #>
+    public readonly partial struct <#= type #> : IEquatable<<#= type #>>
     {
         public readonly int RowId;
+
+        public bool IsNil => RowId == 0;
 
         public <#= type #>(int rowId)
         {
             RowId = rowId;
         }
 
+        public static bool operator ==(<#= type #> left, <#= type #> right) => left.RowId == right.RowId;
+
+        public static bool operator !=(<#= type #> left, <#= type #> right) => left.RowId != right.RowId;
+
         public static explicit operator <#= type #>(int value) => new <#= type #>(value);
 
         //Can't use implicit operator here, as for some reason this has a backwards effect of allowing other indices to be passed to our tables, due to the presence of a general purpose int indexer
         public static explicit operator int(<#= type #> value) => value.RowId;
+
+        public override bool Equals(object other)
+        {
+            if (other is not <#= type #> v)
+                return false;
+
+            return Equals(v);
+        }
+
+        public bool Equals(<#= type #> other) => RowId == other.RowId;
+
+        public override int GetHashCode() => RowId.GetHashCode();
 
         public override string ToString() => RowId.ToString();
     }

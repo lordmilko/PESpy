@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Parent = {Parent}, Imports = {Imports}")]
+    [DebuggerDisplay("Parent = {ParentRow}, Imports = {Imports}")]
     public readonly struct ImportScopeRow : IValue, IViewable
     {
         public ImportScopeIndex RowIndex { get; }
@@ -15,6 +15,9 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public ImportScopeRow ParentRow => table[Parent];
+
         private readonly ImportScopeTable table;
 
         internal ImportScopeRow(ImportScopeIndex index, ImportScopeTable table)
@@ -24,6 +27,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        //System.Reflection.Metadata has an "Imports" collection that parses the imports blob
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

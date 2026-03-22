@@ -19,7 +19,7 @@ namespace PESpy.View.Builder
 
         private HashSet<IView>? delayNameViews;
 
-        private PooledList<DirectoryInfo> discoveredDataDirectories;
+        private Span<DirectoryInfo> discoveredDataDirectories;
 
         private int nextStructIndex;
         private int nextDataDirectoryIndex;
@@ -43,7 +43,7 @@ namespace PESpy.View.Builder
             ViewWriter viewWriter,
             List<IView> sortedStructs,
             HashSet<IView>? delayNameViews,
-            PooledList<DirectoryInfo> discoveredDataDirectories,
+            Span<DirectoryInfo> discoveredDataDirectories,
             ByteViewProvider byteViewProvider)
         {
             this.file = file;
@@ -67,8 +67,6 @@ namespace PESpy.View.Builder
 
         public void Dispose()
         {
-            discoveredDataDirectories.Dispose();
-
             masterList.Dispose();
             currentList.Dispose();
             repeatingTypeList.Dispose();
@@ -118,7 +116,7 @@ namespace PESpy.View.Builder
         private void TryGetNextDirectory(int rva, int endRva, ref int currentEnd)
         {
             //If we skipped over the directory because we don't know it (meaning we read it as a byte blob), we need to skip to the next valid directory
-            while (nextDataDirectoryIndex < discoveredDataDirectories.Count && discoveredDataDirectories[nextDataDirectoryIndex].Start < rva)
+            while (nextDataDirectoryIndex < discoveredDataDirectories.Length && discoveredDataDirectories[nextDataDirectoryIndex].Start < rva)
             {
                 //Ordinarily, we want to assert here that we didn't inadvertently skip over a data directory. However, if we've got a rogue directory claiming that it starts before the previous
                 //directory ends, we need to skip over it
@@ -135,7 +133,7 @@ namespace PESpy.View.Builder
                 }
             }
 
-            if (nextDataDirectoryIndex < discoveredDataDirectories.Count)
+            if (nextDataDirectoryIndex < discoveredDataDirectories.Length)
             {
                 var candidateDirectory = discoveredDataDirectories[nextDataDirectoryIndex];
 
@@ -248,7 +246,7 @@ namespace PESpy.View.Builder
             {
                 FinalizeRepeatingTypeRegion();
 
-                if (nextDataDirectoryIndex < discoveredDataDirectories.Count)
+                if (nextDataDirectoryIndex < discoveredDataDirectories.Length)
                 {
                     var currentDirectory = discoveredDataDirectories[nextDataDirectoryIndex];
 
@@ -388,8 +386,25 @@ end:
                     siPageList = si.PageList;
                 }
 
-end:
-                currentList.Add(nextValue!);
+                var currentIndex = siPageList.IndexOf(currentPage);
+
+                if (currentIndex == -1)
+                    throw new InvalidOperationException("Could not find the current page in the page list; this should be impossible");
+
+                /* Suppose you have a DBI section with the following pages:
+                 *     59: 0xEC00 - 0xF000
+                 *     58: 0xE800 - 0xEC00
+                 *
+                 * Observe that the second page is _before_ the first page. You then might have an OMFSegMap that proclaims
+                 * that it lies within 0xEFD4-0xF027. On the basis that 0xF027 is beyond the bounds of page 59 (0xF000) we determine
+                 * that a split is required here, and we would normally say that the cutoff point for performing the split is 0xF000.
+                 * However, when you look at the actual children of the OMFSegMap, you may have a bunch of items between 0xEFD4-0xEFFF
+                 * and another item perfectly after the start of the next page at 0xE800. This is going to cause issues when we go to
+                 * try and find the split point, because no child is actually ever after 0xF000; the parent OMFSegMap only reports that
+                 * this is the case because the total size is 84. So, when performing the split what we really need to do is _either_
+                 * look for values that are running over the edge of the current page, _or_ are perfectly situated at the start of
+                 * the current page
+                 */
                 if (previous)
                 {
                     var previousPage = siPageList[currentIndex - 1];
@@ -625,7 +640,7 @@ end:
         {
             var dirIndex = directory == null ? nextDataDirectoryIndex : nextDataDirectoryIndex + 1;
 
-            if (dirIndex < discoveredDataDirectories.Count)
+            if (dirIndex < discoveredDataDirectories.Length)
             {
                 var nextDirectory = discoveredDataDirectories[dirIndex];
 

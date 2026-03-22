@@ -4,7 +4,6 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Owner = {Owner}, Constraint = {Constraint}")]
     public readonly struct GenericParamConstraintRow : IValue, IViewable
     {
         public GenericParamConstraintIndex RowIndex { get; }
@@ -15,6 +14,11 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public GenericParamRow OwnerRow => table.CompressedModelHeap.GenericParamTable[Owner];
+
+        public object ConstraintRow => Constraint.GetRow(table.CompressedModelHeap);
+
         private readonly GenericParamConstraintTable table;
 
         internal GenericParamConstraintRow(GenericParamConstraintIndex index, GenericParamConstraintTable table)
@@ -24,6 +28,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -50,6 +56,17 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            using var builder = new ValueStringBuilder();
+
+            builder.Append(table.CompressedModelHeap.GenericParamTable[Owner].Name.GetString().AsSpan());
+            builder.Append(" is ");
+            builder.Append(Constraint.GetRow(table.CompressedModelHeap).ToString());
+
+            return builder.ToString();
         }
     }
 }

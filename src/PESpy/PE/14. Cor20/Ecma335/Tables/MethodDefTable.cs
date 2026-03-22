@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class MethodDefTable : Table<MethodDefRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int RVAOffset;
         internal readonly int ImplFlagsOffset;
         internal readonly int FlagsOffset;
@@ -21,7 +19,6 @@ namespace PESpy.Ecma335
         internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
         internal MethodDefTable(
             int numRows,
@@ -31,9 +28,8 @@ namespace PESpy.Ecma335
             CompressedModelHeap compressedModelHeap,
             Func<StringHeap?> stringHeap,
             Func<BlobHeap?> blobHeap,
-            in MemoryChunk tableChunk) : base(numRows)
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
             CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
@@ -87,9 +83,36 @@ namespace PESpy.Ecma335
             return (ParamIndex) tableChunk.PeekEcmaIndex(rowOffset + ParamListOffset, isBigParamIndex);
         }
 
+        internal void GetRange(TypeDefIndex typeDef, out int firstMethodRowId, out int lastMethodRowId)
+        {
+            firstMethodRowId = (int) CompressedModelHeap.TypeDefTable.GetMethodList(typeDef);
+
+            if (firstMethodRowId == 0)
+            {
+                firstMethodRowId = 0;
+                lastMethodRowId = 0;
+            }
+            else if (typeDef.RowId == CompressedModelHeap.TypeDefTable.Count)
+            {
+                lastMethodRowId = (CompressedModelHeap.MethodPtrTable?.Count > 0 ? CompressedModelHeap.MethodPtrTable.Count : CompressedModelHeap.MethodDefTable.Count) + 1;
+            }
+            else
+            {
+                lastMethodRowId = (int) CompressedModelHeap.TypeDefTable.GetMethodList((TypeDefIndex) (typeDef.RowId + 1));
+            }
+        }
+
+        public CustomAttributeList GetCustomAttributes(MethodDefIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.MethodDef));
+
+        public DeclSecurityAttributeList GetDeclSecurityAttributes(MethodDefIndex index) =>
+            new DeclSecurityAttributeList(CompressedModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.MethodDef));
+
         public int GetRowOffset(MethodDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodDefRow this[MethodDefIndex index] => this[(int) index];
+        public MethodDefRow this[MethodDefIndex index] => GetRow((int) index);
+
+        public MethodDefRow this[MethodDebugInformationIndex index] => GetRow((int) index);
 
         protected override MethodDefRow GetRow(int index) => new MethodDefRow((MethodDefIndex) index, this);
     }

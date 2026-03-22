@@ -4,15 +4,16 @@ namespace PESpy.Ecma335
 {
     public sealed class EncMapTable : Table<EncMapRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int TokenOffset;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal EncMapTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal EncMapTable(
+            int numRows,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             TokenOffset = 0;
             RowSize = TokenOffset + sizeof(int);
@@ -26,7 +27,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(EncMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EncMapRow this[EncMapIndex index] => this[(int) index];
+        public EncMapRow this[EncMapIndex index] => GetRow((int) index);
 
         protected override EncMapRow GetRow(int index) => new EncMapRow((EncMapIndex) index, this);
     }

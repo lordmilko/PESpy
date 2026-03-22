@@ -28,7 +28,12 @@ namespace PESpy.View
         /// <inheritdoc />
         public int Size { get; private set; }
 
-        public ViewKind Kind { get; }
+        public ViewKind Kind => (ViewKind) (_kind & 0x7FFF);
+
+        public bool IsSplit => (_kind & 0x8000) != 0;
+
+        //We stash IsSplit in the top bit
+        private ushort _kind;
 
         public ValueView(int offset, TValue value, int size, ViewKind kind)
         {
@@ -40,7 +45,7 @@ namespace PESpy.View
             Offset = offset;
             Value = value;
             Size = size;
-            Kind = kind;
+            _kind = (ushort) kind;
         }
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitValue(this);

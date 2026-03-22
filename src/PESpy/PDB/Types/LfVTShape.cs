@@ -58,6 +58,8 @@ namespace PESpy.PDB
             TypType.AssertMissing(false, "Read desc");
         }
 
+        public static implicit operator LfEasy(LfVTShape easy) => new LfEasy((lfEasy*) (byte*) easy.value);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

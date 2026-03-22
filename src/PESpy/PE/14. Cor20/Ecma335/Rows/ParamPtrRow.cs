@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Param = {Param}")]
+    [DebuggerDisplay("Param = {ParamRow}")]
     public readonly struct ParamPtrRow : IValue, IViewable
     {
         public ParamPtrIndex RowIndex { get; }
@@ -12,6 +12,9 @@ namespace PESpy.Ecma335
         public ParamIndex Param => table.GetParam(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public ParamRow ParamRow => table.CompressedModelHeap.ParamTable[Param];
 
         private readonly ParamPtrTable table;
 

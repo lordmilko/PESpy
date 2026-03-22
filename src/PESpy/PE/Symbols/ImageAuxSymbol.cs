@@ -47,11 +47,14 @@ namespace PESpy
 
     public readonly struct ImageAuxSymbol : IValue, IViewable
     {
+        private const int FileOffset = 0;
+        private const int BytesOffset = 0;
+
         #region Union
 
         public SymData Sym => new SymData(chunk);
 
-        public FixedAnsiString File => chunk.PeekAnsiFixedLength(0, 18);
+        public FixedAnsiString File => chunk.PeekAnsiFixedLength(FileOffset, 18);
 
         public SectionData Section => new SectionData(chunk);
 
@@ -64,19 +67,24 @@ namespace PESpy
         //Name is made up
         public readonly struct SymData
         {
+            private const int TagIndexOffset = 0;
+            private const int MiscOffset = 4;
+            private const int FcnAryOffset = 8;
+            private const int TvIndexOffset = 12;
+
             /// <summary>
             /// struct, union, or enum tag index
             /// </summary>
-            public int TagIndex => chunk.PeekInt32(0);
+            public int TagIndex => chunk.PeekInt32(TagIndexOffset);
 
-            public MiscData Misc => new MiscData(chunk.Slice(4)); //Occupies 4 bytes
+            public MiscData Misc => new MiscData(chunk.Slice(MiscOffset)); //Occupies 4 bytes
 
-            public FcnAryData FcnAry => new FcnAryData(chunk.Slice(8)); //Occupies 8 bytes
+            public FcnAryData FcnAry => new FcnAryData(chunk.Slice(FcnAryOffset)); //Occupies 8 bytes
 
             /// <summary>
             /// tv index
             /// </summary>
-            public short TvIndex => chunk.PeekInt16(12);
+            public short TvIndex => chunk.PeekInt16(TvIndexOffset);
 
             private readonly MemoryChunk chunk;
 
@@ -89,42 +97,51 @@ namespace PESpy
         //Name is made up
         public readonly struct SectionData
         {
+            private const int LengthOffset = 0;
+            private const int NumberOfRelocationsOffset = 4;
+            private const int NumberOfLinenumbersOffset = 6;
+            private const int CheckSumOffset = 8;
+            private const int NumberOffset = 12;
+            private const int SelectionOffset = 14;
+            private const int bReservedOffset = 15;
+            private const int HighNumberOffset = 16;
+
             /// <summary>
             /// section length
             /// </summary>
-            public int Length => chunk.PeekInt32(0);
+            public int Length => chunk.PeekInt32(LengthOffset);
 
             /// <summary>
             /// number of relocation entries
             /// </summary>
-            public short NumberOfRelocations => chunk.PeekInt16(4);
+            public short NumberOfRelocations => chunk.PeekInt16(NumberOfRelocationsOffset);
 
             /// <summary>
             /// number of line numbers
             /// </summary>
-            public short NumberOfLinenumbers => chunk.PeekInt16(6);
+            public short NumberOfLinenumbers => chunk.PeekInt16(NumberOfLinenumbersOffset);
 
             /// <summary>
             /// checksum for communal
             /// </summary>
-            public uint CheckSum => chunk.PeekUInt32(8);
+            public uint CheckSum => chunk.PeekUInt32(CheckSumOffset);
 
             /// <summary>
             /// section number to associate with
             /// </summary>
-            public short Number => chunk.PeekInt16(12);
+            public short Number => chunk.PeekInt16(NumberOffset);
 
             /// <summary>
             /// communal selection type
             /// </summary>
-            public byte Selection => chunk.PeekByte(14);
+            public byte Selection => chunk.PeekByte(SelectionOffset);
 
-            public byte bReserved => chunk.PeekByte(15);
+            public byte bReserved => chunk.PeekByte(bReservedOffset);
 
             /// <summary>
             /// high bits of the section number
             /// </summary>
-            public short HighNumber => chunk.PeekInt16(16);
+            public short HighNumber => chunk.PeekInt16(HighNumberOffset);
 
             private readonly MemoryChunk chunk;
 
@@ -136,11 +153,13 @@ namespace PESpy
 
         public readonly struct MiscData
         {
+            private const int TotalSizeOffset = 0;
+
             #region Union
 
             public LnSzData LnSz => new LnSzData(chunk); //4 bytes
 
-            public int TotalSize => chunk.PeekInt32(0);
+            public int TotalSize => chunk.PeekInt32(TotalSizeOffset);
 
             #endregion
 
@@ -154,15 +173,18 @@ namespace PESpy
 
         public readonly struct LnSzData
         {
+            private const int LinenumberOffset = 0;
+            private const int SizeOffset = 2;
+
             /// <summary>
             /// declaration line number
             /// </summary>
-            public short Linenumber => chunk.PeekInt16(0);
+            public short Linenumber => chunk.PeekInt16(LinenumberOffset);
 
             /// <summary>
             /// size of struct, union, or enum
             /// </summary>
-            public short Size => chunk.PeekInt16(2);
+            public short Size => chunk.PeekInt16(SizeOffset);
 
             private readonly MemoryChunk chunk;
 
@@ -198,9 +220,12 @@ namespace PESpy
 
         public readonly struct FunctionData
         {
-            public int PointerToLinenumber => chunk.PeekInt32(0);
+            private const int PointerToLinenumberOffset = 0;
+            private const int PointerToNextFunctionOffset = 4;
 
-            public int PointerToNextFunction => chunk.PeekInt32(4);
+            public int PointerToLinenumber => chunk.PeekInt32(PointerToLinenumberOffset);
+
+            public int PointerToNextFunction => chunk.PeekInt32(PointerToNextFunctionOffset);
 
             private readonly MemoryChunk chunk;
 
@@ -212,7 +237,9 @@ namespace PESpy
 
         public readonly struct ArrayData
         {
-            public NativeSpan<short> Dimension => chunk.PeekNativeSpan<short>(0, 4);
+            private const int DimensionOffset = 0;
+
+            public NativeSpan<short> Dimension => chunk.PeekNativeSpan<short>(DimensionOffset, 4);
 
             private readonly MemoryChunk chunk;
 
@@ -224,9 +251,12 @@ namespace PESpy
 
         public readonly struct CrcData
         {
-            public int crc => chunk.PeekInt32(0);
+            private const int crcOffset = 0;
+            private const int rgbReservedOffset = 4;
 
-            public NativeSpan<byte> rgbReserved => chunk.PeekNativeSpan<byte>(4, 14);
+            public int crc => chunk.PeekInt32(crcOffset);
+
+            public NativeSpan<byte> rgbReserved => chunk.PeekNativeSpan<byte>(rgbReservedOffset, 14);
 
             private readonly MemoryChunk chunk;
 
@@ -237,7 +267,7 @@ namespace PESpy
         }
 
         //IMAGE_AUX_SYMBOL has a number of unioned fields. The data that is in effect depends on the data in the parent IMAGE_SYMBOL
-        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(0, StructSize);
+        public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(BytesOffset, StructSize);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -263,12 +293,12 @@ namespace PESpy
 
         int IViewable.NumChildren() => 1;
 
-        void IViewable.WriteChild(int index, ViewWriter viewWriter)
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             switch (index)
             {
                 case 0:
-                    viewWriter.WriteField("Bytes", Bytes);
+                    structWriter.WriteField("Bytes", BytesOffset, Bytes);
                     break;
 
                 default:

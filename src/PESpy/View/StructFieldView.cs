@@ -10,7 +10,7 @@ namespace PESpy.View
     }
 
     [DebuggerDisplay("{ViewDebuggerDisplay.StructField(this),nq}")]
-    public class StructFieldView<TValue> : IStructFieldView where TValue : IViewable
+    public class StructFieldView : IStructFieldView
     {
         public int Offset => Value.Offset;
 
@@ -22,9 +22,9 @@ namespace PESpy.View
 
         public string FieldName { get; }
 
-        public StructView<TValue> Value { get; }
+        public StructView Value { get; }
 
-        public string ValueType => typeof(TValue).Name;
+        public string ValueType => Value.ValueType;
 
         IStructView IStructFieldView.Value => Value;
 
@@ -39,7 +39,7 @@ namespace PESpy.View
         [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitStructField(this);
 
-        public StructFieldView(StructView<TValue> value, string fieldName)
+        public StructFieldView(StructView value, string fieldName)
         {
             Value = value;
             FieldName = fieldName;

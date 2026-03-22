@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Method = {Method}, ImportScope = {ImportScope}, VariableList = {VariableList}, ConstantList = {ConstantList}, StartOffset = {StartOffset}, Length = {Length}")]
+    [DebuggerDisplay("Method = {MethodRow}, ImportScope = {ImportScopeRow}, VariableList = {VariableList}, ConstantList = {ConstantList}, StartOffset = {StartOffset}, Length = {Length}")]
     public readonly struct LocalScopeRow : IValue, IViewable
     {
         public LocalScopeIndex RowIndex { get; }
@@ -22,6 +22,15 @@ namespace PESpy.Ecma335
         public int Length => table.GetLength(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public LocalVariableList Variables => new LocalVariableList(RowIndex, table.CompressedModelHeap);
+
+        public LocalConstantList Constants => new LocalConstantList(RowIndex, table.CompressedModelHeap);
+
+        public ChildScopeList Children => new ChildScopeList(RowIndex, table);
+
+        public MethodDebugInformationRow MethodRow => table.CompressedModelHeap.MethodDebugInformationTable[Method];
 
         private readonly LocalScopeTable table;
 

@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Method = {Method}")]
+    [DebuggerDisplay("Method = {MethodRow}")]
     public readonly struct MethodPtrRow : IValue, IViewable
     {
         public MethodPtrIndex RowIndex { get; }
@@ -12,6 +12,9 @@ namespace PESpy.Ecma335
         public MethodDefIndex Method => table.GetMethod(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public MethodDefRow MethodRow => table.CompressedModelHeap.MethodDefTable[Method];
 
         private readonly MethodPtrTable table;
 

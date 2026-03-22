@@ -1,4 +1,5 @@
 ﻿using PESpy.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -53,11 +54,39 @@ namespace PESpy
         {
             if (PDBFile.TryGetSymbolByRVA(rva, out var symType, out displacement))
             {
+                if (symType.rectyp == ClrDebug.PDB.SYM_ENUM_e.S_SEPCODE)
+                {
+                    var sepCode = (SepCodeSym) symType;
+                    symType = sepCode.GetParent(PDBFile);
+
+                    if (sepCode.sect != sepCode.sectParent)
+                        throw new System.NotImplementedException(); //Convert sepcode and parent to rva and then get difference
+
+                    displacement = sepCode.off - sepCode.offParent;
+                }
+
                 name = symType.GetName(PDBFile);
                 return true;
             }
 
             name = default;
+            return false;
+        }
+
+        public bool TryGetLengthFromAddress(int rva, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            if (PDBFile.TryGetSymbolByRVA(rva, out var symType, out var displacement))
+            {
+                if (symType.TryGetLength(out length, PDBFile))
+                {
+                    length -= displacement;
+                    return true;
+                }
+
+                return false;
+            }
+
+            length = default;
             return false;
         }
 

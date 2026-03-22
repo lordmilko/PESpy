@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Method = {Method}, Instantiation = {Instantiation}")]
     public readonly struct MethodSpecRow : IValue, IViewable
     {
         public MethodSpecIndex RowIndex { get; }
@@ -15,6 +13,9 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public object MethodRow => Method.GetRow(table.CompressedModelHeap);
+
         private readonly MethodSpecTable table;
 
         internal MethodSpecRow(MethodSpecIndex index, MethodSpecTable table)
@@ -23,6 +24,15 @@ namespace PESpy.Ecma335
 
             RowIndex = index;
             this.table = table;
+        }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        public TType[] DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
+        {
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var reader = Instantiation.GetReader();
+            return decoder.DecodeMethodSpecificationSignature(ref reader);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -50,6 +60,40 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            if (table == null)
+                return "<null>";
+
+            using var builder = new ValueStringBuilder();
+
+            builder.Append(Method.GetRow(table.CompressedModelHeap).ToString());
+            builder.Append('<');
+
+            GenericParamList genericParams = default;
+
+            if (Method.TableKind == TableKind.MethodDef)
+            {
+                var methodDef = table.CompressedModelHeap.MethodDefTable[Method];
+
+                genericParams = methodDef.GenericParameters;
+            }
+
+            var args = DecodeSignature(StringSignatureTypeProvider.Instance, genericParams);
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                builder.Append(args[i].ToString());
+
+                if (i < args.Length - 1)
+                    builder.Append(", ");
+            }
+
+            builder.Append('>');
+
+            return builder.ToString();
         }
     }
 }

@@ -17,6 +17,7 @@ namespace PESpy.View.Builder
 
         internal const int SPECIAL_STREAM_STREAMTABLE = -4;
         internal const int SPECIAL_STREAM_STREAMTABLE_LOCATION = -5;
+        internal const int SPECIAL_STREAM_FREE = -6;
 
         internal Dictionary<PN, int> pageNumberToSIIndex;
 

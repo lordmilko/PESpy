@@ -5,7 +5,7 @@
         public const int IMAGE_ARCHIVE_START_SIZE = 8;
         public const string IMAGE_ARCHIVE_START = "!<arch>\n";
         public const string IMAGE_ARCHIVE_END = "`\n";
-        public const string IMAGE_ARCHIVE_PAD = "\n"; //I'm not exactly sure what this is for, but MSDN clearly says that the names are padded with spaces
+        public const byte IMAGE_ARCHIVE_PAD = (byte) '\n'; //0x0A bytes are used to enforce alignment
         public const string IMAGE_ARCHIVE_LINKER_MEMBER = "/               ";
         public const string IMAGE_ARCHIVE_LONGNAMES_MEMBER = "//              ";
         public const string IMAGE_ARCHIVE_HYBRIDMAP_MEMBER = "/<HYBRIDMAP>/   ";

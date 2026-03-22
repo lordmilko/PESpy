@@ -4,18 +4,21 @@ namespace PESpy.Ecma335
 {
     public sealed class ModuleRefTable : Table<ModuleRefRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int NameOffset;
 
         private readonly bool isBigStringIndex;
 
+        private readonly CompressedModelHeap compressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ModuleRefTable(int numRows, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ModuleRefTable(
+            int numRows,
+            int stringIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            this.compressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             this.isBigStringIndex = stringIndexSize == 4;
@@ -30,9 +33,12 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
+        public CustomAttributeList GetCustomAttributes(ModuleRefIndex index) =>
+            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ModuleRef));
+
         public int GetRowOffset(ModuleRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ModuleRefRow this[ModuleRefIndex index] => this[(int) index];
+        public ModuleRefRow this[ModuleRefIndex index] => GetRow((int) index);
 
         protected override ModuleRefRow GetRow(int index) => new ModuleRefRow((ModuleRefIndex) index, this);
     }

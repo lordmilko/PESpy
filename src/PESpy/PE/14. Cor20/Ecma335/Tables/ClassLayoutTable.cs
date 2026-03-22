@@ -2,19 +2,21 @@
 {
     public sealed class ClassLayoutTable : Table<ClassLayoutRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int PackingSizeOffset;
         internal readonly int ClassSizeOffset;
         internal readonly int ParentOffset;
 
         private readonly bool isBigTypeDefIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal ClassLayoutTable(int numRows, int typeDefIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal ClassLayoutTable(
+            int numRows,
+            int typeDefIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
 
@@ -42,9 +44,21 @@
             return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowOffset + ParentOffset, isBigTypeDefIndex);
         }
 
+        internal ClassLayoutIndex FindRow(TypeDefIndex index)
+        {
+            return (ClassLayoutIndex) (1 + CompressedModelHeap.BinarySearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                ParentOffset,
+                (uint) index.RowId,
+                isBigTypeDefIndex
+            ));
+        }
+
         public int GetRowOffset(ClassLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ClassLayoutRow this[ClassLayoutIndex index] => this[(int) index];
+        public ClassLayoutRow this[ClassLayoutIndex index] => GetRow((int) index);
 
         protected override ClassLayoutRow GetRow(int index) => new ClassLayoutRow((ClassLayoutIndex) index, this);
     }

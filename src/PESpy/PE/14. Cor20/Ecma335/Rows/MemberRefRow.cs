@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Class = {Class}, Name = {Name.ToString(),nq}, Signature = {Signature}")]
+    [DebuggerDisplay("[{Kind}] {ToString(),nq}")]
     public readonly struct MemberRefRow : IValue, IViewable
     {
         public MemberRefIndex RowIndex { get; }
@@ -17,6 +18,19 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public CorCallingConvention Kind
+        {
+            get
+            {
+                var reader = Signature.GetReader();
+                var callingConv = (CorCallingConvention) reader.ReadByte();
+                return callingConv;
+            }
+        }
+
+        public object ClassRow => Class.GetRow(table.CompressedModelHeap);
+
         private readonly MemberRefTable table;
 
         internal MemberRefRow(MemberRefIndex index, MemberRefTable table)
@@ -25,6 +39,22 @@ namespace PESpy.Ecma335
 
             RowIndex = index;
             this.table = table;
+        }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        public TType DecodeFieldSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
+        {
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var reader = Signature.GetReader();
+            return decoder.DecodeFieldSignature(ref reader);
+        }
+
+        public MethodSignature<TType> DecodeMethodSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
+        {
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var reader = Signature.GetReader();
+            return decoder.DecodeMethodSignature(ref reader);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -57,5 +87,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => $"{ClassRow}.{Name.GetString()}";
     }
 }

@@ -2,17 +2,19 @@
 {
     public sealed class EventPtrTable : Table<EventPtrRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int EventOffset;
 
         private readonly bool isBigEventIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal EventPtrTable(int numRows, int eventIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal EventPtrTable(
+            int numRows,
+            int eventIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigEventIndex = eventIndexSize == 4;
 
@@ -28,7 +30,7 @@
 
         public int GetRowOffset(EventPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EventPtrRow this[EventPtrIndex index] => this[(int) index];
+        public EventPtrRow this[EventPtrIndex index] => GetRow((int) index);
 
         protected override EventPtrRow GetRow(int index) => new EventPtrRow((EventPtrIndex) index, this);
     }

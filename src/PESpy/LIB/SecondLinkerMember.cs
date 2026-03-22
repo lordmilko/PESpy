@@ -15,7 +15,7 @@ namespace PESpy.LIB
 
         private readonly ImageArchiveMemberHeader archiveHeader;
 
-        public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
+        public ImageArchiveMemberHeader ArchiveHeader => archiveHeader;
 
         public int NumberOfMembers => chunk.PeekInt32(NumberOfMembersOffset);
 
@@ -90,14 +90,11 @@ namespace PESpy.LIB
                     structWriter.WriteField("Indices", IndicesOffset, Indices);
                     break;
 
-                case 5:
+                default:
                     var i = index - 5;
 
                     structWriter.WriteInlineAnsiNullTerminated(StringTable[i]);
                     break;
-
-                default:
-                    throw new IndexOutOfRangeException();
             }
         }
     }

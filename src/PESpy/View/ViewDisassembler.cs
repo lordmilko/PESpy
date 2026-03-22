@@ -173,7 +173,7 @@ namespace PESpy.View
 
             //Re-disassemble the range until we hit the known end position
 
-            var newRange = new AsmRange<T>(range.StartOffset, range.StartRVA, range.FunctionRVA, this, range.Name);
+            var newRange = new AsmRange<T>(range.StartOffset, range.StartRVA, range.FunctionRVA, range.Name);
 
             //Note that we don't actually update the AsmRange in our ranges array. If another caller comes along and wants another chunk of it,
             //they can resize it themselves to suit their needs. Unrelated fun fact: if you do "range = newRange", the assignment travels through

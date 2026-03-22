@@ -99,12 +99,12 @@ namespace PESpy
             Dispose(false);
         }
 
-        public FileView GetView()
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             throw new NotImplementedException();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new OMFFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new OMFFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

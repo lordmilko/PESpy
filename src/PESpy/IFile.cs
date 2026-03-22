@@ -61,6 +61,17 @@ namespace PESpy
         /// An <see cref="OMFLIBFile"/> describing an object library stored using Object Module Format.
         /// </summary>
         OMFLIB,
+
+        /// <summary>
+        /// A <see cref="SYMFile"/> describing debugging symbols from a MAP file that has been converted by mapsym.exe
+        /// </summary>
+        SYM,
+
+        /// <summary>
+        /// A <see cref="ResourceFile"/> describing the contents of the .NET resources stream<para/>
+        /// Note that standalone *.resource files are actually PE Files that then contain resources.
+        /// </summary>
+        Resource
     }
 
     public interface IFile : IDisposable
@@ -81,10 +92,10 @@ namespace PESpy
 
         int Length { get; }
 
-        FileView GetView();
+        FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None);
 
         //If no symbol accessor could be found, returns the NullSymbolAccessor
-        ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null);
+        ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null);
     }
 
     internal interface IFileWithCodeViewData

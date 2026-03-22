@@ -2,18 +2,20 @@
 {
     public sealed class StateMachineMethodTable : Table<StateMachineMethodRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int MoveNextMethodOffset;
         internal readonly int KickoffMethodOffset;
 
         private readonly bool isBigMethodIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal StateMachineMethodTable(int numRows, int methodIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal StateMachineMethodTable(
+            int numRows,
+            int methodIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigMethodIndex = methodIndexSize == 4;
 
@@ -36,7 +38,7 @@
 
         public int GetRowOffset(StateMachineMethodIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public StateMachineMethodRow this[StateMachineMethodIndex index] => this[(int) index];
+        public StateMachineMethodRow this[StateMachineMethodIndex index] => GetRow((int) index);
 
         protected override StateMachineMethodRow GetRow(int index) => new StateMachineMethodRow((StateMachineMethodIndex) index, this);
     }

@@ -17,7 +17,7 @@ namespace PESpy.View
                 builder.Append(" - ");
                 builder.Append(EndOffset.ToString("X"));
 
-                if (Name != null)
+                if (Name.Length > 0)
                 {
                     builder.Append(" ");
                     builder.Append(Name);
@@ -37,7 +37,7 @@ namespace PESpy.View
 
         public readonly int StartOffset;
         public int EndOffset;
-        public string Name;
+        public FixedUtf8String Name;
 
         public int Length => EndOffset - StartOffset;
 
@@ -69,21 +69,14 @@ namespace PESpy.View
             }
         }
 
-        public T[] Instructions => viewDisassembler.Disassemble(this, instructionCount);
-
-        internal readonly ViewDisassembler<T> viewDisassembler;
         internal int instructionCount;
 
-        public AsmRange(int startOffset, int startRVA, int functionRVA, ViewDisassembler<T> viewDisassembler, string name)
+        public AsmRange(int startOffset, int startRVA, int functionRVA, FixedUtf8String name)
         {
-            if (name == null)
-                throw new ArgumentNullException(nameof(name));
-
             StartOffset = startOffset;
             StartRVA = startRVA;
             FunctionRVA = functionRVA;
             EndOffset = startOffset;
-            this.viewDisassembler = viewDisassembler;
             instructionCount = 0;
             Name = name;
         }

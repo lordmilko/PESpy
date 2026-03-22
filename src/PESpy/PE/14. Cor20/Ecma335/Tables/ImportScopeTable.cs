@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ImportScopeTable : Table<ImportScopeRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ParentOffset;
         internal readonly int ImportsOffset;
 
@@ -13,16 +11,14 @@ namespace PESpy.Ecma335
         private readonly bool isBigImportScopeIndex;
 
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
         internal ImportScopeTable(
             int numRows,
             int blobIndexSize,
             int importScopeIndexSize,
             Func<BlobHeap?> blobHeap,
-            in MemoryChunk tableChunk) : base(numRows)
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
 
             isBigBlobIndex = blobIndexSize == 4;
@@ -47,7 +43,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(ImportScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ImportScopeRow this[ImportScopeIndex index] => this[(int) index];
+        public ImportScopeRow this[ImportScopeIndex index] => GetRow((int) index);
 
         protected override ImportScopeRow GetRow(int index) => new ImportScopeRow((ImportScopeIndex) index, this);
     }

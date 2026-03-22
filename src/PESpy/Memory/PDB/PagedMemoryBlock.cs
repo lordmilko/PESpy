@@ -64,7 +64,7 @@ namespace PESpy
         {
             var pageIndex = blockOffset / pageSize;
             var pageStart = pageList[pageIndex] * pageSize;
-            var pageOffset = blockOffset % pageSize;
+            var pageOffset = blockOffset & (pageSize - 1); //Faster modulo
 
             var result = pageStart + pageOffset;
 

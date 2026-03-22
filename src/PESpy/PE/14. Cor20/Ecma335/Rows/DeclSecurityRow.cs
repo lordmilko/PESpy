@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Action = {Action}, Parent = {Parent}, PermissionSet = {PermissionSet}")]
+    [DebuggerDisplay("Action = {Action}, Parent = {ParentRow}, PermissionSet = {PermissionSet}")]
     public readonly struct DeclSecurityRow : IValue, IViewable
     {
         public DeclSecurityIndex RowIndex { get; }
@@ -18,6 +18,9 @@ namespace PESpy.Ecma335
         public BlobIndex PermissionSet => table.GetPermissionSet(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object ParentRow => Parent.GetRow(table.CompressedModelHeap);
 
         private readonly DeclSecurityTable table;
 

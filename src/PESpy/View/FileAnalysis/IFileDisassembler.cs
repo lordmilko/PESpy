@@ -8,6 +8,7 @@ namespace PESpy.View
 
         void WorkThreadProc(
             FileAccessor fileAccessor,
+            Dictionary<long, int> importMap,
             Queue<WorkItem> globalWorkQueue,
             object globalWorkQueueLock,
             int numThreads);

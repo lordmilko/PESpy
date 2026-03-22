@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Token = {Token}, FuncCode = {FuncCode}")]
+    [DebuggerDisplay("Token = {TokenRow}, FuncCode = {FuncCode}")]
     public readonly struct EncLogRow : IValue, IViewable
     {
         public EncLogIndex RowIndex { get; }
@@ -15,6 +15,9 @@ namespace PESpy.Ecma335
         public EditAndContinueOperation FuncCode => table.GetFuncCode(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object TokenRow => table.CompressedModelHeap.GetRow(Token);
 
         private readonly EncLogTable table;
 

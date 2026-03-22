@@ -76,7 +76,7 @@ namespace PESpy.PDB
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    structWriter.WriteField(nameof(index), indexOffset, value->index);
                     break;
 
                 case 3:

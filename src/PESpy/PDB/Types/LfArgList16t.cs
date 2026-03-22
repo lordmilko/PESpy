@@ -37,6 +37,8 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        public static implicit operator LfEasy(LfArgList16t easy) => new LfEasy((lfEasy*) (byte*) easy.value);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals

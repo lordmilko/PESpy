@@ -167,7 +167,7 @@ namespace PESpy
             vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
         }
 
-        public unsafe FileView GetView()
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new LEViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -176,7 +176,7 @@ namespace PESpy
         }
 
         //We need to update this if we ever find OMF data inside a LE file
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= NullSymbolAccessor.Instance;
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= NullSymbolAccessor.Instance;
 
         internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
         {

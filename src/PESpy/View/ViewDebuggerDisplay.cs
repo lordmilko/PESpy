@@ -17,8 +17,6 @@ namespace PESpy.View
             WriteRange(builder, view);
             builder.Append(view.Name);
 
-            builder.Append(" (").Append(view.Count).Append(")");
-
             return builder.ToString();
         }
 
@@ -202,6 +200,8 @@ namespace PESpy.View
             return gb.ToString("N2") + " GB";
         }
 
+        #region Struct
+
         public static string Struct(IStructView view)
         {
             var builder = new StringBuilder();
@@ -211,86 +211,7 @@ namespace PESpy.View
 
             var fields = view.Children.OfType<IFieldView>().ToArray();
 
-            if (view.Name == "IMAGE_THUNK_DATA")
-            {
-                var field = fields[0];
-
-                var needName = true;
-
-                if (field.Value is int i)
-                {
-                    if (i == 0)
-                    {
-                        builder.Append(" 0");
-                        needName = false;
-                    }
-                    else
-                        builder.Append(" 0x").Append(i.ToString("X"));
-                }
-                else if (field.Value is uint ui)
-                {
-                    if (ui == 0)
-                    {
-                        builder.Append(" 0");
-                        needName = false;
-                    }
-                    else
-                        builder.Append(" 0x").Append(ui.ToString("X"));
-                }
-                else
-                {
-                    var ul = (ulong)field.Value;
-
-                    if (ul == 0)
-                    {
-                        builder.Append(" 0");
-                        needName = false;
-                    }
-                    else
-                        builder.Append(" 0x").Append(((ulong)field.Value).ToString("X"));
-                }
-
-                if (needName)
-                    builder.Append(" (").Append(field.Name).Append(")");
-            }
-            else if (view.Name == "OMFDirEntry" || view.Name == "dnt")
-            {
-                var subSection = fields.First(f => f.Name == "SubSection");
-                builder.Append(" ").Append(subSection.Value);
-            }
-            else
-            {
-                if (view.TryGetEnhancedName(out var enhancedName))
-                    builder.Append(" ").Append(enhancedName);
-                else
-                {
-                    var nameField = fields.FirstOrDefault(f => f.Name == "Name" || f.Name == "name")?.Value;
-
-                    if (nameField != null)
-                    {
-                        builder.Append(" ").Append(nameField);
-                    }
-                    else
-                    {
-                        var valueField = fields.FirstOrDefault(f => f.Name == "Value")?.Value;
-
-                        if (valueField != null)
-                        {
-                            if (valueField is string s)
-                                valueField = $"\"{s}\"";
-
-                            builder.Append(" ").Append(valueField);
-                        }
-                        else
-                        {
-                            var typeField = fields.FirstOrDefault(f => StringComparer.OrdinalIgnoreCase.Equals(f.Name, "Type"))?.Value;
-
-                            if (typeField != null && typeField.GetType().IsEnum)
-                                builder.Append(" (").Append(typeField).Append(")");
-                        }
-                    }
-                }
-            }
+            TryWriteStructName(view, fields, builder);
 
             if (view is ISplitView)
                 builder.Append(" (Split)");
@@ -298,7 +219,110 @@ namespace PESpy.View
             return builder.ToString();
         }
 
-        public static string StructField<T>(StructFieldView<T> view) where T : IViewable
+        private static void TryWriteStructName(IStructView view, IFieldView[] fields, StringBuilder builder)
+        {
+            if (view.Name == "IMAGE_THUNK_DATA")
+            {
+                WriteImageThunkDataName(fields[0], builder);
+                return;
+            }
+
+            if (view.Name == "OMFDirEntry" || view.Name == "dnt")
+            {
+                var subSection = fields.First(f => f.Name == "SubSection");
+                builder.Append(" ").Append(subSection.Value);
+                return;
+            }
+
+            if (view.TryGetEnhancedName(out var enhancedName))
+            {
+                builder.Append(" ").Append(enhancedName);
+                return;
+            }
+
+            var nameField = fields.FirstOrDefault(f => f.Name == "Name" || f.Name == "name")?.Value;
+
+            if (nameField != null)
+            {
+                builder.Append(" ").Append(nameField);
+                return;
+            }
+
+            var valueField = fields.FirstOrDefault(f => f.Name == "Value")?.Value;
+
+            if (valueField != null)
+            {
+                if (valueField is string s)
+                    valueField = $"\"{s}\"";
+
+                builder.Append(" ").Append(valueField);
+                return;
+            }
+
+            var typeField = fields.FirstOrDefault(f => StringComparer.OrdinalIgnoreCase.Equals(f.Name, "Type"))?.Value;
+
+            if (typeField != null && typeField.GetType().IsEnum)
+            {
+                builder.Append(" (").Append(typeField).Append(")");
+                return;
+            }
+
+            //Many enum values share the same type, so its useful to show the type
+            var rectypField = fields.FirstOrDefault(f => f.Name == "rectyp")?.Value;
+
+            if (rectypField != null)
+            {
+                builder.Append(" ").Append(rectypField);
+                return;
+            }
+
+            //Each leaf pretty much has its own type so its not useful to show the leaf type
+        }
+
+        private static void WriteImageThunkDataName(IFieldView field, StringBuilder builder)
+        {
+            var needName = true;
+
+            if (field.Value is int i)
+            {
+                if (i == 0)
+                {
+                    builder.Append(" 0");
+                    needName = false;
+                }
+                else
+                    builder.Append(" 0x").Append(i.ToString("X"));
+            }
+            else if (field.Value is uint ui)
+            {
+                if (ui == 0)
+                {
+                    builder.Append(" 0");
+                    needName = false;
+                }
+                else
+                    builder.Append(" 0x").Append(ui.ToString("X"));
+            }
+            else
+            {
+                var ul = (ulong) field.Value;
+
+                if (ul == 0)
+                {
+                    builder.Append(" 0");
+                    needName = false;
+                }
+                else
+                    builder.Append(" 0x").Append(((ulong) field.Value).ToString("X"));
+            }
+
+            if (needName)
+                builder.Append(" (").Append(field.Name).Append(")");
+        }
+
+        #endregion
+
+        public static string StructField(StructFieldView view)
         {
             var builder = new StringBuilder();
 
@@ -312,7 +336,7 @@ namespace PESpy.View
             return builder.ToString();
         }
 
-        public static string StructArrayField<T>(StructArrayFieldView<T> view) where T : IViewable
+        public static string StructArrayField(StructArrayFieldView view)
         {
             var builder = new StringBuilder();
 

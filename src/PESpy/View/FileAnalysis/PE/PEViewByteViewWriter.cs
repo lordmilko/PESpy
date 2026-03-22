@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace PESpy.View
 {
@@ -8,6 +10,13 @@ namespace PESpy.View
         private readonly IFileDisassembler? _fileDisassembler;
         private readonly FileAnalyzer _fileAnalyzer;
 
+        private bool _inRegion;
+        private RegionBuilder _currentRegion;
+        private Stack<RegionBuilder> _priorRegionStack = new Stack<RegionBuilder>();
+
+        internal List<RegionBuilder> _topLevelRegions = new List<RegionBuilder>();
+        internal List<RegionBuilder> _firstRegionByAddress = new List<RegionBuilder>();
+
         public PEViewByteViewWriter(PEFile peFile, FileAccessor fileAccessor, IFileDisassembler fileDisassembler, FileAnalyzer fileAnalyzer) : base(peFile)
         {
             _fileAccessor = fileAccessor;
@@ -15,9 +24,20 @@ namespace PESpy.View
             _fileAnalyzer = fileAnalyzer;
         }
 
+        protected internal override IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        {
+            throw new System.NotImplementedException();
+        }
+
         protected internal override unsafe IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
         {
             //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
+
+            if (_inRegion && FromRegion)
+            {
+                Debug.Assert(_currentRegion.End == value.Offset);
+                _currentRegion.End += structSize;
+            }
 
             //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
 
@@ -47,6 +67,108 @@ namespace PESpy.View
             }
 
             return null;
+        }
+
+        internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false)
+        {
+            EnterRegion(offset, name, kind);
+
+            return base.CreateRegion(offset, name, kind, global);
+        }
+
+        internal override RegionWriter CreateRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, bool global
+#if DEBUG
+#pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
+            , long listedAddress
+#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
+#endif
+            )
+        {
+            EnterRegion(offset, name, kind);
+
+            return base.CreateRegion(
+                offset,
+                structOffset,
+                fieldOffset,
+                name,
+                kind,
+                global
+#if DEBUG
+                , listedAddress
+#endif
+            );
+        }
+
+        internal override RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
+#if DEBUG
+#pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
+            , int listedOffset
+#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
+#endif
+            )
+        {
+            EnterRegion(offset, name, kind);
+
+            return base.CreateScopedRegion(
+                offset,
+                structOffset,
+                fieldOffset,
+                name,
+                kind,
+                scopeKind
+#if DEBUG
+                , listedOffset
+#endif
+            );
+        }
+
+        private void EnterRegion(int offset, string name, ViewKind kind)
+        {
+            var newRegion = new RegionBuilder
+            {
+                Name = name,
+                Start = offset,
+                End = offset,
+                Kind = kind,
+                Depth = _inRegion ? _priorRegionStack.Count + 1 : 0
+            };
+
+            if (_inRegion)
+            {
+                if (_currentRegion.Children == null)
+                    _currentRegion.Children = new List<RegionBuilder>();
+
+                _currentRegion.Children.Add(newRegion);
+
+                _priorRegionStack.Push(_currentRegion);
+
+                if (newRegion.Start != _currentRegion.Start)
+                    _firstRegionByAddress.Add(newRegion);
+            }
+            else
+                _firstRegionByAddress.Add(newRegion);
+
+            _currentRegion = newRegion;
+            _inRegion = true;
+        }
+
+        internal override void ExitRegion()
+        {
+            var length = _currentRegion.Length;
+
+            if (_currentRegion.Depth == 0)
+                _topLevelRegions.Add(_currentRegion);
+
+            if (_priorRegionStack.Count > 0)
+            {
+                _currentRegion = _priorRegionStack.Pop();
+                _currentRegion.End += length;
+            }
+            else
+            {
+                _currentRegion = default;
+                _inRegion = false;
+            }
         }
 
         public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
@@ -138,22 +260,54 @@ namespace PESpy.View
             }
         }
 
-        protected internal override unsafe IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)
+        protected internal override unsafe IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
-            _fileAccessor.AddStructKind(offset, kind);
+            return RegisterValue( offset, size, kind, fromRegion);
+        }
 
-            var pViewByte = _fileAccessor.GetViewByte(offset, out _);
+        private IView? RegisterValue(
+            int offset,
+            int size,
+            ViewKind kind,
+            bool fromRegion)
+        {
+            if (_inRegion && fromRegion)
+            {
+                Debug.Assert(_currentRegion.End == offset);
+                _currentRegion.End += size;
+            }
+
+            var pViewByte = RegisterValueInternal(_fileAccessor, offset, size, kind, out _);
+
+            for (var i = pViewByte + 1; i < pViewByte + size; i++)
+                i->Kind = ViewByteKind.Body;
+
+            return null;
+        }
+
+        internal static ViewByte* RegisterValueInternal(
+            FileAccessor fileAccessor,
+            int offset,
+            int size,
+            ViewKind kind,
+            out int sectionAccessorIndex)
+        {
+            fileAccessor.AddStructKind(offset, kind);
+
+            var pViewByte = fileAccessor.GetViewByte(offset, out sectionAccessorIndex);
             pViewByte->Kind = ViewByteKind.Data;
 
             switch (kind)
             {
                 case ViewKind.ImageExportDirectory_Name:
-                case ViewKind.ImageExportDirectory_AddressOfNames_Entry:
+                case ViewKind.ImageExportDirectory_AddressOfNames_Name:
                 case ViewKind.Metadata_String:
                 case ViewKind.ImageImportDescriptor_Name:
                 case ViewKind.ImageEnclaveImport_ImportName:
                 case ViewKind.Manifest:
                 case ViewKind.ImageDelayLoadDescriptor_DllNameRVA:
+                case ViewKind.ImageExportDirectory_ForwarderName:
+                case ViewKind.ImageBoundImportName:
                     pViewByte->DataKind = ViewByteDataKind.String;
                     break;
 
@@ -161,6 +315,7 @@ namespace PESpy.View
                     pViewByte->DataKind = ViewByteDataKind.Guid;
                     break;
 
+                case ViewKind.ImageExportDirectory_AddressOfNames_Entry:
                 case ViewKind.ImageExportDirectory_AddressOfFunctions_Entry:
                 case ViewKind.ImageExportDirectory_AddressOfNameOrdinals_Entry:
                 case ViewKind.SecurityCookie:
@@ -171,16 +326,25 @@ namespace PESpy.View
                 case ViewKind.GuardXFGDispatchFunctionPointer:
                 case ViewKind.GuardXFGTableDispatchFunctionPointer:
                 case ViewKind.GuardMemcpyFunctionPointer:
+                case ViewKind.GuardRFFailureRoutineFunctionPointer:
+                case ViewKind.GuardRFVerifyStackPointerFunctionPointer:
                 case ViewKind.CastGuardOsDeterminedFailureMode:
                 case ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA:
+                case ViewKind.PN:
+                case ViewKind.LockPrefixTable: //Array
                     pViewByte->DataKind = ViewByteDataKind.Integer;
                     break;
 
+                case ViewKind.CvSignature:
                 case ViewKind.ExDllCharacteristics:
+                case ViewKind.PdbFeature:
                     pViewByte->DataKind = ViewByteDataKind.Enum;
                     break;
 
                 case ViewKind.SEHandlerTable:
+                case ViewKind.HRFile:
+                case ViewKind.HashBuckets:
+                case ViewKind.HashBucketsBitmap:
                     pViewByte->DataKind = ViewByteDataKind.Struct;
                     break;
 
@@ -188,8 +352,7 @@ namespace PESpy.View
                     throw new System.NotImplementedException();
             }
 
-            for (var i = pViewByte + 1; i < pViewByte + size; i++)
-                i->Kind = ViewByteKind.Body;
+            return pViewByte;
 
             switch (kind)
             {
@@ -259,8 +422,47 @@ namespace PESpy.View
             return null;
         }
 
-        public override void WriteDosStub(in ByteBlob byteBlob) =>
-            _fileDisassembler?.WriteDosStub(_fileAccessor, _fileAnalyzer, byteBlob);
+        public override void WriteDosStub(in ByteBlob byteBlob)
+        {
+            if (_fileDisassembler != null)
+                _fileDisassembler.WriteDosStub(_fileAccessor, _fileAnalyzer, byteBlob);
+            else
+            {
+                if (byteViewProvider.TryParseRawBytes(
+                    byteBlob.Offset,
+                    ViewKind.DosStub,
+                    byteBlob.Bytes,
+                    null,
+                    out var views))
+                {
+                    var fileAccessor = _fileAccessor;
+
+                    foreach (var view in views)
+                    {
+                        var pViewByte = fileAccessor.GetViewByte(view.Offset, out var sectionAccessorIndex);
+                        pViewByte->Kind = ViewByteKind.Data;
+
+                        for (var i = pViewByte + 1; i < pViewByte + view.Size; i++)
+                            i->Kind = ViewByteKind.Body;
+
+                        switch (view.Kind)
+                        {
+                            case ViewKind.DosStub:
+                                _fileAccessor.AddStructKind(view.Offset, view.Kind);
+                                break;
+
+                            case ViewKind.String:
+                                pViewByte->DataKind = ViewByteDataKind.String;
+                                break;
+
+                            case ViewKind.Padding:
+                                pViewByte->DataKind = ViewByteDataKind.Padding;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
 
         public override ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {

@@ -209,6 +209,7 @@ using PInvoke;
             Gdi32.SelectObject(hdc, (HBRUSH) (IntPtr) Gdi32.GetStockObject(GET_STOCK_OBJECT_FLAGS.HOLLOW_BRUSH));
             Gdi32.Rectangle(hdc, start, _yOffset, start + width, height + _yOffset);
         }
+
         #region Arrow
 
         //When the arrow is dragged, assert we're highlighted; if it's the same section as before, binary search from the previous position in the direction of movement

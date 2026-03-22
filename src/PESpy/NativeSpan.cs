@@ -50,6 +50,8 @@ namespace PESpy
 
         public bool IsEmpty => length == 0;
 
+        public Span<T> AsSpan() => new Span<T>(pointer, length);
+
         public static bool operator ==(NativeSpan<T> left, NativeSpan<T> right)
         {
             if (left.length != right.length)

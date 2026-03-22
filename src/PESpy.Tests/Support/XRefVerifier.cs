@@ -202,7 +202,7 @@ namespace PESpy.Tests
 
                 var xref = xrefs[index];
 
-                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"FieldOffset was not correct. Also TargetOffset is {xref.TargetValue}");
+                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"Xref fieldOffset was not correct. Also TargetOffset is {xref.TargetValue}");
                 Assert.AreEqual(targetOffset, xref.TargetValue);
             }
             finally

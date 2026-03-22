@@ -2,19 +2,22 @@
 {
     public sealed class PropertyMapTable : Table<PropertyMapRow>
     {
-        internal readonly int RowSize;
-
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigPropertyIndex;
 
         internal readonly int ParentOffset;
         internal readonly int PropertyListOffset;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal PropertyMapTable(int numRows, int typeDefIndexSize, int propertyIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal PropertyMapTable(
+            int numRows,
+            int typeDefIndexSize,
+            int propertyIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigPropertyIndex = propertyIndexSize == 4;
@@ -36,9 +39,50 @@
             return (PropertyIndex) tableChunk.PeekEcmaIndex(rowOffset + PropertyListOffset, isBigPropertyIndex);
         }
 
+        internal TypeDefRow? FindTypeContainingProperty(int propertyRowId, int numberOfProperties)
+        {
+            var numberOfRows = Count;
+
+            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+                tableChunk,
+                numberOfRows,
+                RowSize,
+                PropertyListOffset,
+                (uint) propertyRowId,
+                isBigPropertyIndex
+            ) + 1;
+
+            if (row == 0)
+                return default;
+
+            if (row > numberOfRows)
+            {
+                if (propertyRowId <= numberOfProperties)
+                    return CompressedModelHeap.TypeDefTable[GetParent((PropertyMapIndex) numberOfRows)];
+
+                return default;
+            }
+
+            return CompressedModelHeap.TypeDefTable[GetParent((PropertyMapIndex) row)];
+        }
+
+        internal int FindPropertyMapRowIdFor(TypeDefIndex typeDef)
+        {
+            var rowNumber = CompressedModelHeap.LinearSearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                ParentOffset,
+                (uint) typeDef.RowId,
+                isBigTypeDefIndex
+            );
+
+            return rowNumber + 1;
+        }
+
         public int GetRowOffset(PropertyMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public PropertyMapRow this[PropertyMapIndex index] => this[(int) index];
+        public PropertyMapRow this[PropertyMapIndex index] => GetRow((int) index);
 
         protected override PropertyMapRow GetRow(int index) => new PropertyMapRow((PropertyMapIndex) index, this);
     }

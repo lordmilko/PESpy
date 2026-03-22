@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace PESpy.View
 {
@@ -100,7 +101,7 @@ namespace PESpy.View
                 current = current.Next;
             }
 
-            if (previous != null)
+            if (previous != null && previous.Value.Index + previous.Value.Length == handle.Index)
             {
                 //Try merge with previous
 
@@ -116,6 +117,7 @@ namespace PESpy.View
                 //Try merge with next
 
                 handle = new SpanAllocatorHandle(handle.Index, handle.Length + current.Value.Length);
+
                 freeList.Remove(current);
             }
 

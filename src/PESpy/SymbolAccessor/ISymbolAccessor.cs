@@ -1,4 +1,5 @@
 ﻿using System;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -20,7 +21,9 @@ namespace PESpy
 
         PortablePDB,
 
-        OMF
+        OMF,
+
+        SYM
     }
 
     public interface ISymbolAccessor : IDisposable
@@ -30,5 +33,7 @@ namespace PESpy
         bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement);
 
         bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress);
+
+        bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length);
     }
 }

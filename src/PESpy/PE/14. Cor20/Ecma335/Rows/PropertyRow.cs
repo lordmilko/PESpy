@@ -5,9 +5,35 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Flags = {Flags}, Name = {Name.ToString(),nq}, Type = {Type}")]
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct PropertyRow : IValue, IViewable
     {
+        private string DebuggerDisplay()
+        {
+            using var builder = new ValueStringBuilder();
+
+            builder.Append(DeclaringType.ToString());
+            builder.Append(".");
+            builder.Append(Name.GetString().AsSpan());
+
+            var accessors = Accessors;
+
+            if (!accessors.Getter.IsNil)
+            {
+                if (!accessors.Setter.IsNil)
+                    builder.Append(" { get; set; }");
+                else
+                    builder.Append(" { get; }");
+            }
+            else
+            {
+                if (!accessors.Setter.IsNil)
+                    builder.Append(" { set; }");
+            }
+
+            return builder.ToString();
+        }
+
         public PropertyIndex RowIndex { get; }
 
         public CorPropertyAttr Flags => table.GetFlags(RowIndex);
@@ -18,6 +44,20 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public ConstantRow? DefaultValueRow
+        {
+            get
+            {
+                var defaultValue = DefaultValue;
+
+                if (defaultValue.IsNil)
+                    return null;
+
+                return table.CompressedModelHeap.ConstantTable[DefaultValue];
+            }
+        }
+
         private readonly PropertyTable table;
 
         internal PropertyRow(PropertyIndex index, PropertyTable table)
@@ -26,6 +66,61 @@ namespace PESpy.Ecma335
 
             RowIndex = index;
             this.table = table;
+        }
+
+        public MethodSignature<TType> DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
+        {
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var reader = Type.GetReader();
+            return decoder.DecodeMethodSignature(ref reader);
+        }
+
+        public ConstantIndex DefaultValue => table.CompressedModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Property));
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+
+        public PropertyAccessors Accessors
+        {
+            get
+            {
+                ushort methodCount = 0;
+
+                var methodSemanticsTable = table.CompressedModelHeap.MethodSemanticsTable;
+
+                var firstRowId = methodSemanticsTable.FindSemanticMethods(
+                    HasSemanticsTag.CreateIndex(RowIndex.RowId, TableKind.Property),
+                    ref methodCount
+                );
+
+                var getter = 0;
+                var setter = 0;
+
+                using var others = new PooledList<MethodDefIndex>();
+
+                for (var i = 0; i < methodCount; i++)
+                {
+                    var rowId = (MethodSemanticsIndex) (firstRowId + i);
+
+                    switch (methodSemanticsTable.GetSemantics(rowId))
+                    {
+                        case CorMethodSemanticsAttr.msGetter:
+                            getter = methodSemanticsTable.GetMethod(rowId).RowId;
+                            break;
+
+                        case CorMethodSemanticsAttr.msSetter:
+                            setter = methodSemanticsTable.GetMethod(rowId).RowId;
+                            break;
+
+                        default:
+                            others.Add(methodSemanticsTable.GetMethod(rowId));
+                            break;
+                    }
+                }
+
+                return new PropertyAccessors(getter, setter, others.ToArray());
+            }
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -58,5 +153,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => Name.GetString().ToString();
     }
 }

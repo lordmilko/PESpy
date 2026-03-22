@@ -4,16 +4,17 @@ namespace PESpy.Ecma335
 {
     public sealed class EncLogTable : Table<EncLogRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int TokenOffset;
         internal readonly int FuncCodeOffset;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal EncLogTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal EncLogTable(
+            int numRows,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             TokenOffset = 0;
             FuncCodeOffset = TokenOffset + sizeof(int);
@@ -34,7 +35,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(EncLogIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EncLogRow this[EncLogIndex index] => this[(int) index];
+        public EncLogRow this[EncLogIndex index] => GetRow((int) index);
 
         protected override EncLogRow GetRow(int index) => new EncLogRow((EncLogIndex) index, this);
     }

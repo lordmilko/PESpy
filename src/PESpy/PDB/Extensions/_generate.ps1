@@ -228,19 +228,24 @@ function ParseExpression($expr)
     }
     elseif($expr.StartsWith("."))
     {
-        $fieldName = $expr.Substring(1)
+        $exprs = @($expr)
 
-        # Simple field access. Anyone type that contains a field with this name is supported
-        $typesWithFieldName = $typesWithFieldName.$fieldName
-
-        if(!$typesWithFieldName)
+        foreach($item in $exprs)
         {
-            throw "Could not find any fields with field '$fieldName'"
-        }
+            $fieldName = $item.Substring(1)
 
-        foreach($typeInfo in $typesWithFieldName)
-        {
-            CreateCaseGroup $typeInfo $fieldName
+            # Simple field access. Anyone type that contains a field with this name is supported
+            $typesWithFieldName = $typesWithFieldName.$fieldName
+
+            if(!$typesWithFieldName)
+            {
+                throw "Could not find any fields with field '$fieldName'"
+            }
+
+            foreach($typeInfo in $typesWithFieldName)
+            {
+                CreateCaseGroup $typeInfo $fieldName
+            }
         }
     }
     elseif($expr.StartsWith("!"))
@@ -252,6 +257,8 @@ function ParseExpression($expr)
         @($results) | foreach {
             $_.Body = "!" + $_.Body
         }
+
+        $results
     }
     elseif($expr.Contains("("))
     {
@@ -303,6 +310,16 @@ function ParseExpression($expr)
     }
 }
 
+function GetDiaNumber($name)
+{
+    switch($name)
+    {
+        { $_ -in "FramePadOffset","FramePadSize" } {
+            "9"
+        }
+    }
+}
+
 foreach($field in $config.properties.PSObject.properties.Name)
 {
     write-host "Processing $field"
@@ -317,6 +334,8 @@ foreach($field in $config.properties.PSObject.properties.Name)
 
     $caseGroups = @()
 
+    $defaultCases = @()
+
     if($field -eq "Name")
     {
         # Name is special cased; sources is a list of types that contain a name
@@ -326,7 +345,37 @@ foreach($field in $config.properties.PSObject.properties.Name)
     {
         foreach($source in $sources)
         {
-            $caseGroups += ParseExpression $source
+            $expr = ParseExpression $source
+
+            $caseGroups += $expr
+
+            $childKind = $null
+
+            if($source -like "*FRAMEPROCSYM*")
+            {
+                $childKind = "S_FRAMEPROC"
+            }
+            elseif($source -like "*POGOINFO*")
+            {
+                $childKind = "S_POGODATA"
+            }
+
+            if($childKind)
+            {
+                # Any expression that targets FrameProcSym may also apply when you're looking at the parent function
+                $defaultCases += [pscustomobject]@{
+                    EntityType = $expr.EntityType
+                    Body = @"
+if (symType.IsProc() && TryGetChild((BlockSym) symType, $childKind, out var child))
+{{
+    {0} = $($expr.Body.Replace("symType", "child"));
+    return true;
+}}
+
+break;
+"@
+                }
+            }
         }
     }
 
@@ -349,9 +398,16 @@ foreach($field in $config.properties.PSObject.properties.Name)
             $entityTypeName = $null
             $entityTypeParameter = $null
             $recordTypeExpr = $null
-            $diaIface = "IDiaSymbol"
+            $diaIface = "IDiaSymbol$(GetDiaNumber $field)"
 
-            $lowerFieldName = SanitizeKeyword ([char]::ToLower($field[0]) + $field.Substring(1))
+            if($field.StartsWith("PGO"))
+            {
+                $lowerFieldName = $field
+            }
+            else
+            {
+                $lowerFieldName = SanitizeKeyword ([char]::ToLower($field[0]) + $field.Substring(1))
+            }
 
             $fieldType = $diaFieldMap.$field
 
@@ -375,10 +431,10 @@ foreach($field in $config.properties.PSObject.properties.Name)
                 $recordTypeExpr = "typType.leaf"
             }
 
+            $indent = "                "
+
             $body = ($entityCases | foreach {
                 $caseGroup = $_
-
-                $indent = "                "
 
                 $cases = ($caseGroup.EnumValues | foreach { "$($indent)case $($_):" })
 
@@ -408,6 +464,37 @@ foreach($field in $config.properties.PSObject.properties.Name)
 
                 return $builder.ToString()
             }) -join "`r`n"
+
+            $groupDefaultCases = $defaultCases|where EntityType -eq $group.Name
+
+            if($groupDefaultCases)
+            {
+                if (@($groupDefaultCases).Count -gt 1)
+                {
+                    throw
+                }
+
+                $builder.Clear() | Out-Null
+                $builder.Append($body) | Out-Null
+                $builder.AppendLine() | Out-Null
+                $builder.AppendLine("$indent$("default:")") | Out-Null
+
+                $split = [string]::Format($groupDefaultCases.Body.Replace("`r", ""), $lowerFieldName) -split "`n"
+
+                foreach($line in $split)
+                {
+                    if($line.Length -eq 0)
+                    {
+                        $builder.AppendLine() | Out-Null
+                    }
+                    else
+                    {
+                        $builder.AppendLine("$indent    $line") | Out-Null
+                    }
+                }
+
+                $body = $builder.ToString()
+            }
 
             $body = $body.TrimEnd()
 

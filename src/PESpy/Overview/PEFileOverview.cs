@@ -185,7 +185,7 @@ namespace PESpy
             if (symbolAccessor is ExternalFileSymbolAccessor e)
                 LocalSymbolFile = e.FileName;
 
-            ref readonly var optionalHeader = ref peFile.OptionalHeader;
+            var optionalHeader = peFile.OptionalHeader;
 
             //ImageFileHeader / ImageOptionalHeader
             Is64Bit = optionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC;
@@ -252,7 +252,7 @@ namespace PESpy
                 {
                     if (token.Type == CorTokenType.mdtMethodDef)
                     {
-                        var methodDef = compressedModelHeap.MethodDefTable[token.Rid];
+                        var methodDef = compressedModelHeap.MethodDefTable.FromToken(token);
 
                         Cor20ManagedEntryPoint = new FileOverview.ManagedSymbol(token, methodDef.ToString());
                     }
@@ -276,7 +276,7 @@ namespace PESpy
 
             if (assemblyTable != null && assemblyTable.Count > 0)
             {
-                var assemblyDef = assemblyTable[1];
+                var assemblyDef = assemblyTable[0];
 
                 var hasTargetFrameworkAttribute = false;
                 var hasDebuggableAttribute = false;

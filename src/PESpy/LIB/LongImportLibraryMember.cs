@@ -9,9 +9,13 @@ namespace PESpy.LIB
     //Name is made up
     public class LongImportLibraryMember : IImportLibraryMember, IValue, IViewable //Essentially, it's an obj file, and follows the same format
     {
-        public AnsiString Name { get; }
+        public AnsiString FileName { get; }
+
+        public AnsiString SymbolName { get; }
 
         public ImageArchiveMemberHeader ArchiveHeader => new ImageArchiveMemberHeader(chunk);
+
+        public bool IsLong => true;
 
         private ImageFileHeader? fileHeader;
 
@@ -82,7 +86,7 @@ namespace PESpy.LIB
 
         private readonly MemoryChunk chunk;
 
-        internal unsafe LongImportLibraryMember(in MemoryChunk chunk, AnsiString name)
+        internal unsafe LongImportLibraryMember(in MemoryChunk chunk, AnsiString fileName, Dictionary<int, AnsiString> symbolNameMap)
         {
             //Peek ImageArchiveMemberHeader.Size. The size does not include the size of the ImageArchiveMemberHeader itself
             var size = chunk.PeekSpacePaddedInt32(48, 10) + ImageArchiveMemberHeader.StructSize;
@@ -91,8 +95,11 @@ namespace PESpy.LIB
             var block = new GlobalSubMemoryBlock(parent.LocalPointer + chunk.RelativeOffset, size, chunk.RelativeOffset, this, parent);
 
             this.chunk = new MemoryChunk(block, 0);
-            Name = name;
+            FileName = fileName;
+            SymbolName = symbolNameMap[Offset];
         }
+
+        public unsafe void CopyTo(Span<byte> span) => new Span<byte>(chunk.Pointer, chunk.Remaining).CopyTo(span);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -140,7 +147,10 @@ namespace PESpy.LIB
 
         public override string ToString()
         {
-            return Name.ToString();
+            if (FileName.Length == 0)
+                return SymbolName.ToString();
+
+            return $"{FileName} -> {SymbolName}";
         }
     }
 }

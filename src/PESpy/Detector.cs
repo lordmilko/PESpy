@@ -113,6 +113,10 @@ namespace PESpy
                         case FileKind.SYM:
                             file = new SYMFile(fs.Name, mmf);
                             return true;
+
+                        case FileKind.Resource:
+                            file = new ResourceFile(fs.Name, mmf);
+                            return true;
                     }
                 }
 
@@ -142,7 +146,7 @@ namespace PESpy
 
             var length = fs.Length;
 
-            if (length < 2) //All signatures require at least 2 bytes
+            if (length < 4) //The most basic signatures require 2-4 bytes. Nothing is happening in a file this small
                 return false;
 
             var mmf = new MemoryMappedFileHolder(fs);
@@ -357,6 +361,12 @@ namespace PESpy
                         return true;
                     }
                     break;
+            }
+
+            if (*((uint*) mmf.Address) == ResourceFile.MagicNumber)
+            {
+                fileKind = FileKind.Resource;
+                return true;
             }
 
             var ext = Path.GetExtension(path);

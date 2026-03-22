@@ -173,6 +173,10 @@ namespace PESpy.PDB
         public static implicit operator LfEasy(lfEasy* value) => new LfEasy(value);
         public static implicit operator lfEasy*(LfEasy value) => value.value;
 
+        public static implicit operator TypType(LfEasy value) => new TypType((TYPTYPE*) ((byte*) value.value - 2));
+
+        //todo: need reverse casts. do they go here or in each type's file directly?
+
         public static implicit operator LfAlias(LfEasy easy) => new LfAlias((lfAlias*) (byte*) easy.value);
         public static implicit operator LfArgList(LfEasy easy) => new LfArgList((lfArgList*) (byte*) easy.value);
         public static implicit operator LfArgList16t(LfEasy easy) => new LfArgList16t((lfArgList_16t*) (byte*) easy.value);

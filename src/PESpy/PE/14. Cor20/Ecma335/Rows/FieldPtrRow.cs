@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Field = {Field}")]
+    [DebuggerDisplay("Field = {FieldRow}")]
     public readonly struct FieldPtrRow : IValue, IViewable
     {
         public FieldPtrIndex RowIndex { get; }
@@ -12,6 +12,9 @@ namespace PESpy.Ecma335
         public FieldIndex Field => table.GetField(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public FieldRow FieldRow => table.CompressedModelHeap.FieldTable[Field];
 
         private readonly FieldPtrTable table;
 

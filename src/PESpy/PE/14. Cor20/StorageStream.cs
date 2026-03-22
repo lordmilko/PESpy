@@ -131,7 +131,7 @@ namespace PESpy
                     var data = (CompressedModelHeap) Data!;
 
                     using var r = writer.CreateRegion(
-                        data.Offset + CompressedModelHeader.FixedStructSize + (data.Header.RowCounts.Length * 4),
+                        data.Offset,
                         Name,
                         ViewKind.CompressedModelHeap,
                         global: true

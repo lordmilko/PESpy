@@ -18,6 +18,20 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public ConstantRow? DefaultValueRow
+        {
+            get
+            {
+                var defaultValue = DefaultValue;
+
+                if (defaultValue.IsNil)
+                    return null;
+
+                return table.CompressedModelHeap.ConstantTable[DefaultValue];
+            }
+        }
+
         private readonly ParamTable table;
 
         internal ParamRow(ParamIndex index, ParamTable table)
@@ -27,6 +41,28 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public ConstantIndex DefaultValue => table.CompressedModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Param));
+
+        public BlobIndex MarshallingDescriptor
+        {
+            get
+            {
+                var fieldMarshalTable = table.CompressedModelHeap.FieldMarshalTable;
+
+                if (fieldMarshalTable == null)
+                    return default;
+
+                var marshalIndex = fieldMarshalTable.FindFieldMarshalRowId(HasFieldMarshalTag.CreateIndex(RowIndex.RowId, TableKind.Param));
+
+                if (marshalIndex.RowId == 0)
+                    return default;
+
+                return fieldMarshalTable.GetNativeType(marshalIndex);
+            }
+        }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -58,5 +94,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => Name.GetString().ToString();
     }
 }

@@ -2,7 +2,8 @@
 {
     internal struct PDBContiguousSectionInfo
     {
-        public string Name;
+        public FullNameInfo NameInfo;
+        public int StreamIndex;
 
         public int GlobalStartIndex;
         public int GlobalEndIndex;
@@ -13,9 +14,10 @@
 
         public int NumPages => (LocalEndIndex - LocalStartIndex) + 1;
 
-        internal PDBContiguousSectionInfo(string name, int localStartIndex, int globalStartIndex, int totalPagesInStream)
+        internal PDBContiguousSectionInfo(FullNameInfo nameInfo, int streamIndex, int localStartIndex, int globalStartIndex, int totalPagesInStream)
         {
-            Name = name;
+            NameInfo = nameInfo;
+            StreamIndex = streamIndex;
             LocalStartIndex = localStartIndex;
             LocalEndIndex = localStartIndex;
             GlobalStartIndex = globalStartIndex;
@@ -25,35 +27,42 @@
 
         public override string ToString()
         {
-            using var builder = new ValueStringBuilder();
+            var builder = new ValueStringBuilder();
 
-            builder.Append(GlobalStartIndex);
-            builder.Append('-');
-            builder.Append(GlobalEndIndex);
-
-            builder.Append(" | ");
-
-            builder.Append(Name);
-            builder.Append(' ');
-
-            builder.Append('(');
-
-            if (NumPages == TotalPagesInStream)
+            try
             {
-                builder.Append(TotalPagesInStream);
-            }
-            else
-            {
-                builder.Append(LocalStartIndex + 1);
+                builder.Append(GlobalStartIndex);
                 builder.Append('-');
-                builder.Append(LocalEndIndex + 1);
-                builder.Append('/');
-                builder.Append(TotalPagesInStream);
+                builder.Append(GlobalEndIndex);
+
+                builder.Append(" | ");
+
+                NameInfo.ToString(ref builder, false);
+                builder.Append(' ');
+
+                builder.Append('(');
+
+                if (NumPages == TotalPagesInStream)
+                {
+                    builder.Append(TotalPagesInStream);
+                }
+                else
+                {
+                    builder.Append(LocalStartIndex + 1);
+                    builder.Append('-');
+                    builder.Append(LocalEndIndex + 1);
+                    builder.Append('/');
+                    builder.Append(TotalPagesInStream);
+                }
+
+                builder.Append(')');
+
+                return builder.ToString();
             }
-
-            builder.Append(')');
-
-            return builder.ToString();
+            finally
+            {
+                builder.Dispose();
+            }
         }
     }
 }

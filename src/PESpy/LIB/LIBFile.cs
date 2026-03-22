@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using ClrDebug;
 using PESpy.LIB;
@@ -113,6 +114,8 @@ namespace PESpy
 
             using var imports = new PooledList<IImportLibraryMember>();
 
+            var symbolNameMap = new Dictionary<int, AnsiString>();
+
             //Read all "members" located in the library
             while (read < mmf.Length)
             {
@@ -136,6 +139,9 @@ namespace PESpy
                         FirstLinkerMember = new FirstLinkerMember(chunk.Slice(read));
                         read += FirstLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
 
+                        for (var i = 0; i < FirstLinkerMember.NumberOfSymbols; i++)
+                            symbolNameMap[FirstLinkerMember.Offsets[i]] = FirstLinkerMember.StringTable[i].Value;
+
                         hasFirstLinkerMember = true;
                     }
                     else if (!hasSecondLinkerMember)
@@ -154,6 +160,11 @@ namespace PESpy
                         SecondLinkerMember = new SecondLinkerMember(chunk.Slice(read));
                         read += SecondLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
 
+                        for (var i = 0; i < SecondLinkerMember.NumberOfSymbols; i++)
+                        {
+                            symbolNameMap[SecondLinkerMember.Offsets[SecondLinkerMember.Indices[i] - 1]] = SecondLinkerMember.StringTable[i].Value;
+                        }
+
                         hasSecondLinkerMember = true;
                     }
                     else
@@ -167,7 +178,6 @@ namespace PESpy
                     //It's the longnames member
                     LongNamesMember = new LongNamesMember(chunk.Slice(read));
                     read += LongNamesMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
-
                 }
                 else if (memberName == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_HYBRIDMAP_MEMBER)
                 {
@@ -191,23 +201,29 @@ namespace PESpy
                     var sig1 = (IMAGE_FILE_MACHINE) chunk.PeekUInt16(ImageArchiveMemberHeader.StructSize + read);
                     var sig2 = chunk.PeekInt16(ImageArchiveMemberHeader.StructSize + read + 2);
 
-                    var nameOffset = chunk.PeekSpacePaddedInt32(read + 1, 16); //Skip over the slash
+                    AnsiString name = default;
 
-                    //The spec says that long names should be third https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#archive-member-headers
-                    //which means it should already exist before we get to the actual members that may rely upon it
+                    //If the name begins with a slash, then it is followed by an offset into thje long names member. Otherwise,
+                    //the name is stored inline followed by a trailing slash and padding spaces
+                    if (chunk.PeekByte(read) == (byte) '/')
+                    {
+                        var nameOffset = chunk.PeekSpacePaddedInt32(read + 1, 16); //Skip over the slash
 
-                    AnsiString name;
+                        //The spec says that long names should be third https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#archive-member-headers
+                        //which means it should already exist before we get to the actual members that may rely upon it
 
-                    if (LongNamesMember != null)
-                        name = LongNamesMember.GetName(nameOffset);
-                    else
-                        name = default;
+                        if (LongNamesMember != null)
+                            name = LongNamesMember.GetName(nameOffset);
+                        else
+                            name = default;
+                    }
 
                     if (sig1 == IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_UNKNOWN && sig2 == IMPORT_OBJECT_HEADER.IMPORT_OBJECT_HDR_SIG2)
                     {
                         //Short format
 
-                        var member = new ShortImportLibraryMember(chunk.Slice(read), name);
+                        var member = new ShortImportLibraryMember(chunk.Slice(read), name, symbolNameMap);
+
                         read += member.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
                         imports.Add(member);
                     }
@@ -216,7 +232,8 @@ namespace PESpy
                         //Long format. This is essentially an embedded OBJ file. References within it are relative to the beginning of its
                         //area. To facilitate this, LongImportLibraryMember will create a sub-block around its area.
 
-                        var obj = new LongImportLibraryMember(chunk.Slice(read), name);
+                        var obj = new LongImportLibraryMember(chunk.Slice(read), name, symbolNameMap);
+
                         read += obj.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
                         imports.Add(obj);
                     }
@@ -229,7 +246,7 @@ namespace PESpy
             ImportLibrary = imports.ToArray();
         }
 
-        public unsafe FileView GetView()
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new LIBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -237,9 +254,11 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
+        internal LIBFileBuilder ToBuilder() => new LIBFileBuilder(this);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
+
+        internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, isLibFile: true);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

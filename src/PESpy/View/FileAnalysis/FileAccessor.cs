@@ -13,6 +13,25 @@ namespace PESpy.View
     /// </summary>
     public abstract unsafe class FileAccessor : IDisposable
     {
+        public static FileAccessor Create(IFile file, bool trackXRefs = true)
+        {
+            return file.Kind switch
+            {
+                FileKind.PE          => new PEFileAccessor((PEFile) file, trackXRefs),
+                //FileKind.NE          => new NEFileAccessor((NEFile) file),
+                //FileKind.LE          => new LEFileAccessor((LEFile) file),
+                //FileKind.DOS         => new DOSFileAccessor((DOSFile) file),
+                //FileKind.DBG         => new DBGFileAccessor((DBGFile) file),
+                FileKind.PDB         => new PDBFileAccessor((PDBFile) file, trackXRefs),
+                //FileKind.PortablePDB => new PortablePDBFileAccessor((PortablePDBFile) file),
+                //FileKind.OBJ         => new OBJFileAccessor((OBJFile) file),
+                //FileKind.LIB         => new LIBFileAccessor((LIBFile) file),
+                //FileKind.OMF         => new OMFFileAccessor((OMFFile) file),
+                //FileKind.OMFLIB      => new OMFLIBFileAccessor((OMFLIBFile) file)),
+                _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
+            };
+        }
+
         /* When we were storing ViewKind, FixedUtf8String and SpanAllocatorHandle (total: 24 bytes)
          * in our ViewInfo, in a stress test against in msedge.dll (which is over 300mb) there were
          * 16.9m entries in the _infoMap, which meant our _infoMap required 405mb just to store all the
@@ -55,7 +74,21 @@ namespace PESpy.View
 
         public abstract IFile File { get; }
 
-        private object _overview;
+        private RegionBuilder[] _topLevelDirectories;
+        private RegionBuilder[] _firstDirectoryByAddress;
+        private Dictionary<int, int> _directoryByAddressLookup;
+
+        internal RegionBuilder[] TopLevelDirectories => _topLevelDirectories;
+
+        private RegionBuilder[] _topLevelRegions; //Contains the hierarchy of regions
+        private RegionBuilder[] _firstRegionByAddress; //Contains the highest region at each address. If two regions share an address, you only get the first one
+        private Dictionary<int, int> _regionByAddressLookup;
+
+        internal RegionBuilder[] TopLevelRegions => _topLevelRegions;
+
+        internal Dictionary<int, int> LargeAddresses;
+
+        protected object _overview;
         private SpanAllocator<XRef> _xrefs;
 
         protected FixedUtf8String[] _names;
@@ -64,14 +97,18 @@ namespace PESpy.View
 
         private int[] _stringAddresses;
 
+        private bool _trackXRefs;
+
         public object Overview => _overview ??= CreateOverview();
 
+        //I tried SegmentedDictionary but the performance was _way_ worse
         internal Dictionary<int, ViewInfo> _infoMap = new Dictionary<int, ViewInfo>();
         private bool _disposed;
 
-        protected FileAccessor(int bitness)
+        protected FileAccessor(int bitness, bool trackXRefs)
         {
-            _xrefs = new SpanAllocator<XRef>(100);
+            if (trackXRefs)
+                _xrefs = new SpanAllocator<XRef>(100);
 
             switch (bitness)
             {
@@ -86,9 +123,18 @@ namespace PESpy.View
             }
 
             SectionAccessors = null!;
+            _trackXRefs = trackXRefs;
         }
 
         protected abstract object CreateOverview();
+
+        //We do a two phase load of files in the UI: get a FileAccessor up and running as quickly as possible
+        //to show something in the UI, and then let analysis/external symbol loading run in the background.
+        //When analysis has completed, we may have now located an external symbol file, in which case we should
+        //refresh the symbols contained in our overview
+        protected virtual void RefreshOverviewSymbols()
+        {
+        }
 
         protected static int GetBitness(IMAGE_FILE_MACHINE machine)
         {
@@ -111,20 +157,38 @@ namespace PESpy.View
         {
             var pViewByte = GetViewByte(address, out var sectionIndex);
 
+            return GetEntity(address, pViewByte, sectionIndex);
+        }
+
+        public ViewEntity GetEntity(ViewByte* pViewByte, int sectionIndex)
+        {
+            ref var accessor = ref SectionAccessors[sectionIndex];
+
+            var offset = (int) (pViewByte - accessor.pViewBytes);
+
+            var targetAddress = accessor.StartAddress + offset;
+
+            var pBytes = GetRawSectionData(accessor);
+
+            return GetEntity(sectionIndex, targetAddress, pViewByte, accessor, pBytes);
+        }
+
+        public ViewEntity GetEntity(int address, ViewByte* pViewByte, int sectionIndex)
+        {
             ref var accessor = ref SectionAccessors[sectionIndex];
 
             var pBytes = GetRawSectionData(accessor);
 
             return new ViewEntity(
                 GetSymbolAccessor(),
-                sectionIndex,
                 address,
                 pViewByte,
                 accessor.pViewBytes,
                 accessor.pViewBytes + accessor.Length,
                 pBytes,
                 _infoMap,
-                _names
+                _names,
+                LargeAddresses
             );
         }
 
@@ -138,14 +202,14 @@ namespace PESpy.View
         {
             return new ViewEntity(
                 GetSymbolAccessor(),
-                sectionIndex,
                 targetAddress,
                 pViewByte,
                 sectionAccessor.pViewBytes,
                 sectionAccessor.pViewBytes + sectionAccessor.Length,
                 pBytes,
                 _infoMap,
-                _names
+                _names,
+                LargeAddresses
             );
         }
 
@@ -163,17 +227,49 @@ namespace PESpy.View
 
             return new ViewEntity(
                 GetSymbolAccessor(),
-                sectionIndex + 1,
                 address,
                 pViewByte,
                 accessor.pViewBytes,
                 accessor.pViewBytes + accessor.Length,
                 pBytes,
                 _infoMap,
-                _names
+                _names,
+                LargeAddresses
             );
         }
 
+        public FileView GetFileView()
+        {
+            var sectionAccessors = SectionAccessors;
+
+            var sectionViews = new IView[sectionAccessors.Length];
+
+            for (var i = 0; i < sectionAccessors.Length; i++)
+            {
+                ref var sectionAccessor = ref sectionAccessors[i];
+
+                IView view;
+
+                switch (sectionAccessor.Kind)
+                {
+                    case SectionAccessorKind.Header:
+                        view = new HeaderView(i, sectionAccessor, this, GetViewWriter());
+                        break;
+
+                    case SectionAccessorKind.Page:
+                    case SectionAccessorKind.Section:
+                        view = new SectionView(i, sectionAccessor, this, GetViewWriter());
+                        break;
+
+                    case SectionAccessorKind.Overlay:
+                        view = new OverlayView(i, sectionAccessor, this, GetViewWriter());
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                sectionViews[i] = view;
         public ViewEntity[] Entities => EnumerateEntities().ToArray();
 
         public IEnumerable<ViewEntity> EnumerateEntities()
@@ -192,7 +288,7 @@ namespace PESpy.View
                 while (j < sectionLength)
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
-                    var entity = new ViewEntity(symbolAccessor, i, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names);
+                    var entity = new ViewEntity(symbolAccessor, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names, LargeAddresses);
 
                     j += entity.Length;
 
@@ -294,26 +390,25 @@ namespace PESpy.View
             }
         }
 
-        public IEnumerable<ViewEntity> EnumerateEntities(int sectionAccessorIndex)
+        public ViewEntityIterator EnumerateEntities(int sectionAccessorIndex)
         {
             var symbolAccessor = GetSymbolAccessor();
 
             var sectionAccessor = SectionAccessors[sectionAccessorIndex];
-            var sectionLength = sectionAccessor.Length;
 
             var pBytes = GetRawSectionData(sectionAccessor);
 
-            var j = 0;
-
-            while (j < sectionLength)
-            {
-                //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
-                var entity = new ViewEntity(symbolAccessor, sectionAccessorIndex, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names);
-
-                j += entity.Length;
-
-                yield return entity;
-            }
+            return new ViewEntityIterator(
+                0,
+                symbolAccessor,
+                sectionAccessor,
+                sectionAccessorIndex,
+                sectionAccessor.Length,
+                pBytes,
+                _infoMap,
+                _names,
+                LargeAddresses
+            );
         }
 
         public IntPtr GetRawSectionData(in SectionAccessor sectionAccessor)
@@ -340,24 +435,28 @@ namespace PESpy.View
 
         //For when the type of view you're after may not be top level. When it's top level
         //it is possible to ask the info map what the ViewKind is
-        public unsafe IStructView GetStructView(int targetAddress, ViewKind viewKind)
+        public unsafe IView GetStructView(int targetAddress, ViewKind viewKind)
         {
-            var pViewByte = GetViewByte(targetAddress, out _);
+            var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
+
+            ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
+            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
 
             if (pViewByte->Kind == ViewByteKind.Body)
             {
-                return GetNestedStructView(pViewByte, targetAddress, viewKind);
+                return GetNestedStructView(pViewByte, limit, targetAddress, viewKind);
             }
             else
             {
                 var chunk = GetMemoryChunkFromAddress(targetAddress);
-                var structView = ViewProvider.CreateStructView(viewKind, chunk, GetViewWriter());
+
+                var structView = ViewProvider.CreateStructView(viewKind, pViewByte->GetLength(limit), chunk, GetViewWriter());
 
                 return structView;
             }
         }
 
-        private IStructView GetNestedStructView(ViewByte* pViewByte, int offset, ViewKind viewKind)
+        private IStructView GetNestedStructView(ViewByte* pViewByte, ViewByte* limit, int offset, ViewKind viewKind)
         {
             //Rewind
 
@@ -376,7 +475,7 @@ namespace PESpy.View
 
             var structKind = GetStructKind(headOffset);
             var chunk = GetMemoryChunkFromAddress(headOffset);
-            var headStructView = ViewProvider.CreateStructView(structKind, chunk, GetViewWriter());
+            var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, chunk, GetViewWriter());
 
             //Traverse the struct until we find the struct we were looking for
 
@@ -428,6 +527,7 @@ namespace PESpy.View
 
             var relativeOffset = address - accessor.StartAddress;
             Debug.Assert(relativeOffset >= 0);
+            Debug.Assert(relativeOffset < accessor.Length);
             Debug.Assert(!accessor.IsEmpty);
 
             return &accessor.pViewBytes[relativeOffset];
@@ -441,7 +541,6 @@ namespace PESpy.View
         }
 
         public bool TryGetViewByte(int targetAddress, out ViewByte* pViewByte, out int sectionAccessorIndex)
-
         {
             var low = 0;
             var high = SectionAccessors.Length - 1;
@@ -531,7 +630,6 @@ namespace PESpy.View
 
             for (var i = pViewByte + 1; i < pEnd; i++)
             {
-                Debug.Assert(i->Kind == ViewByteKind.Unknown);
                 i->Kind = ViewByteKind.Body;
             }
 
@@ -547,6 +645,10 @@ namespace PESpy.View
             //We treat index 0 as "null" so the caller must always skip past it
             Debug.Assert(nameIndex != 0);
 
+#if NET9_0_OR_GREATER
+            ref var data = ref CollectionsMarshal.GetValueRefOrAddDefault(_infoMap, targetAddress, out _);
+            data.NameIndex = nameIndex;
+#else
             if (!_infoMap.TryGetValue(targetAddress, out var data))
             {
                 data = new ViewInfo();
@@ -555,14 +657,15 @@ namespace PESpy.View
             data.NameIndex = nameIndex;
 
             _infoMap[targetAddress] = data;
+#endif
         }
 
         public FixedUtf8String GetName(int targetAddress) => _names[_infoMap[targetAddress].NameIndex - 1];
 
-        #endregion
+#endregion
         #region Struct
 
-        internal void AddStruct(int targetAddress, int sectionIndex, FixedUtf8String name, ViewKind kind, int length)
+        internal void AddStruct(FileAnalyzer fileAnalyzer, int targetAddress, int sectionIndex, FixedUtf8String name, ViewKind kind, int length)
         {
             var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
             pViewByte->Kind = ViewByteKind.Data;
@@ -582,6 +685,10 @@ namespace PESpy.View
 
         internal void AddStructKind(int targetAddress, ViewKind kind)
         {
+#if NET9_0_OR_GREATER
+            ref var data = ref CollectionsMarshal.GetValueRefOrAddDefault(_infoMap, targetAddress, out _);
+            data.ViewKind = kind;
+#else
             if (!_infoMap.TryGetValue(targetAddress, out var data))
             {
                 data = new ViewInfo();
@@ -590,6 +697,7 @@ namespace PESpy.View
             data.ViewKind = kind;
 
             _infoMap[targetAddress] = data;
+#endif
         }
 
         public ViewKind GetStructKind(int targetAddress) => _infoMap[targetAddress].ViewKind;
@@ -611,6 +719,8 @@ namespace PESpy.View
 
         public unsafe void AddXRef(int source, int target)
         {
+            if (!_trackXRefs)
+                return;
             void AddXRef(int address, XRef xref)
             {
                 List<XRef> xrefs;
@@ -635,7 +745,6 @@ namespace PESpy.View
                     if (data.XRefs.IsEmpty)
                     {
                         data.XRefs = _xrefs.Alloc(new Span<XRef>(&xref, 1));
-                        _infoMap[address] = data;
 
                         //This is the first time we're adding xrefs to this entity, so we need to mark
                         //it as having xrefs
@@ -646,6 +755,8 @@ namespace PESpy.View
                     {
                         data.XRefs = _xrefs.Realloc(data.XRefs, new Span<XRef>(&xref, 1));
                     }
+
+                    _infoMap[address] = data;
                 }
             }
 
@@ -658,6 +769,9 @@ namespace PESpy.View
 
         public Span<XRef> GetXRefs(int targetAddress)
         {
+            if (!_trackXRefs)
+                return default;
+
             var handle = _infoMap[targetAddress].XRefs;
 
             Debug.Assert(!handle.IsEmpty);
@@ -674,7 +788,137 @@ namespace PESpy.View
 
         internal abstract ISectionDataAccessor CreateThreadLocalSectionDataAccessor();
 
-        internal abstract ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null);
+        internal abstract ISymbolAccessor GetSymbolAccessor(bool load = false, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null);
+
+        internal bool TryGetNameFromAddress(int targetAddress, out FixedUtf8String name)
+        {
+            var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
+
+            ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
+
+            if (TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva))
+            {
+                //Functions can be split all over the place. We rely on our symbol accessor to be able
+                //to make sense of such shenanigans. And if we don't have any symbols, we should be synthesizing them!
+                if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out _))
+                {
+                    name = symName;
+                    return true;
+                }
+            }
+
+        internal void InstallDataDirectories(RegionBuilder[] topLevelDirectories, RegionBuilder[] firstDirectoryByAddress)
+        {
+            //Enable fast lookup of directories based on offset
+            var directoryLookup = new Dictionary<int, int>(firstDirectoryByAddress.Length);
+
+            for (var i = 0; i < firstDirectoryByAddress.Length; i++)
+            {
+                ref var item = ref firstDirectoryByAddress[i];
+
+                directoryLookup[item.Start] = i;
+            }
+
+            _directoryByAddressLookup = directoryLookup;
+            _topLevelDirectories = topLevelDirectories;
+            _firstDirectoryByAddress = firstDirectoryByAddress;
+        }
+
+        internal bool TryGetDirectory(int targetAddress, int depth, out RegionBuilder directory) =>
+            TryGetRegionInternal(targetAddress, depth, _directoryByAddressLookup, _firstDirectoryByAddress, out directory);
+
+        internal void InstallRegions(List<RegionBuilder> topLevelRegions, List<RegionBuilder> firstRegionByAddress)
+        {
+            topLevelRegions.Sort((a, b) => a.Start.CompareTo(b.Start));
+            firstRegionByAddress.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            //Enable fast lookup of directories based on offset
+            var regionLookup = new Dictionary<int, int>(firstRegionByAddress.Count);
+
+            for (var i = 0; i < firstRegionByAddress.Count; i++)
+            {
+                var item = firstRegionByAddress[i];
+
+                regionLookup[item.Start] = i;
+            }
+
+            _regionByAddressLookup = regionLookup;
+            _topLevelRegions = topLevelRegions.ToArray();
+            _firstRegionByAddress = firstRegionByAddress.ToArray();
+        }
+
+        internal bool TryGetRegion(int targetAddress, int depth, out RegionBuilder region) =>
+            TryGetRegionInternal(targetAddress, depth, _regionByAddressLookup, _firstRegionByAddress, out region);
+
+        private bool TryGetRegionInternal(
+            int targetAddress,
+            int depth,
+            Dictionary<int, int> dict,
+            RegionBuilder[] list,
+            out RegionBuilder region)
+        {
+            if (dict.TryGetValue(targetAddress, out var regionIndex))
+            {
+                region = list[regionIndex];
+
+                while (depth > 0)
+                {
+                    if (region.Children == null)
+                        return false;
+
+                    var childRegion = region.Children[0];
+
+                    if (childRegion.Start != region.Start)
+                        return false;
+
+                    region = childRegion;
+
+                    depth--;
+                }
+
+                return true;
+            }
+
+            region = default;
+            return false;
+        }
+
+        internal void Finalize(
+            List<(FixedUtf8String name, List<int> refs)> namesAndRefs,
+            int numNameRefs,
+            int[] stringAddresses)
+        {
+#if NET
+            _infoMap.TrimExcess();
+#endif
+            if (_trackXRefs)
+                _xrefs.Trim();
+
+            _stringAddresses = stringAddresses;
+
+            var nameRefAllocator = new SpanAllocator<int>(numNameRefs);
+
+            var names = new FixedUtf8String[namesAndRefs.Count];
+            var handles = new SpanAllocatorHandle[namesAndRefs.Count];
+
+            for (var i = 0; i < namesAndRefs.Count; i++)
+            {
+                var item = namesAndRefs[i];
+
+                names[i] = item.name;
+
+#if NET
+                var span = CollectionsMarshal.AsSpan(item.refs);
+#else
+                var span = item.refs.ToArray().AsSpan();
+#endif
+                handles[i] = nameRefAllocator.Alloc(span);
+            }
+
+            _names = names;
+            _nameRefHandles = handles;
+            _nameRefAllocator = nameRefAllocator;
+        }
 
         public virtual void Dispose()
         {

@@ -111,6 +111,9 @@ namespace PESpy
 
         internal static unsafe IValue? GetDataForSection(in MemoryChunk sectionChunk, FixedUtf8String sectionName, int sizeOfRawData)
         {
+            if (sizeOfRawData == 0)
+                return null;
+
             //Can't switch as section name is a Utf8String and we don't want to allocate
             if (sectionName == ".drectve")
             {
@@ -133,51 +136,51 @@ namespace PESpy
                 //header (it doesn't actually seem to point to any symbols, followed by a numberof symbols),
                 //whose locations are pointed to by COFF symbols
                 //whose section is .edata
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             #region CxxIL
             else if (sectionName == ".cil$db")
             {
                 //debugDataFileReader -> phx!DebugDataReader
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$ex")
             {
                 //expressionFileReader -> phx!ExpressionReader
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$fg")
             {
                 //phx.dll flagsFileReader is not used, so I don't know what the format of this is. PEAnatomist doesn't seem to know either
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$gl")
             {
                 //globalSymbolFileReader -> phx!GlobalSymbolReader.ReadHeaders
 
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$in")
             {
                 //initializeFileReader -> phx!InitializerReader
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$md")
             {
                 //metadataFileReader -> phx!MetadataReader
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             else if (sectionName == ".cil$sy")
             {
                 //localSymbolFileReader -> phx!LocalSymbolReader
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
             #endregion
             else
             {
                 //Lookout for the .cil$ item that starts with "p" and add it above .cil$sy above
 
-                return AssertNotImplemented();
+                return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);
             }
         }
 
@@ -273,13 +276,12 @@ namespace PESpy
             SectionHeaders = sectionHeaders;
         }
 
-        private static IValue? AssertNotImplemented()
+        private static IValue? AssertNotImplemented(in MemoryChunk sectionChunk, FixedUtf8String sectionName, int sizeOfRawData)
         {
-            //todo
-            return null;
+            return new RawValue<NativeSpan<byte>>(sectionChunk.AbsoluteOffset, sectionChunk.PeekNativeSpan<byte>(0, sizeOfRawData));
         }
 
-        public unsafe FileView GetView()
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new OBJViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -288,7 +290,7 @@ namespace PESpy
         }
 
         //There isn't really "one" symbol accessor; each section may have its own accessor with its own rules
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
@@ -346,10 +348,24 @@ namespace PESpy
 
                     ViewKind kind;
 
-                    if (sectionName == ".text$mn")
+                    if (sectionName == ".text")
+                        kind = ViewKind.text;
+                    else if (sectionName == ".text$mn")
                         kind = ViewKind.text_mn;
+                    else if (sectionName.StartsWith(".idata"))
+                        kind = ViewKind.idata;
+                    else if (sectionName == ".edata")
+                        kind = ViewKind.edata;
+                    else if (sectionName == ".rdata")
+                        kind = ViewKind.rdata;
                     else
-                        throw new NotImplementedException();
+                    {
+                        if (sectionName.StartsWith("."))
+                            throw new NotImplementedException();
+
+                        //You can have weird garbage in a lib file in the name
+                        kind = ViewKind.UnknownSection;
+                    }
 
                     writer.WriteGlobal(b.Offset, b.Value, b.Value.Length, kind);
                 }

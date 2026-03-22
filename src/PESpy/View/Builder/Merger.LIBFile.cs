@@ -17,7 +17,7 @@ namespace PESpy.View.Builder
                 var length = byteViewProvider.FileOrSectionLength;
 
                 //Temporarily pretend we're past all directories while trying to construct section regions
-                nextDataDirectoryIndex = discoveredDataDirectories.Count;
+                nextDataDirectoryIndex = discoveredDataDirectories.Length;
 
                 //We also need to build regions around each section inside a long names member. This is a bit tricky, because we don't support building custom child regions
                 //while we're in the process of building a parent region. So Plan B: we'll eagerly construct the section regions for each long names member, and then
@@ -88,7 +88,7 @@ namespace PESpy.View.Builder
 
                         var objEnd = l.FileHeader.Offset + l.ArchiveHeader.Size;
 
-                        if (objEnd > lastSectionEnd)
+                        if (objEnd > lastSectionEnd && lastSectionEnd != -1)
                         {
                             var originalNextStructIndex = nextStructIndex;
 

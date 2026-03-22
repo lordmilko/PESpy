@@ -44,7 +44,7 @@ namespace PESpy.Tests
 
                 if (first == null)
                 {
-                    if (second == null)
+                    if (second == null || second.Equals(null))
                         return true;
 
                     return false;
@@ -373,7 +373,7 @@ namespace PESpy.Tests
                 #endregion
                 #region Export Table (0)
 
-                nameof(ImageExportDirectory) => GetFile(WellKnownTestModule.ntdll, out fs).ExportTable,
+                nameof(ImageExportDirectory) => GetFile(WellKnownTestModule.kernel32, out fs).ExportTable,
 
                 #endregion
                 #region Import Table (1)
@@ -398,6 +398,9 @@ namespace PESpy.Tests
                 "VsVersionInfo.String"               => ((VsVersionInfo.StringFileInfo) GetFile(WellKnownTestModule.ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[0]).Children[0].Children[0],
                 "VsVersionInfo.VarFileInfo"          => GetFile(WellKnownTestModule.ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[1],
                 "VsVersionInfo.Var"                  => ((VsVersionInfo.VarFileInfo) GetFile(WellKnownTestModule.ntdll, out fs).ResourceDirectory!.EnumerateResources<VsVersionInfo>().First().Children[1]).Children[0],
+                nameof(MessageResourceData)          => GetFile(WellKnownTestModule.DbgEng, out fs).ResourceDirectory!.EnumerateResources<MessageResourceData>().First(),
+                nameof(MessageResourceBlock)         => GetFile(WellKnownTestModule.DbgEng, out fs).ResourceDirectory!.EnumerateResources<MessageResourceData>().First().Blocks[0],
+                nameof(MessageResourceEntry)         => GetFile(WellKnownTestModule.DbgEng, out fs).ResourceDirectory!.EnumerateResources<MessageResourceData>().First().Blocks[0].OffsetToEntries.Value[0],
 
                 #endregion
                 #region Exception Table (3)
@@ -442,7 +445,7 @@ namespace PESpy.Tests
                 #region Debug Table (6)
 
                 nameof(ImageDebugDirectory)       => GetFile(WellKnownTestModule.ntdll, out fs).DebugTable?[0],
-                nameof(ImageCoffSymbolsHeader)    => (ImageCoffSymbolsHeader)     GetSampleFile(Sample.VC60_Coff_EXE, out fs).DebugTable?.First(t => t.Type == ImageDebugType.Coff).Data,
+                nameof(ImageCoffSymbolsHeader)    => (ImageCoffSymbolsHeader)     GetSampleFile(Sample.VC60_Coff_EXE, out fs).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_COFF).Data,
                 nameof(CoffSymbolTable)           => (CoffSymbolTable)            GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value,
                 nameof(ImageSymbol)               => (ImageSymbol)                GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value.Symbols[0],
                 nameof(ImageAuxSymbol)            => (ImageAuxSymbol)             GetSampleFile(Sample.VC60_Coff_EXE, out fs).FileHeader.PointerToSymbolTable.Value.Symbols[1].AuxSymbols[0],
@@ -614,6 +617,7 @@ namespace PESpy.Tests
                 #region PDB
 
                 nameof(NMT) => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).NameMap,
+                nameof(NMTNI) => GetSampleFile<PDBFile>(Sample.VS22_PDB, out fs).PDB.StreamNameTable,
 
                 nameof(DBIHdr)                   => (DBIHdr) GetSampleFile<PDBFile>(Sample.VC40_PDB, out fs).DBI.DbiHdr, //Don't have a PDB for VC50; 40 is the latest we have that is DBIHdr
                 nameof(NewDBIHdr)                => (NewDBIHdr) GetSampleFile<PDBFile>(Sample.VC60_PDB, out fs).DBI.DbiHdr,

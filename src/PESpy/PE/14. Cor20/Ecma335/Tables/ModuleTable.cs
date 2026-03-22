@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ModuleTable : Table<ModuleRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int GenerationOffset;
         internal readonly int NameOffset;
         internal readonly int MvidOffset;
@@ -15,13 +13,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigGuidIndex;
 
+        private readonly CompressedModelHeap compressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<GuidHeap?> guidHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ModuleTable(int numRows, int stringIndexSize, int guidIndexSize, Func<StringHeap?> stringHeap, Func<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ModuleTable(
+            int numRows,
+            int stringIndexSize,
+            int guidIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            Func<GuidHeap?> guidHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            this.compressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.guidHeap = guidHeap;
 
@@ -66,9 +71,12 @@ namespace PESpy.Ecma335
             return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + EncBaseIdOffset, isBigGuidIndex), guidHeap);
         }
 
+        public CustomAttributeList GetCustomAttributes(ModuleIndex index) =>
+            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Module));
+
         public int GetRowOffset(ModuleIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ModuleRow this[ModuleIndex index] => this[(int) index];
+        public ModuleRow this[ModuleIndex index] => GetRow((int) index);
 
         protected override ModuleRow GetRow(int index) => new ModuleRow((ModuleIndex) index, this);
     }

@@ -176,23 +176,38 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int PeekSpacePaddedInt32(int offset, int numChars)
+        public int PeekSpacePaddedInt32(int offset, int numChars) => PeekSpacePaddedNullableInt32(offset, numChars).Value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int? PeekSpacePaddedNullableInt32(int offset, int numChars, int @base = 10)
         {
             var ptr = (Pointer + offset);
 
             var span = new Span<byte>(ptr, numChars);
             var firstSpace = span.IndexOf((byte) 0x20); //Space
 
+            if (firstSpace == 0)
+                return null;
+
             var end = firstSpace == -1 ? numChars : firstSpace;
 
             var value = 0;
 
-            for (var i = 0; i < end; i++)
+            var isNegative = false;
+
+            if (span.Length > 0 && span[0] == (byte) '-')
             {
-                value = value * 10 + (span[i] - (byte) '0');
+                span = span.Slice(1);
+                isNegative = true;
+                end--;
             }
 
-            return value;
+            for (var i = 0; i < end; i++)
+            {
+                value = value * @base + (span[i] - (byte) '0');
+            }
+
+            return isNegative ? -value : value;
         }
 
         public int Peek7BitEncodedInt32(int offset, out int bytesRead)

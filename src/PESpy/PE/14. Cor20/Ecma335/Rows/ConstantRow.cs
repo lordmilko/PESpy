@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Type = {Type}, Parent = {Parent}, Value = {Value}")]
+    [DebuggerDisplay("Type = {Type}, Parent = {ParentRow.ToString()}, Value = {Value}")]
     public readonly struct ConstantRow : IValue, IViewable
     {
         public ConstantIndex RowIndex { get; }
@@ -19,6 +19,9 @@ namespace PESpy.Ecma335
         public BlobIndex Value => table.GetValue(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object ParentRow => Parent.GetRow(table.CompressedModelHeap);
 
         private readonly ConstantTable table;
 

@@ -2,16 +2,12 @@
 {
     public sealed class AssemblyProcessorTable : Table<AssemblyProcessorRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ProcessorOffset;
 
-        private readonly MemoryChunk tableChunk;
-
-        internal AssemblyProcessorTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyProcessorTable(
+            int numRows,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
-
             ProcessorOffset = 0;
             RowSize = ProcessorOffset + sizeof(int);
         }
@@ -24,7 +20,7 @@
 
         public int GetRowOffset(AssemblyProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyProcessorRow this[AssemblyProcessorIndex index] => this[(int) index];
+        public AssemblyProcessorRow this[AssemblyProcessorIndex index] => GetRow((int) index);
 
         protected override AssemblyProcessorRow GetRow(int index) => new AssemblyProcessorRow((AssemblyProcessorIndex) index, this);
     }

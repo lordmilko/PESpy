@@ -29,7 +29,9 @@ namespace PESpy
                 if (certificate == null)
                 {
 #if NET
-                    certificate = X509CertificateLoader.LoadCertificate((Span<byte>)Bytes);
+                    //They say loading the certificate through the ctor is obsolute, but I tried to use X509CertificateLoader.LoadCertificate
+                    //and got an error "cannot find the requested object" so I'm going to use the normal ctor instead
+                    certificate = new X509Certificate2((ReadOnlySpan<byte>) Bytes); //There is a ctor that takes a span but it's only available in .NET 5+
 #else
                     certificate = new X509Certificate2(Bytes.ToArray()); //There is a ctor that takes a span but it's only available in .NET 5+
 #endif

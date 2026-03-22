@@ -7,7 +7,7 @@
         private ImageSectionHeader[] sectionHeaders;
         private int currentIndex = 1;
 
-        public RemoteByteViewProvider(PEFile peFile, ImageSectionHeader[] sectionHeaders, IViewDisassembler? viewDisassembler) : base(viewDisassembler)
+        public RemoteByteViewProvider(PEFile peFile, ImageSectionHeader[] sectionHeaders, IViewDisassembler? viewDisassembler) : base(viewDisassembler, isLibFile: false)
         {
             this.peFile = peFile;
             this.sectionHeaders = sectionHeaders;

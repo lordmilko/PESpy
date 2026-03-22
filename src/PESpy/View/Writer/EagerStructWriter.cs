@@ -216,7 +216,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, VA<int[]> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, VA<NativeSpan<int>> value, ViewKind valueKind)
         {
             WritePointerField(name, value.ListedAddress, FieldViewFlags.Address);
 
@@ -412,12 +412,31 @@ namespace PESpy.View
 
         #endregion
         #region Inline
+
+        public void WriteInline<T>(T value) where T : IViewableValue
+        {
+#if DEBUG
+            var expectedOffset = structWriter.ParentOffset + currentFieldOffset;
+            Debug.Assert(value.Offset == expectedOffset);
+#endif
+
+            var viewWriter = structWriter.ViewWriter;
+
+            var result = value.WriteStruct(viewWriter);
+
+            if (result != null)
+            {
+                items.Add(result);
+                currentFieldOffset += result.Size;
+            }
+        }
+
         public void WriteUnmanagedInline<T>(T value) where T : unmanaged, IViewable
         {
             var viewWriter = structWriter.ViewWriter;
 
             var oldOffset = viewWriter.UnmanagedOffset;
-            viewWriter.UnmanagedOffset = currentFieldOffset;
+            viewWriter.UnmanagedOffset = structWriter.ParentOffset + currentFieldOffset;
 
             var result = value.WriteStruct(viewWriter);
 
@@ -457,11 +476,33 @@ namespace PESpy.View
             currentFieldOffset += sizeof(T);
         }
 
-        public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value) =>
-            throw new NotImplementedException();
+        public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)
+        {
+            {
+                structWriter.WriteInlineAnsiNullTerminated(value);
 
-        public void WriteInlineAnsiNullTerminated(RawValue<string> value) =>
-            throw new NotImplementedException();
+                if (structWriter.Field != null)
+                {
+                    items.Add(structWriter.Field);
+                    currentFieldOffset += structWriter.Field.Size;
+                }
+                else
+                    currentFieldOffset += value.Value.Length + 1;
+            }
+        }
+
+        public void WriteInlineAnsiNullTerminated(RawValue<string> value)
+        {
+            structWriter.WriteInlineAnsiNullTerminated(value);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
+            }
+            else
+                currentFieldOffset += value.Value.Length + 1;
+        }
 
         public void WriteInlineAnsiNullTerminated(AnsiString value) =>
             throw new NotImplementedException();
@@ -469,8 +510,18 @@ namespace PESpy.View
         public void WriteInlineFixedAnsiString(FixedAnsiString value) =>
             throw new NotImplementedException();
 
-        public void WriteInlineUtf16NullTerminated(FixedUtf16String value, int size) =>
-            throw new NotImplementedException();
+        public void WriteInlineUtf16NullTerminated(FixedUtf16String value, int size)
+        {
+            structWriter.WriteInlineUtf16NullTerminated(structWriter.ParentOffset + currentFieldOffset, value);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
+            }
+            else
+                currentFieldOffset += value.Length;
+        }
 
         public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value) =>
             throw new NotImplementedException();
@@ -478,14 +529,27 @@ namespace PESpy.View
         public void WriteInlineAnsiNullTerminated(RawValue<AnsiString>[] value) =>
             throw new NotImplementedException();
 
-        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value) =>
-            throw new NotImplementedException();
+        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value)
+        {
+            structWriter.WriteInlineUtf8NullTerminated(value);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
+            }
+            else
+                currentFieldOffset += value.Value.Length + 1;
+        }
 
         public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value) =>
             throw new NotImplementedException();
 
-        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String>[] value) =>
-            throw new NotImplementedException();
+        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String>[] value)
+        {
+            foreach (var item in value)
+                WriteInlineUtf8NullTerminated(item);
+        }
 
         public void WriteInlineSymString(RawValue<SymString> value)
         {
@@ -497,7 +561,15 @@ namespace PESpy.View
 
         public void WriteByteBlob(int size)
         {
-            throw new NotImplementedException();
+            structWriter.WriteByteBlob(currentFieldOffset, size);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
+            }
+            else
+                currentFieldOffset += size;
         }
 
         #endregion
@@ -538,7 +610,28 @@ namespace PESpy.View
         //Should only be used for OBJ files
         public unsafe void WriteValue(int offset, SymTypeList value)
         {
-            throw new NotImplementedException();
+            var viewWriter = structWriter.ViewWriter;
+
+            var dispatcher = viewWriter.SymTypeDispatcher;
+
+            ref var items = ref this.items;
+
+            var startOffset = offset;
+
+            var oldOffset = viewWriter.UnmanagedOffset;
+            viewWriter.UnmanagedOffset = offset;
+
+            foreach (var item in value)
+            {
+                var view = dispatcher.Dispatch(item);
+                items.Add(view);
+                offset += view.Size;
+                viewWriter.UnmanagedOffset = offset;
+            }
+
+            currentFieldOffset += viewWriter.UnmanagedOffset - startOffset;
+
+            viewWriter.UnmanagedOffset = oldOffset;
         }
 
         public bool NeedAlignment(int target, out int required)
@@ -563,7 +656,17 @@ namespace PESpy.View
 
         public void AlignMax(int target, int structLength)
         {
-            throw new NotImplementedException();
+            var required = structLength - Size;
+
+            //The length may or may not be aligned, the nature of that alignment may or may not be even.
+            //e.g. the length could be 59 bytes and 58 were used, so if you align to 60 you've now overcorrected!
+            if (required != 0)
+            {
+                var globalOffset = structWriter.ParentOffset + currentFieldOffset;
+                var views = structWriter.ViewWriter.CreateByteBlob(ref globalOffset, required);
+                currentFieldOffset = globalOffset - structWriter.ParentOffset;
+                items.AddRange(views);
+            }
         }
 
         public void Pad(int length)

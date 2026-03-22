@@ -23,12 +23,12 @@ namespace PESpy.View.Builder
 
                 var lastSectionEnd = sizeOfHeaders;
 
-                ReadTable("Segment Table",          tableOffset: os2Header.OffsetOfSegmentTable,         os2Header.OffsetOfResourceTable,         os2Header, ref lastSectionEnd, ref results);
-                ReadTable("Resource Table",         tableOffset: os2Header.OffsetOfResourceTable,        os2Header.OffsetOfResidentNameTable,     os2Header, ref lastSectionEnd, ref results);
-                ReadTable("Resident Name Table",    tableOffset: os2Header.OffsetOfResidentNameTable,    os2Header.OffsetOfModuleReferenceTable,  os2Header, ref lastSectionEnd, ref results);
-                ReadTable("Module Reference Table", tableOffset: os2Header.OffsetOfModuleReferenceTable, os2Header.OffsetOfImportedNamesTable,    os2Header, ref lastSectionEnd, ref results);
-                ReadTable("Imported Names Table",   tableOffset: os2Header.OffsetOfImportedNamesTable,   os2Header.OffsetOfEntryTable,            os2Header, ref lastSectionEnd, ref results);
-                ReadTable("Entry Table",            tableOffset: os2Header.OffsetOfEntryTable,           os2Header.OffsetOfNonResidentNamesTable - os2Header.Offset, os2Header, ref lastSectionEnd, ref results); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
+                ReadTable("Segment Table",          tableOffset: os2Header.OffsetOfSegmentTable,         os2Header.OffsetOfResourceTable,         os2Header, ref lastSectionEnd, ref results, ViewKind.NE_SegmentTable);
+                ReadTable("Resource Table",         tableOffset: os2Header.OffsetOfResourceTable,        os2Header.OffsetOfResidentNameTable,     os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ResourceTable);
+                ReadTable("Resident Name Table",    tableOffset: os2Header.OffsetOfResidentNameTable,    os2Header.OffsetOfModuleReferenceTable,  os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ResidentNameTable);
+                ReadTable("Module Reference Table", tableOffset: os2Header.OffsetOfModuleReferenceTable, os2Header.OffsetOfImportedNamesTable,    os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ModuleReferenceTable);
+                ReadTable("Imported Names Table",   tableOffset: os2Header.OffsetOfImportedNamesTable,   os2Header.OffsetOfEntryTable,            os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ImportedNamesTable);
+                ReadTable("Entry Table",            tableOffset: os2Header.OffsetOfEntryTable,           os2Header.OffsetOfNonResidentNamesTable - os2Header.Offset, os2Header, ref lastSectionEnd, ref results, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
 
                 //Non-Resident Name Table is last, so its length must be computed using a count, rather than
                 //the position of the table after it
@@ -52,7 +52,8 @@ namespace PESpy.View.Builder
             int nextTableOffset,
             in ImageOS2Header os2Header,
             ref int lastSectionEnd,
-            ref PooledList<IView> results)
+            ref PooledList<IView> results,
+            ViewKind viewKind)
         {
             if (tableOffset == nextTableOffset)
                 return; //Size is 0
@@ -64,7 +65,7 @@ namespace PESpy.View.Builder
             //Read any data that may exist between the main headers and the table. This shouldn't be possible, but you never know!
             ReadInterSectionData(lastSectionEnd, start, this, ref results);
 
-            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, ViewKind.Value, length)); //todo: use more specific viewkind
+            results.Add(new LogicalRegionView(start, name, BuildSection(start, end), viewWriter, viewKind, length));
 
             lastSectionEnd = end;
         }

@@ -191,7 +191,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.Map, this, ViewKind.Map, StructSize);
 
-        int IViewable.NumChildren() => 6 + Entries.Length;
+        int IViewable.NumChildren() => 5 + (DeletedWords.Length == 0 ? 0 : 1) + Entries.Length;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -218,11 +218,14 @@ namespace PESpy.PDB
                     break;
 
                 case 5:
-                    structWriter.WriteField("Deleted Words", DeletedWordsOffset, DeletedWords);
+                    if (DeletedWords.Length == 0)
+                        structWriter.WriteInline(Entries[index - 5]);
+                    else
+                        structWriter.WriteField("Deleted Words", DeletedWordsOffset, DeletedWords);
                     break;
 
                 default:
-                    structWriter.WriteInline(Entries[index - 6]);
+                    structWriter.WriteInline(Entries[index - (DeletedWords.Length == 0 ? 5 : 6)]);
                     break;
             }
         }

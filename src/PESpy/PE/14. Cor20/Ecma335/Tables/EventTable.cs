@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class EventTable : Table<EventRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int EventFlagsOffset;
         internal readonly int NameOffset;
         internal readonly int EventTypeOffset;
@@ -14,14 +12,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigTypeDefOrRefIndexSize;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal EventTable(int numRows, int stringIndexSize, int typeDefOrRefIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal EventTable(
+            int numRows,
+            int stringIndexSize,
+            int typeDefOrRefIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.13
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -51,9 +55,12 @@ namespace PESpy.Ecma335
             return tableChunk.PeekCodedIndex(rowOffset + EventTypeOffset, isBigTypeDefOrRefIndexSize, CodedIndexType.TypeDefOrRef);
         }
 
+        public CustomAttributeList GetCustomAttributes(EventIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Event));
+
         public int GetRowOffset(EventIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EventRow this[EventIndex index] => this[(int) index];
+        public EventRow this[EventIndex index] => GetRow((int) index);
 
         protected override EventRow GetRow(int index) => new EventRow((EventIndex) index, this);
     }

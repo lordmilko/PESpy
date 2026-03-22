@@ -32,13 +32,13 @@ namespace PESpy.View
                 this.shouldAdd = shouldAdd;
             }
 
-            public void WriteValue(int value) =>
-                WriteValueInternal(value, sizeof(int));
+            public void WriteValue(int value, ViewKind kind) =>
+                WriteValueInternal(value, sizeof(int), kind);
 
-            public void WriteValue(uint value) =>
-                WriteValueInternal(value, sizeof(int));
+            public void WriteValue(uint value, ViewKind kind) =>
+                WriteValueInternal(value, sizeof(int), kind);
 
-            public void WriteValue(int offset, Guid value, ViewKind kind = ViewKind.Value)
+            public void WriteValue(int offset, Guid value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 
@@ -51,11 +51,36 @@ namespace PESpy.View
 
                 Push();
 
-                value.WriteGlobals(viewWriter);
-                var result = value.WriteStruct(viewWriter);
+                var oldFromRegion = viewWriter.FromRegion;
 
-                if (result != null)
-                    views.Add(result);
+                viewWriter.FromRegion = false;
+
+                try
+                {
+                    if (global)
+                    {
+                        //Include everything in the region
+                        viewWriter.FromRegion = true;
+                        value.WriteGlobals(viewWriter);
+                    }
+                    else
+                    {
+                        //Don't include globals in the region
+
+                        value.WriteGlobals(viewWriter);
+
+                        viewWriter.FromRegion = true;
+                    }
+
+                    var result = value.WriteStruct(viewWriter);
+
+                    if (result != null)
+                        views.Add(result);
+                }
+                finally
+                {
+                    viewWriter.FromRegion = oldFromRegion;
+                }
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
@@ -74,37 +99,40 @@ namespace PESpy.View
                 {
                     var item = value[i];
 
-                    item.WriteGlobals(viewWriter);
+                    var oldFromRegion = viewWriter.FromRegion;
 
-                    var result = item.WriteStruct(viewWriter);
+                    viewWriter.FromRegion = false;
 
-                    if (result != null)
-                        views.Add(result);
+                    try
+                    {
+                        item.WriteGlobals(viewWriter);
+
+                        viewWriter.FromRegion = true;
+
+                        var result = item.WriteStruct(viewWriter);
+
+                        if (result != null)
+                            views.Add(result);
+                    }
+                    finally
+                    {
+                        viewWriter.FromRegion = oldFromRegion;
+                    }
                 }
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
             }
 
-            public void WriteAnsiNullTerminatedValue(RVA<string> value)
+            //The region just encapsulates the _RVA_ of the string. The string itself is located _outside_ of the region
+            public void WriteAnsiNullTerminatedValue(RVA<AnsiString> value, ViewKind kind)
             {
-                WriteValueInternal((int) value.ListedOffset, sizeof(int));
-
-                if (value.IsValid)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
+                WriteValueInternal((int) value.ListedOffset, sizeof(int), kind);
             }
 
-            public void WriteAnsiNullTerminatedValue(RVA<AnsiString> value)
+            public void WriteInlineAnsiNullTerminatedValue(RawValue<AnsiString> value, ViewKind kind)
             {
-                WriteValueInternal((int) value.ListedOffset, sizeof(int));
-
-                if (value.IsValid)
-                    viewWriter.WriteGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, ViewKind.String);
-            }
-
-            public void WriteInlineAnsiNullTerminatedValue(RawValue<AnsiString> value)
-            {
-                WriteValueInternal(value.Value, value.Offset);
+                WriteValueInternal(value.Value, value.Offset, kind);
             }
 
             public void WriteUTF8NullTerminatedValue(int offset, string value, ViewKind kind)
@@ -121,16 +149,16 @@ namespace PESpy.View
                 WriteValueInternal(value, value.Length + 1, kind);
             }
 
-            public void WriteValues(ushort[] value)
+            public void WriteValues(ushort[] value, ViewKind kind)
             {
                 for (var i = 0; i < value.Length; i++)
-                    WriteValueInternal(value[i], sizeof(short));
+                    WriteValueInternal(value[i], sizeof(short), kind);
             }
 
             public void WriteValues(PN[] value)
             {
                 for (var i = 0; i < value.Length; i++)
-                    WriteValueInternal(value[i], sizeof(int));
+                    WriteValueInternal(value[i], sizeof(int), ViewKind.PN);
             }
 
             public void WriteUnique<T>(T[]? value) where T : IViewable, IValue
@@ -142,7 +170,7 @@ namespace PESpy.View
 
                 Push();
 
-                viewWriter.WriteUniqueGlobal(value);
+                viewWriter.WriteRegionUniqueGlobal(value);
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
@@ -150,9 +178,9 @@ namespace PESpy.View
                 Pop();
             }
 
-            private void WriteValueInternal<T>(T value, int size, ViewKind kind = ViewKind.Value)
+            private void WriteValueInternal<T>(T value, int size, ViewKind kind)
             {
-                var result = viewWriter.NewValue(currentOffset, value, size, kind);
+                var result = viewWriter.NewValue(currentOffset, value, size, kind, fromRegion: true);
 
                 if (result != null)
                     views.Add(result);
@@ -182,16 +210,18 @@ namespace PESpy.View
                 {
                     if (shouldAdd)
                     {
-                        var regionView = new LogicalRegionView(startOffset, regionName, views.ToArray(), regionKind, (int) (currentOffset - startOffset));
+                        var regionView = new LogicalRegionView(startOffset, regionName, views.ToArray(), viewWriter, regionKind, (int) (currentOffset - startOffset));
 
                         viewWriter.AddView(regionView);
                     }
                 }
-                
+
                 viewWriter.ReturnList(views);
 
                 if (global)
                     viewWriter.Pop(); //Remove the global scope
+
+                viewWriter.ExitRegion();
             }
         }
     }

@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class AssemblyRefTable : Table<AssemblyRefRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int MajorVersionOffset;
         internal readonly int MinorVersionOffset;
         internal readonly int BuildNumberOffset;
@@ -20,13 +18,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigStringIndex;
 
+        private readonly CompressedModelHeap compressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal AssemblyRefTable(int numRows, int blobIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyRefTable(
+            int numRows,
+            int blobIndexSize,
+            int stringIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            this.compressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -69,10 +74,10 @@ namespace PESpy.Ecma335
             return tableChunk.PeekInt16(rowOffset + RevisionNumberOffset);
         }
 
-        public AssemblyFlags GetFlags(AssemblyRefIndex index)
+        public CorAssemblyFlags GetFlags(AssemblyRefIndex index)
         {
             var rowOffset = (index.RowId - 1) * RowSize;
-            return (AssemblyFlags) tableChunk.PeekUInt32(rowOffset + FlagsOffset);
+            return (CorAssemblyFlags) tableChunk.PeekUInt32(rowOffset + FlagsOffset);
         }
 
         public BlobIndex GetPublicKeyOrToken(AssemblyRefIndex index)
@@ -99,9 +104,12 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + HashValueOffset, isBigBlobIndex), blobHeap);
         }
 
+        public CustomAttributeList GetCustomAttributes(AssemblyRefIndex index) =>
+            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.AssemblyRef));
+
         public int GetRowOffset(AssemblyRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyRefRow this[AssemblyRefIndex index] => this[(int) index];
+        public AssemblyRefRow this[AssemblyRefIndex index] => GetRow((int) index);
 
         protected override AssemblyRefRow GetRow(int index) => new AssemblyRefRow((AssemblyRefIndex) index, this);
     }

@@ -151,27 +151,33 @@ namespace PESpy.PDB
                 case S_DATAREF_ST:
                 case S_PROCREF_ST:
                 case S_LPROCREF_ST:
-                    /* Complicating things even further, this length doesn't appear to always necessarily apply. I've found that in
-                     * NB11 (whether the data is in the original PE File or if it's been split out to a DBG File) there _isn't_ any
-                     * name at the end of the symbol. And in fact, by pretending that there is, we're effectively _skipping over_
-                     * the symbol that comes after us! */
-                    var accessor = codeViewAccessor ?? SymbolMemoryTracker.GetAccessor((long) symType);
-
-                    if (accessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
-                        goto default;
-
-                    var baseLength = symType->reclen + sizeof(ushort);
-                    var strLen = *(((byte*) symType) + baseLength);
-
-                    //The length occupies 1 byte, and then the actual bytes after it occupy even more bytes.
-                    //We must align this total length to 32-bits
-                    var alignedStringArea = ((strLen + 1) + 3) & ~3;
-
-                    return baseLength + alignedStringArea;
+                    return GetSymbolLengthSlow(symType, codeViewAccessor);
 
                 default:
                     return symType->reclen + sizeof(ushort);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static int GetSymbolLengthSlow(SYMTYPE* symType, ICodeViewAccessor? codeViewAccessor)
+        {
+            /* Complicating things even further, this length doesn't appear to always necessarily apply. I've found that in
+             * NB11 (whether the data is in the original PE File or if it's been split out to a DBG File) there _isn't_ any
+             * name at the end of the symbol. And in fact, by pretending that there is, we're effectively _skipping over_
+             * the symbol that comes after us! */
+            var accessor = codeViewAccessor ?? SymbolMemoryTracker.GetAccessor((long) symType);
+
+            if (accessor is NB05SymbolAccessor a && a.CodeViewSig == CodeViewSig.NB11)
+                return symType->reclen + sizeof(ushort);
+
+            var baseLength = symType->reclen + sizeof(ushort);
+            var strLen = *(((byte*) symType) + baseLength);
+
+            //The length occupies 1 byte, and then the actual bytes after it occupy even more bytes.
+            //We must align this total length to 32-bits
+            var alignedStringArea = ((strLen + 1) + 3) & ~3;
+
+            return baseLength + alignedStringArea;
         }
 
         public static SymType NextSymbol(in SymType symType) => (SymType) (SYMTYPE*) (((byte*) (SYMTYPE*) symType) + GetSymbolLength(symType, null));

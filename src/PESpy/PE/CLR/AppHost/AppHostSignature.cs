@@ -74,7 +74,7 @@ namespace PESpy
                     //If this is just an apphost (e.g. pwsh.exe) TryGetValueChunkFromPhysicalOffset will return false
                     var offset = chunk.PeekInt64(BundleHeaderOffsetOffset);
 
-                    if (chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) offset, out var valueChunk))
+                    if (offset != 0 && chunk.PEFile().TryGetValueChunkFromPhysicalOffset((int) offset, out var valueChunk))
                         bundleHeaderOffset = new VA<Bundle.Manifest>(offset, valueChunk.AbsoluteOffset, new Bundle.Manifest(valueChunk));
                 }
 

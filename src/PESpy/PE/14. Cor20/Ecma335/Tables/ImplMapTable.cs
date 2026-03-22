@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ImplMapTable : Table<ImplMapRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int MappingFlagsOffset;
         internal readonly int MemberForwardedOffset;
         internal readonly int ImportNameOffset;
@@ -16,14 +14,14 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigModuleRefIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ImplMapTable(int numRows, int memberForwardedIndexSize, int stringIndexSize, int moduleRefIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ImplMapTable(int numRows, int memberForwardedIndexSize, int stringIndexSize, int moduleRefIndexSize, CompressedModelHeap compressedModelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.22
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigMemberForwardedIndex = memberForwardedIndexSize == 4;
@@ -61,9 +59,25 @@ namespace PESpy.Ecma335
             return (ModuleRefIndex) tableChunk.PeekEcmaIndex(rowOffset + ImportScopeOffset, isBigModuleRefIndex);
         }
 
+        internal ImplMapIndex FindImplForMethod(MethodDefIndex index)
+        {
+            var codedIndex = MemberForwardedTag.CreateIndex(index.RowId, TableKind.MethodDef);
+
+            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                MemberForwardedOffset,
+                (uint) (int) codedIndex,
+                isBigMemberForwardedIndex
+            );
+
+            return (ImplMapIndex) (foundRowNumber + 1);
+        }
+
         public int GetRowOffset(ImplMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ImplMapRow this[ImplMapIndex index] => this[(int) index];
+        public ImplMapRow this[ImplMapIndex index] => GetRow((int) index);
 
         protected override ImplMapRow GetRow(int index) => new ImplMapRow((ImplMapIndex) index, this);
     }

@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Token = {Token}")]
+    [DebuggerDisplay("Token = {TokenRow}")]
     public readonly struct EncMapRow : IValue, IViewable
     {
         public EncMapIndex RowIndex { get; }
@@ -13,6 +13,9 @@ namespace PESpy.Ecma335
         public mdToken Token => table.GetToken(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object TokenRow => table.CompressedModelHeap.GetRow(Token);
 
         private readonly EncMapTable table;
 

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.Ecma335;
+using PESpy.LIB;
 using PESpy.PDB;
 using Enum = System.Enum;
 using SN = PESpy.PDB.SN;
@@ -39,7 +40,25 @@ namespace PESpy.View
 
         //Write a ByteBlob to ensure the specified alignment of the contents of the struct, or throw if we're already aligned, in which case
         //the caller shouldn't be asking us to align again
-        internal IMAGE_FILE_MACHINE GetMachine(in MemoryChunk chunk) => throw new NotImplementedException();
+        internal IMAGE_FILE_MACHINE GetMachine(in MemoryChunk chunk)
+        {
+            if (chunk.block is GlobalSubMemoryBlock s)
+            {
+                //It should be an OBJ file inside a LIB. We need to special case this
+                return ((LongImportLibraryMember) s.Owner).FileHeader.Machine;
+            }
+
+            var file = chunk.File();
+
+            switch (file.Kind)
+            {
+                case FileKind.PE:
+                    return ((PEFile) file).FileHeader.Machine;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         internal static bool NeedsEagerChildren(ViewKind kind)
         {
@@ -99,12 +118,12 @@ namespace PESpy.View
         #region Byte
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, byte value) =>
-            RelayField(name, relativeOffset, value, sizeof(byte));
+        public void WriteField(string name, int relativeOffset, byte value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(byte), flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField(string name, int relativeOffset, sbyte value) =>
-            RelayField(name, relativeOffset, value, sizeof(sbyte));
+        public void WriteField(string name, int relativeOffset, sbyte value, FieldViewFlags flags = default) =>
+            RelayField(name, relativeOffset, value, sizeof(sbyte), flags);
 
         #endregion
         #region Int16
@@ -320,7 +339,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, int relativeOffset, VA<int[]> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, int relativeOffset, VA<NativeSpan<int>> value, ViewKind valueKind)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -472,6 +491,13 @@ namespace PESpy.View
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteField(string name, int relativeOffset, CV_LVAR_ADDR_RANGE value) =>
             RelayField(name, relativeOffset, value, sizeof(int) + sizeof(short) + sizeof(short));
+
+        public void WriteField(string name, int relativeOffset, BinaryAnnotationList value)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
         #region Arrays
         #region Byte[]
 
@@ -664,6 +690,17 @@ namespace PESpy.View
             RelayField(name, relativeOffset, value, value.Length * sizeof(int));
         }
 
+        public void WriteField(string name, int relativeOffset, NativeSpan<CV_modifier_t> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(short));
+        }
+
         #endregion
         #region Structs
 
@@ -719,48 +756,48 @@ namespace PESpy.View
         #region Coded
 
         internal void WriteTypeDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeDefOrRefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.TypeDefOrRefSize);
 
         internal void WriteHasConstantIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasConstantSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasConstantSize);
 
         internal void WriteHasCustomAttributeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomAttributeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomAttributeSize);
 
         internal void WriteHasFieldMarshalIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasFieldMarshalSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasFieldMarshalSize);
 
         internal void WriteHasDeclSecurityIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasDeclSecuritySize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasDeclSecuritySize);
 
         internal void WriteMemberRefParentIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberRefParentSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MemberRefParentSize);
 
-        internal void WriteHasSemanticsIndex(string name, int relativeOffset, int value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasSemanticsSize);
+        internal void WriteHasSemanticsIndex(string name, int relativeOffset, CodedIndex value) =>
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasSemanticsSize);
 
         internal void WriteMethodDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MethodDefOrRefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MethodDefOrRefSize);
 
         internal void WriteMemberForwardedIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.MemberForwardedSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MemberForwardedSize);
 
         internal void WriteImplementationIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ImplementationSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.ImplementationSize);
 
         internal void WriteCustomAttributeTypeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.CustomAttributeTypeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.CustomAttributeTypeSize);
 
         internal void WriteResolutionScopeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.ResolutionScopeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.ResolutionScopeSize);
 
         internal void WriteTypeOrMethodDefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.TypeOrMethodDefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.TypeOrMethodDefSize);
 
         //Portable PDB
 
         internal void WriteHasCustomDebugInformationIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomDebugInformationSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomDebugInformationSize);
 
         private void WriteIndex(string name, int relativeOffset, int index, int indexSize)
         {
@@ -873,11 +910,62 @@ namespace PESpy.View
 
             _viewWriter.UnmanagedOffset = oldOffset;
         }
+
+        public void WriteInline<T>(int relativeOffset, T[] value) where T : unmanaged, IViewable
+        {
+            throw new NotImplementedException();
+        }
+
+        //We do not provide a method for writing an array's worth; these should be written as independent fields by the caller
+
+        public void WriteInline<T>(RVA<T> value, ViewKind kind) where T : IViewable, IValue
+        {
+            throw new NotImplementedException();
+        }
+
+        public void WriteInline<T>(NativeSpan<T> value) where T : unmanaged, IViewable
+        {
+            throw new NotImplementedException();
+        }
+
+        public unsafe void WriteInline<T>(int relativeOffset, NativeSpan<T> value, ViewKind kind) where T : unmanaged
+        {
+            RelayInlineRelativeOffset(relativeOffset, value, sizeof(T) * value.Length, kind);
+        }
+
         #region String (RawValue)
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInlineAnsiNullTerminated(RawValue<string> value) =>
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value) =>
-            RelayInline(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+
+        public void WriteInlineAnsiNullTerminated(AnsiString value) =>
+            throw new NotImplementedException();
+
+        public void WriteInlineFixedAnsiString(FixedAnsiString value) =>
+            throw new NotImplementedException();
+
+        public void WriteInlineUtf16NullTerminated(int offset, FixedUtf16String value) =>
+            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
+
+        public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value) =>
+            throw new NotImplementedException();
+
+        public void WriteInlineAnsiNullTerminated(RawValue<AnsiString>[] value) =>
+            throw new NotImplementedException();
+
+        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value) =>
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+
+        public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value) =>
+            throw new NotImplementedException();
+
+        public void WriteInlineUtf8NullTerminated(RawValue<Utf8String>[] value) =>
+            throw new NotImplementedException();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineSymString(RawValue<SymString> value) =>
@@ -943,6 +1031,17 @@ namespace PESpy.View
             RelayBitField(name, relativeOffset, value, size, bits);
 
         #endregion
+
+        internal unsafe void WritePagedValue(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
+        {
+            throw new NotImplementedException();
+        }
+
+        //Should only be used for OBJ files
+        public unsafe void WriteValue(int offset, SymTypeList value)
+        {
+            throw new NotImplementedException();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RelayField<T>(string name, int relativeOffset, T value, int size, FieldViewFlags flags = default) =>

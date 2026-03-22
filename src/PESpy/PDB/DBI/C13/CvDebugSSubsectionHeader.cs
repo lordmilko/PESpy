@@ -328,7 +328,7 @@ namespace PESpy.PDB
             return parser.Parse(DataChunk, Length);
         }
 
-        public MergedAssemblyInfo[] GetMergedAssemblyInput()
+        public unsafe MergedAssemblyInfo[] GetMergedAssemblyInput()
         {
             VerifyType(DEBUG_S_MERGED_ASSEMBLYINPUT);
 
@@ -356,7 +356,7 @@ namespace PESpy.PDB
                 //The StructSize takes care of the alignment
                 var item = new MergedAssemblyInfo(dataChunk.Slice(read));
                 results.Add(item);
-                read += item.StructSize;
+                read += item.StructSize; //The StructSize handles 32-bit alignment
             }
 
             Debug.Assert(read == length);

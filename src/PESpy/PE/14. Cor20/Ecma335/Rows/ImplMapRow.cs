@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("MappingFlags = {MappingFlags}, MemberForwarded = {MemberForwarded}, ImportName = {ImportName.ToString(),nq}, ImportScope = {ImportScope}")]
     public readonly struct ImplMapRow : IValue, IViewable
     {
         public ImplMapIndex RowIndex { get; }
@@ -19,6 +17,11 @@ namespace PESpy.Ecma335
         public ModuleRefIndex ImportScope => table.GetImportScope(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object MemberForwardedRow => MemberForwarded.GetRow(table.CompressedModelHeap);
+
+        public ModuleRefRow ImportScopeRow => table.CompressedModelHeap.ModuleRefTable[ImportScope];
 
         private readonly ImplMapTable table;
 
@@ -63,6 +66,11 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{ImportScopeRow}!{ImportName.GetString()}";
         }
     }
 }

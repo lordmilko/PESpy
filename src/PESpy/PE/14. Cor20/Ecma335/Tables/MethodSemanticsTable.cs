@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class MethodSemanticsTable : Table<MethodSemanticsRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int SemanticsOffset;
         internal readonly int MethodOffset;
         internal readonly int AssociationOffset;
@@ -13,13 +11,18 @@ namespace PESpy.Ecma335
         private readonly bool hasBigMethodDefIndex;
         private readonly bool hasBigHasSemanticsIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal MethodSemanticsTable(int numRows, int methodDefIndexSize, int hasSemanticsIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal MethodSemanticsTable(
+            int numRows,
+            int methodDefIndexSize,
+            int hasSemanticsIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.28
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             hasBigMethodDefIndex = methodDefIndexSize == 4;
             hasBigHasSemanticsIndex = hasSemanticsIndexSize == 4;
@@ -48,9 +51,32 @@ namespace PESpy.Ecma335
             return tableChunk.PeekCodedIndex(rowOffset + AssociationOffset, hasBigHasSemanticsIndex, CodedIndexType.HasSemantics);
         }
 
+        internal int FindSemanticMethods(CodedIndex index, ref ushort methodCount)
+        {
+            CompressedModelHeap.BinarySearchEcmaIndexRange(
+                tableChunk,
+                Count,
+                RowSize,
+                AssociationOffset,
+                (uint) (int) index,
+                hasBigHasSemanticsIndex,
+                out var startRowNumber,
+                out var endRowNumber
+            );
+
+            if (startRowNumber == -1)
+            {
+                methodCount = 0;
+                return 0;
+            }
+
+            methodCount = (ushort) (endRowNumber - startRowNumber + 1);
+            return startRowNumber + 1;
+        }
+
         public int GetRowOffset(MethodSemanticsIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodSemanticsRow this[MethodSemanticsIndex index] => this[(int) index];
+        public MethodSemanticsRow this[MethodSemanticsIndex index] => GetRow((int) index);
 
         protected override MethodSemanticsRow GetRow(int index) => new MethodSemanticsRow((MethodSemanticsIndex) index, this);
     }

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ClrDebug.DIA;
 using PESpy.PDB;
+using PESpy.View.Builder;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.View
@@ -19,6 +20,7 @@ namespace PESpy.View
             string fileName,
             out FileAccessor fileAccessor,
             IFileDisassembler disassembler = null,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             IFileAnalyzerProgress? progress = null)
         {
             fileAccessor = null;
@@ -30,7 +32,7 @@ namespace PESpy.View
             {
                 fileAccessor = FileAccessor.Create(file);
 
-                Analyze(fileAccessor, disassembler, progress);
+                Analyze(fileAccessor, disassembler, httpPolicy, progress);
             }
             catch
             {
@@ -47,6 +49,7 @@ namespace PESpy.View
         public static void Analyze(
             FileAccessor fileAccessor,
             IFileDisassembler disassembler = null,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             IFileAnalyzerProgress? progress = null)
         {
             var fileAccessor = AnalyzeInternal(file, disassembler, progress);
@@ -54,11 +57,12 @@ namespace PESpy.View
         private static void AnalyzeInternal(
             FileAccessor fileAccessor,
             IFileDisassembler disassembler,
+            LocatorHttpPolicy httpPolicy,
             IFileAnalyzerProgress? progress)
         {
             FileAnalyzer fileAnalyzer = fileAccessor.File.Kind switch
             {
-                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, progress),
+                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, httpPolicy, progress),
                 //FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, disassembler, progress),
@@ -160,6 +164,7 @@ namespace PESpy.View
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
+            _httpPolicy = httpPolicy;
             _progress = progress;
             _viewWriter = CreateViewWriter();
         }
@@ -235,7 +240,7 @@ namespace PESpy.View
         {
             Log(FileAnalyzerProgressPhase.LocateSymbols);
 
-            var symbolAccessor = _fileAccessor.GetSymbolAccessor(_progress);
+            var symbolAccessor = _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress);
 
             Log(FileAnalyzerProgressPhase.ProcessSymbols);
 
@@ -246,6 +251,20 @@ namespace PESpy.View
             {
                 case SymbolAccessorKind.PDB:
                     ProcessPDBSymbols(((PDBFileSymbolAccessor) symbolAccessor).PDBFile, sectionDataAccessor);
+                    break;
+
+                case SymbolAccessorKind.Coff:
+                    ProcessCoffSymbols(((CoffSymbolAccessor) symbolAccessor).Externals, sectionDataAccessor);
+                    break;
+
+                case SymbolAccessorKind.CodeView:
+                    //We don't currently have an NB02 symbol accessor; that would break this.
+                    //Note that NB09 derives from NB05
+                    ProcessCodeViewSymbols(((NB05SymbolAccessor) symbolAccessor).data, sectionDataAccessor);
+                    break;
+
+                case SymbolAccessorKind.SYM:
+                    ProcessSYMSymbols(((SYMFileSymbolAccessor) symbolAccessor).SYMFile, sectionDataAccessor);
                     break;
 
                 case SymbolAccessorKind.PortablePDB:
@@ -259,15 +278,25 @@ namespace PESpy.View
 
         internal void ProcessPDBSymbols(PDBFile pdbFile, ISectionDataAccessor sectionDataAccessor)
         {
-            //We just want items at global scope (publics / globals)
-            var globals = pdbFile.DBI?.Symbols;
+            /* Add top level symbols from Globals and Publics. Note that we can't just iterate snSymRecs directly,
+             * because this can contain junk not actually referenced from any location! e.g. this can occur if during
+             * compilation some symbols were written and then later re-written somewhere else and the old data was just
+             * left inactive */
 
             //I think Mod1::fAddSymRefToGSI shows all of the possible things you can get in globals
 
+            var globals = pdbFile.GSI?.Symbols;
+
+            //Another complicating factor we have is that symbols for managed assemblies often seem to contain complete gargage
+            //that points halfway into the ImageCorILMethod. We fix this by firstly ignoring any symbols that are a tokenref,
+            //and secondly by ignoring any publics that are fMSIL
             if (globals != null)
-            {
-                ProcessSymTypeList(globals, pdbFile, sectionDataAccessor);
-            }
+                ProcessGlobalSymbols(globals, pdbFile, sectionDataAccessor);
+
+            var publics = pdbFile.PSGSI?.Symbols;
+
+            if (publics != null)
+                ProcessGlobalSymbols(publics, pdbFile, sectionDataAccessor);
 
             //Not sure if you could have thunks if you didn't have globals
             var thunks = pdbFile.PSGSI?.ThunkEntries;
@@ -289,53 +318,228 @@ namespace PESpy.View
             }
         }
 
-        internal void ProcessSymTypeList(
+        enum SymSegmentKind
+        {
+            Other,
+            Code,
+            Data,
+            Imports
+        }
+
+        internal void ProcessCoffSymbols((ImageSymbol symbol, int length)[] externals, ISectionDataAccessor sectionDataAccessor)
+        {
+            for (var i = 0; i < externals.Length; i++)
+            {
+                ref var external = ref externals[i];
+
+                switch (external.symbol.DerivedType)
+                {
+                    case IMAGE_SYM_DTYPE.IMAGE_SYM_DTYPE_FUNCTION:
+                        ProcessFunctionSymbol((int) external.symbol.Value, (FixedUtf8String) external.symbol.Name.Name, sectionDataAccessor);
+                        break;
+
+                    case IMAGE_SYM_DTYPE.IMAGE_SYM_DTYPE_NULL:
+                        //This can be an import
+                        if (external.symbol.Name.Name.StartsWith("__imp__"))
+                            continue;
+
+                        if (external.symbol.Name.Name.StartsWith("\u007f") && external.symbol.Name.Name.EndsWith("_NULL_THUNK_DATA"))
+                            continue;
+
+                        ProcessDataSymbol((int) external.symbol.Value, (FixedUtf8String) external.symbol.Name.Name, sectionDataAccessor);
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+        }
+
+        internal void ProcessCodeViewSymbols(NB05Data data, ISectionDataAccessor sectionDataAccessor)
+        {
+            for (var i = 0; i < data.DirEntries.Length; i++)
+            {
+                ref var entry = ref data.DirEntries[i];
+
+                //DbgHelp will use the sections listed in sstSegMap if there's an OMAP FROM debug directory entry.
+                //Otherwise, it uses the section headers listed in the PE File
+                switch (entry.SubSection)
+                {
+                    case SST.sstGlobalPub:
+                    case SST.sstGlobalSym:
+                    case SST.sstStaticSym: //I don't think there'll be anything in these, but we'll process it anyway
+                        ProcessSymTypeList(((OMFHashedSymbols) data.DirEntries[i].Data).Symbols, data.GetCodeViewAccessor(), sectionDataAccessor);
+                        break;
+
+                    case SST.sstSymbols:
+                    case SST.sstPublicSym:
+                    case SST.sstAlignSym:
+                        var symbols = ((OMFModuleSymbols) data.DirEntries[i].Data!).List;
+                        ProcessSymTypeList(symbols, data.GetCodeViewAccessor(), sectionDataAccessor);
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+        }
+
+        private void ProcessSymTypeList(
             SymTypeList symTypeList,
             ICodeViewAccessor codeViewAccessor,
             ISectionDataAccessor sectionDataAccessor)
         {
             foreach (var symType in symTypeList)
+                ProcessSymType(symType, codeViewAccessor, sectionDataAccessor);
+        }
+
+        internal void ProcessSYMSymbols(SYMFile symFile, ISectionDataAccessor sectionDataAccessor)
+        {
+            var segments = symFile.Segments;
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+                ref var segment = ref segments[i];
+
+                SymSegmentKind segmentKind;
+
+                //Note: it's possible to have random data symbols in the code segment.
+                //e.g. SetLastError is preceded by _fSetLastError
+
+                if (segment.gd_achname == "_TEXT")
+                    segmentKind = SymSegmentKind.Code;
+                else if (segment.gd_achname == "DGROUP")
+                    segmentKind = SymSegmentKind.Data;
+                else if (segment.gd_achname == "IMPORT_THUNKS")
+                    segmentKind = SymSegmentKind.Imports;
+                else
+                {
+                    Debug.Assert(false);
+                    segmentKind = default;
+                }
+
+                //It's not really a "load segment address" but I'm guessing this is the segment index
+                var seg = segment.gd_lsa;
+
+                var symbols = segment.Symbols;
+
+                if (symbols.Symbols32 != null)
+                {
+                    var symbols32 = symbols.Symbols32;
+
+                    for (var j = 0; j < symbols.Symbols32.Length; j++)
+                    {
+                        ref var symbol = ref symbols32[j];
+
+                        var off = symbol.sd_lval;
+
+                        ProcessSYMSymbol(seg, off, segmentKind, symbol.sd_achname, sectionDataAccessor);
+                    }
+                }
+                else
+                {
+                    var symbols16 = symbols.Symbols16;
+
+                    for (var j = 0; j < symbols.Symbols16.Length; j++)
+                    {
+                        ref var symbol = ref symbols16[j];
+
+                        var off = symbol.sd16_val;
+
+                        ProcessSYMSymbol(seg, off, segmentKind, symbol.sd16_achname, sectionDataAccessor);
+                    }
+                }
+            }
+        }
+
+        private void ProcessSYMSymbol(ushort seg, int off, SymSegmentKind segmentKind, FixedAnsiString name, ISectionDataAccessor sectionDataAccessor)
+        {
+            var sectionHeaders = ((PEFileAccessor) _fileAccessor).PEFile.SectionHeaders;
+
+            //The section number we're given is 1 based
+            if (seg > sectionHeaders.Length)
+                return;
+
+            ref var sectionHeader = ref sectionHeaders[seg - 1];
+
+            var rva = sectionHeader.VirtualAddress + off;
+
+            switch (segmentKind)
+            {
+                case SymSegmentKind.Code:
+                    ProcessFunctionSymbol(rva, (FixedUtf8String) name, sectionDataAccessor);
+                    break;
+
+                case SymSegmentKind.Data:
+                    ProcessDataSymbol(rva, (FixedUtf8String) name, sectionDataAccessor);
+                    break;
+            }
+        }
+
+        internal void ProcessGlobalSymbols(
+            GlobalSymTypeList symTypeList,
+            ICodeViewAccessor codeViewAccessor,
+            ISectionDataAccessor sectionDataAccessor)
+        {
+            foreach (var symType in symTypeList)
+                ProcessSymType(symType, codeViewAccessor, sectionDataAccessor);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessSymType(
+            SymType symType,
+            ICodeViewAccessor codeViewAccessor,
+            ISectionDataAccessor sectionDataAccessor)
+        {
+            //We support all "addressable" symbols, meaning those that are capable of having an RVA
+            switch (symType.rectyp)
             {
                 var s = symType;
 
-                //We support all "addressable" symbols, meaning those that are capable of having an RVA
-                switch (s.rectyp)
-                {
-                    //RefSym
-                    case S_PROCREF_ST:
-                    case S_DATAREF_ST:
-                    case S_LPROCREF_ST:
-                        s = ((RefSym) s).GetSymbol(codeViewAccessor);
-                        goto default;
+                //RefSym2
+                case S_PROCREF:
+                case S_DATAREF:
+                case S_LPROCREF:
+                case S_ANNOTATIONREF:
+                    symType = ((RefSym2) symType).GetSymbol(codeViewAccessor);
 
-                    //RefSym2
-                    case S_PROCREF:
-                    case S_DATAREF:
-                    case S_LPROCREF:
-                    case S_ANNOTATIONREF:
-                    case S_TOKENREF:
-                        s = ((RefSym2) s).GetSymbol(codeViewAccessor);
-                        goto default;
+                    switch (symType.rectyp)
+                    {
+                        case S_GMANPROC:
+                        case S_GMANPROC_ST:
+                        case S_LMANPROC:
+                        case S_LMANPROC_ST:
+                            //S_GMANPROC symbols cannot be trusted; their off/seg values may point in the middle of UNWIND_INFO items
+                            return;
+                    }
 
-                    case S_PUB32:
-                    case S_PUB32_ST:
-                        ProcessPubSym32(symType, codeViewAccessor, sectionDataAccessor);
-                        break;
+                    goto default;
 
-                    case S_PUB16:
-                    case S_PUB32_16t:
-                        throw new NotImplementedException();
+                case S_TOKENREF:
+                    //TokenRef symbols cannot be trusted; they might resolve to a S_GMANPROC that has a bogus off/seg that may point in the middle of an UNWIND_INFO item
+                    return;
 
-                    default:
-                        //Some symbols point to sections that don't exist, so their RVAs are 0
-                        if (!s.TryGetRVA(codeViewAccessor, out var rva) || rva == 0)
-                            continue;
+                case S_PUB32:
+                case S_PUB32_ST:
+                    if (((PubSym32) symType).pubsymflags.fMSIL)
+                        return; //This symbol might point to the ImageCorILMethod. We don't want to convert this to code, as this will mean clearing out the leading Data byte to make it Unknown for the purposes of tracking disassembly
 
-                        var symTagEnum = s.GetSymTagEnum();
+                    ProcessPubSym32(symType, codeViewAccessor, sectionDataAccessor);
+                    break;
 
-                        ProcessSymbol(symTagEnum, s, rva, codeViewAccessor, sectionDataAccessor);
-                        break;
-                }
+                case S_PUB16:
+                case S_PUB32_16t:
+                    throw new NotImplementedException();
+
+                default:
+                    //Some symbols point to sections that don't exist, so their RVAs are 0
+                    if (!symType.TryGetRVA(codeViewAccessor, out var rva) || rva == 0)
+                        return;
+
+                    var symTagEnum = symType.GetSymTagEnum();
+
+                    ProcessSymbol(symTagEnum, symType, rva, codeViewAccessor, sectionDataAccessor);
+                    break;
             }
         }
 
@@ -354,7 +558,7 @@ namespace PESpy.View
                 case SymTagEnum.Thunk:
                     symType.TryGetName(out name);
 
-                    ProcessFunctionSymbol(symType, rva, name, codeViewAccessor, sectionDataAccessor);
+                    ProcessFunctionSymbol(rva, name, sectionDataAccessor);
                     break;
 
                 case SymTagEnum.Block:
@@ -368,9 +572,9 @@ namespace PESpy.View
 
                 case SymTagEnum.Data:
                 case SymTagEnum.VTable:
-                    symType.TryGetName(out name);
-
-                    ProcessDataSymbol(symType, rva, name, codeViewAccessor, sectionDataAccessor);
+                    //S_LDATA32 can have no name
+                    if (symType.TryGetName(out name) && name.Length > 0)
+                        ProcessDataSymbol(rva, name, sectionDataAccessor);
                     break;
 
                 //case SymTagEnum.Annotation:
@@ -381,10 +585,8 @@ namespace PESpy.View
         }
 
         private void ProcessFunctionSymbol(
-            SymType symType,
             int rva,
             FixedUtf8String name,
-            ICodeViewAccessor codeViewAccessor,
             ISectionDataAccessor sectionDataAccessor)
         {
             if (sectionDataAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
@@ -422,10 +624,8 @@ namespace PESpy.View
         }
 
         private void ProcessDataSymbol(
-            SymType symType,
             int rva,
             FixedUtf8String name,
-            ICodeViewAccessor codeViewAccessor,
             ISectionDataAccessor sectionDataAccessor)
         {
             //Things without names are noise. The caller should have already checked that.
@@ -467,7 +667,7 @@ namespace PESpy.View
 
             if (pubSym32.pubsymflags.fFunction)
             {
-                ProcessFunctionSymbol(symType, rva, name, codeViewAccessor, sectionDataAccessor);
+                ProcessFunctionSymbol(rva, name, sectionDataAccessor);
             }
             else if (pubSym32.pubsymflags.fCode || SymType.TryGetSectionCharacteristics(symType, pubSym32.seg, pubSym32.off, codeViewAccessor, out var characteristics) && (characteristics & ClrDebug.IMAGE_SCN.CNT_CODE) != 0)
             {
@@ -475,7 +675,7 @@ namespace PESpy.View
             }
             else
             {
-                ProcessDataSymbol(symType, rva, name, codeViewAccessor, sectionDataAccessor);
+                ProcessDataSymbol(rva, name, sectionDataAccessor);
             }
         }
 
@@ -564,22 +764,39 @@ namespace PESpy.View
         #endregion
         #region WorkDisasmQueue
 
-        protected void WorkDisasmQueue()
+        protected void WorkDisasmQueue(Dictionary<long, int> importMap)
         {
             Log(FileAnalyzerProgressPhase.WorkDisasmQueue);
 
             var disassembler = _fileDisassembler;
 
             if (disassembler == null)
+            {
+                //We don't have a disassembler, but our symbols may tell us how big each function is. But we'll defer utilizing our symbols
+                //for now, because in the case of publics we might just be told the bounds of the section contrib which may be wrong
                 return;
+            }
 
             //var numThreads = Environment.ProcessorCount;
             var numThreads = 1;
 
+            var exceptions = new List<Exception>();
+
             var threads = new Thread[numThreads];
             for (var i = 0; i < threads.Length; i++)
             {
-                var thread = new Thread(() => disassembler.WorkThreadProc(_fileAccessor, _globalWorkQueue, _globalWorkQueueLock, numThreads))
+                var thread = new Thread(() =>
+                {
+                    try
+                    {
+                        disassembler.WorkThreadProc(_fileAccessor, importMap, _globalWorkQueue, _globalWorkQueueLock, numThreads);
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (this)
+                            exceptions.Add(ex);
+                    }
+                })
                 {
                     Name = $"Disasm {i}",
                     IsBackground = true
@@ -597,6 +814,285 @@ namespace PESpy.View
 
         #endregion
 
+        protected void DiscoverDirectories()
+        {
+            var dataDirectories = new PooledList<DirectoryInfo>();
+
+            try
+            {
+                _viewWriter.CollectDataDirectories(ref dataDirectories);
+
+                /* In rare circumstances, you can have _nested_ directories. e.g. you can have
+                 * the ImportAddressTableDirectory actually be located _inside_ the ImportTableDirectory
+                 * This happens in C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git-receive-pack.exe.
+                 * As such, we need to do the following
+                 * 1. Split values overlapping the end of directories (as we normally would)
+                 * 2. Construct a hierarchy of directories in the event one directory contains another */
+
+                using var topLevelDirectories = new PooledList<RegionBuilder>();
+                using var firstDirectoryByAddress = new PooledList<RegionBuilder>();
+                using var stack = new ValueStack<RegionBuilder>();
+
+                //Split any data that overlaps the start/end of each directory
+                for (var i = 0; i < dataDirectories.Count; i++)
+                {
+                    ref var directoryInfo = ref dataDirectories.ItemRef(i);
+
+                    var pStartByte = _fileAccessor.GetViewByte(directoryInfo.Start, out var sectionAccessorIndex);
+                    SplitDirectoryStart(pStartByte, sectionAccessorIndex);
+
+                    var pEndByte = pStartByte + directoryInfo.Length - 1;
+
+                    //Watch out for directories that say they're bigger than the actual size available!
+                    ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+
+                    var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+
+                    if (pEndByte >= limit)
+                    {
+                        var extraLength = (int) (pEndByte - limit + 1);
+                        directoryInfo.End -= extraLength;
+                        pEndByte = pStartByte + directoryInfo.Length - 1;
+                    }
+
+                    //Passing the ref'd DirectoryInfo on the stack _does_ update the ref in the array
+                    SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref directoryInfo);
+
+                    while (stack.Count > 0 && directoryInfo.Start >= stack.PeekRef().End)
+                        stack.Pop();
+
+                    var newRegion = new RegionBuilder
+                    {
+                        Name = directoryInfo.Name,
+                        Kind = ViewKind.DataDirectory,
+                        Start = directoryInfo.Start,
+                        End = directoryInfo.End,
+                        Depth = stack.Count
+                    };
+
+                    if (stack.Count > 0)
+                    {
+                        ref var current = ref stack.PeekRef();
+
+                        if (current.Children == null)
+                            current.Children = new List<RegionBuilder>();
+
+                        current.Children.Add(newRegion);
+
+                        if (newRegion.Start != current.Start)
+                            firstDirectoryByAddress.Add(newRegion);
+                    }
+                    else
+                    {
+                        topLevelDirectories.Add(newRegion);
+                        firstDirectoryByAddress.Add(newRegion);
+                    }
+
+                    stack.Push(newRegion);
+                }
+
+                _fileAccessor.InstallDataDirectories(topLevelDirectories.ToArray(), firstDirectoryByAddress.ToArray());
+            }
+            finally
+            {
+                dataDirectories.Dispose();
+            }
+        }
+
+        private void SplitDirectoryStart(ViewByte* pStartByte, int sectionAccessorIndex)
+        {
+            var startKind = pStartByte->Kind;
+
+            //Rewind to the start of this value and try and split it. We can split random data,
+            //and don't have to worry about strings (that comes next)
+
+            if (startKind == ViewByteKind.Body)
+            {
+                var pEntityStart = pStartByte;
+
+                do
+                {
+                    pEntityStart--;
+                } while (pEntityStart->Kind == startKind);
+
+                //What kind of entity is overlapping the start of the section?
+                if (pEntityStart->Kind == ViewByteKind.Data && pEntityStart->DataKind == ViewByteDataKind.Unknown)
+                {
+                    //Junk; perfect! Let's split it
+                    pStartByte->Kind = ViewByteKind.Data;
+                }
+                else
+                    throw new NotImplementedException();
+            }
+            else if (startKind == ViewByteKind.Unknown)
+            {
+                //Be careful not to run off the start of the section!
+
+                var pEntityStart = pStartByte;
+
+                var pViewBytes = _fileAccessor.SectionAccessors[sectionAccessorIndex].pViewBytes;
+
+                do
+                {
+                    pEntityStart--;
+                } while (pEntityStart >= pViewBytes && pEntityStart->Kind == startKind);
+
+                pEntityStart++;
+
+                pStartByte->Kind = ViewByteKind.Data;
+
+                //Convert all unknowns after us into a body
+
+                ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+
+                var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+
+                var pByte = pStartByte + 1;
+
+                while (pByte < limit)
+                {
+                    if (pByte->Kind != ViewByteKind.Unknown)
+                        break;
+
+                    pByte->Kind = ViewByteKind.Body;
+                    pByte++;
+                }
+            }
+        }
+
+        private void SplitDirectoryEnd(ViewByte* pEndByte, ViewByte* limit, int sectionAccessorIndex, ref DirectoryInfo directoryInfo)
+        {
+            //pEndByte is the very last byte of the directory. Sometimes the listed size of a directory doesn't
+            //actually match the size of the data within it. If we're in the middle of reading a valid value,
+            //expand the directory to the end of it. In rare circumstances, there might be a 1 byte value at the end
+            //of the current directoryl that's OK
+
+            if (pEndByte->Kind != ViewByteKind.Body)
+            {
+                //We're either at the start of a value, or on some unknown data.
+
+                if (pEndByte->Kind == ViewByteKind.Unknown)
+                {
+                    //If the next byte after us is unknown, we need to make it not unknown so we don't
+                    //subsume it
+
+                    //If this check fails, we're at the end of the section; nothing to do
+                    if (pEndByte < limit - 1)
+                    {
+                        //There's still more data to go!
+                        var nextByte = pEndByte + 1;
+
+                        //If this check fails, the next value is different from us so we don't
+                        //need to split anything
+                        if (nextByte->Kind == ViewByteKind.Unknown)
+                        {
+                            //This is a bit unfortunate, but I don't think we have any other choice
+                            //to split the data
+                            nextByte->Kind = ViewByteKind.Data;
+
+                            for (var j = nextByte + 1; j < limit; j++)
+                            {
+                                if (j->Kind != ViewByteKind.Unknown)
+                                    break;
+
+                                j->Kind = ViewByteKind.Body;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var length = pEndByte->GetLength(limit);
+
+                    if (length == 1)
+                        return; //The last byte in the directory is its own standalone value. This is OK
+
+                    if (pEndByte->Kind == ViewByteKind.Data && pEndByte->DataKind == ViewByteDataKind.Unknown)
+                    {
+                        //If this check fails, we're at the end of the section; nothing to do
+                        if (pEndByte < limit - 1)
+                        {
+                            //There's still more data to go!
+                            var nextByte = pEndByte + 1;
+
+                            if (nextByte->Kind != ViewByteKind.Body)
+                                throw new NotImplementedException();
+
+                            //Just mark the next byte as unknown data too and we're done
+                            nextByte->Kind = ViewByteKind.Data;
+                            nextByte->DataKind = ViewByteDataKind.Unknown;
+                        }
+
+                        return;
+                    }
+
+                    //We're at the start of a known value, read to the end and we'll make that the "real end"
+
+                    throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                //We're on a body; is this the end of the current value?
+
+                //If this check fails, this is a different entity; all good
+                if (pEndByte < limit - 1)
+                {
+                    //There's still more data to go!
+                    var nextByte = pEndByte + 1;
+
+                    //If this check fails, this is a different entity; all good
+                    if (nextByte->Kind == ViewByteKind.Body)
+                    {
+                        //Need to split this value if we can. Rewind to find out what our head is
+
+                        var pEntityStart = pEndByte;
+
+                        do
+                        {
+                            pEntityStart--;
+                        } while (pEntityStart->Kind == ViewByteKind.Body);
+
+                        switch (pEntityStart->Kind)
+                        {
+                            case ViewByteKind.Data:
+                                switch (pEntityStart->DataKind)
+                                {
+                                    case ViewByteDataKind.Unknown:
+                                        //Junk; perfect! Let's split it
+                                        nextByte->Kind = ViewByteKind.Data;
+
+                                        //No need to tag the body; all bytes after us are already body
+                                        break;
+
+                                    case ViewByteDataKind.Struct:
+                                        //We're in a struct that extends past the end of the section. This commonly occurs
+                                        //in the load config and resource directories
+#if DEBUG
+                                        var entity = _fileAccessor.GetEntity(pEntityStart, sectionAccessorIndex);
+                                        Debug.Assert(entity.Kind == ViewKind.ImageLoadConfigDirectory);
+#endif
+                                        //Extend the length of the current directory to be the end of the current struct
+                                        //todo: in the case of resources, might there be even more structs out of bounds?
+                                        var structLength = pEntityStart->GetLength(limit);
+                                        var lengthInsideDirectory = (int) (pEndByte - pEntityStart + 1);
+                                        var lengthOutsideDirectory = structLength - lengthInsideDirectory;
+                                        directoryInfo.End += lengthOutsideDirectory;
+                                        break;
+
+                                    default:
+                                        throw new NotImplementedException();
+                                }
+                                break;
+
+                            default:
+                                throw new NotImplementedException();
+                        }
+                    }
+                }
+            }
+        }
+
         protected void Finalize(bool expandUnknownData)
         {
             //Important to do this prior to expanding unknown data, as we may discover that a given head
@@ -606,8 +1102,20 @@ namespace PESpy.View
             if (expandUnknownData)
                 ExpandUnknownData();
 
+            if (_fileDisassembler == null)
+                ExpandUnclaimedCode();
+
+            FinalizeCode();
+
             //Go through all remaining untagged bytes and mark any repeated sequences of 0x00 or 0xCC as being padding
             MarkPadding();
+
+            //Pre-calculate the length any regions containing large structs/sequences of unknown bytes
+            //so we're not constantly spinning trying to re-calculate this each time we try and inspect the entities that we have
+            MarkLargeAreas();
+
+            //Virtual so we can use our precomputed large areas
+            MarkRegions();
 
             //Must do this before attempting to validate names below
             _fileAccessor.Finalize(
@@ -615,6 +1123,7 @@ namespace PESpy.View
                 _numNameRefs,
                 _stringAddresses
             );
+
             _progress?.PhaseComplete(_lastPhase, GetPhaseTime());
             _progress?.PhaseComplete(FileAnalyzerProgressPhase.Max, _stopwatch.ElapsedMilliseconds);
         }
@@ -696,10 +1205,13 @@ namespace PESpy.View
             do
             {
                 pViewByte++;
-            } while (pViewByte < pEnd && (pViewByte->Kind == ViewByteKind.Unknown));
+            } while (pViewByte < pEnd && ((pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Body)));
 
-            //Don't think it should be possible to have body at this stage
-            Debug.Assert(pViewByte >= pEnd || pViewByte->Kind != ViewByteKind.Body);
+            //Don't think it should be possible to have body at this stage, unless we're dealing with
+            //known data of an unknown kind. Note: at least one way you _could_ get Body is if we had a struct
+            //and then encountered a symbol that blasted away its head to make it code instead, giving you Unknown
+            //followed by a Body
+            Debug.Assert(pViewByte >= pEnd || pViewByte->Kind != ViewByteKind.Body || pStart->Kind == ViewByteKind.Data);
 
             var length = (int) (pViewByte - pStart);
 
@@ -723,6 +1235,71 @@ namespace PESpy.View
                 SectionAddress = sectionAddress;
                 SectionStart = pSectionStart;
             }
+        }
+
+        private void ExpandUnclaimedCode()
+        {
+            var queue = _globalWorkQueue;
+
+            var symbolAccessor = _fileAccessor.GetSymbolAccessor();
+
+            //For each address, expand it up to the next item that follows it. We need to be careful however because when we only have
+            //public symbols, we rely on the size of the section contrib to get the length of each method, and this can sometimes (often?)
+            //be incorrect. While we could allocate a new buffer, sort the queue into it, then read it backwards, in practice I feel like
+            //it's probably fine just to write the queue in whatever order its in and then just overwrite body bytes with code as needed.
+            //This only messes up our ability to do reliable asserts
+
+            Parallel.ForEach(queue, item =>
+            {
+                var item = queue.Dequeue();
+
+                if (symbolAccessor.TryGetLengthFromAddress(item.RVA, _fileAccessor as ISectionDataAccessor, out var length))
+                {
+                    var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
+
+                    ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+                    var end = (ViewByte*) Math.Min((long) (pViewByte + length), (long) (sectionAccessor.pViewBytes + sectionAccessor.Length));
+
+                    //If we erroneously detected this sequence of bytes as being a string, we need to convert it back to code
+                    //and skip over its bytes before we continue eating regular bytes
+
+                    if (pViewByte->Kind == ViewByteKind.Data && (pViewByte->DataKind == ViewByteDataKind.String || pViewByte->DataKind == ViewByteDataKind.Unknown))
+                    {
+                        pViewByte->Kind = ViewByteKind.Code;
+                        pViewByte++;
+
+                        while (pViewByte < end)
+                        {
+                            if (pViewByte->Kind != ViewByteKind.Body)
+                                break;
+
+                            pViewByte++;
+                        }
+                    }
+                    else
+                    {
+                        Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Body);
+                        pViewByte->Kind = ViewByteKind.Code;
+
+                        pViewByte++;
+                    }
+
+                    while (pViewByte < end)
+                    {
+                        //In the event we're dealing with public symbols, and we only had a section contrib to tell us our length,
+                        //if we're in the same section contrib and have to change the Kind from Body to Code above, we expect
+                        //our length will go to the end of the same section contrib as well, thus I think it's safe to abort early
+                        if (pViewByte->Kind != ViewByteKind.Unknown)
+                            break;
+
+                        pViewByte->Kind = ViewByteKind.Body;
+                        pViewByte++;
+                        Debug.Assert(pViewByte >= end || pViewByte->BodyKind == ViewByteBodyKind.None);
+                    }
+                }
+            });
+
+            queue.Clear();
         }
 
         #region ExpandUnknownData
@@ -775,6 +1352,11 @@ namespace PESpy.View
         }
 
         #endregion
+
+        protected virtual void FinalizeCode()
+        {
+        }
+
         #region MarkPadding
 
         protected void MarkPadding()
@@ -813,12 +1395,8 @@ namespace PESpy.View
                                     //of telling whether the bytes are padding or not. Skip over all 0 bytes; we can't
                                     //classify them as padding
 
-                            case 0xCC:
-                                lastKind = ViewByteKind.Data;
-                                pViewByte->Kind = ViewByteKind.Data;
-                                pViewByte->DataKind = ViewByteDataKind.Padding;
-                                pViewByte++;
-                                pBytes++;
+                                    pViewByte++;
+                                    pBytes++;
 
                                     while (pViewByte < pEnd)
                                     {
@@ -830,8 +1408,6 @@ namespace PESpy.View
                                         else
                                             break;
                                     }
-                                    else
-                                        break;
                                 }
                                 else
                                 {
@@ -920,6 +1496,60 @@ namespace PESpy.View
         }
 
         #endregion
+
+        private void MarkLargeAreas()
+        {
+            Log(FileAnalyzerProgressPhase.MarkLargeAreas);
+
+            var sectionAccessors = _fileAccessor.SectionAccessors;
+
+            var objLock = new object();
+            var largeAddresses = new Dictionary<int, int>();
+
+            Parallel.For(0, sectionAccessors.Length, i =>
+            {
+                ref var sectionAccessor = ref sectionAccessors[i];
+
+                var offset = sectionAccessor.StartAddress;
+
+                _fileAccessor.GetRawSectionData(sectionAccessor, out var pBytes, out _, out _);
+
+                var pViewByte = sectionAccessor.pViewBytes;
+                var pEnd = pViewByte + sectionAccessor.Length;
+
+                while (pViewByte < pEnd)
+                {
+                    int length;
+
+                    switch (pViewByte->Kind)
+                    {
+                        case ViewByteKind.Unknown:
+                            length = pViewByte->GetUnknownLength(pEnd);
+                            break;
+
+                        default:
+                            length = pViewByte->GetLength(pEnd);
+                            break;
+                    }
+
+                    if (length > 1000)
+                    {
+                        var off = offset + (int) (pViewByte - sectionAccessor.pViewBytes);
+
+                        lock (objLock)
+                            largeAddresses[off] = length;
+                    }
+
+                    pViewByte += length;
+                }
+            });
+
+            _fileAccessor.LargeAddresses = largeAddresses;
+        }
+
+        protected virtual void MarkRegions()
+        {
+        }
 
 #if DEBUG
         protected void ValidateNames()

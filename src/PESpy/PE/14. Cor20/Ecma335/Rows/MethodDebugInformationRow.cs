@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Document = {Document}, SequencePoints = {SequencePoints}")]
+    [DebuggerDisplay("Document = {DocumentRow}, SequencePoints = {SequencePoints}")]
     public readonly struct MethodDebugInformationRow : IValue, IViewable
     {
         public MethodDebugInformationIndex RowIndex { get; }
@@ -14,6 +14,9 @@ namespace PESpy.Ecma335
         public BlobIndex SequencePoints => table.GetSequencePoints(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public DocumentRow DocumentRow => table.CompressedModelHeap.DocumentTable[Document];
 
         private readonly MethodDebugInformationTable table;
 

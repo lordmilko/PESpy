@@ -146,7 +146,11 @@ namespace PESpy
             s.WriteField(numSourceFilesName, NumSourceFiles);
             s.WriteField(moduleIndicesName, ModuleIndices);
             s.WriteField(moduleFileCountsName, ModuleFileCounts);
-            s.WriteField(fileNameOffsetsName, FileNameOffsets.AsFlat());
+
+            var flatFileNameOffsets = FileNameOffsets.AsFlat();
+
+            if (flatFileNameOffsets.Length > 0)
+                s.WriteField(fileNameOffsetsName, flatFileNameOffsets);
 
             //FileNameOffsets contains a list of relative offsets to each name. However, there could be multiple entries
             //pointing to the same name
@@ -174,8 +178,6 @@ namespace PESpy
             //microsoft-pdb shows it should be aligned
             s.Align(4);
 
-            Debug.Assert(parent.Size == s.Size, "Size was not correct");
-            return s.ToArray();
             structWriter.EagerFields = s.ToArray();
         }
     }

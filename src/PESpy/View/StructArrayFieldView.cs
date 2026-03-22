@@ -11,7 +11,7 @@ namespace PESpy.View
     }
 
     [DebuggerDisplay("{ViewDebuggerDisplay.StructArrayField(this),nq}")]
-    public class StructArrayFieldView<TValue> : IStructArrayFieldView where TValue : IViewable
+    public class StructArrayFieldView : IStructArrayFieldView
     {
         public int Offset => Value[0].Offset;
 
@@ -35,9 +35,9 @@ namespace PESpy.View
         public string FieldName { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public StructView<TValue>[] Value { get; }
+        public StructView[] Value { get; }
 
-        public string ValueType => $"{typeof(TValue).Name}[]";
+        public string ValueType => $"{Value[0].ValueType}[]";
 
         IStructView[] IStructArrayFieldView.Value => Value.Cast<IStructView>().ToArray();
 
@@ -50,7 +50,7 @@ namespace PESpy.View
 
         public void Accept(ViewVisitor visitor) => visitor.VisitStructArrayField(this);
 
-        public StructArrayFieldView(StructView<TValue>[] value, string fieldName)
+        public StructArrayFieldView(StructView[] value, string fieldName)
         {
             Value = value;
             FieldName = fieldName;

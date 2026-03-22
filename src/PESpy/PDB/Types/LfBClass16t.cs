@@ -56,6 +56,8 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        public static implicit operator LfEasy(LfBClass16t easy) => new LfEasy((lfEasy*) (byte*) easy.value);
+
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -76,7 +78,7 @@ namespace PESpy.PDB
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(index), indexOffset, index);
+                    structWriter.WriteField(nameof(index), indexOffset, value->index);
                     break;
 
                 case 2:

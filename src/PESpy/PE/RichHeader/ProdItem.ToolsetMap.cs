@@ -4,7 +4,38 @@ namespace PESpy
 {
     partial struct ProdItem
     {
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs97 => new[]
+        //Get the span that corresponds to toolset group that the tool is associated with
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> GetToolGroup(int index)
+        {
+            return index switch
+            {
+                Toolset_None => default,
+                VS_1997_5_0 => Group_VS_1997_5_0,
+                VS_1998_6_0 => Group_VS_1998_6_0,
+                MASM_6_13 => Group_MASM_6_13,
+                MASM_6_14 => Group_MASM_6_13,
+                VC_Tools_6_1 => Group_VC_Tools_6_1,
+                VC_Tools_6_20 => Group_VC_Tools_6_1,
+                VS_1998_6_0_Processor_Pack => Group_VS_1998_6_0_Processor_Pack,
+                MASM_6_15 => Group_MASM_6_13,
+                MASM_6_20 => Group_MASM_6_13,
+                VS_net_2002_7_0 => Group_VS_net_2002_7_0,
+                VS_net_2003_7_1_PreRelease => Group_VS_net_2003_7_1_PreRelease,
+                VS_net_2003_7_1 => Group_VS_net_2003_7_1,
+                VS_2005_8_0 => Group_VS_2005_8_0,
+                Phoenix_PreRelease => Group_VS_2008_9_0,
+                VS_2008_9_0 => Group_VS_2008_9_0,
+                Phoenix_10_0 => Group_VS_2010_10_0,
+                VS_2010_10_0 => Group_VS_2010_10_0,
+                VS_2010_10_1 => Group_VS_2010_10_0,
+                VS_2012_11_0 => Group_VS_2012_11_0,
+                VS_2013_12_0 => Group_VS_2013_12_0,
+                VS_2013_12_1 => Group_VS_2013_12_0,
+                VS_2015_14_0 => Group_VS_2015_14_0
+            };
+        }
+
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_1997_5_0 => new[]
         {
             // Group 1
             (7273, VS_1997_5_0, SP3),             //VS 1997 5.0 SP3
@@ -17,7 +48,7 @@ namespace PESpy
             (8181, VS_1997_5_0, DDK_1998_Tools),  //VS 1997 5.0 DDK 1998 Tools
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> embeddedVC2_vs98 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_1998_6_0 => new[]
         {
             // Group 2
             (8041, VS_1998_6_0,     RC),   //VS 1998 6.0 RC
@@ -67,7 +98,7 @@ namespace PESpy
             (9782, VS_1998_6_0,     SP6),  //VS 1998 6.0 SP6
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2002Beta => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_MASM_6_13 => new[]
         {
             // Group 3
             (7299, MASM_6_13,       None),              //MASM 6.13
@@ -76,7 +107,7 @@ namespace PESpy
             (9030, VS_net_2002_7_0, Beta),              //VS.net 2002 7.0 Beta
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> embeddedVC3 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VC_Tools_6_1 => new[]
         {
             // Group 4
             (8244, eMbedded_VC2_10, None),              //eMbedded VC2.10
@@ -96,7 +127,7 @@ namespace PESpy
             (8700, eMbedded_VC3,    None),              //eMbedded VC3
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> embeddedVC4 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_1998_6_0_Processor_Pack => new[]
         {
             // Group 5
             (8812, VS_1998_6_0_Processor_Pack, Tech__Preview), //VS 1998 6.0 Processor Pack Tech. Preview
@@ -122,7 +153,7 @@ namespace PESpy
             (9836, eMbedded_VC4,               SP4),           //eMbedded VC4 SP4
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2002 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_net_2002_7_0 => new[]
         {
             // Group 6
             (8177, VS_net_2002_7_0, PDC1998_Preview),   //VS.net 2002 7.0 PDC1998 Preview
@@ -165,7 +196,7 @@ namespace PESpy
             (9955, VS_net_2002_7_0, SP1),               //VS.net 2002 7.0 SP1
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2003DDK => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_net_2003_7_1_PreRelease => new[]
         {
             // Group 7
             (2100, VS_net_2003_7_1_PreRelease, W2k3_RC1_DDK),  //VS.net 2003 7.1 PreRelease W2k3 RC1 DDK
@@ -174,7 +205,7 @@ namespace PESpy
             (3085, VS_net_2003_7_1_PreRelease, WLH_b4074_DDK), //VS.net 2003 7.1 PreRelease WLH b4074 DDK
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> wcesPlatformBuilder_vs2003 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_net_2003_7_1 => new[]
         {
             // Group 8
             (2067, VS_net_2003_7_1,      W2k3_RC1_DDK),  //VS.net 2003 7.1 W2k3 RC1 DDK
@@ -203,7 +234,7 @@ namespace PESpy
             (6030, VS_net_2003_7_1,      SP1),           //VS.net 2003 7.1 SP1
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2005XDK => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2005_8_0 => new[]
         {
             // Group 9
             (417, VS_2005_8_0_Xbox360,    XDK),                //VS 2005 8.0 Xbox360 XDK
@@ -268,7 +299,7 @@ namespace PESpy
             (60511, WCE6_PlatformBuilder, RTM),                //WCE6 PlatformBuilder RTM
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2008 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2008_9_0 => new[]
         {
             // Group 10
             (8153, VS_2008_9_0_Xbox360, XDK),               //VS 2008 9.0 Xbox360 XDK
@@ -293,7 +324,7 @@ namespace PESpy
             (50304, VS_2008_9_1, None),                     //VS 2008 9.1
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2010 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2010_10_0 => new[]
         {
             // Group 11
             (10224, VS_2010_10_0_Xbox360, XDK),                //VS 2010 10.0 Xbox360 XDK
@@ -312,7 +343,7 @@ namespace PESpy
             (40219, VS_2010_10_0, SP1),                        //VS 2010 10.0 SP1
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2012 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2012_11_0 => new[]
         {
             // Group 12
             (40825, VS_2012_11_0, Developer_Preview), //VS 2012 11.0 Developer Preview
@@ -339,7 +370,7 @@ namespace PESpy
             (65501, VS_2012_11_0, PSDK),              //VS 2012 11.0 PSDK
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2013 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2013_12_0 => new[]
         {
             // Group 13
             (20222, VS_2013_12_0, CTP),                  //VS 2013 12.0 CTP
@@ -364,7 +395,7 @@ namespace PESpy
             (40629, VS_2013_12_0, Upd_5),                //VS 2013 12.0 Upd 5
         };
 
-        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> vs2015 => new[]
+        private static ReadOnlySpan<(int toolBuildId, int nameIndex, int releaseType)> Group_VS_2015_14_0 => new[]
         {
             // Group 14
 

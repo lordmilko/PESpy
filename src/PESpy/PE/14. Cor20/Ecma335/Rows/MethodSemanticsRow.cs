@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Semantics = {Semantics}, Method = {Method}, Association = {Association}")]
+    [DebuggerDisplay("Semantics = {Semantics}, Method = {MethodRow}, Association = {AssociationRow}")]
     public readonly struct MethodSemanticsRow : IValue, IViewable
     {
         public MethodSemanticsIndex RowIndex { get; }
@@ -17,6 +17,11 @@ namespace PESpy.Ecma335
         public CodedIndex Association => table.GetAssociation(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public MethodDefRow MethodRow => table.CompressedModelHeap.MethodDefTable[Method];
+
+        public object AssociationRow => Association.GetRow(table.CompressedModelHeap);
 
         private readonly MethodSemanticsTable table;
 

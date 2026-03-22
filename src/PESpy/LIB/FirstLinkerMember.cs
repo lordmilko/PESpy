@@ -9,12 +9,14 @@ namespace PESpy.LIB
         private const int NumberOfSymbolsOffset = ImageArchiveMemberHeader.StructSize;
         private const int OffsetsOffset = ImageArchiveMemberHeader.StructSize + sizeof(int);
 
-        private ImageArchiveMemberHeader archiveHeader;
+        private readonly ImageArchiveMemberHeader archiveHeader;
 
-        public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
+        public ImageArchiveMemberHeader ArchiveHeader => archiveHeader;
 
         public int NumberOfSymbols { get; }
 
+        //The symbols in the first linker member are apparently sorted by "module". This is a bit of a problem
+        //when it comes to certain libraries...as we don't know what the modules are!
         public int[] Offsets { get; }
 
         public RawValue<AnsiString>[] StringTable { get; }
@@ -79,6 +81,7 @@ namespace PESpy.LIB
                     break;
 
                 case 2:
+                    //While the data is stored in big endian, we're just displaying what the deserialized value is so this is OK
                     structWriter.WriteField("Offsets", OffsetsOffset, Offsets);
                     break;
 

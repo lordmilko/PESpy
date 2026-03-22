@@ -2,21 +2,24 @@
 {
     public sealed class InterfaceImplTable : Table<InterfaceImplRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ClassOffset;
         internal readonly int InterfaceOffset;
 
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigTypeDefOrRefIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal InterfaceImplTable(int numRows, int typeDefIndexSize, int typeDefOrRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal InterfaceImplTable(
+            int numRows,
+            int typeDefIndexSize,
+            int typeDefOrRefIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.23
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigTypeDefOrRefIndex = typeDefOrRefIndexSize == 4;
@@ -38,9 +41,37 @@
             return tableChunk.PeekCodedIndex(rowOffset + InterfaceOffset, isBigTypeDefOrRefIndex, CodedIndexType.TypeDefOrRef);
         }
 
+        internal void GetRange(TypeDefIndex typeDef, out int firstImplRowId, out int lastImplRowId)
+        {
+            CompressedModelHeap.BinarySearchEcmaIndexRange(
+                tableChunk,
+                Count,
+                RowSize,
+                ClassOffset,
+                (uint) typeDef.RowId,
+                isBigTypeDefOrRefIndex,
+                out var startRowNumber,
+                out var endRowNumber
+            );
+
+            if (startRowNumber == -1)
+            {
+                firstImplRowId = 0;
+                lastImplRowId = 0;
+            }
+            else
+            {
+                firstImplRowId = startRowNumber + 1;
+                lastImplRowId = endRowNumber + 2; //+1 gets us the actual last row and we want +2 to be +1 past it
+            }
+        }
+
+        public CustomAttributeList GetCustomAttributes(InterfaceImplIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.InterfaceImpl));
+
         public int GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public InterfaceImplRow this[InterfaceImplIndex index] => this[(int) index];
+        public InterfaceImplRow this[InterfaceImplIndex index] => GetRow((int) index);
 
         protected override InterfaceImplRow GetRow(int index) => new InterfaceImplRow((InterfaceImplIndex) index, this);
     }

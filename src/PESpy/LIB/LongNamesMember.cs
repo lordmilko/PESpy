@@ -2,11 +2,12 @@
 
 namespace PESpy.LIB
 {
+    //Store all ImageArchiveMemberHeader.Name names longer than 16 bytes
     public class LongNamesMember : IValue, IViewable
     {
         private readonly ImageArchiveMemberHeader archiveHeader;
 
-        public ref readonly ImageArchiveMemberHeader ArchiveHeader => ref archiveHeader;
+        public ImageArchiveMemberHeader ArchiveHeader => archiveHeader;
 
         public RawValue<AnsiString>[] Names { get; }
 

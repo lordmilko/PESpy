@@ -266,7 +266,7 @@ namespace PESpy
             os2Header = new ImageOS2Header(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
         }
 
-        public unsafe FileView GetView()
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new NEViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);
@@ -274,7 +274,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null)
         {
             if (CodeViewData != null)
                 return (ISymbolAccessor) ((NB05Data) CodeViewData).GetCodeViewAccessor();

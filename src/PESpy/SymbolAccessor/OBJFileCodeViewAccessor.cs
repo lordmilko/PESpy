@@ -37,5 +37,10 @@ namespace PESpy
 
         public int? GetRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
+
+        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

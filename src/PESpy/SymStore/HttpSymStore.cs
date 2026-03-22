@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -31,17 +32,30 @@ namespace PESpy
         }
 #endif
 
-        public HttpSymStore(string uri, SymStore? backingStore) : base(backingStore, uri)
+        public LocatorHttpPolicy HttpPolicy { get; }
+
+        private IFile _file;
+
+        public HttpSymStore(string uri, IFile file, LocatorHttpPolicy httpPolicy, SymStore? backingStore) : base(backingStore, uri)
         {
             //Uri.TryCreate drops the end of your base Uri if it does not end in a slash.
             //However, we're now doing without Uri entirely to reduce the size used in NativeAOT
 
+            //If a specific http policy was specified, we need to have been given a file to use (regardless of whether we're None or not,
+            //we still need to test what would happen if they had asked for Microsoft)
+            Debug.Assert(httpPolicy != LocatorHttpPolicy.All || file != null);
+
             Uri = uri;
+            HttpPolicy = httpPolicy;
+            _file = file;
         }
 
 #if !NATIVEAOT
         protected override ValueTask<(SymStoreFile file, Stream stream)?> GetFileAsync(SymStoreKey key, ILocatorProgress progress, CancellationToken cancellationToken)
         {
+            if (!AllowRequest())
+                return default;
+
             using var builder = new ValueStringBuilder();
             builder.Append(Uri);
 
@@ -55,7 +69,7 @@ namespace PESpy
 
         private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(string requestUri, ILocatorProgress progress, CancellationToken cancellationToken)
         {
-            progress?.NotifyRequest(requestUri);
+            progress?.Notify(LocatorProgressEventArgs.CreateBeginHttpRequest(requestUri));
 
             //We can't dispose the response immediately if we want to later read the stream
             var response = await Client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -64,7 +78,7 @@ namespace PESpy
 
             try
             {
-                progress?.NotifyResponse((int) response.StatusCode);
+                progress?.Notify(LocatorProgressEventArgs.CreateGotHttpResponse((int) response.StatusCode));
 
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                     return default;
@@ -322,6 +336,9 @@ namespace PESpy
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
+            if (!AllowRequest())
+                return default;
+
             using var builder = new ValueStringBuilder();
             builder.Append(Uri);
 
@@ -341,7 +358,6 @@ namespace PESpy
                 return default;
 
             return new(new SymStoreFile(uri), stream);
-            throw new NotImplementedException();
         }
 
         protected override (SymStoreFile file, Stream stream)? SaveFile(
@@ -351,6 +367,51 @@ namespace PESpy
             CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
+        }
+
+        private bool AllowRequest()
+        {
+            switch (HttpPolicy)
+            {
+                case LocatorHttpPolicy.None:
+                    return false;
+
+                case LocatorHttpPolicy.Microsoft:
+                    if (_file.Kind != FileKind.PE)
+                        return true;
+
+                    if (((PEFile) _file).TryGetVersionInfo(out var versionInfo))
+                    {
+                        foreach (var child in versionInfo.Children)
+                        {
+                            if (child is VsVersionInfo.StringFileInfo s)
+                            {
+                                foreach (var stringTable in s.Children)
+                                {
+                                    foreach (var str in stringTable.Children)
+                                    {
+                                        if (str.Key == "CompanyName")
+                                        {
+                                            if (str.Value.Contains("Microsoft", StringComparison.OrdinalIgnoreCase))
+                                                return true;
+
+                                            return false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    //If we can't specifically tell that it's a Microsoft file, assume it isn't
+                    return false;
+
+                case LocatorHttpPolicy.All:
+                    return true;
+
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 }

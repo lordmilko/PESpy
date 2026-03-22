@@ -36,9 +36,11 @@ for(int i = 0; i < 2; i++)
         WriteLine("#if !NATIVEAOT");
 #>
         public static <#= GetSignature("GetFile", "(string? filePath, SymStoreKey? keyUsed)", i, false) #>(
+            IFile? file,
             ReadOnlySpan<char> searchPath,
             SymStoreKey key,
             SymStoreKey? altKey,
+            LocatorHttpPolicy httpPolicy,
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
@@ -70,7 +72,7 @@ for(int i = 0; i < 2; i++)
 
                 if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase))
                 {
-                    store = new HttpSymStore(currentPath.ToString(), store);
+                    store = new HttpSymStore(currentPath.ToString(), file, httpPolicy, store);
                 }
                 else
                 {
@@ -169,7 +171,7 @@ for(int i = 0; i < 2; i++)
                 {
                     try
                     {
-                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateBeginCascadeStore(key, Name, BackingStore.Name));
 
                         fileAndStream = <#= CallFunction("BackingStore.GetFileOrCascade", "key, progress, cancellationToken", i) #>;
 
@@ -179,7 +181,7 @@ for(int i = 0; i < 2; i++)
 
                             try
                             {
-                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                progress?.Notify(LocatorProgressEventArgs.CreateCopyCascadeFile(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length));
                                 fileAndStream = <#= CallFunction("SaveFile", "key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken", i) #>;
                             }
                             finally
@@ -190,7 +192,7 @@ for(int i = 0; i < 2; i++)
                     }
                     finally
                     {
-                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateEndCascadeStore(key, Name, BackingStore.Name));
                     }
                 }
             }

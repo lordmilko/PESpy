@@ -61,8 +61,11 @@ namespace PESpy
             if (other == null)
                 return Value == default;
 
-            return StringHelpers.Equals(Value, Length, other);
+            return StringHelpers.Equals(Value, Length, other.AsSpan());
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(ReadOnlySpan<char> other) => StringHelpers.Equals(Value, Length, other);
 
         public int CompareTo(string other)
         {
@@ -84,6 +87,12 @@ namespace PESpy
         public static bool operator ==(string? left, FixedUtf8String right) => right.Equals(left);
         public static bool operator !=(string? left, FixedUtf8String right) => !right.Equals(left);
 
+        public static bool operator ==(FixedUtf8String left, ReadOnlySpan<char> right) => left.Equals(right);
+        public static bool operator !=(FixedUtf8String left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+        public static bool operator ==(ReadOnlySpan<char> left, FixedUtf8String right) => right.Equals(left);
+        public static bool operator !=(ReadOnlySpan<char> left, FixedUtf8String right) => !right.Equals(left);
+
         public static bool operator ==(FixedUtf8String left, FixedUtf8String right) => Equals(left, right);
         public static bool operator !=(FixedUtf8String left, FixedUtf8String right) => !Equals(left, right);
 
@@ -92,6 +101,10 @@ namespace PESpy
 
         #endregion
 
+        public FixedUtf8String Slice(int start) => new FixedUtf8String(Value + start, Length - start);
+
+        public FixedUtf8String Slice(int start, int length) => new FixedUtf8String(Value + start, length);
+
         public override bool Equals(object? obj)
         {
             if (obj is FixedUtf8String p)
@@ -99,6 +112,9 @@ namespace PESpy
 
             if (obj is string s)
                 return Equals(s);
+
+            if (obj == null)
+                return Value == default;
 
             return false;
         }

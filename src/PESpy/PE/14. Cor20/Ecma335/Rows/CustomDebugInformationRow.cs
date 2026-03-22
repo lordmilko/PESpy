@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Parent = {Parent}, Kind = {Kind}, Value = {Value}")]
+    [DebuggerDisplay("Parent = {ParentRow}, Kind = {Kind}, Value = {Value}")]
     public readonly struct CustomDebugInformationRow : IValue, IViewable
     {
         public CustomDebugInformationIndex RowIndex { get; }
@@ -16,6 +16,9 @@ namespace PESpy.Ecma335
         public BlobIndex Value => table.GetValue(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object ParentRow => Parent.GetRow(table.CompressedModelHeap);
 
         private readonly CustomDebugInformationTable table;
 

@@ -403,7 +403,7 @@ namespace PESpy.View
 
             if (foundEnd)
             {
-                var length = (j - i) + 2;
+                var length = (j - i);
 
                 if (length >= MinimumStringLength * 2) //4 characters
                 {
@@ -416,7 +416,7 @@ namespace PESpy.View
                     lock (stringAddresses)
                         stringAddresses.Add(sectionAddress + (int) (pStart - pSectionStart));
 
-                    for (var k = pStart + 1; k < pStart + length; k++)
+                    for (var k = pStart + 1; k < pStart + (length / 2); k++)
                         k->Kind = ViewByteKind.Body;
                 }
 

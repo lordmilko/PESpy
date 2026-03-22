@@ -52,9 +52,10 @@ namespace PESpy.View
                 }
 
                 ref var section = ref _peFile.SectionHeaders[_sectionIndex];
+                ref var sectionRange = ref _peFile.SectionRanges[_sectionIndex];
 
-                _lastSectionHeaderVirtualStart = section.VirtualAddress;
-                _lastSectionHeaderVirtualEnd = _lastSectionHeaderVirtualStart + section.VirtualSize;
+                _lastSectionHeaderVirtualStart = sectionRange.Start;
+                _lastSectionHeaderVirtualEnd = sectionRange.End;
                 _lastSectionHeaderPhysicalStart = section.PointerToRawData;
                 _lastSectionHeaderPhysicalEnd = _lastSectionHeaderPhysicalStart + section.SizeOfRawData;
                 _lastSectionIsCode = (section.Characteristics & IMAGE_SCN.CNT_CODE) != 0;
@@ -79,7 +80,7 @@ namespace PESpy.View
                 targetAddress = (rva - _lastSectionHeaderVirtualStart) + _lastSectionHeaderPhysicalStart;
 
                 //.textbss sections can have an empty pointer to raw data
-                if (targetAddress > _lastSectionHeaderPhysicalEnd || _lastSectionHeaderPhysicalStart == 0)
+                if (targetAddress >= _lastSectionHeaderPhysicalEnd || _lastSectionHeaderPhysicalStart == 0)
                 {
                     targetAddress = default;
                     sectionIndex = -1;

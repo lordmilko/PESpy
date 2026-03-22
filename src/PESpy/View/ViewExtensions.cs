@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Collections.Generic;
 
 namespace PESpy.View
@@ -17,5 +18,8 @@ namespace PESpy.View
                 }
             }
         }
+
+        public static bool Contains(this IView view, int offset) =>
+            offset >= view.Offset && offset < view.Offset + view.Size;
     }
 }

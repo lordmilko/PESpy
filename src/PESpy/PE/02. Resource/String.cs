@@ -77,6 +77,8 @@ namespace PESpy
                      * - When there is a value, its actual length can be less than the length listed! Which means you
                      *   should perhaps be looking for a null terminator instead of looking at the ValueLength
                      * - Except I apparently saw embedded null terminators once! So what am I supposed to do!
+                     * - And then to make matters worse, you can have a bogus value where there's a null terminated
+                     *   string that extends past the end of the struct
                      *
                      * Well, in the case where the ValueLength lied to us, the Length did not, so I _was_ supposed
                      * to just read up to the null terminator
@@ -159,7 +161,14 @@ namespace PESpy
 
                 if (ValueLength > 0)
                 {
-                    s.WriteUtf16NullTerminatedField(nameof(Value), Value);
+                    if (ValueStart + (ValueLength * sizeof(short)) > Length)
+                    {
+                        //The value is bogus, and with the null terminator extends past the end of the string
+                        var realValueLength = Length - ValueStart; //Length in bytes
+                        s.WriteByteBlob(realValueLength);
+                    }
+                    else
+                        s.WriteUtf16NullTerminatedField(nameof(Value), Value);
 
                     var extra = Extra;
 

@@ -5,6 +5,8 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
+    //Note: unfortunately even with all of the methods sealed and set to aggressive inlining,
+    //these virtual function calls don't get inlined
     public sealed class ViewSymTypeDispatcher : SymTypeDispatcher<IView>
     {
         private ViewWriter viewWriter;

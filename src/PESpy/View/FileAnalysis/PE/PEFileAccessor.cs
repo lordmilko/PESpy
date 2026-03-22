@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -11,8 +10,6 @@ namespace PESpy.View
         /// Gets the <see cref="PEFile"/> that this object provides access to.
         /// </summary>
         public PEFile PEFile { get; }
-
-        public DirectoryInfo[] DataDirectories { get; set; }
 
         public override IFile File => PEFile;
 
@@ -24,9 +21,11 @@ namespace PESpy.View
         private PESectionLookupCache _lookupCache;
         private ISymbolAccessor _symbolAccessor;
 
+        internal bool OwnsPEFile = true;
+
         private ViewWriter _viewWriter;
 
-        public PEFileAccessor(PEFile peFile) : base(peFile.Is32Bit ? 32 : 64)
+        public PEFileAccessor(PEFile peFile, bool trackXRefs) : base(peFile.Is32Bit ? 32 : 64, trackXRefs)
         {
             PEFile = peFile;
 
@@ -126,8 +125,16 @@ namespace PESpy.View
 
         protected override object CreateOverview()
         {
+            //If we don't have a symbol accessor yet, that's OK; we'll defer applying symbols until symbols
+            //have been loaded
+            return new PEFileOverview(PEFile, _symbolAccessor ?? NullSymbolAccessor.Instance);
+        }
+
+        protected override void RefreshOverviewSymbols()
+        {
+            //The caller _must_ have populated our symbol accessor at this point
             Debug.Assert(_symbolAccessor != null);
-            return new PEFileOverview(PEFile, _symbolAccessor);
+            ((PEFileOverview) _overview).RefreshSymbols(_symbolAccessor);
         }
 
         public override void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
@@ -204,6 +211,25 @@ namespace PESpy.View
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>
             _lookupCache.TryGetSectionInfo(rva, out targetAddress, out sectionIndex, out _);
 
+        public bool TryGetOffSeg(int rva, out int off, out ushort seg)
+        {
+            var sectionHeaders = PEFile.SectionHeaders;
+
+            for (var i = sectionHeaders.Length - 1; i >= 0; i--)
+            {
+                ref var sectionHeader = ref sectionHeaders[i];
+
+                if (rva >= sectionHeader.VirtualAddress)
+                {
+                    off = rva - sectionHeader.VirtualAddress;
+                    seg = (ushort) (i + 1);
+                    return true;
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
         void ISectionDataAccessor.GetRawSectionData(int targetAddress, out byte* pByte, out int remainingLength) =>
             _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, out pByte, out remainingLength);
 
@@ -273,11 +299,21 @@ namespace PESpy.View
 
         public override void Dispose()
         {
-            PEFile.Dispose();
+            if (OwnsPEFile)
+                PEFile.Dispose();
 
             base.Dispose();
         }
 
-        internal override ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => _symbolAccessor ??= PEFile.GetSymbolAccessor(progress);
+        internal override ISymbolAccessor GetSymbolAccessor(bool load, LocatorHttpPolicy httpPolicy, ILocatorProgress? progress)
+        {
+            if (_symbolAccessor == null)
+            {
+                if (load)
+                    _symbolAccessor = PEFile.GetSymbolAccessor(httpPolicy, progress);
+            }
+
+            return _symbolAccessor ?? NullSymbolAccessor.Instance;
+        }
     }
 }

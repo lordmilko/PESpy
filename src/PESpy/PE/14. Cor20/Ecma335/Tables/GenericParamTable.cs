@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class GenericParamTable : Table<GenericParamRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int NumberOffset;
         internal readonly int FlagsOffset;
         internal readonly int OwnerOffset;
@@ -15,14 +13,14 @@ namespace PESpy.Ecma335
         private readonly bool isBigTypeOrMethodDefIndex;
         private readonly bool isBigStringIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal GenericParamTable(int numRows, int typeOrMethodDefIndexSize, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal GenericParamTable(int numRows, int typeOrMethodDefIndexSize, int stringIndexSize, CompressedModelHeap compressedModelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.20
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigTypeOrMethodDefIndex = typeOrMethodDefIndexSize == 4;
@@ -59,9 +57,42 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
+        internal GenericParamList FindGenericParameters(CodedIndex index)
+        {
+            CompressedModelHeap.BinarySearchEcmaIndexRange(
+                tableChunk,
+                Count,
+                RowSize,
+                OwnerOffset,
+                (uint) (int) index,
+                isBigTypeOrMethodDefIndex,
+                out var startRowNumber,
+                out var endRowNumber
+            );
+
+            int startRid;
+            ushort genericParamCount;
+
+            if (startRowNumber == -1)
+            {
+                genericParamCount = 0;
+                startRid = 0;
+            }
+            else
+            {
+                genericParamCount = (ushort) (endRowNumber - startRowNumber + 1);
+                startRid = startRowNumber + 1;
+            }
+
+            return new GenericParamList(startRid, genericParamCount, CompressedModelHeap);
+        }
+
+        public CustomAttributeList GetCustomAttributes(GenericParamIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParam));
+
         public int GetRowOffset(GenericParamIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public GenericParamRow this[GenericParamIndex index] => this[(int) index];
+        public GenericParamRow this[GenericParamIndex index] => GetRow((int) index);
 
         protected override GenericParamRow GetRow(int index) => new GenericParamRow((GenericParamIndex) index, this);
     }

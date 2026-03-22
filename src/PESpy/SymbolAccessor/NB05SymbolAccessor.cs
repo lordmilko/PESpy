@@ -4,6 +4,7 @@ using System.Linq;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -97,34 +98,15 @@ namespace PESpy
             {
                 if (SectionContribsV40.TryGetSection(new NativeSpan<SC20>(pSectionContribs, sectionContribs.Length), sectionNumber, relativeOffset, out var sc))
                 {
-                    var scEnd = sc.off + sc.cb;
-
-                    var entries = moduleEntries[sc.imod - 1];
-
-                    for (var i = 0; i < entries.Length; i++)
+                    if (TryGetSymTypeFromModule(sc, sectionNumber, relativeOffset, out symType, out displacement))
                     {
-                        ref var entry = ref entries[i];
-
-                        OMFModuleSymbols symbols;
-
-                        switch (entry.SubSection)
+                        if (symType.TryGetName(out name, this))
                         {
-                            case SST.sstModule:
-                            case SST.sstSrcModule:
-                                continue;
-
-                            case SST.sstAlignSym:
-                                symbols = (OMFModuleSymbols) entry.Data;
-                                break;
-                        //Same logic as PDBFile: get the "closest" symbol. I think symbols may be listed in ascending order, which means if we go beyond the range
-                        //of the section contrib, we've gone too far
-                        if (PDBFile.TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, out var symType, out displacement))
+                            return true;
+                        }
+                        else
                         {
-                            if (symType.TryGetName(this, out name))
-                            {
-                                return true;
-                            }
-                            }
+                            throw new NotImplementedException();
                         }
                     }
                 }
@@ -133,6 +115,17 @@ namespace PESpy
             //Contrary to how we operate with PDBFile, we try publics last. We're not trying to "upgrade" symbols here, we're just trying to find
             //something with a given name
 
+            if (TryGetPubSym(sectionNumber, relativeOffset, out symType))
+            {
+                name = symType.GetName(this);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryGetPubSym(ISECT sectionNumber, int relativeOffset, out SymType symType)
+        {
             //First, try and get a public symbol. There's no guarantee that all linked object files included their private symbols in them,
             //so it's entirely possible that publics will be the best we get
             for (var i = 0; i < globalEntries.Length; i++)
@@ -142,13 +135,62 @@ namespace PESpy
                 switch (entry.SubSection)
                 {
                     case SST.sstGlobalPub:
-                        if (TryGetHashedSymbol((OMFHashedSymbols) entry.Data, sectionNumber, relativeOffset, out var symType))
+                        if (TryGetHashedSymbol((OMFHashedSymbols) entry.Data, sectionNumber, relativeOffset, out symType))
                         {
-                            name = symType.GetName(this);
                             return true;
                         }
 
                         break;
+
+                    case SST.sstPublic:
+                    case SST.sstPublicSym:
+                        throw new NotImplementedException();
+                }
+            }
+
+            symType = default;
+            return false;
+        }
+
+        private bool TryGetSymTypeFromModule(SC20 sc, ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        {
+            var scEnd = sc.off + sc.cb;
+
+            var entries = moduleEntries[sc.imod - 1];
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                ref var entry = ref entries[i];
+
+                OMFModuleSymbols symbols;
+
+                switch (entry.SubSection)
+                {
+                    case SST.sstModule:
+                    case SST.sstSrcModule:
+                        continue;
+
+                    case SST.sstAlignSym:
+                        symbols = (OMFModuleSymbols) entry.Data;
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                //Same logic as PDBFile: get the "closest" symbol. I think symbols may be listed in ascending order, which means if we go beyond the range
+                //of the section contrib, we've gone too far
+                if (PDBFile.TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, this, out symType, out displacement))
+                {
+                    return true;
+                }
+            }
+
+            symType = default;
+            displacement = default;
+            return false;
+        }
+
         public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
         {
             throw new NotImplementedException();
@@ -159,6 +201,8 @@ namespace PESpy
             var addressHashTable = hashedSymbols.AddressHashTable as IAddrHash32;
 
             if (addressHashTable == null)
+                throw new NotImplementedException(); //Not good; linear search the symbols instead then
+
             if (addressHashTable.TryGetSymbolOffset(sectionNumber, relativeOffset, out var symbolOffset))
             {
                 symType = hashedSymbols.GetSymbolFromOffset(symbolOffset);
@@ -168,6 +212,45 @@ namespace PESpy
 
             symType = default;
             return false;
+        }
+
+        public unsafe bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            length = default;
+
+            var sectionHeaders = GetSectionHeaders();
+
+            if (!ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, targetAddress, out var sectionNumber, out var relativeOffset))
+                return false;
+
+            SymType symType;
+
+            fixed (SC20* pSectionContribs = sectionContribs)
+            {
+                if (SectionContribsV40.TryGetSection(new NativeSpan<SC20>(pSectionContribs, sectionContribs.Length), sectionNumber, relativeOffset, out var sc))
+                {
+                    if (TryGetSymTypeFromModule(sc, sectionNumber, relativeOffset, out symType, out var displacement))
+                    {
+                        if (symType.TryGetLength(out length))
+                        {
+                            length -= displacement;
+                            return true;
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+
+                    if (TryGetPubSym(sectionNumber, relativeOffset, out symType))
+                    {
+                        length = sc.cb;
+                        return true;
+                    }
+                }
+            }
+
+            throw new System.NotImplementedException();
         }
 
         public void Dispose()
@@ -274,6 +357,11 @@ namespace PESpy
 
             dirEntry = default;
             return false;
+        }
+
+        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        {
+            throw new NotImplementedException();
         }
     }
 }

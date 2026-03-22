@@ -25,7 +25,7 @@ namespace PESpy
 
         public IMAGE_FILE_MACHINE Machine => (IMAGE_FILE_MACHINE) chunk.PeekUInt16(MachineOffset);
 
-        public uint TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         public int SizeOfData => chunk.PeekInt32(SizeOfDataOffset);
 

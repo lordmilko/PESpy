@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.PDB;
@@ -790,12 +791,26 @@ namespace PESpy
             if (dbi == null)
                 yield break;
 
+            /* Publics and Globals get their symbols from snSymRecs, so on that basis you might think to "get all non-module
+             * symbols you should iterate snSymRecs". However, it appears that this is not the case; it seems that snSymRecs
+             * can also contain "junk" symbols, such as REFSYM2 items that point to a symbol that doesn't exist. The REFSYM2
+             * that you find isn't the _real_ REFSYM2 that you should be using, it's an older stale one. The real REFSYM2
+             * is pointed to by globals */
             var symbols = dbi.Symbols;
 
-            if (symbols != null)
+            var gsi = GSI;
+
+            if (gsi != null)
             {
-                //It seems that publics can be located in symrecs as well
-                foreach (var item in symbols)
+                foreach (var item in gsi.Symbols)
+                    yield return item;
+            }
+
+            var psgsi = PSGSI;
+
+            if (psgsi != null)
+            {
+                foreach (var item in psgsi.Symbols)
                     yield return item;
             }
 
@@ -930,7 +945,7 @@ namespace PESpy
 
                 if (symbols != null)
                 {
-                    if (TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, out var betterSymbol, out var betterSymbolDisplacement))
+                    if (TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, this, out var betterSymbol, out var betterSymbolDisplacement))
                     {
                         symType = betterSymbol;
                         displacement = betterSymbolDisplacement;
@@ -945,45 +960,51 @@ namespace PESpy
             int relativeOffset,
             int scOff,
             int scEnd,
+            ICodeViewAccessor codeViewAccessor,
             out SymType symType,
             out int displacement)
         {
             /* We've got the section contrib that the target RVA belongs to; we just now need to find the "best" symbol inside of it.
              * In a Native AOT app you have a great big section contrib which basically contains most of the code. Simply being inside of the
-             * section contrib is not good enough; we need to get whoever's closest! I'm not 100% sure but it seems like symbols may be ordered
-             * by ascending offset, in which case what we can do is keep track of the last "best" symbol. If we go beyond the offset we're asking for,
-             * we've gone too far */
+             * section contrib is not good enough; we need to get whoever's closest!
+             * 
+             * Generally speaking, the symbols seem to be ordered, but I've confirmed that that's not _always_ the case! In coreclr, there's a crazy
+             * module where the addresses are all over the place, with multiple functions sharing the same start address. So in fact, the behavior of DIA
+             * seems to be to just take the last one that was found. Thus, we can't early out once we've found a match */
 
             SYMTYPE* betterSymbol = default;
             int betterSymbolOffset = relativeOffset;
 
+            //Get the best top level symbol
+
             foreach (var symbol in symbols.GetTopLevel())
             {
-                var symTag = symbol.GetSymTagEnum();
-
-                switch (symTag)
+                if (symbol.IsBlockSym())
                 {
-                    case SymTagEnum.Function:
-                        if (symbol.TryGetOffSeg(out var off, out var seg) && seg == sectionNumber && off >= scOff)
-                        {
-                            if (off <= relativeOffset && off < scEnd)
-                            {
-                                betterSymbol = symbol; //This is the new best symbol
-                                betterSymbolOffset = off;
-                            }
-                            else
-                            {
-                                if (betterSymbol != default)
-                                {
-                                    symType = betterSymbol;
-                                    displacement = relativeOffset - betterSymbolOffset; //todo: recurse deeper into blocks?
+                    switch (symbol.rectyp)
+                    {
+                        //My analysis of DIA was that thunk symbols are immediately considered to be better, but what I've written here
+                        //doesn't make sense...don't we have to check the address as well?
+                        case SYM_ENUM_e.S_THUNK16:
+                            var thunk16 = (ThunkSym16) symbol;
 
-                                    return true;
-                                }
+                            if (sectionNumber == thunk16.seg && relativeOffset >= thunk16.off && relativeOffset < thunk16.off + thunk16.len)
+                            {
+                                betterSymbol = symbol;
                             }
-                        }
 
-                        break;
+                            break;
+
+                        case SYM_ENUM_e.S_THUNK32:
+                        case SYM_ENUM_e.S_THUNK32_ST:
+                            var thunk32 = (ThunkSym32) symbol;
+
+                            if (sectionNumber == thunk32.seg && relativeOffset >= thunk32.off && relativeOffset < thunk32.off + thunk32.len)
+                            {
+                                betterSymbol = symbol;
+                            }
+
+                            break;
 
                     //S_SEPCODE is SymEnumBlock, but I don't think this means anything
                     //case ClrDebug.DIA.SymTagEnum.Block:
@@ -992,15 +1013,63 @@ namespace PESpy
                         betterSymbol = symbol;
                         break;
 
-                    default:
-                        Debug.Assert(symbol.rectyp != SYM_ENUM_e.S_TRAMPOLINE); //DIA special handles these somehow
-                        break;
+                    GetBetterSymbol(symbol, sectionNumber, relativeOffset, scOff, scEnd, ref betterSymbol, ref betterSymbolOffset);
                 }
+            }
+
+                do
+                {
+                    evenBetterSymbol = default;
+
+                    var children = ((BlockSym) (SymType) betterSymbol).GetChildren(codeViewAccessor);
+
+                    foreach (var child in children)
+                    {
+                        if (child.IsBlockSym())
+                        {
+                            GetBetterSymbol(child, sectionNumber, relativeOffset, scOff, scEnd, ref evenBetterSymbol, ref betterSymbolOffset);
+
+                            //The logic inside GetBetterSymbol is designed for finding the closest symbol to the target address inside a top level section contrib.
+                            //That doesn't apply to the children inside a block
+                            if (evenBetterSymbol != default)
+                            {
+                                betterSymbol = evenBetterSymbol;
+                            }
+                        }
+                    }
+                } while (evenBetterSymbol != default);
+
+                symType = betterSymbol;
+                displacement = relativeOffset - betterSymbolOffset;
+                return true;
             }
 
             symType = default;
             displacement = default;
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void GetBetterSymbol(
+            SymType symbol,
+            ushort sectionNumber,
+            int relativeOffset,
+            int scOff,
+            int scEnd,
+            ref SYMTYPE* betterSymbol,
+            ref int betterSymbolOffset)
+        {
+            if (symbol.TryGetOffSeg(out var off, out var seg) && seg == sectionNumber && off >= scOff)
+            {
+                //Simply being inside the section contrib is not enough; we need to get the _closest_ symbol to the target offset.
+                //And even once we've got a match (even if perfect), there may be symbols that share the same address that DIA says
+                //should overwrite the best result
+                if (off <= relativeOffset && off < scEnd)
+                {
+                    betterSymbol = symbol; //This is the new best symbol
+                    betterSymbolOffset = off;
+                }
+            }
         }
 
         //Section numbers are 1 based
@@ -1085,6 +1154,24 @@ namespace PESpy
             return TryGetModuleIndexBySectionAndOffset(seg, off, out imod, out _);
         }
 
+        public bool TryGetModuleBySymType(in SymType symType, out IModi modi)
+        {
+            if (TryGetModuleIndexBySymType(symType, out var imod))
+            {
+                //We already know we have a DBI at this point
+                var modules = DBI!.Modules;
+
+                if (modules != null && imod < modules.Length)
+                {
+                    modi = modules[imod];
+                    return true;
+                }
+            }
+
+            modi = default;
+            return false;
+        }
+
         #region ISymbolAccessor
 
         ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr;
@@ -1162,7 +1249,7 @@ namespace PESpy
             //Any Free pages are automatically detected during merging
         }
 
-        public FileView GetView()
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
         {
             var writer = new PDBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -1170,7 +1257,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
         internal ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 
@@ -1199,6 +1286,7 @@ namespace PESpy
                 GC.SuppressFinalize(this);
 
             psgsi?.Dispose();
+            tpi?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

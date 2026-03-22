@@ -4,16 +4,13 @@
     {
         DiscoverGlobals,
         DiscoverCodeRoots,
-        DiscoverSymbols,
+        LocateSymbols,
+        ProcessSymbols,
         WorkDisasmQueue,
         CollectStrings,
         ExpandUnknownData,
         MarkPadding,
-
-#if DEBUG
-        ValidateNames,
-        ValidateBodyReferences,
-#endif
+        MarkLargeAreas,
 
         Max
     }

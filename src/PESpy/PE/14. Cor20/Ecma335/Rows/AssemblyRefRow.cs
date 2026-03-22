@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Reflection;
 using ClrDebug;
 using PESpy.View;
+using AssemblyHashAlgorithm = System.Configuration.Assemblies.AssemblyHashAlgorithm;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Version = {MajorVersion.ToString(),nq}.{MinorVersion.ToString(),nq}.{BuildNumber.ToString(),nq}.{RevisionNumber.ToString(),nq}, Flags = {Flags}, PublicKeyOrToken = {PublicKeyOrToken}, Name = {Name.ToString(),nq}, Culture = {Culture.ToString(),nq}, HashValue = {HashValue}")]
     public readonly struct AssemblyRefRow : IValue, IViewable
     {
         public AssemblyRefIndex RowIndex { get; }
@@ -15,7 +15,9 @@ namespace PESpy.Ecma335
         public short BuildNumber => table.GetBuildNumber(RowIndex);
         public short RevisionNumber => table.GetRevisionNumber(RowIndex);
 
-        public AssemblyFlags Flags => table.GetFlags(RowIndex);
+        public Version Version => new Version(MajorVersion, MinorVersion, BuildNumber, RevisionNumber);
+
+        public CorAssemblyFlags Flags => table.GetFlags(RowIndex);
 
         public BlobIndex PublicKeyOrToken => table.GetPublicKeyOrToken(RowIndex);
 
@@ -24,6 +26,8 @@ namespace PESpy.Ecma335
         public StringIndex Culture => table.GetCulture(RowIndex);
 
         public BlobIndex HashValue => table.GetHashValue(RowIndex);
+
+        public AssemblyName AssemblyName => CompressedModelHeap.GetAssemblyName(Name, Version, Culture, PublicKeyOrToken, AssemblyHashAlgorithm.None, Flags);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -36,6 +40,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -91,5 +97,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => AssemblyName.ToString();
     }
 }

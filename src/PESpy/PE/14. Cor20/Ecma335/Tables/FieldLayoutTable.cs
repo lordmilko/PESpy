@@ -2,18 +2,20 @@
 {
     public sealed class FieldLayoutTable : Table<FieldLayoutRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int FieldOffsetOffset;
         internal readonly int FieldOffset;
 
         private readonly bool isBigFieldIndexSize;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal FieldLayoutTable(int numRows, int fieldIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal FieldLayoutTable(
+            int numRows,
+            int fieldIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigFieldIndexSize = fieldIndexSize == 4;
 
@@ -36,7 +38,7 @@
 
         public int GetRowOffset(FieldLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldLayoutRow this[FieldLayoutIndex index] => this[(int) index];
+        public FieldLayoutRow this[FieldLayoutIndex index] => GetRow((int) index);
 
         protected override FieldLayoutRow GetRow(int index) => new FieldLayoutRow((FieldLayoutIndex) index, this);
     }

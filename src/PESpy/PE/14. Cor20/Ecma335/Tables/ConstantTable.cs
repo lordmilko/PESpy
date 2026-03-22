@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ConstantTable : Table<ConstantRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int TypeOffset;
         internal readonly int PaddingOffset;
         internal readonly int ParentOffset;
@@ -15,12 +13,18 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasConstantIndexSize;
         private readonly bool isBigBlobIndexSize;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ConstantTable(int numRows, int hasConstantIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ConstantTable(
+            int numRows,
+            int hasConstantIndexSize,
+            int blobIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasConstantIndexSize = hasConstantIndexSize == 4;
@@ -57,9 +61,23 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ValueOffset, isBigBlobIndexSize), blobHeap);
         }
 
+        internal ConstantIndex FindConstant(CodedIndex index)
+        {
+            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                ParentOffset,
+                (uint) (int) index,
+                isBigHasConstantIndexSize
+            );
+
+            return (ConstantIndex) (foundRowNumber + 1);
+        }
+
         public int GetRowOffset(ConstantIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ConstantRow this[ConstantIndex index] => this[(int) index];
+        public ConstantRow this[ConstantIndex index] => GetRow((int) index);
 
         protected override ConstantRow GetRow(int index) => new ConstantRow((ConstantIndex) index, this);
     }

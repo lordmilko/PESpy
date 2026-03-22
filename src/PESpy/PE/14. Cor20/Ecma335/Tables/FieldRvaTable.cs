@@ -2,18 +2,20 @@
 {
     public sealed class FieldRvaTable : Table<FieldRvaRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int RVAOffset;
         internal readonly int FieldOffset;
 
         private readonly bool isBigFieldIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal FieldRvaTable(int numRows, int fieldIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal FieldRvaTable(
+            int numRows,
+            int fieldIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigFieldIndex = fieldIndexSize == 4;
 
@@ -34,9 +36,23 @@
             return (FieldIndex) tableChunk.PeekEcmaIndex(rowOffset + FieldOffset, isBigFieldIndex);
         }
 
+        internal FieldRvaIndex FindFieldRvaRowId(int fieldDefRowId)
+        {
+            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                FieldOffset,
+                (uint) fieldDefRowId,
+                isBigFieldIndex
+            );
+
+            return (FieldRvaIndex) (foundRowNumber + 1);
+        }
+
         public int GetRowOffset(FieldRvaIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldRvaRow this[FieldRvaIndex index] => this[(int) index];
+        public FieldRvaRow this[FieldRvaIndex index] => GetRow((int) index);
 
         protected override FieldRvaRow GetRow(int index) => new FieldRvaRow((FieldRvaIndex) index, this);
     }

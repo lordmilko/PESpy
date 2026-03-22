@@ -8,7 +8,7 @@ namespace PESpy.View
     /// <summary>
     /// Represents a lightweight descriptor over a <see cref="ViewByte"/> that also provides access to the information contained in its <see cref="ViewInfo"/>
     /// </summary>
-    [DebuggerDisplay("[0x{TargetAddress.ToString(\"X\"),nq}-0x{(TargetAddress + Length).ToString(\"X\"),nq}] {ToString(),nq}")]
+    [DebuggerDisplay("[0x{TargetAddress.ToString(\"X\"),nq}-0x{(TargetAddress + Length - 1).ToString(\"X\"),nq}] {ToString(),nq}")]
     public unsafe struct ViewEntity
     {
         public ViewByte* ViewByte;
@@ -22,42 +22,47 @@ namespace PESpy.View
         public bool HasChildren;
         public long Displacement;
 
+        public bool IsSplit;
+
         public NativeSpan<byte> Bytes => new NativeSpan<byte>(_pData, Length);
 
         private byte* _pData;
 
         internal ViewEntity(
             ISymbolAccessor symbolAccessor,
-            int sectionAccessorIndex,
             in SectionAccessor sectionAccessor,
             int sectionAccessorOffset,
             int sectionAccessorLength,
             IntPtr pBytes,
             Dictionary<int, ViewInfo> infoMap,
-            FixedUtf8String[] names)
+            FixedUtf8String[] names,
+            Dictionary<int, int> largeAddresses,
+            bool measureOnly = false)
             : this(
                   symbolAccessor: symbolAccessor,
-                  sectionAccessorIndex: sectionAccessorIndex,
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
                   pStart: sectionAccessor.pViewBytes,
                   pEnd: sectionAccessor.pViewBytes + sectionAccessorLength,
                   pBytes,
                   infoMap,
-                  names)
+                  names,
+                  largeAddresses,
+                  measureOnly)
         {
         }
 
         internal ViewEntity(
             ISymbolAccessor symbolAccessor,
-            int sectionAccessorIndex,
             int targetAddress,
             ViewByte* pViewByte,
             ViewByte* pStart,
             ViewByte* pEnd,
             IntPtr pBytes,
             Dictionary<int, ViewInfo> infoMap,
-            FixedUtf8String[] names)
+            FixedUtf8String[]? names,
+            Dictionary<int, int> largeAddresses,
+            bool measureOnly = false)
         {
             TargetAddress = targetAddress;
             ViewByte = pViewByte;
@@ -72,15 +77,19 @@ namespace PESpy.View
                 //This is the start of a contiguous code block; keep reading bytes until we hit something that is not code or body
                 while (body < pEnd)
                 {
-                    if (body->Kind == ViewByteKind.Body || body->Kind == ViewByteKind.Code)
+                    if (body->Kind == ViewByteKind.Code)
                     {
-                        if (body->BodyKind == ViewByteBodyKind.SplitTail)
-                            throw new NotImplementedException();
-
-                        body++;
+                        if (body->IsFunction)
+                            break;
                     }
-                    else
+
+                    if (body->Kind != ViewByteKind.Body)
                         break;
+
+                    if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                        throw new NotImplementedException();
+
+                    body++;
                 }
 
                 HasChildren = true;
@@ -89,7 +98,7 @@ namespace PESpy.View
             {
                 //If this is the first instruction of a code chunk, roll all the code up into one chunk
 
-                if (symbolAccessor.TryGetNameFromAddress(targetAddress, out var symName, out var disp))
+                if (!measureOnly && symbolAccessor.TryGetNameFromAddress(targetAddress, out var symName, out var disp))
                 {
                     Name = symName;
                     Displacement = disp;
@@ -181,9 +190,11 @@ namespace PESpy.View
                     if (body->Kind == ViewByteKind.Body)
                     {
                         if (body->BodyKind == ViewByteBodyKind.SplitTail)
-                            throw new NotImplementedException();
-
-                        body++;
+                        {
+                            //There's more data in the next page
+                            body++; //We own this byte
+                            IsSplit = true;
+                            break;
                     }
                     else
                         break;
@@ -196,17 +207,23 @@ namespace PESpy.View
 
             Length = (int) (body - pViewByte);
 
-            if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String)
+            if (!measureOnly)
             {
-                if (pViewByte->IsWide)
-                    NameWide = new FixedUtf16String((char*) pData, Length / 2);
+                if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String)
+                {
+                    if (pViewByte->IsWide)
+                        NameWide = new FixedUtf16String((char*) pData, Length / 2);
+                    else
+                        Name = new FixedUtf8String((byte*) pData, Length);
+                }
                 else
-                    Name = new FixedUtf8String((byte*) pData, Length);
-            }
-            else
-            {
-                if (viewInfo.NameIndex != 0)
-                    Name = names[viewInfo.NameIndex - 1];
+                {
+                    if (viewInfo.NameIndex != 0 && names != null)
+                        Name = names[viewInfo.NameIndex - 1];
+                }
+
+                if (ViewByte->Kind == ViewByteKind.Body && ViewByte->BodyKind == ViewByteBodyKind.SplitHead)
+                    IsSplit = true;
             }
 
             Kind = viewInfo.ViewKind;
@@ -249,8 +266,14 @@ namespace PESpy.View
                 builder.AppendHex(@byte);
                 builder.Append(')');
             }
-            else if (ViewByte->Kind == ViewByteKind.Unknown)
+            else if (ViewByte->Kind == ViewByteKind.Unknown || (ViewByte->Kind == ViewByteKind.Data && ViewByte->DataKind == ViewByteDataKind.Unknown))
             {
+                if (Name.Length > 0)
+                {
+                    builder.Append(Name);
+                    builder.Append(" -> ");
+                }
+
                 builder.Append("Unknown (");
                 builder.Append(Length);
                 builder.Append(')');
@@ -273,6 +296,18 @@ namespace PESpy.View
                 builder.Append("Function");
             else
                 builder.Append(ViewByte->Kind.ToString());
+        }
+
+        internal ViewEntity GetSplitHeadOrigin(FileAccessor fileAccessor, out int bytesRewound)
+        {
+            Debug.Assert(ViewByte->Kind == ViewByteKind.Body && ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
+
+            ViewByte* pViewByte = ViewByte;
+            var offset = TargetAddress;
+
+            ((PDBFileAccessor) fileAccessor).GetSplitHeadOrigin(ref pViewByte, ref offset, out var sectionIndex, out bytesRewound);
+
+            return fileAccessor.GetEntity(offset, pViewByte, sectionIndex);
         }
 
         public override string ToString()

@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Class = {Class}, MethodBody = {MethodBody}, MethodDeclaration = {MethodDeclaration}")]
+    [DebuggerDisplay("Class = {ClassRow}, MethodBody = {MethodBodyRow}, MethodDeclaration = {MethodDeclarationRow}")]
     public readonly struct MethodImplRow : IValue, IViewable
     {
         public MethodImplIndex RowIndex { get; }
@@ -17,6 +17,13 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public TypeDefRow ClassRow => table.CompressedModelHeap.TypeDefTable[Class];
+
+        public object MethodBodyRow => MethodBody.GetRow(table.CompressedModelHeap);
+
+        public object MethodDeclarationRow => MethodDeclaration.GetRow(table.CompressedModelHeap);
+
         private readonly MethodImplTable table;
 
         internal MethodImplRow(MethodImplIndex index, MethodImplTable table)
@@ -26,6 +33,11 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        //System.Reflection.Metadata contains a GetCustomAttributes method on MethodImplementation,
+        //however this seems suspicious: MethodImpl is not a supported table kind for the
+        //HasCustomAttributeTag coded index, and it seems like SRM just returns a coded index of 0
+        //for this. I feel like it was a mistake adding it?
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

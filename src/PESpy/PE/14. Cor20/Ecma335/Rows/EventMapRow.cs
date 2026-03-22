@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Parent = {Parent}, EventList = {EventList}")]
+    [DebuggerDisplay("Parent = {ParentRow}, EventList = {EventList}")]
     public readonly struct EventMapRow : IValue, IViewable
     {
         public EventMapIndex RowIndex { get; }
@@ -14,6 +14,11 @@ namespace PESpy.Ecma335
         public EventIndex EventList => table.GetEventList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public TypeDefRow ParentRow => table.CompressedModelHeap.TypeDefTable[Parent];
+
+        //EventList points to the first property in the list
 
         private readonly EventMapTable table;
 

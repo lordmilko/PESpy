@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("PackingSize = {PackingSize}, ClassSize = {ClassSize}, Parent = {Parent}")]
+    [DebuggerDisplay("PackingSize = {PackingSize}, ClassSize = {ClassSize}, Parent = {ParentRow}")]
     public readonly struct ClassLayoutRow : IValue, IViewable
     {
         public ClassLayoutIndex RowIndex { get; }
@@ -16,6 +16,9 @@ namespace PESpy.Ecma335
         public TypeDefIndex Parent => table.GetParent(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public TypeDefRow ParentRow => table.CompressedModelHeap.TypeDefTable[Parent];
 
         private readonly ClassLayoutTable table;
 

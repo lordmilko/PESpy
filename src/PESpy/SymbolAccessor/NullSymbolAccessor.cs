@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using PESpy.View;
+
+namespace PESpy
 {
     internal class NullSymbolAccessor : ISymbolAccessor
     {
@@ -17,7 +19,13 @@
         {
             targetAddress = default;
             return false;
-        }        
+        }
+
+        public bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            length = default;
+            return false;
+        }
 
         public void Dispose()
         {

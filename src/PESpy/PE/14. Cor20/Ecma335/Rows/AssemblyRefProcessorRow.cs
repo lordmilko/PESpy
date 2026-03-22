@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Processor = {Processor}, AssemblyRef = {AssemblyRef}")]
+    [DebuggerDisplay("Processor = {Processor}, AssemblyRef = {AssemblyRefRow}")]
     public readonly struct AssemblyRefProcessorRow : IValue, IViewable
     {
         public AssemblyRefProcessorIndex RowIndex { get; }
@@ -14,6 +14,9 @@ namespace PESpy.Ecma335
         public AssemblyRefIndex AssemblyRef => table.GetAssemblyRef(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public AssemblyRefRow AssemblyRefRow => table.CompressedModelHeap.AssemblyRefTable[AssemblyRef];
 
         private readonly AssemblyRefProcessorTable table;
 

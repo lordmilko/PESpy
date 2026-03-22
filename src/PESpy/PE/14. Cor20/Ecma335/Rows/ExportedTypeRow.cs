@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Flags = {Flags}, TypeDefId = {TypeDefId}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}, Implementation = {Implementation}")]
+    [DebuggerDisplay("Flags = {Flags}, TypeDefId = {TypeDefId}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}, Implementation = {ImplementationRow}")]
     public readonly struct ExportedTypeRow : IValue, IViewable
     {
         public ExportedTypeIndex RowIndex { get; }
@@ -20,7 +20,12 @@ namespace PESpy.Ecma335
 
         public CodedIndex Implementation => table.GetImplementation(RowIndex);
 
+        public bool IsForwarder => (Flags & CorTypeAttr.tdForwarder) != 0 && Implementation.TableKind == TableKind.AssemblyRef;
+
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object ImplementationRow => Implementation.GetRow(table.CompressedModelHeap);
 
         private readonly ExportedTypeTable table;
 
@@ -31,6 +36,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -70,5 +77,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => CompressedModelHeap.FormatType(TypeNamespace, TypeName);
     }
 }

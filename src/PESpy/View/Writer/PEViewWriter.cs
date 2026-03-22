@@ -181,7 +181,7 @@ namespace PESpy.View
             {
                 CollectDataDirectories(ref dataDirectories);
 
-                using var merger = new Merger(peFile, this, structs, delayNameViews, dataDirectories, byteViewProvider);
+                using var merger = new Merger(peFile, this, structs, delayNameViews, dataDirectories.Span, byteViewProvider);
 
                 var results = merger.MergePE(mode);
 
@@ -201,7 +201,7 @@ namespace PESpy.View
             }
         }
 
-        internal void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        internal override void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
         {
             #region IMAGE_OPTIONAL_HEADER
 

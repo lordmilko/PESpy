@@ -59,6 +59,7 @@ namespace PESpy.PDB
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal SymTypeList(byte* start, int dataOffset, int length, ICodeViewAccessor? codeViewAccessor)
         {
             this.start = start;
@@ -70,8 +71,10 @@ namespace PESpy.PDB
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(SymType symType) => (SYMTYPE*) symType >= ptr && (SYMTYPE*) symType < end;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (ptr + offset);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TopLevel GetTopLevel() => new TopLevel(start, ptr, end, codeViewAccessor);
 
         //Copies all symbols (does not include any CV_SIGNATURE) to the destination buffer
@@ -105,10 +108,13 @@ namespace PESpy.PDB
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Enumerator GetEnumerator() => new Enumerator(ptr, end, codeViewAccessor);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public struct Enumerator : IEnumerator<SymType>
@@ -119,6 +125,7 @@ namespace PESpy.PDB
 
             private SymType current;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal Enumerator(byte* ptr, byte* end, ICodeViewAccessor codeViewAccessor)
             {
                 this.ptr = ptr;

@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class DocumentTable : Table<DocumentRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int NameOffset;
         internal readonly int HashAlgorithmOffset;
         internal readonly int HashOffset;
@@ -16,11 +14,15 @@ namespace PESpy.Ecma335
 
         private readonly Func<BlobHeap?> blobHeap;
         private readonly Func<GuidHeap?> guidHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal DocumentTable(int numRows, int blobIndexSize, int guidIndexSize, Func<BlobHeap?> blobHeap, Func<GuidHeap?> guidHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal DocumentTable(
+            int numRows,
+            int blobIndexSize,
+            int guidIndexSize,
+            Func<BlobHeap?> blobHeap,
+            Func<GuidHeap?> guidHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
             this.blobHeap = blobHeap;
             this.guidHeap = guidHeap;
 
@@ -60,7 +62,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(DocumentIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public DocumentRow this[DocumentIndex index] => this[(int) index];
+        public DocumentRow this[DocumentIndex index] => GetRow((int) index);
 
         protected override DocumentRow GetRow(int index) => new DocumentRow((DocumentIndex) index, this);
     }

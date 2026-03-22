@@ -32,7 +32,7 @@ namespace PESpy
         /// <summary>
         /// The low 32 bits of the number of seconds since 00:00 January 1, 1970, that indicates when the file was created.
         /// </summary>
-        public uint TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         /// <summary>
         /// The file pointer to the COFF symbol table, or zero if no COFF symbol table is present.

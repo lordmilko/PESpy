@@ -7,6 +7,8 @@ namespace PESpy.Ecma335
     {
         public readonly int Offset;
 
+        public bool IsNil => Offset == 0;
+
         private readonly Func<BlobHeap?> getBlobHeap;
 
         internal BlobIndex(int offset, Func<BlobHeap?> getBlobHeap)
@@ -27,6 +29,18 @@ namespace PESpy.Ecma335
             return blob.GetReader();
         }
 
+        public BlobEntry GetBlob()
+        {
+            var blobHeap = getBlobHeap();
+
+            if (blobHeap == null)
+                throw new InvalidOperationException("Cannot get blob: the blob heap is not present");
+
+            var blob = blobHeap.GetBlob(Offset);
+
+            return blob;
+        }
+
         public static explicit operator BlobIndex(int value) => new BlobIndex(value, default);
 
         //Can't use implicit operator here, as for some reason this has a backwards effect of allowing other indices to be passed to our tables, due to the presence of a general purpose int indexer
@@ -34,7 +48,7 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
-            var blobHeap = getBlobHeap();
+            var blobHeap = getBlobHeap?.Invoke();
 
             if (blobHeap != null)
             {

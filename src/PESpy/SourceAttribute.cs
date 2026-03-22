@@ -44,6 +44,11 @@ namespace PESpy
         corinfo_h = 64,
 
         /// <summary>
+        /// Represents a type defined in <c>mapsym.h</c> which describes the data structures used by mapsym.exe
+        /// </summary>
+        mapsym_h = 128,
+
+        /// <summary>
         /// Represents a type defined by the Microsoft C 6.0 Developer's Toolkit, included as part of the Microsoft Programmer's Library 1.3 CD-ROM,
         /// and listed online at https://www.pcjs.org/documents/books/mspl13/c/ctoolkit/
         /// </summary>

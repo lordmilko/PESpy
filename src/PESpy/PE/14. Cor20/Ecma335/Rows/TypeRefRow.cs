@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("ResolutionScope = {ResolutionScope}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}")]
     public readonly struct TypeRefRow : IValue, IViewable
     {
         public TypeRefIndex RowIndex { get; }
@@ -16,6 +14,9 @@ namespace PESpy.Ecma335
         public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public object ResolutionScopeRow => ResolutionScope.GetRow(table.CompressedModelHeap);
 
         private readonly TypeRefTable table;
 
@@ -57,5 +58,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => CompressedModelHeap.FormatType(TypeNamespace, TypeName);
     }
 }

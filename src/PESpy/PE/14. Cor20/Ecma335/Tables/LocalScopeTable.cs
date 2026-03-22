@@ -2,8 +2,6 @@
 {
     public sealed class LocalScopeTable : Table<LocalScopeRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int MethodOffset;
         internal readonly int ImportScopeOffset;
         internal readonly int VariableListOffset;
@@ -16,7 +14,7 @@
         private readonly bool isBigLocalVariableIndex;
         private readonly bool isBigLocalConstantIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
         internal LocalScopeTable(
             int numRows,
@@ -24,9 +22,10 @@
             int importScopeIndexSize,
             int localVariableIndexSize,
             int localConstantIndexSize,
-            in MemoryChunk tableChunk) : base(numRows)
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigMethodIndex = methodIndexSize == 4;
             isBigImportScopeIndex = importScopeIndexSize == 4;
@@ -78,9 +77,42 @@
             return tableChunk.PeekInt32(rowOffset + LengthOffset);
         }
 
+        //This just does GetStartOffset + GetLengthOffset in one go
+        internal int GetEndOffset(LocalScopeIndex index)
+        {
+            var rowOffset = (index.RowId - 1) * RowSize;
+
+            return (int) (tableChunk.PeekUInt32(rowOffset + StartOffsetOffset) + tableChunk.PeekUInt32(rowOffset + LengthOffset));
+        }
+
+        internal void GetRange(MethodDefIndex methodDef, out int firstScopeRowId, out int lastScopeRowId)
+        {
+            CompressedModelHeap.BinarySearchEcmaIndexRange(
+                tableChunk,
+                Count,
+                RowSize,
+                MethodOffset,
+                (uint) methodDef.RowId,
+                isBigMethodIndex,
+                out var startRowNumber,
+                out var endRowNumber
+            );
+
+            if (startRowNumber == -1)
+            {
+                firstScopeRowId = 0;
+                lastScopeRowId = 0;
+            }
+            else
+            {
+                firstScopeRowId = startRowNumber + 1;
+                lastScopeRowId = endRowNumber + 2; //+1 gets us the actual last row and we want +2 to be +1 past it
+            }
+        }
+
         public int GetRowOffset(LocalScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public LocalScopeRow this[LocalScopeIndex index] => this[(int) index];
+        public LocalScopeRow this[LocalScopeIndex index] => GetRow((int) index);
 
         protected override LocalScopeRow GetRow(int index) => new LocalScopeRow((LocalScopeIndex) index, this);
     }

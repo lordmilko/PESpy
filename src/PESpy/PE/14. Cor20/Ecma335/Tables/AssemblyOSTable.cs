@@ -2,18 +2,12 @@
 {
     public sealed class AssemblyOSTable : Table<AssemblyOSRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int OSPlatformIDOffset;
         internal readonly int OSMajorVersionOffset;
         internal readonly int OSMinorVersionOffset;
 
-        private readonly MemoryChunk tableChunk;
-
-        internal AssemblyOSTable(int numRows, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyOSTable(int numRows, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
-
             OSPlatformIDOffset = 0;
             OSMajorVersionOffset = OSPlatformIDOffset + sizeof(int);
             OSMinorVersionOffset = OSMajorVersionOffset + sizeof(int);
@@ -40,7 +34,7 @@
 
         public int GetRowOffset(AssemblyOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyOSRow this[AssemblyOSIndex index] => this[(int) index];
+        public AssemblyOSRow this[AssemblyOSIndex index] => GetRow((int) index);
 
         protected override AssemblyOSRow GetRow(int index) => new AssemblyOSRow((AssemblyOSIndex) index, this);
     }

@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Configuration.Assemblies;
-using System.Diagnostics;
+using System.Reflection;
 using ClrDebug;
 using PESpy.View;
+using AssemblyHashAlgorithm = System.Configuration.Assemblies.AssemblyHashAlgorithm;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("HashAlgId = {HashAlgId}, Version = {MajorVersion.ToString(),nq}.{MinorVersion.ToString(),nq}.{BuildNumber.ToString(),nq}.{RevisionNumber.ToString(),nq}, Flags = {Flags}, PublicKey = {PublicKey}, Name = {Name.ToString(),nq}, Culture = {Culture.ToString(),nq}")]
     public readonly struct AssemblyRow : IValue, IViewable
     {
         public AssemblyIndex RowIndex { get; }
@@ -18,13 +17,17 @@ namespace PESpy.Ecma335
         public short BuildNumber => table.GetBuildNumber(RowIndex);
         public short RevisionNumber => table.GetRevisionNumber(RowIndex);
 
-        public AssemblyFlags Flags => table.GetFlags(RowIndex);
+        public Version Version => new Version(MajorVersion, MinorVersion, BuildNumber, RevisionNumber);
+
+        public CorAssemblyFlags Flags => table.GetFlags(RowIndex);
 
         public BlobIndex PublicKey => table.GetPublicKey(RowIndex);
 
         public StringIndex Name => table.GetName(RowIndex);
 
         public StringIndex Culture => table.GetCulture(RowIndex);
+
+        public AssemblyName AssemblyName => CompressedModelHeap.GetAssemblyName(Name, Version, Culture, PublicKey, HashAlgId, Flags);
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -39,6 +42,8 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        public DeclSecurityAttributeList DeclSecurityAttributes => table.GetDeclSecurityAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -94,5 +99,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => AssemblyName.ToString();
     }
 }

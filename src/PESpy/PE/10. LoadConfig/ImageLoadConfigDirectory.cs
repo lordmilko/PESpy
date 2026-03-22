@@ -52,6 +52,8 @@ namespace PESpy
         internal int CastGuardOsDeterminedFailureModeOffset => 64 + (30 * chunk.PointerSize);
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal int GuardMemcpyFunctionPointerOffset => 64 + (31 * chunk.PointerSize);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal int UmaFunctionPointersOffset => 64 + (32 * chunk.PointerSize);
 
         /// <summary>
         /// The size of the structure. For Windows XP, the size must be specified as 64 for x86 images.
@@ -102,13 +104,13 @@ namespace PESpy
         /// </summary>
         public long DeCommitTotalFreeThreshold => chunk.TryPeekPointer(24 + chunk.PointerSize, Size);
 
-        private VA<int[]> lockPrefixTable;
+        private VA<NativeSpan<int>> lockPrefixTable;
 
         /// <summary>
         /// [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP
         /// on single processor machines.
         /// </summary>
-        public VA<int[]> LockPrefixTable
+        public VA<NativeSpan<int>> LockPrefixTable
         {
             get
             {
@@ -124,8 +126,6 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            using var entries = new PooledList<int>();
-
                             var pointerSize = chunk.PointerSize;
 
                             var read = 0;
@@ -135,16 +135,14 @@ namespace PESpy
                                 var entry = (int) valueChunk.PeekPointer(read);
                                 read += pointerSize;
 
-                                entries.Add(entry);
-
                                 if (entry == 0)
                                     break;
                             }
 
-                            lockPrefixTable = new VA<int[]>(value, valueChunk.AbsoluteOffset, entries.ToArray());
+                            lockPrefixTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, read / pointerSize));
                         }
                         else
-                            lockPrefixTable = new VA<int[]>(value);
+                            lockPrefixTable = new VA<NativeSpan<int>>(value);
                     }
                 }
 
@@ -252,13 +250,13 @@ namespace PESpy
             }
         }
 
-        private VA<int[]> seHandlerTable;
+        private VA<NativeSpan<int>> seHandlerTable;
 
         /// <summary>
         /// [x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.<para/>
         /// ___safe_se_handler_table
         /// </summary>
-        public VA<int[]> SEHandlerTable
+        public VA<NativeSpan<int>> SEHandlerTable
         {
             get
             {
@@ -274,15 +272,10 @@ namespace PESpy
 
                         if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                         {
-                            var entries = new int[SEHandlerCount];
-
-                            for (var i = 0; i < SEHandlerCount; i++)
-                                entries[i] = valueChunk.PeekInt32(i * 4);
-
-                            seHandlerTable = new VA<int[]>(value, valueChunk.AbsoluteOffset, entries);
+                            seHandlerTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, SEHandlerCount));
                         }
                         else
-                            seHandlerTable = new VA<int[]>(value);
+                            seHandlerTable = new VA<NativeSpan<int>>(value);
                     }
                 }
 
@@ -293,7 +286,7 @@ namespace PESpy
         /// <summary>
         /// [x86 only] The count of unique handlers in the table.
         /// </summary>
-        public long SEHandlerCount => chunk.TryPeekPointer(32 + (9 * chunk.PointerSize), Size);
+        public int SEHandlerCount => (int) chunk.TryPeekPointer(32 + (9 * chunk.PointerSize), Size);
 
         #endregion
         #region Windows SDK 8.1+
@@ -652,6 +645,14 @@ namespace PESpy
             GetFunctionPointer(ref guardMemcpyFunctionPointer, chunk.TryPeekPointer(GuardMemcpyFunctionPointerOffset, Size));
 
         #endregion
+        #region Windows SDK 10.0.26100.0+
+
+        private VA<long> umaFunctionPointers;
+
+        public VA<long> UmaFunctionPointers =>
+            GetFunctionPointer(ref umaFunctionPointers, chunk.TryPeekPointer(UmaFunctionPointersOffset, Size));
+
+        #endregion
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -767,6 +768,7 @@ namespace PESpy
             writer.WriteVAPointerField(GuardXFGTableDispatchFunctionPointer, ViewKind.GuardXFGTableDispatchFunctionPointer, structOffset, fieldOffset: GuardXFGTableDispatchFunctionPointerOffset); //46
             writer.WriteVAPointerField(CastGuardOsDeterminedFailureMode, ViewKind.CastGuardOsDeterminedFailureMode, structOffset, fieldOffset: CastGuardOsDeterminedFailureModeOffset); //47
             writer.WriteVAPointerField(GuardMemcpyFunctionPointer, ViewKind.GuardMemcpyFunctionPointer, structOffset, fieldOffset: GuardMemcpyFunctionPointerOffset); //48
+            writer.WriteVAPointerField(UmaFunctionPointers, ViewKind.UmaFunctionPointers, structOffset, fieldOffset: UmaFunctionPointersOffset); //49
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -1004,6 +1006,19 @@ namespace PESpy
                         break;
 
                     #endregion
+                    #region Windows SDK 10.0.26100.0+
+
+                    case 49:
+                        s.WriteVAPointerField(nameof(UmaFunctionPointers), UmaFunctionPointers, ViewKind.UmaFunctionPointers);
+                        break;
+
+                    #endregion
+
+                    default:
+                        //There's some new field we don't know about. Write the rest as bytes
+                        Debug.Assert(false, "Found a PEFile that potentially has a newer version of IMAGE_LOAD_CONFIG_DIRECTORY64. Check winnt.h in the latest Windows SDK");
+                        s.WriteByteBlob(Size - s.Size);
+                        break;
                 }
             }
 

@@ -33,6 +33,8 @@ namespace PESpy.PDB
             this.value = value;
         }
 
+        public static implicit operator LfEasy(LfPointer16t easy) => new LfEasy((lfEasy*) (byte*) easy.value);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals
@@ -88,7 +90,7 @@ namespace PESpy.PDB
             s.WriteField(nameof(leaf), leaf, sizeof(ushort));
             s.WriteField(nameof(utype), value->u.utype);
 
-            using (var b = s.WriteBitFields<short>(6))
+            using (var b = s.WriteBitFields<short>(7))
             {
                 b.WriteField(nameof(attr.ptrtype), attr.ptrtype, 5);
                 b.WriteField(nameof(attr.ptrmode), attr.ptrmode, 3);
@@ -131,7 +133,9 @@ namespace PESpy.PDB
                         throw new NotImplementedException();
 
                     default:
-                        throw new NotImplementedException();
+                        //I haven't seen any evidence of any of the other enum types having children. Based on the size
+                        //of typlen I believe there isn't meant to be any data here
+                        break;
                 }
             }
 

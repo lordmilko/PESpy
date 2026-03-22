@@ -8,8 +8,6 @@ namespace PESpy.View
         string Name { get; }
 
         byte Bitness { get; }
-
-        int Count { get; }
     }
 
     [DebuggerDisplay("{ViewDebuggerDisplay.Asm(this),nq}")]
@@ -28,7 +26,7 @@ namespace PESpy.View
                     var diff = range.StartRVA - range.FunctionRVA;
 
                     if (diff == 0)
-                        name = range.Name;
+                        name = range.Name.ToString();
                     else if (diff > 0)
                         name = $"{range.Name}+0x{diff:X}";
                     else
@@ -44,14 +42,7 @@ namespace PESpy.View
 
         public byte Bitness { get; }
 
-        public int Count => Instructions.Length;
-
         private AsmRange<T> range;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public T[] Instructions => range.Instructions;
-
-        public void Format(in T instr, object context) => range.viewDisassembler.FormatInstruction(instr, context);
 
         public AsmView(int offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
         {

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -36,6 +37,21 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
             Kind = kind;
             Size = size;
+        }
+
+        internal LogicalRegionView(
+            RegionBuilder region,
+            FileAccessor fileAccessor,
+            ViewWriter viewWriter,
+            in ViewEntityIterator iterator,
+            int depthAtStartOffset)
+        {
+            Kind = region.Kind;
+            Offset = region.Start;
+            Name = region.Name;
+            Size = region.Length;
+            childProvider = new GlobalViewProvider(iterator, fileAccessor, region.Kind == ViewKind.DataDirectory ? GlobalViewProviderKind.Directory : GlobalViewProviderKind.Region, depthAtStartOffset);
+            this.viewWriter = viewWriter;
         }
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitLogicalRegion(this);

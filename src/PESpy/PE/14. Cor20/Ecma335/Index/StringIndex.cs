@@ -6,6 +6,8 @@ namespace PESpy.Ecma335
     {
         public readonly int Offset;
 
+        public bool IsNil => Offset == 0;
+
         private readonly Func<StringHeap?> getStringHeap;
 
         internal StringIndex(int offset, Func<StringHeap?> getStringHeap)
@@ -43,7 +45,7 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
-            var stringHeap = getStringHeap();
+            var stringHeap = getStringHeap?.Invoke();
 
             if (stringHeap != null)
                 return $"\"{stringHeap.GetString(Offset)}\"";

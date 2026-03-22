@@ -17,6 +17,7 @@ namespace PESpy.Tests
         public static SymStoreKey kernel32 = new SymStoreKey("kernel32.dll/68379A20c4000/kernel32.dll", SymStoreKeyKind.PE);
         public static SymStoreKey notepad = new SymStoreKey("notepad.exe/A8673AF85a000/notepad.exe", SymStoreKeyKind.PE);
         public static SymStoreKey ntdll = new SymStoreKey("ntdll.dll/BCED4B82217000/ntdll.dll", SymStoreKeyKind.PE);
+        public static SymStoreKey ntdllWin7 = new SymStoreKey("ntdll.dll/4CE7B96E13c000/ntdll.dll", SymStoreKeyKind.PE); //Has OMAP PDB
         public static SymStoreKey ntoskrnl = new SymStoreKey("ntoskrnl.exe/2C33C5081047000/ntoskrnl.exe", SymStoreKeyKind.PE);
         public static SymStoreKey mfc40 = new SymStoreKey("mfc40.dll/31E55C32e7000/mfc40.dll", SymStoreKeyKind.PE); //The 64-bit one also has ImageDebugMisc
         public static SymStoreKey mfc40u = new SymStoreKey("mfc40u.dll/3B7DFE9Ae9000/mfc40u.dll", SymStoreKeyKind.PE);

@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("ResourceOffset = {ResourceOffset}, Flags = {Flags}, Name = {Name.ToString(),nq}, Implementation = {Implementation}")]
+    [DebuggerDisplay("ResourceOffset = {ResourceOffset}, Flags = {Flags}, Name = {Name.ToString(),nq}, Implementation = {ImplementationRow}")]
     public readonly struct ManifestResourceRow : IValue, IViewable
     {
         public ManifestResourceIndex RowIndex { get; }
@@ -20,6 +20,9 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public object ImplementationRow => Implementation.GetRow(table.CompressedModelHeap);
+
         private readonly ManifestResourceTable table;
 
         internal ManifestResourceRow(ManifestResourceIndex index, ManifestResourceTable table)
@@ -29,6 +32,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -64,5 +69,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => Name.GetString().ToString();
     }
 }

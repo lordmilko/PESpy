@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ExportedTypeTable : Table<ExportedTypeRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int FlagsOffset;
         internal readonly int TypeDefIdOffset;
         internal readonly int TypeNameOffset;
@@ -16,14 +14,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ExportedTypeTable(int numRows, int stringIndexSize, int implementationIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ExportedTypeTable(
+            int numRows,
+            int stringIndexSize,
+            int implementationIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.14
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -67,9 +71,12 @@ namespace PESpy.Ecma335
             return tableChunk.PeekCodedIndex(rowOffset + ImplementationOffset, isBigImplementationIndex, CodedIndexType.Implementation);
         }
 
+        public CustomAttributeList GetCustomAttributes(ExportedTypeIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ExportedType));
+
         public int GetRowOffset(ExportedTypeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ExportedTypeRow this[ExportedTypeIndex index] => this[(int) index];
+        public ExportedTypeRow this[ExportedTypeIndex index] => GetRow((int) index);
 
         protected override ExportedTypeRow GetRow(int index) => new ExportedTypeRow((ExportedTypeIndex) index, this);
     }

@@ -29,7 +29,7 @@ namespace PESpy.View
             internal PageWriter(int startRelativeOffset, PagedMemoryBlock block, ViewWriter viewWriter, bool global, bool shouldAdd)
             {
                 pageSize = block.pageSize;
-                relativeOffset = startRelativeOffset % pageSize;
+                relativeOffset = startRelativeOffset & (pageSize - 1); //Faster modulo
 
                 pageList = block.pageList;
 
@@ -80,9 +80,15 @@ namespace PESpy.View
                     throw new InvalidOperationException("Can't write beyond the end of a stream");
 
                 //If we overflow the end of the page, merger will split us
-                items.Add(new ValueView<T>(pageStart + relativeOffset, value, size, kind));
+                var view = viewWriter.NewValue(pageStart + relativeOffset, value, size, kind);
 
-                IncrementOffset(size);
+                if (view != null)
+                {
+                    items.Add(view);
+                    IncrementOffset(view.Size);
+                }
+                else
+                    IncrementOffset(size);
             }
 
             private void IncrementOffset(int size)
@@ -105,7 +111,7 @@ namespace PESpy.View
                     pageStart = pageList[pageIndex] * pageSize;
 
                     //Adjust for any overflow
-                    relativeOffset = relativeOffset % pageSize;
+                    relativeOffset = relativeOffset & (pageSize - 1); //Faster modulo
                 }
             }
 

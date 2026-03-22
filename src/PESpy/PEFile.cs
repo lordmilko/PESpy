@@ -640,18 +640,22 @@ namespace PESpy
         /// <summary>
         /// Gets the <see cref="IMAGE_NT_HEADERS.FileHeader"/> field that represents the file header of the image.
         /// </summary>
-        public ref readonly ImageFileHeader FileHeader => ref ntHeaders.FileHeader;
+        public ImageFileHeader FileHeader => ntHeaders.FileHeader;
 
         /// <summary>
         /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
-        public ref readonly ImageOptionalHeader OptionalHeader => ref ntHeaders.OptionalHeader;
+        public ImageOptionalHeader OptionalHeader => ntHeaders.OptionalHeader;
 
         #endregion
         #region SectionHeaders
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageSectionHeader[]? sectionHeaders;
+
+        private SectionRange[] _sectionRanges; //Virtual addresses
+
+        internal SectionRange[] SectionRanges => _sectionRanges;
 
         /// <summary>
         /// Gets the section headers of the image. These values represent the <see cref="IMAGE_SECTION_HEADER"/> values (e.g. .text, .data) that immediately follow the <see cref="OptionalHeader"/>.<para/>
@@ -667,6 +671,7 @@ namespace PESpy
 
                     var list = new ImageSectionHeader[numberOfSections];
 
+                    //FileAddressOfNewExeHeader + sizeof(int) + ImageFileHeader.StructSize + SizeOfOptionalHeader should give this
                     var offset = dosHeader.FileAddressOfNewExeHeader + NtHeaders.StructSize(headerBlock.Is32Bit);
 
                     for (var i = 0; i < numberOfSections; i++)
@@ -798,6 +803,9 @@ namespace PESpy
         #endregion
         #region Exception Table (3)
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private RuntimeFunctionList? exceptionTable;
+
         /// <summary>
         /// Gets the exception table pointed to by <see cref="ImageOptionalHeader.ExceptionTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_EXCEPTION) containing information used to unwind stack frames during exception handling.<para/>
         /// If the image does not have an exception table, this property returns <see langword="null"/>.
@@ -806,16 +814,19 @@ namespace PESpy
         {
             get
             {
-                var exceptionTableDirectory = OptionalHeader.ExceptionTableDirectory;
-
-                if (exceptionTableDirectory.HasData && TryGetDirectoryChunk(exceptionTableDirectory, out var chunk))
+                if (exceptionTable == null)
                 {
-                    var numEntries = OptionalHeader.ExceptionTableDirectory.Size / RuntimeFunction.StructSize;
+                    var exceptionTableDirectory = OptionalHeader.ExceptionTableDirectory;
 
-                    return new RuntimeFunctionList(numEntries, chunk);
+                    if (exceptionTableDirectory.HasData && TryGetDirectoryChunk(exceptionTableDirectory, out var chunk))
+                    {
+                        var numEntries = OptionalHeader.ExceptionTableDirectory.Size / RuntimeFunction.StructSize;
+
+                        exceptionTable =  new RuntimeFunctionList(numEntries, chunk);
+                    }
                 }
 
-                return default;
+                return exceptionTable;
             }
         }
 
@@ -1525,7 +1536,7 @@ namespace PESpy
             if (methodDef.Rid > methodDefs.Count)
                 return false;
 
-            var row = methodDefs[methodDef.Rid];
+            var row = methodDefs.FromToken(methodDef);
 
             if (!TryGetILValueChunk(row, out var valueChunk))
                 return false;
@@ -2228,7 +2239,7 @@ namespace PESpy
                             if (pdbFile.Kind == FileKind.PDB)
                                 ((PDBFile) pdbFile).SetFallbackSectionHeaders(SectionHeaders);
 
-                            //Even if it's not actually a PDBFile, it's still an IFIle so it may have an ISymbolAccessor
+                            //Even if it's not actually a PDBFile, it's still an IFile so it may have an ISymbolAccessor
                             symbolAccessor = new ExternalFileSymbolAccessor(pdbFile);
                         }
                         else
@@ -2250,6 +2261,17 @@ namespace PESpy
                     case Locator.ArtifactKind.EmbeddedPortablePdb:
                         symbolAccessor = new PortablePDBFileSymbolAccessor(PortablePDBFile.FromEmbeddedFile((EmbeddedPortablePdb) DebugTable[artifacts.EmbeddedPortablePdbIndex.Value].Data));
                         break;
+
+                    case Locator.ArtifactKind.SYM:
+                        if (Detector.TryOpenFile(artifacts.SYMPath, out var symFile))
+                        {
+                            //Even if it's not actually a PDBFile, it's still an IFIle so it may have an ISymbolAccessor
+                            symbolAccessor = new ExternalFileSymbolAccessor(symFile);
+                        }
+                        else
+                            symbolAccessor = NullSymbolAccessor.Instance;
+
+                        return symbolAccessor;
 
                     default:
                         throw new NotImplementedException();
@@ -2341,6 +2363,19 @@ namespace PESpy
         private MemoryBlock[]? sectionBlocks;
         private bool disposed;
 
+        [DebuggerDisplay("0x{Start.ToString(\"X\"),nq}-0x{End.ToString(\"X\"),nq}")]
+        internal readonly struct SectionRange
+        {
+            public readonly int Start;
+            public readonly int End;
+
+            internal SectionRange(int virtualAddress, int virtualSize)
+            {
+                Start = virtualAddress;
+                End = virtualAddress + virtualSize;
+            }
+        }
+
         private ExceptionHandlerContext? exceptionHandlerContext;
 
         internal ExceptionHandlerContext ExceptionHandlerContext
@@ -2371,7 +2406,7 @@ namespace PESpy
                 blockProvider = localProvider;
                 headerBlock = new LocalHeaderMemoryBlock(localProvider);
                 InitializeHeaders();
-                localProvider.is32Bit = OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+                localProvider.is32Bit = OptionalHeader.Magic != PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC;
             }
             catch
             {
@@ -2437,8 +2472,50 @@ namespace PESpy
             dosHeader = new ImageDosHeader(new MemoryChunk(headerBlock, 0));
             ntHeaders = new ImageNtHeaders(new MemoryChunk(headerBlock, dosHeader.FileAddressOfNewExeHeader));
 
+            ImageSectionHeader[] sectionHeaders;
+            SectionRange[] sectionRanges;
+
             //ImageOptionalHeader cannot be meaningfully read until the pointer size is known
-            headerBlock.Is32Bit = ntHeaders.OptionalHeader.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+            switch (ntHeaders.OptionalHeader.Magic)
+            {
+                case PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+                    sectionHeaders = SectionHeaders;
+                    sectionRanges = new SectionRange[sectionHeaders.Length];
+
+                    for (var i = 0; i < sectionHeaders.Length; i++)
+                    {
+                        ref var sectionHeader = ref sectionHeaders[i];
+
+                        sectionRanges[i] = new SectionRange(sectionHeader.VirtualAddress, sectionHeader.VirtualSize);
+                    }
+                    break;
+
+                //I've observed in very old PE Files (e.g. files from Win32s) that the VirtualSize of each IMAGE_SECTION_HEADER
+                //may be empty. In this scenario, all attempts to do GetSectionContainingRVA will fail. Since I've also observed
+                //that the Magic of these older files is 0, we'll try and use that to determine whether we need to use alternate
+                //logic to calculate the bounds of each section
+                case 0:
+                    headerBlock.Is32Bit = true;
+                    sectionHeaders = SectionHeaders;
+                    sectionRanges = new SectionRange[sectionHeaders.Length];
+
+                    for (var i = 0; i < sectionHeaders.Length; i++)
+                    {
+                        ref var sectionHeader = ref sectionHeaders[i];
+
+                        if (i == sectionHeaders.Length - 1)
+                            sectionRanges[i] = new SectionRange(sectionHeader.VirtualAddress, ntHeaders.OptionalHeader.SizeOfImage - sectionHeader.VirtualAddress);
+                        else
+                            sectionRanges[i] = new SectionRange(sectionHeader.VirtualAddress, sectionHeaders[i + 1].VirtualAddress - sectionHeader.VirtualAddress);
+                    }
+                    break;
+
+                default:
+                    headerBlock.Is32Bit = true;
+                    goto case PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+            }
+
+            _sectionRanges = sectionRanges;
 
             //If the header block was not big enough to store the size of the image, resize it before anyone has started using the PEFile.
             //If the PEFile is a memory mapped file, this is a no-op
@@ -2595,9 +2672,7 @@ namespace PESpy
                 return -1;
 
             //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
-            var headers = SectionHeaders;
-
-            Debug.Assert(headers != null);
+            var ranges = _sectionRanges;
 
             /* Should we be translating RVAs to sections via linear search or binary search?
              *
@@ -2614,20 +2689,17 @@ namespace PESpy
              */
 
             var lo = 0;
-            var hi = headers!.Length - 1;
+            var hi = ranges!.Length - 1;
 
             while (lo <= hi)
             {
                 var mid = (lo + hi) / 2;
 
-                ref var sectionHeader = ref headers[mid];
+                ref var sectionRange = ref ranges[mid];
 
-                var start = sectionHeader.VirtualAddress;
-                var end = start + sectionHeader.VirtualSize;
-
-                if (rva < start)
+                if (rva < sectionRange.Start)
                     hi = mid - 1;
-                else if (rva >= end)
+                else if (rva >= sectionRange.End)
                     lo = mid + 1;
                 else
                     return mid;
@@ -2966,20 +3038,16 @@ namespace PESpy
             //I don't think we can use lastUsedSection here, as we need to return both the section and the index
 
             //Store headers locally so that we don't need to keep checking that the headers are loaded each time we touch the headers
-            var headers = SectionHeaders;
+            var ranges = SectionRanges;
 
-            Debug.Assert(headers != null);
-
-            for (var i = 0; i < headers!.Length; i++)
+            for (var i = 0; i < ranges.Length; i++)
             {
-                header = headers[i];
+                ref var range = ref ranges[i];
 
-                var start = header.VirtualAddress;
-                var end = start + header.VirtualSize;
-
-                if (start <= rva && rva < end)
+                if (range.Start <= rva && rva < range.End)
                 {
                     index = i;
+                    header = SectionHeaders[i];
                     return true;
                 }
             }
@@ -3041,14 +3109,14 @@ namespace PESpy
             writer.WriteGlobal(ImportTable);
             writer.WriteUniqueGlobal(ImportAddressTable); //The default logic of the merger will be to create an ImportAddressTable region around the ImportAddressTable sub-regions, which will be redundant because all of these will be wrapped in an ImportAddressTableDirectory anyway. As such, we'll block that from happening
             writer.WriteGlobal(ResourceDirectory);
-            writer.WriteGlobal(ExceptionTable);
+            //ExceptionTable written last because it's slow
             writer.WriteGlobal(SecurityTable);
             writer.WriteGlobal(BaseRelocationTable);
             writer.WriteGlobal(DebugTable);
             //Copyright Table
             //Global Pointer Table
             writer.WriteGlobal(TlsDirectory);
-            writer.WriteGlobal(LoadConfigTable);
+            //LoadConfigTable written last because it's slow
             writer.WriteGlobal(BoundImportTable);
             writer.WriteGlobal(DelayImportTable);
             writer.WriteGlobal(Cor20Header);
@@ -3063,6 +3131,10 @@ namespace PESpy
             writer.WriteGlobal(ClrEngineMetrics);
             writer.WriteGlobal(DotNetRuntimeInfo);
             writer.WriteGlobal(DotNetRuntimeDebugHeader);
+
+            //We write these last because they're the slowest
+            writer.WriteGlobal(LoadConfigTable);
+            writer.WriteGlobal(ExceptionTable);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

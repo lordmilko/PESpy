@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using ClrDebug;
+using System.Runtime.CompilerServices;
 using PESpy.PDB;
 using PESpy.View.Builder;
 
@@ -52,6 +52,8 @@ namespace PESpy.View
         internal ViewWriter? NestedViewWriter;
 
         internal int UnmanagedOffset;
+
+        internal bool FromRegion;
 
         internal delegate bool TryGetOffsetDelegate(int offset, out int viewOffset);
 
@@ -157,6 +159,40 @@ namespace PESpy.View
             }
         }
 
+        public void WriteRegionGlobal<T>(in T? viewable) where T : IViewable
+        {
+            //Note: in unoptimized code it may show that a boxing occurs here for value types. I have tried different variations of "is object", "is null",
+            //"is not", etc. They all box. But in optimized code this check will be removed
+            if (viewable == null)
+                return;
+
+            var oldFromRegion = FromRegion;
+
+            try
+            {
+                FromRegion = false;
+
+                //Write any nested globals first
+                viewable.WriteGlobals(this);
+
+                FromRegion = true;
+
+                var result = viewable.WriteStruct(this);
+
+                if (result != null)
+                {
+                    if (currentScope != 0 && result.Kind == currentScope)
+                        scopedList!.Add(result);
+                    else
+                        globalList.Add(result);
+                }
+            }
+            finally
+            {
+                FromRegion = oldFromRegion;
+            }
+        }
+
         public void WriteGlobal<T>(T[]? viewable) where T : IViewable
         {
             if (viewable == null)
@@ -181,11 +217,18 @@ namespace PESpy.View
             if (list == null)
                 return;
 
+            //Prevent boxing the RuntimeFunction
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            IView Write<T>(T value) where T : IViewable
+            {
+                value.WriteGlobals(this);
+
+                return value.WriteStruct(this);
+            }
+
             foreach (var item in list)
             {
-                ((IViewable) item).WriteGlobals(this);
-
-                var result = ((IViewable) item).WriteStruct(this);
+                var result = Write(item);
 
                 if (result != null)
                     globalList.Add(result);
@@ -264,6 +307,22 @@ namespace PESpy.View
 
                 if (shouldAdd && trackedAddresses.Add(viewOffset))
                     WriteGlobal(item);
+            }
+        }
+
+        public void WriteRegionUniqueGlobal<T>(in T[]? value) where T : IValue, IViewable
+        {
+            if (value == null)
+                return;
+
+            for (var i = 0; i < value.Length; i++)
+            {
+                var item = value[i];
+
+                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+
+                if (shouldAdd && trackedAddresses.Add(viewOffset))
+                    WriteRegionGlobal(item);
             }
         }
 
@@ -409,22 +468,25 @@ namespace PESpy.View
 
         public void WriteGlobal(int offset, TypTypeList value)
         {
-            var written = 0;
+            var dispatcher = TypTypeDispatcher;
 
-            Push(globalList);
+            var oldOffset = UnmanagedOffset;
+            UnmanagedOffset = offset;
 
             foreach (var item in value)
             {
-                var totalLength = item.len + 2;
-                var valueView = NewValue<TypType>(offset + written, item, totalLength, ViewKind.TypType);
+                var view = dispatcher.Dispatch(item);
 
-                if (valueView != null)
-                    AddView(valueView);
-
-                written += totalLength;
+                if (view != null)
+                {
+                    AddView(view);
+                    UnmanagedOffset += view.Size;
+                }
+                else
+                    UnmanagedOffset += item.len + 2;
             }
 
-            Pop();
+            UnmanagedOffset = oldOffset;
         }
 
         public virtual void WriteDosStub(in ByteBlob byteBlob)
@@ -800,15 +862,6 @@ namespace PESpy.View
         #endregion
         #endregion
 
-        internal StructWriter CreateStruct<T>(string name, in T value, ViewKind kind) where T : IValue
-        {
-            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
-            
-            return new StructWriter(name, viewOffset, kind, this, shouldAdd);
-        }
-
-        internal StructWriter CreateStruct(IView parent) => new StructWriter(parent.Offset, this);
-
         protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
             where T : IValue, IViewable
         {
@@ -817,7 +870,7 @@ namespace PESpy.View
             if (!shouldAdd)
                 return null;
 
-            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, NestedViewWriter ?? this);
+            var view = new StructView(viewOffset, name, value, structSize, kind, NestedViewWriter ?? this);
 
             return view;
         }
@@ -853,7 +906,7 @@ namespace PESpy.View
             }
         }
 
-        internal IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
+        protected internal virtual IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
         {
             Debug.Assert(UnmanagedOffset != 0);
             var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
@@ -861,25 +914,31 @@ namespace PESpy.View
             if (!shouldAdd)
                 return null;
 
-            var view = new StructView<T>(viewOffset, name, value, null, structSize, kind, this);
+            var view = new StructView(viewOffset, name, value, structSize, kind, this);
 
             return view;
         }
 
-        internal StructWriter CreateUnmanagedStruct(string name, ViewKind kind)
-        {
-            Debug.Assert(UnmanagedOffset != 0);
-            var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal IView? NewSplittableValue<T>(int offset, in T value, int size, ViewKind kind, bool isSplit) => NewValue<T>(offset, value, size, (ViewKind) ((ushort) kind | (isSplit ? 0x8000 : 0)));
 
-            return new StructWriter(name, viewOffset, kind, this, shouldAdd);
-        }
-
-        protected internal virtual IView? NewValue<T>(int offset, in T value, int size, ViewKind kind)
+        protected internal virtual IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion = false)
         {
             return new ValueView<T>(offset, value, size, kind);
         }
 
-        internal RegionWriter CreateRegion(int offset, int fieldOffset, string name, ViewKind kind, bool global
+        internal virtual RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false)
+        {
+            return new ValueView<T>(offset, value, size, kind);
+            if (global)
+                Push(globalList);
+
+            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+
+            return new RegionWriter(viewOffset, name, kind, this, global, default, shouldAdd);
+        }
+
+        internal virtual RegionWriter CreateRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, bool global
 #if DEBUG
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
             , long listedAddress
@@ -915,7 +974,7 @@ namespace PESpy.View
         /// <param name="kind">The kind of region that will be created.</param>
         /// <param name="scopeKind">The type of entity that this <see cref="RegionWriter"/> should be limited to capturing.</param>
         /// <returns></returns>
-        internal RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
+        internal virtual RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
 #if DEBUG
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
             , int listedOffset
@@ -934,6 +993,10 @@ namespace PESpy.View
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
             return new RegionWriter(viewOffset, name, kind, this, false, scopeKind, shouldAdd);
+        }
+
+        internal virtual void ExitRegion()
+        {
         }
 
         internal IView[]? CreateByteBlob(ref int currentOffset, int size)
@@ -1127,9 +1190,9 @@ namespace PESpy.View
         {
             //I don't think we need to write globals, those should have already been written
 
-            var view = (StructView<T>) value.WriteStruct(this);
+            var view = (StructView) value.WriteStruct(this);
 
-            structWriter.Field = new StructFieldView<T>(
+            structWriter.Field = new StructFieldView(
                 view,
                 fieldName
             );
@@ -1140,18 +1203,30 @@ namespace PESpy.View
             T[] value,
             ref StructWriter structWriter) where T : IViewable
         {
-            var results = new StructView<T>[value.Length];
+            var results = new StructView[value.Length];
+
+            var old = UnmanagedOffset;
 
             for (var i = 0; i < results.Length; i++)
             {
                 //I don't think we need to write globals, those should have already been written
-                results[i] = (StructView<T>) value[i].WriteStruct(this);
+                var item = (StructView) value[i].WriteStruct(this);
+
+                UnmanagedOffset += item.Size;
+
+                results[i] = item;
             }
 
-            structWriter.Field = new StructArrayFieldView<T>(
+            UnmanagedOffset = old;
+
+            structWriter.Field = new StructArrayFieldView(
                 results,
                 fieldName
             );
+        }
+
+        internal virtual void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        {
         }
 
         internal List<IView> RentList()

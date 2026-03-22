@@ -180,7 +180,7 @@ namespace PESpy
             if (Magic != IMAGE_DOS_SIGNATURE)
             {
                 if (Magic != 0 || BytesOnLastPageOfFile != -1)
-                    throw new BadImageFormatException("Don't know how to handle COFF file.");
+                    throw new BadImageFormatException($"The specified file is not a valid {chunk.File().Kind}.");
 
                 throw new BadImageFormatException("Unknown file format.");
             }

@@ -1,17 +1,33 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace PESpy.Ecma335
 {
+    internal class CustomAttributeListDebugView
+    {
+        private CustomAttributeList list;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public CustomAttributeRow[] Items => list.ToArray();
+
+        internal CustomAttributeListDebugView(CustomAttributeList list)
+        {
+            this.list = list;
+        }
+    }
+
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(CustomAttributeListDebugView))]
     public readonly struct CustomAttributeList : IEnumerable<CustomAttributeRow>
     {
         private readonly CompressedModelHeap compressedModelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
-        //todo: what if we're actually a default item, we should have no rows in that case
-        public int Count => lastRowId - firstRowId + 1;
+        public int Count => lastRowId - firstRowId;
 
         internal CustomAttributeList(CompressedModelHeap compressedModelHeap, CodedIndex index)
         {
@@ -28,7 +44,37 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public CustomAttributeRow this[int index] => compressedModelHeap.CustomAttributeTable[firstRowId + index];
+        public CustomAttributeRow this[int index] => compressedModelHeap.CustomAttributeTable[(CustomAttributeIndex) (firstRowId + index)];
+
+        public CustomAttributeRow this[string fullName]
+        {
+            get
+            {
+                var dot = fullName.LastIndexOf('.');
+
+                if (dot == -1)
+                {
+                    foreach (var item in this)
+                    {
+                        if (item.TryGetName(out var namespaceIndex, out var nameIndex) && nameIndex.GetString() == fullName)
+                            return item;
+                    }
+                }
+                else
+                {
+                    var ns = fullName.AsSpan(0, dot);
+                    var name = fullName.AsSpan(dot + 1);
+
+                    foreach (var item in this)
+                    {
+                        if (item.TryGetName(out var namespaceIndex, out var nameIndex) && namespaceIndex.GetString() == ns && nameIndex.GetString() == name)
+                            return item;
+                    }
+                }
+
+                throw new NotImplementedException($"Failed to find a custom attribute named '{fullName}'");
+            }
+        }
 
         public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
 
@@ -44,9 +90,9 @@ namespace PESpy.Ecma335
 
             internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap.CustomAttributeTable;
+                table = compressedModelHeap?.CustomAttributeTable;
                 currentRowId = firstRowId - 1;
-                this.lastRowId = lastRowId;
+                this.lastRowId = lastRowId - 1;
             }
 
             public bool MoveNext()
@@ -70,7 +116,7 @@ namespace PESpy.Ecma335
                     if (table.SortedTable != null)
                         throw new NotImplementedException("Getting a custom attribute where we had to sort parents is not implemented");
                     
-                    return table[currentRowId];
+                    return table[(CustomAttributeIndex) currentRowId];
                 }
             }
 

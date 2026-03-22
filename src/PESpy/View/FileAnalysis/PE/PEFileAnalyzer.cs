@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ClrDebug;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -13,7 +13,11 @@ namespace PESpy.View
         private readonly PEFile _peFile;
         private PESectionLookupCache _lookupCache;
 
-        internal PEFileAnalyzer(PEFileAccessor fileAccessor, IFileDisassembler? disassembler, IFileAnalyzerProgress? progress) : base(fileAccessor, disassembler, progress)
+        internal PEFileAnalyzer(
+            PEFileAccessor fileAccessor,
+            IFileDisassembler? disassembler,
+            LocatorHttpPolicy httpPolicy,
+            IFileAnalyzerProgress? progress) : base(fileAccessor, disassembler, httpPolicy, progress)
         {
             _peFile = fileAccessor.PEFile;
             _lookupCache = new PESectionLookupCache(fileAccessor.PEFile);
@@ -22,7 +26,7 @@ namespace PESpy.View
         protected override ViewWriter CreateViewWriter() =>
                 new PEViewByteViewWriter(((PEFileAccessor) _fileAccessor).PEFile, _fileAccessor, _fileDisassembler, this);
 
-        public override FileAccessor Execute()
+        public override void Execute()
         {
             Log(FileAnalyzerProgressPhase.DiscoverGlobals);
 
@@ -39,24 +43,49 @@ namespace PESpy.View
             DiscoverSymbols((PEFileAccessor) _fileAccessor);
 
             //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
-            WorkDisasmQueue();
+            var importMap = GetImportMap();
+            WorkDisasmQueue(importMap);
+
+            DiscoverDirectories();
 
             Finalize(expandUnknownData: true);
+        }
 
-            var dataDirectories = new PooledList<DirectoryInfo>();
+        private Dictionary<long, int> GetImportMap()
+        {
+            var imports = _peFile.ImportTable;
 
-            try
+            if (imports == null)
+                return new Dictionary<long, int>(); //The only module that would have no imports is ntdll; as such we don't have a cached empty dictionary
+
+            var importMap = new Dictionary<long, int>();
+
+            Debug.Assert(!_peFile.IsLoadedImage);
+
+            var imageBase = _fileAccessor.ImageBase;
+
+            for (var i = 0; i < imports.Length; i++)
             {
-                ((PEViewWriter) _viewWriter).CollectDataDirectories(ref dataDirectories);
+                ref var desc = ref imports[i];
 
-                ((PEFileAccessor) _fileAccessor).DataDirectories = dataDirectories.ToArray();
-            }
-            finally
-            {
-                dataDirectories.Dispose();
+                if (desc.FirstThunk.IsValid)
+                {
+                    var thunks = desc.FirstThunk.Value;
+
+                    for (var j = 0; j < thunks.Length; j++)
+                    {
+                        ref var thunk = ref thunks[j];
+
+                        //The last null function
+                        if (thunk.Value == 0 || !_peFile.TryGetRVA(thunk.Offset, out var rva))
+                            continue;
+
+                        importMap[imageBase + rva] = thunk.Offset;
+                    }
+                }
             }
 
-            return _fileAccessor;
+            return importMap;
         }
 
         #region DiscoverCodeRoots
@@ -72,6 +101,9 @@ namespace PESpy.View
                 if (_lookupCache.TryGetSectionInfo(entryPoint, out var targetAddress, out var sectionIndex, out _))
                     AddCode(targetAddress, entryPoint);
             }
+
+            //I don't think we need to do anything special with imports/delay imports. All addresses associated
+            //with them should have been handled when we analyzed the structs contained in the PEFile
 
             ProcessExports();
             ProcessExceptionTable();
@@ -174,6 +206,7 @@ namespace PESpy.View
                 }
             }
         }
+
         private void ProcessLoadConfigTable()
         {
             var loadConfigTable = _peFile.LoadConfigTable;
@@ -339,5 +372,297 @@ namespace PESpy.View
         }
 
         #endregion
+
+        protected override void FinalizeCode()
+        {
+            //Iterate through all exports again and mark all exports that point to code and don't have more code behind them
+            //as functions. You can have exports that point in the middle of a function, so we don't want to mark those as functions
+
+            var exports = _peFile.ExportTable?.Exports;
+
+            if (exports != null)
+            {
+                ref var lookupCache = ref _lookupCache;
+
+                for (var i = 0; i < exports.Length; i++)
+                {
+                    ref var export = ref exports[i];
+
+                    var forwardOrAddress = export.ForwardOrAddress;
+
+                    //Forwarder strings will have already been written as data while writing globals; all we need to handle here
+                    //is collecting the RVAs of the code pointed to by the non-forwarder strings
+                    if (!forwardOrAddress.IsForward)
+                    {
+                        var address = forwardOrAddress.Address;
+
+                        if (lookupCache.TryGetSectionInfo(address, out var targetAddress, out var sectionIndex, out _))
+                        {
+                            var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
+
+                            if (!pViewByte->HasFlow && !pViewByte->IsFunction)
+                                pViewByte->IsFunction = true;
+                        }
+                    }
+                }
+            }
+        }
+            var sectionAccessors = _fileAccessor.SectionAccessors;
+
+            for (var i = 0; i < sectionAccessors.Length; i++)
+            {
+                ref var sectionAccessor = ref sectionAccessors[i];
+
+                var pViewByte = sectionAccessor.pViewBytes;
+                var pSectionStart = pViewByte;
+                var sectionAddress = sectionAccessor.StartAddress;
+                var pEnd = pViewByte + sectionAccessor.Length;
+
+                var targetAddress = sectionAddress;
+
+                var largeAddresses = _fileAccessor.LargeAddresses;
+
+                int length;
+
+                while (pViewByte < pEnd)
+                {
+                    switch (pViewByte->Kind)
+                    {
+                        case ViewByteKind.Data:
+                            switch (pViewByte->DataKind)
+                            {
+                                case ViewByteDataKind.Struct:
+                                    var kind = _fileAccessor.GetStructKind(targetAddress);
+
+                                    switch (kind)
+                                    {
+                                        case ViewKind.UnwindInfo:
+                                            ReadUnwindInfo(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                                            continue;
+
+                                        case ViewKind.ImageCorILMethodTiny:
+                                        case ViewKind.ImageCorILMethodFat:
+                                            ReadILMethodRegion(ref pViewByte, ref targetAddress, pEnd);
+                                            continue;
+                                    }
+
+                                    break;
+                            }
+
+                            if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                length = pViewByte->GetLength(pEnd);
+
+                            pViewByte += length;
+                            targetAddress += length;
+                            break;
+
+                        case ViewByteKind.Unknown:
+                            if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                length = pViewByte->GetUnknownLength(pEnd);
+
+                            pViewByte += length;
+                            targetAddress += length;
+                            break;
+
+                        case ViewByteKind.Code:
+                            if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                length = pViewByte->GetLength(pEnd);
+
+                            pViewByte += length;
+                            targetAddress += length;
+                            break;
+
+                        default:
+                            throw new NotImplementedException();
+                    }
+                }
+            }
+
+            var writer = ((PEViewByteViewWriter) _viewWriter);
+            _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress);
+        }
+
+        private void ReadUnwindInfo(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        {
+            var length = pViewByte->GetLength(pEnd);
+
+            var builder = new RegionBuilder
+            {
+                Name = "Unwind Infos",
+                Kind = ViewKind.UnwindInfos,
+                Start = targetAddress,
+                End = targetAddress + length
+            };
+
+            pViewByte += length;
+            targetAddress += length;
+
+            var fileAccessor = _fileAccessor;
+
+            var @continue = true;
+
+            while (pViewByte < pEnd && @continue)
+            {
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Data:
+                        switch (pViewByte->DataKind)
+                        {
+                            case ViewByteDataKind.Struct:
+                                var kind = fileAccessor.GetStructKind(targetAddress);
+
+                                switch (kind)
+                                {
+                                    case ViewKind.UnwindInfo:
+                                        length = pViewByte->GetLength(pEnd);
+                                        break;
+
+                                    default:
+                                        @continue = false;
+                                        continue;
+                                }
+                                break;
+
+                            case ViewByteDataKind.String:
+                                //This shouldn't be a string then
+                                length = ClearString(pViewByte, pEnd);
+                                break;
+
+                            case ViewByteDataKind.Padding:
+                                if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                    length = pViewByte->GetLength(pEnd);
+                                break;
+
+                            default:
+                                @continue = false;
+                                continue;
+                        }
+                        break;
+
+                    case ViewByteKind.Unknown:
+                        if (!largeAddresses.TryGetValue(targetAddress, out length))
+                            length = pViewByte->GetUnknownLength(pEnd);
+
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                pViewByte += length;
+                targetAddress += length;
+                builder.End += length;
+            }
+
+            var writer = (PEViewByteViewWriter) _viewWriter;
+
+            writer._firstRegionByAddress.Add(builder);
+            writer._topLevelRegions.Add(builder);
+        }
+
+        private void ReadILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
+        {
+            var length = pViewByte->GetLength(pEnd);
+
+            var builder = new RegionBuilder
+            {
+                Name = "IL Methods",
+                Kind = ViewKind.ILMethods,
+                Start = targetAddress,
+                End = targetAddress + length
+            };
+
+            pViewByte += length;
+            targetAddress += length;
+
+            var fileAccessor = _fileAccessor;
+
+            var @continue = true;
+
+            while (pViewByte < pEnd && @continue)
+            {
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Data:
+                        switch (pViewByte->DataKind)
+                        {
+                            case ViewByteDataKind.Struct:
+                                var kind = fileAccessor.GetStructKind(targetAddress);
+
+                                switch (kind)
+                                {
+                                    case ViewKind.ImageCorILMethodTiny:
+                                    case ViewKind.ImageCorILMethodFat:
+                                        break;
+
+                                    default:
+                                        @continue = false;
+                                        continue;
+                                }
+                                break;
+
+                            case ViewByteDataKind.String:
+                            case ViewByteDataKind.Unknown:
+                                @continue = false;
+                            case ViewByteDataKind.Padding:
+                                break;
+
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        break;
+
+                    case ViewByteKind.Code:
+                        if (!pViewByte->IsIL)
+                        {
+                            @continue = false;
+                            continue;
+                        }
+                        
+                        break;
+
+                    case ViewByteKind.Unknown:
+                        //IL Methods often have random bytes between them; I haven't figured out if this is just junk or may mean anything,
+                        //but for now to keep things tidy let's just bundle it up along with the IL Methods
+                        length = pViewByte->GetUnknownLength(pEnd);
+                        pViewByte += length;
+                        targetAddress += length;
+                        builder.End += length;
+                        continue;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                length = pViewByte->GetLength(pEnd);
+                pViewByte += length;
+                targetAddress += length;
+                builder.End += length;
+            }
+
+            var writer = (PEViewByteViewWriter) _viewWriter;
+
+            writer._firstRegionByAddress.Add(builder);
+            writer._topLevelRegions.Add(builder);
+        }
+
+        private int ClearString(ViewByte* pViewByte, ViewByte* pEnd)
+        {
+            pViewByte->Kind = ViewByteKind.Unknown;
+
+            var start = pViewByte;
+
+            pViewByte++;
+
+            while (pViewByte < pEnd && pViewByte->Kind == ViewByteKind.Body)
+            {
+                pViewByte->Kind = ViewByteKind.Unknown;
+                pViewByte++;
+            }
+
+            var length = (int) (pViewByte - start);
+
+            return length;
+        }
     }
 }

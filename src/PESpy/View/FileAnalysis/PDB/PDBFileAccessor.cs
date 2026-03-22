@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
@@ -14,15 +15,21 @@ namespace PESpy.View
         public override IFile File => PDBFile;
 
         internal readonly Dictionary<PN, int> _pageNumberToSIIndex;
+        internal int[] _pagesToSectionAccessors;
         private ViewWriter _viewWriter;
 
-        public PDBFileAccessor(PDBFile pdbFile) : base(GetBitness(pdbFile))
+        public PDBFileAccessor(PDBFile pdbFile, bool trackXRefs) : base(GetBitness(pdbFile), trackXRefs)
         {
             PDBFile = pdbFile;
 
-            var pages = new PooledList<DirectoryInfo>();
+            var numPages = PDBFile.NumPages;
+
+            var pages = ArrayPool<DirectoryInfo>.Shared.Rent(numPages);
             var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
             var sectionAccessors = new PooledList<SectionAccessor>();
+            var nameBuilder = new ValueStringBuilder();
+
+            var pagesToSectionAccessors = new int[numPages];
 
             _pageNumberToSIIndex = Merger.GetPageNumberToSIIndex(pdbFile);
 
@@ -30,7 +37,7 @@ namespace PESpy.View
 
             try
             {
-                PDBViewWriter.GetContiguousSectionInfos(pdbFile, ref contiguousSections, ref pages);
+                PDBViewWriter.GetContiguousSectionInfos(pdbFile, ref contiguousSections, pages);
 
                 /* Pages contains a list of every single page and the name of that page. We now need
                  * to convert this list of pages into a collection of segments. MergePDB works by first
@@ -45,21 +52,27 @@ namespace PESpy.View
                 var pageSize = pdbFile.PageSize;
 
                 void AddPages(
-                    ref PooledList<DirectoryInfo> pages,
+                    DirectoryInfo[] pages,
                     ref PooledList<SectionAccessor> sectionAccessors,
+                    ref ValueStringBuilder nameBuilder,
                     int currentPageIndex,
                     int endIndex)
                 {
                     for (var j = currentPageIndex; j < endIndex; j++)
                     {
                         var page = pages[j];
+                        pagesToSectionAccessors[j] = sectionAccessors.Count;
+
+                        nameBuilder.Clear();
+                        nameBuilder.Append("[Page] ");
+                        pages[j].NameInfo.ToString(ref nameBuilder, true);
 
                         sectionAccessors.Add(
                             new SectionAccessor(
                                 page.Start,
                                 page.End,
                                 SectionAccessorKind.Page, j,
-                                "[Page] " + pages[j].Name,
+                                nameBuilder.ToString(),
                                 MemoryMappedFile.CreateNew(null, pageSize)
                             )
                         );
@@ -74,10 +87,29 @@ namespace PESpy.View
                     {
                         //Write all pages up to the start of this page
 
-                        AddPages(ref pages, ref sectionAccessors, currentPageIndex, section.GlobalStartIndex);
+                        AddPages(pages, ref sectionAccessors, ref nameBuilder, currentPageIndex, section.GlobalStartIndex);
                     }
 
                     //Now write the current contiguous section
+
+                    for (var j = section.GlobalStartIndex; j <= section.GlobalEndIndex; j++)
+                    {
+                        pagesToSectionAccessors[j] = sectionAccessors.Count;
+                    }
+
+                    nameBuilder.Clear();
+                    nameBuilder.Append("[Range] ");
+                    nameBuilder.Append(section.GlobalStartIndex);
+                    nameBuilder.Append('-');
+                    nameBuilder.Append(section.GlobalEndIndex);
+                    nameBuilder.Append(" | ");
+                    section.NameInfo.ToString(ref nameBuilder, false);
+                    nameBuilder.Append(" (Pages");
+                    nameBuilder.Append(section.LocalStartIndex + 1);
+                    nameBuilder.Append('-');
+                    nameBuilder.Append(section.LocalEndIndex + 1);
+                    nameBuilder.Append(" of ");
+                    nameBuilder.Append(section.NumPages);
 
                     sectionAccessors.Add(
                         new SectionAccessor(
@@ -85,7 +117,7 @@ namespace PESpy.View
                             (section.GlobalEndIndex + 1) * pageSize, //The way the NumPages works also shows you need to do +1
                             SectionAccessorKind.Section,
                             -1,
-                            $"[Range] {section.GlobalStartIndex}-{section.GlobalEndIndex} | {section.Name} (Pages {section.LocalStartIndex + 1}-{section.LocalEndIndex + 1} of {section.NumPages})",
+                            nameBuilder.ToString(),
                             MemoryMappedFile.CreateNew(null, section.NumPages * pageSize)
                         )
                     );
@@ -93,18 +125,20 @@ namespace PESpy.View
                     currentPageIndex = section.GlobalEndIndex + 1;
                 }
 
-                if (currentPageIndex < pages.Count )
+                if (currentPageIndex < numPages)
                 {
-                    AddPages(ref pages, ref sectionAccessors, currentPageIndex, pages.Count);
+                    AddPages(pages, ref sectionAccessors, ref nameBuilder, currentPageIndex, numPages);
                 }
 
+                _pagesToSectionAccessors = pagesToSectionAccessors;
                 SectionAccessors = sectionAccessors.ToArray();
             }
             finally
             {
-                pages.Dispose();
+                ArrayPool<DirectoryInfo>.Shared.Return(pages);
                 contiguousSections.Dispose();
                 sectionAccessors.Dispose();
+                nameBuilder.Dispose();
             }
         }
 
@@ -148,7 +182,65 @@ namespace PESpy.View
 
         internal override MemoryChunk GetMemoryChunkFromAddress(int address)
         {
-            return new MemoryChunk(PDBFile.globalBlock, address);
+            //We need to figure out which page the address belongs to, which stream _that_ belongs to,
+            //and then slice the appropriate amount into the target stream
+
+            var pageSize = PDBFile.PageSize;
+            var pageNum = address / pageSize;
+
+            if (pageNum == 0)
+                return new MemoryChunk(PDBFile.globalBlock, address);
+
+            var siIndex = _pageNumberToSIIndex[pageNum];
+
+            PN[] pageList;
+            int byteCount;
+
+            switch (siIndex)
+            {
+                case Merger.SPECIAL_STREAM_MASTER_INDEX: //-1
+                case Merger.SPECIAL_STREAM_FPM_0: //-2
+                case Merger.SPECIAL_STREAM_FPM_1: //-3
+                    throw new NotImplementedException();
+
+                case Merger.SPECIAL_STREAM_STREAMTABLE: //-4
+                    if (PDBFile is PDB7File v7)
+                    {
+                        pageList = v7.StreamTableLocation.PageList;
+                        byteCount = v7.StreamTableLocation.ByteCount;
+                    }
+                    else
+                    {
+                        //SlicePaged against Span<ushort> will allocate an array anyway, so we don't need to worry about renting
+                        var msfHeader = ((PDB2File) PDBFile).MsfHeader;
+                        var rawPages = msfHeader.StreamTablePageList;
+
+                        pageList = new PN[rawPages.Length];
+
+                        for (var i = 0; i < rawPages.Length; i++)
+                            pageList[i] = rawPages[i];
+
+                        byteCount = msfHeader.StreamTableSizeInfo.ByteCount;
+                    }
+                    break;
+
+                case Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION: //-5
+                    throw new NotImplementedException();
+
+                default:
+                    var si = PDBFile.StreamTable.StreamInfos[siIndex];
+                    pageList = si.PageList;
+                    byteCount = si.ByteCount;
+                    break;
+            }
+
+            var currentIndex = Array.IndexOf(pageList, (PN) pageNum);
+            Debug.Assert(currentIndex != -1);
+
+            var offsetInPage = address & (pageSize - 1); //Faster modulo
+            var chunk = PDBFile.globalBlock.SlicePaged(pageList, byteCount).Slice((currentIndex * pageSize) + offsetInPage);
+
+            return chunk;
         }
 
         protected override ViewWriter GetViewWriter()
@@ -180,27 +272,33 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override ISymbolAccessor GetSymbolAccessor(bool load, ILocatorProgress? progress = null)
-        {
-            throw new NotImplementedException();
-        }
+        //We are our own symbol accessor, so we don't need to be afraid to return ourselves right away even if we don't want to allow loading.
+        //The PDBFile stores the actual reference to the symbol accessor
+        internal override ISymbolAccessor GetSymbolAccessor(bool load, LocatorHttpPolicy httpPolicy, ILocatorProgress? progress) => PDBFile.GetSymbolAccessor(httpPolicy, progress);
 
-        internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref int offset)
+        internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref int offset, out int sectionIndex, out int bytesRewound)
         {
+            bytesRewound = 0;
+
             while (true)
             {
                 Debug.Assert(pViewByte->Kind == ViewByteKind.Body && pViewByte->BodyKind == ViewByteBodyKind.SplitHead);
 
                 offset = Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex, previous: true) + PDBFile.PageSize - 1;
 
-                pViewByte = GetViewByte(offset, out _);
+                pViewByte = GetViewByte(offset, out sectionIndex);
 
                 Debug.Assert(pViewByte->Kind == ViewByteKind.Body && pViewByte->BodyKind == ViewByteBodyKind.SplitTail);
 
                 while (true)
                 {
                     if (pViewByte->Kind != ViewByteKind.Body)
+                    {
+                        //I was 1 off the length when we encountered the head so I think I need to do +1 here. Not sure what would happen
+                        //if we have multiple segments to rewind through
+                        bytesRewound++;
                         return;
+                    }
 
                     if (pViewByte->BodyKind == ViewByteBodyKind.SplitHead)
                     {
@@ -210,6 +308,7 @@ namespace PESpy.View
 
                     pViewByte--;
                     offset--;
+                    bytesRewound++; //I wanted to try and optimize this and just subtract from offset when we return, but if we span multiple pages we can't just do offset - bytesRewound
                 }
             }
 

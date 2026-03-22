@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Reflection;
+using ClrDebug;
 using PESpy.View;
+using AssemblyHashAlgorithm = System.Configuration.Assemblies.AssemblyHashAlgorithm;
 
 namespace PESpy.Ecma335
 {
@@ -134,6 +137,8 @@ namespace PESpy.Ecma335
 
         public ref readonly MetadataSizes Sizes => ref sizes;
 
+        internal IFile File() => chunk.File();
+
         private readonly MemoryChunk chunk;
 
         internal CompressedModelHeap(in MemoryChunk chunk, int size)
@@ -190,6 +195,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.GuidIndexSize,
+                    this,
                     stringHeap,
                     guidHeap,
                     chunk.Slice(offset)
@@ -206,6 +212,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.ResolutionScopeSize,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -223,6 +230,7 @@ namespace PESpy.Ecma335
                     sizes.TypeDefOrRefSize,
                     sizes.GetSimpleIndexSize(TableKind.Field),
                     sizes.GetSimpleIndexSize(TableKind.MethodDef),
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -237,6 +245,7 @@ namespace PESpy.Ecma335
                 FieldPtrTable = new FieldPtrTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Field),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * FieldPtrTable.RowSize;
@@ -251,6 +260,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.BlobIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -266,6 +276,7 @@ namespace PESpy.Ecma335
                 MethodPtrTable = new MethodPtrTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.MethodDef),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * MethodPtrTable.RowSize;
@@ -297,6 +308,7 @@ namespace PESpy.Ecma335
                 ParamPtrTable = new ParamPtrTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Param),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * ParamPtrTable.RowSize;
@@ -310,6 +322,7 @@ namespace PESpy.Ecma335
                 ParamTable = new ParamTable(
                     numRows,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -325,6 +338,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
                     sizes.TypeDefOrRefSize,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * InterfaceImplTable.RowSize;
@@ -340,6 +354,7 @@ namespace PESpy.Ecma335
                     sizes.MemberRefParentSize,
                     stringIndexSize,
                     sizes.BlobIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -356,6 +371,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.HasConstantSize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -389,6 +405,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.HasFieldMarshalSize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -404,6 +421,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.HasDeclSecuritySize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -418,6 +436,7 @@ namespace PESpy.Ecma335
                 ClassLayoutTable = new ClassLayoutTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * ClassLayoutTable.RowSize;
@@ -431,6 +450,7 @@ namespace PESpy.Ecma335
                 FieldLayoutTable = new FieldLayoutTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Field),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * FieldLayoutTable.RowSize;
@@ -444,6 +464,7 @@ namespace PESpy.Ecma335
                 StandAloneSigTable = new StandAloneSigTable(
                     numRows,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -459,6 +480,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
                     sizes.GetSimpleIndexSize(TableKind.Event),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * EventMapTable.RowSize;
@@ -472,6 +494,7 @@ namespace PESpy.Ecma335
                 EventPtrTable = new EventPtrTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Event),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * EventPtrTable.RowSize;
@@ -486,6 +509,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.TypeDefOrRefSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -501,6 +525,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
                     sizes.GetSimpleIndexSize(TableKind.Property),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * PropertyMapTable.RowSize;
@@ -514,6 +539,7 @@ namespace PESpy.Ecma335
                 PropertyPtrTable = new PropertyPtrTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Property),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * PropertyPtrTable.RowSize;
@@ -528,6 +554,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.BlobIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -544,6 +571,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.MethodDef),
                     sizes.HasSemanticsSize,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * MethodSemanticsTable.RowSize;
@@ -558,6 +586,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
                     sizes.MethodDefOrRefSize,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * MethodImplTable.RowSize;
@@ -571,6 +600,7 @@ namespace PESpy.Ecma335
                 ModuleRefTable = new ModuleRefTable(
                     numRows,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -585,6 +615,7 @@ namespace PESpy.Ecma335
                 TypeSpecTable = new TypeSpecTable(
                     numRows,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -601,6 +632,7 @@ namespace PESpy.Ecma335
                     sizes.MemberForwardedSize,
                     stringIndexSize,
                     sizes.GetSimpleIndexSize(TableKind.ModuleRef),
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -615,6 +647,7 @@ namespace PESpy.Ecma335
                 FieldRvaTable = new FieldRvaTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.Field),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * FieldRvaTable.RowSize;
@@ -627,6 +660,7 @@ namespace PESpy.Ecma335
             {
                 EncLogTable = new EncLogTable(
                     numRows,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * EncLogTable.RowSize;
@@ -639,6 +673,7 @@ namespace PESpy.Ecma335
             {
                 EncMapTable = new EncMapTable(
                     numRows,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * EncMapTable.RowSize;
@@ -694,6 +729,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.BlobIndexSize,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -709,6 +745,7 @@ namespace PESpy.Ecma335
                 AssemblyRefProcessorTable = new AssemblyRefProcessorTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.AssemblyRef),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * AssemblyRefProcessorTable.RowSize;
@@ -722,6 +759,7 @@ namespace PESpy.Ecma335
                 AssemblyRefOSTable = new AssemblyRefOSTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.AssemblyRef),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * AssemblyRefOSTable.RowSize;
@@ -736,6 +774,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.BlobIndexSize,
+                    this,
                     stringHeap,
                     blobHeap,
                     chunk.Slice(offset)
@@ -752,6 +791,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.ImplementationSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -767,6 +807,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     sizes.ImplementationSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -781,6 +822,7 @@ namespace PESpy.Ecma335
                 NestedClassTable = new NestedClassTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.TypeDef),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * NestedClassTable.RowSize;
@@ -795,6 +837,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.TypeOrMethodDefSize,
                     stringIndexSize,
+                    this,
                     stringHeap,
                     chunk.Slice(offset)
                 );
@@ -810,6 +853,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.MethodDefOrRefSize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -825,6 +869,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.GenericParam),
                     sizes.TypeDefOrRefSize,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * GenericParamConstraintTable.RowSize;
@@ -860,6 +905,7 @@ namespace PESpy.Ecma335
                     numRows,
                     sizes.BlobIndexSize,
                     sizes.GetSimpleIndexSize(TableKind.Document),
+                    this,
                     blobHeap,
                     chunk.Slice(offset)
                 );
@@ -877,6 +923,7 @@ namespace PESpy.Ecma335
                     sizes.GetSimpleIndexSize(TableKind.ImportScope),
                     sizes.GetSimpleIndexSize(TableKind.LocalVariable),
                     sizes.GetSimpleIndexSize(TableKind.LocalConstant),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * LocalScopeTable.RowSize;
@@ -891,6 +938,7 @@ namespace PESpy.Ecma335
                     numRows,
                     stringIndexSize,
                     stringHeap,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * LocalVariableTable.RowSize;
@@ -907,6 +955,7 @@ namespace PESpy.Ecma335
                     sizes.BlobIndexSize,
                     stringHeap,
                     blobHeap,
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * LocalConstantTable.RowSize;
@@ -935,6 +984,7 @@ namespace PESpy.Ecma335
                 StateMachineMethodTable = new StateMachineMethodTable(
                     numRows,
                     sizes.GetSimpleIndexSize(TableKind.MethodDebugInformation),
+                    this,
                     chunk.Slice(offset)
                 );
                 offset += numRows * StateMachineMethodTable.RowSize;
@@ -950,6 +1000,7 @@ namespace PESpy.Ecma335
                     sizes.HasCustomDebugInformationSize,
                     sizes.GuidIndexSize,
                     sizes.BlobIndexSize,
+                    this,
                     blobHeap,
                     guidHeap,
                     chunk.Slice(offset)
@@ -961,7 +1012,15 @@ namespace PESpy.Ecma335
             #endregion
         }
 
+        //internal int BinarySearch(string[] asciiKeys, int offset)
+        //BinarySearchForSlot
+        //BinarySearchReference(int rowCount)
+        //BinarySearchReference(int[] ptrTable)
+        //BinarySearchReferenceRange(int rowCount)
+        //BinarySearchReferenceRange(int[] ptrTable)
+
         //e.g. for TypeDef.FieldList, TypeDef.MethodList
+        //BinarySearchForSlot
         internal static int BinarySearchEcmaIndexList(
             in MemoryChunk tableChunk,
             int rowCount,
@@ -1013,6 +1072,7 @@ namespace PESpy.Ecma335
             return lo;
         }
 
+        //BinarySearchReference
         internal static int BinarySearchEcmaIndex(
             in MemoryChunk tableChunk,
             int rowCount,
@@ -1041,6 +1101,7 @@ namespace PESpy.Ecma335
             return -1;
         }
 
+        //BinarySearchReferenceRange
         internal static void BinarySearchEcmaIndexRange(
             in MemoryChunk tableChunk,
             int rowCount,
@@ -1082,12 +1143,161 @@ namespace PESpy.Ecma335
                 endRowNumber++;
         }
 
-        internal TypeDefRow GetDeclaringType(MethodDefIndex methodDefIndex)
+        //LinearSearchReference
+        internal static int LinearSearchEcmaIndex(
+            in MemoryChunk tableChunk,
+            int rowCount,
+            int rowSize,
+            int targetOffset,
+            uint targetValue,
+            bool isIndexBig)
+        {
+            var currentOffset = targetOffset;
+
+            //System.Reflection.Metadata has a bunch of "memory blocks" and evidently
+            //the size of each block may be the size of a table? Not sure, but that doesn't
+            //work in our world, so we'll just compute the end of the table
+            var totalSize = rowSize * rowCount;
+
+            while (currentOffset < totalSize)
+            {
+                var item = tableChunk.PeekEcmaIndex(currentOffset, isIndexBig);
+
+                if (item == targetValue)
+                    return currentOffset / rowSize;
+
+                currentOffset += rowSize;
+            }
+
+            return -1;
+        }
+
+        internal TypeDefRow? GetDeclaringType(MethodDefIndex methodDefIndex)
         {
             if (MethodPtrTable?.Count > 0)
                 throw new NotImplementedException("Getting the declaring type from a method pointer table is not implemented");
 
             return TypeDefTable.FindTypeContainingMethod(methodDefIndex.RowId, MethodDefTable.Count);
+        }
+
+        internal TypeDefRow? GetDeclaringType(FieldIndex fieldDefIndex)
+        {
+            if (FieldPtrTable?.Count > 0)
+                throw new NotImplementedException("Getting the declaring type from a field pointer table is not implemented");
+
+            return TypeDefTable.FindTypeContainingField(fieldDefIndex.RowId, FieldTable.Count);
+        }
+
+        internal TypeDefRow? GetDeclaringType(EventIndex eventDefIndex)
+        {
+            if (EventPtrTable?.Count > 0)
+                throw new NotImplementedException("Getting the declaring type from an event pointer table is not implemented");
+
+            return EventMapTable.FindTypeContainingEvent(eventDefIndex.RowId, EventTable.Count);
+        }
+
+        internal TypeDefRow? GetDeclaringType(PropertyIndex propertyDefIndex)
+        {
+            if (PropertyPtrTable?.Count > 0)
+                throw new NotImplementedException("Getting the declaring type from a property pointer table is not implemented");
+
+            return PropertyMapTable.FindTypeContainingProperty(propertyDefIndex.RowId, PropertyTable.Count);
+        }
+
+        internal static string FormatType(StringIndex typeNamespace, StringIndex typeName)
+        {
+            var ns = typeNamespace.GetString();
+
+            if (ns.Length == 0)
+                return typeName.GetString().ToString();
+
+            using var builder = new Utf8StringBuilder();
+
+            builder.Append(ns);
+            builder.Append('.');
+            builder.Append(typeName.GetString());
+
+            return builder.ToString();
+        }
+
+        internal static AssemblyName GetAssemblyName(
+            StringIndex nameIndex,
+            Version version,
+            StringIndex cultureIndex,
+            BlobIndex publicKeyOrTokenIndex,
+            AssemblyHashAlgorithm assemblyHashAlgorithm,
+            CorAssemblyFlags flags)
+        {
+            var publicKeyOrToken = publicKeyOrTokenIndex.IsNil ? Array.Empty<byte>() : publicKeyOrTokenIndex.GetBlob().Value.ToArray();
+
+            var contentType = (AssemblyContentType) (((int) flags & (int) CorAssemblyFlags.afContentType_Mask) >> 9);
+
+            AssemblyNameFlags assemblyNameFlags = AssemblyNameFlags.None;
+
+            if ((flags & CorAssemblyFlags.afPublicKey) != 0)
+                assemblyNameFlags |= AssemblyNameFlags.PublicKey;
+
+            if ((flags & CorAssemblyFlags.afRetargetable) != 0)
+                assemblyNameFlags |= AssemblyNameFlags.Retargetable;
+
+            if ((flags & CorAssemblyFlags.afEnableJITcompileTracking) != 0)
+                assemblyNameFlags |= AssemblyNameFlags.EnableJITcompileTracking;
+
+            if ((flags & CorAssemblyFlags.afDisableJITcompileOptimizer) != 0)
+                assemblyNameFlags |= AssemblyNameFlags.EnableJITcompileOptimizer;
+
+            var assemblyName = new AssemblyName
+            {
+                Name = nameIndex.GetString().ToString(),
+                Version = version,
+                CultureName = cultureIndex.IsNil ? string.Empty : cultureIndex.GetString().ToString(),
+#pragma warning disable SYSLIB0037
+                HashAlgorithm = assemblyHashAlgorithm,
+#pragma warning restore
+                Flags = assemblyNameFlags,
+                ContentType = contentType
+            };
+
+            if ((flags & CorAssemblyFlags.afPublicKey) != 0)
+                assemblyName.SetPublicKey(publicKeyOrToken);
+            else
+                assemblyName.SetPublicKeyToken(publicKeyOrToken);
+
+            return assemblyName;
+        }
+
+        public object GetRow(mdToken token)
+        {
+            return token.Type switch
+            {
+                CorTokenType.mdtModule                 => ModuleTable.FromToken(token),
+                CorTokenType.mdtTypeRef                => TypeRefTable.FromToken(token),
+                CorTokenType.mdtTypeDef                => TypeDefTable.FromToken(token),
+                CorTokenType.mdtFieldDef               => FieldTable.FromToken(token),
+                CorTokenType.mdtMethodDef              => MethodDefTable.FromToken(token),
+                CorTokenType.mdtParamDef               => ParamTable.FromToken(token),
+                CorTokenType.mdtInterfaceImpl          => InterfaceImplTable.FromToken(token),
+                CorTokenType.mdtMemberRef              => MemberRefTable.FromToken(token),
+                CorTokenType.mdtCustomAttribute        => CustomAttributeTable.FromToken(token),
+                CorTokenType.mdtPermission             => DeclSecurityTable.FromToken(token),
+                CorTokenType.mdtSignature              => StandAloneSigTable.FromToken(token),
+                CorTokenType.mdtEvent                  => EventTable.FromToken(token),
+                CorTokenType.mdtProperty               => PropertyTable.FromToken(token),
+                CorTokenType.mdtMethodImpl             => MethodImplTable.FromToken(token),
+                CorTokenType.mdtModuleRef              => ModuleRefTable.FromToken(token),
+                CorTokenType.mdtTypeSpec               => TypeSpecTable.FromToken(token),
+                CorTokenType.mdtAssembly               => AssemblyTable.FromToken(token),
+                CorTokenType.mdtAssemblyRef            => AssemblyRefTable.FromToken(token),
+                CorTokenType.mdtFile                   => FileTable.FromToken(token),
+                CorTokenType.mdtExportedType           => ExportedTypeTable.FromToken(token),
+                CorTokenType.mdtManifestResource       => ManifestResourceTable.FromToken(token),
+                CorTokenType.mdtGenericParam           => GenericParamTable.FromToken(token),
+                CorTokenType.mdtMethodSpec             => MethodSpecTable.FromToken(token),
+                CorTokenType.mdtGenericParamConstraint => GenericParamConstraintTable.FromToken(token),
+                CorTokenType.mdtString                 => throw new NotImplementedException(),
+                CorTokenType.mdtName                   => throw new NotImplementedException(),
+                CorTokenType.mdtBaseType               => throw new NotImplementedException(),
+            };
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -1098,12 +1308,12 @@ namespace PESpy.Ecma335
             {
                 if (table != null && table.Count > 0)
                 {
-                    var first = table[1]; //Indices are 1 based
+                    var first = table[0];
                     using var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable, false);
 
                     r.WriteValue(first);
 
-                    for (var i = 2; i <= table.Count; i++)
+                    for (var i = 1; i < table.Count; i++)
                         r.WriteValue(table[i]);
                 }
             }

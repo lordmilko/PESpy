@@ -1,7 +1,10 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.View;
+
+namespace PESpy
 {
     //_RTTICompleteObjectLocator
-    public readonly struct RTTICompleteObjectLocator : IValue
+    public readonly struct RTTICompleteObjectLocator : IValue, IViewable
     {
         private const int signatureOffset = 0;
         private const int offsetOffset = 4;
@@ -59,6 +62,53 @@
         internal RTTICompleteObjectLocator(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteRVAField(pTypeDescriptor, Offset, fieldOffset: pTypeDescriptorOffset);
+
+            //RTTIClassHierarchyDescriptor -> RTTIBaseClassArray -> RTTIBaseClassDescriptor -> RTTIClassHierarchyDescriptor again.
+            //This will cause us to get into an infinite loop; as such we need to make sure we only write hierarchy descriptor once
+            writer.WriteUniqueRVAField(pClassDescriptor, Offset, fieldOffset: pClassDescriptorOffset);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings._RTTICompleteObjectLocator, this, ViewKind.RTTICompleteObjectLocator, StructSize);
+
+        int IViewable.NumChildren() => 6;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(signature), signatureOffset, signature, sizeof(int));
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(offset), offsetOffset, offset);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(cdOffset), cdOffsetOffset, cdOffset);
+                    break;
+
+                case 3:
+                    structWriter.WriteRVAField(nameof(pTypeDescriptor), pTypeDescriptorOffset, pTypeDescriptor);
+                    break;
+
+                case 4:
+                    structWriter.WriteRVAField(nameof(pClassDescriptor), pClassDescriptorOffset, pClassDescriptor);
+                    break;
+
+                case 5:
+                    structWriter.WriteField(nameof(pSelf), pSelfOffset, pSelf);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

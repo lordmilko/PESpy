@@ -4,21 +4,26 @@ namespace PESpy.Ecma335
 {
     public sealed class LocalConstantTable : Table<LocalConstantRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int NameOffset;
         internal readonly int SignatureOffset;
 
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal LocalConstantTable(int numRows, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal LocalConstantTable(
+            int numRows,
+            int stringIndexSize,
+            int blobIndexSize,
+            Func<StringHeap?> stringHeap,
+            Func<BlobHeap?> blobHeap,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -42,9 +47,28 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap);
         }
 
+        internal void GetRange(LocalScopeIndex localScope, out int firstConstantRowId, out int lastConstantRowId)
+        {
+            firstConstantRowId = (int) CompressedModelHeap.LocalScopeTable.GetConstantList(localScope);
+
+            if (firstConstantRowId == 0)
+            {
+                firstConstantRowId = 0;
+                lastConstantRowId = 0;
+            }
+            else if (localScope.RowId == CompressedModelHeap.LocalScopeTable.Count)
+            {
+                lastConstantRowId = Count + 1;
+            }
+            else
+            {
+                lastConstantRowId = (int) CompressedModelHeap.LocalScopeTable.GetVariableList((LocalScopeIndex) (localScope.RowId + 1));
+            }
+        }
+
         public int GetRowOffset(LocalConstantIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public LocalConstantRow this[LocalConstantIndex index] => this[(int) index];
+        public LocalConstantRow this[LocalConstantIndex index] => GetRow((int) index);
 
         protected override LocalConstantRow GetRow(int index) => new LocalConstantRow((LocalConstantIndex) index, this);
     }

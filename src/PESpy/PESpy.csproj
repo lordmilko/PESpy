@@ -1,19 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(Build)ClrDebug.props" />
+  <Import Project="$(Build)PInvoke.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(UseLatestTargetFramework)' == 'yes'">netstandard2.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(UseLatestTargetFramework)' != 'yes'">netstandard2.0</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Nullable>enable</Nullable>
+		<Nullable>annotations</Nullable>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\PESpy.xml</DocumentationFile>
 		<DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);MONITOR_NODE_CACHE</DefineConstants>
-    <NoWarn>$(NoWarn);1591;</NoWarn>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>$(NoWarn);1701;1702</NoWarn>
+		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
+		<AnalysisLevel>none</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,15 +23,30 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="PE\14. Cor20\Ecma335\Index\Index.cs">
+    <None Include="Locator.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Index.tt</DependentUpon>
+      <DependentUpon>Locator.tt</DependentUpon>
+    </None>
+    <None Include="PE\14. Cor20\Ecma335\Index\Index.g.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Index.g.tt</DependentUpon>
     </None>
     <None Include="Strings.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.tt</DependentUpon>
+    </None>
+    <None Include="SymStore\FileSystemSymStore.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FileSystemSymStore.tt</DependentUpon>
+    </None>
+    <None Include="SymStore\SymStore.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SymStore.tt</DependentUpon>
     </None>
   </ItemGroup>
 
@@ -44,19 +58,31 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
 
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" PrivateAssets="all" />
 
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="PE\14. Cor20\Ecma335\Index\Index.tt">
+    <None Update="Locator.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Index.cs</LastGenOutput>
+      <LastGenOutput>Locator.cs</LastGenOutput>
+    </None>
+    <None Update="PE\14. Cor20\Ecma335\Index\Index.g.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Index.g.cs</LastGenOutput>
     </None>
     <None Update="Strings.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Strings.cs</LastGenOutput>
+    </None>
+    <None Update="SymStore\FileSystemSymStore.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FileSystemSymStore.cs</LastGenOutput>
+    </None>
+    <None Update="SymStore\SymStore.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SymStore.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -65,15 +91,30 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="PE\14. Cor20\Ecma335\Index\Index.cs">
+    <Compile Update="Locator.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Index.tt</DependentUpon>
+      <DependentUpon>Locator.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PE\14. Cor20\Ecma335\Index\Index.g.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Index.g.tt</DependentUpon>
     </Compile>
     <Compile Update="Strings.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.tt</DependentUpon>
+    </Compile>
+    <Compile Update="SymStore\FileSystemSymStore.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FileSystemSymStore.tt</DependentUpon>
+    </Compile>
+    <Compile Update="SymStore\SymStore.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SymStore.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

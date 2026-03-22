@@ -13,7 +13,7 @@ namespace PESpy
         private const int LengthOffset = 0;
         private const int ValueLengthOffset = 2;
         private const int TypeOffset = 4;
-        private const int KeyOffset = 6;
+        internal const int KeyOffset = 6;
         private const int Padding1Offset = 38;
 
         public short Length => chunk.PeekInt16(LengthOffset);

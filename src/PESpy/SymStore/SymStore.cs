@@ -27,9 +27,11 @@ namespace PESpy
 
         //SymStore EntryPoint
         public static (string? filePath, SymStoreKey? keyUsed) GetFile(
+            IFile? file,
             ReadOnlySpan<char> searchPath,
             SymStoreKey key,
             SymStoreKey? altKey,
+            LocatorHttpPolicy httpPolicy,
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
@@ -61,7 +63,7 @@ namespace PESpy
 
                 if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase))
                 {
-                    store = new HttpSymStore(currentPath.ToString(), store);
+                    store = new HttpSymStore(currentPath.ToString(), file, httpPolicy, store);
                 }
                 else
                 {
@@ -75,9 +77,11 @@ namespace PESpy
 
 #if !NATIVEAOT
         public static ValueTask<(string? filePath, SymStoreKey? keyUsed)> GetFileAsync(
+            IFile? file,
             ReadOnlySpan<char> searchPath,
             SymStoreKey key,
             SymStoreKey? altKey,
+            LocatorHttpPolicy httpPolicy,
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
@@ -109,7 +113,7 @@ namespace PESpy
 
                 if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase))
                 {
-                    store = new HttpSymStore(currentPath.ToString(), store);
+                    store = new HttpSymStore(currentPath.ToString(), file, httpPolicy, store);
                 }
                 else
                 {
@@ -223,7 +227,7 @@ namespace PESpy
                 {
                     try
                     {
-                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateBeginCascadeStore(key, Name, BackingStore.Name));
 
                         fileAndStream = BackingStore.GetFileOrCascade(key, progress, cancellationToken);
 
@@ -233,7 +237,7 @@ namespace PESpy
 
                             try
                             {
-                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                progress?.Notify(LocatorProgressEventArgs.CreateCopyCascadeFile(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length));
                                 fileAndStream = SaveFile(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken);
                             }
                             finally
@@ -244,7 +248,7 @@ namespace PESpy
                     }
                     finally
                     {
-                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateEndCascadeStore(key, Name, BackingStore.Name));
                     }
                 }
             }
@@ -267,7 +271,7 @@ namespace PESpy
                 {
                     try
                     {
-                        progress?.TryCascadeBegin(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateBeginCascadeStore(key, Name, BackingStore.Name));
 
                         fileAndStream = await BackingStore.GetFileOrCascadeAsync(key, progress, cancellationToken).ConfigureAwait(false);
 
@@ -277,7 +281,7 @@ namespace PESpy
 
                             try
                             {
-                                progress?.CascadeCopyBegin(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length);
+                                progress?.Notify(LocatorProgressEventArgs.CreateCopyCascadeFile(key, Name, BackingStore.Name, (int) fileAndStream.Value.stream.Length));
                                 fileAndStream = await SaveFileAsync(key, fileAndStream.Value.file, fileAndStream.Value.stream, cancellationToken).ConfigureAwait(false);
                             }
                             finally
@@ -288,7 +292,7 @@ namespace PESpy
                     }
                     finally
                     {
-                        progress?.TryCascadeEnd(key, Name, BackingStore.Name);
+                        progress?.Notify(LocatorProgressEventArgs.CreateEndCascadeStore(key, Name, BackingStore.Name));
                     }
                 }
             }

@@ -2,17 +2,19 @@
 {
     public sealed class ParamPtrTable : Table<ParamPtrRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ParamOffset;
 
         private readonly bool isBigParamIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal ParamPtrTable(int numRows, int paramIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal ParamPtrTable(
+            int numRows,
+            int paramIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigParamIndex = paramIndexSize == 4;
 
@@ -28,7 +30,7 @@
 
         public int GetRowOffset(ParamPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ParamPtrRow this[ParamPtrIndex index] => this[(int) index];
+        public ParamPtrRow this[ParamPtrIndex index] => GetRow((int) index);
 
         protected override ParamPtrRow GetRow(int index) => new ParamPtrRow((ParamPtrIndex) index, this);
     }

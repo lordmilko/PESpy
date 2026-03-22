@@ -7,7 +7,8 @@ namespace PESpy
     public readonly unsafe struct SymString :
         IString<SymString, byte>,
         IEquatable<string>,
-        IComparable<string>
+        IComparable<string>,
+        IComparable<SymString>
     {
         public readonly byte* Value;
         public readonly bool IsLengthPrefixed;
@@ -78,8 +79,11 @@ namespace PESpy
             if (other == null)
                 return Value == default;
 
-            return StringHelpers.Equals(Value, Length, other);
+            return StringHelpers.Equals(Value, Length, other.AsSpan());
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(ReadOnlySpan<char> other) => StringHelpers.Equals(Value, Length, other);
 
         public int CompareTo(string other) => throw new NotImplementedException();
 
@@ -103,6 +107,12 @@ namespace PESpy
         public static bool operator ==(string? left, SymString right) => right.Equals(left);
         public static bool operator !=(string? left, SymString right) => !right.Equals(left);
 
+        public static bool operator ==(SymString left, ReadOnlySpan<char> right) => left.Equals(right);
+        public static bool operator !=(SymString left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+        public static bool operator ==(ReadOnlySpan<char> left, SymString right) => right.Equals(left);
+        public static bool operator !=(ReadOnlySpan<char> left, SymString right) => !right.Equals(left);
+
         public static bool operator ==(SymString left, SymString right) => Equals(left, right);
         public static bool operator !=(SymString left, SymString right) => !Equals(left, right);
 
@@ -116,6 +126,9 @@ namespace PESpy
             if (obj is string s)
                 return Equals(s);
 
+            if (obj == null)
+                return Value == default;
+
             return false;
         }
 
@@ -125,6 +138,6 @@ namespace PESpy
         /// Returns a <see langword="string"/> with a copy of this character array, decoding as UTF-8.
         /// </summary>
         /// <returns>A <see langword="string"/>, or <see langword="null"/> if <see cref="Value"/> is <see langword="null"/>.</returns>
-        public override string ToString() => this.Value is null ? null! : new string((sbyte*) this.Value, 0, this.Length, System.Text.Encoding.UTF8);
+        public override string ToString() => this.Value is null ? "<null>" : new string((sbyte*) this.Value, 0, this.Length, System.Text.Encoding.UTF8);
     }
 }

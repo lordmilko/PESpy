@@ -4,8 +4,6 @@ namespace PESpy.Ecma335
 {
     public sealed class CustomAttributeTable : Table<CustomAttributeRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ParentOffset;
         internal readonly int TypeOffset;
         internal readonly int ValueOffset;
@@ -16,7 +14,6 @@ namespace PESpy.Ecma335
 
         internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
         //System.Reflection.Metadata calls this "PtrTable" which I think is a confusing name
         internal readonly int[]? SortedTable;
@@ -29,9 +26,8 @@ namespace PESpy.Ecma335
             int blobIndexSize,
             CompressedModelHeap compressedModelHeap,
             Func<BlobHeap?> blobHeap,
-            in MemoryChunk tableChunk) : base(numRows)
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
             CompressedModelHeap = compressedModelHeap;
             this.blobHeap = blobHeap;
 
@@ -88,17 +84,17 @@ namespace PESpy.Ecma335
 
             if (startRowNumber == -1)
             {
-                firstRowId = 1;
+                firstRowId = 0;
                 lastRowId = 0;
             }
             else
             {
                 firstRowId = startRowNumber + 1;
-                lastRowId = endRowNumber + 1;
+                lastRowId = endRowNumber + 2; //+1 gets us the actual last row and we want +2 to be +1 past it
             }
         }
 
-        public CustomAttributeRow this[CustomAttributeIndex index] => this[(int) index];
+        public CustomAttributeRow this[CustomAttributeIndex index] => GetRow((int) index);
 
         protected override CustomAttributeRow GetRow(int index) => new CustomAttributeRow((CustomAttributeIndex) index, this);
     }

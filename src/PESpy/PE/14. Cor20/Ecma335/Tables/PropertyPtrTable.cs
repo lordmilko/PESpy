@@ -2,17 +2,19 @@
 {
     public sealed class PropertyPtrTable : Table<PropertyPtrRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int PropertyOffset;
 
         private readonly bool isBigPropertyIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal PropertyPtrTable(int numRows, int propertyIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal PropertyPtrTable(
+            int numRows,
+            int propertyIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigPropertyIndex = propertyIndexSize == 4;
 
@@ -28,7 +30,7 @@
 
         public int GetRowOffset(PropertyPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public PropertyPtrRow this[PropertyPtrIndex index] => this[(int) index];
+        public PropertyPtrRow this[PropertyPtrIndex index] => GetRow((int) index);
 
         protected override PropertyPtrRow GetRow(int index) => new PropertyPtrRow((PropertyPtrIndex) index, this);
     }

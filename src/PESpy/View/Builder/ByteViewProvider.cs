@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using PESpy.Native;
 
 namespace PESpy.View.Builder
 {
@@ -10,12 +11,14 @@ namespace PESpy.View.Builder
         protected int length;
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
+        private bool isLibFile;
 
         public IViewDisassembler? ViewDisassembler => viewDisassembler;
 
-        internal ByteViewProvider(IViewDisassembler? viewDisassembler)
+        internal ByteViewProvider(IViewDisassembler? viewDisassembler, bool isLibFile)
         {
             this.viewDisassembler = viewDisassembler;
+            this.isLibFile = isLibFile;
         }
 
         public int FileOrSectionLength => length;
@@ -71,6 +74,9 @@ namespace PESpy.View.Builder
 
             if (!TryParseRawBytes(currentRVA, kind, bytes, getRVA, out views))
             {
+                if (bytes.Length == 1 && isLibFile && kind == null && bytes[0] == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_PAD)
+                    kind = ViewKind.ImageArchivePad;
+
                 var result = new ByteBlobView(currentRVA, bytes, kind);
                 views = new IView[] { result };
             }

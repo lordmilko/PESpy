@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("RVA = 0x{RVA.ToString(\"X\"),nq}, ImplFlags = {ImplFlags}, Flags = {Flags}, Name = {ToString(),nq}, Signature = {Signature}, ParamList = {ParamList}")]
     public readonly struct MethodDefRow : IValue, IViewable
     {
         public MethodDefIndex RowIndex { get; }
@@ -22,6 +20,48 @@ namespace PESpy.Ecma335
 
         public ParamIndex ParamList => table.GetParamList(RowIndex);
 
+        public ParamList Parameters => new ParamList(RowIndex, table.CompressedModelHeap);
+
+        public GenericParamList GenericParameters => table.CompressedModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.MethodDef));
+
+        //System.Reflection.Metadata's MethodImport type basically just contains
+        //all of the properties of the ImplMapRow type minus the MemberForwarded member
+        //(which would have been used to match against the row to begin with)
+        public ImplMapRow? Import
+        {
+            get
+            {
+                var implMapTable = table.CompressedModelHeap.ImplMapTable;
+
+                if (implMapTable == null)
+                    return default;
+
+                var implIndex = implMapTable.FindImplForMethod(RowIndex);
+
+                if (implIndex.RowId == 0)
+                    return default;
+
+                return table.CompressedModelHeap.ImplMapTable[implIndex];
+            }
+        }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        public DeclSecurityAttributeList DeclSecurityAttributes => table.GetDeclSecurityAttributes(RowIndex);
+
+        public ImageCorILMethod? ILMethod
+        {
+            get
+            {
+                var peFile = table.CompressedModelHeap.File() as PEFile;
+
+                if (peFile != null && peFile.TryGetILMethod(RowIndex, out var ilMethod))
+                    return ilMethod;
+
+                return null;
+            }
+        }
+
         public int Offset => table.GetRowOffset(RowIndex);
 
         private readonly MethodDefTable table;
@@ -34,7 +74,14 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        public TypeDefRow DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+        public MethodSignature<TType> DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
+        {
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var reader = Signature.GetReader();
+            return decoder.DecodeMethodSignature(ref reader);
+        }
+
+        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -85,16 +132,20 @@ namespace PESpy.Ecma335
 
             var declaringType = DeclaringType;
 
-            var ns = declaringType.TypeNamespace.GetString();
-
-            if (ns.Length > 0)
+            if (declaringType != null)
             {
-                builder.Append(declaringType.TypeNamespace.GetString());
+                var ns = declaringType.Value.TypeNamespace.GetString();
+
+                if (ns.Length > 0)
+                {
+                    builder.Append(declaringType.Value.TypeNamespace.GetString());
+                    builder.Append('.');
+                }
+
+                builder.Append(declaringType.Value.TypeName.GetString());
                 builder.Append('.');
             }
 
-            builder.Append(declaringType.TypeName.GetString());
-            builder.Append('.');
             builder.Append(Name.GetString());
 
             return builder.ToString();

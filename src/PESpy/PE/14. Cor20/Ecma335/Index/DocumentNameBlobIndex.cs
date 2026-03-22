@@ -19,6 +19,16 @@ namespace PESpy.Ecma335
         //Can't use implicit operator here, as for some reason this has a backwards effect of allowing other indices to be passed to our tables, due to the presence of a general purpose int indexer
         public static explicit operator int(DocumentNameBlobIndex value) => value.Offset;
 
+        public string? GetString()
+        {
+            var blobHeap = getBlobHeap();
+
+            if (blobHeap != null)
+                return blobHeap.GetDocumentName(Offset);
+
+            return null;
+        }
+
         public override string ToString()
         {
             var blobHeap = getBlobHeap();

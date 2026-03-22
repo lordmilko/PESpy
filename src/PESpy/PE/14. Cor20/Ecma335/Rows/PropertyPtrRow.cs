@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Property = {Property}")]
+    [DebuggerDisplay("Property = {PropertyRow}")]
     public readonly struct PropertyPtrRow : IValue, IViewable
     {
         public PropertyPtrIndex RowIndex { get; }
@@ -12,6 +12,9 @@ namespace PESpy.Ecma335
         public PropertyIndex Property => table.GetProperty(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public PropertyRow PropertyRow => table.CompressedModelHeap.PropertyTable[Property];
 
         private readonly PropertyPtrTable table;
 

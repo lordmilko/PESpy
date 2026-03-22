@@ -19,12 +19,12 @@ namespace PESpy
         /// <summary>
         /// The relative virtual address of the table.
         /// </summary>
-        public int VirtualAddress => chunk.PeekInt32(VirtualAddressOffset);
+        public int VirtualAddress => chunk.block == null ? 0 : chunk.PeekInt32(VirtualAddressOffset);
 
         /// <summary>
         /// The size of the table, in bytes.
         /// </summary>
-        public int Size => chunk.PeekInt32(SizeOffset);
+        public int Size => chunk.block == null ? 0 : chunk.PeekInt32(SizeOffset);
 
         internal bool HasData => VirtualAddress != 0 && Size != 0;
 

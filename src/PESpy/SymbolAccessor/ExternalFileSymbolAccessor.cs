@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using PESpy.View;
+
+namespace PESpy
 {
     //Wraps an underlying ISymbolAccessor so that you can dispose an external symbol file once you're
     //done using symbols without inadvertantly disposing your main file
@@ -24,6 +26,9 @@
 
         public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress) =>
             symbolAccessor.TryGetAddressFromName(name, out targetAddress);
+
+        public bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length) =>
+            symbolAccessor.TryGetLengthFromAddress(targetAddress, sectionDataAccessor, out length);
 
         public void Dispose()
         {

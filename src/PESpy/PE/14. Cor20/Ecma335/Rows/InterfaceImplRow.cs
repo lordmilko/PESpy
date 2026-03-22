@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Class = {Class}, Interface = {Interface}")]
+    [DebuggerDisplay("{ClassRow.ToString(),nq} : {InterfaceRow.ToString(),nq}")]
     public readonly struct InterfaceImplRow : IValue, IViewable
     {
         public InterfaceImplIndex RowIndex { get; }
@@ -15,6 +15,11 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public TypeDefRow ClassRow => table.CompressedModelHeap.TypeDefTable[Class];
+
+        public object InterfaceRow => Interface.GetRow(table.CompressedModelHeap);
+
         private readonly InterfaceImplTable table;
 
         internal InterfaceImplRow(InterfaceImplIndex index, InterfaceImplTable table)
@@ -24,6 +29,8 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

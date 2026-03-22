@@ -48,6 +48,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// DosStub
+        /// </summary>
+        internal static FixedUtf8String DosStub
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x44, 0x6F, 0x73, 0x53, 0x74, 0x75, 0x62 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
         /// Rich Header
         /// </summary>
         internal static FixedUtf8String RichHeader
@@ -2271,6 +2284,71 @@ namespace PESpy
         }
 
         /// <summary>
+        /// _RTTIBaseClassDescriptor
+        /// </summary>
+        internal static FixedUtf8String _RTTIBaseClassDescriptor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x52, 0x54, 0x54, 0x49, 0x42, 0x61, 0x73, 0x65, 0x43, 0x6C, 0x61, 0x73, 0x73, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6F, 0x72 })
+                    return new FixedUtf8String(p, 24);
+            }
+        }
+
+        /// <summary>
+        /// _RTTIBaseClassArray
+        /// </summary>
+        internal static FixedUtf8String _RTTIBaseClassArray
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x52, 0x54, 0x54, 0x49, 0x42, 0x61, 0x73, 0x65, 0x43, 0x6C, 0x61, 0x73, 0x73, 0x41, 0x72, 0x72, 0x61, 0x79 })
+                    return new FixedUtf8String(p, 19);
+            }
+        }
+
+        /// <summary>
+        /// _RTTIClassHierarchyDescriptor
+        /// </summary>
+        internal static FixedUtf8String _RTTIClassHierarchyDescriptor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x52, 0x54, 0x54, 0x49, 0x43, 0x6C, 0x61, 0x73, 0x73, 0x48, 0x69, 0x65, 0x72, 0x61, 0x72, 0x63, 0x68, 0x79, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6F, 0x72 })
+                    return new FixedUtf8String(p, 29);
+            }
+        }
+
+        /// <summary>
+        /// _RTTICompleteObjectLocator
+        /// </summary>
+        internal static FixedUtf8String _RTTICompleteObjectLocator
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x52, 0x54, 0x54, 0x49, 0x43, 0x6F, 0x6D, 0x70, 0x6C, 0x65, 0x74, 0x65, 0x4F, 0x62, 0x6A, 0x65, 0x63, 0x74, 0x4C, 0x6F, 0x63, 0x61, 0x74, 0x6F, 0x72 })
+                    return new FixedUtf8String(p, 26);
+            }
+        }
+
+        /// <summary>
+        /// PMD
+        /// </summary>
+        internal static FixedUtf8String PMD
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x50, 0x4D, 0x44 })
+                    return new FixedUtf8String(p, 3);
+            }
+        }
+
+        /// <summary>
         /// IMAGE_OS2_HEADER
         /// </summary>
         internal static FixedUtf8String IMAGE_OS2_HEADER
@@ -2891,6 +2969,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x6F, 0x63, 0x61, 0x6C, 0x49, 0x64, 0x41, 0x6E, 0x64, 0x47, 0x6C, 0x6F, 0x62, 0x61, 0x6C, 0x49, 0x64, 0x50, 0x61, 0x69, 0x72 })
                     return new FixedUtf8String(p, 22);
+            }
+        }
+
+        /// <summary>
+        /// MergedAssemblyInfo
+        /// </summary>
+        internal static FixedUtf8String MergedAssemblyInfo
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x65, 0x72, 0x67, 0x65, 0x64, 0x41, 0x73, 0x73, 0x65, 0x6D, 0x62, 0x6C, 0x79, 0x49, 0x6E, 0x66, 0x6F })
+                    return new FixedUtf8String(p, 18);
             }
         }
 
@@ -5634,6 +5725,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6D, 0x6C, 0x4D, 0x65, 0x74, 0x68, 0x6F, 0x64 })
                     return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
+        /// mlMethod_16t
+        /// </summary>
+        internal static FixedUtf8String mlMethod_16t
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6D, 0x6C, 0x4D, 0x65, 0x74, 0x68, 0x6F, 0x64, 0x5F, 0x31, 0x36, 0x74 })
+                    return new FixedUtf8String(p, 12);
             }
         }
 

@@ -61,6 +61,8 @@ namespace PESpy.PDB
 
         public static SymString GetName(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
         {
+            //I'm not sure what to do about SepCode symbols; it seems to me like the caller
+            //needs to handle these so they can get the appropriate displacement as well
             if (!TryGetName(symType, out var name, codeViewAccessor))
                 throw new NotImplementedException();
 

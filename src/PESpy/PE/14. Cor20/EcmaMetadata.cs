@@ -9,13 +9,9 @@ namespace PESpy
     //EMCA-335 II.24.2
     public class EcmaMetadata : IValue, IViewable
     {
-        private StorageSignature signature;
+        public StorageSignature Signature { get; }
 
-        public ref readonly StorageSignature Signature => ref signature;
-
-        private StorageHeader header;
-
-        public ref readonly StorageHeader Header => ref header;
+        public StorageHeader Header { get; }
 
         #region Streams
         #region #~
@@ -132,8 +128,8 @@ namespace PESpy
         {
             this.chunk = chunk;
 
-            signature = new StorageSignature(chunk);
-            header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), Offset); //Align to next 4 byte boundary
+            Signature = new StorageSignature(chunk);
+            Header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), Offset); //Align to next 4 byte boundary
         }
 
         private void EnsureHeaps()
@@ -141,7 +137,7 @@ namespace PESpy
             if (initialized)
                 return;
 
-            var streamHeaders = header.StreamHeaders;
+            var streamHeaders = Header.StreamHeaders;
 
             for (var i = 0; i < streamHeaders.Length; i++)
             {

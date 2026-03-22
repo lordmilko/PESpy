@@ -1,27 +1,13 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using PESpy.PDB;
 using PESpy.View.Builder;
 using DirectoryInfo = PESpy.View.Builder.DirectoryInfo;
 
 namespace PESpy.View
 {
-    internal struct PageInfo
-    {
-        public SI si;
-        public int siIndex;
-        public int pageIndex;
-        public string name;
-
-        public PageInfo(SI si, int siIndex, int pageIndex, string name)
-        {
-            this.si = si;
-            this.siIndex = siIndex;
-            this.pageIndex = pageIndex;
-            this.name = name;
-        }
-    }
-
     public class PDBViewWriter : ViewWriter
     {
         internal PDBFile pdbFile;
@@ -47,14 +33,15 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var pages = new PooledList<DirectoryInfo>();
+            var numPages = pdbFile.NumPages;
+            var pages = ArrayPool<DirectoryInfo>.Shared.Rent(numPages);
             var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
 
             try
             {
-                GetContiguousSectionInfos(pdbFile, ref contiguousSections, ref pages);
+                GetContiguousSectionInfos(pdbFile, ref contiguousSections, pages);
 
-                using var merger = new Merger(pdbFile, this, structs, default, pages, byteViewProvider);
+                using var merger = new Merger(pdbFile, this, structs, default, pages.AsSpan(0, numPages), byteViewProvider);
 
                 var results = merger.MergePDB(contiguousSections);
 
@@ -62,7 +49,7 @@ namespace PESpy.View
             }
             finally
             {
-                pages.Dispose();
+                ArrayPool<DirectoryInfo>.Shared.Return(pages);
                 contiguousSections.Dispose();
             }
         }
@@ -104,11 +91,25 @@ namespace PESpy.View
                 if (hdr is HDR h)
                 {
                     var tpihash = h.tpihash;
-                    streamIndexToNameMap.Add(tpihash.sn, "TPI Hash");
+
+                    if (tpihash.sn != SN.Nil)
+                        streamIndexToNameMap.Add(tpihash.sn, "TPI Hash");
 
                     if (tpihash.snPad != SN.Nil)
                         streamIndexToNameMap.Add(tpihash.sn, "TPI Hash (Aux)");
                 }
+                else if (hdr is HDR_VC50Interim h50)
+                {
+                    if (h50.snHash != SN.Nil)
+                        streamIndexToNameMap.Add(h50.snHash, "TPI Hash");
+                }
+                else if (hdr is HDR_16t h16)
+                {
+                    if (h16.snHash != SN.Nil)
+                        streamIndexToNameMap.Add(h16.snHash, "TPI Hash");
+                }
+                else
+                    throw new NotImplementedException();
             }
 
             if (pdbFile.IPI != null)
@@ -118,17 +119,23 @@ namespace PESpy.View
                 if (hdr is HDR h)
                 {
                     var tpihash = h.tpihash;
-                    streamIndexToNameMap.Add(tpihash.sn, "IPI Hash");
+
+                    if (tpihash.sn != SN.Nil)
+                        streamIndexToNameMap.Add(tpihash.sn, "IPI Hash");
 
                     if (tpihash.snPad != SN.Nil)
                         streamIndexToNameMap.Add(tpihash.sn, "IPI Hash (Aux)");
                 }
+                else
+                    throw new NotImplementedException();
             }
 
             if (pdbFile.DBI != null)
             {
                 if (pdbFile.DBI.Modules != null)
                 {
+                    using var moduleNames = new ValueStringBuilder();
+
                     foreach (var module in pdbFile.DBI.Modules)
                     {
                         if (module.sn != SN.Nil)
@@ -136,14 +143,18 @@ namespace PESpy.View
                             //Can't do Path.GetFileName, because in .NET PDBs each module is named after a class,
                             //and compile generated classes may contain <>
 
-                            var str = module.ToString();
+                            var span = module.szModule.AsSpan();
 
-                            var lastIndex = str.LastIndexOfAny(new[] { '\\', '/' });
+                            var lastIndex = span.LastIndexOfAny((byte) '\\', (byte) '/');
 
-                            if (lastIndex != -1 && lastIndex < str.Length - 1)
-                                str = str.Substring(lastIndex);
+                            if (lastIndex != -1 && lastIndex < span.Length - 1)
+                                span = span.Slice(lastIndex + 1);
 
-                            streamIndexToNameMap.Add(module.sn, $"Symbols: {str}");
+                            moduleNames.Append("Symbols: ");
+                            moduleNames.Append(span);
+
+                            streamIndexToNameMap.Add(module.sn, moduleNames.ToString());
+                            moduleNames.Clear();
                         }
                     }
                 }
@@ -191,12 +202,14 @@ namespace PESpy.View
                 }
             }
 
+            Debug.Assert(!streamIndexToNameMap.ContainsKey(SN.Nil));
+
             return streamIndexToNameMap;
         }
 
         private static Dictionary<PN, PageInfo> BuildPageInfoMap(PDBFile pdbFile, Dictionary<int, string> streamIndexToNameMap)
         {
-            var pageToSIMap = new Dictionary<PN, PageInfo>();
+            var pageToSIMap = new Dictionary<PN, PageInfo>(pdbFile.NumPages);
 
             //Build up a list of pages and which streams reside in each page
             for (var i = 0; i < pdbFile.StreamTable.StreamInfos.Length; i++)
@@ -249,13 +262,13 @@ namespace PESpy.View
             return pageToSIMap;
         }
 
-        private static Dictionary<int, string> GetSpecialPageMap(PDBFile pdbFile)
+        private static Dictionary<int, SpecialPageInfo> GetSpecialPageMap(PDBFile pdbFile)
         {
-            var specialPageMap = new Dictionary<int, string>();
+            var specialPageMap = new Dictionary<int, SpecialPageInfo>();
 
             //As per msf.cpp, the first few pages are special
 
-            specialPageMap.Add(0, "Master Index");
+            specialPageMap.Add(0, new SpecialPageInfo("Master Index", Merger.SPECIAL_STREAM_MASTER_INDEX, 0, 1));
 
             ref readonly var activeFPM = ref pdbFile.ActiveFPM;
 
@@ -267,7 +280,7 @@ namespace PESpy.View
             var fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
 
             for (var i = 0; i < fpm0.FpmPages.Length; i++)
-                specialPageMap.Add(fpm0.FpmPages[i], $"FPM 0 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
+                specialPageMap.Add(fpm0.FpmPages[i], new SpecialPageInfo("FPM 0", Merger.SPECIAL_STREAM_FPM_0, i, fpm0.FpmPages.Length, fpmStatus));
 
             //Scope v7 variable
             {
@@ -283,7 +296,7 @@ namespace PESpy.View
                 var fpm1 = pdbFile.FPM1;
 
                 for (var i = 0; i < fpm1.FpmPages.Length; i++)
-                    specialPageMap.Add(fpm1.FpmPages[i], $"FPM 1 ({i + 1}/{fpm0.FpmPages.Length}) ({fpmStatus})");
+                    specialPageMap.Add(fpm1.FpmPages[i], new SpecialPageInfo("FPM 1", Merger.SPECIAL_STREAM_FPM_1, i, fpm1.FpmPages.Length, fpmStatus));
             }
 
             //Scope v7 variable
@@ -294,7 +307,7 @@ namespace PESpy.View
                     var pagesOfStreamTablePageList = v7.MsfHeader.PagesOfStreamTablePageList;
 
                     for (var i = 0; i < pagesOfStreamTablePageList.Length; i++)
-                        specialPageMap.Add(pagesOfStreamTablePageList[i], $"Stream Table Page List ({i + 1}/{pagesOfStreamTablePageList.Length})");
+                        specialPageMap.Add(pagesOfStreamTablePageList[i], new SpecialPageInfo("Stream Table Page List", Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION, i, pagesOfStreamTablePageList.Length));
                 }
                 else
                 {
@@ -302,7 +315,7 @@ namespace PESpy.View
                     var streamTablePageList = ((PDB2File) pdbFile).MsfHeader.StreamTablePageList;
 
                     for (var i = 0; i < streamTablePageList.Length; i++)
-                        specialPageMap.Add(streamTablePageList[i], $"Stream Table Page ({i + 1}/{streamTablePageList.Length})");
+                        specialPageMap.Add(streamTablePageList[i], new SpecialPageInfo("Stream Table Page", Merger.SPECIAL_STREAM_STREAMTABLE, i, streamTablePageList.Length));
                 }
             }
 
@@ -326,7 +339,7 @@ namespace PESpy.View
                         continue;
 
                     if (activeFPM.PageMap[i])
-                        specialPageMap.Add(i, "Free");
+                        specialPageMap.Add(i, new SpecialPageInfo("Free", Merger.SPECIAL_STREAM_FREE, 0, 1));
                 }
             }
             else
@@ -336,7 +349,7 @@ namespace PESpy.View
                 for (var i = 0; i < pdbFile.NumPages; i++)
                 {
                     if (activeFPM.PageMap[i])
-                        specialPageMap.Add(i, "Free");
+                        specialPageMap.Add(i, new SpecialPageInfo("Free", Merger.SPECIAL_STREAM_FREE, 0, 1));
                 }
             }
 
@@ -346,7 +359,7 @@ namespace PESpy.View
                 {
                     for (var i = 0; i < v7.StreamTableLocation.PageList.Length; i++)
                     {
-                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], $"Stream Table ({i + 1}/{v7.StreamTableLocation.PageList.Length})");
+                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], new SpecialPageInfo($"Stream Table", Merger.SPECIAL_STREAM_STREAMTABLE, i, v7.StreamTableLocation.PageList.Length));
                     }
                 }
             }
@@ -357,7 +370,7 @@ namespace PESpy.View
         internal static void GetContiguousSectionInfos(
             PDBFile pdbFile,
             ref PooledList<PDBContiguousSectionInfo> contiguousSections,
-            ref PooledList<DirectoryInfo> pages)
+            DirectoryInfo[] pages)
         {
             var streamIndexToNameMap = BuildStreamIndexToNameMap(pdbFile);
             var pageToSIMap = BuildPageInfoMap(pdbFile, streamIndexToNameMap);
@@ -366,102 +379,170 @@ namespace PESpy.View
 
             PDBContiguousSectionInfo currentContiguousSection = default;
 
-            for (var i = 0; i < pdbFile.NumPages; i++)
+            using var nameBuilder = new ValueStringBuilder();
+            var fullNameBuilder = new ValueStringBuilder();
+
+            try
             {
-                using var nameBuilder = new ValueStringBuilder();
-
-                nameBuilder.Append(i);
-
-                if (pageToSIMap.TryGetValue(i, out var match))
+                for (var i = 0; i < pdbFile.NumPages; i++)
                 {
-                    string name;
+                    var fullNameInfo = new FullNameInfo();
 
-                    if (match.name != null)
-                        name = $"'{match.name} (Stream{match.siIndex})'";
-                    else
-                        name = $"Stream{match.siIndex}";
+                    fullNameBuilder.Clear();
+                    nameBuilder.Clear();
 
-                    /* When microsoft-pdb serializes the stream table, it performs the following actions in order:
-                     * 1. Frees any pages that were previously associated with the stream table, adding them to a secondary fpmFreed FPM
-                     * 2. Serializes the current state of the stream table to disk, allocating new page numbers as we go
-                     * 3. Adds a SI for snSt (i.e. the stream table) to the stream table
-                     * 4. Merges fpmFreed into the main FPM
-                     * 5. Serializes the FPM
-                     *
-                     * This sequence of actions has several consequences:
-                     * - Firstly, it means that the description of snSt persisted to disk will always be one revision behind the current status,
-                     *   by virtue of the fact a SI for snSt is added to the stream table _after_ it was already written to disk
-                     * - Secondly, any pages that were freed in the current transaction that were originally committed in a previous transaction
-                     *   cannot immediately be reused; we must wait for a commit before we're allowed to reuse those pages. Note that any page
-                     *   that was allocated _and_ freed in the current transaction _can_ immediately be reused. These are the purpose of
-                     *   the fpmCommitted and fpmFreed members of MSF_HB */
+                    fullNameInfo.GlobalPageIndex = i;
 
-                    if (specialPageMap.TryGetValue(i, out var specialName))
+                    fullNameBuilder.Append(i);
+
+                    if (pageToSIMap.TryGetValue(i, out var match))
                     {
-                        if (match.siIndex == 0 && specialName == "Free")
-                            name = $"Delayed Free / {name}";
-                        else
-                            name = $"{specialName} / {name}";
-                    }
+                        //string name;
 
-                    if (currentContiguousSection.Name == null)
-                    {
-                        currentContiguousSection = new PDBContiguousSectionInfo(name, match.pageIndex, i, match.si.PageList.Length);
-                    }
-                    else
-                    {
-                        if (currentContiguousSection.Name != name || match.pageIndex != currentContiguousSection.LocalEndIndex + 1)
+                        fullNameInfo.StreamIndex = match.siIndex;
+                        fullNameInfo.MatchName = match.name;
+
+                        if (match.name != null)
                         {
-                            if (currentContiguousSection.Name != null)
+                            nameBuilder.Append('\'');
+                            nameBuilder.Append(match.name);
+                            nameBuilder.Append(" (Stream");
+                            nameBuilder.Append(match.siIndex);
+                            nameBuilder.Append(")'");
+                        }
+                        else
+                        {
+                            nameBuilder.Append("Stream");
+                            nameBuilder.Append(match.siIndex);
+                        }
+
+                        /* When microsoft-pdb serializes the stream table, it performs the following actions in order:
+                         * 1. Frees any pages that were previously associated with the stream table, adding them to a secondary fpmFreed FPM
+                         * 2. Serializes the current state of the stream table to disk, allocating new page numbers as we go
+                         * 3. Adds a SI for snSt (i.e. the stream table) to the stream table
+                         * 4. Merges fpmFreed into the main FPM
+                         * 5. Serializes the FPM
+                         *
+                         * This sequence of actions has several consequences:
+                         * - Firstly, it means that the description of snSt persisted to disk will always be one revision behind the current status,
+                         *   by virtue of the fact a SI for snSt is added to the stream table _after_ it was already written to disk
+                         * - Secondly, any pages that were freed in the current transaction that were originally committed in a previous transaction
+                         *   cannot immediately be reused; we must wait for a commit before we're allowed to reuse those pages. Note that any page
+                         *   that was allocated _and_ freed in the current transaction _can_ immediately be reused. These are the purpose of
+                         *   the fpmCommitted and fpmFreed members of MSF_HB */
+
+                        if (specialPageMap.TryGetValue(i, out var specialMatch))
+                        {
+                            if (match.siIndex == 0 && specialMatch.Name == "Free")
                             {
-                                if (currentContiguousSection.NumPages > 1)
-                                    contiguousSections.Add(currentContiguousSection);
-
-                                currentContiguousSection = default;
+                                nameBuilder.Insert(0, "Delayed Free / ");
+                                fullNameInfo.IsDelayedFree = true;
                             }
-
-                            currentContiguousSection = new PDBContiguousSectionInfo(name, match.pageIndex, i, match.si.PageList.Length);
+                            else
+                            {
+                                nameBuilder.Insert(0, " / ");
+                                nameBuilder.Insert(0, specialMatch.Name);
+                            }
                         }
-                        else
+
+                        RecordContiguousSection(
+                            ref currentContiguousSection,
+                            ref contiguousSections,
+                            fullNameInfo,
+                            match.siIndex,
+                            match.pageIndex,
+                            i,
+                            match.si.PageList.Length
+                        );
+
+                        fullNameInfo.LocalPageIndex = match.pageIndex;
+                        fullNameInfo.TotalPagesInStream = match.si.PageList.Length;
+
+                        fullNameBuilder.Append(" | ");
+                        fullNameBuilder.Append(nameBuilder.AsSpan());
+                        fullNameBuilder.Append(" (Page ");
+                        fullNameBuilder.Append(match.pageIndex + 1);
+                        fullNameBuilder.Append("/");
+                        fullNameBuilder.Append(match.si.PageList.Length);
+                        fullNameBuilder.Append(")");
+                    }
+                    else if (specialPageMap.TryGetValue(i, out var specialMatch))
+                    {
+                        fullNameInfo.IsSpecialName = true;
+                        fullNameInfo.MatchName = specialMatch.Name;
+                        fullNameInfo.LocalPageIndex = specialMatch.LocalIndex;
+                        fullNameInfo.TotalPagesInStream = specialMatch.TotalPagesInStream;
+                        fullNameInfo.SpecialStatus = specialMatch.SpecialStatus;
+
+                        fullNameBuilder.Append(" | ");
+                        specialMatch.ToString(ref fullNameBuilder);
+
+                        RecordContiguousSection(
+                            ref currentContiguousSection,
+                            ref contiguousSections,
+                            fullNameInfo,
+                            specialMatch.SpecialIndex,
+                            specialMatch.LocalIndex,
+                            i,
+                            specialMatch.TotalPagesInStream
+                        );
+                    }
+                    else
+                    {
+                        if (currentContiguousSection.NameInfo.MatchName != null)
                         {
-                            currentContiguousSection.LocalEndIndex = match.pageIndex;
-                            currentContiguousSection.GlobalEndIndex = i;
+                            if (currentContiguousSection.NumPages > 1)
+                                contiguousSections.Add(currentContiguousSection);
+
+                            currentContiguousSection = default;
                         }
                     }
 
-                    nameBuilder.Append(" | " + name);
-                    nameBuilder.Append(" (Page ");
-                    nameBuilder.Append(match.pageIndex + 1);
-                    nameBuilder.Append("/");
-                    nameBuilder.Append(match.si.PageList.Length);
-                    nameBuilder.Append(")");
-                }
-                else if (specialPageMap.TryGetValue(i, out var name))
-                {
-                    nameBuilder.Append(" | " + name);
+                    //Try and include some details about which streams reside in this page
 
-                    if (currentContiguousSection.Name != null)
+                    pages[i] = new DirectoryInfo(fullNameInfo, i * pdbFile.PageSize, pdbFile.PageSize);
+                }
+            }
+            finally
+            {
+                fullNameBuilder.Dispose();
+            }
+        }
+
+        private static void RecordContiguousSection(
+            ref PDBContiguousSectionInfo currentContiguousSection,
+            ref PooledList<PDBContiguousSectionInfo> contiguousSections,
+            in FullNameInfo nameInfo,
+            int streamIndex,
+            int localPageIndex,
+            int globalPageIndex,
+            int totalPagesInStream)
+        {
+            if (currentContiguousSection.NameInfo.MatchName == null)
+            {
+                if (totalPagesInStream > 1)
+                    currentContiguousSection = new PDBContiguousSectionInfo(nameInfo, streamIndex, localPageIndex, globalPageIndex, totalPagesInStream);
+            }
+            else
+            {
+                if (currentContiguousSection.StreamIndex != streamIndex || localPageIndex != currentContiguousSection.LocalEndIndex + 1)
+                {
+                    if (currentContiguousSection.NameInfo.MatchName != null)
                     {
                         if (currentContiguousSection.NumPages > 1)
                             contiguousSections.Add(currentContiguousSection);
 
                         currentContiguousSection = default;
                     }
+
+                    if (totalPagesInStream > 1)
+                        currentContiguousSection = new PDBContiguousSectionInfo(nameInfo, streamIndex, localPageIndex, globalPageIndex, totalPagesInStream);
                 }
                 else
                 {
-                    if (currentContiguousSection.Name != null)
-                    {
-                        if (currentContiguousSection.NumPages > 1)
-                            contiguousSections.Add(currentContiguousSection);
-
-                        currentContiguousSection = default;
-                    }
+                    currentContiguousSection.LocalEndIndex = localPageIndex;
+                    currentContiguousSection.GlobalEndIndex = globalPageIndex;
                 }
-
-                //Try and include some details about which streams reside in this page
-
-                pages.Add(new DirectoryInfo(nameBuilder.ToString(), i * pdbFile.PageSize, pdbFile.PageSize));
             }
         }
     }

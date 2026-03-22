@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("MoveNextMethod = {MoveNextMethod}, KickoffMethod = {KickoffMethod}")]
+    [DebuggerDisplay("MoveNextMethod = {MoveNextMethodRow}, KickoffMethod = {KickoffMethodRow}")]
     public readonly struct StateMachineMethodRow : IValue, IViewable
     {
         public StateMachineMethodIndex RowIndex { get; }
@@ -14,6 +14,11 @@ namespace PESpy.Ecma335
         public MethodDefIndex KickoffMethod => table.GetKickoffMethod(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public MethodDefRow MoveNextMethodRow => table.CompressedModelHeap.MethodDefTable[MoveNextMethod];
+
+        public MethodDefRow KickoffMethodRow => table.CompressedModelHeap.MethodDefTable[KickoffMethod];
 
         private readonly StateMachineMethodTable table;
 

@@ -2,8 +2,6 @@
 {
     public sealed class AssemblyRefOSTable : Table<AssemblyRefOSRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int OSPlatformIDOffset;
         internal readonly int OSMajorVersionOffset;
         internal readonly int OSMinorVersionOffset;
@@ -11,11 +9,15 @@
 
         private readonly bool isBigAssemblyRefIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal AssemblyRefOSTable(int numRows, int assemblyRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyRefOSTable(
+            int numRows,
+            int assemblyRefIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigAssemblyRefIndex = assemblyRefIndexSize == 4;
 
@@ -52,7 +54,7 @@
 
         public int GetRowOffset(AssemblyRefOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyRefOSRow this[AssemblyRefOSIndex index] => this[(int) index];
+        public AssemblyRefOSRow this[AssemblyRefOSIndex index] => GetRow((int) index);
 
         protected override AssemblyRefOSRow GetRow(int index) => new AssemblyRefOSRow((AssemblyRefOSIndex) index, this);
     }

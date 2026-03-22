@@ -45,6 +45,9 @@ namespace PESpy
             if (value == 0)
                 return "0";
 
+            if (value == uint.MaxValue)
+                return "-1";
+
             return ((DateTime) this).ToString();
         }
     }

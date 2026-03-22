@@ -27,6 +27,8 @@ namespace PESpy
 
         bool Equals(string? other);
 
+        bool Equals(ReadOnlySpan<char> other);
+
         int CompareTo(string other);
     }
 }

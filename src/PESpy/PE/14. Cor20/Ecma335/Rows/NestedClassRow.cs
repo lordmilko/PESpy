@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("NestedClass = {NestedClass}, EnclosingClass = {EnclosingClass}")]
+    [DebuggerDisplay("{EnclosingClassRow.ToString(),nq}+{_NestedClassRow.ToString(),nq}")]
     public readonly struct NestedClassRow : IValue, IViewable
     {
         public NestedClassIndex RowIndex { get; }
@@ -14,6 +14,11 @@ namespace PESpy.Ecma335
         public TypeDefIndex EnclosingClass => table.GetEnclosingClass(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public TypeDefRow _NestedClassRow => table.CompressedModelHeap.TypeDefTable[NestedClass];
+
+        public TypeDefRow EnclosingClassRow => table.CompressedModelHeap.TypeDefTable[EnclosingClass];
 
         private readonly NestedClassTable table;
 

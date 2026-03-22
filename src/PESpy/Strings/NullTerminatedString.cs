@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Roslyn.Utilities;
 
@@ -84,13 +85,19 @@ namespace PESpy
         #endregion
         #region IEquatable / IComparable (string)
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(string? other)
         {
             if (other == null)
                 return Value == default;
 
+            return Equals(other.AsSpan());
+        }
+
+        public bool Equals(ReadOnlySpan<char> other)
+        {
             if (Kind == StringKind.UTF16)
-                return new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).SequenceEqual(other.AsSpan());
+                return new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).SequenceEqual(other);
 
             return StringHelpers.Equals(Value, Length, other);
         }
@@ -117,6 +124,12 @@ namespace PESpy
         public static bool operator ==(string left, NullTerminatedString right) => right.Equals(left);
         public static bool operator !=(string left, NullTerminatedString right) => !right.Equals(left);
 
+        public static bool operator ==(NullTerminatedString left, ReadOnlySpan<char> right) => left.Equals(right);
+        public static bool operator !=(NullTerminatedString left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+        public static bool operator ==(ReadOnlySpan<char> left, NullTerminatedString right) => right.Equals(left);
+        public static bool operator !=(ReadOnlySpan<char> left, NullTerminatedString right) => !right.Equals(left);
+
         public static bool operator ==(NullTerminatedString left, NullTerminatedString right) => right.Equals(left);
         public static bool operator !=(NullTerminatedString left, NullTerminatedString right) => !right.Equals(left);
 
@@ -129,6 +142,9 @@ namespace PESpy
 
             if (obj is string s)
                 return Equals(s);
+
+            if (obj == null)
+                return Value == default;
 
             return false;
         }

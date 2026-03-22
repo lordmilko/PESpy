@@ -31,7 +31,7 @@ namespace PESpy
 
         public IMAGE_FILE Characteristics => (IMAGE_FILE) chunk.PeekUInt16(CharacteristicsOffset);
 
-        public uint TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
+        public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);
 
         public uint CheckSum => chunk.PeekUInt32(CheckSumOffset);
 

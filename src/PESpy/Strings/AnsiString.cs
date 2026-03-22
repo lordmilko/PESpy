@@ -64,8 +64,11 @@ namespace PESpy
             if (other == null)
                 return Value == default;
 
-            return StringHelpers.Equals(Value, Length, other);
+            return StringHelpers.Equals(Value, Length, other.AsSpan());
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(ReadOnlySpan<char> other) => StringHelpers.Equals(Value, Length, other);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool EqualsIgnoreCase(string? other)
@@ -102,6 +105,12 @@ namespace PESpy
         public static bool operator ==(string left, AnsiString right) => right.Equals(left);
         public static bool operator !=(string left, AnsiString right) => !right.Equals(left);
 
+        public static bool operator ==(AnsiString left, ReadOnlySpan<char> right) => left.Equals(right);
+        public static bool operator !=(AnsiString left, ReadOnlySpan<char> right) => !left.Equals(right);
+
+        public static bool operator ==(ReadOnlySpan<char> left, AnsiString right) => right.Equals(left);
+        public static bool operator !=(ReadOnlySpan<char> left, AnsiString right) => !right.Equals(left);
+
         public static bool operator ==(AnsiString left, AnsiString right) => right.Equals(left);
         public static bool operator !=(AnsiString left, AnsiString right) => !right.Equals(left);
 
@@ -114,6 +123,9 @@ namespace PESpy
 
             if (obj is string s)
                 return Equals(s);
+
+            if (obj == null)
+                return Value == default;
 
             return false;
         }

@@ -1,12 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using ClrDebug;
 
 namespace PESpy.Ecma335
 {
     public sealed class TypeDefTable : Table<TypeDefRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int FlagsOffset;
         internal readonly int TypeNameOffset;
         internal readonly int TypeNamespaceOffset;
@@ -19,8 +19,10 @@ namespace PESpy.Ecma335
         private readonly bool isBigFieldIndex;
         private readonly bool isBigMethodIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
+
+        private Dictionary<TypeDefIndex, TypeDefIndex[]>? _lazyNestedTypesMap;
 
         internal TypeDefTable(
             int numRows,
@@ -28,12 +30,13 @@ namespace PESpy.Ecma335
             int typeDefOrRefIndexSize,
             int fieldIndexSize,
             int methodIndexSize,
+            CompressedModelHeap compressedModelHeap,
             Func<StringHeap?> stringHeap,
-            in MemoryChunk tableChunk) : base(numRows)
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.37
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -58,12 +61,14 @@ namespace PESpy.Ecma335
 
         public StringIndex GetTypeName(TypeDefIndex index)
         {
+            Debug.Assert(index.RowId >= 0);
             var rowOffset = (index.RowId - 1) * RowSize;
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNameOffset, isBigStringIndex), stringHeap);
         }
 
         public StringIndex GetTypeNamespace(TypeDefIndex index)
         {
+            Debug.Assert(index.RowId >= 0);
             var rowOffset = (index.RowId - 1) * RowSize;
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + TypeNamespaceOffset, isBigStringIndex), stringHeap);
         }
@@ -86,7 +91,38 @@ namespace PESpy.Ecma335
             return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodListOffset, isBigMethodIndex);
         }
 
-        internal TypeDefRow FindTypeContainingMethod(int methodRowId, int numberOfMethods)
+        //Note: doesn't support nested types
+        public TypeDefRow this[string topLevelName]
+        {
+            get
+            {
+                var dot = topLevelName.LastIndexOf('.');
+
+                if (dot == -1)
+                {
+                    foreach (var item in this)
+                    {
+                        if (item.TypeName.GetString() == topLevelName)
+                            return item;
+                    }
+                }
+                else
+                {
+                    var ns = topLevelName.AsSpan(0, dot);
+                    var name = topLevelName.AsSpan(dot + 1);
+
+                    foreach (var item in this)
+                    {
+                        if (item.TypeNamespace.GetString() == ns && item.TypeName.GetString() == name)
+                            return item;
+                    }
+                }
+
+                throw new InvalidOperationException($"Failed to find a type named '{topLevelName}'");
+            }
+        }
+
+        internal TypeDefRow? FindTypeContainingMethod(int methodRowId, int numberOfMethods)
         {
             var row = CompressedModelHeap.BinarySearchEcmaIndexList(
                 tableChunk,
@@ -103,7 +139,7 @@ namespace PESpy.Ecma335
             if (row > Count)
             {
                 if (methodRowId <= numberOfMethods)
-                    return this[Count]; //It's the last type
+                    return this[(TypeDefIndex) Count]; //It's the last type
 
                 return default;
             }
@@ -112,7 +148,7 @@ namespace PESpy.Ecma335
 
             if (methodList.RowId == methodRowId)
             {
-                //Not 100% clear on why dotnet/runtime does this. You could have multiple types referencing the method?
+                //See the comment in FindTypeContainingField() for why this is necessary
 
                 while (row < Count)
                 {
@@ -126,15 +162,127 @@ namespace PESpy.Ecma335
                         break;
                 }
 
-                return this[row];
+                return this[(TypeDefIndex) row];
             }
 
-            return this[Count];
+            return this[(TypeDefIndex) row];
         }
+
+        internal TypeDefRow? FindTypeContainingField(int fieldRowId, int numberOfFields)
+        {
+            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+                tableChunk,
+                Count,
+                RowSize,
+                FieldListOffset,
+                (uint) fieldRowId,
+                isBigFieldIndex
+            ) + 1;
+
+            if (row == 0)
+                return default;
+
+            if (row > Count)
+            {
+                if (fieldRowId <= numberOfFields)
+                    return this[(TypeDefIndex) Count]; //It's the last type
+
+                return default;
+            }
+
+            var fieldList = GetFieldList((TypeDefIndex) row);
+
+            if (fieldList.RowId == fieldRowId)
+            {
+                //If multiple TypeDefs in a row say their FieldList is "3", what this really means is that the next type to have a field
+                //has that field start at 3, however every type but the last type doesn't actually own any fields, since the range of
+                //values between their field (3) and the next type's fields (3) is 0. Thus, we need to skip ahead to the last type
+                //that says they own field 3, which will give us the _actual_ owner of the field
+
+                while (row < Count)
+                {
+                    var nextRow = row + 1;
+
+                    var nextFieldList = GetFieldList((TypeDefIndex) nextRow);
+
+                    if (nextFieldList.RowId == fieldRowId)
+                        row = nextRow;
+                    else
+                        break;
+                }
+            }
+
+            return this[(TypeDefIndex) row];
+        }
+
+        private void InitializeNestedTypesMap()
+        {
+            var groupedNestedTypes = new Dictionary<TypeDefIndex, List<TypeDefIndex>>();
+
+            var nestedClassTable = CompressedModelHeap.NestedClassTable;
+
+            int numberOfNestedTypes = nestedClassTable.Count;
+            List<TypeDefIndex>? builder = null;
+            TypeDefIndex previousEnclosingClass = default;
+
+            for (int i = 1; i <= numberOfNestedTypes; i++)
+            {
+                var enclosingClass = nestedClassTable.GetEnclosingClass((NestedClassIndex) i);
+
+                Debug.Assert(!enclosingClass.IsNil);
+
+                if (enclosingClass != previousEnclosingClass)
+                {
+                    if (!groupedNestedTypes.TryGetValue(enclosingClass, out builder))
+                    {
+                        builder = new List<TypeDefIndex>();
+                        groupedNestedTypes.Add(enclosingClass, builder);
+                    }
+
+                    previousEnclosingClass = enclosingClass;
+                }
+                else
+                {
+                    Debug.Assert(builder == groupedNestedTypes[enclosingClass]);
+                }
+
+                builder.Add(nestedClassTable.GetNestedClass((NestedClassIndex) i));
+            }
+
+            var nestedTypesMap = new Dictionary<TypeDefIndex, TypeDefIndex[]>();
+            foreach (var group in groupedNestedTypes)
+            {
+                nestedTypesMap.Add(group.Key, group.Value.ToArray());
+            }
+
+            _lazyNestedTypesMap = nestedTypesMap;
+        }
+
+        public TypeDefIndex[] GetNestedTypes(TypeDefIndex index)
+        {
+            if (_lazyNestedTypesMap == null)
+            {
+                InitializeNestedTypesMap();
+                Debug.Assert(_lazyNestedTypesMap != null);
+            }
+
+            if (_lazyNestedTypesMap.TryGetValue(index, out var nestedTypes))
+            {
+                return nestedTypes;
+            }
+
+            return Array.Empty<TypeDefIndex>();
+        }
+
+        public CustomAttributeList GetCustomAttributes(TypeDefIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.TypeDef));
+
+        public DeclSecurityAttributeList GetDeclSecurityAttributes(TypeDefIndex index) =>
+            new DeclSecurityAttributeList(CompressedModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.TypeDef));
 
         public int GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public TypeDefRow this[TypeDefIndex index] => this[(int) index];
+        public TypeDefRow this[TypeDefIndex index] => GetRow((int) index);
 
         protected override TypeDefRow GetRow(int index) => new TypeDefRow((TypeDefIndex) index, this);
     }

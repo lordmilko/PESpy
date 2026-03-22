@@ -1,31 +1,81 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.View;
+
+namespace PESpy
 {
     internal class CoffSymbolAccessor : ISymbolAccessor
     {
-        private CoffSymbolTable coffSymbolTable;
-        private ImageSectionHeader[] sectionHeaders;
-        private (ImageSymbol symbols, int length)[] externals;
+        private readonly CoffSymbolTable _coffSymbolTable;
+        private readonly ImageSectionHeader[] _sectionHeaders;
+        private (ImageSymbol symbol, int length)[] _externals;
+
+        internal (ImageSymbol symbol, int length)[] Externals
+        {
+            get
+            {
+                if (_externals == null)
+                    EnsureExternals();
+
+                return _externals;
+            }
+        }
 
         internal CoffSymbolAccessor(CoffSymbolTable coffSymbolTable, ImageSectionHeader[] sectionHeaders)
         {
-            this.coffSymbolTable = coffSymbolTable;
-            this.sectionHeaders = sectionHeaders;
+            _coffSymbolTable = coffSymbolTable;
+            _sectionHeaders = sectionHeaders;
         }
 
         public SymbolAccessorKind Kind => SymbolAccessorKind.Coff;
 
         public bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
         {
-            EnsureExternals();
+            var index = BinarySearchSymbols(targetAddress);
 
-            name = default;
-            displacement = default;
-
-            //Note that the symbol value stores the RVA, not the relative offset
-            if (!ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, targetAddress, out var sectionNumber, out _))
+            if (index == -1)
+            {
+                name = default;
+                displacement = default;
                 return false;
+            }
 
-            var externals = this.externals;
+            var current = _externals[index];
+
+            name = current.symbol.Name.Name;
+            displacement = (int) (targetAddress - current.symbol.Value);
+            return true;
+        }
+
+        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            var externals = Externals;
+
+            var index = BinarySearchSymbols(targetAddress);
+
+            if (index == -1)
+            {
+                length = default;
+                return false;
+            }
+
+            var current = _externals[index];
+            var displacement = targetAddress - (int) current.symbol.Value;
+            length = current.length - displacement;
+            return true;
+        }
+
+        private int BinarySearchSymbols(int targetAddress)
+        {
+            //Note that the symbol value stores the RVA, not the relative offset
+            if (!ImageSectionHeader.TryGetSectionAndOffset(_sectionHeaders, targetAddress, out var sectionNumber, out _))
+                return -1;
+
+            var externals = Externals;
 
             int low = 0;
             int high = externals.Length - 1;
@@ -38,24 +88,22 @@
 
                 int comparison;
 
-                if (current.symbols.SectionNumber == sectionNumber)
+                if (current.symbol.SectionNumber == sectionNumber)
                 {
                     //Note that the symbol value stores the RVA, not the relative offset
-                    if (targetAddress < current.symbols.Value)
+                    if (targetAddress < current.symbol.Value)
                         comparison = -1; //Before the start of the current entry
-                    else if (targetAddress - current.symbols.Value < current.length)
+                    else if (targetAddress - current.symbol.Value < current.length)
                         comparison = 0; //Within the bounds of the current entry
                     else
                         comparison = 1; //After the bounds of the current entry
                 }
                 else
-                    comparison = sectionNumber - current.symbols.SectionNumber;
+                    comparison = sectionNumber - current.symbol.SectionNumber;
 
                 if (comparison == 0)
                 {
-                    name = current.symbols.Name.Name;
-                    displacement = (int) (targetAddress - current.symbols.Value);
-                    return true;
+                    return mid;
                 }
                 else if (comparison > 0)
                     low = mid + 1;
@@ -63,22 +111,17 @@
                     high = mid - 1;
             }
 
-            throw new System.NotImplementedException();
-        }
-
-        public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
-        {
-            throw new System.NotImplementedException();
+            return -1;
         }
 
         private void EnsureExternals()
         {
-            if (externals != null)
+            if (_externals != null)
                 return;
 
             using var results = new PooledList<ImageSymbol>();
 
-            var symbols = coffSymbolTable.Symbols;
+            var symbols = _coffSymbolTable.Symbols;
 
             for (var i = 0; i < symbols.Length; i++)
             {
@@ -92,6 +135,18 @@
                         case IMAGE_SYM.IMAGE_SYM_ABSOLUTE:
                         case IMAGE_SYM.IMAGE_SYM_DEBUG:
                             continue;
+                    }
+
+                    switch (symbol.BasicType)
+                    {
+                        case IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL:
+                            break;
+
+                        case IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_STRUCT:
+                            continue;
+
+                        default:
+                            throw new NotImplementedException();
                     }
 
                     results.Add(symbol);
@@ -117,9 +172,10 @@
             for (var i = 0; i < resultsWithSize.Length - 1; i++)
                 resultsWithSize[i] = (results[i], (int) (results[i + 1].Value - results[i].Value));
 
-            resultsWithSize[resultsWithSize.Length - 1] = (results[resultsWithSize.Length - 1], 0);
+            if (resultsWithSize.Length > 0)
+                resultsWithSize[resultsWithSize.Length - 1] = (results[resultsWithSize.Length - 1], 0);
 
-            externals = resultsWithSize;
+            _externals = resultsWithSize;
         }
 
         public void Dispose()

@@ -4,25 +4,24 @@ namespace PESpy.Ecma335
 {
     public sealed class MethodDebugInformationTable : Table<MethodDebugInformationRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int DocumentOffset;
         internal readonly int SequencePointsOffset;
 
         private readonly bool isBigBlobIndex;
         private readonly bool isBigDocumentIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
         internal MethodDebugInformationTable(
             int numRows,
             int blobIndexSize,
             int documentIndexSize,
+            CompressedModelHeap compressedModelHeap,
             Func<BlobHeap?> blobHeap,
-            in MemoryChunk tableChunk) : base(numRows)
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.blobHeap = blobHeap;
 
             isBigBlobIndex = blobIndexSize == 4;
@@ -47,7 +46,9 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(MethodDebugInformationIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodDebugInformationRow this[MethodDebugInformationIndex index] => this[(int) index];
+        public MethodDebugInformationRow this[MethodDebugInformationIndex index] => GetRow((int) index);
+
+        public MethodDebugInformationRow this[MethodDefIndex index] => GetRow((int) index);
 
         protected override MethodDebugInformationRow GetRow(int index) => new MethodDebugInformationRow((MethodDebugInformationIndex) index, this);
     }

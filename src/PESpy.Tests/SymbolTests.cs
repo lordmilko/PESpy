@@ -17,7 +17,6 @@ using PESpy.OBJ;
 using PESpy.PDB;
 using PESpy.PowerShell;
 using PESpy.View;
-using PInvoke;
 using Stream = System.IO.Stream;
 
 namespace PESpy.Tests
@@ -600,18 +599,10 @@ namespace PESpy.Tests
                 file?.Dispose();
             }
         }
-        {
-            var str = GenerateTest<ArmSwitchTable>();
-            throw new NotImplementedException();
-        }
 
-        [TestMethod]
-        public void SymType_AttrManyRegSym2_Test()
-        {
-            var str = GenerateTest<AttrManyRegSym2>();
-            throw new NotImplementedException();
-        }
-            TestC13<CvFileCheckSum[]>(
+        #endregion
+        #region SymType
+
         [TestMethod]
         public void SymType_AnnotationSym_Test()
         {
@@ -630,19 +621,255 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "csz", value: (short) 1)
             );
         }
-                    Assert.AreEqual(true, v.FrameData[0].fIsFunctionStart);
-                }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegRel_Test()
+        {
+            var str = GenerateTest<AttrRegRel>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegSym_Test()
+        {
+            var str = GenerateTest<AttrRegSym>();
+            throw new NotImplementedException();
+        }
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
             );
         }
 
         [TestMethod]
-        public void Symbols_C13_InlineeLines()
+        public void SymType_ArmSwitchTable_Test()
         {
-            TestC13<InlineeSigAndLines>(
-                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES,
-                v =>
-                {
-                    Assert.AreEqual("__dyn_tls_on_demand_init", ((PESpy.PDB.InlineeSourceLine[]) v.Lines)[0].inlinee.ToString());
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegRel_Test()
+        {
+            var str = GenerateTest<AttrRegRel>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegSym_Test()
+        {
+            var str = GenerateTest<AttrRegSym>();
+            throw new NotImplementedException();
+        }
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegRel_Test()
+        {
+            var str = GenerateTest<AttrRegRel>();
+            throw new NotImplementedException();
+        }
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrRegRel_Test()
+        {
+            var str = GenerateTest<AttrRegRel>();
+            throw new NotImplementedException();
+        }
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_AnnotationSym_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x16, 0x00, 0x19, 0x10, 0x23, 0xB0, 0x08, 0x00, 0x01, 0x00, 0x01, 0x00, 0x4E, 0x4F, 0x5F, 0x43, 0x4F, 0x4E, 0x54, 0x52,
+                0x41, 0x43, 0x54, 0x00
+            };
+
+            TestStruct<AnnotationSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
+                c => c.VerifyField(name: "off", value: 569379),
+                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "csz", value: (short) 1)
+            );
+        }
+
+        [TestMethod]
+        public void SymType_ArmSwitchTable_Test()
+        {
+            var str = GenerateTest<ArmSwitchTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_AttrManyRegSym2_Test()
+        {
+            var str = GenerateTest<AttrManyRegSym2>();
+            throw new NotImplementedException();
+        }
                 }
             );
         }

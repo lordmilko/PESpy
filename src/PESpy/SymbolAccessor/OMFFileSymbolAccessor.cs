@@ -1,4 +1,6 @@
-﻿namespace PESpy
+﻿using PESpy.View;
+
+namespace PESpy
 {
     internal class OMFFileSymbolAccessor : ISymbolAccessor
     {
@@ -17,6 +19,11 @@
         }
 
         public bool TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
         {
             throw new System.NotImplementedException();
         }

@@ -21,7 +21,7 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
-            var guidHeap = getGuidHeap();
+            var guidHeap = getGuidHeap?.Invoke();
 
             if (guidHeap != null)
                 return guidHeap[this].Value.ToString();

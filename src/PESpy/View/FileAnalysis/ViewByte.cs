@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace PESpy.View
 {
@@ -19,14 +20,15 @@ namespace PESpy.View
         //We have 8 bits to work with. Let's make them count!
 
         //Bottom 2 bits are reserved for storing the usage kind
-        private const byte KindMask = 0b00000011; //0x3
+        internal const byte KindMask = 0b00000011; //0x3
 
         //Next two bits are reserved for storing various flags that are common to all usage kinds
         private const byte CommonMask = 0b00001100; //0xC
 
-        //Code and data reserve 3 bytes each for storing additional information about themselves
-        private const byte CodeMask = 0b01110000; //0x70
+        //Code and data reserve 3 bits each for storing additional information about themselves
+        private const byte CodeMask = 0b11110000; //0xF0
         private const byte DataKindMask = 0b01110000; //0x70
+        private const byte BodyKindMask = 0b01110000; //0x70
 
         //The top bit is used to store additional context, based on the data kind
         //Byte, Int16, Int32, Int64: 1 = Unsigned
@@ -37,6 +39,7 @@ namespace PESpy.View
 
         public ViewByteKind Kind
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => (ViewByteKind) (_value & KindMask);
             set => _value = (byte) (((byte) (_value & ~KindMask)) | (byte) value);
         }
@@ -142,6 +145,18 @@ namespace PESpy.View
                     CodeFlags |= ViewByteCodeFlags.IsIL;
                 else
                     CodeFlags &= ~ViewByteCodeFlags.IsIL;
+            }
+        }
+
+        public bool HasFlow
+        {
+            get => (CodeFlags & ViewByteCodeFlags.HasFlow) != 0;
+            set
+            {
+                if (value)
+                    CodeFlags |= ViewByteCodeFlags.HasFlow;
+                else
+                    CodeFlags &= ~ViewByteCodeFlags.HasFlow;
             }
         }
 
@@ -261,13 +276,15 @@ namespace PESpy.View
 
         public unsafe int GetLength(ViewByte* limit)
         {
-            Debug.Assert(Kind != ViewByteKind.Body);
+            Debug.Assert(Kind != ViewByteKind.Body || BodyKind == ViewByteBodyKind.SplitHead);
 
             fixed (ViewByte* me = &this)
             {
                 var i = me + 1;
 
-                while (i < limit && i->Kind == ViewByteKind.Body)
+                //You could have a SplitHead -> SplitEnd, immediately followed by another SplitHead if
+                //the first SplitHead spans an entire page
+                while (i < limit && i->Kind == ViewByteKind.Body && i->BodyKind != ViewByteBodyKind.SplitHead)
                     i++;
 
                 return (int) (i - me);

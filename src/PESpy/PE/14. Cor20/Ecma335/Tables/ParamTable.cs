@@ -5,20 +5,23 @@ namespace PESpy.Ecma335
 {
     public sealed class ParamTable : Table<ParamRow>
     {
-        internal readonly int RowSize;
-
         private readonly bool isBigStringIndex;
 
         internal readonly int FlagsOffset;
         internal readonly int SequenceOffset;
         internal readonly int NameOffset;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ParamTable(int numRows, int stringIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ParamTable(
+            int numRows,
+            int stringIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -47,9 +50,31 @@ namespace PESpy.Ecma335
             return new StringIndex(tableChunk.PeekEcmaIndex(rowOffset + NameOffset, isBigStringIndex), stringHeap);
         }
 
+        internal void GetRange(MethodDefIndex methodDef, out int firstParamRowId, out int lastParamRowId)
+        {
+            firstParamRowId = (int) CompressedModelHeap.MethodDefTable.GetParamList(methodDef);
+
+            if (firstParamRowId == 0)
+            {
+                firstParamRowId = 0;
+                lastParamRowId = 0;
+            }
+            else if (methodDef.RowId == CompressedModelHeap.MethodDefTable.Count)
+            {
+                lastParamRowId = (CompressedModelHeap.MethodPtrTable?.Count > 0 ? CompressedModelHeap.MethodPtrTable.Count : Count) + 1;
+            }
+            else
+            {
+                lastParamRowId = (int) CompressedModelHeap.MethodDefTable.GetParamList((MethodDefIndex) (methodDef.RowId + 1));
+            }
+        }
+
+        public CustomAttributeList GetCustomAttributes(ParamIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Param));
+
         public int GetRowOffset(ParamIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ParamRow this[ParamIndex index] => this[(int) index];
+        public ParamRow this[ParamIndex index] => GetRow((int) index);
 
         protected override ParamRow GetRow(int index) => new ParamRow((ParamIndex) index, this);
     }

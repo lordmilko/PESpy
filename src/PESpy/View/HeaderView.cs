@@ -29,6 +29,14 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        public HeaderView(int sectionIndex, in SectionAccessor sectionAccessor, FileAccessor fileAccessor, ViewWriter viewWriter)
+        {
+            Offset = sectionAccessor.StartAddress;
+            Size = sectionAccessor.Length;
+            childProvider = new GlobalViewProvider(sectionIndex, fileAccessor);
+            this.viewWriter = viewWriter;
+        }
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitHeader(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitHeader(this);

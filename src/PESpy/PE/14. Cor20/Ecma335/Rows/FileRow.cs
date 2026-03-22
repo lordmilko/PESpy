@@ -28,6 +28,8 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals
@@ -58,5 +60,7 @@ namespace PESpy.Ecma335
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString() => Name.GetString().ToString();
     }
 }

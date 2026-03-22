@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Parent = {Parent}, PropertyList = {PropertyList}")]
+    [DebuggerDisplay("Parent = {ParentRow}, PropertyList = {PropertyList}")]
     public readonly struct PropertyMapRow : IValue, IViewable
     {
         public PropertyMapIndex RowIndex { get; }
@@ -14,6 +14,11 @@ namespace PESpy.Ecma335
         public PropertyIndex PropertyList => table.GetPropertyList(RowIndex);
 
         public int Offset => table.GetRowOffset(RowIndex);
+
+        //Extensions
+        public TypeDefRow ParentRow => table.CompressedModelHeap.TypeDefTable[Parent];
+
+        //PropertyList points to the first property in the list
 
         private readonly PropertyMapTable table;
 

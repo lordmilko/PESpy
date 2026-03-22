@@ -32,5 +32,10 @@ namespace PESpy.Tests
         {
             throw new NotImplementedException();
         }
+
+        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

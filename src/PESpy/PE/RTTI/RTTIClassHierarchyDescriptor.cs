@@ -1,7 +1,10 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.View;
+
+namespace PESpy
 {
     //_RTTIClassHierarchyDescriptor
-    public readonly struct RTTIClassHierarchyDescriptor : IValue
+    public readonly struct RTTIClassHierarchyDescriptor : IValue, IViewable
     {
         private const int signatureOffset = 0;
         private const int attributesOffset = 4;
@@ -40,6 +43,41 @@
         internal RTTIClassHierarchyDescriptor(in MemoryChunk chunk)
         {
             this.chunk = chunk;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteRVAField(pBaseClassArray, Offset, pBaseClassArrayOffset);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings._RTTIClassHierarchyDescriptor, this, ViewKind.RTTIClassHierarchyDescriptor, StructSize);
+
+        int IViewable.NumChildren() => 4;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(signature), signatureOffset, signature);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(attributes), attributesOffset, attributes, sizeof(int));
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(numBaseClasses), numBaseClassesOffset, numBaseClasses);
+                    break;
+
+                case 3:
+                    structWriter.WriteRVAField(nameof(pBaseClassArray), pBaseClassArrayOffset, pBaseClassArray);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

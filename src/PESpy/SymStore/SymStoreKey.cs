@@ -54,7 +54,7 @@ namespace PESpy
     /// <summary>
     /// Represents the relative path to a file on a symbol store.
     /// </summary>
-    [DebuggerDisplay("[{Kind}] {Index.ToString(),nq}")]
+    [DebuggerDisplay("[{Kind}] {Index?.ToString(),nq}")]
     public readonly struct SymStoreKey : IEquatable<SymStoreKey>
     {
         /// <summary>

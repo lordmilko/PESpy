@@ -38,6 +38,7 @@ var strings = new[]{
 
     //Headers
     "IMAGE_DOS_HEADER",
+    "DosStub",
     "Rich Header",
     "PRODITEM",
     "IMAGE_NT_HEADERS",
@@ -240,6 +241,14 @@ var strings = new[]{
     "DebugTypeEntry",
     "GlobalValueEntry",
 
+    //RTTI
+    "_RTTIBaseClassDescriptor",
+    "_RTTIBaseClassArray",
+    "_RTTIClassHierarchyDescriptor",
+    "_RTTICompleteObjectLocator",
+
+    "PMD",
+
     //NE
     "IMAGE_OS2_HEADER",
     "new_seg",
@@ -301,6 +310,7 @@ var strings = new[]{
     "Type MD Token Map",
     "CrossScopeReferences",
     "LocalIdAndGlobalIdPair",
+    "MergedAssemblyInfo",
     "PdbIdScope",
 
     "SrcHeaderOut",
@@ -518,6 +528,7 @@ var strings = new[]{
     "lfVTShape",
 
     "mlMethod",
+    "mlMethod_16t",
 
     //Globals
     "GSIHashHdr",

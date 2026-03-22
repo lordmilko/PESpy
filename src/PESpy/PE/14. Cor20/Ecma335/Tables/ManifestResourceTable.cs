@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class ManifestResourceTable : Table<ManifestResourceRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ResourceOffsetOffset;
         internal readonly int FlagsOffset;
         internal readonly int NameOffset;
@@ -15,14 +13,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal ManifestResourceTable(int numRows, int stringIndexSize, int implementationIndexSize, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal ManifestResourceTable(
+            int numRows,
+            int stringIndexSize,
+            int implementationIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.24
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -59,9 +63,12 @@ namespace PESpy.Ecma335
             return tableChunk.PeekCodedIndex(rowOffset + ImplementationOffset, isBigImplementationIndex, CodedIndexType.Implementation);
         }
 
+        public CustomAttributeList GetCustomAttributes(ManifestResourceIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ManifestResource));
+
         public int GetRowOffset(ManifestResourceIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ManifestResourceRow this[ManifestResourceIndex index] => this[(int) index];
+        public ManifestResourceRow this[ManifestResourceIndex index] => GetRow((int) index);
 
         protected override ManifestResourceRow GetRow(int index) => new ManifestResourceRow((ManifestResourceIndex) index, this);
     }

@@ -1,11 +1,16 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.View;
+
+namespace PESpy
 {
     //_RTTIBaseClassArray
-    public readonly struct RTTIBaseClassArray
+    public readonly struct RTTIBaseClassArray : IValue, IViewable
     {
         public RVA<RTTIBaseClassDescriptor[]> arrayOfBaseClassDescriptors { get; }
 
         public int Offset { get; }
+
+        internal const int StructSize = sizeof(int);
 
         internal RTTIBaseClassArray(in MemoryChunk chunk, int numBaseClasses)
         {
@@ -26,6 +31,29 @@
             }
             else
                 arrayOfBaseClassDescriptors = new RVA<RTTIBaseClassDescriptor[]>(rva);
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteRVAField(arrayOfBaseClassDescriptors, Offset, 0);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings._RTTIBaseClassArray, this, ViewKind.RTTIBaseClassArray, StructSize);
+
+        int IViewable.NumChildren() => 1;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteRVAField(nameof(arrayOfBaseClassDescriptors), 0, arrayOfBaseClassDescriptors);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

@@ -115,6 +115,10 @@
         //Type is made up
         public struct SymbolInfo
         {
+            public symdef16_s[] Symbols16 { get; }
+
+            public symdef_s[] Symbols32 { get; }
+
             //The offsets to the symbols and the symbols themselves are relative to the offset of the segdef_s
             internal SymbolInfo(in MemoryChunk chunk, in segdef_s seg)
             {
@@ -173,6 +177,9 @@
                     for (var i = 0; i < symbols16.Length; i++)
                         symbols16[i] = new symdef16_s(chunk.Slice(symbolOffsets[i]));
                 }
+
+                Symbols16 = symbols16;
+                Symbols32 = symbols32;
             }
         }
 

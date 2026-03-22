@@ -1,6 +1,9 @@
-﻿namespace PESpy.View
+﻿using System;
+
+namespace PESpy.View
 {
     //Flags for a ViewByte when its Kind is Code
+    [Flags]
     public enum ViewByteCodeFlags
     {
         None = 0,
@@ -14,6 +17,21 @@
 
         IsIL = 0x40,
 
-        //Because this is flags, we can only store 3 values
+        /* Whether the current instruction can be flowed to from the previous instruction. e.g.
+         *     mov rax,1
+         *     mov rbx,1
+         * mov rbx,1 has flow (from mov rax,1)
+         * 
+         *     jmp rax
+         *     mov rbx,1
+         * 
+         * mov rbx,1 does not have flow from jmp rax
+         */
+
+        //
+        //mov
+        HasFlow = 0x80
+
+        //Because this is flags, we can only store 4 values
     }
 }

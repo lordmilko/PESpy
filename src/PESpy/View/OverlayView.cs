@@ -27,6 +27,14 @@ namespace PESpy.View
             Size = size;
         }
 
+        public OverlayView(int sectionIndex, in SectionAccessor sectionAccessor, FileAccessor fileAccessor, ViewWriter viewWriter)
+        {
+            Offset = sectionAccessor.StartAddress;
+            Size = sectionAccessor.Length;
+            childProvider = new GlobalViewProvider(sectionIndex, fileAccessor);
+            this.viewWriter = viewWriter;
+        }
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitOverlay(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitOverlay(this);

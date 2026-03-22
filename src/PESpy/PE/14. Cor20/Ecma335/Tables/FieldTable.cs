@@ -5,8 +5,6 @@ namespace PESpy.Ecma335
 {
     public sealed class FieldTable : Table<FieldRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int FlagsOffset;
         internal readonly int NameOffset;
         internal readonly int SignatureOffset;
@@ -14,13 +12,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal FieldTable(int numRows, int stringIndexSize, int blobIndexSize, Func<StringHeap?> stringHeap, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal FieldTable(
+            int numRows,
+            int stringIndexSize,
+            int blobIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<StringHeap?> stringHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -51,9 +56,31 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + SignatureOffset, isBigBlobIndex), blobHeap);
         }
 
+        internal void GetRange(TypeDefIndex typeDef, out int firstFieldRowId, out int lastFieldRowId)
+        {
+            firstFieldRowId = (int) CompressedModelHeap.TypeDefTable.GetFieldList(typeDef);
+
+            if (firstFieldRowId == 0)
+            {
+                firstFieldRowId = 1;
+                lastFieldRowId = 0;
+            }
+            else if (typeDef.RowId == CompressedModelHeap.TypeDefTable.Count)
+            {
+                lastFieldRowId = (CompressedModelHeap.FieldPtrTable?.Count > 0 ? CompressedModelHeap.FieldPtrTable.Count : Count) + 1;
+            }
+            else
+            {
+                lastFieldRowId = (int) CompressedModelHeap.TypeDefTable.GetFieldList((TypeDefIndex) (typeDef.RowId + 1));
+            }
+        }
+
+        public CustomAttributeList GetCustomAttributes(FieldIndex index) =>
+            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Field));
+
         public int GetRowOffset(FieldIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldRow this[FieldIndex index] => this[(int) index];
+        public FieldRow this[FieldIndex index] => GetRow((int) index);
 
         protected override FieldRow GetRow(int index) => new FieldRow((FieldIndex) index, this);
     }

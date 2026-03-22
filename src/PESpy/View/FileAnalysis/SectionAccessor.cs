@@ -18,9 +18,29 @@ namespace PESpy.View
     /// <summary>
     /// Provides facilities for accessing information about the bytes contained in a particular section of a file.
     /// </summary>
-    [DebuggerDisplay("0x{StartAddress.ToString(\"X\"),nq}-0x{EndAddress.ToString(\"X\"),nq} {Name,nq}")]
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public unsafe struct SectionAccessor : IDisposable
     {
+        private string DebuggerDisplay()
+        {
+            var builder = new ValueStringBuilder();
+            builder.Append("0x");
+            builder.AppendHex((uint) StartAddress);
+
+            if (StartAddress == EndAddress)
+                builder.Append(" (Empty)");
+            else
+            {
+                builder.Append("-0x");
+                builder.AppendHex((uint) EndAddress - 1);
+            }
+
+            builder.Append(' ');
+            builder.Append(Name);
+
+            return builder.ToString();
+        }
+
         public ViewByte* pViewBytes;
         private MemoryMappedFile _mmf;
         private MemoryMappedViewAccessor _mma;

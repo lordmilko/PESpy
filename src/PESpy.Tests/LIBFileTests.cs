@@ -11,10 +11,10 @@ namespace PESpy.Tests
         {
             TestStruct<ImageArchiveMemberHeader>(
                 v => v.Name == "/               ",
-                v => v.Date == "-1          ",
-                v => v.UserID == "      ",
-                v => v.GroupID == "      ",
-                v => v.Mode == "0       ",
+                v => v.Date == uint.MaxValue,
+                v => v.UserID == null,
+                v => v.GroupID == null,
+                v => v.Mode == 0,
                 v => v.Size == 120,
                 v => v.EndHeader == "`\n"
             );
@@ -74,4 +74,27 @@ namespace PESpy.Tests
 
             throw new System.NotImplementedException();
         }
+
+        [TestMethod]
+        public void ShortImportLibraryMember_Test()
+        {
+            TestStruct<ShortImportLibraryMember>(
+                v => v.FileName == null,
+                v => v.ImportName == "_main",
+                v => v.DllName == "TestApp.exe"
+            );
+
+            //ShortImportLibraryMember is not a struct; it just contains other structs
+        }
+
+        [TestMethod]
+        public void LongImportLibraryMember_Test()
+        {
+            TestStruct<LongImportLibraryMember>(
+                v => v.FileName == null
+            );
+
+            //LongImportLibraryMember is not a struct; it just contains other structs
+        }
+    }
 }

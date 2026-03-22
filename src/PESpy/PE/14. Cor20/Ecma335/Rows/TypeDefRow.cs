@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using ClrDebug;
 using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Flags = {Flags}, TypeName = {TypeName.ToString(),nq}, TypeNamespace = {TypeNamespace.ToString(),nq}, Extends = {Extends}, FieldList = {FieldList}, MethodList = {MethodList}")]
     public readonly struct TypeDefRow : IValue, IViewable
     {
         public TypeDefIndex RowIndex { get; }
@@ -30,6 +28,9 @@ namespace PESpy.Ecma335
 
         public int Offset => table.GetRowOffset(RowIndex);
 
+        //Extensions
+        public object ExtendsRow => Extends.GetRow(table.CompressedModelHeap);
+
         private readonly TypeDefTable table;
 
         internal TypeDefRow(TypeDefIndex index, TypeDefTable table)
@@ -39,6 +40,54 @@ namespace PESpy.Ecma335
             RowIndex = index;
             this.table = table;
         }
+
+        public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
+
+        //System.Reflection.Metadata has a custom TypeLayout type that just contains some of the members
+        //of the ClassLayoutRow item
+        public ClassLayoutRow? Layout
+        {
+            get
+            {
+                var rowId = table.CompressedModelHeap.ClassLayoutTable.FindRow(RowIndex);
+
+                if (rowId.RowId == 0)
+                    return default;
+
+                return table.CompressedModelHeap.ClassLayoutTable[rowId];
+            }
+        }
+
+        public TypeDefRow? DeclaringType
+        {
+            get
+            {
+                var index = table.CompressedModelHeap.NestedClassTable.FindEnclosingType(RowIndex);
+
+                if (index.RowId == 0)
+                    return null;
+
+                return table[index];
+            }
+        }
+
+        public GenericParamList GenericParameters => table.CompressedModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.TypeDef));
+
+        public MethodDefList Methods => new MethodDefList(RowIndex, table.CompressedModelHeap);
+
+        public FieldDefList Fields => new FieldDefList(RowIndex, table.CompressedModelHeap);
+
+        public PropertyList Properties => new PropertyList(RowIndex, table.CompressedModelHeap);
+
+        public EventList Events => new EventList(RowIndex, table.CompressedModelHeap);
+
+        public TypeDefIndex[] NestedTypes => table.GetNestedTypes(RowIndex);
+
+        public MethodImplList MethodImplementations => new MethodImplList(RowIndex, table.CompressedModelHeap);
+
+        public InterfaceImplList InterfaceImplementations => new InterfaceImplList(RowIndex, table.CompressedModelHeap);
+
+        public DeclSecurityAttributeList DeclSecurityAttributes => table.GetDeclSecurityAttributes(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -83,20 +132,6 @@ namespace PESpy.Ecma335
             }
         }
 
-        public override string ToString()
-        {
-            var ns = TypeNamespace.GetString();
-
-            if (ns.Length == 0)
-                return TypeName.GetString().ToString();
-
-            using var builder = new Utf8StringBuilder();
-
-            builder.Append(ns);
-            builder.Append('.');
-            builder.Append(TypeName.GetString());
-
-            return builder.ToString();
-        }
+        public override string ToString() => CompressedModelHeap.FormatType(TypeNamespace, TypeName);
     }
 }

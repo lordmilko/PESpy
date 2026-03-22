@@ -22,6 +22,7 @@
             var value = rowId << LogN | (tableKind switch
             {
                 TableKind.TypeDef => TypeDef,
+                TableKind.MethodDef => MethodDef
             });
 
             return new CodedIndex(value, CodedIndexType.TypeOrMethodDef);

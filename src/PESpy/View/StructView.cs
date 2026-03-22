@@ -37,7 +37,7 @@ namespace PESpy.View
     /// </summary>
     [DebuggerTypeProxy(typeof(StructViewDebugView))]
     [DebuggerDisplay("{ViewDebuggerDisplay.Struct(this),nq}")]
-    public class StructView<TValue> : IStructView, IContainerView, ISplittableView where TValue : IViewable
+    public class StructView : IStructView, IContainerView, ISplittableView
     {
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
@@ -54,29 +54,15 @@ namespace PESpy.View
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
-        ViewChildList IContainerView.Children
+        public ViewChildList Children
         {
             get
             {
                 //We can do better in the non-generic ViewChildList type: just wrap the children up in a fake parent; then we don't need to check whether we were eager or not with each child we access
-                if (StructWriter.NeedsEagerChildren(Kind))
+                if (StructWriter.NeedsEagerChildren(Kind) && value is not ViewChildProvider) //If we've already split the value, don't create another ViewChildProvider
                     return new ViewChildList(Offset, new ViewChildProvider(viewWriter.GetChildren(Offset, value)), viewWriter);
 
                 return new ViewChildList(Offset, value, viewWriter);
-            }
-        }
-
-        /// <summary>
-        /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
-        /// </summary>
-        public ViewChildList<TValue> Children
-        {
-            get
-            {
-                if (StructWriter.NeedsEagerChildren(Kind))
-                    return new ViewChildList<TValue>(viewWriter.GetChildren(Offset, value));
-
-                return new ViewChildList<TValue>(Offset, value, viewWriter);
             }
         }
 
@@ -87,16 +73,27 @@ namespace PESpy.View
 
         public ViewKind Kind { get; }
 
+        public string ValueType
+        {
+            get
+            {
+                if (value is ViewChildProvider)
+                    throw new NotImplementedException();
+
+                return value.GetType().Name;
+            }
+        }
+
         [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStruct(this);
 
         [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitStruct(this);
 
-        private readonly TValue value;
+        private IViewable value;
         private readonly ViewWriter viewWriter;
 
-        public StructView(int offset, FixedUtf8String name, in TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter)
+        public StructView(int offset, FixedUtf8String name, in IViewable value, int size, ViewKind kind, ViewWriter viewWriter)
         {
             Offset = offset;
             Name = name;
@@ -114,9 +111,12 @@ namespace PESpy.View
             var diff = currentEnd - cutoff;
             Debug.Assert(diff > 0);
 
-            for (var i = 0; i < Children.Length; i++)
+            var children = Children;
+            var numChildren = children.Count;
+
+            for (var i = 0; i < numChildren; i++)
             {
-                var child = (ISplittableView) Children[i];
+                var child = Children[i];
 
                 var childEnd = child.Offset + child.Size;
 
@@ -128,7 +128,7 @@ namespace PESpy.View
                     IView secondChild;
 
                     var numLeftChildren = i + 1;
-                    var numRightChildren = Children.Length - i;
+                    var numRightChildren = numChildren - i;
 
                     if (child.Offset == cutoff || child.Offset == newBaseOffset)
                     {
@@ -139,12 +139,12 @@ namespace PESpy.View
                         secondChild = child;
                     }
                     else
-                        (firstChild, secondChild) = child.Split(newBaseOffset, cutoff); //The child overlaps the start and end of the page. When we split the parent, we'll also need to divvy up the parent's children
+                        (firstChild, secondChild) = ((ISplittableView) child).Split(newBaseOffset, cutoff); //The child overlaps the start and end of the page. When we split the parent, we'll also need to divvy up the parent's children
 
-                    SplitStructView<TValue> first;
+                    SplitStructView first;
                     var originalChildren = Children;
 
-                    if (this is SplitStructView<TValue> s)
+                    if (this is SplitStructView s)
                     {
                         //Mutate in place
                         first = s;
@@ -155,17 +155,21 @@ namespace PESpy.View
                         {
                             Debug.Assert(numLeftChildren > 0);
                             newChildren = new IView[numLeftChildren];
-                            Array.Copy(Children, newChildren, numLeftChildren);
-                        }
+
+                            for (var j = 0; j < numLeftChildren; j++)
+                                newChildren[j] = children[j];
+                       }
                         else
                         {
                             newChildren = new IView[numLeftChildren];
 
-                            Array.Copy(Children, newChildren, numLeftChildren - 1);
+                            for (var j = 0; j < numLeftChildren - 1; j++)
+                                newChildren[j] = children[j];
+
                             newChildren[numLeftChildren - 1] = firstChild;
                         }
-                        
-                        Children = newChildren;
+
+                        value = new ViewChildProvider(newChildren);
                         Size -= diff;
                     }
                     else
@@ -177,16 +181,22 @@ namespace PESpy.View
                         if (firstChild == null)
                         {
                             firstChildren = new IView[numLeftChildren];
-                            Array.Copy(Children, firstChildren, numLeftChildren);
+
+                            for (var j = 0; j < numLeftChildren; j++)
+                                firstChildren[j] = children[j];
                         }
                         else
                         {
                             firstChildren = new IView[numLeftChildren];
-                            Array.Copy(Children, firstChildren, numLeftChildren - 1); //Don't need to adjust the offsets of our children, since they still belong to the first half with the original offset
+
+                            //Don't need to adjust the offsets of our children, since they still belong to the first half with the original offset
+                            for (var j = 0; j < numLeftChildren - 1; j++)
+                                firstChildren[j] = children[j];
+
                             firstChildren[numLeftChildren - 1] = firstChild;
                         }
 
-                        first = new SplitStructView<TValue>(Offset, Name, value, firstChildren, Size - diff, Kind, viewWriter);
+                        first = new SplitStructView(Offset, Name, firstChildren, Size - diff, Kind, viewWriter);
                     }
 
                     //Create second
@@ -208,7 +218,7 @@ namespace PESpy.View
                         }
                     }
 
-                    var second = new SplitStructView<TValue>(newBaseOffset, Name, value, secondChildren, diff, Kind, viewWriter);
+                    var second = new SplitStructView(newBaseOffset, Name, secondChildren, diff, Kind, viewWriter);
 
                     second.Previous = first;
                     first.Next = second;
@@ -236,28 +246,28 @@ namespace PESpy.View
                 runningOffset += newChild.Size;
             }
 
-            if (this is SplitStructView<TValue> sv)
+            if (this is SplitStructView sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitStructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);
+                var newValue = new SplitStructView(newOffset, Name, newChildren, Size, Kind, viewWriter);
 
                 if (sv.Previous != null)
                 {
                     //We need to set the previous's next to be us
-                    ((SplitStructView<TValue>) sv.Previous).Next = newValue;
+                    ((SplitStructView) sv.Previous).Next = newValue;
                     newValue.Previous = sv.Previous;
                 }
                 else if (sv.Next != null)
                 {
                     //We need to set the next's previous to be us
-                    ((SplitStructView<TValue>) sv.Next).Previous = newValue;
+                    ((SplitStructView) sv.Next).Previous = newValue;
                     newValue.Next = sv.Next;
                 }
 
                 return newValue;
             }
 
-            return new StructView<TValue>(newOffset, Name, value, newChildren, Size, Kind, viewWriter);
+            return new StructView(newOffset, Name, new ViewChildProvider(newChildren), Size, Kind, viewWriter);
         }
 
         public bool TryGetEnhancedName(out string name)
@@ -298,13 +308,13 @@ namespace PESpy.View
         }
     }
 
-    class SplitStructView<TValue> : StructView<TValue>, ISplitView where TValue : IViewable
+    class SplitStructView : StructView, ISplitView
     {
         public ISplitView? Previous { get; internal set; }
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructView(int offset, FixedUtf8String name, TValue value, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, value, children, size, kind, viewWriter)
+        public SplitStructView(int offset, FixedUtf8String name, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, new ViewChildProvider(children), size, kind, viewWriter)
         {
         }
     }

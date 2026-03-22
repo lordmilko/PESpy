@@ -21,11 +21,11 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public MlMethod[] mList
+        public MlMethod16t[] mList
         {
             get
             {
-                using var results = new PooledList<MlMethod>();
+                using var results = new PooledList<MlMethod16t>();
 
                 var ptr = value->mList;
 
@@ -33,7 +33,7 @@ namespace PESpy.PDB
 
                 while (ptr < end)
                 {
-                    var item = new MlMethod((mlMethod*) ptr);
+                    var item = new MlMethod16t((mlMethod_16t*) ptr);
                     results.Add(item);
                     ptr += item.StructSize;
                 }
@@ -49,6 +49,8 @@ namespace PESpy.PDB
         {
             this.value = value;
         }
+
+        public static implicit operator LfEasy(LfMethodList16t easy) => new LfEasy((lfEasy*) (byte*) easy.value);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

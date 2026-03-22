@@ -51,7 +51,7 @@ namespace PESpy.PDB
         public CV_uoff32_t offParent => value->offParent;
 
         /// <inheritdoc cref="SEPCODESYM.sect"/>
-        public short sect => value->sect;
+        public ISECT sect => value->sect;
 
         /// <inheritdoc cref="SEPCODESYM.sectParent"/>
         public ISECT sectParent => value->sectParent;
@@ -69,6 +69,8 @@ namespace PESpy.PDB
             sizeof(short);   //sectParent
 
         #region PESpy
+
+        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sect, off);
 
         public SymTypeChildList Children => GetChildren(null);
 

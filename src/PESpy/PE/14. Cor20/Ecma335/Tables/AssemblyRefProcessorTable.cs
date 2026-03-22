@@ -2,18 +2,20 @@
 {
     public sealed class AssemblyRefProcessorTable : Table<AssemblyRefProcessorRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ProcessorOffset;
         internal readonly int AssemblyRefOffset;
 
         private readonly bool isBigAssemblyRefIndex;
 
-        private readonly MemoryChunk tableChunk;
+        internal readonly CompressedModelHeap CompressedModelHeap;
 
-        internal AssemblyRefProcessorTable(int numRows, int assemblyRefIndexSize, in MemoryChunk tableChunk) : base(numRows)
+        internal AssemblyRefProcessorTable(
+            int numRows,
+            int assemblyRefIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
 
             isBigAssemblyRefIndex = assemblyRefIndexSize == 4;
 
@@ -36,7 +38,7 @@
 
         public int GetRowOffset(AssemblyRefProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyRefProcessorRow this[AssemblyRefProcessorIndex index] => this[(int) index];
+        public AssemblyRefProcessorRow this[AssemblyRefProcessorIndex index] => GetRow((int) index);
 
         protected override AssemblyRefProcessorRow GetRow(int index) => new AssemblyRefProcessorRow((AssemblyRefProcessorIndex) index, this);
     }

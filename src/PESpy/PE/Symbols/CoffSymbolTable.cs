@@ -9,9 +9,10 @@ namespace PESpy
     /// Encapsulates the components of the COFF Symbol Table.<para/>
     /// This type does not have a native struct definition.
     /// </summary>
-    public class CoffSymbolTable : IValue, IViewable //Class so that it can be reused with IMAGE_DEBUG_TYPE_COFF
+    public class CoffSymbolTable : IValue, IViewable //Class because we allocate an array for Symbols and Strings
     {
         private int StringTableSizeOffset => numberOfSymbols * ImageSymbol.StructSize;
+
         private ImageSymbol[]? symbols;
 
         public ImageSymbol[] Symbols

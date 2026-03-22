@@ -4,22 +4,26 @@ namespace PESpy.Ecma335
 {
     public sealed class FieldMarshalTable : Table<FieldMarshalRow>
     {
-        internal readonly int RowSize;
-
         internal readonly int ParentOffset;
         internal readonly int NativeTypeOffset;
 
         private readonly bool isBigHasFieldMarshalIndex;
         private readonly bool isBigBlobIndex;
 
+        internal readonly CompressedModelHeap CompressedModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
-        private readonly MemoryChunk tableChunk;
 
-        internal FieldMarshalTable(int numRows, int hasFieldMarshalIndexSize, int blobIndexSize, Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(numRows)
+        internal FieldMarshalTable(
+            int numRows,
+            int hasFieldMarshalIndexSize,
+            int blobIndexSize,
+            CompressedModelHeap compressedModelHeap,
+            Func<BlobHeap?> blobHeap,
+            in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.17
 
-            this.tableChunk = tableChunk;
+            CompressedModelHeap = compressedModelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasFieldMarshalIndex = hasFieldMarshalIndexSize == 4;
@@ -42,9 +46,23 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + NativeTypeOffset, isBigBlobIndex), blobHeap);
         }
 
+        internal FieldMarshalIndex FindFieldMarshalRowId(CodedIndex index)
+        {
+            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+                tableChunk,
+                Count,
+                RowSize,
+                ParentOffset,
+                (uint) (int) index,
+                isBigHasFieldMarshalIndex
+            );
+
+            return (FieldMarshalIndex) (foundRowNumber + 1);
+        }
+
         public int GetRowOffset(FieldMarshalIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldMarshalRow this[FieldMarshalIndex index] => this[(int) index];
+        public FieldMarshalRow this[FieldMarshalIndex index] => GetRow((int) index);
 
         protected override FieldMarshalRow GetRow(int index) => new FieldMarshalRow((FieldMarshalIndex) index, this);
     }

@@ -5,10 +5,13 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //In the initial NativeAOT tests I've done, I didn't see any copying going on when I make this a struct
+    //and have it be returned from properties; further testing may be needed
+
     /// <summary>
     /// Represents the <see cref="IMAGE_OPTIONAL_HEADER32"/> / <see cref="IMAGE_OPTIONAL_HEADER64"/> structure.
     /// </summary>
-    public class ImageOptionalHeader : IViewableValue //Structs return copies from properties, and ref properties don't display properly in the debugger
+    public readonly struct ImageOptionalHeader : IViewableValue
     {
         private const int MagicOffset = 0;
         private const int MajorLinkerVersionOffset = 2;

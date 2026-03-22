@@ -51,6 +51,12 @@ namespace PESpy.Ecma335
             }
         }
 
+        internal RawValue<Guid> GetGuid(int offset)
+        {
+            var value = chunk.PeekGuid(offset);
+            return new RawValue<Guid>(chunk.AbsoluteOffset + offset, value);
+        }
+
         public Enumerator GetEnumerator() => new Enumerator(this);
 
         IEnumerator<RawValue<Guid>> IEnumerable<RawValue<Guid>>.GetEnumerator() => GetEnumerator();
