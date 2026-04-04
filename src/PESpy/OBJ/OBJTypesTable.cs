@@ -42,7 +42,7 @@ namespace PESpy.OBJ
                         codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, isLengthPrefixed);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, null);
                     types = new TypTypeList(chunk.Pointer + 4, Length - 4);
                 }
 

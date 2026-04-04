@@ -13,7 +13,8 @@ namespace PESpy.PDB
         private const int reclenOffset = 0;
         private const int rectypOffset = 2;
         private const int idOemOffset = 4;
-        private const int typindOffset = 4;
+        private const int typindOffset = 20;
+        private const int rglOffset = 24;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly OEMSYMBOL* value;
@@ -31,6 +32,19 @@ namespace PESpy.PDB
 
         /// <inheritdoc cref="OEMSYMBOL.typind"/>
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
+
+        /// <summary>
+        /// user data
+        /// </summary>
+        public NativeSpan<byte> rgl => new NativeSpan<byte>(value->rgl, (reclen - 24)); //Note that while this is supposedly supposed to be a 4 byte aligned list of UInt32's, however I got a list of 22 bytes which means this is wrong
+
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
@@ -51,7 +65,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.OEMSYMBOL, this, ViewKind.OemSymbol, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => 4;
+        int IViewable.NumChildren() => 5;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -71,6 +85,10 @@ namespace PESpy.PDB
 
                 case 3:
                     structWriter.WriteField(nameof(typind), typindOffset, value->typind);
+                    break;
+
+                case 4:
+                    structWriter.WriteField(nameof(rgl), rglOffset, rgl);
                     break;
 
                 default:

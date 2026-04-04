@@ -3,6 +3,7 @@ License notice for
     dotnet/symstore       (https://github.com/dotnet/symstore)
     dotnet/roslyn         (https://github.com/dotnet/roslyn)
     dotnet/runtime        (https://github.com/dotnet/runtime)
+    icedland/iced         (https://github.com/icedland/iced)
 -------------------------------------------------------------------
 
 The MIT License (MIT)

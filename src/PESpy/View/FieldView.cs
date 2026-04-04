@@ -33,17 +33,18 @@ namespace PESpy.View
 
         public int Size { get; private set; }
 
-        public ViewKind Kind => ViewKind.Field;
+        public ViewKind Kind { get; }
 
         public FieldViewFlags Flags { get; }
 
-        public FieldView(int offset, string name, TValue value, int size, FieldViewFlags flags)
+        public FieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, ViewKind kind = ViewKind.Field)
         {
             Offset = offset;
             Name = name;
             Value = value;
             Size = size;
             Flags = flags;
+            Kind = kind;
 
             //We can't assert that we have a size because the first item in the ECMA 335 blob heap is an empty array
         }
@@ -71,10 +72,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff, Flags);
+                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff, Flags, Kind);
             }
 
-            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff, Flags);
+            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff, Flags, Kind);
             second.Previous = first;
             first.Next = second;
 
@@ -101,7 +102,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags) : base(offset, name, value, size, flags)
+        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, ViewKind kind) : base(offset, name, value, size, flags, kind)
         {
         }
     }

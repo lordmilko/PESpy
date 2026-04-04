@@ -42,11 +42,17 @@ namespace PESpy
         #endregion
         #region IEquatable / IComparable (Utf16String)
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Utf16String other) =>
             AsSpan().SequenceEqual(other.AsSpan());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(Utf16String other) =>
             AsSpan().SequenceCompareTo(other.AsSpan());
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareToIgnoreCase(Utf16String other) =>
+            StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsSpan());
 
         #endregion
         #region IEquatable / IComparable (string)

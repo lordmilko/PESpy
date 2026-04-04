@@ -33,7 +33,7 @@ namespace PESpy.PDB
         public CV_uoff16_t off => value->off;
 
         /// <inheritdoc cref="DATASYM16.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
 
         /// <inheritdoc cref="DATASYM16.typind"/>
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
@@ -46,6 +46,10 @@ namespace PESpy.PDB
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
 
         #endregion
 

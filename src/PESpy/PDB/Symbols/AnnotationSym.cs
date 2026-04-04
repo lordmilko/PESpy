@@ -31,7 +31,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="ANNOTATIONSYM.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
 
         /// <inheritdoc cref="ANNOTATIONSYM.csz"/>
         public short csz => value->csz;
@@ -63,6 +63,10 @@ namespace PESpy.PDB
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
 
         #endregion
 

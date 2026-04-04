@@ -58,6 +58,11 @@ namespace PESpy.LIB
                     {
                         ref var section = ref sections[i];
 
+                        //Immediately after the archive header is the file header so if the pointer is 0
+                        //even if it says there is a size, there's nothing for us to read
+                        if (section.PointerToRawData == 0)
+                            continue;
+
                         var sectionChunk = chunk.Slice(section.PointerToRawData + ImageArchiveMemberHeader.StructSize);
 
                         results[i] = OBJFile.GetDataForSection(sectionChunk, section.Name, section.SizeOfRawData);
@@ -96,7 +101,10 @@ namespace PESpy.LIB
 
             this.chunk = new MemoryChunk(block, 0);
             FileName = fileName;
-            SymbolName = symbolNameMap[Offset];
+
+            //May not be present, e.g. you can have *.res files that don't have any symbol
+            if (symbolNameMap.TryGetValue(Offset, out var symbolName))
+                SymbolName = symbolName;
         }
 
         public unsafe void CopyTo(Span<byte> span) => new Span<byte>(chunk.Pointer, chunk.Remaining).CopyTo(span);
@@ -122,7 +130,7 @@ namespace PESpy.LIB
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
-        internal ICodeViewAccessor? RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        internal ICodeViewAccessor? RegisterC13SymbolMemory(MemoryChunk dataChunk, ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             lock (c13SymbolMemoryLock)
             {
@@ -131,7 +139,7 @@ namespace PESpy.LIB
                     var codeViewAccessor = new LongImportLibraryMemberSymbolAccessor(this, false);
 
                     //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, codeViewModuleAccessor);
 
                     return codeViewAccessor;
                 }
@@ -147,6 +155,9 @@ namespace PESpy.LIB
 
         public override string ToString()
         {
+            if (SymbolName.Length == 0)
+                return FileName.ToString();
+
             if (FileName.Length == 0)
                 return SymbolName.ToString();
 

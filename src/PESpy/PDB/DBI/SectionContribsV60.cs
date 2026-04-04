@@ -40,15 +40,19 @@ namespace PESpy.PDB
 
         public SC40 this[int index] => Entries[index];
 
-        public bool TryGetSection(ISECT seg, int off, out SC40 sc)
+        public bool TryGetSection(ISECT seg, int off, out SC40 sc) =>
+            TryGetSection(seg, off, out _, out sc);
+
+        public bool TryGetSection(ISECT seg, int off, out int index, out SC40 sc)
         {
-            if (SectionContribsV40.TryGetSection(Entries, seg, off, out var raw))
+            if (SectionContribsV40.TryGetSection(Entries, seg, off, out index, out var raw))
             {
                 sc = raw;
                 return true;
             }
 
-            sc = default;
+            //Caller may want this
+            sc = raw;
             return false;
         }
 

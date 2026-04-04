@@ -1,4 +1,5 @@
 ﻿using System;
+using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
@@ -13,7 +14,7 @@ namespace PESpy
 
         public ushort off => chunk.PeekUInt16(offOffset);
 
-        public ushort seg => chunk.PeekUInt16(segOffset);
+        public ISECT seg => chunk.PeekUInt16(segOffset);
 
         public ushort type => chunk.PeekUInt16(typeOffset);
 

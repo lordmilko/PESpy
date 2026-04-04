@@ -25,6 +25,11 @@ namespace PESpy
             throw new System.NotImplementedException();
         }
 
+        public bool TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
         {
             throw new System.NotImplementedException();
@@ -38,7 +43,12 @@ namespace PESpy
         public int? GetRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
 
-        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement,
+            out IMOD imod)
         {
             throw new System.NotImplementedException();
         }

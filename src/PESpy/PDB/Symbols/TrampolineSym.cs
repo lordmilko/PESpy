@@ -43,10 +43,22 @@ namespace PESpy.PDB
         public CV_uoff32_t offTarget => value->offTarget;
 
         /// <inheritdoc cref="TRAMPOLINESYM.sectThunk"/>
-        public short sectThunk => value->sectThunk;
+        public ISECT sectThunk => value->sectThunk;
 
         /// <inheritdoc cref="TRAMPOLINESYM.sectTarget"/>
-        public short sectTarget => value->sectTarget;
+        public ISECT sectTarget => value->sectTarget;
+
+        #region PESpy
+
+        public int? ThunkRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectThunk, offThunk);
+
+        public int? TargetRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectTarget, offTarget);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

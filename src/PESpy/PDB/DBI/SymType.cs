@@ -21,6 +21,14 @@ namespace PESpy.PDB
         public ushort reclen => value->reclen;
         public SYM_ENUM_e rectyp => value->rectyp;
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         public SymType(SYMTYPE* value)
         {
             this.value = value;
@@ -87,56 +95,146 @@ namespace PESpy.PDB
             return StringSymTypeDispatcher.Instance.Dispatch(this);
         }
 
+        //msdia140!getLexicalParent
         //Can't return BlockSym because top level blocks need to show null for their parent
-        internal static SymType GetParent(BLOCKSYM* symType, ICodeViewAccessor? codeViewAccessor)
+        internal static SymType GetParent(SymType symType, ICodeViewModuleAccessor? codeViewModuleAccessor)
         {
-            var pParent = symType->pParent;
+            codeViewModuleAccessor ??= SymbolMemoryTracker.GetModuleAccessor((long) (SYMTYPE*) symType);
 
-            if (pParent == 0 && symType->rectyp != S_SEPCODE) //The parent of a SepCode may potentially be resolvable without having a pParent
-                return default;
+            if (codeViewModuleAccessor == null)
+                throw new InvalidOperationException($"Cannot get the parent symbol without an {nameof(ICodeViewModuleAccessor)}");
 
-            var pStart = SymbolMemoryTracker.GetStart((long) symType);
+            var symTypeList = codeViewModuleAccessor.Symbols;
 
-            return GetParent((BlockSym) symType, pStart, codeViewAccessor);
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        internal unsafe static BlockSym GetParent(BlockSym blockSym, long pStart, ICodeViewAccessor? codeViewAccessor)
-        {
-            var pParent = blockSym.pParent;
-
-            if (blockSym.rectyp == S_SEPCODE)
+            if (symType.IsBlockSym())
             {
+                var blockSym = (BlockSym) symType;
+
                 //I've noticed that on a SEPCODESYM, pParent can be 0. I also notice that in the CV_SEPCODEFLAGS
-                //there's a field fIsLexicalScope. I wonder if fIsLexicalScope tells you whether you can use pParent or not
+                //there's a field fIsLexicalScope. I wonder if fIsLexicalScope tells you whether you can use pParent or not.
+                //In msdia140!getLexicalParent, they seem to encode my observation that all block symbols should have a pParent,
+                //except sepcode
 
-                var sepCode = (SepCodeSym) (SymType) blockSym;
-
-                if (pParent == 0)
+                if (blockSym.pParent != 0)
                 {
-                    Debug.Assert(!sepCode.scf.fIsLexicalScope);
-
-                    //We have offParent and sectParent, so we need to use those to try and resolve
-                    //the parent symbol
-                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) (SymType) blockSym);
-
-                    if (codeViewAccessor.TryGetSymbolBySectionAndOffset(sepCode.sectParent, sepCode.offParent, out var parentSym, out var disp))
-                        return parentSym;
-
-                    return default;
+#if DEBUG
+                    //Try and validate our assumption that fIsLexicalScope correlates with pParent not being 0
+                    if (symType.rectyp == S_SEPCODE)
+                        Debug.Assert(((SepCodeSym) symType).scf.fIsLexicalScope);
+#endif
+                    return (SymType) (SYMTYPE*) (blockSym.pParent + symTypeList.start);
                 }
                 else
                 {
-                    Debug.Assert(sepCode.scf.fIsLexicalScope);
+                    if (symType.rectyp != S_SEPCODE)
+                        return default;
 
-                    return (SymType) (SYMTYPE*) (blockSym.pParent + pStart);
+                    /* In the case of a minimal PDB, DIA just does ModCache::blockByAddr to get
+                     * the top level function symbol. My original plan for what to do here was
+                     * to just feed the off/seg into the main RVA symbol lookup algorithm,
+                     * however this is incorrect; stress testing in msedge.dll I found I would
+                     * get a random symbol not related to my sepcode symbol */
+
+                    SymType currentScope = default;
+
+                    //Walk the list of symbols, keeping track of the current enclosing function
+                    foreach (var item in symTypeList.GetTopLevel())
+                    {
+                        if (item == symType)
+                        {
+                            //We've found the item that we were looking for; try and use the containing
+                            //symbol if we got one, otherwise fallback to doing a lookup by address
+
+                            if (currentScope != default)
+                                return currentScope;
+
+                            var sepCodeSym = (SepCodeSym) item;
+
+                            /* DIA calls ModCache::blockByAddr against the off/seg of the sepcode's listed parent.
+                             * I can see that ModCache::fInitFuncPositionCache actually does store an association
+                             * between each sepcode and its actual parent, but we don't need to use that since
+                             * we already know the off/seg of our parent */
+
+                            //Note while we could potentially dispatch to the SymTypeList.codeViewAccessor, we need to search for a function
+                            //in a particular module, so it makes sense to tie this to the ICodeViewModuleAccessor
+                            if (codeViewModuleAccessor.TryGetFunctionSymbol(sepCodeSym.offParent, sepCodeSym.sectParent, out var parentSymType))
+                                return parentSymType;
+
+                            //I feel like we're out of options
+                            return default;
+                        }
+                        else
+                        {
+                            /* Given we're trying to resolve a sepcode, we're only interested in recording
+                             * the parent function scope. The only top level block symbol types we should have
+                             * are sepcode and function. You can potentially have multiple sepcode's in a row
+                             * at the end of a function. If we encounter some other random block symbol,
+                             * we have no idea what's going on so our current parent is invalid */
+                            if (item.IsProc())
+                            {
+                                currentScope = item;
+                            }
+                            else if (item.rectyp != S_SEPCODE)
+                            {
+                                currentScope = default;
+                            }
+                        }
+                    }
+
+                    return default;
                 }
             }
+            else
+            {
+                //Here, DIA tries to drill in to find the inner-most scope that contains the symbol
 
-            if (pParent == 0)
-                return default;
+                var enumerator = symTypeList.GetEnumerator();
 
-            return (SymType) (SYMTYPE*) (pParent + pStart);
+                SymType closestParent = default;
+
+                while (enumerator.MoveNext())
+                {
+                    var item = enumerator.Current;
+
+                    if (item == symType)
+                        break;
+
+                    if (item.IsBlockSym())
+                    {
+                        var end = (long) codeViewModuleAccessor.Symbols.start + ((BlockSym) item).pEnd;
+
+                        if ((long) (SYMTYPE*) symType < end)
+                        {
+                            //The symbol is contained in this block; keep checking to see if it's
+                            //actually contained in an even deeper block
+                            closestParent = item;
+                        }
+                        else
+                        {
+                            //Skip the entire block
+                            enumerator.MoveTo((byte*) end);
+                        }
+                    }
+                    else
+                    {
+                        //DIA checks for S_END and certain ID symbols
+
+                        switch (item.rectyp)
+                        {
+                            case S_END:
+                            case S_LPROC32_ID:
+                            case S_GPROC32_ID:
+                            case S_LPROCMIPS_ID:
+                            case S_GPROCMIPS_ID:
+                            case S_LPROCIA64_ID:
+                            case S_GPROCIA64_ID:
+                                throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                return closestParent;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -233,8 +331,8 @@ namespace PESpy.PDB
             ushort seg,
             int off)
         {
-            //The section number we're given is 1 based
-            if (sectionHeaders == null || seg > sectionHeaders.Length)
+            //The section number we're given is 1 based, so Length is the maximum allowed, and 1 is the minimum
+            if (sectionHeaders == null || seg > sectionHeaders.Length || seg < 1)
                 return 0;
 
             ref var sectionHeader = ref sectionHeaders[seg - 1];
@@ -319,6 +417,7 @@ namespace PESpy.PDB
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsBlockSym(SYM_ENUM_e type)
         {
             //msdia140!isBlockSym
@@ -328,43 +427,46 @@ namespace PESpy.PDB
                 case S_THUNK16: //Not supported by DIA
 
                 //ThunkSym32
-                case S_THUNK32:
                 case S_THUNK32_ST: //Not supported by DIA
+                case S_THUNK32:
 
                 //BlockSym16
                 case S_BLOCK16: //Not supported by DIA
+                case S_WITH16: //Not supported by DIA
 
                 //BlockSym32
-                case S_BLOCK32:
                 case S_BLOCK32_ST: //Not supported by DIA
-                case S_WITH32:
+                case S_BLOCK32:
                 case S_WITH32_ST: //Not supported by DIA
+                case S_WITH32:
+
+                //ProcSym16
+                case S_LPROC16: //Not supported by DIA
+                case S_GPROC16: //Not supported by DIA
 
                 //ProcSym32_16t
                 case S_LPROC32_16t: //Not supported by DIA
                 case S_GPROC32_16t: //Not supported by DIA
 
                 //ProcSym32
-                case S_LPROC32:
                 case S_LPROC32_ST: //Not supported by DIA
-                case S_GPROC32:
+                case S_LPROC32:
                 case S_GPROC32_ST: //Not supported by DIA
-                case S_LPROC32_DPC: //No ST
+                case S_GPROC32:
 
                 //ProcSymMips_16t
                 case S_LPROCMIPS_16t: //Not supported by DIA
                 case S_GPROCMIPS_16t: //Not supported by DIA
 
                 //ProcSymMips
-                case S_LPROCMIPS:
                 case S_LPROCMIPS_ST: //Not supported by DIA
-                case S_GPROCMIPS:
+                case S_LPROCMIPS:
                 case S_GPROCMIPS_ST: //Not supported by DIA
-
+                case S_GPROCMIPS:
 
                 //ProcSymIA64
+                case S_LPROCIA64_ST://Not supported by DIA
                 case S_LPROCIA64:
-                case S_LPROCIA64_ST: //Not supported by DIA
                 case S_GPROCIA64:
                 case S_GPROCIA64_ST: //Not supported by DIA
 
@@ -374,12 +476,8 @@ namespace PESpy.PDB
                 case S_LMANPROC:
                 case S_LMANPROC_ST: //Not supported by DIA
 
-                //Trampoline doesn't seem to have an associated S_END. It apparently "is" a block symbol
-                //however, but DIA seems to special case it as not being a block symbol. But I mean, if
-                //it doesn't have an S_END, why are we even treating it like a block then?
-                //case S_TRAMPOLINE:
-
-                //Unknown
+                //DIA has lots of logic all over the case for special casing S_TRAMPOLINE. S_TRAMPOLINE does not
+                //have a corresponding S_END symbol however, and should not be considered a block
                 case S_SEPCODE:
                 case S_LPROC32_ID:
                 case S_GPROC32_ID:
@@ -387,6 +485,7 @@ namespace PESpy.PDB
                 case S_GPROCMIPS_ID:
                 case S_LPROCIA64_ID:
                 case S_GPROCIA64_ID:
+                case S_LPROC32_DPC:
                 case S_LPROC32_DPC_ID:
 
                 //InlineSiteSym
@@ -406,36 +505,9 @@ namespace PESpy.PDB
             }
         }
 
-        public static bool IsFunctionSym(SYM_ENUM_e type)
-        {
-            //msdia140!isFunctionSym
-            switch (type)
-            {
-                case S_LPROC32:
-                case S_GPROC32:
-                case S_LPROCMIPS:
-                case S_GPROCMIPS:
-                case S_LPROCIA64:
-                case S_GPROCIA64:
-                case S_LPROC32_ID:
-                case S_GPROC32_ID:
-                case S_LPROCIA64_ID:
-                case S_GPROCIA64_ID:
-                case S_LPROC32_DPC:
-                case S_LPROC32_DPC_ID:
-                case S_GPROC32EX:
-                case S_LPROC32EX:
-                case S_GPROC32EX_ID:
-                case S_LPROC32EX_ID:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-
         public static bool IsDefRangeSym(SYM_ENUM_e type)
         {
+            //msdia140!SymBuffer::isDefRangeSym
             switch (type)
             {
                 case S_DEFRANGE:
@@ -451,6 +523,73 @@ namespace PESpy.PDB
                 case S_DEFRANGE_CONSTVAL_ON_ENTRY:
                 case S_DEFRANGE_GLOBALSYM_ON_ENTRY:
                     return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        //msdia140!isFunctionSym
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFunctionSym(SYM_ENUM_e type)
+        {
+            switch (type)
+            {
+                //ProcSym16
+                case S_LPROC16:
+                case S_GPROC16:
+
+                //ProcSym3216t
+                case S_LPROC32_16t: //Not supported by DIA
+                case S_GPROC32_16t: //Not supported by DIA
+
+                //ProcSymMips16t
+                case S_LPROCMIPS_16t: //Not supported by DIA
+                case S_GPROCMIPS_16t: //Not supported by DIA
+
+                //ProcSym32
+                case S_LPROC32_ST: //Not supported by DIA
+                case S_GPROC32_ST: //Not supported by DIA
+                case S_LPROC32:
+                case S_GPROC32:
+                case S_LPROC32_ID:
+                case S_GPROC32_ID:
+                case S_LPROC32_DPC:
+                case S_LPROC32_DPC_ID:
+
+                //ProcSymMips
+                case S_LPROCMIPS_ST: //Not supported by DIA
+                case S_GPROCMIPS_ST: //Not supported by DIA
+                case S_LPROCMIPS:
+                case S_GPROCMIPS:
+                case S_LPROCMIPS_ID:
+                case S_GPROCMIPS_ID:
+
+                //Not sure if FRAMEPROC should be included
+
+                //ProcSymIA64
+                case S_LPROCIA64_ST: //Not supported by DIA
+                case S_GPROCIA64_ST: //Not supported by DIA
+                case S_LPROCIA64:
+                case S_GPROCIA64:
+                case S_LPROCIA64_ID:
+                case S_GPROCIA64_ID:
+
+                //ManProcSym
+                case S_GMANPROC_ST: //Not supported by DIA
+                case S_LMANPROC_ST: //Not supported by DIA
+                case S_GMANPROC:
+                case S_LMANPROC:
+
+                //Unsupported
+                case S_GPROC32EX:
+                case S_LPROC32EX:
+                case S_GPROC32EX_ID:
+                case S_LPROC32EX_ID:
+                    return true;
+
+                //All non-ST and 16-bit items map to SymTagFunction. Add any new items
+                //to SymTagFunction as well
 
                 default:
                     return false;

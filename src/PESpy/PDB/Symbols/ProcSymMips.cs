@@ -77,7 +77,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="PROCSYMMIPS.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
 
         /// <inheritdoc cref="PROCSYMMIPS.retReg"/>
         public byte retReg => value->retReg;
@@ -94,13 +94,13 @@ namespace PESpy.PDB
 
         public SymTypeChildList Children => GetChildren(null);
 
-        public SymTypeChildList GetChildren(ICodeViewAccessor? codeViewAccessor) => new SymTypeChildList((BLOCKSYM*) value, codeViewAccessor);
+        public SymTypeChildList GetChildren(ICodeViewModuleAccessor? codeViewModuleAccessor) => new SymTypeChildList((BLOCKSYM*) value, codeViewModuleAccessor);
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 
         public SymType Parent => GetParent(null);
 
-        public SymType GetParent(ICodeViewAccessor? codeViewAccessor) => SymType.GetParent((BLOCKSYM*) value, codeViewAccessor);
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
 
         #endregion
 

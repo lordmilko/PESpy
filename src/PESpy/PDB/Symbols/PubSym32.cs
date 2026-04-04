@@ -14,9 +14,9 @@ namespace PESpy.PDB
         private const int reclenOffset = 0;
         private const int rectypOffset = 2;
         private const int pubsymflagsOffset = 4;
-        private const int offOffset = 4;
-        private const int segOffset = 8;
-        private const int nameOffset = 10;
+        private const int offOffset = 8;
+        private const int segOffset = 12;
+        private const int nameOffset = 14;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly PUBSYM32* value;
@@ -36,7 +36,7 @@ namespace PESpy.PDB
         public CV_uoff32_t off => value->off;
 
         /// <inheritdoc cref="PUBSYM32.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
 
         /// <inheritdoc cref="PUBSYM32.name"/>
         public SymString name => SymType.ReadString(value, value->name);
@@ -52,6 +52,10 @@ namespace PESpy.PDB
          * You cannot use the section or offset to lookup the "underlying" symbol from a module. You _can_
          * get the module that is associated with a given section and offset (based on the section contribs),
          * but that's as far as you can get */
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
 
         #endregion
 

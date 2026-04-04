@@ -10,7 +10,7 @@ namespace PESpy.View.Builder
         public string Name => name ?? NameInfo.ToString();
         public FullNameInfo NameInfo { get; }
         public int Start { get; }
-        public int End { get; set; }
+        public int End;
 
         public int Length => End - Start;
 

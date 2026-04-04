@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -64,14 +65,38 @@ namespace PESpy.PDB
         //Faster than counting all of the elements
         public bool IsEmpty => ((byte*) parentStart) + SymType.GetSymbolLength((SYMTYPE*) parentStart, codeViewAccessor) == parentEnd;
 
-        internal SymTypeChildList(BLOCKSYM* parent, ICodeViewAccessor codeViewAccessor)
+        internal SymTypeChildList(
+            BLOCKSYM* parent,
+            ICodeViewModuleAccessor? codeViewModuleAccessor)
         {
             parentStart = parent;
-            this.codeViewAccessor = codeViewAccessor;
 
             //The first few fields of BLOCKSYM / BLOCKSYM16 / BLOCKSYM32 that describe the parent and
             //end of the block sym are the same in both 16-bit and 32-bit
-            var bufferStart = SymbolMemoryTracker.GetStart((long) parent); //todo: this is not very ideal! i feel like with lots of modules loaded it would be faster to lookup the modi or search in public symbols if we have the codeviewaccessor?
+
+            long bufferStart;
+
+            if (codeViewModuleAccessor != null)
+            {
+                var symbols = codeViewModuleAccessor.Symbols;
+                this.codeViewAccessor = symbols.codeViewAccessor;
+                bufferStart = (long) symbols.start;
+
+                if (codeViewAccessor == null)
+                    this.codeViewAccessor = SymbolMemoryTracker.GetAccessor((long) parent);
+            }
+            else
+            {
+                var range = SymbolMemoryTracker.FindRange((long) parent);
+
+                if (range == null)
+                    bufferStart = 0;
+                else
+                {
+                    bufferStart = range.Value.Start;
+                    this.codeViewAccessor = range.Value.CodeViewAccessor;
+                }
+            }
 
             if (bufferStart == 0)
                 parentEnd = (byte*) parent;
@@ -80,6 +105,27 @@ namespace PESpy.PDB
 
             this.bufferStart = (byte*) bufferStart;
             count = default;
+        }
+
+        //Performs a linear search
+        public SymType this[int index]
+        {
+            get
+            {
+                var i = -1;
+
+                var enumerator = GetEnumerator();
+
+                while (enumerator.MoveNext())
+                {
+                    i++;
+
+                    if (i == index)
+                        return enumerator.Current;
+                }
+
+                throw new IndexOutOfRangeException();
+            }
         }
 
         public Enumerator GetEnumerator() => new Enumerator(bufferStart, (byte*) parentStart, parentEnd, codeViewAccessor);

@@ -68,7 +68,7 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private PDBModuleSymbols? symbols;
 
-        public PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, chunk);
+        public PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, imod, chunk);
 
         #region C11Lines
 
@@ -114,10 +114,12 @@ namespace PESpy.PDB
         private int BytesUsed() => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
 
         private readonly MemoryChunk chunk;
+        private readonly IMOD imod; //I don't want to expose this because it's not part of the MODI type; it's just for us internally
 
-        internal Modi50(in MemoryChunk chunk, out int read)
+        internal Modi50(in MemoryChunk chunk, IMOD imod, out int read)
         {
             this.chunk = chunk;
+            this.imod = imod;
 
             var szModuleStart = FixedStructSize;
             szModule = chunk.PeekAnsiNullTerminatedString(szModuleStart);

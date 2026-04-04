@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Roslyn.Utilities;
 
 namespace PESpy
@@ -53,6 +54,10 @@ namespace PESpy
         public int CompareTo(FixedUtf8String other) =>
             AsSpan().SequenceCompareTo(other.AsSpan());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareToIgnoreCase(FixedUtf8String other) =>
+            StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsSpan());
+
         #endregion
         #region IEquatable / IComparable (string)
 
@@ -67,10 +72,9 @@ namespace PESpy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(ReadOnlySpan<char> other) => StringHelpers.Equals(Value, Length, other);
 
-        public int CompareTo(string other)
-        {
-            throw new NotImplementedException();
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(string other) =>
+            StringHelpers.CompareTo(AsSpan(), other);
 
         #endregion
         #region Operators

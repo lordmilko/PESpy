@@ -29,47 +29,47 @@ namespace PESpy.PDB
 
         public SC40 this[int index] => Entries[index];
 
-        public bool TryGetSection(ISECT seg, int off, out SC40 sc) => TryGetSection(Entries, seg, off, out sc);
+        public bool TryGetSection(ISECT seg, int off, out SC40 sc) =>
+            TryGetSection(seg, off, out _, out sc);
 
-        internal static bool TryGetSection<T>(NativeSpan<T> entries, ISECT seg, int off, out T match) where T : unmanaged, ISC20
+        public bool TryGetSection(ISECT seg, int off, out int index, out SC40 sc) => TryGetSection(Entries, seg, off, out index, out sc);
+
+        internal static bool TryGetSection<T>(
+            NativeSpan<T> entries,
+            ISECT seg,
+            int off,
+            out int index,
+            out T match) where T : unmanaged, ISC20
         {
             //Binary search section contribs to find a contrib that matches the given section index and contains the given offset
 
             int low = 0;
             int high = entries.Length - 1;
 
+            //It's important we set this as we go because the caller may want to use this to determine
+            //approximately where we where when we failed
+            index = default;
+            match = default;
+
             while (low <= high)
             {
-                var mid = low + (high - low) / 2;
+                index = low + (high - low) / 2;
 
-                var current = entries[mid];
+                match = entries[index];
 
-                int comparison;
-
-                if (current.isect == seg)
-                {
-                    if (off < current.off)
-                        comparison = -1; //Before the start of the current entry
-                    else if (off - current.off < current.cb)
-                        comparison = 0; //Within the bounds of the current entry
-                    else
-                        comparison = 1; //After the bounds of the current entry
-                }
-                else
-                    comparison = seg - current.isect;
+                var comparison = SC40.IsAddrInSC(match, seg, off);
 
                 if (comparison == 0)
                 {
-                    match = current;
                     return true;
                 }
                 else if (comparison > 0)
-                    low = mid + 1;
+                    low = index + 1;
                 else
-                    high = mid - 1;
+                    high = index - 1;
             }
 
-            match = default!;
+            //Don't clear out index and match; we give the caller the closest match we had
             return false;
         }
 

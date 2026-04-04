@@ -57,7 +57,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfMFuncId, this, ViewKind.LfMFuncId, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed());
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -85,9 +85,9 @@ namespace PESpy.PDB
 
                 case 5:
                     //Note: there's a bunch of unknown bytes at the end. Same with LfFuncId
-
-                    //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed());
+                    var lengthUsed = FixedStructSize + name.Length + 1;
+                    var remaining = typlen - lengthUsed;
+                    structWriter.WriteByteBlob(lengthUsed + 2, remaining); //value is +2 from the typlen, but the view is +0 so we need to do +2 here
                     break;
 
                 default:

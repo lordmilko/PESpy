@@ -98,6 +98,14 @@ namespace PESpy.PDB
         //Following vertSt may be an optional block of zero terminated environment strings terminated with a double zero.
         //todo: read these. theyre in coreclr.pdb for example
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

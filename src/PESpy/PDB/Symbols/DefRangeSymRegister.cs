@@ -41,6 +41,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="DEFRANGESYMREGISTER.gaps"/>
         public NativeSpan<CV_LVAR_ADDR_GAP> gaps => new NativeSpan<CV_LVAR_ADDR_GAP>(value->gaps, DEFRANGESYM.CV_DEFRANGESYM_GAPS_COUNT((SYMTYPE*) value));
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

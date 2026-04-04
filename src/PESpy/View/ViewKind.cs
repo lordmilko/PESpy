@@ -47,6 +47,8 @@ namespace PESpy.View
         /// </summary>
         CC,
 
+        ImageArchivePad,
+
         /// <summary>
         /// A named <see cref="IFieldView"/> contained in an <see cref="IStructView"/>.
         /// </summary>
@@ -67,10 +69,18 @@ namespace PESpy.View
         Strings,
 
         String,
+        StringLength, //For length prefixed string
+
+        //Unknown decimal value
+        Decimal,
 
         Assembly,
 
         DataDirectory,
+
+        ILMethods,
+
+        UnwindInfos,
 
         #region Headers
 
@@ -79,6 +89,9 @@ namespace PESpy.View
         /// </summary>
         ImageDosHeader,
 
+        /// <summary>
+        /// A <see cref="ByteBlob"/> that contains the bytes of the DOS Stub.
+        /// </summary>
         DosStub,
 
         /// <summary>
@@ -154,12 +167,24 @@ namespace PESpy.View
         /// </summary>
         ImageExportDirectory,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageExportDirectory_Name,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageExportDirectory_ForwarderName,
 
         ImageExportDirectory_AddressOfNameOrdinals_Entry,
         ImageExportDirectory_AddressOfNames_Entry,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageExportDirectory_AddressOfNames_Name,
+
         ImageExportDirectory_AddressOfFunctions_Entry,
 
         /// <summary>
@@ -185,7 +210,14 @@ namespace PESpy.View
         /// </summary>
         ImageImportDescriptor,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageImportDescriptor_Name,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageEnclaveImport_ImportName,
 
         /// <summary>
@@ -293,6 +325,9 @@ namespace PESpy.View
         /// </summary>
         MessageResourceEntry,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="FixedUtf8String"/>.
+        /// </summary>
         Manifest,
 
         #endregion
@@ -468,6 +503,9 @@ namespace PESpy.View
         #endregion
         #region Thread Local Storage Table (9)
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageTlsDirectory"/>.
+        /// </summary>
         ImageTlsDirectory,
 
         #endregion
@@ -520,18 +558,70 @@ namespace PESpy.View
 
         XFG,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
         LockPrefixTable,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         SecurityCookie,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
         SEHandlerTable,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardCFCheckFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardCFDispatchFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardRFFailureRoutineFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardRFVerifyStackPointerFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardXFGCheckFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardXFGDispatchFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardXFGTableDispatchFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         CastGuardOsDeterminedFailureMode,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         GuardMemcpyFunctionPointer,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
+        UmaFunctionPointers,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageDynamicRelocationTable"/>
@@ -601,6 +691,9 @@ namespace PESpy.View
         /// </summary>
         ImageBoundImportDescriptor,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageBoundImportName,
 
         /// <summary>
@@ -609,9 +702,9 @@ namespace PESpy.View
         ImageBoundForwarderRef,
 
         #endregion
-        #region Import Address Table (12)
 
-        #endregion
+        //Import Address Table (12)
+
         #region Delay Import Table (13)
 
         /// <summary>
@@ -619,8 +712,14 @@ namespace PESpy.View
         /// </summary>
         ImageDelayLoadDescriptor,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// </summary>
         ImageDelayLoadDescriptor_DllNameRVA,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
         ImageDelayLoadDescriptor_ModuleHandleRVA,
 
         /// <summary>
@@ -713,13 +812,19 @@ namespace PESpy.View
         /// </summary>
         GuidPoolHeap,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.CompressedModelHeader"/>
+        /// </summary>
+        MetadataHeader,
+
+        MetadataTable,
+
+        #region Metadata Rows
+
         Metadata_String,
         Metadata_UserString,
         Metadata_Blob,
         Metadata_Guid,
-
-        MetadataHeader,
-        MetadataTable,
 
         Metadata_ModuleRow,
         Metadata_TypeRefRow,
@@ -777,6 +882,7 @@ namespace PESpy.View
         PortablePdb_CustomDebugInformationRow,
 
         #endregion
+        #endregion
         #region CLR
 
         /// <summary>
@@ -831,6 +937,8 @@ namespace PESpy.View
         /// </summary>
         ReadyToRunSection,
 
+        ReadyToRunSection_CompilerIdentifier,
+
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ReadyToRunImportSection"/>
         /// </summary>
@@ -878,8 +986,14 @@ namespace PESpy.View
         /// </summary>
         BundleEncodedString,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="FixedUtf8String"/>.
+        /// </summary>
         DepsJson,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="FixedUtf8String"/>.
+        /// </summary>
         RuntimeConfigJson,
 
         //Native AOT
@@ -936,6 +1050,12 @@ namespace PESpy.View
         NE_ModuleReference,
         ImageOS2Header,
         NewSeg,
+        NE_SegmentTable,
+        NE_ResourceTable,
+        NE_ResidentNameTable,
+        NE_ModuleReferenceTable,
+        NE_ImportedNamesTable,
+        NE_EntryTable,
         NE_NonResidentNameTable,
 
         //LE
@@ -1098,7 +1218,11 @@ namespace PESpy.View
         DbgDataHdr,
 
         TypType,
-        LeafKind, //lfFieldList padding, numeric data
+
+        NumericData,
+        NumericLeafKind, //lfFieldList padding, numeric data
+        NumericValue,
+        NumericStringLength,
 
         PdbFeature,
 
@@ -1129,6 +1253,7 @@ namespace PESpy.View
         TypeMDTokenMap_TypeData,
         CrossScopeReferences,
         LocalIdAndGlobalIdPair,
+        MergedAssemblyInfo,
         PdbIdScope,
 
         SrcHeaderOut,
@@ -1353,6 +1478,8 @@ namespace PESpy.View
         MlMethod,
         MlMethod16t,
 
+        NumericData,
+
         #endregion
 
         //Globals
@@ -1379,7 +1506,17 @@ namespace PESpy.View
         Relocations,
 
         drectve,
+        text,
         text_mn,
+        data,
+        idata,
+        edata,
+        rdata,
+        debug_f, //FPO
+        bss,
+        rsrc,
+        sxdata,
+        UnknownSection,
 
         //LIB
 

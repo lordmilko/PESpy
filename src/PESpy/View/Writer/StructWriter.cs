@@ -461,6 +461,10 @@ namespace PESpy.View
         public void WriteValue(int relativeOffset, LEAF_ENUM_e value, int size) =>
             _viewWriter.WriteValue(_parentOffset, relativeOffset, value, size, ViewKind.LeafKind, ref this);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteValue<T>(int relativeOffset, T value, int size, ViewKind kind) where T : unmanaged =>
+            _viewWriter.WriteValue(_parentOffset, relativeOffset, value, size, kind, ref this);
+
         #endregion
         #region Structs
 
@@ -492,10 +496,8 @@ namespace PESpy.View
         public void WriteField(string name, int relativeOffset, CV_LVAR_ADDR_RANGE value) =>
             RelayField(name, relativeOffset, value, sizeof(int) + sizeof(short) + sizeof(short));
 
-        public void WriteField(string name, int relativeOffset, BinaryAnnotationList value)
-        {
-            throw new NotImplementedException();
-        }
+        public void WriteField(string name, int relativeOffset, BinaryAnnotationList value) =>
+            RelayField(name, relativeOffset, value, value.RawLength);
 
         #endregion
         #region Arrays
@@ -822,77 +824,6 @@ namespace PESpy.View
         public void Write7BitField(string name, int relativeOffset, int value, int size) =>
             RelayField(name, relativeOffset, value, size);
 
-        public unsafe void WriteNumericData(string name, int relativeOffset, byte* pValue)
-        {
-            var leaf = *(LEAF_ENUM_e*) pValue;
-
-            if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
-            {
-                //The data does not contain a special leaf
-                WriteField(name, relativeOffset, (ushort) leaf);
-                return;
-            }
-
-            WriteValue(relativeOffset, leaf, sizeof(ushort));
-
-            pValue += sizeof(ushort);
-            relativeOffset += sizeof(ushort);
-
-            switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
-            {
-                case LEAF_ENUM_e.LF_CHAR:
-                    WriteField(name, relativeOffset, * pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_SHORT:
-                    WriteField(name, relativeOffset, * (short*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_USHORT:
-                    WriteField(name, relativeOffset, *(ushort*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_LONG:
-                    WriteField(name, relativeOffset, *(int*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_ULONG:
-                    WriteField(name, relativeOffset, *(uint*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_REAL32:
-                case LEAF_ENUM_e.LF_REAL64:
-                case LEAF_ENUM_e.LF_REAL80:
-                case LEAF_ENUM_e.LF_REAL128:
-                    throw new NotImplementedException();
-
-                case LEAF_ENUM_e.LF_QUADWORD:
-                    WriteField(name, relativeOffset, *(long*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_UQUADWORD:
-                    WriteField(name, relativeOffset, *(ulong*) pValue);
-                    break;
-
-                case LEAF_ENUM_e.LF_REAL48:
-                case LEAF_ENUM_e.LF_COMPLEX32:
-                case LEAF_ENUM_e.LF_COMPLEX64:
-                case LEAF_ENUM_e.LF_COMPLEX80:
-                case LEAF_ENUM_e.LF_COMPLEX128:
-                case LEAF_ENUM_e.LF_VARSTRING:
-                case LEAF_ENUM_e.LF_OCTWORD:
-                case LEAF_ENUM_e.LF_UOCTWORD:
-                case LEAF_ENUM_e.LF_DECIMAL:
-                case LEAF_ENUM_e.LF_DATE:
-                case LEAF_ENUM_e.LF_UTF8STRING:
-                case LEAF_ENUM_e.LF_REAL16:
-                    throw new NotImplementedException();
-
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
         #endregion
         #region Inline
 
@@ -949,6 +880,9 @@ namespace PESpy.View
         public void WriteInlineFixedAnsiString(FixedAnsiString value) =>
             throw new NotImplementedException();
 
+        public void WriteInlineFixedUtf8String(int offset, FixedUtf8String value) =>
+            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
+
         public void WriteInlineUtf16NullTerminated(int offset, FixedUtf16String value) =>
             RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
 
@@ -993,6 +927,9 @@ namespace PESpy.View
 
         internal void WriteStructField<T>(string name, T[] value) where T : IViewableValue =>
             _viewWriter.WriteStructField(name, value, ref this);
+
+        internal void WriteStructField(string name, int relativeOffset, NumericData value) =>
+            _viewWriter.WriteStructField(name, _parentOffset, relativeOffset, value, ref this);
 
         #endregion
         #region BitField

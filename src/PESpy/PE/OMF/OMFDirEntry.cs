@@ -35,6 +35,7 @@ namespace PESpy
 
         public SST SubSection => (SST) chunk.PeekUInt16(SubSectionOffset);
 
+        //Note that these indices seem to be 1-based
         public ushort iMod => chunk.PeekUInt16(iModOffset);
 
         public int lfo => chunk.PeekInt32(lfoOffset);
@@ -61,11 +62,12 @@ namespace PESpy
         {
             this.chunk = chunk;
             Data = default;
-            Data = GetData(SubSection, outerChunk.Slice(lfo), cb, codeViewAccessor, ref lastSignature);
+            Data = GetData(SubSection, iMod, outerChunk.Slice(lfo), cb, codeViewAccessor, ref lastSignature);
         }
 
         private static unsafe object GetData(
             SST subSection,
+            ushort imod,
             in MemoryChunk valueChunk,
             int length,
             NB05SymbolAccessor codeViewAccessor,
@@ -99,8 +101,14 @@ namespace PESpy
                         case CV_SIGNATURE.C11:
                             Debug.Assert(lastSignature == default || lastSignature == signature); //We expect all signatures should be the same
                             lastSignature = signature;
-                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
-                            return new OMFModuleTypes(valueChunk.AbsoluteOffset, signature, new TypTypeList(valueChunk.Pointer + 4, length - 4));
+
+                            //ctor registers symbol memory
+                            return new OMFModuleTypes(
+                                valueChunk,
+                                signature,
+                                new TypTypeList(valueChunk.Pointer + 4, length - 4),
+                                codeViewAccessor
+                            );
 
                         case CV_SIGNATURE.C13:
                         default:
@@ -125,8 +133,15 @@ namespace PESpy
                         case CV_SIGNATURE.C11:
                             Debug.Assert(lastSignature == default || lastSignature == signature); //We expect all signatures should be the same
                             lastSignature = signature;
-                            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
-                            return new OMFModuleSymbols(valueChunk, signature, new SymTypeList(valueChunk.Pointer, sizeof(int), length - sizeof(int), codeViewAccessor));
+                            
+                            //ctor registers symbol memory
+                            return new OMFModuleSymbols(
+                                valueChunk,
+                                imod,
+                                signature,
+                                new SymTypeList(valueChunk.Pointer, sizeof(int), length, codeViewAccessor),
+                                codeViewAccessor
+                            );
 
                         case CV_SIGNATURE.C13:
                         default:
@@ -194,7 +209,6 @@ namespace PESpy
                     var hash = new OMFSymHash(valueChunk);
 
                     //Don't know what the signature is. If it's OMF data I feel like C13 should be impossible, in which case all strings are length prefixed, so just say it's C11
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor);
 
                     if (lastSignature == default)
                         lastSignature = CV_SIGNATURE.C11;
@@ -239,7 +253,8 @@ namespace PESpy
                             break;
                     }
 
-                    return new OMFHashedSymbols(hash, symbols, symbolHashTable, addressHashTable);
+                    //ctor registers symbol memory
+                    return new OMFHashedSymbols(valueChunk, hash, symbols, symbolHashTable, addressHashTable, codeViewAccessor);
                 }
 
                 case SST.sstGlobalTypes:

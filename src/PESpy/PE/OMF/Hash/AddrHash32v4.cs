@@ -1,8 +1,9 @@
 ﻿using System;
+using PESpy.PDB;
 
 namespace PESpy
 {
-    public readonly struct AddrHash32v4 : IAddrHash32
+    public readonly struct AddrHash32v4 : IAddrHashInternal32
     {
         public int Kind => 4;
 
@@ -37,58 +38,41 @@ namespace PESpy
             OffsetTable = offsetTable;
         }
 
-        public bool TryGetSymbolOffset(ushort sectionNumber, int relativeOffset, out int symbolOffset)
+        public (int symbolOffset, int sectionRelativeOffset) this[ISECT seg, int offsetIndex] => OffsetTable[seg - 1][offsetIndex];
+
+        public int GetOffsetCount(ISECT seg) => OffsetCounts[seg - 1];
+
+        public bool GetNearestSymbol(ISECT sectionNumber, int relativeOffset, out int symbolOffset) =>
+            AddrHashHelpers.GetNearestSymbolInternal(this, sectionNumber, relativeOffset, out symbolOffset);
+
+        void IAddrHashInternal32.BinarySearchAddressMap(
+            int relativeOffset,
+            ISECT sectionNumber,
+            out ISECT resultSeg,
+            out int resultOffsetIndex)
         {
+            if (sectionNumber < 1)
+            {
+                AddrHashHelpers.GetFirstSymbol16(OffsetTable, out resultSeg, out resultOffsetIndex);
+                return;
+            }
+
             if (sectionNumber > cSeg)
             {
-                symbolOffset = default;
-                return false;
+                AddrHashHelpers.GetLastSymbol16(OffsetTable, out resultSeg, out resultOffsetIndex);
+                return;
             }
 
             var segmentOffsets = OffsetTable[sectionNumber - 1];
 
-            return TryBinarySearchSegmentOffsets16(segmentOffsets, relativeOffset, out symbolOffset);
-        }
-
-        internal static bool TryBinarySearchSegmentOffsets16(
-            NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)> segmentOffsets,
-            int relativeOffset,
-            out int symbolOffset)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal static bool TryBinarySearchSegmentOffsets32(
-            NativeSpan<(int symbolOffset, int sectionRelativeOffset)> segmentOffsets,
-            int relativeOffset,
-            out int symbolOffset)
-        {
-            //AddressMapSymTypeList.GetNearestSym has special logic for being right biased and calculating displacement.
-            //We don't currently have that here
-
-            var lo = 0;
-            var hi = segmentOffsets.Length - 1;
-
-            while (lo <= hi)
+            if (AddrHashHelpers.TryBinarySearchSegmentOffsets16(segmentOffsets, relativeOffset, out _, out resultOffsetIndex))
             {
-                var mid = (lo + hi) / 2;
-
-                var item = segmentOffsets[mid];
-
-                if (item.sectionRelativeOffset > relativeOffset)
-                    hi = mid - 1;
-                else if (item.sectionRelativeOffset < relativeOffset)
-                    lo = mid + 1;
-                else
-                {
-                    symbolOffset = item.symbolOffset;
-                    return true;
-                }
-
+                resultSeg = sectionNumber;
+                return;
             }
 
-            symbolOffset = default;
-            return false;
+            if (!AddrHashHelpers.TryLinearSearchOffsetTable16(OffsetTable, sectionNumber, out _, out resultSeg, out resultOffsetIndex))
+                throw new NotImplementedException("Don't know how to handle a linear search failing");
         }
     }
 }

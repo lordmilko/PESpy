@@ -188,7 +188,17 @@ namespace PESpy.View
 
         internal override MemoryChunk GetMemoryChunkFromAddress(int address)
         {
-            if (!PEFile.TryGetValueChunkFromPhysicalOffset(address, out var chunk))
+            PEFile peFile;
+
+            if (TryGetNestedFileRange(address, out var range))
+            {
+                peFile = (PEFile) range.File;
+                address -= range.StartOffset;
+            }
+            else
+                peFile = PEFile;
+
+            if (!peFile.TryGetValueChunkFromPhysicalOffset(address, out var chunk))
                 throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
 
             return chunk;
@@ -206,6 +216,11 @@ namespace PESpy.View
             }
 
             return _viewWriter;
+        }
+
+        protected override ViewWriter GetViewWriterForAddress(int targetOffset)
+        {
+            throw new NotImplementedException();
         }
 
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>

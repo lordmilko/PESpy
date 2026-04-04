@@ -30,9 +30,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->offset, out var offset, out _);
+                var numericData = TypType.ExtractNumericData(value->offset);
 
-                return offset;
+                return numericData.UInt64;
             }
         }
 
@@ -45,9 +45,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->offset);
 
-                return FixedStructSize + bytesRead;
+                return FixedStructSize + numericData.Length;
             }
         }
 
@@ -86,7 +86,7 @@ namespace PESpy.PDB
                     break;
 
                 case 3:
-                    structWriter.WriteNumericData(nameof(offset), offsetOffset, value->offset);
+                    structWriter.WriteStructField(nameof(offset), offsetOffset, TypType.ExtractNumericData(value->offset));
                     break;
 
                 default:

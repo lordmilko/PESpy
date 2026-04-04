@@ -11,7 +11,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_length"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_length"/>
         /// </summary>
-        public static unsafe bool TryGetLength(in this SymType symType, out int length, PDBFile? codeViewAccessor = null)
+        public static unsafe bool TryGetLength(in this SymType symType, out int length, ICodeViewAccessor? codeViewAccessor = null)
         {
             //I'm only seeing a "len" property on block sym types. I haven't checked what DIA does.
             //However, block symbols only share the first 4 members, so we can't just cast to BlockSym16/32.
@@ -122,20 +122,39 @@ namespace PESpy.PDB
 
                     //For @ILT symbols, DIA reports the length as 0.
                     //I can see DIA looking for @ILT in SymbolDataSimpleImpl<4366,10>::getData
-                    //so I'm guessing the name is set somewhere in there
+                    //so I'm guessing the name is set somewhere in there. However, I would present that
+                    //in fact the actual length you should use is 5 (or whatever the listed thunk size is)
 
                     if (pubSym.GetName(codeViewAccessor).StartsWith("@ILT"))
                     {
-                        length = 0;
-                        return true;
+                        codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+
+                        if (codeViewAccessor is PDBFile pdbFile)
+                        {
+                            var psgsi = pdbFile.PSGSI;
+
+                            if (psgsi != null)
+                            {
+                                length = psgsi.PSGsiHdr.cbSizeOfThunk;
+                                return true;
+                            }
+                        }
+
+                        //Returning a length of 0 and true is troublesome; don't do what DIA does
+                        length = default;
+                        return false;
                     }
 
-                    if (SymType.TryPDBGetSectionContrib(symType, pubSym.seg, pubSym.off, codeViewAccessor, out var sc))
+                    if (codeViewAccessor.TryGetSectionContrib(symType, pubSym.seg, pubSym.off, out var sc))
                     {
                         length = sc.cb;
                         return true;
                     }
                     break;
+
+                case S_TRAMPOLINE:
+                    length = ((TrampolineSym) symType).cbThunk;
+                    return true;
             }
 
             length = default;

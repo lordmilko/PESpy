@@ -18,9 +18,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData((byte*) &raw->value);
 
-                return valueOffset + bytesRead;
+                return valueOffset + numericData.Length;
             }
         }
 
@@ -40,14 +40,14 @@ namespace PESpy.PDB
         public TypOrEnumType typind => new TypOrEnumType((byte*) raw, raw->typind);
 
         /// <inheritdoc cref="CONSTSYM.value"/>
-        public ulong value
+        public NumericData value
         {
             get
             {
                 //Length may be 0, this is normal
-                TypType.ExtractNumericData((byte*) &raw->value, out var value, out _);
+                var numericData = TypType.ExtractNumericData((byte*) &raw->value);
 
-                return value;
+                return numericData;
             }
         }
 
@@ -60,10 +60,14 @@ namespace PESpy.PDB
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData((byte*) &raw->value);
 
-            return SymType.ReadString(raw, (byte*) &raw->value + bytesRead, codeViewAccessor);
+            return SymType.ReadString(raw, (byte*) &raw->value + numericData.Length, codeViewAccessor);
         }
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) raw, codeViewModuleAccessor);
 
         #endregion
 
@@ -74,11 +78,11 @@ namespace PESpy.PDB
 
         private int BytesUsed()
         {
-            TypType.ExtractNumericData((byte*) &raw->value, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData((byte*) &raw->value);
 
-            var str = SymType.ReadString(raw, (byte*) &raw->value + bytesRead);
+            var str = SymType.ReadString(raw, (byte*) &raw->value + numericData.Length);
 
-            return FixedStructSize + bytesRead + str.Length + 1;
+            return FixedStructSize + numericData.Length + str.Length + 1;
         }
 
         internal ConstSym(CONSTSYM* value)
@@ -113,7 +117,7 @@ namespace PESpy.PDB
                     break;
 
                 case 3:
-                    structWriter.WriteNumericData(nameof(value), valueOffset, (byte*) &raw->value);
+                    structWriter.WriteStructField(nameof(value), valueOffset, value);
                     break;
 
                 case 4:

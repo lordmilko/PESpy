@@ -99,7 +99,7 @@ namespace PESpy.PDB
             return new SymString(ptr, isLengthPrefixed: false);
         }
 
-        internal static void ExtractNumericData(byte* ptr, out ulong value, out int bytesRead)
+        internal static NumericData ExtractNumericData(byte* ptr)
         {
             /* Types are divided into a series of ranges (see the comments at the top of this file). When
              * there is data hanging off the end of a leaf type, that data may be encoded using a LF value in the 0x8000
@@ -112,10 +112,11 @@ namespace PESpy.PDB
             if (leaf < LEAF_ENUM_e.LF_NUMERIC) //0x8000
             {
                 //The data does not contain a special leaf
-                value = (ushort) leaf;
-                bytesRead = sizeof(short);
-                return;
+                return new NumericData((ushort) leaf);
             }
+
+            ulong value;
+            int bytesRead;
 
             switch (leaf) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
             {
@@ -136,8 +137,24 @@ namespace PESpy.PDB
                     bytesRead = sizeof(ushort) + sizeof(uint);
                     break;
 
+                case LEAF_ENUM_e.LF_REAL16:
+                    throw new NotImplementedException();
+
                 case LEAF_ENUM_e.LF_REAL32:
+                    //We just need to read 4 bytes; it's up to our NumericData type to display it as a float
+                    value = *(uint*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(uint);
+                    break;
+
+                case LEAF_ENUM_e.LF_REAL48:
+                    throw new NotImplementedException();
+
                 case LEAF_ENUM_e.LF_REAL64:
+                    //We just need to read 8 bytes; it's up to our NumericData type to display it as a float
+                    value = *(ulong*) (ptr + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(ulong);
+                    break;
+
                 case LEAF_ENUM_e.LF_REAL80:
                 case LEAF_ENUM_e.LF_REAL128:
                     throw new NotImplementedException();
@@ -147,24 +164,31 @@ namespace PESpy.PDB
                     value = *(ulong*) (ptr + sizeof(short));
                     bytesRead = sizeof(ushort) + sizeof(ulong);
                     break;
-
-                case LEAF_ENUM_e.LF_REAL48:
+                
                 case LEAF_ENUM_e.LF_COMPLEX32:
                 case LEAF_ENUM_e.LF_COMPLEX64:
                 case LEAF_ENUM_e.LF_COMPLEX80:
                 case LEAF_ENUM_e.LF_COMPLEX128:
-                case LEAF_ENUM_e.LF_VARSTRING:
                 case LEAF_ENUM_e.LF_OCTWORD:
                 case LEAF_ENUM_e.LF_UOCTWORD:
                 case LEAF_ENUM_e.LF_DECIMAL:
                 case LEAF_ENUM_e.LF_DATE:
                 case LEAF_ENUM_e.LF_UTF8STRING:
-                case LEAF_ENUM_e.LF_REAL16:
                     throw new NotImplementedException();
+
+                case LEAF_ENUM_e.LF_VARSTRING:
+                    //Note that if you've got a member Foo.Bar, this will contain "Foo." and then immediately following this will
+                    //be the name of the constant "Bar"
+                    var strLen = *(ushort*) (ptr + sizeof(short));
+                    value = (ulong) (byte*) (ptr + sizeof(short) + sizeof(short));
+                    bytesRead = sizeof(ushort) + sizeof(ushort) + strLen;
+                    break;
 
                 default:
                     throw new NotImplementedException();
             }
+
+            return new NumericData(leaf, value, bytesRead);
         }
 
         public static implicit operator TypType(TYPTYPE* value) => new TypType(value);

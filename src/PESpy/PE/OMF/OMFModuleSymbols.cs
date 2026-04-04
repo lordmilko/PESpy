@@ -8,25 +8,48 @@ namespace PESpy
 {
     //Type is made up
     [DebuggerDisplay("{Signature} Symbols")]
-    public class OMFModuleSymbols : IValue, IViewable
+    public class OMFModuleSymbols : IValue, IViewable, ICodeViewModuleAccessor
     {
         public CV_SIGNATURE Signature { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public SymTypeList List { get; }
 
+        SymTypeList ICodeViewModuleAccessor.Symbols => List;
+
         public int Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
+        private readonly IMOD imod; //0 based
 
-        internal OMFModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymTypeList symbols)
+        internal OMFModuleSymbols(
+            in MemoryChunk chunk,
+            IMOD imod,
+            CV_SIGNATURE signature,
+            SymTypeList symbols,
+            NB05SymbolAccessor codeViewAccessor)
         {
+            SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, this);
+
             this.chunk = chunk;
+            this.imod = imod;
             Signature = signature;
             List = symbols;
         }
 
         public unsafe SymType GetSymbolFromOffset(int offset) => (SYMTYPE*) (chunk.Pointer + offset);
+
+        public bool TryGetFunctionSymbol(int off, ISECT seg, out SymType symType)
+        {
+            if (((NB05SymbolAccessor) List.codeViewAccessor)._symCache.TryGetFunctionSymbol(imod, seg, off, out var offSegSym))
+            {
+                symType = offSegSym.symType;
+                return true;
+            }
+
+            symType = default;
+            return false;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

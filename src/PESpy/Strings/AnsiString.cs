@@ -55,6 +55,10 @@ namespace PESpy
         public int CompareTo(AnsiString other) =>
             AsSpan().SequenceCompareTo(other.AsSpan());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareToIgnoreCase(AnsiString other) =>
+            StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsSpan());
+
         #endregion
         #region IEquatable / IComparable (string)
 
@@ -79,10 +83,9 @@ namespace PESpy
             return StringHelpers.EqualsIgnoreCase(Value, Length, other);
         }
 
-        public int CompareTo(string other)
-        {
-            throw new NotImplementedException();
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(string other) =>
+            StringHelpers.CompareTo(AsSpan(), other);
 
         #endregion
         #region Operators

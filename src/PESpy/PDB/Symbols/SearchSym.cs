@@ -30,7 +30,15 @@ namespace PESpy.PDB
         public int startsym => value->startsym;
 
         /// <inheritdoc cref="SEARCHSYM.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
+
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

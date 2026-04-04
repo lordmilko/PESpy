@@ -28,6 +28,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="ENTRYTHISSYM.thissym"/>
         public byte thissym => value->thissym;
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int StructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

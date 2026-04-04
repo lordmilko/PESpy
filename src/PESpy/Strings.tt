@@ -530,11 +530,17 @@ var strings = new[]{
     "mlMethod",
     "mlMethod_16t",
 
+    "Numeric Data",
+
     //Globals
     "GSIHashHdr",
 
     //Publics
     "PSGSIHDR",
+
+    "Address Map",
+    "Thunk Map",
+    "Section Map",
 
     //DBG
 
@@ -571,6 +577,14 @@ var strings = new[]{
     "Old TypType",
 
     "DNRB Module",
+    
+    "secOffset",
+    "version",
+    "signature",
+    "secTblOffset",
+    "lfoDir",
+    "lfoBase",
+    "cDir",
 
     //Demangler
     "`RTTI Type Descriptor'",

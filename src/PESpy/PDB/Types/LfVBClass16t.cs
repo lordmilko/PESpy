@@ -19,9 +19,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->vbpoff, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->vbpoff);
 
-                return vbpoffOffset + bytesRead;
+                return vbpoffOffset + numericData.Length;
             }
         }
 
@@ -47,9 +47,9 @@ namespace PESpy.PDB
             {
                 //offVbp in pdbdump, vbpoff in NT 4
 
-                TypType.ExtractNumericData(value->vbpoff, out var vbpoff, out _);
+                var numericData = TypType.ExtractNumericData(value->vbpoff);
 
-                return vbpoff;
+                return numericData.UInt64;
             }
         }
 
@@ -63,11 +63,10 @@ namespace PESpy.PDB
                 //offVbte in pdbdump, offset in NT 4
 
                 //Skip over vbpoff
-                TypType.ExtractNumericData(value->vbpoff, out _, out var read);
+                var numericData1 = TypType.ExtractNumericData(value->vbpoff);
+                var numericData2 = TypType.ExtractNumericData(value->vbpoff + numericData1.Length);
 
-                TypType.ExtractNumericData(value->vbpoff + read, out var offset, out _);
-
-                return offset;
+                return numericData2.UInt64;
             }
         }
 
@@ -81,10 +80,10 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->vbpoff, out _, out var bytesRead1);
-                TypType.ExtractNumericData(value->vbpoff + bytesRead1, out _, out var bytesRead2);
+                var numericData1 = TypType.ExtractNumericData(value->vbpoff);
+                var numericData2 = TypType.ExtractNumericData(value->vbpoff + numericData1.Length);
 
-                return FixedStructSize + bytesRead1 + bytesRead2;
+                return FixedStructSize + numericData1.Length + numericData2.Length;
             }
         }
 

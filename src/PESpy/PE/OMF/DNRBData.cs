@@ -58,8 +58,8 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteGlobalField(Offset, "secOffset", SecOffset, 5 * sizeof(int));
-            writer.WriteGlobalField(Offset + (5 * sizeof(int)), "version", Version, sizeof(short));
+            writer.WriteGlobalField(Offset, Strings.secOffset, SecOffset, 5 * sizeof(int), ViewKind.DNRBSecOffset);
+            writer.WriteGlobalField(Offset + (5 * sizeof(int)), Strings.version, Version, sizeof(short), ViewKind.DNRBVersion);
 
             writer.WriteGlobal(Modules);
             writer.WriteGlobal(Publics.Offset, Publics.Value, SecOffset[2] - SecOffset[1], ViewKind.DNRB_Publics);
@@ -70,8 +70,8 @@ namespace PESpy
             writer.WriteGlobal(SourceLines.Offset, SourceLines.Value, sourceLinesLength, ViewKind.DNRB_SourceLines);
 
             var cvInfoOffset = (Offset + Length) - 8;
-            writer.WriteGlobalField(cvInfoOffset, "signature", Signature, sizeof(int));
-            writer.WriteGlobalField(cvInfoOffset + 4, "secTblOffset", Offset, sizeof(int)); //The offset to the MemoryChunk comes from the OMFSignature filepos, which is secTblOffset
+            writer.WriteGlobalField(cvInfoOffset, Strings.signature, Signature, sizeof(int), ViewKind.DNRBSignature);
+            writer.WriteGlobalField(cvInfoOffset + 4, Strings.secTblOffset, Offset, sizeof(int), ViewKind.DNRBSecTblOffset); //The offset to the MemoryChunk comes from the OMFSignature filepos, which is secTblOffset
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

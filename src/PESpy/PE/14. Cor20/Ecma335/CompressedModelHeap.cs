@@ -1309,12 +1309,14 @@ namespace PESpy.Ecma335
                 if (table != null && table.Count > 0)
                 {
                     var first = table[0];
-                    using var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable, false);
 
-                    r.WriteValue(first);
+                    using (var r = writer.CreateRegion(first.Offset, tableName, ViewKind.MetadataTable, false))
+                    {
+                        r.WriteValue(first);
 
-                    for (var i = 1; i < table.Count; i++)
-                        r.WriteValue(table[i]);
+                        for (var i = 1; i < table.Count; i++)
+                            r.WriteValue(table[i]);
+                    }
                 }
             }
 

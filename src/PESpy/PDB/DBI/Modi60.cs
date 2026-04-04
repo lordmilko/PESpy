@@ -107,7 +107,7 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private PDBModuleSymbols? symbols;
 
-        public unsafe PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, chunk);
+        public unsafe PDBModuleSymbols? Symbols => Modi.GetSymbols(ref symbols, this, imod, chunk);
 
         #region C11Lines
 
@@ -200,10 +200,12 @@ namespace PESpy.PDB
         private int BytesUsed() => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
 
         private readonly MemoryChunk chunk;
+        private readonly IMOD imod; //I don't want to expose this because it's not part of the MODI type; it's just for us internally
 
-        internal unsafe Modi60(in MemoryChunk chunk, out int read)
+        internal unsafe Modi60(in MemoryChunk chunk, IMOD imod, out int read)
         {
             this.chunk = chunk;
+            this.imod = imod;
 
             //For Imports: szModule is Import:foo.dll, szObjFile is the lib file
             //For CRT: szModule is C:\path\to\foo.obj, szObjFile is the lib file
@@ -237,6 +239,11 @@ namespace PESpy.PDB
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.MODI_60_Persist, this, ViewKind.Modi60Persist, StructSize);
+
+        //Note that it doesn't seem to be possible for a MODI to have a DEBUG_S_SYMBOLS C13 item;
+        //I feel like you can only get DEBUG_S_SYMBOLS in an OBJ file. On that basis,
+        //we don't need to have a mechanism to lookup which ICodeViewAccessor is associated
+        //with a given SymType; it's always going to be the PDBModuleSymbols
 
         int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(16, BytesUsed());
 

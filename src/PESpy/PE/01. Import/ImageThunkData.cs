@@ -145,7 +145,7 @@ namespace PESpy
             {
                 case DataKind.Name:
                     if (Name.IsValid)
-                        writer.WriteTaggedGlobal(Name.Value);
+                        writer.WriteGlobal(Name.Value);
                     break;
             }
         }

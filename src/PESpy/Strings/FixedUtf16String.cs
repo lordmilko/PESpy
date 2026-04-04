@@ -48,6 +48,10 @@ namespace PESpy
         public int CompareTo(FixedUtf16String other) =>
             AsSpan().SequenceCompareTo(other.AsSpan());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareToIgnoreCase(FixedUtf16String other) =>
+            StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsSpan());
+
         #endregion
         #region IEquatable / IComparable (string)
 

@@ -16,6 +16,10 @@ namespace PESpy
 
         public int StructSize { get; }
 
+        internal BundleEncodedString(in MemoryChunk chunk) : this(chunk, out _)
+        {
+        }
+
         internal BundleEncodedString(in MemoryChunk chunk, out int read)
         {
             Offset = chunk.AbsoluteOffset;

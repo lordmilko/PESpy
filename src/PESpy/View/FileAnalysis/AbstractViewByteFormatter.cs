@@ -1191,11 +1191,722 @@ namespace PESpy.View
 
             return IncrementResult.SameSection;
         }
+        protected internal override void VisitField(IFieldView view)
+        {
+            //Derived methods must call the base method to update the _path
+
+            //We need to do this so that the logical line records its depth properly
+            _path.Push(new EntityState(view, hasChildren: false));
+        }
+
+        protected internal static Type FormatField(
+            IFieldView view,
+            FileAccessor fileAccessor,
+            ref ValueStringBuilder.NonRef builder,
+            bool listFormat = false)
+        {
+            bool wantDecimal;
+            bool wantPadding;
+
+            switch (view.ValueType)
+            {
+                #region Numbers
+
+                //We don't just show "0" when it's 0 because we want to show how big each value is
+                case nameof(Byte):
+                    var @byte = ((FieldView<byte>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex((byte) @byte, wantPadding ? 2 : 0);
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(@byte);
+                        builder.Append(')');
+                    }
+
+                    return typeof(byte);
+
+                case nameof(Int16):
+                    var @short = ((FieldView<short>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex((ushort) @short, wantPadding ? 4 : 0);
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(@short);
+                        builder.Append(')');
+                    }
+
+                    return typeof(short);
+
+                case nameof(UInt16):
+
+                    var @ushort = ((FieldView<ushort>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex(@ushort, wantPadding ? 4 : 0);
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(@ushort);
+                        builder.Append(')');
+                    }
+
+                    return typeof(ushort);
+
+                case nameof(Int32):
+                    var int32 = ((FieldView<int>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex((uint) int32, wantPadding ? 8 : 0);
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(int32);
+                        builder.Append(')');
+                    }
+
+                    return typeof(int);
+
+                case nameof(UInt32):
+                    var uint32 = ((FieldView<uint>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex((uint) uint32, wantPadding ? 8 : 0);
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(uint32);
+                        builder.Append(')');
+                    }
+
+                    return typeof(uint);
+
+                case nameof(Int64):
+                    var int64 = ((FieldView<long>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex((ulong) int64); //Don't pad, these numbers become too big
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append(int64);
+                        builder.Append(')');
+                    }
+
+                    return typeof(long);
+
+                case nameof(UInt64):
+                    var uint64 = ((FieldView<ulong>) view).Value;
+
+                    GetNumberFormat(listFormat, view, out wantDecimal, out wantPadding);
+
+                    builder.Append("0x");
+                    builder.AppendHex(uint64); //Don't pad, these numbers become too big
+
+                    if (wantDecimal)
+                    {
+                        builder.Append(" (");
+                        builder.Append((long) uint64);
+                        builder.Append(')');
+                    }
+
+                    return typeof(ulong);
+
+                case nameof(PN):
+                    var pn = ((FieldView<PN>) view).Value;
+
+                    builder.Append((int) pn);
+                    return typeof(PN);
+
+                #endregion
+                #region Strings
+
+                case nameof(FixedUtf8String):
+                    builder.Append(((FieldView<FixedUtf8String>) view).Value);
+                    return typeof(FixedUtf8String);
+
+                case nameof(AnsiString):
+                    builder.Append((FixedUtf8String) ((FieldView<AnsiString>) view).Value);
+                    return typeof(AnsiString);
+
+                case nameof(String):
+                    builder.Append((string) ((FieldView<string>) view).Value);
+                    return typeof(AnsiString);
+
+                #endregion
+                #region Enums
+
+                case nameof(IMAGE_FILE_MACHINE):
+                    WriteEnumUInt32<IMAGE_FILE_MACHINE>(view, ref builder);
+                    return typeof(IMAGE_FILE_MACHINE);
+
+                case nameof(IMAGE_FILE):
+                    WriteEnumUInt16<IMAGE_FILE>(view, ref builder);
+                    return typeof(IMAGE_FILE);
+
+                case nameof(IMAGE_SUBSYSTEM):
+                    WriteEnumUInt16<IMAGE_SUBSYSTEM>(view, ref builder);
+                    return typeof(IMAGE_SUBSYSTEM);
+
+                case nameof(IMAGE_DEBUG_TYPE):
+                    WriteEnumUInt32<IMAGE_DEBUG_TYPE>(view, ref builder);
+                    return typeof(IMAGE_DEBUG_TYPE);
+
+                case nameof(PRODID):
+                    WriteEnumUInt16<PRODID>(view, ref builder);
+                    return typeof(PRODID);
+                case nameof(IMAGE_DLLCHARACTERISTICS):
+                    WriteEnumUInt16<IMAGE_DLLCHARACTERISTICS>(view, ref builder);
+                    return typeof(IMAGE_DLLCHARACTERISTICS);
+
+                case nameof(IMAGE_GUARD_FLAG):
+                    WriteEnumByte<IMAGE_GUARD_FLAG>(view, ref builder);
+                    return typeof(IMAGE_GUARD_FLAG);
+
+                case nameof(IMAGE_LOADER_FLAGS):
+                    WriteEnumByte<IMAGE_LOADER_FLAGS>(view, ref builder);
+                    return typeof(IMAGE_LOADER_FLAGS);
+
+                case nameof(IMAGE_SCN):
+                    WriteEnumUInt32<IMAGE_SCN>(view, ref builder);
+                    return typeof(IMAGE_SCN);
+
+                case nameof(PEMagic):
+                    WriteEnumUInt16<PEMagic>(view, ref builder);
+                    return typeof(PEMagic);
+
+                case nameof(WIN_CERT_REVISION):
+                    WriteEnumUInt16<WIN_CERT_REVISION>(view, ref builder);
+                    return typeof(WIN_CERT_REVISION);
+
+                case nameof(WIN_CERT_TYPE):
+                    WriteEnumUInt16<WIN_CERT_TYPE>(view, ref builder);
+                    return typeof(WIN_CERT_TYPE);
+                    else if (view is FieldView<NativeSpan<PN>> @ap)
+                    {
+                        var value = @ap.Value;
+
+                        for (var i = 0; i < value.Length; i++)
+                        {
+                            builder.Append((int) value[i]);
+
+                            if (i < value.Length - 1)
+                                builder.Append(",");
+                        }
+
+                        return typeof(NativeSpan<PN>);
+                    }
                 default:
                     throw new NotImplementedException();
             }
         }
-                    }
+
+        private static void GetNumberFormat(bool listFormat, IFieldView view, out bool wantDecimal, out bool wantPadding)
+        {
+            if (!listFormat)
+            {
+                wantDecimal = (view.Flags & prohibitDecimalFlags) == 0;
+                wantPadding = true;
+            }
+            else
+            {
+                //When we're formatting for lists, we want a simplified format for Size as well
+                wantDecimal = false;
+                wantPadding = false;
+            }
         }
+
+        #region Meaning
+
+        //Singletons want to expand enums into multiple rows, but lists want to include the enum description inline
+        protected internal static bool TryGetMeaningIncludeEnum(
+            FileAccessor fileAccessor,
+            IFieldView fieldView,
+            Type type,
+            out string value,
+            out MeaningValueKind kind)
+        {
+            if (type.IsEnum)
+            {
+                if (TryGetMultiFlags(type, fieldView, out var singleValue, out var flags))
+                {
+                    using var builder = new ValueStringBuilder();
+
+                    for (var i = 0; i < flags.Length; i++)
+                    {
+                        builder.Append(flags[i].Text);
+
+                        if (i < flags.Length - 1)
+                            builder.Append(" | ");
+                    }
+
+                    value = builder.ToString();
+                }
+                else
+                    value = singleValue;
+
+                kind = MeaningValueKind.Enum;
+                return true;
+            }
+            else
+            {
+                return TryGetMeaning(fileAccessor, fieldView, out value, out kind);
+            }
+        }
+
+        internal static unsafe bool TryGetMeaning(
+            FileAccessor fileAccessor,
+            IFieldView fieldView,
+            out string? value,
+            out MeaningValueKind kind)
+        {
+            /* For fields whose value means something, including
+             * - hex strings (MZ, PE00, etc)
+             * - Enums
+             * - RVAs
+             * - Timestamps
+             * 
+             * we want to show some context about what it actually is that this value represents
+             */
+
+            if ((fieldView.Flags & FieldViewFlags.HexString) != 0)
+            {
+                value = GetHexString(fieldView);
+                kind = MeaningValueKind.HexString;
+                return true;
+            }
+            else if ((fieldView.Flags & FieldViewFlags.Address) != 0)
+            {
+                var pViewByte = fileAccessor.GetViewByte(fieldView.Offset, out _);
+
+                if (pViewByte->HasXRefs)
+                {
+                    var xrefs = fileAccessor.GetXRefs(fieldView.Offset);
+
+                    foreach (var xref in xrefs)
+                    {
+                        if (xref.Kind == XRefKind.From)
+                        {
+                            var target = fileAccessor.GetEntity(xref.Other);
+
+                            switch (target.ViewByte->Kind)
+                            {
+                                case ViewByteKind.Code:
+                                    if (target.HasChildren)
+                                    {
+                                        kind = MeaningValueKind.FunctionXRef;
+                                        value = target.ToString();
+                                        break;
+                                    }
+
+                                    //If we didn't have children, that means we're not pointing to the start of the function.
+                                    //We should rewind to find the head
+                                    if (TryGetFunctionHead(fileAccessor, target.ViewByte, target.ViewByte, xref.Other, out value, out kind))
+                                        return true;
+
+                                    kind = default;
+                                    value = default;
+                                    return false;
+
+                                case ViewByteKind.Data:
+                                    if (target.ViewByte->DataKind == ViewByteDataKind.Struct)
+                                        kind = MeaningValueKind.StructXRef;
+                                    else
+                                        kind = MeaningValueKind.ValueXRef;
+
+                                    value = target.ToString();
+                                    break;
+
+                                case ViewByteKind.Body:
+                                    //We're partway into a value. Rewind to find the head
+                                    var p = target.ViewByte;
+
+                                    do
+                                    {
+                                        if (p->BodyKind == ViewByteBodyKind.SplitHead)
+                                        {
+                                            throw new NotImplementedException();
+                                        }
+
+                                        p--;
+                                    } while (p->Kind == ViewByteKind.Body);
+
+                                    //The EndAddress of a RUNTIME_FUNCTION seems to regularly point to padding after the function. Not only that,
+                                    //but it might even be pointing to the _second_ 0xCC after the end of the function
+                                    var headTarget = fileAccessor.GetEntity(xref.Other - (int) (target.ViewByte - p));
+
+                                    switch (p->Kind)
+                                    {
+                                        case ViewByteKind.Data:
+                                            if (p->DataKind == ViewByteDataKind.Padding)
+                                            {
+                                                //Try and rewind past the padding to see if we get back into code; if so, see if we can reach the start of a
+                                                //function; if so, we'll say that this location is part of the function
+
+                                                do
+                                                {
+                                                    p--;
+                                                } while (p->Kind == ViewByteKind.Data && p->DataKind == ViewByteDataKind.Padding);
+
+                                                //See if we can get a function out of this
+                                                if (TryGetFunctionHead(fileAccessor, target.ViewByte, p, xref.Other, out value, out kind))
+                                                    return true;
+                                            }
+
+                                            value = default;
+                                            kind = default;
+                                            return false;
+
+                                        default:
+                                            throw new NotImplementedException();
+                                    }
+
+                                default:
+                                    value = default;
+                                    kind = default;
+                                    return false; //Random bytes after the end of a function?
                             }
+
+                            return true;
                         }
+                    }
+                }
+            }
+            else if ((fieldView.Flags & FieldViewFlags.Size) != 0)
+            {
+                //Get the best value for the size
+
+                double size = fieldView.ValueType switch
+                {
+                    nameof(Byte) => ((FieldView<byte>) fieldView).Value,
+                    nameof(SByte) => ((FieldView<sbyte>) fieldView).Value,
+                    nameof(Int16) => ((FieldView<short>) fieldView).Value,
+                    nameof(UInt16) => ((FieldView<ushort>) fieldView).Value,
+                    nameof(Int32) => ((FieldView<int>) fieldView).Value,
+                    nameof(UInt32) => ((FieldView<uint>) fieldView).Value,
+                    nameof(Int64) => ((FieldView<long>) fieldView).Value,
+                    nameof(UInt64) => ((FieldView<ulong>) fieldView).Value
+                };
+
+                if (size == 0)
+                {
+                    value = default;
+                    kind = default;
+                    return false;
+                }
+
+                using var builder = new ValueStringBuilder();
+
+                builder.AppendSize(size);
+
+                value = builder.ToString();
+                kind = MeaningValueKind.Size;
+                return true;
+            }
+
+            value = default;
+            kind = default;
+            return false;
+        }
+            while (true)
+            {
+                pViewByte--;
+
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Code:
+                        if (pViewByte->IsFunction)
+                        {
+                            var length = (int) (pStart - pViewByte);
+
+                            var functionTarget = fileAccessor.GetEntity(originalOffset - length);
+
+                            if (functionTarget.Name.Length > 0)
+                            {
+                                using var builder = new ValueStringBuilder();
+                                builder.Append(functionTarget.Name);
+                                builder.Append("+0x");
+                                builder.AppendHex((uint) length);
+                                value = builder.ToString();
+                                kind = MeaningValueKind.FunctionXRef;
+                                return true;
+                            }
+
+                            value = default;
+                            kind = default;
+                            return false;
+                        }
+
+                        break;
+
+                    case ViewByteKind.Body:
+                        break;
+
+                    default:
+                        //Maybe it was a function chunk and there's a random 0xCC in the way. We don't currently have a mechanism to lookup what function this chunk belongs to
+                        value = default;
+                        kind = default;
+                        return false;
+                }
+            }
+        }
+
+        //If we are flags, we avoid an allocation by returning the value stored in names
+        internal static bool TryGetMultiFlags(Type type, IFieldView fieldView, out string? singleValue, out EnumFlagInfo[]? flags)
+        {
+            flags = default;
+
+            if (type.GetCustomAttribute<FlagsAttribute>() == null)
+            {
+                singleValue = fieldView.Value.ToString()!;
+                return false;
+            }
+
+            var resultValue = Convert.ToUInt64(fieldView.Value);
+
+            //todo: this is bad, this uses reflection. this added 300kb to a simple console app
+            var values = Enum.GetValues(type);
+            var names = Enum.GetNames(type);
+
+            //We want to align each item such that 0x2022 breaks up into 0x2000, 0x0020 and 0x0002
+
+            var numChars = 1;
+
+            var temp = resultValue;
+
+            while ((temp >>= 4) != 0)
+                numChars++;
+
+            //Based on Enum.ToString()
+
+            int index = values.Length - 1;
+            while (index >= 0)
+            {
+                var val = Convert.ToUInt64(values.GetValue(index));
+
+                if (val == resultValue)
+                {
+                    //We found an exact match, which means we don'th have flags
+                    singleValue = names[index];
+                    return false;
+                }
+
+                if (val < resultValue)
+                {
+                    break;
+                }
+
+                if ((resultValue & currentValue) == currentValue)
+                {
+                    resultValue -= currentValue;
+                    foundItems[foundItemsCount++] = index;
+                    resultLength = checked(resultLength + names[index].Length);
+                }
+
+                index--;
+            }
+
+            //Collect names
+
+            Span<int> foundItems = stackalloc int[64];
+
+            int resultLength = 0, foundItemsCount = 0;
+            while (index >= 0)
+            {
+                ulong currentValue = Convert.ToUInt64(values.GetValue(index));
+                if (index == 0 && currentValue == 0)
+                {
+                    break;
+                }
+
+                index--;
+            }
+
+            //Return the names to the caller
+
+            if (resultValue != 0)
+            {
+                //There is a value not defined in the enum
+
+                flags = new EnumFlagInfo[foundItemsCount + 1];
+                flags[foundItemsCount] = new EnumFlagInfo(resultValue, null, numChars);
+            }
+            else
+                flags = new EnumFlagInfo[foundItemsCount];
+
+            for (var i = 0; i < foundItemsCount; i++)
+            {
+                var enumIndex = foundItems[i];
+
+                flags[i] = new EnumFlagInfo(Convert.ToUInt64(values.GetValue(enumIndex)), names[enumIndex], numChars);
+            }
+
+            if (resultLength != 0)
+            {
+                //By default, our values will implicitly be sorted largest to smallest. But when there's a random unaccounted for value,
+                //that changes things, so we need to manually sort things to put that value into position
+                Array.Sort(flags, (a, b) => -a.Value.CompareTo(b.Value));
+            }
+
+            singleValue = default;
+            return true;
+        }
+        internal static string GetHexString(IFieldView fieldView)
+        {
+            return fieldView.ValueType switch
+            {
+                nameof(UInt16) => ((FieldView<ushort>) fieldView).Value switch
+                {
+                    ImageDosHeader.IMAGE_DOS_SIGNATURE => "MZ"
+                },
+                nameof(Int32) => ((FieldView<int>) fieldView).Value switch
+                {
+                    (int) ImageNtHeaders.IMAGE_NT_SIGNATURE => "PE00",
+                    (int) CodeViewSig.DNRB => "DNRB",
+                    (int) CodeViewSig.NB00 => "NB00",
+                    (int) CodeViewSig.NB01 => "NB01",
+                    (int) CodeViewSig.NB02 => "NB02",
+                    (int) CodeViewSig.NB03 => "NB03",
+                    (int) CodeViewSig.NB04 => "NB04",
+                    (int) CodeViewSig.NB05 => "NB05",
+                    (int) CodeViewSig.NB06 => "NB06",
+                    (int) CodeViewSig.NB07 => "NB07",
+                    (int) CodeViewSig.NB08 => "NB08",
+                    (int) CodeViewSig.NB09 => "NB09",
+                    (int) CodeViewSig.NB10 => "NB10",
+                    (int) CodeViewSig.NB11 => "NB11",
+                    (int) CodeViewSig.RSDS => "RSDS"
+                }
+        protected internal override void VisitStructField(IStructFieldView view)
+        {
+            WriteLinePrefix(view.Offset);
+            _builder.Append(view.Name);
+            _builder.Append(" (");
+            AppendFormat(view.StructName, ViewByteFormatKind.Symbol);
+            _builder.Append(")");
+            AppendLine(view.Offset, 0);
+
+            //We're not going to do VisitStruct, so we need to do this in lieu of that
+            _path.Push(new EntityState(view.Value));
+        }
+        protected void WriteLinePrefix(int targetAddress, bool isGlobal = false)
+        {
+            WriteLinePrefixNoSpace(targetAddress);
+
+            _builder.Append("         ");
+
+            var count = _path.Count;
+
+            //Code always has an entry in the path, which messes up our indentation
+            //when writing the header
+            if (isGlobal)
+                count--;
+
+            for (var i = 0; i < count; i++)
+                _builder.Append("    ");
+        }
+
+        protected void WriteLinePrefixNoSpace(int targetAddress)
+        {
+            _builder.Append(_currentSectionName);
+            _builder.Append(':');
+            _builder.AppendHex((ulong) targetAddress, _addressWidth);
+        }
+
+        protected void WriteName(int targetAddress) =>
+            WriteName(_fileAccessor.GetName(targetAddress));
+
+        protected void WriteName(FixedUtf8String name)
+        {
+            if (name.StartsWith("?"))
+            {
+                var utf8Builder = new Utf8StringBuilder();
+
+                try
+                {
+                    //If this fails, it just adds the original
+                    Demangler.ParseString(name, ref utf8Builder, UNDNAME.UNDNAME_NO_ECSU | UNDNAME.UNDNAME_NO_PTR64);
+
+                    AppendFormat(utf8Builder.ToPointer(), ViewByteFormatKind.Symbol);
+                }
+                finally
+                {
+                    utf8Builder.Dispose();
+                }
+            }
+            else
+                AppendFormat(name, ViewByteFormatKind.Symbol);
+        }
+
+        protected void AppendLine(int startOffset, int length)
+        {
+            _builder.Append('\n');
+            _numLinesWritten++;
+
+            var startTextIndex = 0;
+            var startFormatIndex = 0;
+
+            if (_physicalLines.Count > 0)
+            {
+                var lastLine = _physicalLines[_physicalLines.Count - 1];
+                startTextIndex = lastLine.EndTextIndex + 1;
+
+                //If the item has no formats, the start and end will be the same
+                startFormatIndex = lastLine.EndFormatIndex;
+            }
+
+            var physicalLine = new PhysicalLine(startTextIndex, (_builder.Length - 1), startFormatIndex, _formatRanges.Count)
+            {
+                StartAddress = startOffset,
+                Length = length,
+
+                RelativeIndex = _physicalLines.Count
+            };
+
+            _physicalLines.Add(physicalLine);
+        }
+
+        protected void AppendFormat(string value, ViewByteFormatKind format)
+        {
+            var startPos = _builder.Length;
+            _builder.Append(value);
+
+            _formatRanges.Add(format, startPos, _builder.Length);
+        }
+
+        protected void AppendFormat(FixedUtf8String value, ViewByteFormatKind format)
+        {
+            var startPos = _builder.Length;
+            _builder.Append(value);
+
+            _formatRanges.Add(format, startPos, _builder.Length);
+        }
+        }
+
+        public void Dispose()
+        {
+            _builder.Dispose();
+        }
+    }
+}

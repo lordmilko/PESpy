@@ -116,7 +116,7 @@ namespace PESpy.View
 
             for (var i = 0; i < numChildren; i++)
             {
-                var child = Children[i];
+                var child = children[i];
 
                 var childEnd = child.Offset + child.Size;
 
@@ -272,35 +272,49 @@ namespace PESpy.View
 
         public bool TryGetEnhancedName(out string name)
         {
-            if (value is ImageImportDescriptor i)
+            switch (Kind)
             {
-                if (i.Name.IsValid)
-                {
-                    name = i.Name.Value.ToString();
+                case ViewKind.ImageImportDescriptor:
+                    var imageImportDescriptor = (ImageImportDescriptor) value;
+
+                    if (imageImportDescriptor.Name.IsValid)
+                    {
+                        name = imageImportDescriptor.Name.Value.ToString();
+                        return true;
+                    }
+                    break;
+
+                case ViewKind.ImageDelayLoadDescriptor:
+                    var imageDelayLoadDescriptor = (ImageDelayLoadDescriptor) value;
+
+                    if (imageDelayLoadDescriptor.DllNameRVA.IsValid)
+                    {
+                        name = imageDelayLoadDescriptor.DllNameRVA.Value.ToString();
+                        return true;
+                    }
+                    break;
+
+                case ViewKind.DebugTypeEntry:
+                    var debugTypeEntry = (DebugTypeEntry) value;
+
+                    if (!debugTypeEntry.FieldName.IsValid)
+                    {
+                        if (debugTypeEntry.TypeName.IsValid)
+                            name = debugTypeEntry.TypeName.Value.ToString();
+                    }
+                    else
+                    {
+                        //We have a FieldName
+                        if (debugTypeEntry.TypeName.IsValid)
+                            name = $"{debugTypeEntry.TypeName}.{debugTypeEntry.FieldName}";
+                    }
+                    break;
+
+                case ViewKind.BundleFileEntry:
+                    var fileEntry = (Bundle.FileEntry) value;
+
+                    name = fileEntry.RelativePath.ToString();
                     return true;
-                }
-            }
-            else if (value is ImageDelayLoadDescriptor l)
-            {
-                if (l.DllNameRVA.IsValid)
-                {
-                    name = l.DllNameRVA.Value.ToString();
-                    return true;
-                }
-            }
-            else if (value is DebugTypeEntry d)
-            {
-                if (!d.FieldName.IsValid)
-                {
-                    if (d.TypeName.IsValid)
-                        name = d.TypeName.Value.ToString();
-                }
-                else
-                {
-                    //We have a FieldName
-                    if (d.TypeName.IsValid)
-                        name = $"{d.TypeName}.{d.FieldName}";
-                }
             }
 
             name = default;

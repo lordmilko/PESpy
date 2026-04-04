@@ -19,9 +19,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
-                return 12 + bytesRead;
+                return 12 + numericData.Length;
             }
         }
 
@@ -48,9 +48,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->data, out var length, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
-                return (int) length;
+                return numericData.Int32;
             }
         }
 
@@ -61,21 +61,21 @@ namespace PESpy.PDB
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->data);
 
             //I am assuming I need to use normal ST/UTF parsing logic
-            return TypType.ReadString(value->data + bytesRead, codeViewAccessor);
+            return TypType.ReadString(value->data + numericData.Length, codeViewAccessor);
         }
 
         #endregion
 
         private int BytesUsed()
         {
-            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->data);
 
-            var str = TypType.ReadString(value->data + bytesRead);
+            var str = TypType.ReadString(value->data + numericData.Length);
 
-            return FixedStructSize + bytesRead + str.Length;
+            return FixedStructSize + numericData.Length + str.Length;
         }
 
         internal LfArray(lfArray* value)
@@ -116,7 +116,7 @@ namespace PESpy.PDB
                     break;
 
                 case 4:
-                    structWriter.WriteNumericData(nameof(length), lengthOffset, value->data);
+                    structWriter.WriteStructField(nameof(length), lengthOffset, TypType.ExtractNumericData(value->data));
                     break;
 
                 case 5:

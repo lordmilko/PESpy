@@ -1,6 +1,9 @@
-﻿namespace PESpy
+﻿using System;
+using PESpy.PDB;
+
+namespace PESpy
 {
-    public readonly struct AddrHash32v12 : IAddrHash32
+    public readonly struct AddrHash32v12 : IAddrHashInternal32
     {
         public int Kind => 12;
 
@@ -33,17 +36,41 @@
             OffsetTable = offsetTable;
         }
 
-        public bool TryGetSymbolOffset(ushort sectionNumber, int relativeOffset, out int symbolOffset)
+        public (int symbolOffset, int sectionRelativeOffset) this[ISECT seg, int offsetIndex] => OffsetTable[seg - 1][offsetIndex];
+
+        public int GetOffsetCount(ISECT seg) => OffsetCounts[seg - 1];
+
+        public bool GetNearestSymbol(ISECT sectionNumber, int relativeOffset, out int symbolOffset) =>
+            AddrHashHelpers.GetNearestSymbolInternal(this, sectionNumber, relativeOffset, out symbolOffset);
+
+        void IAddrHashInternal32.BinarySearchAddressMap(
+            int relativeOffset,
+            ISECT sectionNumber,
+            out ISECT resultSeg,
+            out int resultOffsetIndex)
         {
+            if (sectionNumber < 1)
+            {
+                AddrHashHelpers.GetFirstSymbol32(OffsetTable, out resultSeg, out resultOffsetIndex);
+                return;
+            }
+
             if (sectionNumber > cSeg)
             {
-                symbolOffset = default;
-                return false;
+                AddrHashHelpers.GetLastSymbol32(OffsetTable, out resultSeg, out resultOffsetIndex);
+                return;
             }
 
             var segmentOffsets = OffsetTable[sectionNumber - 1];
 
-            return AddrHash32v4.TryBinarySearchSegmentOffsets32(segmentOffsets, relativeOffset, out symbolOffset);
+            if (AddrHashHelpers.TryBinarySearchSegmentOffsets32(segmentOffsets, relativeOffset, out _, out resultOffsetIndex))
+            {
+                resultSeg = sectionNumber;
+                return;
+            }
+
+            if (!AddrHashHelpers.TryLinearSearchOffsetTable32(OffsetTable, sectionNumber, out _, out resultSeg, out resultOffsetIndex))
+                throw new NotImplementedException("Don't know how to handle a linear search failing");
         }
     }
 }

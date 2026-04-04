@@ -35,7 +35,7 @@ namespace PESpy.PDB
         public CV_uoff16_t off => value->off;
 
         /// <inheritdoc cref="CEXMSYM16.seg"/>
-        public ushort seg => value->seg;
+        public ISECT seg => value->seg;
 
         /// <inheritdoc cref="CEXMSYM16.model"/>
         public short model => value->model;
@@ -55,6 +55,10 @@ namespace PESpy.PDB
         #region PESpy
 
         public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
 
         #endregion
 

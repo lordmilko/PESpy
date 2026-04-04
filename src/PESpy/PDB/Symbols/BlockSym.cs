@@ -31,11 +31,20 @@ namespace PESpy.PDB
 
         public SymTypeChildList Children => GetChildren(null);
 
-        public SymTypeChildList GetChildren(ICodeViewAccessor? codeViewAccessor) => new SymTypeChildList(value, codeViewAccessor);
+        public SymTypeChildList GetChildren(ICodeViewModuleAccessor? codeViewModuleAccessor) => new SymTypeChildList((BLOCKSYM*) value, codeViewModuleAccessor);
 
         public SymType Parent => GetParent(null);
 
-        public SymType GetParent(ICodeViewAccessor? codeViewAccessor) => SymType.GetParent((BLOCKSYM*) value, codeViewAccessor);
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        public bool Contains(SymType symType, ICodeViewModuleAccessor codeViewModuleAccessor)
+        {
+            var end = (long) codeViewModuleAccessor.Symbols.start + pEnd;
+
+            var addr = (long) (SYMTYPE*) symType;
+
+            return addr > (long) value && addr < end;
+        }
 
         #endregion
 

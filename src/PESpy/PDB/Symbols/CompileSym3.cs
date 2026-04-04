@@ -108,6 +108,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="COMPILESYM3.verSz"/>
         public SymString verSz => SymType.ReadString(value, value->verSz);
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

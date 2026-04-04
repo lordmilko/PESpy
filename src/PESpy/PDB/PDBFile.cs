@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
-using ClrDebug.DIA;
 using ClrDebug.PDB;
 using PESpy.PDB;
+using PESpy.PDB.DIA;
 using PESpy.View;
 using PESpy.View.Builder;
 using SN = PESpy.PDB.SN;
@@ -383,9 +382,9 @@ namespace PESpy
          * to the main type record buffer
          */
 
-        public TypType GetTypTypeFromIndex(CV_typ_t typeIndex) => GetTypTypeFromIndex(typeIndex, TPI, "TPI");
+        public virtual TypType GetTypTypeFromIndex(CV_typ_t typeIndex) => GetTypTypeFromIndex(typeIndex, TPI, "TPI");
 
-        public TypType GetTypTypeFromIndex(CV_ItemId typeIndex) => GetTypTypeFromIndex((int) (uint) typeIndex, IPI, "IPI");
+        public virtual TypType GetTypTypeFromIndex(CV_ItemId typeIndex) => GetTypTypeFromIndex((int) (uint) typeIndex, IPI, "IPI");
 
         private TypType GetTypTypeFromIndex(CV_typ_t typeIndex, MsfStream.TPI? stream, string streamName)
         {
@@ -396,6 +395,33 @@ namespace PESpy
                 throw new InvalidOperationException($"Attempted to resolve a type index when no {streamName} stream was present");
 
             return stream.GetTypTypeFromIndex(typeIndex);
+        }
+
+        public virtual bool TryGetTypTypeFromIndex(CV_typ_t typeIndex, out TypType typType)
+        {
+            typType = default;
+
+            if (typeIndex.CV_IS_PRIMITIVE())
+                return false;
+
+            var tpi = TPI;
+
+            if (tpi == null)
+                return false;
+
+            return tpi.TryGetTypTypeFromIndex(typeIndex, out typType);
+        }
+
+        public virtual bool TryGetTypTypeFromIndex(CV_ItemId typeIndex, out TypType typType)
+        {
+            typType = default;
+
+            var ipi = IPI;
+
+            if (ipi == null)
+                return false;
+
+            return ipi.TryGetTypTypeFromIndex((CV_typ_t) (int) (uint) typeIndex, out typType);
         }
 
         #region /names
@@ -571,6 +597,8 @@ namespace PESpy
         private readonly object c13SymbolMemoryLock = new object();
         private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
 
+        internal readonly PDBFileSymCache _symCache;
+
         //Open an existing file
         internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
         {
@@ -582,6 +610,7 @@ namespace PESpy
             Name = Path.GetFileName(fileName);
 
             globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, 0, this);
+            _symCache = new PDBFileSymCache(this);
 
             try
             {
@@ -852,21 +881,38 @@ namespace PESpy
             }
         }
 
-        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement)
+        public ImageSectionHeader[]? GetSectionHeaders() => DBI?.SectionHdr ?? fallbackSectionHeaders;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement) =>
+            TryGetSymbolByRVA(rva, out symType, out displacement, out _);
+
+        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement, out IMOD imod)
         {
             symType = default;
             displacement = 0;
 
-            //First, resolve this RVA to a section and offset
-            if (!TryGetSectionAndOffset(rva, out var sectionNumber, out int sectionOffset))
-                return false;
+            GetSectionAndOffset(rva, out var sectionNumber, out var relativeOffset, out _);
 
-            return TryGetSymbolBySectionAndOffset(sectionNumber, sectionOffset, out symType, out displacement);
+            return TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out imod);
         }
 
-        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement) =>
+            TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out _);
+
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement,
+            out IMOD imod)
         {
-            /* Address traversers
+            /* DIA contains many address traversers, many of which call into each other
              *
              *     CCompByAddrTrav
              *     CPubByAddrTrav
@@ -904,7 +950,7 @@ namespace PESpy
              *
              * CAllSymsByAddrTrav
              *     CPubByAddrTrav
-             *     CBlockByAddrTrav
+             *     CBlockByAddrTrav - it seems like CModSymsByAddrTrav is a derived class maybe? And it starts by calling into CFuncByAddrTrav to get the parent symbol
              *     CDataByAddrTrav
              *     CGlobalDataByAddrTrav
              *
@@ -916,177 +962,77 @@ namespace PESpy
              *     CModSymsByAddrTrav
              *     ModCache::blockByAddr
              *     SymBuffer::isFunctionSym
-             *
+             * 
+             * We implement the logic of CAllSymsByAddrTrav, modified to cache any state on the PDBFile rather than on the msdia140!SymCache
              */
 
-            //CAllSymsByAddrTrav always seems to start with CPubByAddrTrav, and only if that returns something does it
-            //try digging deeper.
-
-            var psgsi = PSGSI;
-
-            symType = default;
-            displacement = 0;
-
-            if (psgsi == null)
-                return false;
-
-            //EnumPubsByAddr::locate
-            if (!psgsi.TryGetNearestSymbol(relativeOffset, sectionNumber, out symType, out displacement))
-               return false;
-
-            /* We have a public symbol, but now we need to see if we can get a better symbol by looking at the symbols within the modules
-             * (which may or may not be present). CAllSymsByAddrTrav next tries to call CBlockByAddrTrav. CBlockByAddrTrav delegates to two
-             * traversers. First it tries to find a symbol from CModSymsByAddrTrav::FInit, and then based on the result of that may call
-             * CBlockByAddrTrav::FInit. There's no fancy caching or anything going on, it's just a linear search. In order to search the
-             * symbols of a given module we first need to know what module the RVA we're looking at belongs to. And this is where the
-             * section contribs come in */
-
-                var symbols = modi.Symbols;
-
-                if (symbols != null)
-                {
-                    if (TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, this, out var betterSymbol, out var betterSymbolDisplacement))
-                    {
-                        symType = betterSymbol;
-                        displacement = betterSymbolDisplacement;
-                    }
-                }
-            return true;
-        }
-
-        internal static bool TryGetBestModuleSymbol(
-            SymTypeList symbols,
-            ushort sectionNumber,
-            int relativeOffset,
-            int scOff,
-            int scEnd,
-            ICodeViewAccessor codeViewAccessor,
-            out SymType symType,
-            out int displacement)
-        {
-            /* We've got the section contrib that the target RVA belongs to; we just now need to find the "best" symbol inside of it.
-             * In a Native AOT app you have a great big section contrib which basically contains most of the code. Simply being inside of the
-             * section contrib is not good enough; we need to get whoever's closest!
-             * 
-             * Generally speaking, the symbols seem to be ordered, but I've confirmed that that's not _always_ the case! In coreclr, there's a crazy
-             * module where the addresses are all over the place, with multiple functions sharing the same start address. So in fact, the behavior of DIA
-             * seems to be to just take the last one that was found. Thus, we can't early out once we've found a match */
-
-            SYMTYPE* betterSymbol = default;
-            int betterSymbolOffset = relativeOffset;
-
-            //Get the best top level symbol
-
-            foreach (var symbol in symbols.GetTopLevel())
+            if (PDBFileAddrTrav.TryCreate(_symCache, this, out var trav) && trav.FInit(sectionNumber, relativeOffset, out var result))
             {
-                if (symbol.IsBlockSym())
-                {
-                    switch (symbol.rectyp)
-                    {
-                        //My analysis of DIA was that thunk symbols are immediately considered to be better, but what I've written here
-                        //doesn't make sense...don't we have to check the address as well?
-                        case SYM_ENUM_e.S_THUNK16:
-                            var thunk16 = (ThunkSym16) symbol;
+                var bestOffSeg = result.offSegSym;
+                var bestSeg = bestOffSeg.seg;
+                var bestOff = bestOffSeg.off;
+                imod = result.imod;
+                symType = bestOffSeg.symType;
 
-                            if (sectionNumber == thunk16.seg && relativeOffset >= thunk16.off && relativeOffset < thunk16.off + thunk16.len)
-                            {
-                                betterSymbol = symbol;
-                            }
+                //Note that it's important that we do this _before_ we start trying to resolve any block symbols, because a SepCode symbol
+                //may resolve to a parent lambda with off/seg -1 which will cause us to return -1 even though "the sepcode itself was good"
+                displacement = bestSeg == sectionNumber
+                            ? relativeOffset - bestOff
+                            : -1;
 
-                            break;
-
-                        case SYM_ENUM_e.S_THUNK32:
-                        case SYM_ENUM_e.S_THUNK32_ST:
-                            var thunk32 = (ThunkSym32) symbol;
-
-                            if (sectionNumber == thunk32.seg && relativeOffset >= thunk32.off && relativeOffset < thunk32.off + thunk32.len)
-                            {
-                                betterSymbol = symbol;
-                            }
-
-                            break;
-
-                    //S_SEPCODE is SymEnumBlock, but I don't think this means anything
-                    //case ClrDebug.DIA.SymTagEnum.Block:
-
-                    case SymTagEnum.Thunk:
-                        betterSymbol = symbol;
-                        break;
-
-                    GetBetterSymbol(symbol, sectionNumber, relativeOffset, scOff, scEnd, ref betterSymbol, ref betterSymbolOffset);
-                }
-            }
-
-                do
-                {
-                    evenBetterSymbol = default;
-
-                    var children = ((BlockSym) (SymType) betterSymbol).GetChildren(codeViewAccessor);
-
-                    foreach (var child in children)
-                    {
-                        if (child.IsBlockSym())
-                        {
-                            GetBetterSymbol(child, sectionNumber, relativeOffset, scOff, scEnd, ref evenBetterSymbol, ref betterSymbolOffset);
-
-                            //The logic inside GetBetterSymbol is designed for finding the closest symbol to the target address inside a top level section contrib.
-                            //That doesn't apply to the children inside a block
-                            if (evenBetterSymbol != default)
-                            {
-                                betterSymbol = evenBetterSymbol;
-                            }
-                        }
-                    }
-                } while (evenBetterSymbol != default);
-
-                symType = betterSymbol;
-                displacement = relativeOffset - betterSymbolOffset;
                 return true;
             }
 
             symType = default;
             displacement = default;
+            imod = default;
             return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetBetterSymbol(
-            SymType symbol,
-            ushort sectionNumber,
-            int relativeOffset,
-            int scOff,
-            int scEnd,
-            ref SYMTYPE* betterSymbol,
-            ref int betterSymbolOffset)
-        {
-            if (symbol.TryGetOffSeg(out var off, out var seg) && seg == sectionNumber && off >= scOff)
-            {
-                //Simply being inside the section contrib is not enough; we need to get the _closest_ symbol to the target offset.
-                //And even once we've got a match (even if perfect), there may be symbols that share the same address that DIA says
-                //should overwrite the best result
-                if (off <= relativeOffset && off < scEnd)
-                {
-                    betterSymbol = symbol; //This is the new best symbol
-                    betterSymbolOffset = off;
-                }
-            }
         }
 
         //Section numbers are 1 based
-        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int sectionOffset)
+
+        /// <summary>
+        /// Gets the section number and offset into the section that maps to the specified RVA.<para/>
+        /// If the RVA does not lie within the bounds of a section (i.e. it resides prior to the start of the first section,
+        /// between the end and start of two sections, or past the bounds of the last section) this method will return <see langword="false"/>.
+        /// </summary>
+        /// <param name="rva">The RVA to resolve to a section number and offset</param>
+        /// <param name="sectionNumber">The 1-based section number of the section that contains this RVA.</param>
+        /// <param name="relativeOffset">The relative offset into the section that the RVA represents.</param>
+        /// <returns>True if the RVA lies within the bounds of a section, otherwise false.</returns>
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset)
         {
-            var sectionHeaders = DBI?.SectionHdr ?? fallbackSectionHeaders;
+            var sectionHeaders = GetSectionHeaders();
 
             if (sectionHeaders != null)
-                return ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, rva, out sectionNumber, out sectionOffset);
+                return ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, rva, out sectionNumber, out relativeOffset);
 
             sectionNumber = default;
-            sectionOffset = default;
+            relativeOffset = default;
             return false;
         }
 
-        public bool TryGetModuleBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IModi modi, out SC40 sc)
+        /// <summary>
+        /// Gets the best-effort section number and offset against the section that maps to the specified RVA.<para/>
+        /// If the RVA lies prior to the start of the first section, this method will return the RVA itself as the relative offset
+        /// against a non-existent section 0. If the RVA lies between the end and start of two sections or is past the end of the last section,
+        /// the RVA will be reported as being relative to the last section that existed before it.
+        /// </summary>
+        /// <param name="rva">The RVA to resolve to a section number and offset</param>
+        /// <param name="sectionNumber">The 1-based section number of the section that contains this RVA, or 0 if the RVA resides prior to the start of the first section.</param>
+        /// <param name="relativeOffset">The relative offset past the start the section that the RVA represents.</param>
+        /// <param name="isValid">Whether the specified RVA resides within the virtual bounds of the section it is listed as pertaining to.</param>
+        public void GetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset, out bool isValid) =>
+            ImageSectionHeader.GetSectionAndOffset(GetSectionHeaders(), rva, out sectionNumber, out relativeOffset, out isValid);
+
+        public bool TryGetModuleBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out IMOD imod,
+            out IModi modi,
+            out SC40 sc)
         {
+            imod = IMOD.Nil;
             modi = default;
             sc = default;
 
@@ -1095,7 +1041,7 @@ namespace PESpy
             if (modules == null)
                 return false;
 
-            if (TryGetModuleIndexBySectionAndOffset(sectionNumber, sectionOffset, out var imod, out sc))
+            if (TryGetModuleIndexBySectionAndOffset(sectionNumber, relativeOffset, out imod, out sc))
             {
                 //Module numbers are 1 based
                 if (imod > modules.Length)
@@ -1111,12 +1057,12 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetModuleIndexBySectionAndOffset(ISECT sectionNumber, int sectionOffset, out IMOD imod, out SC40 sc)
+        public bool TryGetModuleIndexBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out IMOD imod, out SC40 sc)
         {
             //DBI1::QueryImodFromAddrHelper does a binary search on the section contribs to the contrib that contains the listed section and offset.
 
             var dbi = DBI;
-            imod = default;
+            imod = IMOD.Nil;
             sc = default;
 
             if (dbi == null)
@@ -1133,7 +1079,7 @@ namespace PESpy
                 return false;
 
             //Getting the section is easy; the hard part is identifying the module
-            if (!sectionContribs.TryGetSection(sectionNumber, sectionOffset, out sc))
+            if (!sectionContribs.TryGetSection(sectionNumber, relativeOffset, out sc))
                 return false;
 
             //It's up to the caller to validate that the imod is within range; we're just telling them
@@ -1147,7 +1093,7 @@ namespace PESpy
         {
             if (!symType.TryGetOffSeg(out var off, out var seg))
             {
-                imod = default;
+                imod = IMOD.Nil;
                 return false;
             }
 
@@ -1197,6 +1143,9 @@ namespace PESpy
 
             return symbols.GetSymbolFromOffset(ibSym);
         }
+
+        bool ICodeViewAccessor.TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc) =>
+            SymType.TryPDBGetSectionContrib(symType, sectionNumber, relativeOffset, this, out sc);
 
         private bool? hasLengthPrefixedStrings;
 
@@ -1249,7 +1198,21 @@ namespace PESpy
             //Any Free pages are automatically detected during merging
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        {
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this, trackXRefs: false);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
         {
             var writer = new PDBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -1263,12 +1226,12 @@ namespace PESpy
 
         #endregion
 
-        internal void RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        internal void RegisterC13SymbolMemory(MemoryChunk dataChunk, ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             lock (c13SymbolMemoryLock)
             {
                 if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
-                    SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+                    SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk, codeViewModuleAccessor);
             }
         }
 
@@ -1284,6 +1247,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             psgsi?.Dispose();
             tpi?.Dispose();

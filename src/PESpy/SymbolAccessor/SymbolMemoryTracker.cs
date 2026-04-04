@@ -12,16 +12,36 @@ namespace PESpy
         HashSet<long> SymbolMemory { get; }
     }
 
+    internal struct SymbolMemoryRange
+    {
+        public readonly long Start;
+        public readonly long End;
+        public readonly ICodeViewAccessor CodeViewAccessor;
+        public readonly ICodeViewModuleAccessor? CodeViewModuleAccessor;
+
+        internal SymbolMemoryRange(
+            long start,
+            long end,
+            ICodeViewAccessor codeViewAccessor,
+            ICodeViewModuleAccessor? codeViewModuleAccessor)
+        {
+            Start = start;
+            End = end;
+            CodeViewAccessor = codeViewAccessor;
+            CodeViewModuleAccessor = codeViewModuleAccessor;
+        }
+    }
+
     public class SymbolMemoryTracker
     {
         /* We provide access to symbols directly from memory (either from the MMF or from a buffer they are copied into (when they span multiple pages).
          * As such, these pointers cannot contain any state, which presents a problem when they want to display strings (which may or may not
          * be length prefixed based on our PDBIMPV). As such, any time symbols are requested, the backing memory range will be added to this global
          * list. Idealy, it should be sorted so we can do a binary search on it, but for now there's no sorting */
-        private static readonly List<(long start, long end, ICodeViewAccessor? file)> globalAccessorRanges = new();
+        private static readonly List<SymbolMemoryRange> globalAccessorRanges = new();
         private static readonly ReaderWriterLockSlim globalMemoryRangesLock = new ReaderWriterLockSlim();
 
-        internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk)
+        internal static unsafe void RegisterPDBSymbolMemory(in MemoryChunk chunk, ICodeViewModuleAccessor? codeViewModuleAccessor)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
@@ -35,7 +55,7 @@ namespace PESpy
                     //Its a PDB. We use ST strings if our version <= vc98
                     var pdb = ((PagedMemoryBlock) block).PDBFile;
 
-                    InsertEntry(block, globalAccessorRanges, pdb);
+                    InsertEntry(block, pdb, codeViewModuleAccessor);
                 }
             }
             finally
@@ -44,7 +64,11 @@ namespace PESpy
             }
         }
 
-        internal static unsafe void RegisterPDBSymbolMemory(PDBGlobalMemoryBlock globalBlock, byte* memory, int length)
+        internal static unsafe void RegisterPDBSymbolMemory(
+            PDBGlobalMemoryBlock globalBlock,
+            byte* memory,
+            int length,
+            ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             var rangeOwner = (ISymbolMemoryBlock) globalBlock;
 
@@ -57,7 +81,7 @@ namespace PESpy
                     //Its a PDB. We use ST strings if our version <= vc98
                     var pdb = globalBlock.PDBFile;
 
-                    InsertEntry(memory, length, globalAccessorRanges, pdb);
+                    InsertEntry(memory, length, pdb, codeViewModuleAccessor);
                 }
             }
             finally
@@ -66,7 +90,10 @@ namespace PESpy
             }
         }
 
-        internal static unsafe void RegisterCVSymbolMemory(in MemoryChunk chunk, ICodeViewAccessor codeViewAccessor)
+        internal static unsafe void RegisterCVSymbolMemory(
+            in MemoryChunk chunk,
+            ICodeViewAccessor codeViewAccessor,
+            ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
@@ -79,7 +106,7 @@ namespace PESpy
                 {
                     //C13 uses UTF8; C7 and C11 use length prefixed. Not sure about C6
 
-                    InsertEntry(block, globalAccessorRanges, codeViewAccessor);
+                    InsertEntry(block, codeViewAccessor, codeViewModuleAccessor);
                 }
             }
             finally
@@ -89,13 +116,17 @@ namespace PESpy
         }
 
         //This should only be used by unit tests, because we don't track whether a given address has been added yet
-        internal static unsafe void RegisterSymbolMemory(byte* memory, int length, ICodeViewAccessor codeViewAccessor)
+        internal static unsafe void RegisterSymbolMemory(
+            byte* memory,
+            int length,
+            ICodeViewAccessor codeViewAccessor,
+            ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             globalMemoryRangesLock.EnterWriteLock();
 
             try
             {
-                InsertEntry(memory, length, globalAccessorRanges, codeViewAccessor);
+                InsertEntry(memory, length, codeViewAccessor, codeViewModuleAccessor);
             }
             finally
             {
@@ -103,12 +134,18 @@ namespace PESpy
             }
         }
 
-        private static unsafe void InsertEntry<T>(MemoryBlock block, List<(long start, long end, T value)> list, T value) =>
-            InsertEntry<T>(block.LocalPointer, block.Length, list, value);
+        private static unsafe void InsertEntry(MemoryBlock block, ICodeViewAccessor value, ICodeViewModuleAccessor codeViewModuleAccessor) =>
+            InsertEntry(block.LocalPointer, block.Length, value, codeViewModuleAccessor);
 
-        private static unsafe void InsertEntry<T>(byte* memory, int length, List<(long start, long end, T value)> list, T value)
+        private static unsafe void InsertEntry(
+            byte* memory,
+            int length,
+            ICodeViewAccessor codeViewAccessor,
+            ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             var start = (long) memory;
+
+            var list = globalAccessorRanges;
 
             var lo = 0;
             var hi = list.Count - 1;
@@ -117,39 +154,28 @@ namespace PESpy
             {
                 var mid = (lo + hi) / 2;
 
-                if (list[mid].start < start)
+                if (list[mid].Start < start)
                     lo = mid + 1;
                 else
                     hi = mid - 1;
             }
 
-            list.Insert(lo, (start, (long) (memory + length), value));
+            list.Insert(lo, new SymbolMemoryRange(start, (long) (memory + length), codeViewAccessor, codeViewModuleAccessor));
         }
 
-        internal static ImageSectionHeader[]? GetSectionHeaders(long address)
-        {
-            var accessor = FindItem(address, globalAccessorRanges, out _);
+        internal static ImageSectionHeader[]? GetSectionHeaders(long address) => FindRange(address)?.CodeViewAccessor.GetSectionHeaders();
 
-            if (accessor == null)
-                return null;
+        internal unsafe static long GetStart(SymType symType) => GetStart((long) (SYMTYPE*) symType);
 
-            return accessor.GetSectionHeaders();
-        }
+        internal static long GetStart(long address) => FindRange(address)?.Start ?? 0;
 
-        internal static long GetStart(long address)
-        {
-            FindItem(address, globalAccessorRanges, out var start);
-            return start;
-        }
+        internal static ICodeViewAccessor? GetAccessor(long address) => FindRange(address)?.CodeViewAccessor;
 
-        internal static ICodeViewAccessor? GetAccessor(long address) => FindItem(address, globalAccessorRanges, out _);
+        internal static ICodeViewModuleAccessor? GetModuleAccessor(long address) => FindRange(address)?.CodeViewModuleAccessor;
 
-        internal static bool IsLengthPrefixedData(long address) => FindItem(address, globalAccessorRanges, out _)?.HasLengthPrefixedStrings ?? false;
+        internal static bool IsLengthPrefixedData(long address) => FindRange(address)?.CodeViewAccessor.HasLengthPrefixedStrings ?? false;
 
-        private static ICodeViewAccessor? FindItem(
-            long address,
-            List<(long start, long end, ICodeViewAccessor? value)> list,
-            out long start)
+        internal static SymbolMemoryRange? FindRange(long address)
         {
             if (address == 0)
                 throw new InvalidOperationException("Cannot search for a value with address 0");
@@ -160,6 +186,8 @@ namespace PESpy
             {
                 //We ensure our ranges are sorted; we should be able to binary search
 
+                var list = globalAccessorRanges;
+
                 var low = 0;
                 var high = list.Count - 1;
 
@@ -168,13 +196,12 @@ namespace PESpy
                     var mid = low + (high - low) / 2;
                     var item = list[mid];
 
-                    if (address >= item.start)
+                    if (address >= item.Start)
                     {
-                        if (address <= item.end)
+                        if (address <= item.End)
                         {
                             //It's a match
-                            start = item.start;
-                            return item.value;
+                            return item;
                         }
                         else
                         {
@@ -192,8 +219,8 @@ namespace PESpy
                 globalMemoryRangesLock.ExitReadLock();
             }
 
-            Debug.Assert(false, "Attempted to query data in an unregistered memory address");
-            start = default;
+            //temp
+            //Debug.Assert(false, "Attempted to query data in an unregistered memory address");
             return default; //Assume it's a modern file with non-length prefixed strings
         }
 
@@ -206,7 +233,7 @@ namespace PESpy
 
             try
             {
-                globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.start));
+                globalAccessorRanges.RemoveAll(v => block.SymbolMemory.Contains(v.Start));
                 block.SymbolMemory.Clear();
             }
             finally
@@ -222,7 +249,7 @@ namespace PESpy
 
             try
             {
-                globalAccessorRanges.RemoveAll(v => v.start == (long) memory);
+                globalAccessorRanges.RemoveAll(v => v.Start == (long) memory);
             }
             finally
             {

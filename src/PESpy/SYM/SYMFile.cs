@@ -5,6 +5,8 @@ using PESpy.View;
 
 namespace PESpy
 {
+    //The Windows 1.01 and 1.03 SDK has mapsym 3.10. Can't find mapsym 2.08 to 3.0
+
     public class SYMFile : IFile
     {
         public static SYMFile FromFile(string path)

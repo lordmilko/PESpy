@@ -41,7 +41,7 @@ namespace PESpy.View
             {
                 GetContiguousSectionInfos(pdbFile, ref contiguousSections, pages);
 
-                using var merger = new Merger(pdbFile, this, structs, default, pages.AsSpan(0, numPages), byteViewProvider);
+                using var merger = new Merger(pdbFile, this, structs, pages.AsSpan(0, numPages), byteViewProvider);
 
                 var results = merger.MergePDB(contiguousSections);
 
@@ -518,7 +518,8 @@ namespace PESpy.View
             int globalPageIndex,
             int totalPagesInStream)
         {
-            if (currentContiguousSection.NameInfo.MatchName == null)
+            //We just want to know if the contiguous section has a value or not
+            if (!currentContiguousSection.HasValue)
             {
                 if (totalPagesInStream > 1)
                     currentContiguousSection = new PDBContiguousSectionInfo(nameInfo, streamIndex, localPageIndex, globalPageIndex, totalPagesInStream);
@@ -527,16 +528,13 @@ namespace PESpy.View
             {
                 if (currentContiguousSection.StreamIndex != streamIndex || localPageIndex != currentContiguousSection.LocalEndIndex + 1)
                 {
-                    if (currentContiguousSection.NameInfo.MatchName != null)
-                    {
-                        if (currentContiguousSection.NumPages > 1)
-                            contiguousSections.Add(currentContiguousSection);
-
-                        currentContiguousSection = default;
-                    }
+                    if (currentContiguousSection.NumPages > 1)
+                        contiguousSections.Add(currentContiguousSection);
 
                     if (totalPagesInStream > 1)
                         currentContiguousSection = new PDBContiguousSectionInfo(nameInfo, streamIndex, localPageIndex, globalPageIndex, totalPagesInStream);
+                    else
+                        currentContiguousSection = default;
                 }
                 else
                 {

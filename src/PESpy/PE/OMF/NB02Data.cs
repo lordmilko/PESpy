@@ -31,7 +31,7 @@ namespace PESpy
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
-            writer.WriteGlobalField(Offset + 4, "lfoDir", LfoDir, sizeof(int));
+            writer.WriteGlobalField(Offset + 4, Strings.lfoDir, LfoDir, sizeof(int), ViewKind.LfoDir);
 
             //Data comes before the headers
 
@@ -88,14 +88,14 @@ namespace PESpy
                 }
             }
 
-            writer.WriteGlobalField(Offset + LfoDir, "cDir", cDir, sizeof(ushort));
+            writer.WriteGlobalField(Offset + LfoDir, Strings.cDir, cDir, sizeof(ushort), ViewKind.cDir);
             writer.WriteGlobal(DirEntries);
 
             //The file ends with an OMFSignature containing the same signature as is at the start of the OMF data, and lfoBase.
             //We don't use OMFSignature, because it calls the offset "filepos". But the filepos is specifically either lfoDir or
             //lfoBase depending on whether the signature is at the start or end of the file
 
-            writer.WriteGlobalField(Offset + LfoBase - 8, "lfoBase", LfoBase, sizeof(int));
+            writer.WriteGlobalField(Offset + LfoBase - 8, Strings.lfoBase, LfoBase, sizeof(int), ViewKind.LfoBase);
             writer.WriteGlobal(Offset + LfoBase - 4, Signature, sizeof(int), ViewKind.CodeViewSig);
         }
 

@@ -26,8 +26,8 @@ namespace PESpy.PDB
     [DebuggerTypeProxy(typeof(SymTypeListDebugView))]
     public unsafe partial class SymTypeList : IEnumerable<SymType>
     {
-        private readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before the CV_SIGNATURE begins
-        private readonly byte* ptr;
+        internal readonly byte* start; //Start may be less than ptr when there's a CV_SIGNATURE value at the front. BlockSym ends are relative to the literal start, before where the CV_SIGNATURE begins
+        internal readonly byte* ptr;
         internal readonly byte* end;
         internal readonly ICodeViewAccessor? codeViewAccessor;
 
@@ -64,7 +64,7 @@ namespace PESpy.PDB
         {
             this.start = start;
             this.ptr = start + dataOffset;
-            this.end = ptr + length;
+            this.end = start + length;
             this.codeViewAccessor = codeViewAccessor;
         }
 
@@ -152,6 +152,11 @@ namespace PESpy.PDB
                 }
 
                 return false;
+            }
+
+            public void MoveTo(byte* ptr)
+            {
+                this.ptr = ptr;
             }
 
             public SymType Current

@@ -4,15 +4,17 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
-    //todo: nope, use struct, and we can use a framedatalist here instead of allocating
-
-    public class RvaAndFrameData : IViewableValue //Will be boxed so should be class
+    //Arguably this could be a struct, but we really need to have a non-allocating
+    //FrameData list type first, so for now leave as class. The rules around using classes
+    //due to potential boxing no longer apply, since we now have CvDebugSSubsectionHeader.GetData<T>()
+    public class RvaAndFrameData : IViewableValue
     {
         private const int RVAOffset = 0;
         public int RVA => chunk.PeekInt32(RVAOffset);
 
         private FrameData[]? frameData;
 
+        //We could use a custom list type here to reduce allocations
         public FrameData[] FrameData
         {
             get

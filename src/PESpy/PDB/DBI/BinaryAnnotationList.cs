@@ -55,6 +55,8 @@ namespace PESpy.PDB
             }
         }
 
+        public int RawLength => length;
+
         internal BinaryAnnotationList(byte* pStart, int length)
         {
             this.pStart = pStart;

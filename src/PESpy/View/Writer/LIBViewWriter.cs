@@ -60,12 +60,12 @@ namespace PESpy.View
             foreach (var item in importLibrary)
             {
                 if (item is LongImportLibraryMember l)
-                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Long): {item.ArchiveHeader.Name.ToString().TrimEnd(' ', '/')}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Long): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
                 else
                     dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
             }
 
-            using var merger = new Merger(libFile, this, structs, default, dataDirectories.Span, byteViewProvider);
+            using var merger = new Merger(libFile, this, structs, dataDirectories.Span, byteViewProvider);
 
             var results = merger.MergeLIB();
 

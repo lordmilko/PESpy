@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
@@ -436,6 +437,14 @@ namespace PESpy.PDB
                     return true;
                 }
 
+                case S_CALLSITEINFO:
+                {
+                    var sym = ((CallSiteInfo) symType);
+                    off = sym.off;
+                    seg = sym.sect;
+                    return true;
+                }
+
                 case S_CEXMODEL16:
                 {
                     var sym = ((CExMSym16) symType);
@@ -625,6 +634,14 @@ namespace PESpy.PDB
                     return true;
                 }
 
+                case S_TRAMPOLINE:
+                {
+                    var sym = ((TrampolineSym) symType);
+                    off = sym.offThunk;
+                    seg = sym.sectThunk;
+                    return true;
+                }
+
                 //ref symbols don't have a seg, but they may point to something that does!
 
                 case S_PROCREF_ST: //Not supported by DIA
@@ -744,117 +761,17 @@ namespace PESpy.PDB
             return false;
         }
 
-        public static bool IsBlockSym(in this SymType symType)
-        {
-            //msdia140!isBlockSym
-            switch (symType.rectyp)
-            {
-                //todo: all the 16-bit ones dia doesnt list
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsBlockSym(in this SymType symType) => SymType.IsBlockSym(symType.rectyp);
 
-                case S_THUNK16: //Not supported by DIA
-                case S_THUNK32_ST: //Not supported by DIA
-                case S_THUNK32:
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsDefRangeSym(in this SymType symType) => SymType.IsDefRangeSym(symType.rectyp);
 
-                case S_BLOCK16: //Not supported by DIA
-                case S_BLOCK32_ST: //Not supported by DIA
-                case S_BLOCK32:
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFunctionSym(in this SymType symType) => SymType.IsFunctionSym(symType.rectyp);
 
-                case S_WITH16: //Not supported by DIA
-                case S_WITH32_ST: //Not supported by DIA
-                case S_WITH32:
-
-                case S_LPROC16: //Not supported by DIA
-                case S_LPROC32_ST: //Not supported by DIA
-                case S_LPROC32:
-
-                case S_GPROC16: //Not supported by DIA
-                case S_GPROC32_16t: //Not supported by DIA
-                case S_GPROC32_ST: //Not supported by DIA
-                case S_GPROC32:
-
-                case S_LPROCMIPS_16t: //Not supported by DIA
-                case S_LPROCMIPS_ST: //Not supported by DIA
-                case S_LPROCMIPS:
-
-                case S_GPROCMIPS_16t: //Not supported by DIA
-                case S_GPROCMIPS_ST: //Not supported by DIA
-                case S_GPROCMIPS:
-
-                case S_LPROCIA64_ST://Not supported by DIA
-                case S_LPROCIA64:
-
-                case S_GPROCIA64:
-                case S_GPROCIA64_ST: //Not supported by DIA
-
-                case S_GMANPROC:
-                case S_GMANPROC_ST: //Not supported by DIA
-
-                case S_LMANPROC:
-                case S_LMANPROC_ST: //Not supported by DIA
-
-                //DIA has lots of logic all over the case for special casing S_TRAMPOLINE. S_TRAMPOLINE does not
-                //have a corresponding S_END symbol however, and should not be considered a block
-                case S_SEPCODE:
-                case S_LPROC32_ID:
-                case S_GPROC32_ID:
-                case S_LPROCMIPS_ID:
-                case S_GPROCMIPS_ID:
-                case S_LPROCIA64_ID:
-                case S_GPROCIA64_ID:
-                case S_INLINESITE:
-                case S_LPROC32_DPC:
-                case S_LPROC32_DPC_ID:
-                case S_INLINESITE2:
-
-                //Not publically documented, but used by DIA
-                case S_GPROC32EX:
-                case S_LPROC32EX:
-                case S_GPROC32EX_ID:
-                case S_LPROC32EX_ID:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static bool IsDefRangeSym(in this SymType symType)
-        {
-            //msdia140!SymBuffer::isDefRangeSym
-            switch (symType.rectyp)
-            {
-                case S_DEFRANGE:
-                case S_DEFRANGE_SUBFIELD:
-                case S_DEFRANGE_REGISTER:
-                case S_DEFRANGE_FRAMEPOINTER_REL:
-                case S_DEFRANGE_SUBFIELD_REGISTER:
-                case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
-                case S_DEFRANGE_REGISTER_REL:
-                case S_DEFRANGE_HLSL:
-                case S_DEFRANGE_DPC_PTR_TAG:
-                case S_DEFRANGE_REGISTER_REL_INDIR:
-                case S_DEFRANGE_CONSTVAL_ON_ENTRY:
-                case S_DEFRANGE_GLOBALSYM_ON_ENTRY:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-
-        public static bool IsEnd(in this SymType symType)
-        {
-            switch (symType.rectyp)
-            {
-                case S_END:
-                case S_ENDARG:
-                case S_INLINESITE_END:
-                case S_PROC_ID_END:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsEnd(in this SymType symType) => SymType.IsEnd(symType.rectyp);
 
         /// <summary>
         /// Gets whether a <see cref="SymType"/> contains a "proc" symbol, representing a procedure.<para/>
@@ -862,70 +779,7 @@ namespace PESpy.PDB
         /// </summary>
         /// <param name="symType">The symbol to inspect.</param>
         /// <returns>True if the symbol is some type of procedure. Otherwise, false.</returns>
-        public static bool IsProc(in this SymType symType)
-        {
-            switch (symType.rectyp)
-            {
-                //ProcSym16
-                case S_LPROC16:
-                case S_GPROC16:
-
-                //ProcSym3216t
-                case S_LPROC32_16t: //Not supported by DIA
-                case S_GPROC32_16t: //Not supported by DIA
-
-                //ProcSymMips16t
-                case S_LPROCMIPS_16t: //Not supported by DIA
-                case S_GPROCMIPS_16t: //Not supported by DIA
-
-                //ProcSym32
-                case S_LPROC32_ST: //Not supported by DIA
-                case S_GPROC32_ST: //Not supported by DIA
-                case S_LPROC32:
-                case S_GPROC32:
-                case S_LPROC32_ID:
-                case S_GPROC32_ID:
-                case S_LPROC32_DPC:
-                case S_LPROC32_DPC_ID:
-
-                //ProcSymMips
-                case S_LPROCMIPS_ST: //Not supported by DIA
-                case S_GPROCMIPS_ST: //Not supported by DIA
-                case S_LPROCMIPS:
-                case S_GPROCMIPS:
-                case S_LPROCMIPS_ID:
-                case S_GPROCMIPS_ID:
-
-                //Not sure if FRAMEPROC should be included
-
-                //ProcSymIA64
-                case S_LPROCIA64_ST: //Not supported by DIA
-                case S_GPROCIA64_ST: //Not supported by DIA
-                case S_LPROCIA64:
-                case S_GPROCIA64:
-                case S_LPROCIA64_ID:
-                case S_GPROCIA64_ID:
-
-                //ManProcSym
-                case S_GMANPROC_ST: //Not supported by DIA
-                case S_LMANPROC_ST: //Not supported by DIA
-                case S_GMANPROC:
-                case S_LMANPROC:
-
-                //Unsupported
-                case S_GPROC32EX:
-                case S_LPROC32EX:
-                case S_GPROC32EX_ID:
-                case S_LPROC32EX_ID:
-                    return true;
-
-                //All non-ST and 16-bit items map to SymTagFunction. Add any new items
-                //to SymTagFunction as well
-
-                default:
-                    return false;
-            }
-        }
+        public static bool IsProc(in this SymType symType) => SymType.IsFunctionSym(symType.rectyp);
 
         /// <summary>
         /// Gets whether a <see cref="SymType"/> contains a "thunk" symbol.<para/>
@@ -1465,7 +1319,8 @@ namespace PESpy.PDB
             in this SymType symType,
             out DataKind value,
             SymType parent = default,
-            ICodeViewAccessor? codeViewAccessor = null)
+            ICodeViewAccessor? codeViewAccessor = null,
+            ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             //I am only aware of this being valid for symbols that resolve to SymTagData
 
@@ -1667,7 +1522,7 @@ namespace PESpy.PDB
                                     throw new NotImplementedException();
                             }
 
-                            var children = ((BlockSym) parent).GetChildren(codeViewAccessor);
+                            var children = ((BlockSym) parent).GetChildren(codeViewModuleAccessor);
 
                             var numParamsSeen = 0;
 

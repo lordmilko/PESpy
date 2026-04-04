@@ -36,10 +36,10 @@ namespace PESpy.PDB
         public CV_uoff32_t offsetBase => value->offsetBase;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.sectBase"/>
-        public short sectBase => value->sectBase;
+        public ISECT sectBase => value->sectBase;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.switchType"/>
-        public short switchType => value->switchType;
+        public CV_armswitchtype switchType => value->switchType;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.offsetBranch"/>
         public CV_uoff32_t offsetBranch => value->offsetBranch;
@@ -48,13 +48,27 @@ namespace PESpy.PDB
         public CV_uoff32_t offsetTable => value->offsetTable;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.sectBranch"/>
-        public short sectBranch => value->sectBranch;
+        public ISECT sectBranch => value->sectBranch;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.sectTable"/>
-        public short sectTable => value->sectTable;
+        public ISECT sectTable => value->sectTable;
 
         /// <inheritdoc cref="ARMSWITCHTABLE.cEntries"/>
         public int cEntries => value->cEntries;
+
+        #region PESpy
+
+        public int? BaseRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectBase, offsetBase);
+
+        public int? BranchRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectBranch, offsetBranch);
+
+        public int? TableRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectTable, offsetTable);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int StructSize =
             sizeof(ushort) + //reclen
@@ -104,7 +118,7 @@ namespace PESpy.PDB
                     break;
 
                 case 4:
-                    structWriter.WriteField(nameof(switchType), switchTypeOffset, switchType);
+                    structWriter.WriteField(nameof(switchType), switchTypeOffset, switchType, sizeof(short));
                     break;
 
                 case 5:

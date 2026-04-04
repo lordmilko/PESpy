@@ -211,21 +211,17 @@ namespace PESpy.View
                     }
                     else
                     {
-                        //SlicePaged against Span<ushort> will allocate an array anyway, so we don't need to worry about renting
-                        var msfHeader = ((PDB2File) PDBFile).MsfHeader;
-                        var rawPages = msfHeader.StreamTablePageList;
-
-                        pageList = new PN[rawPages.Length];
-
-                        for (var i = 0; i < rawPages.Length; i++)
-                            pageList[i] = rawPages[i];
-
+                        var v2 = (PDB2File) PDBFile;
+                        var msfHeader = v2.MsfHeader;
+                        pageList = v2.StreamTablePageListArray;
                         byteCount = msfHeader.StreamTableSizeInfo.ByteCount;
                     }
                     break;
 
                 case Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION: //-5
-                    throw new NotImplementedException();
+                    pageList = ((PDB7File) PDBFile)._pagesOfStreamTablePageListArray;
+                    byteCount = pageList.Length * PDBFile.PageSize;
+                    break;
 
                 default:
                     var si = PDBFile.StreamTable.StreamInfos[siIndex];
@@ -255,6 +251,11 @@ namespace PESpy.View
             }
 
             return _viewWriter;
+        }
+
+        protected override ViewWriter GetViewWriterForAddress(int targetOffset)
+        {
+            throw new NotImplementedException();
         }
 
         internal override bool TryGetDataSymbol(ulong address, int rva, out FixedUtf8String name, out int displacement)
@@ -302,8 +303,7 @@ namespace PESpy.View
 
                     if (pViewByte->BodyKind == ViewByteBodyKind.SplitHead)
                     {
-                        //break; //It's the start of another body chunk; repeat the outer loop to continue trying to find the head
-                        throw new NotImplementedException("Need to actually do some tests using split head to make sure this logic is correct");
+                        break; //It's the start of another body chunk; repeat the outer loop to continue trying to find the head
                     }
 
                     pViewByte--;

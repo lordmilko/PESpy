@@ -19,12 +19,14 @@ namespace PESpy
         }
     }
 
+    /// <summary>
+    /// Represents a non-allocating list that is backed by a rented array.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     [DebuggerTypeProxy(typeof(PooledListDebugView<>))]
     [DebuggerDisplay("Count = {Count}")]
     internal ref struct PooledList<T>
     {
-        private const int defaultCapacity = 16;
-
         public int Count { get; private set; }
 
         public int Capacity => array.Length;
@@ -37,6 +39,12 @@ namespace PESpy
         {
             array = ArrayPool<T>.Shared.Rent(capacity);
             Count = 0;
+        }
+
+        internal PooledList(T[] items)
+        {
+            array = items;
+            Count = items.Length;
         }
 
         internal PooledList(List<T> items)
@@ -59,10 +67,12 @@ namespace PESpy
             }
         }
 
+        public ref T ItemRef(int index) => ref array[index];
+
         public void Add(in T item)
         {
             var count = Count;
-            EnsureCapacity(count + 1);
+            ValueArrayHelpers<T>.EnsureCapacity(count + 1, ref array);
 
             array[count] = item;
             Count = count + 1;
@@ -74,7 +84,7 @@ namespace PESpy
                 return;
 
             var count = Count;
-            EnsureCapacity(count + items.Count);
+            ValueArrayHelpers<T>.EnsureCapacity(count + items.Count, ref array);
             Debug.Assert(array.Length >= items.Count);
 
             items.CopyTo(array, count);

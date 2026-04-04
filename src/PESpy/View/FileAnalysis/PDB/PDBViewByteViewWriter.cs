@@ -41,6 +41,11 @@ namespace PESpy.View
             return RegisterValue(offset, size, kind, fromRegion);
         }
 
+        public override void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
+        {
+            RegisterStruct(name, offset, kind, size);
+        }
+
         private IView? RegisterStruct(FixedUtf8String name, int offset, ViewKind kind, int structSize)
         {
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
@@ -85,13 +90,13 @@ namespace PESpy.View
                  */
 
                 var ptr = (byte*) pViewByte + 1;
-                var end = ptr + size - 1;
+                var end = pViewByte + size;
 
                 const byte mask = unchecked((byte) ~ViewByte.KindMask);
                 const byte value = (byte) ViewByteKind.Body;
 
                 //Unroll 8 bytes at a time
-                while (ptr + 8 <= end)
+                while (ptr + 8 < end)
                 {
                     ptr[0] = (byte) ((ptr[0] & mask) | value);
                     ptr[1] = (byte) ((ptr[1] & mask) | value);
@@ -110,12 +115,21 @@ namespace PESpy.View
                     *ptr = (byte) ((*ptr & mask) | value);
                     ptr++;
                 }
+
+#if DEBUG
+                ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+                if (sectionAccessor.Bytes[sectionAccessor.Length - 2].Kind == ViewByteKind.Body)
+                    Debug.Assert(sectionAccessor.Bytes[sectionAccessor.Length - 1].Kind == ViewByteKind.Body);
+
+                var writtenLength = pViewByte->GetLength(sectionAccessor.pViewBytes + sectionAccessor.Length);
+                Debug.Assert(writtenLength == size);
+#endif
             }
             else
             {
                 var currentSegmentStart = offset;
                 var numBytesToWrite = 0;
-                var remaining = size - 1; //We already wrote the first byte
+                var remaining = size; //We already wrote the first byte, but our end is not inclusive
 
                 //The value spans multiple pages. The question now is, what should we do?
 
@@ -129,12 +143,12 @@ namespace PESpy.View
                         //The section accessor only has room for a single page here; we need to write to the end,
                         //lookup where the next page begins, get the corresponding view byte and section accessor index for it
                         //and loop again
-                        numBytesToWrite = Math.Min(pageSize - relativeOffset, remaining);
+                        numBytesToWrite = Math.Min((pageSize - relativeOffset), remaining);
                     }
                     else
                     {
                         //We can write multiple page's worth in one go
-                        numBytesToWrite = Math.Min(remaining, sectionAccessor.EndAddress - currentSegmentStart);
+                        numBytesToWrite = Math.Min(remaining, (sectionAccessor.EndAddress - currentSegmentStart));
                     }
 
                     /* We want to execute
@@ -146,13 +160,13 @@ namespace PESpy.View
                      */
 
                     var ptr = (byte*) pViewByte + 1;
-                    var end = ptr + numBytesToWrite - 1;
+                    var end = pViewByte + numBytesToWrite;
 
                     const byte mask = unchecked((byte) ~ViewByte.KindMask);
                     const byte value = (byte) ViewByteKind.Body;
 
                     //Unroll 8 bytes at a time
-                    while (ptr + 8 <= end)
+                    while (ptr + 8 < end)
                     {
                         ptr[0] = (byte) ((ptr[0] & mask) | value);
                         ptr[1] = (byte) ((ptr[1] & mask) | value);
@@ -172,6 +186,11 @@ namespace PESpy.View
                         ptr++;
                     }
 
+#if DEBUG
+                    if (sectionAccessor.Bytes[sectionAccessor.Length - 2].Kind == ViewByteKind.Body)
+                        Debug.Assert(sectionAccessor.Bytes[sectionAccessor.Length - 1].Kind == ViewByteKind.Body);
+#endif
+
                     remaining -= numBytesToWrite;
 
                     //If we're a multi-page section, we want GetNextPageOffset to get the page after the last page in the section range we just processed, not the first page in the range
@@ -190,9 +209,11 @@ namespace PESpy.View
 
                     //Note that there is not a 1:1 correspondence between page index and section accessor index,
                     //because we consolidate contiguous pages into one
-                    pViewByte = _fileAccessor.GetViewByte(currentSegmentStart, out sectionAccessorIndex) - 1; //The body builder always does +1
-                    (pViewByte + 1)->Kind = ViewByteKind.Body; //Need to set this to mark it as the head of a split
-                    (pViewByte + 1)->BodyKind = ViewByteBodyKind.SplitHead;
+                    pViewByte = _fileAccessor.GetViewByte(currentSegmentStart, out sectionAccessorIndex);
+                    pViewByte->Kind = ViewByteKind.Body; //Need to set this to mark it as the head of a split
+                    pViewByte->BodyKind = ViewByteBodyKind.SplitHead;
+
+                    //Don't decrement remaining here, because we want to check against < end
                 }
             }
         }

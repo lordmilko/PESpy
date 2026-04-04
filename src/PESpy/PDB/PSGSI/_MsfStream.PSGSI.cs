@@ -49,7 +49,7 @@ namespace PESpy.PDB
 
             private readonly PSGSIHDR psgsiHdr;
 
-            public ref readonly PSGSIHDR PSGsiHdr => ref psgsiHdr;
+            public PSGSIHDR PSGsiHdr => psgsiHdr;
 
             //PSGSI contains two ways of retrieving symbols: via the GSI hash records, and via the address map.
             //The address map simply contains a list of offsets into snSymRecs, which is the same as what the hash
@@ -72,7 +72,7 @@ namespace PESpy.PDB
             /// HashRecords. There were 5 entries missing from HashRecords that were present in AddressMapSymbols. The difference was that there was duplicate
             /// records of [S_PUB32] DomainBoundILStubClass.IL_STUB_PInvoke()$##6000000 and [S_PUB32] DomainBoundILStubClass.IL_STUB_PInvoke(tagVARIANT*)$##6000000
             /// </remarks>
-            public AddressMapSymTypeList? AddressMapSymbols { get; }
+            public AddressMapSymTypeList? AddressMapSymbols { get; private set; }
 
             /// <summary>
             /// Gets the RVAs of all functions in the PE File that have a thunk that points to them.<para/>
@@ -161,6 +161,9 @@ namespace PESpy.PDB
             private SYMTYPE*[]? fakeThunkSymbols;
             private MemoryBuffer[]? fakeThunkStorage;
 
+            private IntPtr _virtualAddressMap;
+            private IntPtr _baseThunkSym;
+
             internal unsafe PSGSI(in MemoryChunk chunk) : base(chunk.Slice(PSGSIHDR.StructSize), chunk.PeekInt32(0)) //cbSymHash
             {
                 psgsiHdr = new PSGSIHDR(chunk);
@@ -175,8 +178,26 @@ namespace PESpy.PDB
                     if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
                         throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
 
-                    AddressMapSymbols = new AddressMapSymTypeList(AddressMap, symbolChunk.Pointer);
+                    AddressMapSymbols = new AddressMapSymTypeList(
+                        AddressMap,
+                        symbolChunk.Pointer,
+                        PSGsiHdr,
+                        out _virtualAddressMap,
+                        out _baseThunkSym
+                    );
                 }
+            }
+
+            public bool TryEnumByAddr(out EnumPubsByAddr enumByAddr)
+            {
+                if (AddressMapSymbols != null)
+                {
+                    enumByAddr = new EnumPubsByAddr(this);
+                    return true;
+                }
+
+                enumByAddr = default;
+                return false;
             }
 
             /* PSGSI methods
@@ -530,7 +551,7 @@ namespace PESpy.PDB
                     //We won the race. Register this storage with the PDB so that symbols can resolve RVAs, etc without holding
                     //a direct reference to the PDBFile
                     var pdbFile = chunk.PDBFile();
-                    SymbolMemoryTracker.RegisterPDBSymbolMemory(pdbFile.globalBlock, buffer, size);
+                    SymbolMemoryTracker.RegisterPDBSymbolMemory(pdbFile.globalBlock, buffer, size, null);
                 }
                 else
                 {
@@ -573,7 +594,16 @@ namespace PESpy.PDB
 
                 name[i++] = (byte) '(';
 
-                i += Demangler.ParseString(targetName, name.Slice(i), UNDNAME.UNDNAME_NAME_ONLY);
+                //I only want to undecorate C++ mangled names. C names that embed their calling
+                //convention can stay as is
+
+                if (targetName.StartsWith("?"))
+                    i += Demangler.ParseString(targetName, name.Slice(i), UNDNAME.UNDNAME_NAME_ONLY);
+                else
+                {
+                    targetName.CopyTo(name.Slice(i));
+                    i += targetName.Length;
+                }
 
                 if (targetDisplacement != 0)
                 {
@@ -638,7 +668,7 @@ namespace PESpy.PDB
                 if (addressMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(AddressMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, "Address Map", addressMap, psgsiHdr.cbAddrMap);
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.AddressMap, addressMap, psgsiHdr.cbAddrMap, ViewKind.AddressMap);
                 }
 
                 var thunkMap = ThunkMap;
@@ -646,7 +676,7 @@ namespace PESpy.PDB
                 if (thunkMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(ThunkMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, "Thunk Map", thunkMap, psgsiHdr.nThunks * sizeof(int));
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.ThunkMap, thunkMap, psgsiHdr.nThunks * sizeof(int), ViewKind.ThunkMap);
                 }
 
                 var sectionMap = SectionMap;
@@ -654,7 +684,7 @@ namespace PESpy.PDB
                 if (sectionMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(SectionMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, "Section Map", sectionMap, psgsiHdr.nSects * sizeof(SO));
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.SectionMap, sectionMap, psgsiHdr.nSects * sizeof(SO), ViewKind.SectionMap);
                 }
             }
 
@@ -669,6 +699,19 @@ namespace PESpy.PDB
                     }
 
                     fakeThunkSymbols = default;
+                }
+
+                if (_virtualAddressMap != default)
+                {
+                    Marshal.FreeHGlobal(_virtualAddressMap);
+                    _virtualAddressMap = default;
+                    AddressMapSymbols = null;
+                }
+
+                if (_baseThunkSym != default)
+                {
+                    Marshal.FreeHGlobal(_baseThunkSym);
+                    _baseThunkSym = default;
                 }
             }
         }

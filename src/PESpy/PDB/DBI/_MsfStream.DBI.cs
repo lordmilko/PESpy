@@ -43,7 +43,7 @@ namespace PESpy.PDB
 
                                 while (totalRead < end)
                                 {
-                                    var module = new Modi60(moduleChunk.Slice(totalRead), out var read);
+                                    var module = new Modi60(moduleChunk.Slice(totalRead), (ushort) results.Count, out var read);
                                     results.Add(module);
                                     totalRead += read;
                                 }
@@ -60,7 +60,7 @@ namespace PESpy.PDB
 
                                         while (totalRead < end)
                                         {
-                                            var module = new Modi50(moduleChunk.Slice(totalRead), out var read);
+                                            var module = new Modi50(moduleChunk.Slice(totalRead), (ushort) results.Count, out var read);
                                             results.Add(module);
                                             totalRead += read;
                                         }
@@ -84,7 +84,7 @@ namespace PESpy.PDB
                             {
                                 while (totalRead < end)
                                 {
-                                    var module = new Modi20(moduleChunk.Slice(totalRead), out var read);
+                                    var module = new Modi20(moduleChunk.Slice(totalRead), (ushort) results.Count, out var read);
                                     results.Add(module);
                                     totalRead += read;
                                 }
@@ -93,7 +93,7 @@ namespace PESpy.PDB
                             {
                                 while (totalRead < end)
                                 {
-                                    var module = new Modi(moduleChunk.Slice(totalRead), out var read);
+                                    var module = new Modi(moduleChunk.Slice(totalRead), (ushort) results.Count, out var read);
                                     results.Add(module);
                                     totalRead += read;
                                 }
@@ -412,7 +412,7 @@ namespace PESpy.PDB
 
                         if (pdbFile.TryGetStreamChunk(DbiHdr.snSymRecs, out var symRecChunk))
                         {
-                            SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk);
+                            SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk, null);
                             Debug.Assert(symRecChunk.RelativeOffset == 0);
                             symbols = new SymTypeList(symRecChunk.Pointer, 0, symRecChunk.Remaining, pdbFile);
                         }
@@ -471,6 +471,27 @@ namespace PESpy.PDB
                 _ = DbgHdr;
                 _ = Symbols;
 #endif
+            }
+
+            /// <summary>
+            /// Gets an iterator capable of locating the closest section contrib that is associated with a given address,
+            /// and iterating through the section contribs that exist before and after that address.<para/>
+            /// This method is equivalent to DBI1::getEnumContrib in mspdbcore.dll
+            /// </summary>
+            /// <param name="enumSC">An iterator capable of locating and iterating through section contribs.</param>
+            /// <returns>True if section contribs are available, otherwise false.</returns>
+            public bool TryEnumContribs(out EnumSC enumSC)
+            {
+                var sectionContribs = SectionContribs;
+
+                if (sectionContribs != null)
+                {
+                    enumSC = new EnumSC(sectionContribs);
+                    return true;
+                }
+
+                enumSC = default;
+                return false;
             }
 
             void IViewable.WriteGlobals(ViewWriter writer)

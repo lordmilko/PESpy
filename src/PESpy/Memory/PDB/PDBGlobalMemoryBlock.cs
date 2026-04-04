@@ -57,16 +57,6 @@ namespace PESpy
             return new MemoryChunk(pagedBlock, 0);
         }
 
-        internal MemoryChunk SlicePaged(Span<ushort> pageList, int byteCount)
-        {
-            var arr = new PN[pageList.Length];
-
-            for (var i = 0; i < pageList.Length; i++)
-                arr[i] = pageList[i];
-
-            return SlicePaged(arr, byteCount);
-        }
-
         internal MemoryChunk SlicePaged(in SI streamInfo) => SlicePaged(streamInfo.PageList, streamInfo.ByteCount);
 
         public override unsafe void Dispose(bool disposing)

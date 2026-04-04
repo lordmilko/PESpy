@@ -19,6 +19,7 @@ namespace PESpy.View
         private readonly Dictionary<int, int> _largeAddresses;
 
         private int _bytesRead;
+        private bool _hasMovedNext; //When we SliceFromCurrent, if we haven't called MoveNext after calling MoveTo, bytesRead hasn't been incremented so we don't need to subtract Current.Length
         private ViewEntity _current;
 
         internal ViewEntityIterator(
@@ -48,7 +49,7 @@ namespace PESpy.View
         public ViewEntityIterator SliceFromCurrent(int length)
         {
             return new ViewEntityIterator(
-                _bytesRead - Current.Length,
+                _hasMovedNext ? _bytesRead - Current.Length : _bytesRead,
                 _symbolAccessor,
                 SectionAccessor,
                 SectionAccessorIndex,
@@ -66,6 +67,7 @@ namespace PESpy.View
         {
             if (_bytesRead < _sectionLength)
             {
+                _hasMovedNext = true;
                 _current = GetEntity();
                 _bytesRead += _current.Length;
                 return true;
@@ -98,6 +100,24 @@ namespace PESpy.View
             return true;
         }
 
+        internal struct CountState
+        {
+            public IList<RegionBuilder> Regions;
+            public int NextRegionIndex;
+            public int NextRegionOffset;
+            public bool HasRegions => Regions?.Count > 0;
+
+            public NestedFileRange[] NestedFiles;
+            public int NextNestedFileIndex;
+            public int NextNestedFileOffset;
+            public bool HasNestedFiles => NestedFiles?.Length > 0;
+
+            public IList<RegionBuilder> DataDirectories;
+            public int NextDataDirectoryIndex;
+            public int NextDataDirectoryOffset;
+            public bool HasDataDirectories => DataDirectories?.Count > 0;
+        }
+
         internal unsafe int GetCount(FileAccessor fileAccessor, GlobalViewProviderKind kind, int depthAtStartOffset)
         {
             var bytesRead = _startOffset;
@@ -112,20 +132,34 @@ namespace PESpy.View
             var names = _names;
             var largeAddresses = _largeAddresses;
 
-            IList<RegionBuilder> regions = fileAccessor.TopLevelRegions;
-            var nextRegionIndex = 0;
-            var nextRegionOffset = -1;
+            var state = new CountState
+            {
+                Regions = fileAccessor.TopLevelRegions,
+                NextRegionIndex = 0,
+                NextRegionOffset = -1,
+
+                NestedFiles = fileAccessor.NestedFileRanges,
+                NextNestedFileIndex = 0,
+                NextNestedFileOffset = -1,
+
+                NextDataDirectoryOffset = -1,
+            };
 
             var targetStart = sectionAccessor.StartAddress + _startOffset;
 
-            if (regions?.Count > 0)
+            if (state.HasRegions)
             {
-                //Find the first directory prior to the start of this section
+                //Find the first region prior to the start of this section
 
-                FindStartRegion(regions, targetStart, ref nextRegionIndex, ref nextRegionOffset);
+                FindStartRegion(state.Regions, targetStart, ref state.NextRegionIndex, ref state.NextRegionOffset);
 
                 if (kind == GlobalViewProviderKind.Region)
-                    DrillIntoRegion(ref regions, depthAtStartOffset, ref nextRegionIndex, ref nextRegionOffset);
+                    DrillIntoRegion(ref state.Regions, depthAtStartOffset, ref state.NextRegionIndex, ref state.NextRegionOffset);
+            }
+
+            if (state.HasNestedFiles)
+            {
+                FindStartNestedFile(targetStart, ref state);
             }
 
             if (kind != GlobalViewProviderKind.Region)
@@ -134,14 +168,14 @@ namespace PESpy.View
                 var nextDataDirectoryIndex = 0;
                 var nextDataDirectoryOffset = -1;
 
-                if (dataDirectories?.Count > 0)
+                if (state.HasDataDirectories)
                 {
                     //Find the first directory prior to the start of this section
 
                     FindStartRegion(dataDirectories, targetStart, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
 
                     if (kind == GlobalViewProviderKind.Directory)
-                        DrillIntoRegion(ref dataDirectories, depthAtStartOffset, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
+                        DrillIntoRegion(ref state.DataDirectories, depthAtStartOffset, ref state.NextDataDirectoryIndex, ref state.NextDataDirectoryOffset);
                 }
 
                 while (bytesRead < sectionLength)
@@ -151,18 +185,13 @@ namespace PESpy.View
                     var entity = new ViewEntity(symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
                     Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
 
-                    if (entity.TargetAddress == nextDataDirectoryOffset)
+                    if (entity.TargetAddress == state.NextDataDirectoryOffset)
                     {
                         SkipOverDirectory(dataDirectories, sectionAccessor, ref bytesRead, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
                         SkipOverDirectory(
-                            dataDirectories,
                             sectionAccessor,
                             ref bytesRead,
-                            ref nextDataDirectoryIndex,
-                            ref nextDataDirectoryOffset,
-                            regions,
-                            ref nextRegionIndex,
-                            ref nextRegionOffset
+                            ref state
                         );
                     }
                     else if (entity.TargetAddress == nextRegionOffset)
@@ -174,21 +203,22 @@ namespace PESpy.View
                         bytesRead += entity.Length;
 
 #if DEBUG
-                        if (nextDataDirectoryOffset != -1)
-                            Debug.Assert(entity.TargetAddress < nextDataDirectoryOffset);
+                        if (state.NextDataDirectoryOffset != -1)
+                            Debug.Assert(entity.TargetAddress < state.NextDataDirectoryOffset);
 
-                        if (nextRegionOffset != -1)
-                            Debug.Assert(entity.TargetAddress < nextRegionOffset);
+                        if (state.NextRegionOffset != -1)
+                            Debug.Assert(entity.TargetAddress < state.NextRegionOffset);
 #endif
+                        entities.Add(entity);
                     }
 
                     count++;
                 }
 
 #if DEBUG
-                if (dataDirectories != null && nextDataDirectoryIndex < dataDirectories.Count)
+                if (state.DataDirectories != null && state.NextDataDirectoryIndex < state.DataDirectories.Count)
                 {
-                    var dataDirectory = dataDirectories[nextDataDirectoryIndex];
+                    var dataDirectory = state.DataDirectories[state.NextDataDirectoryIndex];
 
                     var end = StartTargetAddress + sectionLength;
 
@@ -205,7 +235,7 @@ namespace PESpy.View
                     var entity = new ViewEntity(symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
                     Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
 
-                    if (entity.TargetAddress == nextRegionOffset)
+                    if (entity.TargetAddress == state.NextRegionOffset)
                     {
                         SkipOverRegion(regions, sectionAccessor, ref bytesRead, ref nextRegionIndex, ref nextRegionOffset);
                     }
@@ -235,6 +265,25 @@ namespace PESpy.View
                 else
                 {
                     offset = region.Start;
+                    break;
+                }
+            }
+        }
+
+        //Find the nest nested file at or after the current address
+        private void FindStartNestedFile(
+            int targetStart,
+            ref CountState state)
+        {
+            while (state.NextNestedFileIndex < state.NestedFiles.Length)
+            {
+                var nestedFileRange = state.NestedFiles[state.NextNestedFileIndex];
+
+                if (nestedFileRange.StartOffset < targetStart)
+                    state.NextNestedFileIndex++;
+                else
+                {
+                    state.NextNestedFileOffset = nestedFileRange.StartOffset;
                     break;
                 }
             }
@@ -272,85 +321,121 @@ namespace PESpy.View
         }
 
         private void SkipOverDirectory(
-            IList<RegionBuilder> dataDirectories,
             in SectionAccessor sectionAccessor,
             ref int bytesRead,
-            ref int nextDataDirectoryIndex,
-            ref int nextDataDirectoryOffset,
-            IList<RegionBuilder> regions,
-            ref int nextRegionIndex,
-            ref int nextRegionOffset)
+            ref CountState state)
         {
-            ref var directory = ref dataDirectories[nextDataDirectoryIndex];
+            var directory = state.DataDirectories[state.NextDataDirectoryIndex];
 
             var endOffset = directory.End - sectionAccessor.StartAddress;
 
             //If the next region we want to read was inside this directory, we need to skip over that too
-            while (nextRegionOffset != -1 && nextRegionOffset < directory.End)
+            while (state.NextRegionOffset != -1 && state.NextRegionOffset < directory.End)
             {
                 var temp = bytesRead;
 
-                SkipOverRegion(regions, sectionAccessor, ref temp, ref nextRegionIndex, ref nextRegionOffset);
+                SkipOverRegion(sectionAccessor, ref temp, ref state);
             }
 
             //This entity will be subsumed within a data directory, so it won't count. Skip all other entities
             //that would be contained within this directory
             bytesRead = endOffset;
 
-            nextDataDirectoryIndex++;
+            state.NextDataDirectoryIndex++;
 
         repeat:
-            if (nextDataDirectoryIndex < dataDirectories.Count)
+            if (state.NextDataDirectoryIndex < state.DataDirectories.Count)
             {
                 //Watch out for multiple directories sharing the same bounds! e.g. ExeptionTableDirectory
                 //can share the same bounds as R2R RuntimeFunctionsDirectory
-                var nextDirectory = dataDirectories[nextDataDirectoryIndex];
+                var nextDirectory = state.DataDirectories[state.NextDataDirectoryIndex];
 
                 if (nextDirectory.Start == directory.Start)
                 {
-                    nextDataDirectoryIndex++;
+                    state.NextDataDirectoryIndex++;
                     goto repeat;
                 }
 
-                nextDataDirectoryOffset = nextDirectory.Start;
+                state.NextDataDirectoryOffset = nextDirectory.Start;
             }
             else
-                nextDataDirectoryOffset = -1;
+                state.NextDataDirectoryOffset = -1;
         }
 
         private void SkipOverRegion(
-            IList<RegionBuilder> regions,
             in SectionAccessor sectionAccessor,
             ref int bytesRead,
-            ref int nextRegionIndex,
-            ref int nextRegionOffset)
+            ref CountState state)
         {
-            var region = regions[nextRegionIndex];
+            var region = state.Regions[state.NextRegionIndex];
 
             var endOffset = region.End - sectionAccessor.StartAddress;
 
             bytesRead = endOffset;
 
-            nextRegionIndex++;
+            state.NextRegionIndex++;
+
+            //Note that in the case of a bundle manifest, while there might be a region for the manifest
+            //the actual data is still in the overlay outside of the region, so we still won't have to
+            //worry about having directories inside of regions
 
         repeat:
-            if (nextRegionIndex < regions.Count)
+            if (state.NextRegionIndex < state.Regions.Count)
             {
                 //Watch out for multiple directories sharing the same bounds! e.g. ExeptionTableDirectory
                 //can share the same bounds as R2R RuntimeFunctionsDirectory
-                var nextRegion = regions[nextRegionIndex];
+                var nextRegion = state.Regions[state.NextRegionIndex];
 
                 if (nextRegion.Start == region.Start)
                 {
-                    nextRegionIndex++;
+                    state.NextRegionIndex++;
 
                     goto repeat;
                 }
 
-                nextRegionOffset = nextRegion.Start;
+                state.NextRegionOffset = nextRegion.Start;
             }
             else
-                nextRegionOffset = -1;
+                state.NextRegionOffset = -1;
+        }
+
+        private void SkipOverNestedFile(
+            in SectionAccessor sectionAccessor,
+            ref int bytesRead,
+            ref CountState state)
+        {
+            var nestedFile = state.NestedFiles[state.NextNestedFileIndex];
+
+            var endOffset = nestedFile.EndOffset - sectionAccessor.StartAddress;
+
+            //If the next region we want to read was inside this nested file, we need to skip over that too
+            while (state.NextRegionOffset != -1 && state.NextRegionOffset < nestedFile.EndOffset)
+            {
+                var temp = bytesRead;
+
+                SkipOverRegion(sectionAccessor, ref temp, ref state);
+            }
+
+            //The same is also true of any directories that may have been contained within the nested file
+            while (state.NextDataDirectoryOffset != -1 && state.NextDataDirectoryOffset < nestedFile.EndOffset)
+            {
+                var temp = bytesRead;
+
+                SkipOverDirectory(sectionAccessor, ref temp, ref state);
+            }
+
+            bytesRead = endOffset;
+
+            state.NextNestedFileIndex++;
+
+            if (state.NextNestedFileIndex < state.NestedFiles.Length)
+            {
+                var nextNestedFile = state.NestedFiles[state.NextNestedFileIndex];
+
+                state.NextNestedFileOffset = nextNestedFile.StartOffset;
+            }
+            else
+                state.NextNestedFileOffset = -1;
         }
 
         public void Reset()

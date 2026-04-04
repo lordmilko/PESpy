@@ -8,6 +8,9 @@ using PESpy.View.Builder;
 
 namespace PESpy.View
 {
+    //We want to be able to tell IMAGE_IMPORT_BY_NAME entities that belong to imports vs delay imports. For regular imports, we create
+    //a ViewKind ImportStrings. Otherwise its DelayImportStrings
+
     public enum ViewTag
     {
         Import = 1,
@@ -36,7 +39,6 @@ namespace PESpy.View
 
         internal ByteViewProvider byteViewProvider;
         private HashSet<int> trackedAddresses;
-        protected Dictionary<ViewTag, HashSet<IView>> taggedViews;
         protected ViewMode mode;
         private ViewTag currentTag;
         private ViewKind currentScope;
@@ -81,7 +83,6 @@ namespace PESpy.View
             listPool = new Stack<List<IView>>();
             viewStack = new Stack<List<IView>>();
             trackedAddresses = new HashSet<int>();
-            taggedViews = new Dictionary<ViewTag, HashSet<IView>>();
 
 #if DEBUG
             globalFields = new HashSet<long>();
@@ -103,7 +104,6 @@ namespace PESpy.View
             listPool = parentWriter.listPool;
             viewStack = new Stack<List<IView>>();
             trackedAddresses = parentWriter.trackedAddresses;
-            taggedViews = parentWriter.taggedViews;
 
 #if DEBUG
             globalFields = parentWriter.globalFields;
@@ -254,11 +254,15 @@ namespace PESpy.View
 
             var byteViewProvider = new LocalByteViewProvider(provider.Pointer - provider.StartOffset, provider.StartOffset + length, this.byteViewProvider.ViewDisassembler);
 
+            EnterNestedFile(provider.StartOffset, length, peFile);
+
             var nestedWriter = new NestedPEViewWriter((PEViewWriter) this, byteViewProvider, peFile);
 
             nestedWriter.WriteGlobal(peFile);
 
             var view = nestedWriter.Finalize();
+
+            ExitNestedFile();
 
             globalList.Add(view);
         }
@@ -395,20 +399,17 @@ namespace PESpy.View
             UnmanagedOffset = oldOffset;
         }
 
-        public void WriteGlobalField<T>(int offset, string name, in T value, int size, FieldViewFlags flags = default)
+        public virtual void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
         {
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
             {
-                if (shouldAdd)
-                {
-                    Push(globalList);
+                Push(globalList);
 
-                    AddView(new FieldView<T>(offset, name, value, size, flags));
+                AddView(new FieldView<T>(offset, name.ToString(), value, size, default));
 
-                    Pop();
-                }
+                Pop();
             }
         }
 
@@ -459,7 +460,7 @@ namespace PESpy.View
         }
 
         internal unsafe void WritePagedGlobal<T>(int startRelativeOffset, PagedMemoryBlock block, NativeSpan<T> value, ViewKind viewKind) where T : unmanaged
-        {
+       {
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             foreach (var item in value)
@@ -525,55 +526,6 @@ namespace PESpy.View
             }
 
             return null;
-        }
-
-        public void WriteTaggedGlobal<T>(in T value) where T : IViewable
-        {
-            if (currentTag == 0)
-                throw new NotImplementedException();
-
-            var view = value.WriteStruct(this);
-
-            if (view != null)
-            {
-                if (!taggedViews.TryGetValue(currentTag, out var hashSet))
-                {
-                    hashSet = new HashSet<IView>();
-                    hashSet.Add(view);
-                    taggedViews[currentTag] = hashSet;
-                }
-                else
-                    hashSet.Add(view);
-
-                AddView(view);
-            }
-        }
-
-        public void WriteTaggedGlobal<T>(int offset, in T value, int size, ViewKind kind)
-        {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
-
-            if (shouldAdd)
-            {
-                if (currentTag == 0)
-                    throw new NotImplementedException();
-
-                var valueView = NewValue<T>(viewOffset, value, size, kind);
-
-                if (valueView != null)
-                {
-                    if (!taggedViews.TryGetValue(currentTag, out var hashSet))
-                    {
-                        hashSet = new HashSet<IView>();
-                        hashSet.Add(valueView);
-                        taggedViews[currentTag] = hashSet;
-                    }
-                    else
-                        hashSet.Add(valueView);
-
-                    AddView(valueView);
-                }
-            }
         }
 
         #region Field Globals
@@ -699,7 +651,7 @@ namespace PESpy.View
             }
         }
 
-        public void WriteVAPointerField(VA<int[]> value, ViewKind valueKind, int structOffset, int fieldOffset)
+        public void WriteVAPointerField(VA<NativeSpan<int>> value, ViewKind valueKind, int structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
             {
@@ -884,7 +836,7 @@ namespace PESpy.View
         {
         }
 
-        public void WriteRVAXRef(int structOffset, int fieldOffset, VA<int[]> value)
+        public void WriteRVAXRef(int structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
             if (value.IsValid)
             {
@@ -897,7 +849,7 @@ namespace PESpy.View
         {
         }
 
-        public void WriteVAXRef(int structOffset, int fieldOffset, VA<int[]> value)
+        public void WriteVAXRef(int structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
             if (value.IsValid)
             {
@@ -927,15 +879,17 @@ namespace PESpy.View
             return new ValueView<T>(offset, value, size, kind);
         }
 
-        internal virtual RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false)
+        internal virtual RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
         {
             return new ValueView<T>(offset, value, size, kind);
+            var writer = nestedViewWriter ?? this;
+
             if (global)
-                Push(globalList);
+                writer.Push(globalList);
 
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
-            return new RegionWriter(viewOffset, name, kind, this, global, default, shouldAdd);
+            return new RegionWriter(viewOffset, name, kind, writer, global, default, shouldAdd);
         }
 
         internal virtual RegionWriter CreateRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, bool global
@@ -944,6 +898,7 @@ namespace PESpy.View
             , long listedAddress
 #pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 #endif
+            , ViewWriter nestedViewWriter = null
             )
         {
             WriteOffsetXRef(structOffset, fieldOffset, offset);
@@ -952,14 +907,16 @@ namespace PESpy.View
             globalFields.Add(listedAddress);
 #endif
 
+            var writer = nestedViewWriter ?? this;
+
             //todo: if its not global, are we writing the region under a structwriter? how does that make sense? will the offsets actually be inside the struct?
             //if not it doesnt make sense. if so, we wouldnt be correctly updating the offsets on the struct
             if (global)
-                Push(globalList);
+                writer.Push(globalList);
 
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
-            return new RegionWriter(viewOffset, name, kind, this, global, default, shouldAdd);
+            return new RegionWriter(viewOffset, name, kind, writer, global, default, shouldAdd);
         }
 
         /// <summary>
@@ -973,6 +930,7 @@ namespace PESpy.View
         /// <param name="name">The display name to use for the region.</param>
         /// <param name="kind">The kind of region that will be created.</param>
         /// <param name="scopeKind">The type of entity that this <see cref="RegionWriter"/> should be limited to capturing.</param>
+        /// <param name="nestedViewWriter">The nested <see cref="ViewWriter"/> that the region should write to.</param>
         /// <returns></returns>
         internal virtual RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
 #if DEBUG
@@ -980,6 +938,7 @@ namespace PESpy.View
             , int listedOffset
 #pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 #endif
+            , ViewWriter nestedViewWriter = null
             )
         {
             //Offset should be RVA<T>.ActualOffset. It is the caller's responsibility to check RVA<T>.IsValid and RVA<T>.ListedOffset != 0
@@ -992,10 +951,18 @@ namespace PESpy.View
 
             var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
 
-            return new RegionWriter(viewOffset, name, kind, this, false, scopeKind, shouldAdd);
+            return new RegionWriter(viewOffset, name, kind, nestedViewWriter ?? this, false, scopeKind, shouldAdd);
         }
 
         internal virtual void ExitRegion()
+        {
+        }
+
+        internal virtual void EnterNestedFile(int startOffset, int length, IFile file)
+        {
+        }
+
+        internal virtual void ExitNestedFile()
         {
         }
 
@@ -1228,6 +1195,8 @@ namespace PESpy.View
         internal virtual void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
         {
         }
+
+        internal virtual ViewWriter CreateNestedWriter(IFile file) => throw new NotSupportedException();
 
         internal List<IView> RentList()
         {

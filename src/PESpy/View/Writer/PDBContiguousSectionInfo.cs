@@ -12,6 +12,8 @@
         public int LocalEndIndex;
         public int TotalPagesInStream;
 
+        public bool HasValue;
+
         public int NumPages => (LocalEndIndex - LocalStartIndex) + 1;
 
         internal PDBContiguousSectionInfo(FullNameInfo nameInfo, int streamIndex, int localStartIndex, int globalStartIndex, int totalPagesInStream)
@@ -23,6 +25,8 @@
             GlobalStartIndex = globalStartIndex;
             GlobalEndIndex = globalStartIndex;
             TotalPagesInStream = totalPagesInStream;
+
+            HasValue = true;
         }
 
         public override string ToString()

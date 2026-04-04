@@ -45,6 +45,8 @@ namespace PESpy.View
                         kind = ViewKind.Padding;
                     else if (Bytes.All(b => b == 0xCC))
                         kind = ViewKind.CC;
+                    else if (Bytes.All(b => b == 0xFF))
+                        kind = ViewKind.FF;
                     else
                         kind = ViewKind.Data;
                 }

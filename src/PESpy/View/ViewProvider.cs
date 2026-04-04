@@ -16,6 +16,7 @@ namespace PESpy
                 #region Headers
 
                 ViewKind.ImageDosHeader                              => Write(new ImageDosHeader(chunk),                              viewWriter),
+                ViewKind.DosStub                                     => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.RichHeader                                  => GetRichHeader(chunk, viewWriter),
                 ViewKind.ImageNtHeaders                              => Write(new ImageNtHeaders(chunk),                              viewWriter),
                 ViewKind.ImageFileHeader                             => Write(new ImageFileHeader(chunk),                             viewWriter),
@@ -23,8 +24,8 @@ namespace PESpy
                 ViewKind.ImageDataDirectory                          => Write(new ImageDataDirectory(chunk),                          viewWriter),
                 ViewKind.ImageSectionHeader                          => Write(new ImageSectionHeader(chunk),                          viewWriter),
                 ViewKind.ImageRelocation                             => Write(new ImageRelocation(chunk),                             viewWriter),
-                //ViewKind.CoffSymbolTable                             => Write(new CoffSymbolTable(chunk),                             viewWriter),
-                //ViewKind.ImageSymbol                                 => Write(new ImageSymbol(chunk),                                 viewWriter),
+                ViewKind.CoffSymbolTable                             => GetCoffSymbolTable(chunk, viewWriter),
+                ViewKind.ImageSymbol                                 => GetImageSymbol(chunk, viewWriter),
                 ViewKind.ImageAuxSymbol                              => Write(new ImageAuxSymbol(chunk),                              viewWriter),
                 ViewKind.ImageLineNumber                             => Write(new ImageLineNumber(chunk),                             viewWriter),
                 ViewKind.AnonObjectHeader                            => Write(new AnonObjectHeader(chunk),                            viewWriter),
@@ -33,14 +34,19 @@ namespace PESpy
                 #region Exports Table (0)
 
                 ViewKind.ImageExportDirectory                        => Write(new ImageExportDirectory(chunk),                        viewWriter),
+                ViewKind.ImageExportDirectory_Name                   => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.ImageExportDirectory_ForwarderName          => WriteAnsiNullTerminated(chunk, viewWriter, kind),
                 ViewKind.ImageExportDirectory_AddressOfNameOrdinals_Entry => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.ImageExportDirectory_AddressOfNames_Entry   => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.ImageExportDirectory_AddressOfNames_Name    => WriteAnsiNullTerminated(chunk, viewWriter, kind),
                 ViewKind.ImageExportDirectory_AddressOfFunctions_Entry => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekInt32(0), sizeof(int), kind),
 
                 #endregion
                 #region Import Table (1)
 
                 ViewKind.ImageImportDescriptor                       => Write(new ImageImportDescriptor(chunk),                       viewWriter),
+                ViewKind.ImageImportDescriptor_Name                  => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.ImageEnclaveImport_ImportName               => WriteAnsiNullTerminated(chunk, viewWriter, kind),
                 ViewKind.ImageThunkData                              => GetImageThunkData(chunk, viewWriter),
                 ViewKind.ImageImportByName                           => Write(new ImageImportByName(chunk),                           viewWriter),
 
@@ -60,6 +66,7 @@ namespace PESpy
                 ViewKind.MessageResourceData                         => Write(new MessageResourceData(chunk),                         viewWriter),
                 //ViewKind.MessageResourceBlock                        => Write(new MessageResourceBlock(chunk),                        viewWriter),
                 ViewKind.MessageResourceEntry                        => Write(new MessageResourceEntry(chunk),                        viewWriter),
+                ViewKind.Manifest                                    => WriteFixedUtf8String(chunk, viewWriter, length, kind),
 
                 #endregion
                 #region Exception Table (3)
@@ -101,12 +108,17 @@ namespace PESpy
                 ViewKind.PogoData                                    => GetPogoData(chunk, viewWriter),
                 ViewKind.PogoItem                                    => Write(new PogoItem(chunk),                                    viewWriter),
                 ViewKind.Reproducible                                => Write(new Reproducible(chunk),                                viewWriter),
-                //ViewKind.EmbeddedPortablePdb                         => Write(new EmbeddedPortablePdb(chunk),                         viewWriter),
+                ViewKind.EmbeddedPortablePdb                         => GetEmbeddedPortablePdb(chunk, viewWriter),
                 ViewKind.PdbChecksum                                 => GetPdbChecksum(chunk, viewWriter),
                 ViewKind.ExDllCharacteristics                        => viewWriter.NewValue(chunk.AbsoluteOffset, (IMAGE_DLLCHARACTERISTICS_EX) chunk.PeekUInt32(0), sizeof(int), kind),
 
                 #endregion
 
+                #region Thread Local Storage Table (9)
+
+                ViewKind.ImageTlsDirectory                           => Write(new ImageTlsDirectory(chunk),                           viewWriter),
+
+                #endregion
                 #region Load Config Table (10)
 
                 ViewKind.ImageLoadConfigDirectory                    => Write(new ImageLoadConfigDirectory(chunk),                    viewWriter),
@@ -114,10 +126,23 @@ namespace PESpy
                 ViewKind.ImageEnclaveConfig                          => Write(new ImageEnclaveConfig(chunk),                          viewWriter),
                 ViewKind.ImageEnclaveImport                          => Write(new ImageEnclaveImport(chunk),                          viewWriter),
                 ViewKind.GuardAddressTakenIatEntryTable              => Write(chunk.PEFile().LoadConfigTable.GuardAddressTakenIatEntryTable.Value, viewWriter),
-                ViewKind.GuardCFFunctionTable                        => GetGuardCFFunctionTable(chunk, viewWriter),
+                ViewKind.GuardCFFunctionTable                        => Write(chunk.PEFile().LoadConfigTable.GuardCFFunctionTable.Value, viewWriter),
                 ViewKind.GuardEHContinuationTable                    => Write(chunk.PEFile().LoadConfigTable.GuardEHContinuationTable.Value, viewWriter),
                 ViewKind.GuardLongJumpTargetTable                    => Write(chunk.PEFile().LoadConfigTable.GuardLongJumpTargetTable.Value, viewWriter),
                 ViewKind.XFG                                         => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekUInt64(0), sizeof(long), kind),
+                ViewKind.LockPrefixTable                             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.SecurityCookie                              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.SEHandlerTable                              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.GuardCFCheckFunctionPointer                 => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardCFDispatchFunctionPointer              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardRFFailureRoutineFunctionPointer        => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardRFVerifyStackPointerFunctionPointer    => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardXFGCheckFunctionPointer                => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardXFGDispatchFunctionPointer             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardXFGTableDispatchFunctionPointer        => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.CastGuardOsDeterminedFailureMode            => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.GuardMemcpyFunctionPointer                  => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.UmaFunctionPointers                         => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
                 ViewKind.ImageDynamicRelocationTable                 => Write(new ImageDynamicRelocationTable(chunk),                 viewWriter),
                 ViewKind.ImageDynamicRelocation                      => Write(new ImageDynamicRelocation(chunk),                      viewWriter),
                 //ViewKind.ImageDynamicRelocationV2                    => Write(new ImageDynamicRelocationV2(chunk),                    viewWriter),
@@ -135,12 +160,15 @@ namespace PESpy
                 #region Bound Import Table (11)
 
                 ViewKind.ImageBoundImportDescriptor                  => Write(new ImageBoundImportDescriptor(chunk),                  viewWriter),
+                ViewKind.ImageBoundImportName                        => WriteAnsiNullTerminated(chunk, viewWriter, kind),
                 ViewKind.ImageBoundForwarderRef                      => Write(new ImageBoundForwarderRef(chunk),                      viewWriter),
 
                 #endregion
                 #region Delay Import Table (13)
 
                 ViewKind.ImageDelayLoadDescriptor                    => Write(new ImageDelayLoadDescriptor(chunk),                    viewWriter),
+                ViewKind.ImageDelayLoadDescriptor_DllNameRVA         => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA    => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
 
                 #endregion
                 #region CorHeader Directory (14)
@@ -162,6 +190,10 @@ namespace PESpy
 
                 #region Metadata Rows
 
+                ViewKind.Metadata_String                             => WriteRow(chunk, viewWriter, kind),
+                ViewKind.Metadata_UserString                         => WriteRow(chunk, viewWriter, kind),
+                ViewKind.Metadata_Blob                               => WriteRow(chunk, viewWriter, kind),
+                ViewKind.Metadata_Guid                               => WriteRow(chunk, viewWriter, kind),
                 ViewKind.Metadata_ModuleRow                          => WriteRow(chunk, viewWriter, kind),
                 ViewKind.Metadata_TypeRefRow                         => WriteRow(chunk, viewWriter, kind),
                 ViewKind.Metadata_TypeDefRow                         => WriteRow(chunk, viewWriter, kind),
@@ -234,14 +266,16 @@ namespace PESpy
 
                 #endregion
 
-                //ViewKind.AppHostSignature                            => Write(new AppHostSignature(chunk),                            viewWriter),
+                ViewKind.AppHostSignature                            => Write(chunk.PEFile().AppHostSignature, viewWriter),
                 ViewKind.BundleManifest                              => Write(new Bundle.Manifest(chunk),                             viewWriter),
                 ViewKind.BundleHeaderFixed                           => Write(new Bundle.HeaderFixed(chunk),                          viewWriter),
                 ViewKind.BundleHeaderFixedV2                         => Write(new Bundle.HeaderFixedV2(chunk),                        viewWriter),
-                //ViewKind.BundleFileEntry                             => Write(new Bundle.FileEntry(chunk),                            viewWriter),
-                //ViewKind.BundleFileEntryFixed                        => Write(new Bundle.FileEntryFixed(chunk),                       viewWriter),
+                ViewKind.BundleFileEntry                             => GetBundleFileEntry(chunk, viewWriter),
+                ViewKind.BundleFileEntryFixed                        => GetBundleFileEntryFixed(chunk, viewWriter),
                 ViewKind.BundleLocation                              => Write(new Bundle.Location(chunk),                             viewWriter),
-                //ViewKind.BundleEncodedString                         => Write(new BundleEncodedString(chunk),                         viewWriter),
+                ViewKind.BundleEncodedString                         => Write(new BundleEncodedString(chunk),                         viewWriter),
+                ViewKind.DepsJson                                    => WriteFixedUtf8String(chunk, viewWriter, length, kind),
+                ViewKind.RuntimeConfigJson                           => WriteFixedUtf8String(chunk, viewWriter, length, kind),
                 ViewKind.DebugTypeEntry                              => Write(new DebugTypeEntry(chunk),                              viewWriter),
                 ViewKind.GlobalValueEntry                            => Write(new GlobalValueEntry(chunk),                            viewWriter),
 
@@ -504,14 +538,18 @@ namespace PESpy
             };
         }
 
-        private static IStructView WriteRow(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
+        private static IView WriteRow(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
         {
-            var peFile = chunk.PEFile();
+            var ecmaMetadata = GetEcmaMetadata(chunk);
 
-            var heap = peFile.EcmaMetadata.CompressedModelHeap;
+            var heap = ecmaMetadata.CompressedModelHeap;
 
             return kind switch
             {
+                ViewKind.Metadata_String                             => Write(ecmaMetadata.StringHeap.GetString(chunk.AbsoluteOffset - ecmaMetadata.StringHeap.Offset), viewWriter, kind),
+                ViewKind.Metadata_UserString                         => Write(ecmaMetadata.UserStringHeap.GetString(chunk.AbsoluteOffset - ecmaMetadata.UserStringHeap.Offset), viewWriter),
+                ViewKind.Metadata_Blob                               => Write(ecmaMetadata.BlobHeap.GetBlob(chunk.AbsoluteOffset - ecmaMetadata.BlobHeap.Offset), viewWriter),
+                ViewKind.Metadata_Guid                               => Write(ecmaMetadata.GuidHeap.GetGuid(chunk.AbsoluteOffset - ecmaMetadata.GuidHeap.Offset), viewWriter, kind),
                 ViewKind.Metadata_ModuleRow                          => Write(heap.ModuleTable.FromOffset(chunk.AbsoluteOffset), viewWriter),
                 ViewKind.Metadata_TypeRefRow                         => Write(heap.TypeRefTable.FromOffset(chunk.AbsoluteOffset), viewWriter),
                 ViewKind.Metadata_TypeDefRow                         => Write(heap.TypeDefTable.FromOffset(chunk.AbsoluteOffset), viewWriter),
@@ -568,6 +606,18 @@ namespace PESpy
             };
         }
 
+        private static IView WriteAnsiNullTerminated(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
+        {
+            var str = chunk.PeekAnsiNullTerminatedString(0);
+            return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length + 1, kind);
+        }
+
+        private static IView WriteFixedUtf8String(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)
+        {
+            var str = chunk.PeekUtf8FixedLength(0, length);
+            return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length, kind);
+        }
+
         private static unsafe IView WriteSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var oldOffset = viewWriter.UnmanagedOffset;
@@ -581,5 +631,255 @@ namespace PESpy
             {
                 viewWriter.UnmanagedOffset = oldOffset;
             }
+        }
+
+        private static unsafe IView WriteType(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var oldOffset = viewWriter.UnmanagedOffset;
+            viewWriter.UnmanagedOffset = chunk.AbsoluteOffset;
+
+            try
+            {
+                //I think we should only be writing top level types, which means we're guaranteed to be a TypType
+                return viewWriter.TypTypeDispatcher.Dispatch(new TypType((TYPTYPE*) chunk.Pointer));
+            }
+            finally
+            {
+                viewWriter.UnmanagedOffset = oldOffset;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static IStructView Write<T>(in T value, ViewWriter viewWriter) where T : IViewable =>
+            (IStructView) value.WriteStruct(viewWriter)!;
+
+        private static IView Write(RawValue<Utf8String> value, ViewWriter viewWriter, ViewKind viewKind) =>
+            viewWriter.NewValue(value.Offset, value.Value, value.Value.Length + 1, viewKind);
+
+        private static IView Write(RawValue<Guid> value, ViewWriter viewWriter, ViewKind viewKind) =>
+            viewWriter.NewValue(value.Offset, value.Value, 16, viewKind);
+
+        private static ByteBlobView GetBytes(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)
+        {
+            return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(chunk.AbsoluteOffset, length), kind);
+        }
+
+        private static IStructView GetCoffSymbolTable(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            //Ostensibly the PointerToSymbolTable should point to the same address as IMAGE_DEBUG_TYPE_COFF.
+            //IMAGE_DEBUG_TYPE_COFF may not exist, but PoitnerToSymbolTable definitely should
+
+            var pointerToSymbolTable = peFile.FileHeader.PointerToSymbolTable;
+
+            if (pointerToSymbolTable.IsValid && pointerToSymbolTable.ActualOffset == chunk.AbsoluteOffset)
+                return Write(pointerToSymbolTable.Value, viewWriter);
+
+            //Try IMAGE_DEBUG_TYPE_COFF instead
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetBundleFileEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var files = peFile.AppHostSignature.BundleHeaderOffset.Value.Files;
+
+            foreach (var file in files)
+            {
+                if (file.Offset == chunk.AbsoluteOffset)
+                    return Write(file, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        private static IStructView GetImageResourceDirectory(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var root = peFile.ResourceDirectory;
+
+            if (root.Offset == chunk.AbsoluteOffset)
+                return Write(root, viewWriter);
+
+            var queue = new Queue<ImageResourceDirectory>();
+            queue.Enqueue(root);
+
+            while (queue.Count > 0)
+            {
+                var directory = queue.Dequeue();
+
+                foreach (var entry in directory.Entries)
+                {
+                    if (entry.DataIsDirectory && entry.OffsetToDirectory.IsValid)
+                    {
+                        directory = entry.OffsetToDirectory.Value;
+
+                        if (directory.Offset == chunk.AbsoluteOffset)
+                            return Write(directory, viewWriter);
+
+                        queue.Enqueue(directory);
+                    }
+        private static IStructView GetImageResourceDirectoryEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var root = peFile.ResourceDirectory;
+
+            var queue = new Queue<ImageResourceDirectory>();
+            queue.Enqueue(root);
+
+            while (queue.Count > 0)
+            {
+                var directory = queue.Dequeue();
+
+                foreach (var entry in directory.Entries)
+                {
+                    if (entry.Offset == chunk.AbsoluteOffset)
+                        return Write(entry, viewWriter);
+
+                    if (entry.DataIsDirectory && entry.OffsetToDirectory.IsValid)
+                    {
+                        queue.Enqueue(entry.OffsetToDirectory.Value);
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetImageResourceDataEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var root = peFile.ResourceDirectory;
+
+            var queue = new Queue<ImageResourceDirectory>();
+            queue.Enqueue(root);
+
+            while (queue.Count > 0)
+            {
+                var directory = queue.Dequeue();
+
+                foreach (var entry in directory.Entries)
+                {
+                    if (entry.DataIsDirectory)
+                    {
+                        if (entry.OffsetToDirectory.IsValid)
+                            queue.Enqueue(entry.OffsetToDirectory.Value);
+                    }
+                    else if (entry.OffsetToData.IsValid)
+                    {
+                        var data = entry.OffsetToData.Value;
+
+                        if (data.Offset == chunk.AbsoluteOffset)
+                            return Write(data, viewWriter);
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetImageThunkData(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var iat = peFile.OptionalHeader.ImportAddressTableDirectory;
+
+            var isIAT = false;
+
+            if (iat.HasData && peFile.TryGetOffset(iat.VirtualAddress, out var offset))
+            {
+                if (chunk.AbsoluteOffset >= offset && chunk.AbsoluteOffset <= offset + iat.Size)
+                    isIAT = true;
+            }
+
+            return Write(new ImageThunkData(chunk, isIAT), viewWriter);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static IStructView GetModi60Persist(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            //Modi will try and register its symbols if it hasn't already; as such we need to get the existing modi
+            var modules = chunk.PDBFile().DBI.Modules;
+
+            foreach (var module in modules)
+            {
+                if (module.Offset == chunk.AbsoluteOffset)
+                    return Write(module, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetOMFFileIndex(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var file = chunk.File();
+
+            if (file is PDBFile p)
+                return Write(p.DBI.FileInfo, viewWriter);
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetEmbeddedPortablePdb(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var entry = GetDebugDirectory(chunk, viewWriter, IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB);
+            return Write(new EmbeddedPortablePdb(chunk, entry.SizeOfData), viewWriter);
+        }
+
+        private static IStructView GetPdbChecksum(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var entry = GetDebugDirectory(chunk, viewWriter, IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_PDB_CHECKSUM);
+            return Write(new PdbChecksum(chunk, entry.SizeOfData), viewWriter);
+        }
+
+        private static IStructView GetPogoData(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var entry = GetDebugDirectory(chunk, viewWriter, IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_POGO);
+            return Write(new PogoData(chunk, entry.SizeOfData), viewWriter);
+        }
+
+        private static ImageDebugDirectory GetDebugDirectory(in MemoryChunk chunk, ViewWriter viewWriter, IMAGE_DEBUG_TYPE type)
+        {
+            var peFile = chunk.PEFile();
+            Debug.Assert(!peFile.IsLoadedImage);
+            var debugTable = peFile.DebugTable;
+            var fileRelativeChunkOffset = chunk.AbsoluteOffset - peFile.Offset;
+
+            for (var i = 0; i < debugTable.Length; i++)
+            {
+                ref var entry = ref debugTable[i];
+
+                if (entry.Type == type && entry.PointerToRawData == fileRelativeChunkOffset)
+                {
+                    return entry;
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetRichHeader(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            //Rich Header is special in that you must decode it; you can't just construct it from a memory chunk
+
+            var peFile = chunk.PEFile();
+            var richHeader = peFile.RichHeader;
+            Debug.Assert(richHeader.Offset == chunk.AbsoluteOffset);
+
+            //RichHeader is a reference type so this is OK
+            return (IStructView) ((IViewable) richHeader).WriteStruct(viewWriter);
+        }
+
+        private static IStructView GetStorageHeader(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var ecmaMetadata = GetEcmaMetadata(chunk);
+
+            return Write(ecmaMetadata.Header, viewWriter);
+        }
+        }
         }
 }

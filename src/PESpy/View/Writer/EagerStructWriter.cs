@@ -324,7 +324,12 @@ namespace PESpy.View
 
         public void WriteField(string name, BinaryAnnotationList value)
         {
-            throw new NotImplementedException();
+            structWriter.WriteField(name, currentFieldOffset, value);
+
+            if (structWriter.Field != null)
+                items.Add(structWriter.Field);
+
+            currentFieldOffset += value.RawLength;
         }
 
         #endregion
@@ -416,8 +421,13 @@ namespace PESpy.View
         public void WriteInline<T>(T value) where T : IViewableValue
         {
 #if DEBUG
-            var expectedOffset = structWriter.ParentOffset + currentFieldOffset;
-            Debug.Assert(value.Offset == expectedOffset);
+            //If we're a PDBViewWriter, a child struct may have computed its own chunk.AbsoluteOffset as being in a different chunk than the previous field
+            //in the parent struct. As such, we can't assert that the field is sequential
+            if (structWriter.ViewWriter is not PDBViewWriter)
+            {
+                var expectedOffset = structWriter.ParentOffset + currentFieldOffset;
+                Debug.Assert(value.Offset == expectedOffset);
+            }
 #endif
 
             var viewWriter = structWriter.ViewWriter;
@@ -472,27 +482,30 @@ namespace PESpy.View
 
         public unsafe void WriteInline<T>(RawValue<T> value, ViewKind kind) where T : unmanaged
         {
+            Debug.Assert(structWriter.ParentOffset + currentFieldOffset == value.Offset);
             items.Add(new ValueView<T>(value.Offset, value.Value, sizeof(T), kind));
             currentFieldOffset += sizeof(T);
         }
 
         public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value)
         {
-            {
-                structWriter.WriteInlineAnsiNullTerminated(value);
+            Debug.Assert(structWriter.ParentOffset + currentFieldOffset == value.Offset);
 
-                if (structWriter.Field != null)
-                {
-                    items.Add(structWriter.Field);
-                    currentFieldOffset += structWriter.Field.Size;
-                }
-                else
-                    currentFieldOffset += value.Value.Length + 1;
+            structWriter.WriteInlineAnsiNullTerminated(value);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
             }
+            else
+                currentFieldOffset += value.Value.Length + 1;
         }
 
         public void WriteInlineAnsiNullTerminated(RawValue<string> value)
         {
+            Debug.Assert(structWriter.ParentOffset + currentFieldOffset == value.Offset);
+
             structWriter.WriteInlineAnsiNullTerminated(value);
 
             if (structWriter.Field != null)
@@ -553,7 +566,15 @@ namespace PESpy.View
 
         public void WriteInlineSymString(RawValue<SymString> value)
         {
-            throw new NotImplementedException();
+            structWriter.WriteInlineSymString(value);
+
+            if (structWriter.Field != null)
+            {
+                items.Add(structWriter.Field);
+                currentFieldOffset += structWriter.Field.Size;
+            }
+            else
+                currentFieldOffset += value.Value.Length + 1;
         }
 
         #endregion

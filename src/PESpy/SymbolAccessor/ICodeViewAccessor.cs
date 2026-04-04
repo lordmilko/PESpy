@@ -3,6 +3,13 @@ using PESpy.PDB;
 
 namespace PESpy
 {
+    public interface ICodeViewModuleAccessor
+    {
+        SymTypeList Symbols { get; }
+
+        bool TryGetFunctionSymbol(int off, ISECT seg, out SymType symType);
+    }
+
     //Unified interface for allowing different kinds of files to provide access to symbols. e.g. PDB files represent modules as MODI,
     //NB05 vs NB05+ has different orderings that are used for CodeView subsections, etc
     public interface ICodeViewAccessor
@@ -11,7 +18,14 @@ namespace PESpy
 
         SymType GetModuleSymbol(ushort imod, int ibSym);
 
-        bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement);
+        bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement,
+            out IMOD imod);
+
+        bool TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc);
 
         /// <summary>
         /// Gets a type from the TPI stream.

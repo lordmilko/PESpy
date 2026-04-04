@@ -9,7 +9,7 @@ namespace PESpy.OBJ
 {
     //Name is made up
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
-    public class OBJSymbolsTable : IValue, IViewable
+    public class OBJSymbolsTable : IValue, IViewable, ICodeViewModuleAccessor
     {
         private string DebuggerDisplay()
         {
@@ -65,7 +65,7 @@ namespace PESpy.OBJ
                         codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, this);
                     c6Symbols = new SymTypeList(chunk.Pointer, 0, Length, codeViewAccessor);
                 }
 
@@ -99,8 +99,8 @@ namespace PESpy.OBJ
                         codeViewAccessor = new LongImportLibraryMemberSymbolAccessor((LongImportLibraryMember) s.Owner, true);
                     }
 
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
-                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length - 4, codeViewAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, this);
+                    c7Symbols = new SymTypeList(chunk.Pointer, sizeof(int), Length, codeViewAccessor);
                 }
 
                 return c7Symbols;
@@ -142,6 +142,30 @@ namespace PESpy.OBJ
 
                 return c13SubSections;
             }
+        }
+
+        SymTypeList ICodeViewModuleAccessor.Symbols
+        {
+            get
+            {
+                switch (Signature)
+                {
+                    case CV_SIGNATURE.C7:
+                    case CV_SIGNATURE.C11:
+                        return C7Symbols;
+
+                    case CV_SIGNATURE.C13:
+                        throw new InvalidOperationException("This object should not have been used to register symbol memory if it has C13 symbols");
+
+                    default:
+                        return C6Symbols;
+                }
+            }
+        }
+
+        bool ICodeViewModuleAccessor.TryGetFunctionSymbol(int off, ISECT seg, out SymType symType)
+        {
+            throw new NotImplementedException();
         }
 
         public int Offset => chunk.AbsoluteOffset;

@@ -32,13 +32,23 @@ namespace PESpy.PDB
         public CV_off32_t off => value->off;
 
         /// <inheritdoc cref="CALLSITEINFO.sect"/>
-        public short sect => value->sect;
+        public ISECT sect => value->sect;
 
         /// <inheritdoc cref="CALLSITEINFO.__reserved_0"/>
         public short __reserved_0 => value->__reserved_0;
 
         /// <inheritdoc cref="CALLSITEINFO.typind"/>
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
+
+        #region PESpy
+
+        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sect, off);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

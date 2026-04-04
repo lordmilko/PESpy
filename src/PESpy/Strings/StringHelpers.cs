@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -43,9 +45,10 @@ namespace PESpy
          */
 
         //Note: dotnet/runtime has a method IndexOfNullByte which is a big fancy implementation of locating a null terminator
-        //which can even handle reading out of bounds without crashing, but my implementation is 4x faster than it
+        //which can even handle reading out of bounds without crashing, but my implementation is 4x faster than it, but can crash
+        //if there's less than 64 (Avx2) or 32 (Sse2) bytes left in the page
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetStringLength(byte* str)
+        public static unsafe int GetStringLength(byte* str)
         {
             if (str == default)
                 return 0;
@@ -57,7 +60,9 @@ namespace PESpy
             {
                 var zero = Vector256<byte>.Zero;
 
-                while (true)
+                var limit = GetPageEnd(str) - 64;
+
+                while (p < limit)
                 {
                     //Vector256<byte>.Count is 32. We unroll the loop and process two chunks per iteration
                     var chunk0 = Avx.LoadVector256(p);
@@ -74,12 +79,28 @@ namespace PESpy
 
                     p += 64; //2*Vector256<byte>.Count
                 }
+
+                var index = new Span<byte>(p, (int) (limit + 64 - p)).IndexOf((byte) 0);
+
+                if (index != -1)
+                    return index + (int) (p - str);
+                else
+                {
+                    p = limit + 64;
+                    limit = GetPageEnd(p) - 64;
+
+                    //Try the next page
+                    goto retry;
+                }
             }
             else if (Sse2.IsSupported)
             {
                 var zero = Vector128<byte>.Zero;
 
-                while (true)
+                var limit = GetPageEnd(str) - 32;
+
+                retry:
+                while (p < limit)
                 {
                     //Vector128<byte>.Count is 16. We unroll the loop and process two chunks per iteration
                     var chunk0 = Sse2.LoadVector128(p);
@@ -96,6 +117,19 @@ namespace PESpy
 
                     p += 32; //2*Vector256<byte>.Count
                 }
+
+                var index = new Span<byte>(p, (int) (limit + 32 - p)).IndexOf((byte) 0);
+
+                if (index != -1)
+                    return index + (int) (p - str);
+                else
+                {
+                    p = limit + 32;
+                    limit = GetPageEnd(p) - 32;
+
+                    //Try the next page
+                    goto retry;
+                }
             }
 #endif
             //Where possible, we want to use a specialized hardware intrinsics for calculating
@@ -103,6 +137,22 @@ namespace PESpy
             //(or our target framework does not support the use of hardware intrinsics) fall back to whatever
             //Span.IndexOf is capable of (which should be faster than a naive while loop)
             return new Span<byte>(str, int.MaxValue).IndexOf((byte) 0);
+        }
+
+        private const int pageSize = 0x1000;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte* GetPageEnd(byte* ptr) => (byte*) (((long) ptr) & ~(pageSize - 1)) + pageSize;
+
+        public static int GetWideStringLength(char* str)
+        {
+            //I tried using dotnet/runtime's fancy IndexOfNullCharacter method, but it was even slower than using IndexOf.
+            //We can't roll our own custom SIMD implementation, because Avx2.MoveMask only operates on bytes
+
+            if (str == default)
+                return 0;
+
+            return new Span<char>(str, char.MaxValue).IndexOf('\0');
         }
 
         #region Exact (ANSI/UTF-8)
@@ -152,6 +202,10 @@ namespace PESpy
             System.Globalization.Ordinal.IndexOfOrdinalIgnoreCase(new ReadOnlySpan<byte>(str1, GetStringLength(str1)), str2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2) =>
+            System.Globalization.Ordinal.IndexOfOrdinalIgnoreCase(str1, str2);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ContainsIgnoreCase(byte* str1, ReadOnlySpan<byte> str2) => IndexOfIgnoreCase(str1, str2) != -1;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -161,31 +215,95 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool StartsWithIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2)
+        {
+#if NET9_0_OR_GREATER
+            return str1.StartsWithOrdinalIgnoreCaseUtf8(str2);
+#else
+            if (str2.Length > str1.Length)
+                return false;
+
+            for (int i = 0; i < str2.Length; i++)
+            {
+                byte a = str1[i];
+                byte b = str2[i];
+
+                if (a == b)
+                    continue;
+
+                // ASCII case fold
+                // 'A'..'Z' -> 'a'..'z'
+                if ((uint) (a - (byte) 'A') <= ('Z' - 'A'))
+                    a = (byte) (a | 0x20);
+
+                if ((uint) (b - (byte) 'A') <= ('Z' - 'A'))
+                    b = (byte) (b | 0x20);
+
+                if (a != b)
+                    return false;
+            }
+
+            return true;
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EndsWithIgnoreCase(byte* str1, byte* str2)
         {
             throw new NotImplementedException();
         }
 
-        #endregion
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int CompareToIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2)
+        {
+            //Need a SIMD implementation here
+
+            var length = Math.Min(str1.Length, str2.Length);
+
+            for (var i = 0; i < length; i++)
+            {
+                var x = str1[i];
+                var y = str2[i];
+
+                if ((uint) (x - 'A') <= ('Z' - 'A'))
+                    x |= 0x20;
+
+                if ((uint) (y - 'A') <= ('Z' - 'A'))
+                    y |= 0x20;
+
+                if (x != y)
+                    return x - y;
+            }
+
+            return str1.Length - str2.Length;
+        }
+
+#endregion
         #region Exact (ANSI/UTF-8 -> String)
 
         //Compare an ANSI/UTF-8 pointer against a UTF-16 String, with the assumption that both strings only
         //contain characters in the ASCII code range
 
-        public static bool Equals(byte* str1, string str2)
+        //Note: while our benchmarks have shown it's technically faster to pass in a byte* and do GetStringLength
+        //inside of this method, we need to be able to support fixed length strings that might contain null terminators
+        //within them, and the _most_ performance critical method, really, is the one for comparing UTF-8 strings case insensitively
+        public static bool Equals(byte* str1, int str1Length, ReadOnlySpan<char> str2)
         {
             /* NOTE: this method is structured in a very specific way to try and have the JIT emit something
              * with the optimum performance. Changes as trivial as hoisting variables to outer scopes can easily
              * have a detrimental effect on code gen. Do not make any changes without benchmarking this! */
 
-            //It's faster to construct the spans in this method than pass them in
-            var str1Length = GetStringLength(str1);
+            //While it's faster to construct the spans in this method than pass them in, we need to be able to handle
+            //fixed length strings that may contain null terminators in them
+
+            if (str1 == null)
+                return false; //The caller should have checked that str2 is not null
 
             if (str1Length != str2.Length)
                 return false;
 
             ref var refStr1 = ref Unsafe.AsRef<byte>(str1);
-            ref var refStr2 = ref MemoryMarshal.GetReference(str2.AsSpan());
+            ref var refStr2 = ref MemoryMarshal.GetReference(str2);
 
 #if NET9_0_OR_GREATER
             var i = 0;
@@ -266,6 +384,26 @@ namespace PESpy
 
             //Fallback to an unrolled SequenceEqual implementation
             return SequenceEqual(ref refStr1, ref refStr2, str1Length);
+        }
+
+        public static bool EqualsIgnoreCase(byte* str1, int str1Length, string str2)
+        {
+            var span1 = new Span<byte>(str1, str1Length);
+
+            if (span1.Length != str2.Length)
+                return false;
+
+            var span2 = str2.AsSpan();
+
+            //Need a SIMD implementation here
+
+            for (var i = 0; i < span1.Length; i++)
+            {
+                if ((ushort) (span1[i] | 0x20) != ((ushort) span2[i] | 0x20))
+                    return false;
+            }
+
+            return true;
         }
 
         //From dotnet/runtime
@@ -353,6 +491,168 @@ namespace PESpy
 
         NotEqual: // Workaround for https://github.com/dotnet/runtime/issues/8795
             return false;
+        }
+
+        public static bool Contains(Span<byte> str1, string str2)
+        {
+            //I figure this will be faster than doing it manually
+
+            Span<byte> stackBuffer = stackalloc byte[1024];
+            byte[]? array = null;
+
+            var byteCount = Encoding.UTF8.GetByteCount(str2);
+
+            var buffer = byteCount <= stackBuffer.Length
+                ? stackBuffer
+                : array = ArrayPool<byte>.Shared.Rent(byteCount);
+
+            try
+            {
+#if NET9_0_OR_GREATER
+                Encoding.UTF8.GetBytes(str2, buffer);
+#else
+                fixed (byte* pStr1 = buffer)
+                fixed (char* pStr2 = str2)
+                {
+                    Encoding.UTF8.GetBytes(pStr2, str2.Length, pStr1, byteCount);
+                }
+#endif
+
+                return str1.IndexOf(buffer.Slice(0, byteCount)) != -1;
+            }
+            finally
+            {
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
+            }
+        }
+
+        //Need to do Span<byte> instead of byte* in order to support length prefixed strings,
+        //even though when I was doing perf tests on Equals() it was faster to calculate the length
+        //inside the function, rather than pass in a span
+        public static bool StartsWith(Span<byte> str1, string str2)
+        {
+            //Need a SIMD implementation here
+
+            if (str1.Length < str2.Length)
+                return false;
+
+            for (var i = 0; i < str2.Length; i++)
+            {
+                if (str1[i] != (byte) str2[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public static bool EndsWith(Span<byte> str1, string str2)
+        {
+            //Need a SIMD implementation here
+
+            if (str2.Length > str1.Length)
+                return false;
+
+            var startPos = str1.Length - str2.Length;
+
+            for (var i = 0; i < str2.Length; i++)
+            {
+                if (str1[startPos + i] != (byte) str2[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public static int CompareTo(Span<byte> str1, string str2)
+        {
+            //I figure this will be faster than doing it manually
+
+            Span<byte> stackBuffer = stackalloc byte[1024];
+            byte[]? array = null;
+
+            var byteCount = Encoding.UTF8.GetByteCount(str2);
+
+            var buffer = byteCount <= stackBuffer.Length
+                ? stackBuffer
+                : array = ArrayPool<byte>.Shared.Rent(byteCount);
+
+            try
+            {
+#if NET9_0_OR_GREATER
+                Encoding.UTF8.GetBytes(str2, buffer);
+#else
+                fixed (byte* pStr1 = buffer)
+                fixed (char* pStr2 = str2)
+                {
+                    Encoding.UTF8.GetBytes(pStr2, str2.Length, pStr1, byteCount);
+                }
+#endif
+
+                return str1.SequenceCompareTo(buffer.Slice(0, byteCount));
+            }
+            finally
+            {
+                if (array != null)
+                    ArrayPool<byte>.Shared.Return(array);
+            }
+        }
+
+#endregion
+        #region Ignore Case (ANSI/UTF-8 -> String)
+
+        public static int CompareToIgnoreCase(ReadOnlySpan<char> str1, ReadOnlySpan<byte> str2)
+        {
+            int length = Math.Min(str1.Length, str2.Length);
+
+            ref char r1 = ref MemoryMarshal.GetReference(str1);
+            ref byte r2 = ref MemoryMarshal.GetReference(str2);
+
+            for (int i = 0; i < length; i++)
+            {
+                var a = Unsafe.Add(ref r1, i);
+                var b = (char) Unsafe.Add(ref r2, i);
+
+                if ((uint) (a - 'A') <= 25)
+                    a = (char) (a | 0x20);
+
+                if ((uint) (b - 'A') <= 25)
+                    b = (char) (b | 0x20);
+
+                if (a != b)
+                    return a - b;
+            }
+
+            return str1.Length - str2.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int CompareToIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<char> str2) =>
+            -CompareToIgnoreCase(str2, str1);
+
+        #endregion
+        #region Ignore Case (UTF-16)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfIgnoreCase(ReadOnlySpan<char> str1, ReadOnlySpan<char> str2)
+        {
+            return str1.IndexOf(str2, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int CompareToIgnoreCase(ReadOnlySpan<char> str1, ReadOnlySpan<char> str2) =>
+            str1.CompareTo(str2, StringComparison.OrdinalIgnoreCase);
+
+        #endregion
+        #region CopyTo
+
+        public static void CopyTo(Span<byte> str, Span<char> destination)
+        {
+            fixed (byte* pStr = str)
+            fixed (char* pDest = destination)
+            {
+                Encoding.UTF8.GetChars(pStr, str.Length, pDest, destination.Length);
+            }
         }
 
         #endregion

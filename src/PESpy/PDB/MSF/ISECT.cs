@@ -18,7 +18,7 @@ namespace PESpy.PDB
 
         public static implicit operator ushort(ISECT value) => value.value;
         public static implicit operator ISECT(ushort value) => new ISECT(value);
-        public static implicit operator ISECT(short value) => new ISECT((ushort) value);
+        public static implicit operator ISECT(int value) => new ISECT((ushort) value);
 
         public override bool Equals(object obj)
         {

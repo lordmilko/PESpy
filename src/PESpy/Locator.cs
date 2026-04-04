@@ -101,6 +101,13 @@ namespace PESpy
         /// Locator may execute HTTP requests for locating both Microsoft and Third Party symbols.
         /// </summary>
         All,
+    }
+
+    public interface ILocatorProgress
+    {
+        void Notify(LocatorProgressEventArgs eventArgs);
+    }
+
     public static class Locator
     {
         private static string[] environmentNames =

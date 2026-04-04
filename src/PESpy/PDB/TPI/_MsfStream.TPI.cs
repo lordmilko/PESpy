@@ -152,7 +152,7 @@ namespace PESpy.PDB
 
                 var ptr = chunk.Pointer + headerSize;
 
-                SymbolMemoryTracker.RegisterPDBSymbolMemory(chunk);
+                SymbolMemoryTracker.RegisterPDBSymbolMemory(chunk, null);
 
                 //TPI1::fInitTiToPrecMap shows that following the header is cbGprec bytes of type records
                 Types = new TypTypeList(ptr, Hdr.cbGprec);

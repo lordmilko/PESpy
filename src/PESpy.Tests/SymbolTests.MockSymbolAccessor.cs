@@ -13,6 +13,21 @@ namespace PESpy.Tests
             throw new NotImplementedException();
         }
 
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement,
+            out IMOD imod)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc)
+        {
+            throw new NotImplementedException();
+        }
+
         public int? GetRelativeVirtualAddress(ushort seg, int off)
         {
             throw new NotImplementedException();
@@ -29,11 +44,6 @@ namespace PESpy.Tests
         }
 
         public TypType GetTypTypeFromIndex(CV_ItemId typeIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
         {
             throw new NotImplementedException();
         }

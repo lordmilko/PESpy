@@ -18,9 +18,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->offset);
 
-                return offsetOffset + bytesRead;
+                return offsetOffset + numericData.Length;
             }
         }
 
@@ -43,9 +43,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->offset, out var offset, out _);
+                var numericData = TypType.ExtractNumericData(value->offset);
 
-                return (int) offset;
+                return numericData.Int32;
             }
         }
 
@@ -57,9 +57,9 @@ namespace PESpy.PDB
         public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
             //I am assuming I need to use normal ST/UTF parsing logic
-            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->offset);
 
-            return TypType.ReadString(value->offset + bytesRead, codeViewAccessor);
+            return TypType.ReadString(value->offset + numericData.Length, codeViewAccessor);
         }
 
         #endregion
@@ -73,20 +73,20 @@ namespace PESpy.PDB
 
         internal int GetStructSize(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->offset);
 
-            var str = TypType.ReadString(value->offset + bytesRead, codeViewAccessor);
+            var str = TypType.ReadString(value->offset + numericData.Length, codeViewAccessor);
 
-            return FixedStructSize + bytesRead + str.Length + 1;
+            return FixedStructSize + numericData.Length + str.Length + 1;
         }
 
         private int BytesUsed()
         {
-            TypType.ExtractNumericData(value->offset, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->offset);
 
-            var str = TypType.ReadString(value->offset + bytesRead);
+            var str = TypType.ReadString(value->offset + numericData.Length);
 
-            return FixedStructSize + bytesRead + str.Length + 1;
+            return FixedStructSize + numericData.Length + str.Length + 1;
         }
 
         internal LfMember(lfMember* value)
@@ -123,7 +123,7 @@ namespace PESpy.PDB
                     break;
 
                 case 3:
-                    structWriter.WriteNumericData(nameof(offset), offsetOffset, value->offset);
+                    structWriter.WriteStructField(nameof(offset), offsetOffset, TypType.ExtractNumericData(value->offset));
                     break;
 
                 case 4:

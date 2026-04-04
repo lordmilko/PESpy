@@ -1,7 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ClrDebug.PDB;
 
 namespace PESpy.PDB
@@ -28,53 +31,190 @@ namespace PESpy.PDB
     [DebuggerTypeProxy(typeof(AddressMapSymTypeListDebugView))]
     public unsafe class AddressMapSymTypeList : IEnumerable<SymType> //PERF: don't allocate a massive array of SymType
     {
-        private readonly NativeSpan<int> addressMap;
-        private readonly byte* symbolsStart;
+        //The address map as it resides on disk
+        private readonly NativeSpan<int> _addressMap;
 
-        public int Count => addressMap.Length;
+        //The address map as it resides in memory; if we have any thunks, this will include a virtual ".Base" symbol that encapsualtes the region in which thunk symbols reside. This enables binary searches
+        //against the address map to detect when the closest symbol to a given off/seg is actually a thunk
+        private readonly NativeSpan<int> _virtualAddressMap;
+        private readonly byte* _symbolsStart;
 
-        public AddressMapSymTypeList(NativeSpan<int> addressMap, byte* symbolsStart)
+        private readonly int _baseThunkIndex = -1;
+        private readonly SymType _baseThunkSym;
+
+        public int Count => _addressMap.Length;
+
+        internal int VirtualCount => _virtualAddressMap.Length;
+
+        internal AddressMapSymTypeList(
+            NativeSpan<int> addressMap,
+            byte* symbolsStart,
+            in PSGSIHDR psGsiHdr,
+            out IntPtr virtualAddressMap,
+            out IntPtr baseThunkSym)
         {
-            this.addressMap = addressMap;
-            this.symbolsStart = symbolsStart;
+            _addressMap = addressMap;
+            _symbolsStart = symbolsStart;
+            baseThunkSym = default;
+
+            if (psGsiHdr.nThunks == 0)
+            {
+                virtualAddressMap = default;
+                _virtualAddressMap = addressMap;
+            }
+            else
+            {
+                //Find the insertion point, then create a new list of address map offsets.
+                //PDB1 seems to store the pointer position of a PSYM within the bounds of the sym recs
+                //which is then lazily read on demand; we don't do that, we just store an offset into the symrecs,
+                //and we'll say if we see the index of our .Base symbol being used, we'll return the base symbol
+                //instead of something in sym recs. That way we don't need to worry about modifying the symrecs buffer
+                virtualAddressMap = Marshal.AllocHGlobal((addressMap.Length * sizeof(int)) + sizeof(int));
+
+                //The insertion point should be close to the front
+                _virtualAddressMap = new NativeSpan<int>((void*) virtualAddressMap, addressMap.Length + 1);
+
+                var source = addressMap.AsSpan();
+                var dest = _virtualAddressMap.AsSpan();
+
+                for (var i = 0; i < addressMap.Length; i++)
+                {
+                    SymType symType = (SYMTYPE*) (symbolsStart + source[i]);
+
+                    if (CompareSectionAndOffset(symType, psGsiHdr.offThunkTable, psGsiHdr.isectThunkTable) < 0)
+                    {
+                        //Copy everything up to here
+                        source.Slice(0, i).CopyTo(dest.Slice(0, i));
+
+                        //Insert ourselves. We don't need a real value because when we see this index is being used,
+                        //we need to special case it. That way we don't need a duplicate symrecs
+                        dest[i] = -1;
+                        _baseThunkIndex = i;
+
+                        if (i < addressMap.Length - 1)
+                        {
+                            //Copy everything after here
+                            source.Slice(i).CopyTo(dest.Slice(i + 1));
+                        }
+
+                        baseThunkSym = CreateBaseThunkSymbol(symType, psGsiHdr);
+                        _baseThunkSym = (SYMTYPE*) baseThunkSym;
+
+                        break;
+                    }
+                }
+            }
         }
 
-        public SymType this[int index] => (SYMTYPE*) (symbolsStart + addressMap[index]);
+        internal bool IsBaseThunkIndex(int index) => index == _baseThunkIndex;
+
+        private unsafe IntPtr CreateBaseThunkSymbol(SymType symType, in PSGSIHDR psGsiHdr)
+        {
+            bool utf8;
+            int baseSymLength;
+            int totalLength;
+            IntPtr baseSym;
+            const string baseName = ".Base";
+
+            //Just copy whatever type the current symbol is
+            switch (symType.rectyp)
+            {
+                case SYM_ENUM_e.S_PUB16:
+                    utf8 = false;
+                    baseSymLength = DataSym16.FixedStructSize;
+                    totalLength = baseSymLength + baseName.Length + 1;
+                    baseSym = Marshal.AllocHGlobal(totalLength);
+                    var pubSym16 = (DATASYM16*) baseSym;
+                    pubSym16->rectyp = SYM_ENUM_e.S_PUB16;
+                    pubSym16->reclen = (ushort) (totalLength - sizeof(short));
+                    pubSym16->typind = 0;
+                    pubSym16->seg = psGsiHdr.isectThunkTable;
+                    pubSym16->off = psGsiHdr.offThunkTable;
+                    break;
+
+                case SYM_ENUM_e.S_PUB32_16t:
+                    utf8 = false;
+                    baseSymLength = DataSym3216t.FixedStructSize;
+                    totalLength = baseSymLength + baseName.Length + 1;
+                    baseSym = Marshal.AllocHGlobal(totalLength);
+                    var pubSym3216t = (DATASYM32_16t*) baseSym;
+                    pubSym3216t->rectyp = SYM_ENUM_e.S_PUB32_16t;
+                    pubSym3216t->reclen = (ushort) (totalLength - sizeof(short));
+                    pubSym3216t->typind = 0;
+                    pubSym3216t->seg = psGsiHdr.isectThunkTable;
+                    pubSym3216t->off = psGsiHdr.offThunkTable;
+                    break;
+
+                case SYM_ENUM_e.S_PUB32_ST:
+                    utf8 = false;
+                    baseSymLength = PubSym32.FixedStructSize;
+                    totalLength = baseSymLength + baseName.Length + 1;
+                    baseSym = Marshal.AllocHGlobal(totalLength);
+                    var pubSym32ST = (PUBSYM32*) baseSym;
+                    pubSym32ST->rectyp = SYM_ENUM_e.S_PUB32_ST;
+                    pubSym32ST->reclen = (ushort) (totalLength - sizeof(short));
+                    pubSym32ST->pubsymflags = 0;
+                    pubSym32ST->pubsymflags.fCode = true;
+                    pubSym32ST->seg = psGsiHdr.isectThunkTable;
+                    pubSym32ST->off = psGsiHdr.offThunkTable;
+                    break;
+
+                case SYM_ENUM_e.S_PUB32:
+                    utf8 = true;
+                    baseSymLength = PubSym32.FixedStructSize;
+                    totalLength = baseSymLength + baseName.Length + 1;
+                    baseSym = Marshal.AllocHGlobal(totalLength);
+                    var pubSym32 = (PUBSYM32*) baseSym;
+                    pubSym32->rectyp = SYM_ENUM_e.S_PUB32;
+                    pubSym32->reclen = (ushort) (totalLength - sizeof(short));
+                    pubSym32->pubsymflags = 0;
+                    pubSym32->pubsymflags.fCode = true;
+                    pubSym32->seg = psGsiHdr.isectThunkTable;
+                    pubSym32->off = psGsiHdr.offThunkTable;
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            var nameSpan = new Span<byte>((byte*) baseSym + baseSymLength, baseName.Length + 1);
+
+            if (utf8)
+            {
+                nameSpan[0] = (byte) '.';
+                nameSpan[1] = (byte) 'B';
+                nameSpan[2] = (byte) 'a';
+                nameSpan[3] = (byte) 's';
+                nameSpan[4] = (byte) 'e';
+                nameSpan[5] = (byte) '\0';
+            }
+            else
+            {
+                nameSpan[0] = (byte) baseName.Length;
+                nameSpan[1] = (byte) '.';
+                nameSpan[2] = (byte) 'B';
+                nameSpan[3] = (byte) 'a';
+                nameSpan[4] = (byte) 's';
+                nameSpan[5] = (byte) 'e';
+            }
+
+            return baseSym;
+        }
+
+        public SymType this[int index] => (SYMTYPE*) (_symbolsStart + _addressMap[index]);
+
+        internal SymType GetVirtualSymbol(int index) => index == _baseThunkIndex ? _baseThunkSym : (SymType) (SYMTYPE*) (_symbolsStart + _virtualAddressMap[index]);
 
         //Internal: caller should be asking PSGSI about the nearest symbol so it can check
         //if we have an address map, and do checks against thunks
+        //Note that it's possible to leak our virtual ".Base" thunk region by asking for an address past the end
+        //of the thunk region. PDB1 has this issue as well
         internal bool GetNearestSymbol(int relativeOffset, int sectionNumber, out SymType symType, out int displacement)
         {
             //There's two ways of looking up addresses using PSGSI: PSGSI1::NearestSym and EnumPubsByAddr::locate
             //which has slightly different logic
 
-            var low = 0;
-            var high = addressMap.Length - 1;
-
-            int result;
-            SymType item;
-
-            while (low < high)
-            {
-                //This is a right biased mid binary search
-                var mid = low + ((high - low + 1) / 2);
-
-                item = (SYMTYPE*) (symbolsStart + addressMap[mid]);
-
-                result = CompareSectionAndOffset(item, relativeOffset, sectionNumber);
-
-                if (result < 0)
-                    high = mid - 1;
-                else if (result > 0)
-                    low = mid;
-                else
-                {
-                    low = mid;
-                    high = mid;
-                }
-            }
-
-            item = (SYMTYPE*) (symbolsStart + addressMap[low]);
+            BinarySearchAddressMap(relativeOffset, sectionNumber, out var item, out var low, out var isThunkBase);
 
             //EnumPubsByAddr::locate then does some funny business with m_iPubs and negative numbers, but we're following
             //NearestSym so we don't need to worry about that
@@ -92,11 +232,14 @@ namespace PESpy.PDB
 
                 var currentSymbol = item;
 
-                while (currentItemIndex > 0)
+                var baseThunkIndex = _baseThunkIndex;
+                var virtualAddressMap = _virtualAddressMap;
+
+                while (currentItemIndex > 0) //Note: _don't_ need to check if it's the base thunk symbol here
                 {
                     var previousItemIndex = currentItemIndex - 1;
 
-                    var previousSymbol = (SYMTYPE*) (symbolsStart + addressMap[previousItemIndex]);
+                    var previousSymbol = GetVirtualSymbol(previousItemIndex);
 
                     /* An example of what causes this to occur from a debug build:
                      *
@@ -110,6 +253,8 @@ namespace PESpy.PDB
                      * __acrt_initialize. IDA Pro also shows __scrt_stub_for_acrt_initialize
                      */
 
+                    //Any symbols where ICF is present should be all in a row, so if the previous symbol has a different offset,
+                    //we're done
                     if (CompareSectionAndOffset(currentSymbol, previousSymbol) != 0)
                         break;
 
@@ -124,18 +269,18 @@ namespace PESpy.PDB
                 //If the symbol we matched against was the last symbol in the given section before the section we're actually after,
                 //we need to advance to the first symbol in the next section
 
-                while (true)
+                while (itemSeg < sectionNumber)
                 {
                     low++;
 
-                    if (low >= addressMap.Length)
+                    if (low >= _virtualAddressMap.Length)
                     {
                         symType = default;
                         displacement = default;
                         return false;
                     }
 
-                    item = (SYMTYPE*) (symbolsStart + addressMap[low]);
+                    item = GetVirtualSymbol(low);
 
                     item.TryGetOffSeg(out _, out itemSeg);
 
@@ -149,20 +294,70 @@ namespace PESpy.PDB
                         return false;
                     }
                 }
-
-                //Don't understand what "boundary conditions" are.
-                //an example rva that seems to hit this code path is 0x00012308 in native.x64
-                //throw new System.NotImplementedException();
             }
 
-            symType = (SYMTYPE*) (symbolsStart + addressMap[low]);
+            symType = GetVirtualSymbol(low);
 
-            symType.TryGetOffSeg(out var resultOff, out _);
+            //The above logic does not allow landing in a section other than the one we're after, so we don't need to worry about
+            //the section being different in calculating the displacement
+
+            symType.TryGetOffSeg(out var resultOff, out var resultSeg);
+            Debug.Assert(sectionNumber == resultSeg);
             displacement = relativeOffset - resultOff; //The symbol we match against will always be <= our requested symbol
             return true;
         }
 
-        private static int CompareSectionAndOffset(SymType symType, int relativeOffset, int sectionNumber)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void BinarySearchAddressMap(
+            int relativeOffset,
+            ISECT sectionNumber,
+            out SymType item,
+            out int virtualLow,
+            out bool isThunkBase)
+        {
+            var virtualAddressMap = _virtualAddressMap;
+
+            virtualLow = 0;
+            var high = virtualAddressMap.Length - 1;
+
+            //Index of the ".Base" virtual symbol that represents the thunk area
+            var baseThunkIndex = _baseThunkIndex;
+
+            int result;
+
+            while (virtualLow < high)
+            {
+                //This is a right biased mid binary search
+                var mid = virtualLow + ((high - virtualLow + 1) / 2);
+
+                item = mid == baseThunkIndex ? _baseThunkSym : (SYMTYPE*) (_symbolsStart + virtualAddressMap[mid]);
+
+                result = CompareSectionAndOffset(item, relativeOffset, sectionNumber);
+
+                if (result < 0)
+                    high = mid - 1;
+                else if (result > 0)
+                    virtualLow = mid;
+                else
+                {
+                    virtualLow = mid;
+                    high = mid;
+                }
+            }
+
+            if (virtualLow == baseThunkIndex)
+            {
+                item = _baseThunkSym;
+                isThunkBase = true;
+            }
+            else
+            {
+                item = (SYMTYPE*) (_symbolsStart + virtualAddressMap[virtualLow]);
+                isThunkBase = false;
+            }
+        }
+
+        internal static int CompareSectionAndOffset(SymType symType, int relativeOffset, int sectionNumber)
         {
             var result = symType.TryGetOffSeg(out var pubOff, out var pubSeg);
             Debug.Assert(result, "Expected the symbol to be a public with an offset and segment");
@@ -173,7 +368,19 @@ namespace PESpy.PDB
             return sectionNumber - pubSeg;
         }
 
-        private static int CompareSectionAndOffset(SymType first, SymType second)
+        internal static int CompareSectionAndOffset(
+            ISECT seg1,
+            int off1,
+            ISECT seg2,
+            int off2)
+        {
+            if (seg1 == seg2)
+                return off2 - off1;
+
+            return off2 - off1;
+        }
+
+        internal static int CompareSectionAndOffset(SymType first, SymType second)
         {
             var result = first.TryGetOffSeg(out var off, out var seg);
             Debug.Assert(result);
@@ -181,7 +388,7 @@ namespace PESpy.PDB
             return CompareSectionAndOffset(second, off, seg);
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(addressMap, symbolsStart);
+        public Enumerator GetEnumerator() => new Enumerator(_addressMap, _symbolsStart);
 
         IEnumerator<SymType> IEnumerable<SymType>.GetEnumerator() => GetEnumerator();
 

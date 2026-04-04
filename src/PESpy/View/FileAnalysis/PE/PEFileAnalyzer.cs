@@ -400,8 +400,11 @@ namespace PESpy.View
                         {
                             var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
 
-                            if (!pViewByte->HasFlow && !pViewByte->IsFunction)
+                            if (!pViewByte->HasFlow && pViewByte->Kind != ViewByteKind.Data && !pViewByte->IsFunction)
+                            {
                                 pViewByte->IsFunction = true;
+                                Debug.Assert(pViewByte->Kind == ViewByteKind.Code);
+                            }
                         }
                     }
                 }
@@ -480,6 +483,50 @@ namespace PESpy.View
 
             var writer = ((PEViewByteViewWriter) _viewWriter);
             _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress);
+        }
+
+        private void MarkThunksRegion()
+        {
+            //If we're backed by a PDB, get the area that contains thunks
+            var symbolAccessor = _fileAccessor.GetSymbolAccessor();
+
+            if (symbolAccessor is ExternalFileSymbolAccessor e)
+                symbolAccessor = e.GetUnderlyingSymbolAccessorUnsafe();
+
+            if (symbolAccessor is PDBFileSymbolAccessor p)
+            {
+                var hdr = p.PDBFile.PSGSI.PSGsiHdr;
+
+                if (hdr.nThunks > 0)
+                {
+                    var sectionHeaders = _peFile.SectionHeaders;
+
+                    if (hdr.isectThunkTable <= sectionHeaders.Length)
+                    {
+                        ref var sectionHeader = ref sectionHeaders[hdr.isectThunkTable - 1];
+
+                        Debug.Assert(!_peFile.IsLoadedImage);
+
+                        var thunkRegionStart = sectionHeader.PointerToRawData + hdr.offThunkTable;
+                        var thunkRegionEnd = thunkRegionStart + (hdr.nThunks * hdr.cbSizeOfThunk);
+
+                        SplitRegionBounds(thunkRegionStart, thunkRegionEnd);
+
+                        var builder = new RegionBuilder
+                        {
+                            Name = "Thunks",
+                            Kind = ViewKind.Thunks,
+                            Start = thunkRegionStart,
+                            End = thunkRegionEnd
+                        };
+
+                        var writer = (PEViewByteViewWriter) _viewWriter;
+
+                        writer._firstRegionByAddress.Add(builder);
+                        writer._topLevelRegions.Add(builder);
+                    }
+                }
+            }
         }
 
         private void ReadUnwindInfo(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
@@ -663,6 +710,37 @@ namespace PESpy.View
             var length = (int) (pViewByte - start);
 
             return length;
+        }
+
+        protected override void MarkNestedFiles()
+        {
+            var rawRanges = ((PEViewByteViewWriter) _viewWriter)._nestedFileRanges;
+
+            for (var i = 0; i < rawRanges.Count; i++)
+            {
+                var range = rawRanges[i];
+
+                SplitRegionBounds(range.start, range.end);
+            }
+
+            ((PEFileAccessor) _fileAccessor).InstallNestedFileRanges((PEViewByteViewWriter) _viewWriter);
+        }
+
+        //Split any values that overlap the start and end positions of a region we're trying to create
+        private void SplitRegionBounds(int start, int end)
+        {
+            var pStartByte = _fileAccessor.GetViewByte(start, out var sectionAccessorIndex);
+            SplitDirectoryStart(pStartByte, sectionAccessorIndex);
+
+            var pEndByte = pStartByte + (end - start) - 1;
+
+            ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+
+            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+
+            var originalEnd = end;
+            SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref end);
+            Debug.Assert(originalEnd == end); //I wouldn't expect that they would be modifying this
         }
     }
 }

@@ -37,6 +37,15 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        //For nested files
+        internal HeaderView(int offset, int size, FileAccessor fileAccessor, in ViewEntityIterator iterator, ViewWriter viewWriter)
+        {
+            Offset = offset;
+            Size = size;
+            childProvider = new GlobalViewProvider(iterator, fileAccessor, GlobalViewProviderKind.NestedFile, 0);
+            this.viewWriter = viewWriter;
+        }
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitHeader(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitHeader(this);

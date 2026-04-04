@@ -38,6 +38,61 @@ namespace PESpy.View
             Kind = kind;
         }
 
+        internal FileView(
+            in NestedFileRange range,
+            FileAccessor fileAccessor,
+            ViewEntityIterator iterator)
+        {
+            Name = range.File.Name;
+            ViewMode = ViewMode.Physical;
+            Offset = range.StartOffset;
+            Size = range.Length;
+            Debug.Assert(range.NestedWriter != null);
+            this.viewWriter = range.NestedWriter;
+
+            if (range.File.Kind == FileKind.PE)
+            {
+                var peFile = (PEFile) range.File;
+
+                //SectionRanges lists virtual addresses, but SectionHeaders always list physical
+                var sectionHeaders = peFile.SectionHeaders;
+
+                using var list = new PooledList<IView>(sectionHeaders.Length + 1);
+
+                var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
+                var startOffset = peFile.blockProvider.StartOffset;
+
+                list.Add(new HeaderView(startOffset, sizeOfHeaders, fileAccessor, iterator.SliceFromCurrent(sizeOfHeaders), range.NestedWriter));
+                var lastSectionEnd = range.StartOffset + sizeOfHeaders;
+                iterator.MoveTo(lastSectionEnd);
+
+                for (var i = 0; i < sectionHeaders.Length; i++)
+                {
+                    ref var sectionHeader = ref sectionHeaders[i];
+
+                    var sectionStart = startOffset + sectionHeader.PointerToRawData;
+                    list.Add(new SectionView(
+                        sectionStart,
+                        sectionHeader.SizeOfRawData,
+                        sectionHeader.Name.ToString(),
+                        fileAccessor,
+                        iterator.SliceFromCurrent(sectionHeader.SizeOfRawData),
+                        range.NestedWriter)
+                    );
+                    lastSectionEnd = sectionStart + sectionHeader.SizeOfRawData;
+                    iterator.MoveTo(lastSectionEnd);
+                }
+
+                if (lastSectionEnd != range.EndOffset)
+                    throw new NotImplementedException(); //There's also an overlay
+
+                childProvider = new ViewChildProvider(list.ToArray());
+                Kind = ViewKind.PEFile;
+            }
+            else
+                throw new NotImplementedException();
+        }
+
         public IEnumerator<IView> GetEnumerator() => ((IEnumerable<IView>) Children).GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

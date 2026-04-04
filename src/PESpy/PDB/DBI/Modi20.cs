@@ -71,7 +71,7 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private PDBModuleSymbols? symbols;
 
-        public PDBModuleSymbols? Symbols => GetSymbols(ref symbols, this, chunk);
+        public PDBModuleSymbols? Symbols => GetSymbols(ref symbols, this, imod, chunk);
 
         #region C11Lines
 
@@ -98,7 +98,11 @@ namespace PESpy.PDB
 
         CvDebugSSubsectionHeader[]? IModi.C13Lines => null;
 
-        internal static unsafe PDBModuleSymbols? GetSymbols(ref PDBModuleSymbols? field, IModi modi, in MemoryChunk chunk)
+        internal static unsafe PDBModuleSymbols? GetSymbols(
+            ref PDBModuleSymbols? field,
+            IModi modi,
+            IMOD imod,
+            in MemoryChunk chunk)
         {
             if (field == null && modi.cbSyms > 0)
             {
@@ -107,16 +111,15 @@ namespace PESpy.PDB
                 //Note that sn could potentially be snNil
                 if (pdbFile.TryGetStreamChunk(modi.sn, out var symbolsChunk))
                 {
-                    SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolsChunk);
-
                     var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
 
                     var ptr = symbolsChunk.Pointer;
                     Debug.Assert(symbolsChunk.RelativeOffset == 0);
 
-                    var results = new SymTypeList(ptr, sizeof(int), modi.cbSyms - 4, pdbFile);
+                    var results = new SymTypeList(ptr, sizeof(int), modi.cbSyms, pdbFile);
 
-                    field = new PDBModuleSymbols(symbolsChunk, signature, results);
+                    //ctor registers symbol memory
+                    field = new PDBModuleSymbols(symbolsChunk, imod, signature, results);
                 }
             }
 
@@ -142,10 +145,12 @@ namespace PESpy.PDB
         private int BytesUsed() => FixedStructSize + szModule.Length + 1 + szObjFile.Length + 1;
 
         private readonly MemoryChunk chunk;
+        private readonly IMOD imod; //I don't want to expose this because it's not part of the MODI type; it's just for us internally
 
-        internal Modi20(in MemoryChunk chunk, out int read)
+        internal Modi20(in MemoryChunk chunk, IMOD imod, out int read)
         {
             this.chunk = chunk;
+            this.imod = imod;
 
             var szModuleStart = FixedStructSize;
             szModule = chunk.PeekAnsiNullTerminatedString(szModuleStart);

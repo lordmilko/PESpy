@@ -32,6 +32,29 @@ namespace PESpy
 
         protected internal override int NumPages => msfHeader.NumPages;
 
+        private PN[] _streamTablePageListArray;
+
+        //Cache the array so we can lookup the same block we create below in PDBFileAccessor.GetMemoryChunkFromAddress
+        internal PN[] StreamTablePageListArray
+        {
+            get
+            {
+                if (_streamTablePageListArray == null)
+                {
+                    var pageList = msfHeader.StreamTablePageList;
+
+                    var arr = new PN[pageList.Length];
+
+                    for (var i = 0; i < pageList.Length; i++)
+                        arr[i] = pageList[i];
+
+                    _streamTablePageListArray = arr;
+                }
+
+                return _streamTablePageListArray;
+            }
+        }
+
         internal PDB2File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V2)
         {
 #if STRESS_TEST
@@ -86,7 +109,7 @@ namespace PESpy
              */
 
             StreamTable = new MsfHdr.StreamTable(
-                globalBlock.SlicePaged(msfHeader.StreamTablePageList.ToArray(), msfHeader.StreamTableSizeInfo.ByteCount), //Need to ToArray, because the 16-bit header gets upsized to 32-bit PN values, which must be stored in an array
+                globalBlock.SlicePaged(StreamTablePageListArray, msfHeader.StreamTableSizeInfo.ByteCount), //Need to ToArray, because the 16-bit header gets upsized to 32-bit PN values, which must be stored in an array
                 msfHeader.PageSize
             );
         }

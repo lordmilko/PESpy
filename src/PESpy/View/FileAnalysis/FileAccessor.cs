@@ -86,6 +86,8 @@ namespace PESpy.View
 
         internal RegionBuilder[] TopLevelRegions => _topLevelRegions;
 
+        internal NestedFileRange[] NestedFileRanges;
+
         internal Dictionary<int, int> LargeAddresses;
 
         protected object _overview;
@@ -244,9 +246,14 @@ namespace PESpy.View
 
             var sectionViews = new IView[sectionAccessors.Length];
 
+            var nextIndex = 0;
+
             for (var i = 0; i < sectionAccessors.Length; i++)
             {
                 ref var sectionAccessor = ref sectionAccessors[i];
+
+                if (sectionAccessor.IsEmpty)
+                    continue;
 
                 IView view;
 
@@ -269,7 +276,12 @@ namespace PESpy.View
                         throw new NotImplementedException();
                 }
 
-                sectionViews[i] = view;
+                sectionViews[nextIndex] = view;
+                nextIndex++;
+            }
+
+            if (nextIndex != sectionViews.Length)
+                Array.Resize(ref sectionViews, nextIndex);
         public ViewEntity[] Entities => EnumerateEntities().ToArray();
 
         public IEnumerable<ViewEntity> EnumerateEntities()
@@ -295,6 +307,20 @@ namespace PESpy.View
                     yield return entity;
                 }
             }
+        }
+
+        public ViewEntity[] GetEntities(int sectionAccessorIndex)
+        {
+            var iterator = EnumerateEntities(sectionAccessorIndex);
+
+            using var list = new PooledList<ViewEntity>();
+
+            while (iterator.MoveNext())
+            {
+                list.Add(iterator.Current);
+            }
+
+            return list.ToArray();
         }
 
         public void EnumerateEntitiesMatchingName(FixedUtf8String utf8String, FixedUtf16String utf16String, Func<ViewEntity, int, int, bool> callback)
@@ -430,8 +456,10 @@ namespace PESpy.View
 
         protected abstract ViewWriter GetViewWriter();
 
-        public IStructView GetStructView(IViewable viewable) =>
-            (IStructView) viewable.WriteStruct(GetViewWriter());
+        protected abstract ViewWriter GetViewWriterForAddress(int targetOffset);
+
+        public IStructView GetStructView<T>(T viewable) where T : IValue, IViewable =>
+            (IStructView) viewable.WriteStruct(GetViewWriterForAddress(viewable.Offset));
 
         //For when the type of view you're after may not be top level. When it's top level
         //it is possible to ask the info map what the ViewKind is
@@ -450,12 +478,13 @@ namespace PESpy.View
             {
                 var chunk = GetMemoryChunkFromAddress(targetAddress);
 
-                var structView = ViewProvider.CreateStructView(viewKind, pViewByte->GetLength(limit), chunk, GetViewWriter());
+                var structView = ViewProvider.CreateStructView(viewKind, pViewByte->GetLength(limit), chunk, GetViewWriterForAddress(targetAddress));
 
                 return structView;
             }
         }
 
+        //Not related to being in a nested file
         private IStructView GetNestedStructView(ViewByte* pViewByte, ViewByte* limit, int offset, ViewKind viewKind)
         {
             //Rewind
@@ -597,8 +626,12 @@ namespace PESpy.View
         {
             var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
 
+            //In devenv.exe we got a completely bogus symbol telling us that __guard_xfg_dispatch_icall_fptr is shortly
+            //after the beginning of the load config table, and in sqlncli11.dll we got a symbol that said it was halfway
+            //into a RUNTIME_FUNCTION
+
             //We should not be thinking that something was code and then erroneously declaring that actually it's data
-            Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Data);
+            Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Data || pViewByte->Kind == ViewByteKind.Body);
 
             if (pViewByte->DataKind != ViewByteDataKind.Unknown)
                 return pViewByte; //We already know about this byte
@@ -816,6 +849,8 @@ namespace PESpy.View
             {
                 ref var item = ref firstDirectoryByAddress[i];
 
+                Debug.Assert(item.Length > 0);
+
                 directoryLookup[item.Start] = i;
             }
 
@@ -839,12 +874,74 @@ namespace PESpy.View
             {
                 var item = firstRegionByAddress[i];
 
+                Debug.Assert(item.Length > 0);
+
                 regionLookup[item.Start] = i;
             }
 
             _regionByAddressLookup = regionLookup;
             _topLevelRegions = topLevelRegions.ToArray();
             _firstRegionByAddress = firstRegionByAddress.ToArray();
+        }
+
+        internal void InstallNestedFileRanges(PEViewByteViewWriter viewWriter)
+        {
+            var rawRanges = viewWriter._nestedFileRanges;
+
+            var results = new NestedFileRange[rawRanges.Count];
+
+            for (var i = 0; i < rawRanges.Count; i++)
+            {
+                var item = rawRanges[i];
+
+                //If a given nested file ends with padding, and then there's an unallocated area of padding between two nested files,
+                //this is going to cause an issue, because the entity right after the end of the first nested file is the "body"
+                //of the padding that started inside of the nested file.
+
+                //This is the same sort of logic that we employ in FileAnalyzer.DiscoverDirectories
+
+                results[i] = new NestedFileRange(item.start, item.end, item.file);
+            }
+            Array.Sort(results, (a, b) => a.StartOffset.CompareTo(b.EndOffset));
+
+            NestedFileRanges = results;
+        }
+
+        internal bool TryGetNestedFileRange(int targetAddress, out NestedFileRange range)
+        {
+            var nestedFileRanges = NestedFileRanges;
+
+            if (nestedFileRanges == null)
+            {
+                range = default;
+                return false;
+            }
+
+            var lo = 0;
+            var hi = nestedFileRanges.Length - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                ref var candidate = ref nestedFileRanges[mid];
+
+                if (targetAddress < candidate.StartOffset)
+                    hi = mid - 1;
+                else if (targetAddress >= candidate.EndOffset)
+                    lo = mid + 1;
+                else
+                {
+                    if (candidate.NestedWriter == null)
+                        candidate.NestedWriter = GetViewWriter().CreateNestedWriter(candidate.File);
+
+                    range = candidate;
+                    return true;
+                }
+            }
+
+            range = default;
+            return false;
         }
 
         internal bool TryGetRegion(int targetAddress, int depth, out RegionBuilder region) =>
@@ -857,6 +954,12 @@ namespace PESpy.View
             RegionBuilder[] list,
             out RegionBuilder region)
         {
+            if (dict == null)
+            {
+                region = default;
+                return false;
+            }
+
             if (dict.TryGetValue(targetAddress, out var regionIndex))
             {
                 region = list[regionIndex];

@@ -9,7 +9,8 @@ namespace PESpy.View
     {
         Global,
         Directory,
-        Region
+        Region,
+        NestedFile
     }
 
     internal class GlobalViewProvider : IViewable

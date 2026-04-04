@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
+using PESpy.PDB.DIA;
 using PESpy.View;
 
 namespace PESpy
@@ -26,9 +28,9 @@ namespace PESpy
 
     //In NB05, sections are ordered
     //https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
-    internal class NB05SymbolAccessor : ICodeViewAccessor, ISymbolAccessor
+    internal class NB05SymbolAccessor : ICodeViewAccessor, ISymbolAccessor, ISectionContribs
     {
-        protected IFile file;
+        protected IFile _file;
         internal NB05Data data; //Set after construction
         internal CV_SIGNATURE CvSignature;
 
@@ -37,18 +39,21 @@ namespace PESpy
         public bool HasLengthPrefixedStrings { get; set; }
 
         //Data that is synthesized from the list of dir entries
-        private OMFDirEntry[][] moduleEntries;
-        private OMFDirEntry[] globalEntries;
-        private SC20[]? sectionContribs;
+        internal OMFDirEntry[][] _moduleEntries;
+        internal OMFDirEntry[] _globalEntries;
+        private SC40[]? _sectionContribs;
+
+        internal readonly NB05SymCache _symCache;
 
         public NB05SymbolAccessor(IFile file)
         {
-            this.file = file;
+            _file = file;
+            _symCache = new NB05SymCache(this);
         }
 
         #region ICodeViewAccessor
 
-        public ImageSectionHeader[]? GetSectionHeaders() => file.GetSectionHeaders();
+        public ImageSectionHeader[]? GetSectionHeaders() => _file.GetSectionHeaders();
 
         public virtual SymType GetModuleSymbol(ushort imod, int ibSym)
         {
@@ -80,114 +85,34 @@ namespace PESpy
 
         public SymbolAccessorKind Kind => SymbolAccessorKind.CodeView;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement) =>
+            TryGetSymbolByRVA(rva, out symType, out displacement, out _);
+
+        public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement, out IMOD imod)
+        {
+            symType = default;
+            displacement = 0;
+
+            ImageSectionHeader.GetSectionAndOffset(GetSectionHeaders(), rva, out var sectionNumber, out var relativeOffset, out _);
+
+            return TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out imod);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement) =>
+            TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out _);
+
         public unsafe bool TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
         {
-            //In the long run, I think we would just be better off if we grouped all of the directory entries per module. That way,
-            //given a module index we can go straight to the records that are associated with it
-
-            EnsureSynthesizedData();
+            if (TryGetSymbolByRVA(targetAddress, out var symType, out displacement) && symType.TryGetName(out name, this))
+                return true;
 
             name = default;
-            displacement = default;
-
-            var sectionHeaders = GetSectionHeaders();
-
-            if (!ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, targetAddress, out var sectionNumber, out var relativeOffset))
-                return false;
-            fixed (SC20* pSectionContribs = sectionContribs)
-            {
-                if (SectionContribsV40.TryGetSection(new NativeSpan<SC20>(pSectionContribs, sectionContribs.Length), sectionNumber, relativeOffset, out var sc))
-                {
-                    if (TryGetSymTypeFromModule(sc, sectionNumber, relativeOffset, out symType, out displacement))
-                    {
-                        if (symType.TryGetName(out name, this))
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            throw new NotImplementedException();
-                        }
-                    }
-                }
-            }
-
-            //Contrary to how we operate with PDBFile, we try publics last. We're not trying to "upgrade" symbols here, we're just trying to find
-            //something with a given name
-
-            if (TryGetPubSym(sectionNumber, relativeOffset, out symType))
-            {
-                name = symType.GetName(this);
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool TryGetPubSym(ISECT sectionNumber, int relativeOffset, out SymType symType)
-        {
-            //First, try and get a public symbol. There's no guarantee that all linked object files included their private symbols in them,
-            //so it's entirely possible that publics will be the best we get
-            for (var i = 0; i < globalEntries.Length; i++)
-            {
-                ref var entry = ref globalEntries[i];
-
-                switch (entry.SubSection)
-                {
-                    case SST.sstGlobalPub:
-                        if (TryGetHashedSymbol((OMFHashedSymbols) entry.Data, sectionNumber, relativeOffset, out symType))
-                        {
-                            return true;
-                        }
-
-                        break;
-
-                    case SST.sstPublic:
-                    case SST.sstPublicSym:
-                        throw new NotImplementedException();
-                }
-            }
-
-            symType = default;
-            return false;
-        }
-
-        private bool TryGetSymTypeFromModule(SC20 sc, ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
-        {
-            var scEnd = sc.off + sc.cb;
-
-            var entries = moduleEntries[sc.imod - 1];
-
-            for (var i = 0; i < entries.Length; i++)
-            {
-                ref var entry = ref entries[i];
-
-                OMFModuleSymbols symbols;
-
-                switch (entry.SubSection)
-                {
-                    case SST.sstModule:
-                    case SST.sstSrcModule:
-                        continue;
-
-                    case SST.sstAlignSym:
-                        symbols = (OMFModuleSymbols) entry.Data;
-                        break;
-
-                    default:
-                        throw new NotImplementedException();
-                }
-
-                //Same logic as PDBFile: get the "closest" symbol. I think symbols may be listed in ascending order, which means if we go beyond the range
-                //of the section contrib, we've gone too far
-                if (PDBFile.TryGetBestModuleSymbol(symbols.List, sectionNumber, relativeOffset, sc.off, scEnd, this, out symType, out displacement))
-                {
-                    return true;
-                }
-            }
-
-            symType = default;
-            displacement = default;
             return false;
         }
 
@@ -196,61 +121,13 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
-        private bool TryGetHashedSymbol(OMFHashedSymbols hashedSymbols, ushort sectionNumber, int relativeOffset, out SymType symType)
-        {
-            var addressHashTable = hashedSymbols.AddressHashTable as IAddrHash32;
-
-            if (addressHashTable == null)
-                throw new NotImplementedException(); //Not good; linear search the symbols instead then
-
-            if (addressHashTable.TryGetSymbolOffset(sectionNumber, relativeOffset, out var symbolOffset))
-            {
-                symType = hashedSymbols.GetSymbolFromOffset(symbolOffset);
-
-                return true;
-            }
-
-            symType = default;
-            return false;
-        }
-
         public unsafe bool TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
         {
+            if (TryGetSymbolByRVA(targetAddress, out var symType, out _))
+                return symType.TryGetLength(out length, this);
+
             length = default;
-
-            var sectionHeaders = GetSectionHeaders();
-
-            if (!ImageSectionHeader.TryGetSectionAndOffset(sectionHeaders, targetAddress, out var sectionNumber, out var relativeOffset))
-                return false;
-
-            SymType symType;
-
-            fixed (SC20* pSectionContribs = sectionContribs)
-            {
-                if (SectionContribsV40.TryGetSection(new NativeSpan<SC20>(pSectionContribs, sectionContribs.Length), sectionNumber, relativeOffset, out var sc))
-                {
-                    if (TryGetSymTypeFromModule(sc, sectionNumber, relativeOffset, out symType, out var displacement))
-                    {
-                        if (symType.TryGetLength(out length))
-                        {
-                            length -= displacement;
-                            return true;
-                        }
-                        else
-                        {
-                            throw new NotImplementedException();
-                        }
-                    }
-
-                    if (TryGetPubSym(sectionNumber, relativeOffset, out symType))
-                    {
-                        length = sc.cb;
-                        return true;
-                    }
-                }
-            }
-
-            throw new System.NotImplementedException();
+            return false;
         }
 
         public void Dispose()
@@ -273,7 +150,7 @@ namespace PESpy
                 if (group.Key == ushort.MaxValue)
                 {
                     //Globals
-                    globalEntries = group.ToArray();
+                    _globalEntries = group.ToArray();
                 }
                 else
                 {
@@ -283,7 +160,7 @@ namespace PESpy
                 }
             }
 
-            moduleEntries = modules.ToArray();
+            _moduleEntries = modules.ToArray();
 
             EnsureSectionContribMap();
         }
@@ -295,10 +172,11 @@ namespace PESpy
              * a "preferred" order that all of the sstModule entries are written first, this is not necessarily guaranteed, so we'll run through
              * all subsections and construct fake SC entries as we go */
 
-
-            using var results = new PooledList<SC20>();
+            using var results = new PooledList<SC40>();
 
             var dirEntries = data.DirEntries;
+
+            var sectionHeaders = GetSectionHeaders();
 
             for (var i = 0; i < dirEntries.Length ; i++)
             {
@@ -314,12 +192,13 @@ namespace PESpy
                     {
                         ref var item = ref segInfo[j];
 
-                        results.Add(new SC20
+                        results.Add(new SC40
                         {
                             isect = item.Seg,
                             off = item.Off,
                             cb = item.cbSeg,
-                            imod = dirEntry.iMod,
+                            imod = (IMOD) (dirEntry.iMod - 1), //These indices seem to be 1-based
+                            dwCharacteristics = sectionHeaders[item.Seg - 1].Characteristics
                         });
                     }
                 }
@@ -335,14 +214,14 @@ namespace PESpy
                 return a.off.CompareTo(b.off);
             });
 
-            sectionContribs = results.ToArray();
+            _sectionContribs = results.ToArray();
         }
 
         protected bool TryGetModuleEntry(ushort imod, SST kind, out OMFDirEntry dirEntry)
         {
             EnsureSynthesizedData();
 
-            var entries = moduleEntries[imod - 1];
+            var entries = _moduleEntries[imod - 1];
 
             for (var i = 0; i < entries.Length; i++)
             {
@@ -359,9 +238,73 @@ namespace PESpy
             return false;
         }
 
-        public bool TryGetSymbolBySectionAndOffset(ISECT sectionNumber, int relativeOffset, out SymType symType, out int displacement)
+        public bool TryGetSymbolBySectionAndOffset(
+            ISECT sectionNumber,
+            int relativeOffset,
+            out SymType symType,
+            out int displacement,
+            out IMOD imod)
         {
-            throw new NotImplementedException();
+            //Note that interestingly, unlike in PDBs, sstGlobalSym _does_ appear to have
+            //an address map, since it's technically also backed by OMFHashedSymbols as well
+
+            EnsureSynthesizedData();
+
+            var trav = new NB05AddrTrav(_symCache, this);
+
+            if (trav.FInit(sectionNumber, relativeOffset, out var result))
+            {
+                var bestOffSeg = result.offSegSym;
+                var bestSeg = bestOffSeg.seg;
+                var bestOff = bestOffSeg.off;
+                imod = result.imod;
+                symType = bestOffSeg.symType;
+
+                //Note that it's important that we do this _before_ we start trying to resolve any block symbols, because a SepCode symbol
+                //may resolve to a parent lambda with off/seg -1 which will cause us to return -1 even though "the sepcode itself was good"
+                displacement = bestSeg == sectionNumber
+                            ? relativeOffset - bestOff
+                            : -1;
+
+                return true;
+            }
+
+            symType = default;
+            displacement = default;
+            imod = default;
+            return false;
         }
+
+        int ISectionContribs.Length => _sectionContribs.Length;
+
+        SC40 ISectionContribs.this[int index] => _sectionContribs[index];
+
+        bool ISectionContribs.TryGetSection(ISECT seg, int off, out SC40 sc) =>
+            ((ISectionContribs) this).TryGetSection(seg, off, out _, out sc);
+
+        unsafe bool ISectionContribs.TryGetSection(ISECT seg, int off, out int index, out SC40 sc)
+        {
+            fixed (SC40* pSectionContribs = _sectionContribs)
+            {
+                if (SectionContribsV40.TryGetSection(new NativeSpan<SC40>(pSectionContribs, _sectionContribs.Length), seg, off, out index, out sc))
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool ICodeViewAccessor.TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc) =>
+            ((ISectionContribs) this).TryGetSection(sectionNumber, relativeOffset, out sc);
+
+        //ISectionContribs causes us to have this; on balance, we do want ISectionContribs to be an IValue
+        int IValue.Offset => throw new NotSupportedException();
+
+        void IViewable.WriteGlobals(ViewWriter writer) => throw new NotSupportedException();
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => throw new NotSupportedException();
+
+        int IViewable.NumChildren() => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }
 }

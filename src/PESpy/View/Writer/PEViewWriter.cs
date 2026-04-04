@@ -165,6 +165,8 @@ namespace PESpy.View
             return v => v;
         }
 
+        internal override ViewWriter CreateNestedWriter(IFile file) => new NestedPEViewWriter(this, byteViewProvider, (PEFile) file);
+
         public override IView Finalize()
         {
             if (viewStack.Count != 0)
@@ -173,15 +175,13 @@ namespace PESpy.View
             var structs = globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            taggedViews.TryGetValue(ViewTag.DelayImport, out var delayNameViews);
-
             var dataDirectories = new PooledList<DirectoryInfo>();
 
             try
             {
                 CollectDataDirectories(ref dataDirectories);
 
-                using var merger = new Merger(peFile, this, structs, delayNameViews, dataDirectories.Span, byteViewProvider);
+                using var merger = new Merger(peFile, this, structs, dataDirectories.Span, byteViewProvider);
 
                 var results = merger.MergePE(mode);
 

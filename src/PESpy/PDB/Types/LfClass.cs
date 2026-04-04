@@ -22,9 +22,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
-                return lengthOffset + bytesRead;
+                return lengthOffset + numericData.Length;
             }
         }
 
@@ -32,11 +32,11 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
-                var str = TypType.ReadString(value->data + bytesRead);
+                var str = TypType.ReadString(value->data + numericData.Length);
 
-                return length + bytesRead + str.Length + 1;
+                return lengthOffset + numericData.Length + str.Length + 1;
             }
         }
 
@@ -68,9 +68,9 @@ namespace PESpy.PDB
             get
             {
                 //Length may be 0, this is normal
-                TypType.ExtractNumericData(value->data, out var length, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
-                return (int) length;
+                return numericData.Int32;
             }
         }
 
@@ -83,23 +83,23 @@ namespace PESpy.PDB
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->data);
 
             //I am assuming I need to use normal ST/UTF parsing logic
-            return TypType.ReadString(value->data + bytesRead, codeViewAccessor);
+            return TypType.ReadString(value->data + numericData.Length, codeViewAccessor);
         }
 
         internal SymString GetUniqueName(ICodeViewAccessor? codeViewAccessor)
         {
             if (property.hasuniquename)
             {
-                TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(value->data);
 
                 //I am assuming I need to use normal ST/UTF parsing logic
-                var name = TypType.ReadString(value->data + bytesRead, codeViewAccessor);
+                var name = TypType.ReadString(value->data + numericData.Length, codeViewAccessor);
 
                 //I am assuming I need to use normal ST/UTF parsing logic
-                return TypType.ReadString(value->data + bytesRead + name.Length + 1, codeViewAccessor); //+1 because it's either null terminated or length prefixed
+                return TypType.ReadString(value->data + numericData.Length + name.Length + 1, codeViewAccessor); //+1 because it's either null terminated or length prefixed
             }
 
             return default;
@@ -117,15 +117,15 @@ namespace PESpy.PDB
 
         private int BytesUsed()
         {
-            TypType.ExtractNumericData(value->data, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(value->data);
 
-            var str = TypType.ReadString(value->data + bytesRead);
+            var str = TypType.ReadString(value->data + numericData.Length);
 
-            var length = bytesRead + str.Length + 1;
+            var length = numericData.Length + str.Length + 1;
 
             if (property.hasuniquename)
             {
-                var uniqueName = TypType.ReadString(value->data + bytesRead + name.Length + 1);
+                var uniqueName = TypType.ReadString(value->data + numericData.Length + name.Length + 1);
 
                 length += uniquename.Length + 1;
             }
@@ -148,7 +148,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfClass, this, ViewKind.LfClass, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(8, BytesUsed()) + (property.hasuniquename ? 1 : 0);
+        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(9, BytesUsed()) + (property.hasuniquename ? 1 : 0);
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -183,7 +183,7 @@ namespace PESpy.PDB
                     break;
 
                 case 7:
-                    structWriter.WriteNumericData(nameof(length), lengthOffset, value->data);
+                    structWriter.WriteStructField(nameof(length), lengthOffset, TypType.ExtractNumericData(value->data));
                     break;
 
                 case 8:

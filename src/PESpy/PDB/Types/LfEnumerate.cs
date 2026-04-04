@@ -17,9 +17,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
+                var numericData = TypType.ExtractNumericData(raw->value);
 
-                return valueOffset + bytesRead;
+                return valueOffset + numericData.Length;
             }
         }
 
@@ -36,9 +36,9 @@ namespace PESpy.PDB
         {
             get
             {
-                TypType.ExtractNumericData(raw->value, out var value, out _);
+                var numericData = TypType.ExtractNumericData(raw->value);
 
-                return value;
+                return numericData.UInt64;
             }
         }
 
@@ -48,10 +48,10 @@ namespace PESpy.PDB
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(raw->value);
 
             //I am assuming I need to use normal ST/UTF parsing logic
-            return TypType.ReadString(raw->value + bytesRead, codeViewAccessor);
+            return TypType.ReadString(raw->value + numericData.Length, codeViewAccessor);
         }
 
         #endregion
@@ -64,11 +64,11 @@ namespace PESpy.PDB
 
         internal int GetStructSize(ICodeViewAccessor? codeViewAccessor)
         {
-            TypType.ExtractNumericData(raw->value, out _, out var bytesRead);
+            var numericData = TypType.ExtractNumericData(raw->value);
 
-            var str = TypType.ReadString(raw->value + bytesRead, codeViewAccessor);
+            var str = TypType.ReadString(raw->value + numericData.Length, codeViewAccessor);
 
-            return FixedStructSize + bytesRead + str.Length + 1;
+            return FixedStructSize + numericData.Length + str.Length + 1;
         }
 
         internal LfEnumerate(lfEnumerate* value)
@@ -101,7 +101,7 @@ namespace PESpy.PDB
                     break;
 
                 case 2:
-                    structWriter.WriteNumericData(nameof(value), valueOffset, raw->value);
+                    structWriter.WriteStructField(nameof(value), valueOffset, TypType.ExtractNumericData(raw->value));
                     break;
 
                 case 3:

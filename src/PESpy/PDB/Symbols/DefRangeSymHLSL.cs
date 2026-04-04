@@ -54,6 +54,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="DEFRANGESYMHLSL.range"/>
         public CV_LVAR_ADDR_RANGE range => value->range;
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int FixedStructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

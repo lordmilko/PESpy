@@ -17,8 +17,17 @@ namespace PESpy
 
         public SymType GetSymbolFromOffset(int offset) => Symbols.GetSymbolFromOffset(offset);
 
-        public OMFHashedSymbols(OMFSymHash hash, SymTypeList symbols, IValue symbolHashTable, IValue addressHashTable)
+        internal OMFHashedSymbols(
+            in MemoryChunk valueChunk,
+            OMFSymHash hash,
+            SymTypeList symbols,
+            IValue symbolHashTable,
+            IValue addressHashTable,
+            ICodeViewAccessor codeViewAccessor)
         {
+            //We're not part of a module, so we don't implement ICodeViewModuleAccessor
+            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor, null);
+
             Hash = hash;
             Symbols = symbols;
             SymbolHashTable = symbolHashTable;

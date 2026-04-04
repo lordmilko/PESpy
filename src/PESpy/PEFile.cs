@@ -543,6 +543,8 @@ namespace PESpy
         /// </summary>
         public bool Is32Bit => headerBlock.Is32Bit;
 
+        public int Offset => blockProvider.StartOffset;
+
         #region DosHeader
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -800,6 +802,76 @@ namespace PESpy
             }
         }
 
+        public bool TryGetVersionInfo(out VsVersionInfo versionInfo)
+        {
+            //System.Diagnostics.FileVersionInfo does a whole bunch of crazy stuff trying to guess the locale to use in the event
+            //that the PE file does not have the version info stored correctly. I feel like we can just skip all of that and simply
+            //return the first version info object that we find
+
+            versionInfo = default;
+
+            var resourceDirectory = ResourceDirectory;
+
+            if (resourceDirectory == null)
+                return false;
+
+            for (var i = 0; i < resourceDirectory.Entries.Length; i++)
+            {
+                ref var entryLevel1 = ref resourceDirectory.Entries[i];
+
+                if (entryLevel1.Type == RT.RT_VERSION && entryLevel1.DataIsDirectory && entryLevel1.OffsetToDirectory.IsValid)
+                {
+                    var directoryLevel2 = entryLevel1.OffsetToDirectory.Value;
+
+                    //VS_VERSION_INFO is 1
+
+                    for (var j = 0; j < directoryLevel2.Entries.Length; j++)
+                    {
+                        ref var entryLevel2 = ref directoryLevel2.Entries[j];
+
+                        if (!entryLevel2.NameOrId.NameIsString && entryLevel2.NameOrId.Id == 1)
+                        {
+                            if (!entryLevel2.DataIsDirectory || !entryLevel2.OffsetToDirectory.IsValid)
+                                return false;
+
+                            var directoryLevel3 = entryLevel2.OffsetToDirectory.Value;
+
+                            /* We are now at /RT_VERSION/1/
+                             * The current level should be the language, e.g.
+                             * /RT_VERSION/1/1033/
+                             * 
+                             * Rather than do a bunch of shenanigans trying to guess what
+                             * language to use, we'll just take the first language that we see
+                             */
+
+                            for (var k = 0; k < directoryLevel3.Entries.Length; k++)
+                            {
+                                ref var entryLevel3 = ref directoryLevel3.Entries[j];
+
+                                if (!entryLevel3.DataIsDirectory && entryLevel3.OffsetToData.IsValid)
+                                {
+                                    var dataEntry = entryLevel3.OffsetToData.Value;
+
+                                    if (dataEntry.OffsetToData.IsValid)
+                                    {
+                                        versionInfo = dataEntry.OffsetToData.Value as VsVersionInfo;
+
+                                        if (versionInfo != null)
+                                            return true;
+                                    }
+                                }
+                            }
+
+                            //If a match wasn't found inside VS_VERSION_INFO (1), it's over
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         #endregion
         #region Exception Table (3)
 
@@ -906,6 +978,9 @@ namespace PESpy
 
                     var read = 0;
 
+                    //https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#the-reloc-section-image-only
+                    //says that "each block must start on a 32-bit boundary", however it seems like that's not
+                    //the same thing as the ImageBaseRelocation sturct itself starting on a 32-bit boundary
                     while (read < (int) end)
                     {
                         var item = new ImageBaseRelocation(chunk.Slice(read));
@@ -913,9 +988,6 @@ namespace PESpy
                         read += item.SizeOfBlock;
 
                         results.Add(item);
-
-                        //Must be 32-bit aligned
-                        read = (read + 3) & ~3;
                     }
 
                     baseRelocationTable = results.ToArray();
@@ -2549,7 +2621,8 @@ namespace PESpy
             var section = SectionHeaders[sectionIndex];
             var relativeOffset = (int) (entry.VirtualAddress - section.VirtualAddress);
 
-            if (!canCrossSectionBoundary && entry.Size > section.VirtualSize - relativeOffset)
+            //If it seems we're about to throw, do one last check that we're not dealing with a section whose listed size is 0
+            if (!canCrossSectionBoundary && entry.Size > section.VirtualSize - relativeOffset && (entry.VirtualAddress + entry.Size > SectionRanges[sectionIndex].End))
                 throw new BadImageFormatException("Section too small.");
 
             offset = IsLoadedImage
@@ -2577,6 +2650,8 @@ namespace PESpy
                 var local = lastUsedSection.Value;
 
                 var start = local.VirtualAddress;
+
+                //If VirtualSize is 0, we won't be able to use fast path, and will have to rely on slow path where the proper SectionRange will be used
                 var end = local.VirtualAddress + local.VirtualSize;
 
                 if (start <= rva && rva < end)
@@ -2892,6 +2967,8 @@ namespace PESpy
             {
                 if (IsLoadedImage)
                 {
+                    //Legacy PE Files with a VirtualSize of 0 are only supported when reading from disk,
+                    //so we should never have a scenario where one of these is loaded
                     block = blockProvider.CreateBlock(section.VirtualAddress, section.VirtualSize);
                 }
                 else
@@ -3123,6 +3200,8 @@ namespace PESpy
 
             writer.WriteGlobal(ILMethods);
 
+            #region Cor20
+
             writer.WriteGlobal(EcmaMetadata);
 
             writer.WriteGlobal(ReadyToRunHeader);
@@ -3156,6 +3235,7 @@ namespace PESpy
             if (disposing)
             {
                 symbolAccessor?.Dispose();
+                _viewAccessor?.Dispose();
 
                 headerBlock.Dispose();
 

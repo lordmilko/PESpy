@@ -1,3 +1,4 @@
+﻿using System;
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,8 @@ namespace PESpy.View
         private bool _inRegion;
         private RegionBuilder _currentRegion;
         private Stack<RegionBuilder> _priorRegionStack = new Stack<RegionBuilder>();
+        internal List<(int start, int end, IFile file)> _nestedFileRanges = new List<(int start, int end, IFile file)>();
+        private int _nestedFileDepth;
 
         internal List<RegionBuilder> _topLevelRegions = new List<RegionBuilder>();
         internal List<RegionBuilder> _firstRegionByAddress = new List<RegionBuilder>();
@@ -69,11 +72,11 @@ namespace PESpy.View
             return null;
         }
 
-        internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false)
+        internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
         {
-            EnterRegion(offset, name, kind);
+            EnterRegion(offset, name, global, kind);
 
-            return base.CreateRegion(offset, name, kind, global);
+            return base.CreateRegion(offset, name, kind, global, nestedViewWriter);
         }
 
         internal override RegionWriter CreateRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, bool global
@@ -82,9 +85,10 @@ namespace PESpy.View
             , long listedAddress
 #pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 #endif
+            , ViewWriter nestedViewWriter
             )
         {
-            EnterRegion(offset, name, kind);
+            EnterRegion(offset, name, global, kind);
 
             return base.CreateRegion(
                 offset,
@@ -96,6 +100,7 @@ namespace PESpy.View
 #if DEBUG
                 , listedAddress
 #endif
+                , nestedViewWriter
             );
         }
 
@@ -105,9 +110,10 @@ namespace PESpy.View
             , int listedOffset
 #pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 #endif
+            , ViewWriter nestedViewWriter
             )
         {
-            EnterRegion(offset, name, kind);
+            EnterRegion(offset, name, global: false, kind);
 
             return base.CreateScopedRegion(
                 offset,
@@ -119,10 +125,11 @@ namespace PESpy.View
 #if DEBUG
                 , listedOffset
 #endif
+                , nestedViewWriter
             );
         }
 
-        private void EnterRegion(int offset, string name, ViewKind kind)
+        private void EnterRegion(int offset, string name, bool global, ViewKind kind)
         {
             var newRegion = new RegionBuilder
             {
@@ -130,15 +137,20 @@ namespace PESpy.View
                 Start = offset,
                 End = offset,
                 Kind = kind,
-                Depth = _inRegion ? _priorRegionStack.Count + 1 : 0
+                IsGlobal = global,
+                Depth = _inRegion ? _priorRegionStack.Count + 1 : 0,
+                NestedFileDepth = _nestedFileDepth
             };
 
             if (_inRegion)
             {
-                if (_currentRegion.Children == null)
-                    _currentRegion.Children = new List<RegionBuilder>();
+                if (_currentRegion.NestedFileDepth == _nestedFileDepth)
+                {
+                    if (_currentRegion.Children == null)
+                        _currentRegion.Children = new List<RegionBuilder>();
 
-                _currentRegion.Children.Add(newRegion);
+                    _currentRegion.Children.Add(newRegion);
+                }
 
                 _priorRegionStack.Push(_currentRegion);
 
@@ -154,7 +166,8 @@ namespace PESpy.View
 
         internal override void ExitRegion()
         {
-            var length = _currentRegion.Length;
+            var previousRegion = _currentRegion;
+            Debug.Assert(previousRegion.Length > 0);
 
             if (_currentRegion.Depth == 0)
                 _topLevelRegions.Add(_currentRegion);
@@ -162,13 +175,37 @@ namespace PESpy.View
             if (_priorRegionStack.Count > 0)
             {
                 _currentRegion = _priorRegionStack.Pop();
-                _currentRegion.End += length;
+
+                if (_currentRegion.NestedFileDepth == previousRegion.NestedFileDepth - 1)
+                {
+                    Debug.Assert(_currentRegion.Depth != previousRegion.Length);
+
+                    //This is conceptually top level too
+                    _topLevelRegions.Add(previousRegion);
+                }
+                else
+                {
+                    if (!previousRegion.IsGlobal && _currentRegion.NestedFileDepth == previousRegion.NestedFileDepth)
+                        _currentRegion.End += previousRegion.Length;
+                }
             }
             else
             {
                 _currentRegion = default;
                 _inRegion = false;
             }
+        }
+
+        internal override void EnterNestedFile(int startOffset, int length, IFile file)
+        {
+            _nestedFileRanges.Add((startOffset, startOffset + length, file));
+
+            _nestedFileDepth++;
+        }
+
+        internal override void ExitNestedFile()
+        {
+            _nestedFileDepth--;
         }
 
         public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
@@ -265,6 +302,11 @@ namespace PESpy.View
             return RegisterValue( offset, size, kind, fromRegion);
         }
 
+        public override void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
+        {
+            throw new NotImplementedException();
+        }
+
         private IView? RegisterValue(
             int offset,
             int size,
@@ -308,6 +350,8 @@ namespace PESpy.View
                 case ViewKind.ImageDelayLoadDescriptor_DllNameRVA:
                 case ViewKind.ImageExportDirectory_ForwarderName:
                 case ViewKind.ImageBoundImportName:
+                case ViewKind.DepsJson:
+                case ViewKind.RuntimeConfigJson:
                     pViewByte->DataKind = ViewByteDataKind.String;
                     break;
 

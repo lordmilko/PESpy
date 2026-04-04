@@ -25,7 +25,7 @@ namespace PESpy
             {
                 get
                 {
-                    if (depsJson.Value.Equals(null))
+                    if (depsJson.Value.Equals((string?) null))
                     {
                         var location = DepsJsonLocation;
 
@@ -45,7 +45,7 @@ namespace PESpy
             {
                 get
                 {
-                    if (runtimeConfigJson.Value.Equals(null))
+                    if (runtimeConfigJson.Value.Equals((string?) null))
                     {
                         var location = RuntimeConfigJsonLocation;
 

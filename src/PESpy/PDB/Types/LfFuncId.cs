@@ -29,6 +29,18 @@ namespace PESpy.PDB
 
         public SymString name => TypType.ReadString(value->name);
 
+        public NativeSpan<byte> Bytes
+        {
+            get
+            {
+                var lengthUsed = FixedStructSize + name.Length + 1;
+
+                var remaining = typlen - lengthUsed;
+
+                return new NativeSpan<byte>((byte*) value + lengthUsed, remaining);
+            }
+        }
+
         #region PESpy
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor) => TypType.ReadString(value->name, codeViewAccessor);
@@ -57,7 +69,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.lfFuncId, this, ViewKind.LfFuncId, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(5, BytesUsed());
+        int IViewable.NumChildren() => 6;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -85,9 +97,9 @@ namespace PESpy.PDB
 
                 case 5:
                     //Note: there's a bunch of unknown bytes at the end. Same with LfMFuncId
-
-                    //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed());
+                    var lengthUsed = FixedStructSize + name.Length + 1;
+                    var remaining = typlen - lengthUsed;
+                    structWriter.WriteByteBlob(lengthUsed + 2, remaining); //value is +2 from the typlen, but the view is +0 so we need to do +2 here
                     break;
 
                 default:

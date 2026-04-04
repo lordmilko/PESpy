@@ -117,6 +117,7 @@ namespace PESpy.View
         protected readonly FileAccessor _fileAccessor;
         protected readonly IFileDisassembler? _fileDisassembler;
 
+        private readonly LocatorHttpPolicy _httpPolicy;
         private readonly IFileAnalyzerProgress? _progress;
         private readonly HashSet<int> _queuedAddresses = new HashSet<int>();
         protected readonly Stopwatch _stopwatch = Stopwatch.StartNew();
@@ -161,6 +162,7 @@ namespace PESpy.View
         protected readonly ViewWriter _viewWriter;
 
         protected FileAnalyzer(FileAccessor fileAccessor, IFileDisassembler? fileDisassembler, IFileAnalyzerProgress? progress)
+        protected FileAnalyzer(FileAccessor fileAccessor, IFileDisassembler? fileDisassembler, LocatorHttpPolicy httpPolicy, IFileAnalyzerProgress? progress)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
@@ -494,7 +496,12 @@ namespace PESpy.View
             //We support all "addressable" symbols, meaning those that are capable of having an RVA
             switch (symType.rectyp)
             {
-                var s = symType;
+                //RefSym
+                case S_PROCREF_ST:
+                case S_DATAREF_ST:
+                case S_LPROCREF_ST:
+                    symType = ((RefSym) symType).GetSymbol(codeViewAccessor);
+                    goto default;
 
                 //RefSym2
                 case S_PROCREF:
@@ -591,18 +598,22 @@ namespace PESpy.View
         {
             if (sectionDataAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
             {
+                //In devenv.exe there's a symbol S_LPROC32 "`CVsActivityLogFile::GetLogFilePath'::`1'::dtor$5"
+                //that doesn't actually exist, and it points halfway through an IMAGE_THUNK_DATA symbol.
+                //As such, we defer trying to mark this as code until we know it's not bogus
+
+                var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
+
+                if (pViewByte->Kind == ViewByteKind.Body)
+                    return; //Bogus
+
                 AddCode(targetAddress, rva);
 
                 //We defer trying to get the name until we know this is actually a viable result
                 if (name.Length > 0)
                 {
-                    var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
-
-                    if (name.Length > 0)
-                    {
-                        AddName(targetAddress, pViewByte, name);
-                        pViewByte->IsFunction = true;
-                    }
+                    AddName(targetAddress, pViewByte, name);
+                    pViewByte->IsFunction = true;
                 }
             }
         }
@@ -856,7 +867,7 @@ namespace PESpy.View
                     }
 
                     //Passing the ref'd DirectoryInfo on the stack _does_ update the ref in the array
-                    SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref directoryInfo);
+                    SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref directoryInfo.End);
 
                     while (stack.Count > 0 && directoryInfo.Start >= stack.PeekRef().End)
                         stack.Pop();
@@ -899,7 +910,7 @@ namespace PESpy.View
             }
         }
 
-        private void SplitDirectoryStart(ViewByte* pStartByte, int sectionAccessorIndex)
+        protected void SplitDirectoryStart(ViewByte* pStartByte, int sectionAccessorIndex)
         {
             var startKind = pStartByte->Kind;
 
@@ -960,7 +971,7 @@ namespace PESpy.View
             }
         }
 
-        private void SplitDirectoryEnd(ViewByte* pEndByte, ViewByte* limit, int sectionAccessorIndex, ref DirectoryInfo directoryInfo)
+        protected void SplitDirectoryEnd(ViewByte* pEndByte, ViewByte* limit, int sectionAccessorIndex, ref int endOffset)
         {
             //pEndByte is the very last byte of the directory. Sometimes the listed size of a directory doesn't
             //actually match the size of the data within it. If we're in the middle of reading a valid value,
@@ -1077,7 +1088,15 @@ namespace PESpy.View
                                         var structLength = pEntityStart->GetLength(limit);
                                         var lengthInsideDirectory = (int) (pEndByte - pEntityStart + 1);
                                         var lengthOutsideDirectory = structLength - lengthInsideDirectory;
-                                        directoryInfo.End += lengthOutsideDirectory;
+                                        endOffset += lengthOutsideDirectory;
+                                        break;
+
+                                    case ViewByteDataKind.Padding:
+                                        //Split the padding in two
+                                        nextByte->Kind = ViewByteKind.Data;
+                                        nextByte->DataKind = ViewByteDataKind.Padding;
+
+                                        //No need to tag the body; all bytes after us are already body
                                         break;
 
                                     default:
@@ -1116,6 +1135,7 @@ namespace PESpy.View
 
             //Virtual so we can use our precomputed large areas
             MarkRegions();
+            MarkNestedFiles();
 
             //Must do this before attempting to validate names below
             _fileAccessor.Finalize(
@@ -1251,14 +1271,15 @@ namespace PESpy.View
 
             Parallel.ForEach(queue, item =>
             {
-                var item = queue.Dequeue();
-
                 if (symbolAccessor.TryGetLengthFromAddress(item.RVA, _fileAccessor as ISectionDataAccessor, out var length))
                 {
                     var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
 
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-                    var end = (ViewByte*) Math.Min((long) (pViewByte + length), (long) (sectionAccessor.pViewBytes + sectionAccessor.Length));
+                    _fileAccessor.GetRawSectionData(sectionAccessor, out var pBytes, out _, out _);
+                    pBytes += (pViewByte - sectionAccessor.pViewBytes);
+                    var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                    var end = (ViewByte*) Math.Min((long) (pViewByte + length), (long) limit);
 
                     //If we erroneously detected this sequence of bytes as being a string, we need to convert it back to code
                     //and skip over its bytes before we continue eating regular bytes
@@ -1295,6 +1316,13 @@ namespace PESpy.View
                         pViewByte->Kind = ViewByteKind.Body;
                         pViewByte++;
                         Debug.Assert(pViewByte >= end || pViewByte->BodyKind == ViewByteBodyKind.None);
+                    }
+
+                    if (end < limit && end->Kind == ViewByteKind.Body)
+                    {
+                        //I'm going to assume we just wrote in the middle of a Data Unknown area. Set the next byte to be Data Unknown too
+                        end->Kind = ViewByteKind.Data;
+                        end->DataKind = ViewByteDataKind.Unknown;
                     }
                 }
             });
@@ -1548,6 +1576,10 @@ namespace PESpy.View
         }
 
         protected virtual void MarkRegions()
+        {
+        }
+
+        protected virtual void MarkNestedFiles()
         {
         }
 

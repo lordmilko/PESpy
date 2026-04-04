@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using ClrDebug;
 using PESpy.LIB;
+using PESpy.PDB;
 using PESpy.View;
 
 namespace PESpy
@@ -244,6 +245,44 @@ namespace PESpy
             sectionNumber = default;
             relativeOffset = default;
             return false;
+        }
+
+        internal static void GetSectionAndOffset(
+            ImageSectionHeader[] sectionHeaders,
+            int rva,
+            out ISECT sectionNumber,
+            out int relativeOffset,
+            out bool isValid)
+        {
+            if (sectionHeaders == null)
+                throw new InvalidOperationException("Cannot resolve RVA: no section headers could be found");
+
+            if (sectionHeaders.Length == 0 || sectionHeaders.Length > 0 && rva < sectionHeaders[0].VirtualAddress)
+            {
+                sectionNumber = 0;
+                relativeOffset = rva;
+                isValid = false;
+                return;
+            }
+
+            for (var i = 0; i < sectionHeaders.Length - 1; i++)
+            {
+                ref var sectionHeader = ref sectionHeaders[i];
+                ref var nextSectionHeader = ref sectionHeaders[i + 1];
+
+                if (rva >= sectionHeader.VirtualAddress && rva < nextSectionHeader.VirtualAddress)
+                {
+                    sectionNumber = (ushort) (i + 1);
+                    relativeOffset = rva - sectionHeader.VirtualAddress;
+                    isValid = relativeOffset < sectionHeader.VirtualSize;
+                    return;
+                }
+            }
+
+            ref var lastSectionHeader = ref sectionHeaders[sectionHeaders.Length - 1];
+            sectionNumber = (ushort) sectionHeaders.Length;
+            relativeOffset = rva - lastSectionHeader.VirtualAddress;
+            isValid = relativeOffset < lastSectionHeader.VirtualSize;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

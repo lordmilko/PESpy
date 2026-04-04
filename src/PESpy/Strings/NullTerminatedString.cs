@@ -47,18 +47,36 @@ namespace PESpy
 
         #region IString
 
-        public bool StartsWith(string value) => throw new NotImplementedException();
+        public bool StartsWith(string value)
+        {
+            if (Kind == StringKind.UTF16)
+                return AsWideSpan().StartsWith(value.AsSpan());
 
-        public bool EndsWith(string value) => throw new NotImplementedException();
+            return StringHelpers.StartsWith(AsSpan(), value);
+        }
 
-        public bool Contains(string value) => throw new NotImplementedException();
+        public bool EndsWith(string value)
+        {
+            if (Kind == StringKind.UTF16)
+                return AsWideSpan().EndsWith(value.AsSpan());
+
+            return StringHelpers.EndsWith(AsSpan(), value);
+        }
+
+        public bool Contains(string value)
+        {
+            if (Kind == StringKind.UTF16)
+                 return AsWideSpan().IndexOf(value.AsSpan()) != -1;
+
+            return StringHelpers.Contains(AsSpan(), value);
+        }
 
         public void CopyTo(Span<byte> destination) => new Span<byte>(Value, Length).CopyTo(destination);
 
         public void CopyTo(Span<char> destination)
         {
             if (Kind == StringKind.UTF16)
-                new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).CopyTo(destination);
+                AsWideSpan().CopyTo(destination);
             else
                 StringHelpers.CopyTo(AsSpan(), destination);
         }
@@ -72,6 +90,9 @@ namespace PESpy
 
             return new Span<byte>(Value, length);
         }
+
+        public Span<char> AsWideSpan() =>
+            new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value));
 
         #endregion
         #region IEquatable / IComparable (NullTerminatedString)
@@ -97,14 +118,33 @@ namespace PESpy
         public bool Equals(ReadOnlySpan<char> other)
         {
             if (Kind == StringKind.UTF16)
-                return new Span<char>(Value, StringHelpers.GetWideStringLength((char*) Value)).SequenceEqual(other);
+                return AsWideSpan().SequenceEqual(other);
 
             return StringHelpers.Equals(Value, Length, other);
         }
 
         public int CompareTo(string other)
         {
-            throw new NotImplementedException();
+            if (Kind == StringKind.UTF16)
+                return AsWideSpan().SequenceCompareTo(other.AsSpan());
+
+            return StringHelpers.CompareTo(AsSpan(), other);
+        }
+
+        public int CompareToIgnoreCase(NullTerminatedString other)
+        {
+            if (Kind == StringKind.UTF16)
+            {
+                if (other.Kind == StringKind.UTF16)
+                    return StringHelpers.CompareToIgnoreCase(AsWideSpan(), other.AsWideSpan());
+
+                return StringHelpers.CompareToIgnoreCase(AsWideSpan(), other.AsSpan());
+            }
+
+            if (other.Kind == StringKind.UTF16)
+                return StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsWideSpan());
+
+            return StringHelpers.CompareToIgnoreCase(AsSpan(), other.AsSpan());
         }
 
         #endregion

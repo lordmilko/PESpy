@@ -120,7 +120,7 @@ namespace PESpy.View
                 {
                     var first = st.Name;
 
-                    if (view.Children.Count > 1 && view.Children.All(v => v is IStructView s && s.Name == first)) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
+                    if ((view.Children.Count > 1 && view.Children.All(v => v is IStructView s && s.Name == first))) //In PDBs we force all values to be in a page region, but we don't need to show (1) if there's just 1 child in that case, since it's not a repeating group
                         builder.Append(" (").Append(view.Children.Count).Append(")");
                     else if (first == "IMAGE_IMPORT_BY_NAME")
                         builder.Append(" (").Append(view.Children.Count(v => v is IStructView s && s.Name == Strings.IMAGE_IMPORT_BY_NAME || v is IValueView { Value: string })).Append(")");
@@ -130,7 +130,7 @@ namespace PESpy.View
                     if (view.Children.All(v => v is IValueView || v is ByteBlobView { Kind: ViewKind.Padding } || v is ByteBlobView { Kind: ViewKind.CC }))
                         builder.Append(" (").Append(view.Children.OfType<IValueView>().Count()).Append(")");
                 }
-                else if (view.Kind == ViewKind.CompressedModelHeap || view.Kind == ViewKind.GuidPoolHeap)
+                else
                     builder.Append(" (").Append(view.Children.Count()).Append(")");
             }
 
@@ -387,6 +387,9 @@ namespace PESpy.View
                 builder.Append("0x").Append(ul.ToString("X"));
             else
                 builder.Append(value);
+
+            if (view is SplitValueView<T>)
+                builder.Append(" (Split)");
 
             return builder.ToString();
         }

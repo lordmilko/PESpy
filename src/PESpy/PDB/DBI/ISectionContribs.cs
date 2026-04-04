@@ -9,5 +9,7 @@ namespace PESpy.PDB
         SC40 this[int index] { get; }
 
         bool TryGetSection(ISECT seg, int off, out SC40 sc);
+
+        bool TryGetSection(ISECT seg, int off, out int index, out SC40 sc);
     }
 }

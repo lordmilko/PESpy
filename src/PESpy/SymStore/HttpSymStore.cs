@@ -40,10 +40,7 @@ namespace PESpy
         {
             //Uri.TryCreate drops the end of your base Uri if it does not end in a slash.
             //However, we're now doing without Uri entirely to reduce the size used in NativeAOT
-
-            //If a specific http policy was specified, we need to have been given a file to use (regardless of whether we're None or not,
-            //we still need to test what would happen if they had asked for Microsoft)
-            Debug.Assert(httpPolicy != LocatorHttpPolicy.All || file != null);
+            Debug.Assert(httpPolicy != LocatorHttpPolicy.Microsoft || file != null);
 
             Uri = uri;
             HttpPolicy = httpPolicy;

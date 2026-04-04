@@ -66,7 +66,7 @@ namespace PESpy
             //Merger.TryCreateOMFRegion will wrap this all up in a region
 
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
-            writer.WriteGlobalField(Offset + 4, "lfoDir", LfoDir, sizeof(int));
+            writer.WriteGlobalField(Offset + 4, Strings.lfoDir, LfoDir, sizeof(int), ViewKind.LfoDir);
 
             //Data comes before the headers
 
@@ -93,7 +93,7 @@ namespace PESpy
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);
 
-            writer.WriteGlobalField(Offset + LfoBase - 8, "lfoBase", LfoBase, sizeof(int));
+            writer.WriteGlobalField(Offset + LfoBase - 8, Strings.lfoBase, LfoBase, sizeof(int), ViewKind.LfoBase);
             writer.WriteGlobal(Offset + LfoBase - 4, Signature, sizeof(int), ViewKind.CodeViewSig);
         }
 

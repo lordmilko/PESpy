@@ -49,6 +49,9 @@ namespace PESpy
 
         private MSFParms msfParms; //Only set when writing
 
+        //Cache the array so we can lookup the same block we create below in PDBFileAccessor.GetMemoryChunkFromAddress
+        internal PN[] _pagesOfStreamTablePageListArray;
+
         //Open an existing file
         internal PDB7File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V7)
         {
@@ -145,9 +148,10 @@ namespace PESpy
              * page list can be found in. */
 
             var pagesOfStreamTablePageList = msfHeader.PagesOfStreamTablePageList;
+            _pagesOfStreamTablePageListArray = pagesOfStreamTablePageList.ToArray();
 
             streamTableLocation = new SI(
-                globalBlock.SlicePaged(pagesOfStreamTablePageList.ToArray(), pagesOfStreamTablePageList.Length * msfHeader.PageSize),
+                globalBlock.SlicePaged(_pagesOfStreamTablePageListArray, pagesOfStreamTablePageList.Length * msfHeader.PageSize),
                 msfHeader.StreamTableSizeInfo.ByteCount,
                 msfHeader.PageSize
             );

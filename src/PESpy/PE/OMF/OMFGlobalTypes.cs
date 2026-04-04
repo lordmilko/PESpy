@@ -57,7 +57,7 @@ namespace PESpy
                     break;
             }
 
-            SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor);
+            SymbolMemoryTracker.RegisterCVSymbolMemory(chunk, codeViewAccessor, null);
         }
 
         public Enumerator GetEnumerator() => new Enumerator(typeInfoStart == 0 ? chunk : chunk.Slice(typeInfoStart), typeOffset);

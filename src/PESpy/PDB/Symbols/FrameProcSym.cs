@@ -50,7 +50,7 @@ namespace PESpy.PDB
         public CV_uoff32_t offExHdlr => value->offExHdlr;
 
         /// <inheritdoc cref="FRAMEPROCSYM.sectExHdlr"/>
-        public short sectExHdlr => value->sectExHdlr;
+        public ISECT sectExHdlr => value->sectExHdlr;
 
         /// <inheritdoc cref="FRAMEPROCSYM.fHasAlloca"/>
         public bool fHasAlloca => value->fHasAlloca;
@@ -118,11 +118,21 @@ namespace PESpy.PDB
         /// <inheritdoc cref="FRAMEPROCSYM.pad"/>
         public int pad => value->pad;
 
+        #region PESpy
+
+        public int? ExHdlrRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectExHdlr, offExHdlr);
+
         public CV_HREG_e GetLocalBasePointer(IMAGE_FILE_MACHINE machineType) =>
             PdbExtensions.ExpandEncodedBasePointerReg(machineType, encodedLocalBasePointer);
 
         public CV_HREG_e GetParamBasePointer(IMAGE_FILE_MACHINE machineType) =>
             PdbExtensions.ExpandEncodedBasePointerReg(machineType, encodedParamBasePointer);
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
 
         internal const int StructSize =
             sizeof(ushort) + //reclen

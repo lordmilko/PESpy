@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;
 
@@ -8,6 +11,14 @@ namespace PESpy
     internal class PDB1FileDebugView
     {
         private PDB1File pdbFile;
+
+        public string Name => pdbFile.Name;
+
+        public string FileName => pdbFile.FileName;
+
+        public FileKind Kind => pdbFile.Kind;
+
+        public int Length => pdbFile.Length;
 
         public OHDR Hdr => pdbFile.Hdr;
 
@@ -72,6 +83,8 @@ namespace PESpy
 
         internal override IStreamTable CreateStreamTable(in MemoryChunk chunk, int pageSize) => throw new NotSupportedException();
 
+        private TpiHashLookup tpiHashLookup;
+
         internal PDB1File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V1)
         {
         }
@@ -84,6 +97,130 @@ namespace PESpy
 
             hdr = new OHDR(globalChunk);
         }
+
+        #region Type Lookup
+
+        public override TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
+        {
+            if (!TryGetTypTypeFromIndex(typeIndex, out var typType))
+                throw new InvalidOperationException($"Failed to resolve type index '{typeIndex}'");
+
+            return typType;
+        }
+
+        public override TypType GetTypTypeFromIndex(CV_ItemId typeIndex) => throw new NotSupportedException();
+
+        public override bool TryGetTypTypeFromIndex(CV_typ_t typeIndex, out TypType typType)
+        {
+            var i = typeIndex - Hdr.tiMin;
+
+            var records = Records;
+
+            if (i >= records.Length)
+            {
+                typType = default;
+                return false;
+            }
+
+            typType = records[i].type;
+            return true;
+        }
+
+        public override bool TryGetTypTypeFromIndex(CV_ItemId typeIndex, out TypType typType)
+        {
+            typType = default;
+            return false;
+        }
+
+        public bool TryGetIndexFromTypType(TypType typType, out CV_typ_t typeIndex)
+        {
+            if (tpiHashLookup == null)
+            {
+                lock (this)
+                {
+                    if (tpiHashLookup == null)
+                        InitializeHashLookup();
+                }
+            }
+
+            var hash = Hasher.oldHashPbCb((TYPTYPE*) typType);
+
+            var bucket = GetBucket(hash);
+
+            var records = Records;
+            var tiMin = Hdr.tiMin;
+
+            foreach (var entry in bucket)
+            {
+                var candidate = records[entry - tiMin];
+
+                //I would expect that implicitly the hash should be equal (since unlike with TpiHash,
+                //there isn't really a concept of "hashPrecFull". There's only one hash, the hash of
+                //the entire record
+                if (candidate.hash == hash && candidate.type.AsSpan().SequenceEqual(typType.AsSpan()))
+                {
+                    typeIndex = entry;
+                    return true;
+                }
+            }
+
+            typeIndex = default;
+            return false;
+        }
+
+        private void InitializeHashLookup()
+        {
+            var tiMin = Hdr.tiMin;
+            var tiMac = Hdr.tiMac;
+
+            var records = Records;
+
+            //An array of lists
+            var buckets = new Dictionary<uint, int>();
+
+            //Count how many collisions in each bucket we have
+            foreach (var record in records)
+            {
+                var hash = record.hash;
+
+                if (!buckets.TryGetValue(hash, out var bucket))
+                    buckets[hash] = 1;
+                else
+                    buckets[hash] = bucket + 1;
+            }
+
+            //Now write all the values in
+            var tpiHashLookup = new TpiHashLookup(buckets, tiMac - tiMin);
+
+            for (var i = 0; i < Records.Length; i++)
+            {
+                var record = Records[i];
+
+                var hash = record.hash;
+
+                var handle = tpiHashLookup[hash];
+
+                var remaining = buckets[hash];
+                var pos = handle.Length - remaining;
+
+                tpiHashLookup.GetSpan(handle)[pos] = i + tiMin;
+
+                buckets[hash] = remaining - 1;
+            }
+
+            this.tpiHashLookup = tpiHashLookup;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Span<CV_typ_t> GetBucket(uint hash)
+        {
+            if (!tpiHashLookup.TryGetValue(hash, out var handle))
+                return default;
+
+            return tpiHashLookup.GetSpan(handle);
+        }
+
+        #endregion
 
         protected override void WriteGlobals(ViewWriter writer)
         {

@@ -37,6 +37,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="SLINK32.reg"/>
         public CV_HREG_e reg => (CV_HREG_e) value->reg;
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int StructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

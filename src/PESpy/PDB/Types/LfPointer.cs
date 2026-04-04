@@ -122,7 +122,8 @@ namespace PESpy.PDB
             if (attr.ptrmode == CV_PTR_MODE_PMEM || attr.ptrmode == CV_PTR_MODE_PMFUNC)
             {
                 //PM (per pdbdump.cpp)
-                throw new NotImplementedException();
+                s.WriteField(nameof(pbase.pm.pmclass), pbase.pm.pmclass);
+                s.WriteField(nameof(pbase.pm.pmenum), pbase.pm.pmenum, sizeof(short));
             }
             else
             {
@@ -152,6 +153,15 @@ namespace PESpy.PDB
             }
 
             #endregion
+
+            var expectedSize = typlen + sizeof(short);
+
+            while (s.Size < expectedSize)
+            {
+                var val = (LEAF_ENUM_e) (*((byte*) value + s.Size - sizeof(short)));
+                Debug.Assert(val >= LEAF_ENUM_e.LF_PAD0 && val <= LEAF_ENUM_e.LF_PAD15);
+                s.WriteValue(val, 1);
+            }
 
             structWriter.EagerFields = s.ToArray();
         }

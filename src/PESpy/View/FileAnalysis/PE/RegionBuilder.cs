@@ -9,6 +9,8 @@ namespace PESpy.View
         public int Start;
         public int End;
         public int Depth;
+        public bool IsGlobal;
+        public int NestedFileDepth;
 
         public List<RegionBuilder> Children;
 

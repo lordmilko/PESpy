@@ -6,7 +6,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //Type is made up
-    public class PDBModuleSymbols : IValue, IViewable
+    public class PDBModuleSymbols : IValue, IViewable, ICodeViewModuleAccessor
     {
         public CV_SIGNATURE Signature { get; }
 
@@ -18,11 +18,21 @@ namespace PESpy.PDB
 
         public int Offset => chunk.AbsoluteOffset;
 
-        private readonly MemoryChunk chunk;
+        SymTypeList ICodeViewModuleAccessor.Symbols => List;
 
-        internal PDBModuleSymbols(in MemoryChunk chunk, CV_SIGNATURE signature, SymTypeList symbols)
+        private readonly MemoryChunk chunk;
+        private IMOD imod;
+
+        internal PDBModuleSymbols(
+            in MemoryChunk chunk,
+            IMOD imod,
+            CV_SIGNATURE signature,
+            SymTypeList symbols)
         {
+            SymbolMemoryTracker.RegisterPDBSymbolMemory(chunk, this);
+
             this.chunk = chunk;
+            this.imod = imod;
             Signature = signature;
             List = symbols;
         }
@@ -34,6 +44,18 @@ namespace PESpy.PDB
             Debug.Assert(ptr < List.end);
 
             return ptr;
+        }
+
+        public bool TryGetFunctionSymbol(int off, ISECT seg, out SymType symType)
+        {
+            if (chunk.PDBFile()._symCache.TryGetFunctionSymbol(imod, seg, off, out var offSegSym))
+            {
+                symType = offSegSym.symType;
+                return true;
+            }
+
+            symType = default;
+            return false;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ClrDebug;
 using PESpy.View;
 
@@ -34,6 +35,22 @@ namespace PESpy.PDB
             sizeof(int) + //dwCharacteristics
             sizeof(ushort) + //imod
             sizeof(ushort); //padding2
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int IsAddrInSC<T>(T sc, ISECT seg, int off) where T : ISC20
+        {
+            if (sc.isect == seg)
+            {
+                if (off < sc.off)
+                    return -1; //Before the start of the current entry
+                else if (off - sc.off < sc.cb)
+                    return 0; //Within the bounds of the current entry
+                else
+                    return 1; //After the bounds of the current entry
+            }
+            else
+                return seg - sc.isect;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

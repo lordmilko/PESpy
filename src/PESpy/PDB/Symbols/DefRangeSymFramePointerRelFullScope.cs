@@ -28,6 +28,14 @@ namespace PESpy.PDB
         /// <inheritdoc cref="DEFRANGESYMFRAMEPOINTERREL_FULL_SCOPE.offFramePointer"/>
         public CV_off32_t offFramePointer => value->offFramePointer;
 
+        #region PESpy
+
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
+        #endregion
+
         internal const int StructSize =
             sizeof(ushort) + //reclen
             sizeof(ushort) + //rectyp

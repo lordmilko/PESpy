@@ -52,12 +52,15 @@ namespace PESpy
 
         public bool TryGetNameFromAddress(int rva, out SymString name, out int displacement)
         {
-            if (PDBFile.TryGetSymbolByRVA(rva, out var symType, out displacement))
+            if (PDBFile.TryGetSymbolByRVA(rva, out var symType, out displacement, out var imod))
             {
                 if (symType.rectyp == ClrDebug.PDB.SYM_ENUM_e.S_SEPCODE)
                 {
                     var sepCode = (SepCodeSym) symType;
-                    symType = sepCode.GetParent(PDBFile);
+
+                    var codeViewModuleAccessor = PDBFile.DBI.Modules[imod].Symbols;
+
+                    symType = sepCode.GetParent(codeViewModuleAccessor);
 
                     if (sepCode.sect != sepCode.sectParent)
                         throw new System.NotImplementedException(); //Convert sepcode and parent to rva and then get difference

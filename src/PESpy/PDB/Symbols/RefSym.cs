@@ -61,6 +61,10 @@ namespace PESpy.PDB
             return SymType.ReadString(value, ((byte*) value) + reclen + sizeof(ushort), codeViewAccessor);
         }
 
+        public SymType Parent => GetParent(null);
+
+        public SymType GetParent(ICodeViewModuleAccessor? codeViewModuleAccessor) => SymType.GetParent((SYMTYPE*) value, codeViewModuleAccessor);
+
         #endregion
 
         internal const int FixedStructSize =

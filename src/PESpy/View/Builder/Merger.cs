@@ -17,8 +17,6 @@ namespace PESpy.View.Builder
 
         private GapBuffer<IView> sortedStructs;
 
-        private HashSet<IView>? delayNameViews;
-
         private Span<DirectoryInfo> discoveredDataDirectories;
 
         private int nextStructIndex;
@@ -34,7 +32,7 @@ namespace PESpy.View.Builder
         private PooledList<IView> repeatingTypeList;
 
         internal Merger(IFile file, ViewWriter viewWriter, List<IView> sortedStructs, ByteViewProvider byteViewProvider) :
-            this(file, viewWriter, sortedStructs, default, default, byteViewProvider)
+            this(file, viewWriter, sortedStructs, default, byteViewProvider)
         {
         }
 
@@ -42,14 +40,12 @@ namespace PESpy.View.Builder
             IFile file,
             ViewWriter viewWriter,
             List<IView> sortedStructs,
-            HashSet<IView>? delayNameViews,
             Span<DirectoryInfo> discoveredDataDirectories,
             ByteViewProvider byteViewProvider)
         {
             this.file = file;
             this.viewWriter = viewWriter;
             this.sortedStructs = new GapBuffer<IView>(sortedStructs);
-            this.delayNameViews = delayNameViews;
             this.discoveredDataDirectories = discoveredDataDirectories;
             this.byteViewProvider = byteViewProvider;
 
@@ -227,21 +223,6 @@ namespace PESpy.View.Builder
                 if (repeatingGroupMode == 0)
                     repeatingGroupMode = RepeatingGroupMode.LogicalRegion;
             }
-            else if (nextValue is IStructView s && s.Name == "IMAGE_IMPORT_BY_NAME")
-            {
-                if (repeatingGroupMode != 0 && (repeatingGroupMode != RepeatingGroupMode.ImportFunctionNames && repeatingGroupMode != RepeatingGroupMode.DelayImportFunctionNames))
-                    FinalizeRepeatingTypeRegion();
-
-                repeatingTypeList.Add(nextValue);
-
-                if (repeatingGroupMode == 0)
-                {
-                    if (delayNameViews?.Contains(nextValue) == true)
-                        repeatingGroupMode = RepeatingGroupMode.DelayImportFunctionNames;
-                    else
-                        repeatingGroupMode = RepeatingGroupMode.ImportFunctionNames;
-                }
-            }
             else
             {
                 FinalizeRepeatingTypeRegion();
@@ -405,6 +386,7 @@ end:
                  * look for values that are running over the edge of the current page, _or_ are perfectly situated at the start of
                  * the current page
                  */
+
                 if (previous)
                 {
                     var previousPage = siPageList[currentIndex - 1];
@@ -556,20 +538,9 @@ end:
 
             Debug.Assert(currentList.Count > 0);
 
-            if (currentList.Count == 1 && currentList[0] is not ByteBlobView && file is not PDBFile) //When constructing PDB Views, even if we have one big value that takes up an entire page, it should still be wrapped in a page logical view
-            {
-                //Only one item; no point creating a region view around it. But if it's a byte blob, we likely don't support this directory yet, so we should create a region around it
-                //so that it's clear that something is supposed to be there
-                masterList.Add(currentList[0]);
-            }
-            else
-            {
-                //We've been building up the members of a directory
+            var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), viewWriter, file is PDBFile ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
 
-                var directoryRegion = new LogicalRegionView(directory.Value.Start, directory.Value.Name, currentList.ToArray(), viewWriter, file is PDBFile ? ViewKind.Page : ViewKind.DataDirectory, (int) (directory.Value.End - directory.Value.Start));
-
-                masterList.Add(directoryRegion);
-            }
+            masterList.Add(directoryRegion);
 
             directory = null;
 

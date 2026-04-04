@@ -17,9 +17,16 @@ namespace PESpy
 
         public int Offset { get; }
 
-        internal OMFModuleTypes(int offset, CV_SIGNATURE signature, TypTypeList types)
+        internal OMFModuleTypes(
+            in MemoryChunk valueChunk,
+            CV_SIGNATURE signature,
+            TypTypeList types,
+            ICodeViewAccessor codeViewAccessor)
         {
-            Offset = offset;
+            //We're not a module; we have types, not symbols
+            SymbolMemoryTracker.RegisterCVSymbolMemory(valueChunk, codeViewAccessor, null);
+
+            Offset = valueChunk.AbsoluteOffset;
             Signature = signature;
             List = types;
         }

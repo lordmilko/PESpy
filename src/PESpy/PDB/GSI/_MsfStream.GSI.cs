@@ -65,7 +65,7 @@ namespace PESpy.PDB
                         if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
                             throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
 
-                        SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolChunk);
+                        SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolChunk, null);
 
                         var symbolsStart = symbolChunk.Pointer;
 
@@ -257,7 +257,7 @@ namespace PESpy.PDB
                         if (!pdbFile.TryGetStreamChunk(pdbFile.DBI!.DbiHdr.snSymRecs, out var symbolChunk))
                             throw new InvalidOperationException("Couldn't retrieve section for DbiHdr.snSymRecs for global symbols");
 
-                        SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolChunk);
+                        SymbolMemoryTracker.RegisterPDBSymbolMemory(symbolChunk, null);
 
                         Symbols = new GlobalSymTypeList(hashRecords, symbolChunk.Pointer);
                     }
@@ -366,20 +366,26 @@ namespace PESpy.PDB
                     //If we have a GsiHdr, the following should implicitly be true
                     Debug.Assert(GsiHdr.verSignature == GSIHashHdr.hdrSignature && GsiHdr.verHdr == GSIHashSCImpv.GSIHashSCImpvV70);
 
+                    writer.WriteGlobal(GsiHdr);
+
                     var offset = chunk.RelativeOffset + GSIHashHdr.StructSize;
 
                     writer.WritePagedGlobal<HRFile>(offset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
                     offset += (HashRecords.Length * HRFile.StructSize);
 
-                    writer.WritePagedGlobal<int>(offset, (PagedMemoryBlock) chunk.block, BucketsBitmap, ViewKind.HashBucketsBitmap);
-                    offset += BucketsBitmap.Length * sizeof(int);
+                    var bucketsBitmapLength = BucketsBitmap.Length * sizeof(int);
+                    writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketsBitmap, bucketsBitmapLength, ViewKind.HashBucketsBitmap);
+                    offset += bucketsBitmapLength;
 
-                    writer.WritePagedGlobal<int>(offset, (PagedMemoryBlock) chunk.block, BucketOffsets, ViewKind.HashBuckets);
+                    var bucketOffsetsLength = BucketOffsets.Length * sizeof(int);
+                    writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketOffsets, bucketOffsetsLength, ViewKind.HashBuckets);
                 }
                 else
                 {
                     writer.WritePagedGlobal<HRFile>(chunk.RelativeOffset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
-                    writer.WritePagedGlobal<int>(chunk.RelativeOffset + (HashRecords.Length * HRFile.StructSize), (PagedMemoryBlock) chunk.block, BucketOffsets, ViewKind.HashBuckets);
+
+                    var bucketOffsetsLength = BucketOffsets.Length * sizeof(int);
+                    writer.WriteGlobal(chunk.block.GetAbsoluteOffset(chunk.RelativeOffset + (HashRecords.Length * HRFile.StructSize)), BucketOffsets, bucketOffsetsLength, ViewKind.HashBuckets);
                 }
             }
         }

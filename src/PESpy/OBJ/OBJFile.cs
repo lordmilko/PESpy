@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using PESpy.OBJ;
@@ -80,6 +81,9 @@ namespace PESpy
                     {
                         ref var section = ref sections[i];
 
+                        if (section.PointerToRawData == 0)
+                            continue;
+
                         MemoryChunk sectionChunk;
 
                         //When we're dealing with LTCG object files, it seems that the pointer to raw data is relative to the start of the image file header. The anon header doesn't count!
@@ -125,6 +129,18 @@ namespace PESpy
                 return new OBJSymbolsTable(sectionChunk, sizeOfRawData);
             else if (sectionName == ".debug$T" || sectionName == ".debug$P")
                 return new OBJTypesTable(sectionChunk, sizeOfRawData);
+            else if (sectionName == ".debug$F")
+            {
+                //FPO
+                Debug.Assert((sizeOfRawData % FpoData.StructSize) == 0);
+
+                var results = new FpoData[sizeOfRawData / FpoData.StructSize];
+
+                for (var i = 0; i < results.Length; i++)
+                    results[i] = new FpoData(sectionChunk.Slice(i * FpoData.StructSize));
+
+                return new RawValue<FpoData[]>(sectionChunk.AbsoluteOffset, results);
+            }
             else if (sectionName == ".text$mn")
             {
                 //It's assembly code, but we can't read it ourselves
@@ -341,6 +357,11 @@ namespace PESpy
 
                     writer.WriteGlobal(s.Offset, s.Value, s.Value.Length + 1, kind);
                 }
+                else if (data is RawValue<FpoData[]> f)
+                {
+                    foreach (var item in f.Value)
+                        writer.WriteGlobal(item);
+                }
                 else if (data is RawValue<NativeSpan<byte>> b)
                 {
                     ref var header = ref sectionHeaders[i];
@@ -352,16 +373,28 @@ namespace PESpy
                         kind = ViewKind.text;
                     else if (sectionName == ".text$mn")
                         kind = ViewKind.text_mn;
+                    else if (sectionName == ".data")
+                        kind = ViewKind.data;
                     else if (sectionName.StartsWith(".idata"))
                         kind = ViewKind.idata;
                     else if (sectionName == ".edata")
                         kind = ViewKind.edata;
                     else if (sectionName == ".rdata")
                         kind = ViewKind.rdata;
+                    else if (sectionName == ".debug$f") //FPO
+                        kind = ViewKind.debug_f;
+                    else if (sectionName == ".bss")
+                        kind = ViewKind.bss; //Don't know what the actual data format is
+                    else if (sectionName.StartsWith(".rsrc"))
+                        kind = ViewKind.rsrc;
+                    else if (sectionName == ".sxdata")
+                        kind = ViewKind.sxdata;
                     else
                     {
+#if DEBUG
                         if (sectionName.StartsWith("."))
                             throw new NotImplementedException();
+#endif
 
                         //You can have weird garbage in a lib file in the name
                         kind = ViewKind.UnknownSection;
@@ -380,7 +413,7 @@ namespace PESpy
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
-        internal ICodeViewAccessor RegisterC13SymbolMemory(MemoryChunk dataChunk)
+        internal ICodeViewAccessor RegisterC13SymbolMemory(MemoryChunk dataChunk, ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             lock (c13SymbolMemoryLock)
             {
@@ -389,7 +422,7 @@ namespace PESpy
                     var codeViewAccessor = new OBJFileCodeViewAccessor(this, false);
 
                     //We're being called from OBJSymbolsTable.C13SubSections which only runs when the signature is C13
-                    SymbolMemoryTracker.RegisterCVSymbolMemory(dataChunk, codeViewAccessor);
+                    SymbolMemoryTracker.RegisterCVSymbolMemory(dataChunk, codeViewAccessor, codeViewModuleAccessor);
 
                     return codeViewAccessor;
                 }

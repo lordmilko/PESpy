@@ -23,6 +23,8 @@ namespace PESpy
 
         Span<TChar> AsSpan();
 
+        int CompareToIgnoreCase(TString other);
+
         //IEquatable<string> / IComparable<string>
 
         bool Equals(string? other);

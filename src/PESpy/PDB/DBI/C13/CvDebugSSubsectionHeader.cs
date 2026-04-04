@@ -13,7 +13,7 @@ using static ClrDebug.PDB.DEBUG_S_SUBSECTION_TYPE;
 namespace PESpy.PDB
 {
     //CV_DebugSSubsectionHeader_t
-    public readonly partial struct CvDebugSSubsectionHeader : IValue, IViewable
+    public readonly partial struct CvDebugSSubsectionHeader : IValue, IViewable, ICodeViewModuleAccessor
     {
         private const int TypeOffset = 0;
         private const int LengthOffset = 4;
@@ -34,6 +34,8 @@ namespace PESpy.PDB
             Length;
 
         private MemoryChunk DataChunk => chunk.Slice(8);
+
+        SymTypeList ICodeViewModuleAccessor.Symbols => GetData<SymTypeList>();
 
         private readonly MemoryChunk chunk;
 
@@ -146,7 +148,7 @@ namespace PESpy.PDB
 
             var dataChunk = DataChunk;
 
-            var codeViewAccessor = RegisterC13SymbolMemory(dataChunk);
+            var codeViewAccessor = RegisterC13SymbolMemory(dataChunk, this);
 
             //Don't need to adjust the data + length to account for the header
             return new SymTypeList(dataChunk.Pointer, 0, Length, codeViewAccessor);
@@ -227,7 +229,8 @@ namespace PESpy.PDB
 
             var pdbFile = dataChunk.PDBFile();
 
-            pdbFile.RegisterC13SymbolMemory(dataChunk);
+            //There's type info in these which requires registering symbol memory
+            pdbFile.RegisterC13SymbolMemory(dataChunk, null);
 
             var sig = (CV_INLINEELINES_SIGNATURE) dataChunk.PeekUInt32(0);
 
@@ -295,7 +298,8 @@ namespace PESpy.PDB
 
             var dataChunk = DataChunk;
 
-            SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk);
+            //These are type symbols and so shouldn't have a module
+            SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk, null);
 
             var entries = new LocalIdAndGlobalIdPair[Length / LocalIdAndGlobalIdPair.StructSize];
 
@@ -323,7 +327,7 @@ namespace PESpy.PDB
             var dataChunk = DataChunk;
 
             //Need to register C13 symbol memory in order to resolve type indices
-            RegisterC13SymbolMemory(dataChunk);
+            RegisterC13SymbolMemory(dataChunk, null);
 
             return parser.Parse(DataChunk, Length);
         }
@@ -362,6 +366,15 @@ namespace PESpy.PDB
             Debug.Assert(read == length);
 
             return results.ToArray();
+        }
+
+        public bool TryGetFunctionSymbol(int off, ISECT seg, out SymType symType)
+        {
+            //Not sure what to do here; we don't currently maintain a reference to a module,
+            //but we would never have DEBUG_S_SYMBOLS in a PDB anyway so we would only need
+            //to call this function in the event we're trying to resolve the parent of a sepcode
+            //symbol in an OBJ file
+            throw new NotImplementedException();
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -455,13 +468,13 @@ namespace PESpy.PDB
                 throw new InvalidOperationException($"Expected a section of type '{type}' however the actual type was '{Type}'");
         }
 
-        private ICodeViewAccessor? RegisterC13SymbolMemory(in MemoryChunk dataChunk)
+        private ICodeViewAccessor? RegisterC13SymbolMemory(in MemoryChunk dataChunk, ICodeViewModuleAccessor codeViewModuleAccessor)
         {
             ICodeViewAccessor? codeViewAccessor;
 
             if (dataChunk.block is PagedMemoryBlock block)
             {
-                block.PDBFile!.RegisterC13SymbolMemory(dataChunk);
+                block.PDBFile!.RegisterC13SymbolMemory(dataChunk, codeViewModuleAccessor);
                 codeViewAccessor = block.PDBFile;
             }
             else
@@ -471,13 +484,13 @@ namespace PESpy.PDB
                 if (dataChunk.block is GlobalMemoryBlock b)
                 {
                     var objFile = (OBJFile) b.File;
-                    codeViewAccessor = objFile.RegisterC13SymbolMemory(dataChunk);
+                    codeViewAccessor = objFile.RegisterC13SymbolMemory(dataChunk, codeViewModuleAccessor);
                 }
                 else
                 {
                     var s = (GlobalSubMemoryBlock) dataChunk.block;
                     var member = (LongImportLibraryMember) s.Owner;
-                    codeViewAccessor = member.RegisterC13SymbolMemory(dataChunk);
+                    codeViewAccessor = member.RegisterC13SymbolMemory(dataChunk, codeViewModuleAccessor);
                 }
             }
 
