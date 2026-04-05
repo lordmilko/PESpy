@@ -7,6 +7,24 @@ using PESpy.View;
 
 namespace PESpy
 {
+    /* richprint has a "dumb" list of product items to product descriptions. The major issue with this list is a lot of information is duplicated.
+     * In most cases, you only need to rely on the build id to determine the product, but they maintain a mapping of every single tool kind to every single
+     * toolchain kind.
+     * 
+     * https://github.com/dishather/richprint/blob/master/comp_id.txt
+     * 
+     * Instead, we base our product info on PEAnatomist, which contains the most overwhelming comprehensive list in existence (as far as I can find).
+     * Names present in richprint that are missing from PEAnatomist that I have not vetted yet include the following:
+     * 
+     * - VS98 (6.0) SP6 cvtres build 1736
+     * - VS98 (6.0) cvtres build 1720
+     * - VS2005 [8.0] build 50320
+     * - VS2019 v16.11.14 build 30144
+     * - VS2022 v17.3.0 pre 4.0 build 31628
+     */
+
+    //Per Windows 2000
+
     /// <summary>
     /// Represents the <see cref="PRODITEM"/> structure which describes an entry in the Rich Header.
     /// </summary>
@@ -33,6 +51,19 @@ namespace PESpy
                 builder.Append("] ");
 
                 var toolsetFullName = info.Value.ToolsetFullName;
+
+                if (toolsetFullName != null)
+                    builder.Append(toolsetFullName).Append(" / ");
+
+                builder.Append(info.Value.ToolFullName).Append(" / ");
+                builder.Append(ProdId);
+
+                return builder.ToString();
+            }
+            else
+                return ProdId.ToString();
+        }
+
         internal bool TryGetProductInfo(PRODID prodId, int buildId, out ProductInfo productInfo)
         {
             /* There's two aspects to the PRODITEM
@@ -56,13 +87,19 @@ namespace PESpy
             var toolsets = GetToolGroup(tool.group);
 
             var index = BinarySearchExact(buildId, toolsets);
+
+            //I'm not 100% sure that this logic is right, but it'll do for now
             if (index == -1)
             {
-                /* We diverge from PEAnatomist here. PEAnatomist would have you believe that C2 19.42.34321 belongs to VS2015 14.0.
+                /* We diverge from PEAnatomist 0.2 here. PEAnatomist would have you believe that C2 19.42.34321 belongs to VS2015 14.0.
                  * This is clearly false. When PEAnatomist doesn't know the build ID, it defaults to using the name of the build group,
                  * which in the case of VS2015 can cause us to be way off, because VS2015+ all share the same group. While it is true
                  * that within the build range covered by VS2015+ there are several stray VS2017 items here and there, overall I think
-                 * we would be better off just searching for the closest match and reporting that the version is at least higher than this */
+                 * we would be better off just searching for the closest match and reporting that the version is at least higher than this
+                 * 
+                 * PEAnatomist 0.4 seems to yield the same results as us, but that's probably just because of all of the new versions
+                 * that have been added
+                 */
 
                 if (tool.group == VS_2015_14_0)
                     index = BinarySearchClosest(buildId, toolsets);

@@ -11,13 +11,13 @@ namespace PESpy
 
         private static ReadOnlySpan<(int majorVersion, int minorVersion, ProductKind kind, int group)> tools => new[]
         {
-            (0,  0, ProductKind.None,                                        Toolset_None),               //prodidUnknown
-            (0,  0, ProductKind.Import,                                      Toolset_None),               //prodidImport0
+            (0,  0,  ProductKind.None,                                       Toolset_None),               //prodidUnknown
+            (0,  0,  ProductKind.Import,                                     Toolset_None),               //prodidImport0
             (5,  10, ProductKind.LINK,                                       VS_1997_5_0),                //prodidLinker510
             (5,  10, ProductKind.CVTOMF,                                     VS_1997_5_0),                //prodidCvtomf510
             (6,  0,  ProductKind.LINK,                                       VS_1998_6_0),                //prodidLinker600
             (6,  0,  ProductKind.CVTOMF,                                     VS_1998_6_0),                //prodidCvtomf600
-            (5,  0,  ProductKind.CVTRES,                                     VS_1997_5_0),                //prodidCvtres500
+            (5,  0,  ProductKind.CVTRES,                                     Windows_5_0_SDK),            //prodidCvtres500
             (11, 0,  ProductKind.C2 | ProductKind.VB,                        VS_1997_5_0),                //prodidUtc11_Basic
             (11, 0,  ProductKind.C2 | ProductKind.C | ProductKind.CPP,       VS_1997_5_0),                //prodidUtc11_C
             (12, 0,  ProductKind.C2 | ProductKind.VB,                        VS_1998_6_0),                //prodidUtc12_Basic
@@ -41,18 +41,18 @@ namespace PESpy
             (13, 0,  ProductKind.C2 | ProductKind.VB,                        VS_net_2002_7_0),            //prodidUtc13_Basic
             (13, 0,  ProductKind.C2 | ProductKind.C,                         VS_net_2002_7_0),            //prodidUtc13_C
             (13, 0,  ProductKind.C2 | ProductKind.CPP,                       VS_net_2002_7_0),            //prodidUtc13_CPP
-            (6,  10, ProductKind.LINK,                                       VC_Tools_6_1),               //prodidLinker610
-            (6,  10, ProductKind.CVTOMF,                                     VC_Tools_6_1),               //prodidCvtomf610
+            (6,  10, ProductKind.LINK,                                       VC_Tools_6_10),              //prodidLinker610
+            (6,  10, ProductKind.CVTOMF,                                     VC_Tools_6_10),              //prodidCvtomf610
             (6,  1,  ProductKind.LINK,                                       VC_Tools_6_1),               //prodidLinker601
             (6,  1,  ProductKind.CVTOMF,                                     VC_Tools_6_1),               //prodidCvtomf601
-            (12, 10, ProductKind.C2 | ProductKind.VB,                        VC_Tools_6_1),               //prodidUtc12_1_Basic
-            (12, 10, ProductKind.C2 | ProductKind.C,                         VC_Tools_6_1),               //prodidUtc12_1_C
-            (12, 10, ProductKind.C2 | ProductKind.CPP,                       VC_Tools_6_1),               //prodidUtc12_1_CPP
+            (12, 10, ProductKind.C2 | ProductKind.VB,                        VC_Tools_6_10),              //prodidUtc12_1_Basic
+            (12, 10, ProductKind.C2 | ProductKind.C,                         VC_Tools_6_10),              //prodidUtc12_1_C
+            (12, 10, ProductKind.C2 | ProductKind.CPP,                       VC_Tools_6_10),              //prodidUtc12_1_CPP
             (6,  20, ProductKind.LINK,                                       VC_Tools_6_20),              //prodidLinker620
             (6,  20, ProductKind.CVTOMF,                                     VC_Tools_6_20),              //prodidCvtomf620
             (7,  0,  ProductKind.ALIASOBJ,                                   VS_net_2002_7_0),            //prodidAliasObj70
-            (6,  21, ProductKind.LINK,                                       VC_Tools_6_20),              //prodidLinker621
-            (6,  21, ProductKind.CVTOMF,                                     VC_Tools_6_20),              //prodidCvtomf621
+            (6,  21, ProductKind.LINK,                                       VC_Tools_6_21),              //prodidLinker621
+            (6,  21, ProductKind.CVTOMF,                                     VC_Tools_6_21),              //prodidCvtomf621
             (6,  15, ProductKind.ASM | ProductKind.MASM,                     MASM_6_15),                  //prodidMasm615
             (13, 0,  ProductKind.C2 | ProductKind.C   | ProductKind.LTCG,    VS_net_2002_7_0),            //prodidUtc13_LTCG_C
             (13, 0,  ProductKind.C2 | ProductKind.CPP | ProductKind.LTCG,    VS_net_2002_7_0),            //prodidUtc13_LTCG_CPP
@@ -65,15 +65,15 @@ namespace PESpy
             (12, 20, ProductKind.C2 | ProductKind.CPP | ProductKind.Book,    VS_1998_6_0_Processor_Pack), //prodidUtc12_2_CPP_Std
             (12, 20, ProductKind.C2 | ProductKind.C   | ProductKind.Std,     VS_1998_6_0_Processor_Pack), //prodidUtc12_2_C_Book
             (12, 20, ProductKind.C2 | ProductKind.CPP | ProductKind.Book,    VS_1998_6_0_Processor_Pack), //prodidUtc12_2_CPP_Book
-            (6,  22, ProductKind.Import,                                     VC_Tools_6_20),              //prodidImplib622
-            (6,  22, ProductKind.CVTOMF,                                     VC_Tools_6_20),              //prodidCvtomf622
-            (5,  1,  ProductKind.CVTRES,                                     VS_net_2002_7_0),            //prodidCvtres501
+            (6,  22, ProductKind.Import,                                     VC_Tools_6_22),              //prodidImplib622
+            (6,  22, ProductKind.CVTOMF,                                     VC_Tools_6_22),              //prodidCvtomf622
+            (5,  1,  ProductKind.CVTRES,                                     Windows_5_1_SDK),            //prodidCvtres501
             (13, 0,  ProductKind.C2 | ProductKind.C   | ProductKind.Std,     VS_net_2002_7_0),            //prodidUtc13_C_Std
             (13, 0,  ProductKind.C2 | ProductKind.CPP | ProductKind.Std,     VS_net_2002_7_0),            //prodidUtc13_CPP_Std
             (13, 0,  ProductKind.CVTPGD,                                     VS_net_2002_7_0),            //prodidCvtpgd1300
-            (6,  22, ProductKind.LINK,                                       VC_Tools_6_20),              //prodidLinker622
+            (6,  22, ProductKind.LINK,                                       VC_Tools_6_22),              //prodidLinker622
             (7,  0,  ProductKind.LINK,                                       VS_net_2002_7_0),            //prodidLinker700
-            (6,  22, ProductKind.Export,                                     VC_Tools_6_20),              //prodidExport622
+            (6,  22, ProductKind.Export,                                     VC_Tools_6_22),              //prodidExport622
             (7,  0,  ProductKind.Export,                                     VS_net_2002_7_0),            //prodidExport700
             (7,  0,  ProductKind.ASM | ProductKind.MASM,                     VS_net_2002_7_0),            //prodidMasm700
             (13, 0,  ProductKind.C2 | ProductKind.C   | ProductKind.POGO_I,  VS_net_2002_7_0),            //prodidUtc13_POGO_I_C
@@ -97,10 +97,10 @@ namespace PESpy
             (13, 10, ProductKind.C2 | ProductKind.CPP | ProductKind.POGO_I,  VS_net_2003_7_1_PreRelease), //prodidUtc1310p_POGO_I_CPP
             (13, 10, ProductKind.C2 | ProductKind.C   | ProductKind.POGO_O,  VS_net_2003_7_1_PreRelease), //prodidUtc1310p_POGO_O_C
             (13, 10, ProductKind.C2 | ProductKind.CPP | ProductKind.POGO_O,  VS_net_2003_7_1_PreRelease), //prodidUtc1310p_POGO_O_CPP
-            (6,  24, ProductKind.LINK,                                       VC_Tools_6_20),              //prodidLinker624
-            (6,  24, ProductKind.CVTOMF,                                     VC_Tools_6_20),              //prodidCvtomf624
-            (6,  24, ProductKind.Export,                                     VC_Tools_6_20),              //prodidExport624
-            (6,  24, ProductKind.Import,                                     VC_Tools_6_20),              //prodidImplib624
+            (6,  24, ProductKind.LINK,                                       VC_Tools_6_24),              //prodidLinker624
+            (6,  24, ProductKind.CVTOMF,                                     VC_Tools_6_24),              //prodidCvtomf624
+            (6,  24, ProductKind.Export,                                     VC_Tools_6_24),              //prodidExport624
+            (6,  24, ProductKind.Import,                                     VC_Tools_6_24),              //prodidImplib624
             (7,  10, ProductKind.LINK,                                       VS_net_2003_7_1),            //prodidLinker710
             (7,  10, ProductKind.CVTOMF,                                     VS_net_2003_7_1),            //prodidCvtomf710
             (7,  10, ProductKind.Export,                                     VS_net_2003_7_1),            //prodidExport710
@@ -192,24 +192,24 @@ namespace PESpy
             (16, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2010_10_0),               //prodidUtc1600_POGO_I_CPP
             (16, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2010_10_0),               //prodidUtc1600_POGO_O_C
             (16, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2010_10_0),               //prodidUtc1600_POGO_O_CPP
-            (10, 10, ProductKind.ALIASOBJ,                                   VS_2010_10_1),               //prodidAliasObj1010
-            (16, 10, ProductKind.CVTPGD,                                     VS_2010_10_1),               //prodidCvtpgd1610
-            (10, 10, ProductKind.CVTRES,                                     VS_2010_10_1),               //prodidCvtres1010
-            (10, 10, ProductKind.Export,                                     VS_2010_10_1),               //prodidExport1010
-            (10, 10, ProductKind.Import,                                     VS_2010_10_1),               //prodidImplib1010
-            (10, 10, ProductKind.LINK,                                       VS_2010_10_1),               //prodidLinker1010
-            (10, 10, ProductKind.ASM | ProductKind.MASM,                     VS_2010_10_1),               //prodidMasm1010
-            (16, 10, ProductKind.C2 | ProductKind.C,                         VS_2010_10_1),               //prodidUtc1610_C
-            (16, 10, ProductKind.C2 | ProductKind.CPP,                       VS_2010_10_1),               //prodidUtc1610_CPP
-            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2010_10_1),               //prodidUtc1610_CVTCIL_C
-            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2010_10_1),               //prodidUtc1610_CVTCIL_CPP
-            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2010_10_1),               //prodidUtc1610_LTCG_C
-            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2010_10_1),               //prodidUtc1610_LTCG_CPP
-            (16, 10, ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2010_10_1),               //prodidUtc1610_LTCG_MSIL
-            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2010_10_1),               //prodidUtc1610_POGO_I_C
-            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2010_10_1),               //prodidUtc1610_POGO_I_CPP
-            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2010_10_1),               //prodidUtc1610_POGO_O_C
-            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2010_10_1),               //prodidUtc1610_POGO_O_CPP
+            (10, 10, ProductKind.ALIASOBJ,                                   VS_2010_10_10),              //prodidAliasObj1010
+            (16, 10, ProductKind.CVTPGD,                                     VS_2010_10_10),              //prodidCvtpgd1610
+            (10, 10, ProductKind.CVTRES,                                     VS_2010_10_10),              //prodidCvtres1010
+            (10, 10, ProductKind.Export,                                     VS_2010_10_10),              //prodidExport1010
+            (10, 10, ProductKind.Import,                                     VS_2010_10_10),              //prodidImplib1010
+            (10, 10, ProductKind.LINK,                                       VS_2010_10_10),              //prodidLinker1010
+            (10, 10, ProductKind.ASM | ProductKind.MASM,                     VS_2010_10_10),              //prodidMasm1010
+            (16, 10, ProductKind.C2 | ProductKind.C,                         VS_2010_10_10),              //prodidUtc1610_C
+            (16, 10, ProductKind.C2 | ProductKind.CPP,                       VS_2010_10_10),              //prodidUtc1610_CPP
+            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2010_10_10),              //prodidUtc1610_CVTCIL_C
+            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2010_10_10),              //prodidUtc1610_CVTCIL_CPP
+            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2010_10_10),              //prodidUtc1610_LTCG_C
+            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2010_10_10),              //prodidUtc1610_LTCG_CPP
+            (16, 10, ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2010_10_10),              //prodidUtc1610_LTCG_MSIL
+            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2010_10_10),              //prodidUtc1610_POGO_I_C
+            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2010_10_10),              //prodidUtc1610_POGO_I_CPP
+            (16, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2010_10_10),              //prodidUtc1610_POGO_O_C
+            (16, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2010_10_10),              //prodidUtc1610_POGO_O_CPP
             (11, 0,  ProductKind.ALIASOBJ,                                   VS_2012_11_0),               //prodidAliasObj1100
             (17, 0,  ProductKind.CVTPGD,                                     VS_2012_11_0),               //prodidCvtpgd1700
             (11, 0,  ProductKind.CVTRES,                                     VS_2012_11_0),               //prodidCvtres1100
@@ -222,7 +222,7 @@ namespace PESpy
             (17, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2012_11_0),               //prodidUtc1700_CVTCIL_C
             (17, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2012_11_0),               //prodidUtc1700_CVTCIL_CPP
             (17, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2012_11_0),               //prodidUtc1700_LTCG_C
-            (17, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2012_11_0),               //prodidUtc1700_LTCG_CPP
+            (17, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2012_11_0),               //prodidUtc1800_CVTCIL_CPP
             (17, 0,  ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2012_11_0),               //prodidUtc1700_LTCG_MSIL
             (17, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2012_11_0),               //prodidUtc1700_POGO_I_C
             (17, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2012_11_0),               //prodidUtc1700_POGO_I_CPP
@@ -238,7 +238,7 @@ namespace PESpy
             (18, 0,  ProductKind.C2 | ProductKind.C,                         VS_2013_12_0),               //prodidUtc1800_C
             (18, 0,  ProductKind.C2 | ProductKind.CPP,                       VS_2013_12_0),               //prodidUtc1800_CPP
             (18, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2013_12_0),               //prodidUtc1800_CVTCIL_C
-            (18, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2013_12_0),               //prodidUtc1800_CVTCIL_CPP
+            (18, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2013_12_0),               //227
             (18, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2013_12_0),               //prodidUtc1800_LTCG_C
             (18, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2013_12_0),               //prodidUtc1800_LTCG_CPP
             (18, 0,  ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2013_12_0),               //prodidUtc1800_LTCG_MSIL
@@ -246,24 +246,24 @@ namespace PESpy
             (18, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2013_12_0),               //prodidUtc1800_POGO_I_CPP
             (18, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2013_12_0),               //prodidUtc1800_POGO_O_C
             (18, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2013_12_0),               //prodidUtc1800_POGO_O_CPP
-            (12, 10, ProductKind.ALIASOBJ,                                   VS_2013_12_1),               //prodidAliasObj1210
-            (18, 10, ProductKind.CVTPGD,                                     VS_2013_12_1),               //prodidCvtpgd1810
-            (12, 10, ProductKind.CVTRES,                                     VS_2013_12_1),               //prodidCvtres1210
-            (12, 10, ProductKind.Export,                                     VS_2013_12_1),               //prodidExport1210
-            (12, 10, ProductKind.Import,                                     VS_2013_12_1),               //prodidImplib1210
-            (12, 10, ProductKind.LINK,                                       VS_2013_12_1),               //prodidLinker1210
-            (12, 10, ProductKind.ASM | ProductKind.MASM,                     VS_2013_12_1),               //prodidMasm1210
-            (18, 10, ProductKind.C2 | ProductKind.C,                         VS_2013_12_1),               //prodidUtc1810_C
-            (18, 10, ProductKind.C2 | ProductKind.CPP,                       VS_2013_12_1),               //prodidUtc1810_CPP
-            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2013_12_1),               //prodidUtc1810_CVTCIL_C
-            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2013_12_1),               //prodidUtc1810_CVTCIL_CPP
-            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2013_12_1),               //prodidUtc1810_LTCG_C
-            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2013_12_1),               //prodidUtc1810_LTCG_CPP
-            (18, 10, ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2013_12_1),               //prodidUtc1810_LTCG_MSIL
-            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2013_12_1),               //prodidUtc1810_POGO_I_C
-            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2013_12_1),               //prodidUtc1810_POGO_I_CPP
-            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2013_12_1),               //prodidUtc1810_POGO_O_C
-            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2013_12_1),               //prodidUtc1810_POGO_O_CPP
+            (12, 10, ProductKind.ALIASOBJ,                                   VS_2013_12_10),              //prodidAliasObj1210
+            (18, 10, ProductKind.CVTPGD,                                     VS_2013_12_10),              //prodidCvtpgd1810
+            (12, 10, ProductKind.CVTRES,                                     VS_2013_12_10),              //prodidCvtres1210
+            (12, 10, ProductKind.Export,                                     VS_2013_12_10),              //prodidExport1210
+            (12, 10, ProductKind.Import,                                     VS_2013_12_10),              //prodidImplib1210
+            (12, 10, ProductKind.LINK,                                       VS_2013_12_10),              //prodidLinker1210
+            (12, 10, ProductKind.ASM | ProductKind.MASM,                     VS_2013_12_10),              //prodidMasm1210
+            (18, 10, ProductKind.C2 | ProductKind.C,                         VS_2013_12_10),              //prodidUtc1810_C
+            (18, 10, ProductKind.C2 | ProductKind.CPP,                       VS_2013_12_10),              //prodidUtc1810_CPP
+            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.CVTCIL, VS_2013_12_10),              //prodidUtc1810_CVTCIL_C
+            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.CVTCIL, VS_2013_12_10),              //prodidUtc1810_CVTCIL_CPP
+            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.LTCG,   VS_2013_12_10),              //prodidUtc1810_LTCG_C
+            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.LTCG,   VS_2013_12_10),              //prodidUtc1810_LTCG_CPP
+            (18, 10, ProductKind.C2 | ProductKind.MSIL | ProductKind.LTCG,   VS_2013_12_10),              //prodidUtc1810_LTCG_MSIL
+            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2013_12_10),              //prodidUtc1810_POGO_I_C
+            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2013_12_10),              //prodidUtc1810_POGO_I_CPP
+            (18, 10, ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2013_12_10),              //prodidUtc1810_POGO_O_C
+            (18, 10, ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2013_12_10),              //prodidUtc1810_POGO_O_CPP
             (14, 0,  ProductKind.ALIASOBJ,                                   VS_2015_14_0),               //prodidAliasObj1400
             (19, 0,  ProductKind.CVTPGD,                                     VS_2015_14_0),               //prodidCvtpgd1900
             (14, 0,  ProductKind.CVTRES,                                     VS_2015_14_0),               //prodidCvtres1400
@@ -281,7 +281,7 @@ namespace PESpy
             (19, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.POGO_I, VS_2015_14_0),               //prodidUtc1900_POGO_I_C
             (19, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_I, VS_2015_14_0),               //prodidUtc1900_POGO_I_CPP
             (19, 0,  ProductKind.C2 | ProductKind.C    | ProductKind.POGO_O, VS_2015_14_0),               //prodidUtc1900_POGO_O_C
-            (19, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2015_14_0),               //prodidUtc1900_POGO_O_CPP
+            (19, 0,  ProductKind.C2 | ProductKind.CPP  | ProductKind.POGO_O, VS_2015_14_0)                //prodidUtc1900_POGO_O_CPP
         };
 
         //Tools using Utc1900
@@ -325,6 +325,9 @@ namespace PESpy
             (33617, 40), //VS 2022 17.10 Preview 2+
             (33901, 41), //VS 2022 17.11 Preview 1+
             (34226, 42), //VS 2022 17.12 Preview 1+
+            (34604, 43), //VS 2022 17.13 Preview 1+
+            (34823, 44), //VS 2022 17.14 Preview 1+
+            (35403, 50)  //VS 2026 18.0+
         };
     }
 }
