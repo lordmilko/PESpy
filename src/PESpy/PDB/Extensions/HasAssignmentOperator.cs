@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasAssignmentOperator"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasAssignmentOperator"/>
         /// </summary>
-        public static bool TryGetHasAssignmentOperator(in this TypType typType, out bool hasAssignmentOperator)
+        public static bool TryGetHasAssignmentOperator(in this TypType typType, out bool hasAssignmentOperator) =>
+            TryGetHasAssignmentOperator((LfEasy) typType, out hasAssignmentOperator);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_hasAssignmentOperator"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_hasAssignmentOperator"/>
+        /// </summary>
+        public static bool TryGetHasAssignmentOperator(in this LfEasy lfEasy, out bool hasAssignmentOperator)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    hasAssignmentOperator = ((LfClass) typType).property.opassign;
+                    hasAssignmentOperator = ((LfClass) lfEasy).property.opassign;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    hasAssignmentOperator = ((LfClass16t) typType).property.opassign;
+                    hasAssignmentOperator = ((LfClass16t) lfEasy).property.opassign;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    hasAssignmentOperator = ((LfEnum) typType).property.opassign;
+                    hasAssignmentOperator = ((LfEnum) lfEasy).property.opassign;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    hasAssignmentOperator = ((LfEnum16t) typType).property.opassign;
+                    hasAssignmentOperator = ((LfEnum16t) lfEasy).property.opassign;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    hasAssignmentOperator = ((LfUnion) typType).property.opassign;
+                    hasAssignmentOperator = ((LfUnion) lfEasy).property.opassign;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    hasAssignmentOperator = ((LfUnion16t) typType).property.opassign;
+                    hasAssignmentOperator = ((LfUnion16t) lfEasy).property.opassign;
                     return true;
             }
 

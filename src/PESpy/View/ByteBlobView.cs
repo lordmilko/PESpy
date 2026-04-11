@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace PESpy.View
 {
@@ -12,6 +13,8 @@ namespace PESpy.View
         }
 
         public int Offset => view.Offset;
+
+        public FixedUtf8String Name => view.Name;
 
         public int Size => view.Size;
 
@@ -28,6 +31,8 @@ namespace PESpy.View
         /// <inheritdoc />
         public int Offset { get; }
 
+        public FixedUtf8String Name { get; }
+
         public NativeSpan<byte> Bytes { get; }
 
         /// <inheritdoc />
@@ -41,35 +46,110 @@ namespace PESpy.View
             {
                 if (kind == null)
                 {
-                    if (Bytes.All(b => b == 0))
-                        kind = ViewKind.Padding;
-                    else if (Bytes.All(b => b == 0xCC))
-                        kind = ViewKind.CC;
-                    else if (Bytes.All(b => b == 0xFF))
-                        kind = ViewKind.FF;
-                    else
-                        kind = ViewKind.Data;
+                    switch (Bytes[0])
+                    {
+                        case 0:
+                            kind = Name.Length == 0 && Bytes.All(b => b == 0) ? ViewKind.Padding : ViewKind.Data;
+                            break;
+
+                        case 0xCC:
+                            kind = Bytes.All(b => b == 0xCC) ? ViewKind.CC : ViewKind.Data;
+                            break;
+
+                        case 0xFF: //-1, used in PDB files
+                            kind = Bytes.All(b => b == 0xFF) ? ViewKind.FF : ViewKind.Data;
+                            break;
+
+                        //Used in NativeAOT
+                        case 0x90:
+                            kind = Bytes.All(b => b == 0x90) ? ViewKind.NOP : ViewKind.Data;
+                            break;
+
+                        /* In NativeAOT, when there's 4 or more bytes in need of padding you can have
+                         * a multi-byte NOP. "nop word ptr [rax + rax + 0]". In x64, these are encoded as
+                         * 0F 1F 84 00. After the last 0, you may have any number of 0's. Prior to the 0x0F,
+                         * you can have 0x66 which is a redundant prefix used to pad out the length */
+                        case 0x66:
+                            kind = IsPrefixedMultiByteNop() ? ViewKind.MultiByteNOP : ViewKind.Data;
+                            break;
+
+                        case 0x0F:
+                            kind = IsMultiByteNop(Bytes.AsSpan()) ? ViewKind.MultiByteNOP : ViewKind.Data;
+                            break;
+
+                        default:
+                            kind = ViewKind.Data;
+                            break;
+                    }
                 }
 
                 return kind.Value;
             }
         }
 
-        public ByteBlobView(int offset, NativeSpan<byte> bytes, ViewKind? kind)
+        private bool IsPrefixedMultiByteNop()
+        {
+            var bytes = Bytes;
+
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                switch (bytes[i])
+                {
+                    case 0x66:
+                        continue;
+
+                    case 0x0F:
+                        return IsMultiByteNop(bytes.Slice(i));
+
+                    default:
+                        return false;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsMultiByteNop(Span<byte> bytes)
+        {
+            //You can apparently have a multi-byte NOP of just 0F 1F 00 but I haven't seen that
+            //in an actually PE file yet
+            if (bytes.Length < 4)
+                return false;
+
+            //The caller should have already checked that the first byte is 0xF
+            Debug.Assert(bytes[0] == 0x0F);
+
+            if (bytes[1] != 0x1F || bytes[2] != 0x84 || bytes[3] != 0)
+                return false;
+
+            //All remaining bytes should be 0
+
+            for (var i = bytes.Length + 4; i < bytes.Length; i++)
+            {
+                if (bytes[i] != 0)
+                    return false;
+            }
+
+            return true;
+        }
+
+        public ByteBlobView(int offset, NativeSpan<byte> bytes, ViewKind? kind, FixedUtf8String name = default)
         {
             Offset = offset;
             Bytes = bytes;
             Size = bytes.Length;
             this.kind = kind;
+            Name = name;
         }
 
         //For SplitByteBlobView only
-        protected ByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind? kind)
+        protected ByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind? kind, FixedUtf8String name)
         {
             Offset = offset;
             Bytes = bytes;
             Size = size;
             this.kind = kind;
+            Name = name;
         }
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
@@ -93,10 +173,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitByteBlobView(Offset, Bytes, Size - diff, Kind);
+                first = new SplitByteBlobView(Offset, Bytes, Size - diff, Kind, Name);
             }
 
-            var second = new SplitByteBlobView(newBaseOffset, Bytes, diff, Kind);
+            var second = new SplitByteBlobView(newBaseOffset, Bytes, diff, Kind, Name);
             second.Previous = first;
             first.Next = second;
 
@@ -111,7 +191,7 @@ namespace PESpy.View
             if (this is SplitByteBlobView sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitByteBlobView(newOffset, Bytes, Size, Kind);
+                var newValue = new SplitByteBlobView(newOffset, Bytes, Size, Kind, Name);
 
                 if (sv.Previous != null)
                 {
@@ -129,7 +209,7 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new SplitByteBlobView(newOffset, Bytes, Size, Kind);
+            return new SplitByteBlobView(newOffset, Bytes, Size, Kind, Name);
         }
     }
 
@@ -139,7 +219,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind kind) : base(offset, bytes, size, kind)
+        public SplitByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind kind, FixedUtf8String name) : base(offset, bytes, size, kind, name)
         {
         }
     }

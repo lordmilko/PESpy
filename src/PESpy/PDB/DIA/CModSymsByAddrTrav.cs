@@ -1,30 +1,41 @@
 ﻿namespace PESpy.PDB
 {
-    internal abstract class CModSymsByAddrTrav : Traverser
+    internal struct CModSymsByAddrTrav<TEnumProvider> where TEnumProvider : IEnumProvider
     {
-        protected CAllSymsByAddrTrav _parentTrav;
-        protected ushort _imod;
+        internal TEnumProvider _enumProvider;
+        internal ushort _imod;
 
-        protected CModSymsByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
+        internal ISECT _targetSeg;
+        internal int _targetOff;
+
+        private ISECT _bestSeg;
+        private int _bestOff;
+
+        public CModSymsByAddrTrav(
+            TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(targetOffSeg, bestOffSeg)
+            OffSegSym bestOffSeg)
         {
-            _parentTrav = parentTrav;
+            _enumProvider = enumProvider;
+
+            _targetSeg = targetOffSeg.seg;
+            _targetOff = targetOffSeg.off;
+            _bestSeg = bestOffSeg.seg;
+            _bestOff = bestOffSeg.off;
         }
 
-        internal virtual bool FInit(out TraverserResult result)
+        internal bool FInit<T>(ref T derived, out TraverserResult result) where T : IModSymFinder
         {
             //It doesn't matter if locate fails; in CAllSymsByAddrTrav a flag is set to say "try anyway".
             //The enumerator will have been updated even if locate returns false
 
-            _parentTrav.EnumContribLocate(_targetSeg, _targetOff);
+            _enumProvider.EnumContribLocate(_targetSeg, _targetOff);
 
-            if (_parentTrav.EnumContribNext(out var sc))
+            if (_enumProvider.EnumContribNext(out var sc))
             {
                 _imod = sc.imod;
 
-                if (find(sc.isect, sc.off, out var bestOffSeg))
+                if (derived.find(sc.isect, sc.off, out var bestOffSeg))
                 {
                     result = new TraverserResult
                     {
@@ -34,9 +45,11 @@
                     return true;
                 }
 
-                if (!_parentTrav._symCache.IsMinimal)
+                //We can't move this to a separate method to help with generics, as we need to call find()
+                //again below
+                if (!_enumProvider.SymCache.IsMinimal)
                 {
-                    while (_parentTrav.EnumContribPrev(out sc))
+                    while (_enumProvider.EnumContribPrev(out sc))
                     {
                         _imod = sc.imod;
 
@@ -47,7 +60,7 @@
                         if (scSeg < _bestSeg || scSeg == _bestSeg && scEnd < _bestOff)
                             break;
 
-                        if (find(scSeg, scOff, out bestOffSeg))
+                        if (derived.find(scSeg, scOff, out bestOffSeg))
                         {
                             result = new TraverserResult
                             {
@@ -63,7 +76,5 @@
             result = default;
             return false;
         }
-
-        protected abstract bool find(ISECT scSeg, int scOff, out OffSegSym bestOffSeg);
     }
 }

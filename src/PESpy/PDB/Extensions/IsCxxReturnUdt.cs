@@ -15,28 +15,35 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isCxxReturnUdt"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isCxxReturnUdt"/>
         /// </summary>
-        public static bool TryGetIsCxxReturnUdt(in this TypType typType, out bool isCxxReturnUdt)
+        public static bool TryGetIsCxxReturnUdt(in this TypType typType, out bool isCxxReturnUdt) =>
+            TryGetIsCxxReturnUdt((LfEasy) typType, out isCxxReturnUdt);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_isCxxReturnUdt"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_isCxxReturnUdt"/>
+        /// </summary>
+        public static bool TryGetIsCxxReturnUdt(in this LfEasy lfEasy, out bool isCxxReturnUdt)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfMFunc
                 case LF_MFUNCTION:
-                    isCxxReturnUdt = ((LfMFunc) typType).funcattr.cxxreturnudt;
+                    isCxxReturnUdt = ((LfMFunc) lfEasy).funcattr.cxxreturnudt;
                     return true;
 
                 //LfMFunc16t
                 case LF_MFUNCTION_16t:
-                    isCxxReturnUdt = ((LfMFunc16t) typType).funcattr.cxxreturnudt;
+                    isCxxReturnUdt = ((LfMFunc16t) lfEasy).funcattr.cxxreturnudt;
                     return true;
 
                 //LfProc
                 case LF_PROCEDURE:
-                    isCxxReturnUdt = ((LfProc) typType).funcattr.cxxreturnudt;
+                    isCxxReturnUdt = ((LfProc) lfEasy).funcattr.cxxreturnudt;
                     return true;
 
                 //LfProc16t
                 case LF_PROCEDURE_16t:
-                    isCxxReturnUdt = ((LfProc16t) typType).funcattr.cxxreturnudt;
+                    isCxxReturnUdt = ((LfProc16t) lfEasy).funcattr.cxxreturnudt;
                     return true;
             }
 

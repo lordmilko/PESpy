@@ -240,6 +240,8 @@ var strings = new[]{
     "DotNetRuntimeDebugHeader",
     "DebugTypeEntry",
     "GlobalValueEntry",
+    "ReadyToRunHeader",
+    "ModuleInfoRow",
 
     //RTTI
     "_RTTIBaseClassDescriptor",

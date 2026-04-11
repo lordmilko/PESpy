@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_scoped"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_scoped"/>
         /// </summary>
-        public static bool TryGetScoped(in this TypType typType, out bool scoped)
+        public static bool TryGetScoped(in this TypType typType, out bool scoped) =>
+            TryGetScoped((LfEasy) typType, out scoped);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_scoped"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_scoped"/>
+        /// </summary>
+        public static bool TryGetScoped(in this LfEasy lfEasy, out bool scoped)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    scoped = ((LfClass) typType).property.scoped;
+                    scoped = ((LfClass) lfEasy).property.scoped;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    scoped = ((LfClass16t) typType).property.scoped;
+                    scoped = ((LfClass16t) lfEasy).property.scoped;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    scoped = ((LfEnum) typType).property.scoped;
+                    scoped = ((LfEnum) lfEasy).property.scoped;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    scoped = ((LfEnum16t) typType).property.scoped;
+                    scoped = ((LfEnum16t) lfEasy).property.scoped;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    scoped = ((LfUnion) typType).property.scoped;
+                    scoped = ((LfUnion) lfEasy).property.scoped;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    scoped = ((LfUnion16t) typType).property.scoped;
+                    scoped = ((LfUnion16t) lfEasy).property.scoped;
                     return true;
             }
 

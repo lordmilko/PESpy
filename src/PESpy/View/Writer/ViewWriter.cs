@@ -66,6 +66,8 @@ namespace PESpy.View
         internal ViewSymTypeDispatcher SymTypeDispatcher => _symTypeDispatcher ??= new ViewSymTypeDispatcher(this);
 
         private ViewTypTypeDispatcher? _typTypeDispatcher;
+        internal LocatorHttpPolicy _httpPolicy;
+        internal ILocatorProgress _progress;
 
         internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
 
@@ -512,6 +514,14 @@ namespace PESpy.View
             }
         }
 
+        public virtual void WriteIL(int offset, NativeSpan<byte> ilBytes)
+        {
+            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+
+            if (shouldAdd)
+                AddView(new ByteBlobView(viewOffset, ilBytes, ViewKind.IL));
+        }
+
         public virtual ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
             var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
@@ -521,7 +531,23 @@ namespace PESpy.View
                 return new ByteBlobView(
                     viewOffset,
                     byteBlob.Bytes,
-                    default
+                    byteBlob.viewKind
+                );
+            }
+
+            return null;
+        }
+
+        public virtual ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
+        {
+            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+
+            if (shouldAdd)
+            {
+                return new ByteBlobView(
+                    viewOffset,
+                    bytes,
+                    ViewKind.Padding
                 );
             }
 

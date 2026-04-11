@@ -1,4 +1,5 @@
-﻿using ClrDebug.PDB;
+﻿using ClrDebug;
+using ClrDebug.PDB;
 using PESpy.PDB;
 
 namespace PESpy
@@ -6,6 +7,8 @@ namespace PESpy
     internal class OBJFileCodeViewAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; }
+
+        public IMAGE_FILE_MACHINE MachineType => objFile.FileHeader.Machine;
 
         private OBJFile objFile;
 

@@ -1,4 +1,5 @@
-﻿using ClrDebug.PDB;
+﻿using ClrDebug;
+using ClrDebug.PDB;
 using PESpy.PDB;
 
 namespace PESpy
@@ -14,6 +15,8 @@ namespace PESpy
     //NB05 vs NB05+ has different orderings that are used for CodeView subsections, etc
     public interface ICodeViewAccessor
     {
+        IMAGE_FILE_MACHINE MachineType { get; }
+
         ImageSectionHeader[]? GetSectionHeaders();
 
         SymType GetModuleSymbol(ushort imod, int ibSym);

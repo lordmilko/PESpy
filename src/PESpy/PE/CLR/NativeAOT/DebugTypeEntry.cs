@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using PESpy.View;
 
-namespace PESpy
+namespace PESpy.NativeAOT
 {
     public struct DebugTypeEntry : IValue, IViewable
     {

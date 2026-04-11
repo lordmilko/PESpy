@@ -15,81 +15,88 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_access"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_access"/>
         /// </summary>
-        public static bool TryGetAccess(in this TypType typType, out CV_access_e access)
+        public static bool TryGetAccess(in this TypType typType, out CV_access_e access) =>
+            TryGetAccess((LfEasy) typType, out access);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_access"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_access"/>
+        /// </summary>
+        public static bool TryGetAccess(in this LfEasy lfEasy, out CV_access_e access)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfBClass
                 case LF_BCLASS:
                 case LF_BINTERFACE:
-                    access = ((LfBClass) typType).attr.access;
+                    access = ((LfBClass) lfEasy).attr.access;
                     return true;
 
                 //LfBClass16t
                 case LF_BCLASS_16t:
-                    access = ((LfBClass16t) typType).attr.access;
+                    access = ((LfBClass16t) lfEasy).attr.access;
                     return true;
 
                 //LfEnumerate
                 case LF_ENUMERATE:
                 case LF_ENUMERATE_ST:
-                    access = ((LfEnumerate) typType).attr.access;
+                    access = ((LfEnumerate) lfEasy).attr.access;
                     return true;
 
                 //LfVBClass16t
                 case LF_IVBCLASS_16t:
                 case LF_VBCLASS_16t:
-                    access = ((LfVBClass16t) typType).attr.access;
+                    access = ((LfVBClass16t) lfEasy).attr.access;
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
-                    access = ((LfMember) typType).attr.access;
+                    access = ((LfMember) lfEasy).attr.access;
                     return true;
 
                 //LfMember16t
                 case LF_MEMBER_16t:
-                    access = ((LfMember16t) typType).attr.access;
+                    access = ((LfMember16t) lfEasy).attr.access;
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
                 case LF_MEMBERMODIFY_ST:
-                    access = ((LfMemberModify) typType).attr.access;
+                    access = ((LfMemberModify) lfEasy).attr.access;
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
                 case LF_NESTTYPEEX_ST:
-                    access = ((LfNestTypeEx) typType).attr.access;
+                    access = ((LfNestTypeEx) lfEasy).attr.access;
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
                 case LF_ONEMETHOD_ST:
-                    access = ((LfOneMethod) typType).attr.access;
+                    access = ((LfOneMethod) lfEasy).attr.access;
                     return true;
 
                 //LfOneMethod16t
                 case LF_ONEMETHOD_16t:
-                    access = ((LfOneMethod16t) typType).attr.access;
+                    access = ((LfOneMethod16t) lfEasy).attr.access;
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
                 case LF_STMEMBER_ST:
-                    access = ((LfSTMember) typType).attr.access;
+                    access = ((LfSTMember) lfEasy).attr.access;
                     return true;
 
                 //LfSTMember16t
                 case LF_STMEMBER_16t:
-                    access = ((LfSTMember16t) typType).attr.access;
+                    access = ((LfSTMember16t) lfEasy).attr.access;
                     return true;
 
                 //LfVBClass
                 case LF_VBCLASS:
-                    access = ((LfVBClass) typType).attr.access;
+                    access = ((LfVBClass) lfEasy).attr.access;
                     return true;
             }
 

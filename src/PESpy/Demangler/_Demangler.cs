@@ -172,7 +172,7 @@ namespace PESpy
         /// <param name="str">The symbol name that should be demangled.</param>
         /// <returns>The <see cref="DemangleTree"/> that contains the result of the demangling.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public static DemangleTree Parse(string str)
+        public static DemangleTree GetTree(string str)
         {
             var textWindow = new TextWindow(str);
 
@@ -202,7 +202,7 @@ namespace PESpy
         /// <param name="str">The symbol name that should be demangled.</param>
         /// <param name="symbolTree">The <see cref="DemangleTree"/> that contains the result of the demangling.</param>
         /// <returns>Whether the specified string could be successfully parsed.</returns>
-        public static unsafe bool TryParse(FixedUtf8String str, out DemangleTree symbolTree)
+        public static unsafe bool TryGetTree(FixedUtf8String str, out DemangleTree symbolTree)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -223,13 +223,28 @@ namespace PESpy
             }
         }
 
-        public static unsafe void ParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
+        /// <summary>
+        /// Tries to demangle the specified symbol name, writing the demangled name to the specified buffer on success.
+        /// On failure, the unmangled symbol name is written to the buffer instead.
+        /// </summary>
+        /// <param name="str">The symbol name that should be demangled.</param>
+        /// <param name="builder">The string builder that the symbol name should be written to.</param>
+        /// <param name="flags">Flags that control the format of the demangled name.</param>
+        public static unsafe void WriteString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
         {
-            if (!TryParseString(str, ref builder, flags))
+            if (!TryWriteString(str, ref builder, flags))
                 builder.Append(str);
         }
 
-        public static unsafe bool TryParseString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
+        /// <summary>
+        /// Tries to demangle the specified symbol name, writing the demangled name to the specified buffer on success.
+        /// On failure, does not write anything to the specified buffer.
+        /// </summary>
+        /// <param name="str">The symbol name that should be demangled.</param>
+        /// <param name="builder">The string builder that the symbol name should be written to.</param>
+        /// <param name="flags">Flags that control the format of the demangled name.</param>
+        /// <returns>Whether the symbol name was successfully demangled.</returns>
+        public static unsafe bool TryWriteString(FixedUtf8String str, ref Utf8StringBuilder builder, UNDNAME flags)
         {
             var textWindow = new TextWindow(str.Value, str.Length);
 
@@ -249,13 +264,13 @@ namespace PESpy
             }
         }
 
-        public static int ParseString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
+        public static int WriteString(FixedUtf8String str, Span<byte> outputSpan, UNDNAME flags)
         {
             var builder = new Utf8StringBuilder(outputSpan);
 
             try
             {
-                ParseString(str, ref builder, flags);
+                WriteString(str, ref builder, flags);
 
                 //If we wrote beyond the end of the span, we rented a buffer to write the rest. But that
                 //data will be truncated

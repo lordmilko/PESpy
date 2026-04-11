@@ -1,4 +1,5 @@
 ﻿using System;
+using ClrDebug;
 
 namespace PESpy
 {
@@ -14,7 +15,7 @@ namespace PESpy
 
     internal class DOSNB05SymbolAccessor : NB05SymbolAccessor
     {
-        public DOSNB05SymbolAccessor(IFile file) : base(file)
+        public DOSNB05SymbolAccessor(IFile file, IMAGE_FILE_MACHINE machineType) : base(file, machineType)
         {
         }
 

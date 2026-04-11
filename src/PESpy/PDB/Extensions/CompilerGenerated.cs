@@ -16,81 +16,88 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_compilerGenerated"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_compilerGenerated"/>
         /// </summary>
-        public static bool TryGetCompilerGenerated(in this TypType typType, out bool compilerGenerated)
+        public static bool TryGetCompilerGenerated(in this TypType typType, out bool compilerGenerated) =>
+            TryGetCompilerGenerated((LfEasy) typType, out compilerGenerated);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_compilerGenerated"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_compilerGenerated"/>
+        /// </summary>
+        public static bool TryGetCompilerGenerated(in this LfEasy lfEasy, out bool compilerGenerated)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfBClass
                 case LF_BCLASS:
                 case LF_BINTERFACE:
-                    compilerGenerated = ((LfBClass) typType).attr.compgenx;
+                    compilerGenerated = ((LfBClass) lfEasy).attr.compgenx;
                     return true;
 
                 //LfBClass16t
                 case LF_BCLASS_16t:
-                    compilerGenerated = ((LfBClass16t) typType).attr.compgenx;
+                    compilerGenerated = ((LfBClass16t) lfEasy).attr.compgenx;
                     return true;
 
                 //LfEnumerate
                 case LF_ENUMERATE:
                 case LF_ENUMERATE_ST:
-                    compilerGenerated = ((LfEnumerate) typType).attr.compgenx;
+                    compilerGenerated = ((LfEnumerate) lfEasy).attr.compgenx;
                     return true;
 
                 //LfVBClass16t
                 case LF_IVBCLASS_16t:
                 case LF_VBCLASS_16t:
-                    compilerGenerated = ((LfVBClass16t) typType).attr.compgenx;
+                    compilerGenerated = ((LfVBClass16t) lfEasy).attr.compgenx;
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
-                    compilerGenerated = ((LfMember) typType).attr.compgenx;
+                    compilerGenerated = ((LfMember) lfEasy).attr.compgenx;
                     return true;
 
                 //LfMember16t
                 case LF_MEMBER_16t:
-                    compilerGenerated = ((LfMember16t) typType).attr.compgenx;
+                    compilerGenerated = ((LfMember16t) lfEasy).attr.compgenx;
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
                 case LF_MEMBERMODIFY_ST:
-                    compilerGenerated = ((LfMemberModify) typType).attr.compgenx;
+                    compilerGenerated = ((LfMemberModify) lfEasy).attr.compgenx;
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
                 case LF_NESTTYPEEX_ST:
-                    compilerGenerated = ((LfNestTypeEx) typType).attr.compgenx;
+                    compilerGenerated = ((LfNestTypeEx) lfEasy).attr.compgenx;
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
                 case LF_ONEMETHOD_ST:
-                    compilerGenerated = ((LfOneMethod) typType).attr.compgenx;
+                    compilerGenerated = ((LfOneMethod) lfEasy).attr.compgenx;
                     return true;
 
                 //LfOneMethod16t
                 case LF_ONEMETHOD_16t:
-                    compilerGenerated = ((LfOneMethod16t) typType).attr.compgenx;
+                    compilerGenerated = ((LfOneMethod16t) lfEasy).attr.compgenx;
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
                 case LF_STMEMBER_ST:
-                    compilerGenerated = ((LfSTMember) typType).attr.compgenx;
+                    compilerGenerated = ((LfSTMember) lfEasy).attr.compgenx;
                     return true;
 
                 //LfSTMember16t
                 case LF_STMEMBER_16t:
-                    compilerGenerated = ((LfSTMember16t) typType).attr.compgenx;
+                    compilerGenerated = ((LfSTMember16t) lfEasy).attr.compgenx;
                     return true;
 
                 //LfVBClass
                 case LF_VBCLASS:
-                    compilerGenerated = ((LfVBClass) typType).attr.compgenx;
+                    compilerGenerated = ((LfVBClass) lfEasy).attr.compgenx;
                     return true;
             }
 

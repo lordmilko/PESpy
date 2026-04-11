@@ -39,7 +39,10 @@ namespace PESpy.View
             WriteRange(builder, view);
             builder.Append("[").Append(view.Kind).Append("]");
 
-            builder.Append($" Bytes ({view.Bytes.Length})");
+            if (view.Name.Length > 0)
+                builder.Append(" ").Append(view.Name);
+            else
+                builder.Append($" Bytes ({view.Bytes.Length})");
 
             return builder.ToString();
         }
@@ -124,11 +127,15 @@ namespace PESpy.View
                         builder.Append(" (").Append(view.Children.Count).Append(")");
                     else if (first == "IMAGE_IMPORT_BY_NAME")
                         builder.Append(" (").Append(view.Children.Count(v => v is IStructView s && s.Name == Strings.IMAGE_IMPORT_BY_NAME || v is IValueView { Value: string })).Append(")");
+                    else
+                        builder.Append(" (").Append(view.Children.Count()).Append(")");
                 }
                 else if (view.Kind == ViewKind.Strings || view.Kind == ViewKind.StringPoolHeap)
                 {
                     if (view.Children.All(v => v is IValueView || v is ByteBlobView { Kind: ViewKind.Padding } || v is ByteBlobView { Kind: ViewKind.CC }))
                         builder.Append(" (").Append(view.Children.OfType<IValueView>().Count()).Append(")");
+                    else
+                        builder.Append(" (").Append(view.Children.Count()).Append(")");
                 }
                 else
                     builder.Append(" (").Append(view.Children.Count()).Append(")");
@@ -357,6 +364,9 @@ namespace PESpy.View
             var builder = new StringBuilder();
             WriteRange(builder, view);
 
+            if (view.Name.Length > 0)
+                builder.Append(view.Name).Append(" = ");
+
             if (view.Kind == ViewKind.ExDllCharacteristics)
             {
                 value = view.Kind.ToString();
@@ -379,8 +389,10 @@ namespace PESpy.View
                 value = view.Value!.ToString();
             }
 
-            if (view.Value is string)
+            if (view.Value is string || view.Value is AnsiString || view.Value is FixedAnsiString || view.Value is Utf8String || view.Value is FixedUtf8String)
                 builder.Append("\"").Append(view.Value).Append("\"");
+            else if (view.Value is Utf16String || view.Value is FixedUtf16String)
+                builder.Append("L\"").Append(view.Value).Append("\"");
             else if (view.Value is long l)
                 builder.Append("0x").Append(l.ToString("X"));
             else if (view.Value is ulong ul)
@@ -391,7 +403,7 @@ namespace PESpy.View
             if (view is SplitValueView<T>)
                 builder.Append(" (Split)");
 
-            return builder.ToString();
+            return builder.Replace("\0", "\\0").ToString();
         }
 
         private static void WriteRange(StringBuilder builder, IView view)

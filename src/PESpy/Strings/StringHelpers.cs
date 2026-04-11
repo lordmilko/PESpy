@@ -62,6 +62,7 @@ namespace PESpy
 
                 var limit = GetPageEnd(str) - 64;
 
+                retry:
                 while (p < limit)
                 {
                     //Vector256<byte>.Count is 32. We unroll the loop and process two chunks per iteration
@@ -136,7 +137,7 @@ namespace PESpy
             //the length of a null terminated string. However, if hardware intrinsics aren't available
             //(or our target framework does not support the use of hardware intrinsics) fall back to whatever
             //Span.IndexOf is capable of (which should be faster than a naive while loop)
-            return new Span<byte>(str, int.MaxValue).IndexOf((byte) 0);
+            return GetStringLengthScalar(str);
         }
 
         private const int pageSize = 0x1000;
@@ -147,12 +148,41 @@ namespace PESpy
         public static int GetWideStringLength(char* str)
         {
             //I tried using dotnet/runtime's fancy IndexOfNullCharacter method, but it was even slower than using IndexOf.
-            //We can't roll our own custom SIMD implementation, because Avx2.MoveMask only operates on bytes
+            //We can't roll our own custom SIMD implementation, because Avx2.MoveMask only operates on bytes. I've only compared
+            //IndexOfNullCharacter to a "dumb" IndexOf; I haven't compared it to my memory safe version
 
             if (str == default)
                 return 0;
 
-            return new Span<char>(str, char.MaxValue).IndexOf('\0');
+            return GetStringLengthScalar(str);
+        }
+
+        //Get the length of a string without running over the end of a page. I haven't compared this to IndexOfNullCharacter
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetStringLengthScalar<T>(T* ptr) where T : unmanaged, IEquatable<T>
+        {
+            var limit = GetPageEnd((byte*) ptr);
+
+            var start = (byte*) ptr;
+            var page1Length = (int) (limit - start);
+
+            var index = new Span<T>(start, page1Length / sizeof(T)).IndexOf((T) default);
+
+            if (index != -1)
+                return index;
+
+            start += page1Length;
+            var numPageElements = pageSize / sizeof(T);
+
+            while (true)
+            {
+                index = new Span<T>(start, numPageElements).IndexOf((T) default);
+
+                if (index != -1)
+                    return (int) (start - (byte*) ptr + (index * sizeof(T)));
+
+                start += pageSize;
+            }
         }
 
         #region Exact (ANSI/UTF-8)

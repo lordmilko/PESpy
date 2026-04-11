@@ -1,9 +1,11 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using PESpy.Native;
 using PESpy.View;
 using PESpy.View.Builder;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -68,7 +70,7 @@ namespace PESpy
             {
                 if (codeViewData == null && !hasTriedCodeViewData)
                 {
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out codeViewData);
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
                     hasTriedCodeViewData = true;
                 }
 
@@ -128,7 +130,7 @@ namespace PESpy
             Dispose(false);
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             var writer = new DOSViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);

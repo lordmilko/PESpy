@@ -117,12 +117,24 @@ namespace PESpy
 
         IView? IViewable.WriteStruct(ViewWriter writer)
         {
-            return writer.NewStruct(
-                isFat ? Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT : Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL,
-                this,
-                ViewKind.ImageCorILMethodSectEHClause,
-                StructSize
-            );
+            if (isFat)
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT,
+                    this,
+                    ViewKind.ImageCorILMethodSectEHClauseFat,
+                    StructSize
+                );
+            }
+            else
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_SMALL,
+                    this,
+                    ViewKind.ImageCorILMethodSectEHClauseSmall,
+                    StructSize
+                );
+            }
         }
 
         int IViewable.NumChildren() => 6;

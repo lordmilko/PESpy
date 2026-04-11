@@ -1655,6 +1655,9 @@ namespace PESpy.PDB
                     return true;
 
                 case S_REGREL32:
+                case S_REGREL32_ST: //Not supported by DIA
+                case S_REGREL16: //Not supported by DIA
+                case S_REGREL32_16t: //Not supported by DIA
                 case S_REGREL32_ENCTMP: //Not supported by DIA
                 case S_MANFRAMEREL:
                 case S_MANREGREL:
@@ -1663,6 +1666,10 @@ namespace PESpy.PDB
                 case S_DEFRANGE_FRAMEPOINTER_REL:
                 case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
                 case S_DEFRANGE_REGISTER_REL:
+                case S_BPREL16:
+                case S_BPREL32_16t: //Haven't tested this
+                case S_BPREL32:
+                case S_BPREL32_ST:
                     locationType = LocationType.LocIsRegRel;
                     return true;
 
@@ -1697,6 +1704,36 @@ namespace PESpy.PDB
                     }
 
                     locationType = default;
+                    return false;
+            }
+        }
+
+        public static unsafe bool TryGetLocalBasePointerRegisterId(in this SymType symType, CV_HREG_e registerId, ICodeViewAccessor? codeViewAccessor = default)
+        {
+            switch (symType.rectyp)
+            {
+                case S_FRAMEPROC:
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+                    registerId = ((FrameProcSym) symType).GetLocalBasePointer(codeViewAccessor.MachineType);
+                    return true;
+
+                default:
+                    registerId = default;
+                    return false;
+            }
+        }
+
+        public static unsafe bool TryGetParamBasePointerRegisterId(in this SymType symType, CV_HREG_e registerId, ICodeViewAccessor? codeViewAccessor = default)
+        {
+            switch (symType.rectyp)
+            {
+                case S_FRAMEPROC:
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+                    registerId = ((FrameProcSym) symType).GetParamBasePointer(codeViewAccessor.MachineType);
+                    return true;
+
+                default:
+                    registerId = default;
                     return false;
             }
         }

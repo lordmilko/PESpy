@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 
 namespace PESpy.View
 {
@@ -8,9 +9,11 @@ namespace PESpy.View
 
         void WorkThreadProc(
             FileAccessor fileAccessor,
+            FileAnalyzer fileAnalyzer,
             Dictionary<long, int> importMap,
             Queue<WorkItem> globalWorkQueue,
             object globalWorkQueueLock,
-            int numThreads);
+            int numThreads,
+            CancellationToken cancellationToken);
     }
 }

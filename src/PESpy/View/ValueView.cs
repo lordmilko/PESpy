@@ -18,6 +18,8 @@ namespace PESpy.View
         /// <inheritdoc />
         public int Offset { get; }
 
+        public FixedUtf8String Name { get; }
+
         /// <summary>
         /// Gets the simple value that this view encompasses.
         /// </summary>
@@ -35,7 +37,7 @@ namespace PESpy.View
         //We stash IsSplit in the top bit
         private ushort _kind;
 
-        public ValueView(int offset, TValue value, int size, ViewKind kind)
+        public ValueView(int offset, TValue value, int size, ViewKind kind, FixedUtf8String name = default)
         {
             Debug.Assert(size >= 0);
             Debug.Assert(kind != 0);
@@ -46,6 +48,7 @@ namespace PESpy.View
             Value = value;
             Size = size;
             _kind = (ushort) kind;
+            Name = name;
         }
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitValue(this);
@@ -69,10 +72,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitValueView<TValue>(Offset, Value, Size - diff, Kind);
+                first = new SplitValueView<TValue>(Offset, Value, Size - diff, Kind, Name);
             }
 
-            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff, Kind);
+            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff, Kind, Name);
             second.Previous = first;
             first.Next = second;
 
@@ -87,7 +90,7 @@ namespace PESpy.View
             if (this is SplitValueView<TValue> sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitValueView<TValue>(newOffset, Value, Size, Kind);
+                var newValue = new SplitValueView<TValue>(newOffset, Value, Size, Kind, Name);
 
                 if (sv.Previous != null)
                 {
@@ -105,7 +108,7 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new ValueView<TValue>(newOffset, Value, Size, Kind);
+            return new ValueView<TValue>(newOffset, Value, Size, Kind, Name);
         }
     }
 
@@ -115,7 +118,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind) : base(offset, value, size, viewKind)
+        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind, FixedUtf8String name) : base(offset, value, size, viewKind, name)
         {
         }
     }

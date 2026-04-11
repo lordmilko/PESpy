@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.View;
 
-namespace PESpy
+namespace PESpy.NativeAOT
 {
     //https://github.com/dotnet/runtime/blob/27b25483e06a14af2aaf6f6b6b9b6e527a3b69bf/src/coreclr/nativeaot/Runtime/DebugHeader.cpp#L65
 

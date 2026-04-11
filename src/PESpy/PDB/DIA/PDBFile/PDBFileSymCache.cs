@@ -1,9 +1,23 @@
-﻿namespace PESpy.PDB.DIA
+﻿using System.Threading;
+
+namespace PESpy.PDB.DIA
 {
     internal class PDBFileSymCache : SymCache
     {
-        private int? _numModules;
-        protected override int NumModules => _numModules ??= _pdbFile.DBI.Modules.Length;
+        private int _numModules;
+        protected override int NumModules
+        {
+            get
+            {
+                if (_numModules == -1)
+                {
+                    var length = _pdbFile.DBI.Modules.Length;
+                    Interlocked.CompareExchange(ref _numModules, length, -1);
+                }
+
+                return _numModules;
+            }
+        }
 
         private bool? _isMinimal;
         public override bool IsMinimal => _isMinimal ??= _pdbFile.PDB?.Features.Contains(PdbFeature.featMinimalDbgInfo) == true;
@@ -13,6 +27,7 @@
         public PDBFileSymCache(PDBFile pdbFile)
         {
             _pdbFile = pdbFile;
+            _numModules = -1;
         }
 
         protected override ModCache CreateModCache(ushort imod)

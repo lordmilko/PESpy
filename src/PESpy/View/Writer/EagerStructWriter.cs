@@ -426,7 +426,8 @@ namespace PESpy.View
             if (structWriter.ViewWriter is not PDBViewWriter)
             {
                 var expectedOffset = structWriter.ParentOffset + currentFieldOffset;
-                Debug.Assert(value.Offset == expectedOffset);
+                structWriter.ViewWriter.TryGetViewOffset(value.Offset, out var offset);
+                Debug.Assert(offset == expectedOffset);
             }
 #endif
 

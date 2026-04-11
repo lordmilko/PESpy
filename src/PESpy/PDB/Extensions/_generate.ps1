@@ -145,7 +145,7 @@ function CreateCaseGroup($typeInfo, $fieldName)
     }
     else
     {
-        $parameterName = "typType"
+        $parameterName = "lfEasy"
     }
 
     [pscustomobject]@{
@@ -179,11 +179,53 @@ function ParseExpression($expr)
 
                     $inner = $inner | where { $_.TypeInfo.Fields|where { $_.Name -eq $fieldName } }
                 }
+                elseif($condition -eq "LocIsRegRel")
+                {
+                    # Modelling full LocationType in our config file seems to hard because we also need to call into IsProc.
+                    # So we're just going to hard code how to handle various location types here. LocIsRegRel matches any symbol type
+                    # that is *REL* or *REL32*
+                    
+                    $toInclude = @()
+
+                    foreach($item in $inner)
+                    {
+                        $allowed = $item.EnumValues | where { $_ -like "S_*REL" -or $_ -like "S_*_REL_*" -or $_ -like "S_*REL16*" -or $_ -like "S_*REL32*" }
+
+                        if($allowed)
+                        {
+                            $item.EnumValues = $allowed
+                            $toInclude += $item
+                        }
+                    }
+
+                    $inner = $toInclude
+                }
+                elseif($condition -eq "LocIsBitField")
+                {
+                    $toInclude = @()
+
+                    foreach($item in $inner)
+                    {
+                        $allowed = $item.EnumValues | where { $_ -like "LF_BITFIELD*" }
+
+                        if($allowed)
+                        {
+                            $item.EnumValues = $allowed
+                            $toInclude += $item
+                        }
+                    }
+
+                    $inner = $toInclude
+                }
                 else
                 {
                     throw "Don't know how to handle condition '$condition'"
                 }
+
+                $inner
             }
+
+            return
         }
         else
         {
@@ -206,6 +248,13 @@ function ParseExpression($expr)
                     }
                 }
                 elseif($condition.StartsWith("Is"))
+                {
+                    # They want all kinds that match the specified category.
+                    # We don't currently support this because it's too complicated
+                    # to handle some of these in our config file and also we want to have
+                    # static methods in SymType.cs that define certain "is" lists, so ideally
+                    # the caller should rework things so they don't need to call this method
+                    throw
                 }
                 else
                 {
@@ -223,8 +272,6 @@ function ParseExpression($expr)
                 }
             }
         }
-
-        $inner
     }
     elseif($expr.StartsWith("."))
     {
@@ -235,14 +282,14 @@ function ParseExpression($expr)
             $fieldName = $item.Substring(1)
 
             # Simple field access. Anyone type that contains a field with this name is supported
-            $typesWithFieldName = $typesWithFieldName.$fieldName
+            $matches = $typesWithFieldName.$fieldName
 
-            if(!$typesWithFieldName)
+            if(!$matches)
             {
                 throw "Could not find any fields with field '$fieldName'"
             }
 
-            foreach($typeInfo in $typesWithFieldName)
+            foreach($typeInfo in $matches)
             {
                 CreateCaseGroup $typeInfo $fieldName
             }
@@ -259,9 +306,6 @@ function ParseExpression($expr)
         }
 
         $results
-    }
-    elseif($expr.Contains("("))
-    {
     }
     else
     {
@@ -396,6 +440,7 @@ break;
 
             $enumType = $null
             $entityTypeName = $null
+            $extensionTypeName = $null
             $entityTypeParameter = $null
             $recordTypeExpr = $null
             $diaIface = "IDiaSymbol$(GetDiaNumber $field)"
@@ -420,15 +465,17 @@ break;
             {
                 $enumType = "SYM_ENUM_e"
                 $entityTypeName = "SymType"
+                $extensionTypeName = "SymType"
                 $entityTypeParameter = "symType"
                 $recordTypeExpr = "symType.rectyp"
             }
             else
             {
                 $enumType = "LEAF_ENUM_e"
-                $entityTypeName = "TypType"
-                $entityTypeParameter = "typType"
-                $recordTypeExpr = "typType.leaf"
+                $entityTypeName = "LfEasy"
+                $extensionTypeName = "TypType"
+                $entityTypeParameter = "lfEasy"
+                $recordTypeExpr = "lfEasy.leaf"
             }
 
             $indent = "                "
@@ -500,13 +547,32 @@ break;
 
             $statics += $enumType
 
-            $str = @"
-    public static partial class $($entityTypeName)Extensions
-    {
+            $xmlDoc = @"
         /// <summary>
         /// <inheritdoc cref="$diaIface.get_$($lowerFieldName.TrimStart('@'))"/><para/>
         /// Corresponds to <see cref="$diaIface.get_$($lowerFieldName.TrimStart('@'))"/>
         /// </summary>
+"@
+
+            if($extensionTypeName -eq "TypType")
+            {
+                $extra = @"
+
+$xmlDoc
+        public static bool TryGet$field(in this TypType typType, out $fieldType $lowerFieldName) =>
+            TryGet$field((LfEasy) typType, out $lowerFieldName);
+
+"@
+            }
+            else
+            {
+                $extra = $null
+            }
+
+            $str = @"
+    public static partial class $($extensionTypeName)Extensions
+    {$extra
+$xmlDoc
         public static bool TryGet$field(in this $entityTypeName $entityTypeParameter, out $fieldType $lowerFieldName)
         {
             switch ($recordTypeExpr)

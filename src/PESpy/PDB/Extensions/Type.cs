@@ -16,6 +16,13 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_type"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_type"/>
         /// </summary>
+        public static bool TryGetType(in this TypType typType, out TypOrEnumType type) =>
+            TryGetType((LfEasy) typType, out type);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_type"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_type"/>
+        /// </summary>
         public static bool TryGetType(in this LfEasy lfEasy, out TypOrEnumType type)
         {
             switch (lfEasy.leaf)
@@ -26,13 +33,16 @@ namespace PESpy.PDB
                     type = ((LfAlias) lfEasy).utype;
                     return true;
 
+                //LfArray
                 case LF_ARRAY:
                 case LF_ARRAY_ST:
                     type = ((LfArray) lfEasy).elemtype;
                     return true;
 
+                //LfArray16t
                 case LF_ARRAY_16t:
-                    throw new System.NotImplementedException();
+                    type = ((LfArray16t) lfEasy).elemtype;
+                    return true;
 
                 //LfBArray
                 case LF_BARRAY:
@@ -150,6 +160,11 @@ namespace PESpy.PDB
                     type = ((LfVBClass16t) lfEasy).index;
                     return true;
 
+                //LfMatrix
+                case LF_MATRIX:
+                    type = ((LfMatrix) lfEasy).elemtype;
+                    return true;
+
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
@@ -259,6 +274,11 @@ namespace PESpy.PDB
                 //LfVBClass
                 case LF_VBCLASS:
                     type = ((LfVBClass) lfEasy).index;
+                    return true;
+
+                //LfVector
+                case LF_VECTOR:
+                    type = ((LfVector) lfEasy).elemtype;
                     return true;
 
                 //LfVftable
@@ -559,8 +579,8 @@ namespace PESpy.PDB
 
                 //RegRel32
                 case S_REGREL32:
+                case S_REGREL32_ENCTMP:
                 case S_REGREL32_ST:
-                case S_REGREL32_ENCTMP: //Not supported by DIA
                     type = ((RegRel32) symType).typind;
                     return true;
 

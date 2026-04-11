@@ -35,6 +35,10 @@ namespace PESpy
             }
         }
 
+        internal ImageCorILMethodSectEH(in MemoryChunk chunk, bool isFat) : this(isFat ? CorILMethodSect.FatFormat : default, chunk)
+        {
+        }
+
         internal ImageCorILMethodSectEH(CorILMethodSect kind, in MemoryChunk chunk)
         {
             //We need the Sect to know what data comes next, so we need to eagerly read
@@ -84,12 +88,24 @@ namespace PESpy
         {
             var isFat = (Sect.Kind & CorILMethodSect.FatFormat) != 0;
 
-            return writer.NewStruct(
-                isFat ? Strings.IMAGE_COR_ILMETHOD_SECT_EH_FAT : Strings.IMAGE_COR_ILMETHOD_SECT_EH_SMALL,
-                this,
-                ViewKind.ImageCorILMethodSectEH,
-                StructSize
-            );
+            if (isFat)
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_FAT,
+                    this,
+                    ViewKind.ImageCorILMethodSectEHFat,
+                    StructSize
+                );
+            }
+            else
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_SMALL,
+                    this,
+                    ViewKind.ImageCorILMethodSectEHSmall,
+                    StructSize
+                );
+            }
         }
 
         int IViewable.NumChildren() => (Sect.Kind & CorILMethodSect.FatFormat) != 0 ? 2 : 3;

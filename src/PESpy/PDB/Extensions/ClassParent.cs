@@ -15,13 +15,20 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_classParent"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_classParent"/>
         /// </summary>
-        public static bool TryGetClassParent(in this TypType typType, out TypOrEnumType classParent)
+        public static bool TryGetClassParent(in this TypType typType, out TypOrEnumType classParent) =>
+            TryGetClassParent((LfEasy) typType, out classParent);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_classParent"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_classParent"/>
+        /// </summary>
+        public static bool TryGetClassParent(in this LfEasy lfEasy, out TypOrEnumType classParent)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfMFuncId
                 case LF_MFUNC_ID:
-                    classParent = ((LfMFuncId) typType).parentType;
+                    classParent = ((LfMFuncId) lfEasy).parentType;
                     return true;
             }
 

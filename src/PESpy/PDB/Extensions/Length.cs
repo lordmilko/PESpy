@@ -144,12 +144,68 @@ namespace PESpy.PDB
                         length = default;
                         return false;
                     }
+                    else
+                        codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
 
-                    if (codeViewAccessor.TryGetSectionContrib(symType, pubSym.seg, pubSym.off, out var sc))
+                    if (codeViewAccessor != null)
                     {
-                        length = sc.cb;
-                        return true;
+                        /* I know that DIA does something to do with looking up the section contrib associated with the public
+                         * for reporting the public's length, but I'm not sure if it just blindly reports "the entire SC length
+                         * is the length" or if it computes the length _remaining_ in the SC after where the current symbol starts.
+                         * I feel like the logical thing to do is to compute the appropriate offset, so we'll do that */
+                        if (codeViewAccessor.TryGetSectionContrib(symType, pubSym.seg, pubSym.off, out var sc))
+                            length = sc.cb - (pubSym.off - sc.off);
+                        else
+                            length = default;
+
+                        if (codeViewAccessor is PDBFile f)
+                        {
+                            /* An additional check we can potentially do is to lookup what the address of the next item in the address map is. The distance
+                             * between the current symbol and that also gives us a length; whichever length is shorter (the section contrib or the address map)
+                             * length should be our reported length */
+
+                            var addressMap = f.PSGSI?.AddressMapSymbols;
+
+                            if (addressMap != null)
+                            {
+                                addressMap.BinarySearchAddressMap(pubSym.off, pubSym.seg, out _, out var virtualLow, out _);
+
+                                //Watch out, because the next symbol might be at the same address as well!
+                                while (virtualLow < addressMap.VirtualCount - 1)
+                                {
+                                    var nextSym = addressMap.GetVirtualSymbol(virtualLow + 1);
+
+                                    if (!nextSym.TryGetOffSeg(out var nextOff, out var nextSeg))
+                                        break;
+
+                                    if (nextSeg == pubSym.seg)
+                                    {
+                                        if (nextOff == pubSym.off)
+                                        {
+                                            //Woops, this symbol is at the exact same address!
+                                            virtualLow++;
+                                            continue;
+                                        }
+
+                                        //OK, we've got a different address, now check whether our SC or address map
+                                        //info is better
+
+                                        var lengthToNext = nextOff - pubSym.off;
+
+                                        //I've confirmed this does indeed help with vftables in big section contribs
+                                        length = length == 0 ? lengthToNext : Math.Min(lengthToNext, length);
+                                        return true;
+                                    }
+                                    else
+                                        break;
+                                }
+                            }
+                        }
+
+                        return length != 0;
                     }
+
+                    
                     break;
 
                 case S_TRAMPOLINE:

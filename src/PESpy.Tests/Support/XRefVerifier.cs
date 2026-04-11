@@ -51,16 +51,16 @@ namespace PESpy.Tests
                         nameof(AppHostSignature.BundleHeaderOffset) => GetSampleFile(Sample.SingleFileApp_EXE).AppHostSignature
                     },
 
-                    nameof(DebugTypeEntry) => propertyName switch
+                    nameof(NativeAOT.DebugTypeEntry) => propertyName switch
                     {
-                        nameof(DebugTypeEntry.TypeName) => GetAOTFile().DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
-                        nameof(DebugTypeEntry.FieldName) => GetAOTFile().DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0]
+                        nameof(NativeAOT.DebugTypeEntry.TypeName) => GetAOTFile().DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0],
+                        nameof(NativeAOT.DebugTypeEntry.FieldName) => GetAOTFile().DotNetRuntimeDebugHeader.DebugTypeEntries.Value[0]
                     },
 
-                    nameof(DotNetRuntimeDebugHeader) => propertyName switch
+                    nameof(NativeAOT.DotNetRuntimeDebugHeader) => propertyName switch
                     {
-                        nameof(DotNetRuntimeDebugHeader.DebugTypeEntries) => GetAOTFile().DotNetRuntimeDebugHeader,
-                        nameof(DotNetRuntimeDebugHeader.GlobalValueEntries) => GetAOTFile().DotNetRuntimeDebugHeader
+                        nameof(NativeAOT.DotNetRuntimeDebugHeader.DebugTypeEntries) => GetAOTFile().DotNetRuntimeDebugHeader,
+                        nameof(NativeAOT.DotNetRuntimeDebugHeader.GlobalValueEntries) => GetAOTFile().DotNetRuntimeDebugHeader
                     },
 
                     nameof(FuncInfo) => propertyName switch
@@ -77,9 +77,9 @@ namespace PESpy.Tests
                         nameof(FuncInfoV1.IPToStateMap) => ((RVA<FuncInfoV1>) GetStoreFile(WellKnownTestModule._7z).ExceptionTable[500].UnwindData.Value.ExceptionData).Value
                     },
 
-                    nameof(GlobalValueEntry) => propertyName switch
+                    nameof(NativeAOT.GlobalValueEntry) => propertyName switch
                     {
-                        nameof(GlobalValueEntry.Name) => GetAOTFile().DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0]
+                        nameof(NativeAOT.GlobalValueEntry.Name) => GetAOTFile().DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0]
                     },
 
                     nameof(HandlerType) => propertyName switch

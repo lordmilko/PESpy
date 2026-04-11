@@ -16,11 +16,13 @@ namespace PESpy
 
         private readonly MemoryChunk chunk;
         private readonly int length;
+        internal readonly ViewKind viewKind;
 
-        internal ByteBlob(in MemoryChunk chunk, int length)
+        internal ByteBlob(in MemoryChunk chunk, int length, ViewKind viewKind)
         {
             this.chunk = chunk;
             this.length = length;
+            this.viewKind = viewKind;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

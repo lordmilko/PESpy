@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hfaFloat"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hfaFloat"/>
         /// </summary>
-        public static bool TryGetHfaFloat(in this TypType typType, out bool hfaFloat)
+        public static bool TryGetHfaFloat(in this TypType typType, out bool hfaFloat) =>
+            TryGetHfaFloat((LfEasy) typType, out hfaFloat);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_hfaFloat"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_hfaFloat"/>
+        /// </summary>
+        public static bool TryGetHfaFloat(in this LfEasy lfEasy, out bool hfaFloat)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    hfaFloat = ((LfClass) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfClass) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    hfaFloat = ((LfClass16t) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfClass16t) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    hfaFloat = ((LfEnum) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfEnum) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    hfaFloat = ((LfEnum16t) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfEnum16t) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    hfaFloat = ((LfUnion) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfUnion) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    hfaFloat = ((LfUnion16t) typType).property.hfa == CV_HFA_e.CV_HFA_float;
+                    hfaFloat = ((LfUnion16t) lfEasy).property.hfa == CV_HFA_e.CV_HFA_float;
                     return true;
             }
 

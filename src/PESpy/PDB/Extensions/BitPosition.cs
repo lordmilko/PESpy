@@ -15,18 +15,25 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_bitPosition"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_bitPosition"/>
         /// </summary>
-        public static bool TryGetBitPosition(in this TypType typType, out int bitPosition)
+        public static bool TryGetBitPosition(in this TypType typType, out int bitPosition) =>
+            TryGetBitPosition((LfEasy) typType, out bitPosition);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_bitPosition"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_bitPosition"/>
+        /// </summary>
+        public static bool TryGetBitPosition(in this LfEasy lfEasy, out int bitPosition)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfBitfield
                 case LF_BITFIELD:
-                    bitPosition = ((LfBitfield) typType).position;
+                    bitPosition = ((LfBitfield) lfEasy).position;
                     return true;
 
                 //LfBitfield16t
                 case LF_BITFIELD_16t:
-                    bitPosition = ((LfBitfield16t) typType).position;
+                    bitPosition = ((LfBitfield16t) lfEasy).position;
                     return true;
             }
 

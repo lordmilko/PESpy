@@ -15,28 +15,35 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isConstructorVirtualBase"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isConstructorVirtualBase"/>
         /// </summary>
-        public static bool TryGetIsConstructorVirtualBase(in this TypType typType, out bool isConstructorVirtualBase)
+        public static bool TryGetIsConstructorVirtualBase(in this TypType typType, out bool isConstructorVirtualBase) =>
+            TryGetIsConstructorVirtualBase((LfEasy) typType, out isConstructorVirtualBase);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_isConstructorVirtualBase"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_isConstructorVirtualBase"/>
+        /// </summary>
+        public static bool TryGetIsConstructorVirtualBase(in this LfEasy lfEasy, out bool isConstructorVirtualBase)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfMFunc
                 case LF_MFUNCTION:
-                    isConstructorVirtualBase = ((LfMFunc) typType).funcattr.ctorvbase;
+                    isConstructorVirtualBase = ((LfMFunc) lfEasy).funcattr.ctorvbase;
                     return true;
 
                 //LfMFunc16t
                 case LF_MFUNCTION_16t:
-                    isConstructorVirtualBase = ((LfMFunc16t) typType).funcattr.ctorvbase;
+                    isConstructorVirtualBase = ((LfMFunc16t) lfEasy).funcattr.ctorvbase;
                     return true;
 
                 //LfProc
                 case LF_PROCEDURE:
-                    isConstructorVirtualBase = ((LfProc) typType).funcattr.ctorvbase;
+                    isConstructorVirtualBase = ((LfProc) lfEasy).funcattr.ctorvbase;
                     return true;
 
                 //LfProc16t
                 case LF_PROCEDURE_16t:
-                    isConstructorVirtualBase = ((LfProc16t) typType).funcattr.ctorvbase;
+                    isConstructorVirtualBase = ((LfProc16t) lfEasy).funcattr.ctorvbase;
                     return true;
             }
 

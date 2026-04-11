@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_packed"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_packed"/>
         /// </summary>
-        public static bool TryGetPacked(in this TypType typType, out bool packed)
+        public static bool TryGetPacked(in this TypType typType, out bool packed) =>
+            TryGetPacked((LfEasy) typType, out packed);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_packed"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_packed"/>
+        /// </summary>
+        public static bool TryGetPacked(in this LfEasy lfEasy, out bool packed)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    packed = ((LfClass) typType).property.packed;
+                    packed = ((LfClass) lfEasy).property.packed;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    packed = ((LfClass16t) typType).property.packed;
+                    packed = ((LfClass16t) lfEasy).property.packed;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    packed = ((LfEnum) typType).property.packed;
+                    packed = ((LfEnum) lfEasy).property.packed;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    packed = ((LfEnum16t) typType).property.packed;
+                    packed = ((LfEnum16t) lfEasy).property.packed;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    packed = ((LfUnion) typType).property.packed;
+                    packed = ((LfUnion) lfEasy).property.packed;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    packed = ((LfUnion16t) typType).property.packed;
+                    packed = ((LfUnion16t) lfEasy).property.packed;
                     return true;
             }
 

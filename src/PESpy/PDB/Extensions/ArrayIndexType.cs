@@ -15,19 +15,26 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_arrayIndexType"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_arrayIndexType"/>
         /// </summary>
-        public static bool TryGetArrayIndexType(in this TypType typType, out TypOrEnumType arrayIndexType)
+        public static bool TryGetArrayIndexType(in this TypType typType, out TypOrEnumType arrayIndexType) =>
+            TryGetArrayIndexType((LfEasy) typType, out arrayIndexType);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_arrayIndexType"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_arrayIndexType"/>
+        /// </summary>
+        public static bool TryGetArrayIndexType(in this LfEasy lfEasy, out TypOrEnumType arrayIndexType)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfArray
                 case LF_ARRAY:
                 case LF_ARRAY_ST:
-                    arrayIndexType = ((LfArray) typType).idxtype;
+                    arrayIndexType = ((LfArray) lfEasy).idxtype;
                     return true;
 
                 //LfArray16t
                 case LF_ARRAY_16t:
-                    arrayIndexType = ((LfArray16t) typType).idxtype;
+                    arrayIndexType = ((LfArray16t) lfEasy).idxtype;
                     return true;
             }
 

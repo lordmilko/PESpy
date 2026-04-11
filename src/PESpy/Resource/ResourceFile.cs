@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using PESpy.View;
 
 namespace PESpy
@@ -231,7 +232,7 @@ namespace PESpy
             throw new NotImplementedException("Reading resource files properly is not implemented");
         }
 
-        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9 d17.14
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_PESpyUI", "src\PESpyUI\_PESpyUI.csproj", "{F7F1727E-C359-4C38-8BC3-726AD07972A9}"
 EndProject
@@ -20,6 +20,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498-8619-4E11-92BF-F358D9DFC882}"
 	ProjectSection(SolutionItems) = preProject
 		build\ClrDebug.props = build\ClrDebug.props
+		build\ILLink.Descriptors.xml = build\ILLink.Descriptors.xml
+		build\ILLink.LinkAttributes.xml = build\ILLink.LinkAttributes.xml
 		build\PInvoke.props = build\PInvoke.props
 		build\ReAnalyze.props = build\ReAnalyze.props
 		build\SizeHacks.props = build\SizeHacks.props
@@ -27,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.PowerShell", "src\PESpy.PowerShell\PESpy.PowerShell.csproj", "{548315CB-D76C-4E1C-BF2B-67A3334F333E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PESpy (App)", "src\PESpy (App)\PESpy (App).csproj", "{257B1F88-DDFD-4727-9956-13B521011F1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,6 +58,10 @@ Global
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{257B1F88-DDFD-4727-9956-13B521011F1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{257B1F88-DDFD-4727-9956-13B521011F1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{257B1F88-DDFD-4727-9956-13B521011F1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{257B1F88-DDFD-4727-9956-13B521011F1F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using ClrDebug;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
@@ -45,10 +46,13 @@ namespace PESpy
 
         internal readonly NB05SymCache _symCache;
 
-        public NB05SymbolAccessor(IFile file)
+        public IMAGE_FILE_MACHINE MachineType { get; }
+
+        public NB05SymbolAccessor(IFile file, IMAGE_FILE_MACHINE machineType)
         {
             _file = file;
             _symCache = new NB05SymCache(this);
+            MachineType = machineType;
         }
 
         #region ICodeViewAccessor
@@ -250,7 +254,7 @@ namespace PESpy
 
             EnsureSynthesizedData();
 
-            var trav = new NB05AddrTrav(_symCache, this);
+            var trav = new CAllSymsByAddrTrav<NB05AddrTrav>(new NB05AddrTrav(_symCache, this));
 
             if (trav.FInit(sectionNumber, relativeOffset, out var result))
             {

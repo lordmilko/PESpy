@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using ClrDebug;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 
@@ -28,7 +29,7 @@ namespace PESpy
         //startAddress should be the start address of the file
         //length should be the total length of the file
         //globalBlock should be a block that is capable of accessing the entire file
-        internal static bool TryReadTrailingOMF(byte* startAddress, int length, MemoryBlock globalBlock, out ICodeViewData? omfData)
+        internal static bool TryReadTrailingOMF(byte* startAddress, int length, IMAGE_FILE_MACHINE machineType, MemoryBlock globalBlock, out ICodeViewData? omfData)
         {
             var endOfFile = startAddress + length;
 
@@ -116,7 +117,7 @@ namespace PESpy
             if (oldStyle)
                 omfData = ReadNB02(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength);
             else
-                omfData = ReadNB05(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength);
+                omfData = ReadNB05(chunk, (CodeViewSig) startSig->Signature, lfoBase, omfLength, machineType);
 
             return true;
         }
@@ -421,7 +422,7 @@ namespace PESpy
         #endregion
         #region NB05+
 
-        internal static NB05Data ReadNB05(in MemoryChunk chunk, CodeViewSig sig, int lfoBaseOff, int sizeOfData)
+        internal static NB05Data ReadNB05(in MemoryChunk chunk, CodeViewSig sig, int lfoBaseOff, int sizeOfData, IMAGE_FILE_MACHINE machineType)
         {
             /* NB05-NB11 have the same format. The individual versions seem to just indicate which linker was used and whether the file was packed or not.
              * The only substantive difference seems to be when dumping globals, if it's NB09 or NB11 there's no OMFSymHash offset to consider (see dympsym7.cpp!DumpGlobal)
@@ -456,9 +457,9 @@ namespace PESpy
                 case CodeViewSig.NB05:
                 {
                     if (file is DOSFile d)
-                        codeViewAccessor = new DOSNB05SymbolAccessor(d);
+                        codeViewAccessor = new DOSNB05SymbolAccessor(d, machineType);
                     else
-                        codeViewAccessor = new NB05SymbolAccessor(file);
+                        codeViewAccessor = new NB05SymbolAccessor(file, machineType);
                 }
                 break;
 
@@ -470,9 +471,9 @@ namespace PESpy
                 case CodeViewSig.NB11:
                 {
                     if (file is DOSFile d)
-                        codeViewAccessor = new DOSNB09SymbolAccessor(d);
+                        codeViewAccessor = new DOSNB09SymbolAccessor(d, machineType);
                     else
-                        codeViewAccessor = new NB09SymbolAccessor(file);
+                        codeViewAccessor = new NB09SymbolAccessor(file, machineType);
                 }
                 break;
 

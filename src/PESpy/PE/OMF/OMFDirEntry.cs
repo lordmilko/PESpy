@@ -232,7 +232,7 @@ namespace PESpy
                             break;
 
                             default:
-                                symbolHashTable = new ByteBlob(symbolHashTableChunk, hash.cbHSym);
+                                symbolHashTable = new ByteBlob(symbolHashTableChunk, hash.cbHSym, ViewKind.UnknownSymHash);
                                 break;
                         }
 
@@ -249,7 +249,7 @@ namespace PESpy
                             break;
 
                         default:
-                            addressHashTable = new ByteBlob(addressHashTableChunk, hash.cbHAddr);
+                            addressHashTable = new ByteBlob(addressHashTableChunk, hash.cbHAddr, ViewKind.UnknownAddrHash);
                             break;
                     }
 
@@ -302,7 +302,7 @@ namespace PESpy
             //Not implemented
 
             //Note: we should remove the cbHSym parameter once we implement this
-            return new ByteBlob(chunk, cbHSym);
+            return new ByteBlob(chunk, cbHSym, ViewKind.UnknownSymHash);
         }
 
         private static IValue SymHash32Long(in MemoryChunk chunk, int symhash, int cbHSym)
@@ -310,7 +310,7 @@ namespace PESpy
             //Not implemented
 
             //Note: we should remove the cbHSym parameter once we implement this
-            return new ByteBlob(chunk, cbHSym);
+            return new ByteBlob(chunk, cbHSym, ViewKind.UnknownSymHash);
         }
 
         private static IValue AddrHash32(in MemoryChunk chunk, int addrhash)

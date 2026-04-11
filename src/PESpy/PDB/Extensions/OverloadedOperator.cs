@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_overloadedOperator"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_overloadedOperator"/>
         /// </summary>
-        public static bool TryGetOverloadedOperator(in this TypType typType, out bool overloadedOperator)
+        public static bool TryGetOverloadedOperator(in this TypType typType, out bool overloadedOperator) =>
+            TryGetOverloadedOperator((LfEasy) typType, out overloadedOperator);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_overloadedOperator"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_overloadedOperator"/>
+        /// </summary>
+        public static bool TryGetOverloadedOperator(in this LfEasy lfEasy, out bool overloadedOperator)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    overloadedOperator = ((LfClass) typType).property.ovlops;
+                    overloadedOperator = ((LfClass) lfEasy).property.ovlops;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    overloadedOperator = ((LfClass16t) typType).property.ovlops;
+                    overloadedOperator = ((LfClass16t) lfEasy).property.ovlops;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    overloadedOperator = ((LfEnum) typType).property.ovlops;
+                    overloadedOperator = ((LfEnum) lfEasy).property.ovlops;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    overloadedOperator = ((LfEnum16t) typType).property.ovlops;
+                    overloadedOperator = ((LfEnum16t) lfEasy).property.ovlops;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    overloadedOperator = ((LfUnion) typType).property.ovlops;
+                    overloadedOperator = ((LfUnion) lfEasy).property.ovlops;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    overloadedOperator = ((LfUnion16t) typType).property.ovlops;
+                    overloadedOperator = ((LfUnion16t) lfEasy).property.ovlops;
                     return true;
             }
 

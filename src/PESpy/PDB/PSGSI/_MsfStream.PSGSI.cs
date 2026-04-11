@@ -598,7 +598,7 @@ namespace PESpy.PDB
                 //convention can stay as is
 
                 if (targetName.StartsWith("?"))
-                    i += Demangler.ParseString(targetName, name.Slice(i), UNDNAME.UNDNAME_NAME_ONLY);
+                    i += Demangler.WriteString(targetName, name.Slice(i), UNDNAME.UNDNAME_NAME_ONLY);
                 else
                 {
                     targetName.CopyTo(name.Slice(i));

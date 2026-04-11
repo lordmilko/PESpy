@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading;
 using PESpy.View;
 using PESpy.View.Builder;
 
@@ -122,7 +123,7 @@ namespace PESpy
             Dispose(false);
         }
 
-        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using ClrDebug;
 using PESpy.LIB;
 using PESpy.Native;
@@ -246,7 +247,7 @@ namespace PESpy
             ImportLibrary = imports.ToArray();
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             var writer = new LIBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);

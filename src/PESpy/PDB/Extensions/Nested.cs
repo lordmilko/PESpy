@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_nested"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_nested"/>
         /// </summary>
-        public static bool TryGetNested(in this TypType typType, out bool nested)
+        public static bool TryGetNested(in this TypType typType, out bool nested) =>
+            TryGetNested((LfEasy) typType, out nested);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_nested"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_nested"/>
+        /// </summary>
+        public static bool TryGetNested(in this LfEasy lfEasy, out bool nested)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    nested = ((LfClass) typType).property.isnested;
+                    nested = ((LfClass) lfEasy).property.isnested;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    nested = ((LfClass16t) typType).property.isnested;
+                    nested = ((LfClass16t) lfEasy).property.isnested;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    nested = ((LfEnum) typType).property.isnested;
+                    nested = ((LfEnum) lfEasy).property.isnested;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    nested = ((LfEnum16t) typType).property.isnested;
+                    nested = ((LfEnum16t) lfEasy).property.isnested;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    nested = ((LfUnion) typType).property.isnested;
+                    nested = ((LfUnion) lfEasy).property.isnested;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    nested = ((LfUnion16t) typType).property.isnested;
+                    nested = ((LfUnion16t) lfEasy).property.isnested;
                     return true;
             }
 

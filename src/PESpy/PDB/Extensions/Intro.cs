@@ -15,81 +15,88 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_intro"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_intro"/>
         /// </summary>
-        public static bool TryGetIntro(in this TypType typType, out bool intro)
+        public static bool TryGetIntro(in this TypType typType, out bool intro) =>
+            TryGetIntro((LfEasy) typType, out intro);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_intro"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_intro"/>
+        /// </summary>
+        public static bool TryGetIntro(in this LfEasy lfEasy, out bool intro)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfBClass
                 case LF_BCLASS:
                 case LF_BINTERFACE:
-                    intro = ((LfBClass) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfBClass) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfBClass16t
                 case LF_BCLASS_16t:
-                    intro = ((LfBClass16t) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfBClass16t) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfEnumerate
                 case LF_ENUMERATE:
                 case LF_ENUMERATE_ST:
-                    intro = ((LfEnumerate) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfEnumerate) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfVBClass16t
                 case LF_IVBCLASS_16t:
                 case LF_VBCLASS_16t:
-                    intro = ((LfVBClass16t) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfVBClass16t) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
-                    intro = ((LfMember) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfMember) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfMember16t
                 case LF_MEMBER_16t:
-                    intro = ((LfMember16t) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfMember16t) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
                 case LF_MEMBERMODIFY_ST:
-                    intro = ((LfMemberModify) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfMemberModify) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
                 case LF_NESTTYPEEX_ST:
-                    intro = ((LfNestTypeEx) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfNestTypeEx) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
                 case LF_ONEMETHOD_ST:
-                    intro = ((LfOneMethod) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfOneMethod) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfOneMethod16t
                 case LF_ONEMETHOD_16t:
-                    intro = ((LfOneMethod16t) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfOneMethod16t) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
                 case LF_STMEMBER_ST:
-                    intro = ((LfSTMember) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfSTMember) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfSTMember16t
                 case LF_STMEMBER_16t:
-                    intro = ((LfSTMember16t) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfSTMember16t) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
 
                 //LfVBClass
                 case LF_VBCLASS:
-                    intro = ((LfVBClass) typType).attr.mprop == CV_methodprop_e.CV_MTintro;
+                    intro = ((LfVBClass) lfEasy).attr.mprop == CV_methodprop_e.CV_MTintro;
                     return true;
             }
 

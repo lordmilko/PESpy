@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace PESpy.View
 {
@@ -6,7 +7,7 @@ namespace PESpy.View
     {
         private readonly PDBFile _pdbFile;
 
-        internal PDBFileAnalyzer(PDBFileAccessor fileAccessor, IFileAnalyzerProgress? progress) : base(fileAccessor, null, LocatorHttpPolicy.All, progress)
+        internal PDBFileAnalyzer(PDBFileAccessor fileAccessor, IFileAnalyzerProgress? progress, bool trackXRefs, CancellationToken cancellationToken) : base(fileAccessor, null, LocatorHttpPolicy.All, progress, trackXRefs, cancellationToken)
         {
             _pdbFile = fileAccessor.PDBFile;
         }

@@ -309,7 +309,7 @@ namespace PESpy.View
 
                     if (section.Type == ReadyToRunSectionType.ImportSections)
                     {
-                        var importSections = (ReadyToRunImportSection[]) section.Data!;
+                        var importSections = (R2R.ReadyToRunImportSection[]) section.Data!;
 
                         for (var j = 0; j < importSections.Length; j++)
                         {

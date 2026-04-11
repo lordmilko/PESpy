@@ -2,7 +2,7 @@
 {
     internal class PDBFileModCache : ModCache
     {
-        protected override SymTypeList Symbols => _modi.Symbols.List;
+        protected override SymTypeList Symbols => _modi.Symbols?.List;
 
         private IModi _modi;
 

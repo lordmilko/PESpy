@@ -15,21 +15,34 @@ namespace PESpy.View
 
         public override bool IsLoaded => PEFile.IsLoadedImage;
 
+        public ViewMode ViewMode { get; }
+
+        protected override ViewKind FileViewKind => ViewKind.PEFile;
+
         /* To reduce the cost of having to constantly lookup what section a given RVA belongs to and whether that section
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when
          * we're constantly looking up values that likely all belong to the same section */
-        private PESectionLookupCache _lookupCache;
+        internal PESectionLookupCache _lookupCache;
         private ISymbolAccessor _symbolAccessor;
+        private readonly bool _wantVirtual;
 
         internal bool OwnsPEFile = true;
 
         private ViewWriter _viewWriter;
 
-        public PEFileAccessor(PEFile peFile, bool trackXRefs) : base(peFile.Is32Bit ? 32 : 64, trackXRefs)
+        public PEFileAccessor(PEFile peFile, ViewMode viewMode) : base(peFile.Is32Bit ? 32 : 64)
         {
             PEFile = peFile;
+            ViewMode = viewMode;
 
-            _lookupCache = new PESectionLookupCache(peFile);
+            _wantVirtual = viewMode switch
+            {
+                ViewMode.Default => IsLoaded,
+                ViewMode.Physical => false,
+                ViewMode.Virtual => true
+            };
+
+            _lookupCache = new PESectionLookupCache(peFile, _wantVirtual);
 
             ImageBase = peFile.OptionalHeader.ImageBase;
 
@@ -42,7 +55,6 @@ namespace PESpy.View
 
             var numSections = sectionHeaders.Length + 1; //The header is also a section
 
-            var isLoaded = peFile.IsLoadedImage;
             var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
 
             int overlayStart = 0;
@@ -51,7 +63,7 @@ namespace PESpy.View
             //If the file is not loaded into memory, try and detect an overlay. Overlay data is not present
             //in in-memory images, because by definition this data is outside the bounds of any section headers,
             //and so the loader ignores this data
-            if (!isLoaded)
+            if (!_wantVirtual)
             {
                 //We might have an overlay
 
@@ -85,10 +97,14 @@ namespace PESpy.View
                 int start;
                 int size;
 
-                if (isLoaded)
+                if (_wantVirtual)
                 {
                     start = section.VirtualAddress;
                     size = section.VirtualSize;
+
+                    //We aren't going to be able to probe addresses that only exist in memory
+                    if (!peFile.IsLoadedImage)
+                        size = Math.Min(size, section.SizeOfRawData);
                 }
                 else
                 {
@@ -147,14 +163,14 @@ namespace PESpy.View
                     break;
 
                 case SectionAccessorKind.Section:
-                    if (PEFile.IsLoadedImage)
+                    if (_wantVirtual)
                     {
                         PEFile.GetRawSectionDataFromRVA(sectionAccessor.StartAddress, sectionAccessor.SectionIndex, out pByte, out remainingLength);
                         rva = sectionAccessor.StartAddress; //StartAddress is an RVA
                     }
                     else
                     {
-                        PEFile.GetRawSectionDataFromOffset(sectionAccessor.StartAddress, sectionAccessor.SectionIndex, out pByte, out remainingLength);
+                        PEFile.GetRawSectionDataFromRelativeOffset(0, sectionAccessor.SectionIndex, out pByte, out remainingLength);
                         ref var section = ref PEFile.SectionHeaders[sectionAccessor.SectionIndex];
                         rva = section.VirtualAddress;
                     }
@@ -198,8 +214,18 @@ namespace PESpy.View
             else
                 peFile = PEFile;
 
-            if (!peFile.TryGetValueChunkFromPhysicalOffset(address, out var chunk))
-                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+            MemoryChunk chunk;
+
+            if (_lookupCache._wantVirtual)
+            {
+                if (!peFile.TryGetValueChunkFromSectionOrHeader(address, out chunk))
+                    throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+            }
+            else
+            {
+                if (!peFile.TryGetValueChunkFromPhysicalOffset(address, out chunk))
+                    throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+            }
 
             return chunk;
         }
@@ -208,7 +234,7 @@ namespace PESpy.View
         {
             if (_viewWriter == null)
             {
-                _viewWriter = new PEViewWriter(PEFile);
+                _viewWriter = new PEViewWriter(PEFile, PEFile.CreateByteViewProvider(null), ViewMode);
 
 #if DEBUG
                 _viewWriter.ShouldVerifyXRefs = false;
@@ -290,7 +316,7 @@ namespace PESpy.View
 
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
         {
-            if (PEFile.IsLoadedImage)
+            if (_wantVirtual)
             {
                 rva = targetAddress; //SectionAccessor.StartAddress is an RVA, which means address (which is an offset against StartAddress)
             }
@@ -310,7 +336,7 @@ namespace PESpy.View
         }
 
         internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor() =>
-            new PEFileThreadLocalSectionDataAccessor(PEFile);
+            new PEFileThreadLocalSectionDataAccessor(PEFile, _lookupCache._wantVirtual);
 
         public override void Dispose()
         {

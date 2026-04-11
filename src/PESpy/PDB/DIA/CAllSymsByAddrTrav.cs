@@ -3,19 +3,34 @@ using System.Diagnostics;
 
 namespace PESpy.PDB
 {
+    interface IEnumProvider
+    {
+        SymCache SymCache { get; }
+
+        bool EnumByAddrLocate(ISECT seg, int off);
+
+        bool EnumByAddrNext(out SymType symType);
+
+        bool EnumContribLocate(ISECT seg, int off);
+
+        bool EnumContribNext(out SC40 sc);
+
+        bool EnumContribPrev(out SC40 sc);
+    }
+
     /// <summary>
     /// Models the essential functionality of the msdia140!CAllSymsByAddrTrav class used
     /// for resolving an RVA to its "nearest" symbol.
     /// </summary>
-    internal abstract class CAllSymsByAddrTrav
+    internal struct CAllSymsByAddrTrav<TEnumProvider> where TEnumProvider : IEnumProvider
     {
-        internal readonly SymCache _symCache;
-        protected ISECT _targetSeg;
-        protected int _targetOff;
+        private ISECT _targetSeg;
+        private int _targetOff;
+        private TEnumProvider _enumProvider;
 
-        internal CAllSymsByAddrTrav(SymCache symCache)
+        internal CAllSymsByAddrTrav(TEnumProvider enumProvider)
         {
-            _symCache = symCache;
+            _enumProvider = enumProvider;
         }
 
         public bool FInit(
@@ -67,17 +82,27 @@ namespace PESpy.PDB
 
             bestResult = default;
 
-            var pubsTraverser = new CPubByAddrTrav(this, targetOffSeg, bestResult.offSegSym);
-            findBetterSymbol(pubsTraverser, ref bestResult, targetOffSeg);
+            var pubsTraverser = new CPubByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym);
 
-            var blockTraverser = new CBlockByAddrTrav(this, targetOffSeg, bestResult.offSegSym);
-            findBetterSymbol(blockTraverser, ref bestResult, targetOffSeg);
+            //next() is normally called in findBetterSymbol, but we've pulled it out so we can eliminate allocations
+            //without increasing code size from generics
+            if (pubsTraverser.next(out var candidate))
+                findBetterSymbol(candidate, ref bestResult, targetOffSeg);
 
-            var dataTraverser = new CDataByAddrTrav(this, targetOffSeg, bestResult.offSegSym);
-            findBetterSymbol(dataTraverser, ref bestResult, targetOffSeg);
+            var blockTraverser = new CBlockByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym);
 
-            var globalDataTraverser = new CGlobalDataByAddrTrav(this, targetOffSeg, bestResult.offSegSym);
-            findBetterSymbol(globalDataTraverser, ref bestResult, targetOffSeg);
+            if (blockTraverser.next(out candidate))
+                findBetterSymbol(candidate, ref bestResult, targetOffSeg);
+
+            var dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym);
+
+            if (dataTraverser.next(out candidate))
+                findBetterSymbol(candidate, ref bestResult, targetOffSeg);
+
+            var globalDataTraverser = new CGlobalDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg);
+
+            if (globalDataTraverser.next(out candidate))
+                findBetterSymbol(candidate, ref bestResult, targetOffSeg);
 
             return bestResult.offSegSym.symType != default;
         }
@@ -86,7 +111,7 @@ namespace PESpy.PDB
         {
             result = default;
 
-            if (!EnumByAddrLocate(_targetSeg, _targetOff))
+            if (!_enumProvider.EnumByAddrLocate(_targetSeg, _targetOff))
                 return false;
 
             OffSeg pubOffSeg = new OffSeg
@@ -95,7 +120,7 @@ namespace PESpy.PDB
                 seg = ISECT.Nil
             };
 
-            if (EnumByAddrNext(out var pubSym))
+            if (_enumProvider.EnumByAddrNext(out var pubSym))
             {
                 do
                 {
@@ -108,7 +133,7 @@ namespace PESpy.PDB
                         break;
                     }
 
-                } while (EnumByAddrNext(out pubSym));
+                } while (_enumProvider.EnumByAddrNext(out pubSym));
             }
             else
             {
@@ -121,9 +146,9 @@ namespace PESpy.PDB
                 seg = ISECT.Nil
             };
 
-            EnumContribLocate(_targetSeg, _targetOff);
+            _enumProvider.EnumContribLocate(_targetSeg, _targetOff);
 
-            if (!EnumContribNext(out var sc))
+            if (!_enumProvider.EnumContribNext(out var sc))
                 throw new NotImplementedException();
 
             while (true)
@@ -141,7 +166,7 @@ namespace PESpy.PDB
                     break;
                 }
 
-                if (!EnumContribNext(out sc))
+                if (!_enumProvider.EnumContribNext(out sc))
                     break;
             }
 
@@ -212,40 +237,23 @@ namespace PESpy.PDB
             throw new NotImplementedException();
         }
 
-        private static void findBetterSymbol(Traverser traverser, ref TraverserResult bestResult, OffSeg targetOffSeg)
+        private static void findBetterSymbol(in TraverserResult candidate, ref TraverserResult bestResult, OffSeg targetOffSeg)
         {
-            if (traverser.next(out var candidate))
+            var candidateSeg = candidate.offSegSym.seg;
+            var candidateOff = candidate.offSegSym.off;
+
+            var bestSeg = bestResult.offSegSym.seg;
+            var bestOff = bestResult.offSegSym.off;
+
+            var targetSeg = targetOffSeg.seg;
+            var targetOff = targetOffSeg.off;
+
+            if ((bestSeg < candidateSeg || (bestSeg == candidateSeg && bestOff <= candidateOff))
+                && (candidateSeg < targetSeg || (candidateSeg == targetSeg && candidateOff <= targetOff))
+                && (bestSeg != candidateSeg || bestOff != candidateOff || candidate.hasName))
             {
-                var candidateSeg = candidate.offSegSym.seg;
-                var candidateOff = candidate.offSegSym.off;
-
-                var bestSeg = bestResult.offSegSym.seg;
-                var bestOff = bestResult.offSegSym.off;
-
-                var targetSeg = targetOffSeg.seg;
-                var targetOff = targetOffSeg.off;
-
-                if ((bestSeg < candidateSeg || (bestSeg == candidateSeg && bestOff <= candidateOff))
-                    && (candidateSeg < targetSeg || (candidateSeg == targetSeg && candidateOff <= targetOff))
-                    && (bestSeg != candidateSeg || bestOff != candidateOff || candidate.hasName))
-                {
-                    bestResult = candidate;
-                }
+                bestResult = candidate;
             }
         }
-
-        #region Impl
-
-        public abstract bool EnumByAddrLocate(ISECT seg, int off);
-
-        public abstract bool EnumByAddrNext(out SymType symType);
-
-        public abstract bool EnumContribLocate(ISECT seg, int off);
-
-        public abstract bool EnumContribNext(out SC40 sc);
-
-        public abstract bool EnumContribPrev(out SC40 sc);
-
-        #endregion
     }
 }

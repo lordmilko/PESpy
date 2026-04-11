@@ -5,16 +5,19 @@
     /// for resolving an RVA to its "nearest" block symbol at or under a function symbol
     /// within a specific module.
     /// </summary>
-    internal class CBlockByAddrTrav : CFuncByAddrTrav
+    internal struct CBlockByAddrTrav<TEnumProvider> where TEnumProvider : IEnumProvider
     {
+        private CFuncByAddrTrav<TEnumProvider> _funcTrav;
+
         public CBlockByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
+            TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(parentTrav, targetOffSeg, bestOffSeg)
+            OffSegSym bestOffSeg)
         {
+            _funcTrav = new CFuncByAddrTrav<TEnumProvider>(enumProvider, targetOffSeg, bestOffSeg);
         }
 
-        public override bool next(out TraverserResult result)
+        public bool next(out TraverserResult result)
         {
             if (FInit(out result))
             {
@@ -27,14 +30,19 @@
             return false;
         }
 
-        internal override bool FInit(out TraverserResult result)
+        internal bool FInit(out TraverserResult result)
         {
-            if (!base.FInit(out result))
+            ref var modTrav = ref _funcTrav._modTrav;
+
+            if (!modTrav.FInit(ref _funcTrav, out result))
                 return false;
 
-            _parentTrav._symCache.GetModuleSymbols(_imod, out var symTypeList, out var codeViewModuleAccessor);
+            modTrav._enumProvider.SymCache.GetModuleSymbols(modTrav._imod, out var symTypeList, out var codeViewModuleAccessor);
 
             var enumerator = ((BlockSym) result.offSegSym.symType).GetChildren(codeViewModuleAccessor).GetEnumerator();
+
+            var targetSeg = modTrav._targetSeg;
+            var targetOff = modTrav._targetOff;
 
             while (enumerator.MoveNext())
             {
@@ -46,13 +54,13 @@
                 if (!childSymType.TryGetOffSeg(out var off, out var seg) || !childSymType.TryGetLength(out var length))
                     continue;
 
-                if (seg > _targetSeg || (seg == _targetSeg && off > _targetOff))
+                if (seg > targetSeg || (seg == targetSeg && off > targetOff))
                     break;
 
-                if (off <= _targetOff)
+                if (off <= targetOff)
                 {
-                    uint disp = _targetSeg == seg
-                        ? (uint) (_targetOff - off)
+                    uint disp = targetSeg == seg
+                        ? (uint) (targetOff - off)
                         : uint.MaxValue;
 
                     if (disp < length)

@@ -1,4 +1,5 @@
 ﻿using System;
+using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.PDB;
 
@@ -7,6 +8,8 @@ namespace PESpy.Tests
     internal class MockSymbolAccessor : ICodeViewAccessor
     {
         public bool HasLengthPrefixedStrings { get; set; }
+
+        public IMAGE_FILE_MACHINE MachineType => IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_I386;
 
         public SymType GetModuleSymbol(ushort imod, int ibSym)
         {

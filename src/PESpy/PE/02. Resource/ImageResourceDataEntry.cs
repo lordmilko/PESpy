@@ -127,7 +127,7 @@ namespace PESpy
                                     break;
 
                                 default:
-                                    value = new ByteBlob(valueChunk, Size);
+                                    value = new ByteBlob(valueChunk, Size, ViewKind.UnknownResource);
                                     break;
                             }
                         }
@@ -148,7 +148,7 @@ namespace PESpy
                             //IMAGE
                             //MUI
                             //WEVT_TEMPLATE (https://github.com/libyal/libfwevt/blob/main/documentation/Windows%20Event%20manifest%20binary%20format.asciidoc). need to include this reference permanently
-                            value = new ByteBlob(valueChunk, Size);
+                            value = new ByteBlob(valueChunk, Size, ViewKind.UnknownResource);
                         }
 
                         offsetToData = new RVA<IValue>(rva, valueChunk.AbsoluteOffset, value!);
@@ -174,7 +174,7 @@ namespace PESpy
         public int Reserved => chunk.PeekInt32(ReservedOffset);
 
         /// <summary>
-        /// Gets the <see cref="ResourceType"/> or <see cref="string"/> that describes the type of data contained in this entry.
+        /// Gets the <see cref="RT"/> or <see cref="string"/> that describes the type of data contained in this entry.
         /// </summary>
         public object? Type
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using PESpy.SYM;
 using PESpy.View;
 
@@ -106,7 +107,7 @@ namespace PESpy
             Segments = segments;
         }
 
-        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

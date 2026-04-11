@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasCastOperator"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasCastOperator"/>
         /// </summary>
-        public static bool TryGetHasCastOperator(in this TypType typType, out bool hasCastOperator)
+        public static bool TryGetHasCastOperator(in this TypType typType, out bool hasCastOperator) =>
+            TryGetHasCastOperator((LfEasy) typType, out hasCastOperator);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_hasCastOperator"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_hasCastOperator"/>
+        /// </summary>
+        public static bool TryGetHasCastOperator(in this LfEasy lfEasy, out bool hasCastOperator)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    hasCastOperator = ((LfClass) typType).property.opcast;
+                    hasCastOperator = ((LfClass) lfEasy).property.opcast;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    hasCastOperator = ((LfClass16t) typType).property.opcast;
+                    hasCastOperator = ((LfClass16t) lfEasy).property.opcast;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    hasCastOperator = ((LfEnum) typType).property.opcast;
+                    hasCastOperator = ((LfEnum) lfEasy).property.opcast;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    hasCastOperator = ((LfEnum16t) typType).property.opcast;
+                    hasCastOperator = ((LfEnum16t) lfEasy).property.opcast;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    hasCastOperator = ((LfUnion) typType).property.opcast;
+                    hasCastOperator = ((LfUnion) lfEasy).property.opcast;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    hasCastOperator = ((LfUnion16t) typType).property.opcast;
+                    hasCastOperator = ((LfUnion16t) lfEasy).property.opcast;
                     return true;
             }
 

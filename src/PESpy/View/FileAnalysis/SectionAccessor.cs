@@ -109,6 +109,8 @@ namespace PESpy.View
 
         public bool Contains(int targetAddress) => targetAddress >= StartAddress && targetAddress < EndAddress;
 
+        public bool Contains(ViewByte* pViewByte) => pViewByte >= pViewBytes && pViewByte < (pViewBytes + Length);
+
         public bool IsEmpty => StartAddress == EndAddress;
 
         public void Dispose()

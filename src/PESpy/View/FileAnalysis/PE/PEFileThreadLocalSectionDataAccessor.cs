@@ -3,10 +3,11 @@
     internal class PEFileThreadLocalSectionDataAccessor : ISectionDataAccessor
     {
         private PESectionLookupCache _lookupCache;
+        private bool _wantVirtual;
 
-        public PEFileThreadLocalSectionDataAccessor(PEFile peFile)
+        public PEFileThreadLocalSectionDataAccessor(PEFile peFile, bool wantVirtual)
         {
-            _lookupCache = new PESectionLookupCache(peFile);
+            _lookupCache = new PESectionLookupCache(peFile, wantVirtual);
         }
 
         public bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>

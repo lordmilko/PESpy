@@ -47,9 +47,17 @@ namespace PESpy
 
         public StandAloneSigRow? Sig => LocalVarSigTok.Rid == 0 ? null : chunk.PEFile().EcmaMetadata.CompressedModelHeap.StandAloneSigTable.FromToken(LocalVarSigTok);
 
+        public ImageCorILMethodSectEH[] EHSections { get; }
+
         public int Offset => chunk.AbsoluteOffset;
 
-        public ImageCorILMethodSectEH[] EHSections { get; }
+        internal const int TinyStructSize =
+            sizeof(byte);
+
+        internal const int FatStructSize =
+            sizeof(int) + //Flags / Size / MaxStack
+                sizeof(int) + //CodeSize
+                sizeof(int); //LocalVarSigTok
 
         private readonly MemoryChunk chunk;
 
@@ -153,7 +161,36 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            //We want to be able to tag IL as code, but that causes an issue because if we have EH Sections, we'll no longer see those bytes
+            //as being part of the ImageCorILMethod. So instead we need to write the IL and EH Sections as globals. This arguably matches the
+            //native definitions anyway, which don't say that they "contain" the EH Sections or any of the IL
+            var kind = (CorILMethodFlags) ((int) Flags & Extensions.CorILMethod_FormatMask);
+
+            switch (kind)
+            {
+                case CorILMethodFlags.TinyFormat:
+                case CorILMethodFlags.TinyFormat1:
+                    //Just write the IL
+                    writer.WriteIL(Offset + TinyStructSize, ILBytes);
+                    break;
+
+                case CorILMethodFlags.FatFormat:
+                    writer.WriteIL(Offset + FatStructSize, ILBytes);
+
+                    if (EHSections.Length > 0)
+                    {
+                        var padding = ((ILBytes.Length + 3) & ~3) - ILBytes.Length;
+
+                        if (padding > 0)
+                            writer.WritePadding(Offset + FatStructSize + ILBytes.Length, chunk.PeekNativeSpan<byte>(FatStructSize + ILBytes.Length, padding));
+
+                        writer.WriteGlobal(EHSections);
+                    }
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(CorILMethodSect)} '{kind}'");
+            }
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer)
@@ -164,39 +201,15 @@ namespace PESpy
             {
                 case CorILMethodFlags.TinyFormat:
                 case CorILMethodFlags.TinyFormat1:
-                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_TINY, this, ViewKind.ImageCorILMethodTiny, sizeof(byte) + ILBytes.Length);
+                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_TINY, this, ViewKind.ImageCorILMethodTiny, TinyStructSize);
 
                 case CorILMethodFlags.FatFormat:
-                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_FAT, this, ViewKind.ImageCorILMethodFat, GetFatStructSize());
+
+                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_FAT, this, ViewKind.ImageCorILMethodFat, FatStructSize);
 
                 default:
                     return null;
             }
-        }
-
-        private int GetFatStructSize()
-        {
-            var size =
-                sizeof(int) + //Flags / Size / MaxStack
-                sizeof(int) + //CodeSize
-                sizeof(int) + //LocalVarSigTok
-                ILBytes.Length; //ILBytes
-
-            if (EHSections.Length > 0)
-            {
-                size = (size + 3) & ~3; //32-bit align
-
-                var ehSections = EHSections;
-
-                for (var i = 0; i < ehSections.Length; i++)
-                {
-                    ref var ehSection = ref ehSections[i];
-
-                    size += ehSection.StructSize;
-                }
-            }
-
-            return size;
         }
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
@@ -221,8 +234,6 @@ namespace PESpy
                             b.WriteField("Flags", Flags, 2);
                             b.WriteField("CodeSize", CodeSize, 6);
                         }
-
-                        s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
                         break;
                     }
 
@@ -237,14 +248,6 @@ namespace PESpy
 
                         s.WriteField(nameof(CodeSize), CodeSize);
                         s.WriteField(nameof(LocalVarSigTok), LocalVarSigTok);
-                        s.WriteField("ILBytes", ILBytes); //Not sure what the best way to write this is; it's not really a "field"
-
-                        if (EHSections.Length > 0)
-                        {
-                            s.Align(4);
-
-                            s.WriteInline(EHSections);
-                        }
 
                         break;
                     }

@@ -17,6 +17,10 @@ namespace PESpy
         internal const int FatSize = sizeof(int);
         internal const int TinySize = sizeof(short);
 
+        internal ImageCorILMethodSect(in MemoryChunk chunk, bool isFat) : this(isFat ? CorILMethodSect.FatFormat : default, chunk, out _)
+        {
+        }
+
         internal ImageCorILMethodSect(CorILMethodSect kind, in MemoryChunk chunk, out int read)
         {
             Offset = chunk.AbsoluteOffset;
@@ -46,12 +50,24 @@ namespace PESpy
         {
             var isFat = (Kind & CorILMethodSect.FatFormat) != 0;
 
-            return writer.NewStruct(
-                isFat ? Strings.IMAGE_COR_ILMETHOD_SECT_FAT : Strings.IMAGE_COR_ILMETHOD_SECT_SMALL,
-                this,
-                ViewKind.ImageCorILMethodSect,
-                StructSize
-            );
+            if (isFat)
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_FAT,
+                    this,
+                    ViewKind.ImageCorILMethodSectFat,
+                    StructSize
+                );
+            }
+            else
+            {
+                return writer.NewStruct(
+                    Strings.IMAGE_COR_ILMETHOD_SECT_SMALL,
+                    this,
+                    ViewKind.ImageCorILMethodSectSmall,
+                    StructSize
+                );
+            }
         }
 
         int IViewable.NumChildren() => 2;

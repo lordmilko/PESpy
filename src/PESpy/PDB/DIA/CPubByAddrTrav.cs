@@ -2,23 +2,34 @@
 
 namespace PESpy.PDB
 {
-    internal class CPubByAddrTrav : Traverser
+    internal struct CPubByAddrTrav<TEnumProvider> where TEnumProvider : IEnumProvider
     {
-        private CAllSymsByAddrTrav _parentTrav;
+        private TEnumProvider _enumProvider;
+
+        private ISECT _targetSeg;
+        private int _targetOff;
+
+        public ISECT _bestSeg;
+        public int _bestOff;
 
         public CPubByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
+            TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(targetOffSeg, bestOffSeg)
+            OffSegSym bestOffSeg)
         {
-            _parentTrav = parentTrav;
+            _enumProvider = enumProvider;
+
+            _targetSeg = targetOffSeg.seg;
+            _targetOff = targetOffSeg.off;
+            _bestSeg = bestOffSeg.seg;
+            _bestOff = bestOffSeg.off;
         }
 
-        public override unsafe bool next(out TraverserResult result)
+        public unsafe bool next(out TraverserResult result)
         {
-            if (_parentTrav.EnumByAddrLocate(_targetSeg, _targetOff))
+            if (_enumProvider.EnumByAddrLocate(_targetSeg, _targetOff))
             {
-                if (_parentTrav.EnumByAddrNext(out var pubSym))
+                if (_enumProvider.EnumByAddrNext(out var pubSym))
                 {
                     int off;
                     ISECT seg;

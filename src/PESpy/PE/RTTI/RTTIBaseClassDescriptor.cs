@@ -102,5 +102,10 @@ namespace PESpy
                     throw new IndexOutOfRangeException();
             }
         }
+
+        public override string ToString()
+        {
+            return pTypeDescriptor.ToString();
+        }
     }
 }

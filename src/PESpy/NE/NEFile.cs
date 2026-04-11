@@ -2,9 +2,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using PESpy.NE;
 using PESpy.View;
 using PESpy.View.Builder;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -57,7 +59,7 @@ namespace PESpy
 
                     var length = (int) (end - start);
 
-                    dosStub = new ByteBlob(new MemoryChunk(globalBlock, start), length);
+                    dosStub = new ByteBlob(new MemoryChunk(globalBlock, start), length, ViewKind.DosStub);
                 }
 
                 return ref dosStub;
@@ -208,7 +210,8 @@ namespace PESpy
             {
                 if (codeViewData == null && !hasTriedCodeViewData)
                 {
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, globalBlock, out codeViewData);
+                    //We don't seem to have an IMAGE_FILE_MACHINE anywhere, so assume x86
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
                     hasTriedCodeViewData = true;
                 }
 
@@ -266,7 +269,7 @@ namespace PESpy
             os2Header = new ImageOS2Header(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             var writer = new NEViewWriter(this, CreateByteViewProvider(null));
             ((IViewable) this).WriteGlobals(writer);

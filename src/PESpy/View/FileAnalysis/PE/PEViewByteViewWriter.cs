@@ -1,5 +1,5 @@
 ﻿using System;
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -20,11 +20,20 @@ namespace PESpy.View
         internal List<RegionBuilder> _topLevelRegions = new List<RegionBuilder>();
         internal List<RegionBuilder> _firstRegionByAddress = new List<RegionBuilder>();
 
-        public PEViewByteViewWriter(PEFile peFile, FileAccessor fileAccessor, IFileDisassembler fileDisassembler, FileAnalyzer fileAnalyzer) : base(peFile)
+        public PEViewByteViewWriter(
+            PEFile peFile,
+            ViewMode mode,
+            FileAccessor fileAccessor,
+            IFileDisassembler fileDisassembler,
+            FileAnalyzer fileAnalyzer,
+            LocatorHttpPolicy httpPolicy,
+            ILocatorProgress progress) : base(peFile, peFile.CreateByteViewProvider(null), mode)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
             _fileAnalyzer = fileAnalyzer;
+            _httpPolicy = httpPolicy;
+            _progress = progress;
         }
 
         protected internal override IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
@@ -36,39 +45,20 @@ namespace PESpy.View
         {
             //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
 
+            TryGetViewOffset(value.Offset, out var offset);
+
             if (_inRegion && FromRegion)
             {
-                Debug.Assert(_currentRegion.End == value.Offset);
+                Debug.Assert(_currentRegion.End == offset);
                 _currentRegion.End += structSize;
             }
 
             //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
 
-            var pViewByte = RegisterStruct(name, value.Offset, kind);
+            var pViewByte = RegisterStruct(name, offset, kind);
 
-            switch (kind)
-            {
-                case ViewKind.ImageCorILMethodTiny:
-                {
-                    var val = value;
-                    ProcessCorILMethodTiny(pViewByte, Unsafe.As<T, ImageCorILMethod>(ref val));
-                    break;
-                }    
-
-                case ViewKind.ImageCorILMethodFat:
-                {
-                    var val = value;
-                    ProcessCorILMethodFat(pViewByte, Unsafe.As<T, ImageCorILMethod>(ref val), structSize);
-                    break;
-                }
-
-                default:
-                    //All of the bytes are data
-                    for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
-                        i->Kind = ViewByteKind.Body;
-                    break;
-            }
-
+            for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
+                i->Kind = ViewByteKind.Body;
             return null;
         }
 
@@ -131,6 +121,8 @@ namespace PESpy.View
 
         private void EnterRegion(int offset, string name, bool global, ViewKind kind)
         {
+            var shouldAdd = tryGetViewOffset(offset, out offset);
+
             var newRegion = new RegionBuilder
             {
                 Name = name,
@@ -213,7 +205,7 @@ namespace PESpy.View
             if (targetOffset == 0)
                 return;
 
-            _fileAccessor.AddXRef(structOffset + fieldOffset, targetOffset);
+            _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetOffset);
         }
 
         public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
@@ -222,7 +214,7 @@ namespace PESpy.View
                 return;
 
             if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
-                _fileAccessor.AddXRef(structOffset + fieldOffset, targetAddress);
+                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
         }
 
         public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
@@ -251,55 +243,20 @@ namespace PESpy.View
             pILViewByte->Kind = ViewByteKind.Code;
             pILViewByte->IsIL = true;
 
-                        var alignment = (mainBodyEnd + 3) & ~3;
+            //The name of the method is computed in PEFileAnalyzer.ProcessEcmaMetadata
 
             for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
                 i->Kind = ViewByteKind.Body;
-        }
-
-        private void ProcessCorILMethodFat(ViewByte* pViewByte, ImageCorILMethod value, int structSize)
-        {
-            //The first 12 bytes are data, then we have code, and then after that possibly also some EHSections
-
-            for (var i = pViewByte + 1; i < pViewByte + 12; i++)
-                i->Kind = ViewByteKind.Body;
-
-            var ilBytes = value.ILBytes;
-
-            var pILViewByte = pViewByte + 12;
-            pILViewByte->Kind = ViewByteKind.Code;
-            pILViewByte->IsIL = true;
-
-            for (var i = pILViewByte + 1; i < pILViewByte + ilBytes.Length; i++)
-                i->Kind = ViewByteKind.Body;
-
-            if (value.EHSections.Length > 0)
-            {
-                var mainBodyEnd = 12 + ilBytes.Length;
-
-                var alignment = (mainBodyEnd + 3) & ~3;
-
-                if (alignment > 0)
-                {
-                    for (var i = pViewByte + mainBodyEnd; i < pViewByte + alignment; i++)
-                    {
-                        i->Kind = ViewByteKind.Data;
-                        i->DataKind = ViewByteDataKind.Padding;
-                    }
-                }
-
-                var ehSectionInfo = pViewByte + mainBodyEnd;
-                ehSectionInfo->Kind = ViewByteKind.Data;
-                var remainingBytes = structSize - mainBodyEnd;
-
-                for (var i = ehSectionInfo + 1; i < ehSectionInfo + remainingBytes; i++)
-                    ehSectionInfo->Kind = ViewByteKind.Body;
-            }
         }
 
         protected internal override unsafe IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
-            return RegisterValue( offset, size, kind, fromRegion);
+            //Note that if we're pretending to be virtual when we're physical, we _don't_ need to update
+            //the offset here, because the caller should have done that for us and the offset we receive
+            //here should already be in virtual space. This is true when writing globals or writing items
+            //inside a region
+
+            return RegisterValue(offset, size, kind, fromRegion);
         }
 
         public override void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
@@ -376,6 +333,9 @@ namespace PESpy.View
                 case ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA:
                 case ViewKind.PN:
                 case ViewKind.LockPrefixTable: //Array
+                case ViewKind.NativeAOTModulesA:
+                case ViewKind.NativeAOTModuleAddress:
+                case ViewKind.NativeAOTModulesZ:
                     pViewByte->DataKind = ViewByteDataKind.Integer;
                     break;
 
@@ -493,6 +453,7 @@ namespace PESpy.View
                         {
                             case ViewKind.DosStub:
                                 _fileAccessor.AddStructKind(view.Offset, view.Kind);
+                                pViewByte->Kind = ViewByteKind.Code; //That leading byte should be code then, not data. Not sure if it's a bad idea to have code with a ViewKind on it?
                                 break;
 
                             case ViewKind.String:
@@ -508,9 +469,47 @@ namespace PESpy.View
             }
         }
 
+        public override void WriteIL(int offset, NativeSpan<byte> ilBytes)
+        {
+            TryGetViewOffset(offset, out offset);
+
+            var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
+
+            pViewByte->Kind = ViewByteKind.Code;
+            pViewByte->IsIL = true;
+
+            for (var i = pViewByte + 1; i < pViewByte + ilBytes.Length; i++)
+                i->Kind = ViewByteKind.Body;
+        }
+
         public override ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
-            return base.WriteByteBlob(byteBlob);
+            TryGetViewOffset(byteBlob.Offset, out var offset);
+
+            var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Integer; //Bytes
+            _fileAccessor.AddStructKind(offset, byteBlob.viewKind);
+
+            for (var i = pViewByte + 1; i < pViewByte + byteBlob.Bytes.Length; i++)
+                i->Kind = ViewByteKind.Body;
+
+            return null;
+        }
+
+        public override ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
+        {
+            TryGetViewOffset(offset, out offset);
+
+            var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
+            Debug.Assert(pViewByte->Kind != ViewByteKind.Body);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Padding;
+
+            for (var i = pViewByte + 1; i < pViewByte + bytes.Length; i++)
+                i->Kind = ViewByteKind.Body;
+
+            return null;
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using PESpy.View;
 using PESpy.View.Builder;
 
@@ -192,7 +192,7 @@ namespace PESpy
             Dispose(false);
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             var writer = new DBGViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);

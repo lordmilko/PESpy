@@ -385,6 +385,22 @@ namespace PESpy.PDB
             }
         }
 
+        public static bool TryGetLocationType(in this LfEasy lfEasy, out LocationType locationType)
+        {
+            switch (lfEasy.leaf)
+            {
+                case LF_BITFIELD:
+                case LF_BITFIELD_16t: //Not supported by DIA
+                    locationType = LocationType.LocIsBitField;
+                    return true;
+
+                default:
+                    //Haven't researched other leaf-related locations
+                    locationType = default;
+                    return false;
+            }
+        }
+
         public static bool IsFwdRef(this LfEasy lfEasy)
         {
             /* Sometimes a given entity may actually be a forward ref. In this scenario,

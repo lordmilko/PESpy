@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.PDB.DIA;
@@ -1120,6 +1122,25 @@ namespace PESpy
 
         #region ISymbolAccessor
 
+        IMAGE_FILE_MACHINE ICodeViewAccessor.MachineType
+        {
+            get
+            {
+                var dbi = DBI;
+
+                if (dbi == null)
+                    return IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_UNKNOWN;
+
+                var hdr = dbi.DbiHdr;
+
+                if (hdr is NewDBIHdr h)
+                    return h.wMachine;
+
+                //Assume that old PDBs are for x86?
+                return IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_I386;
+            }
+        }
+
         ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr;
 
         SymType ICodeViewAccessor.GetModuleSymbol(ushort imod, int ibSym)
@@ -1200,12 +1221,12 @@ namespace PESpy
 
         private FileAccessor? _viewAccessor;
 
-        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None)
+        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
         {
             if (_viewAccessor == null)
             {
-                var accessor = FileAccessor.Create(this, trackXRefs: false);
-                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy);
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: false, cancellationToken: cancellationToken);
                 _viewAccessor = accessor;
             }
 

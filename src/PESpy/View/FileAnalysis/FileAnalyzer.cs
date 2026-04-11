@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ClrDebug.DIA;
+using ClrDebug.OMF;
 using PESpy.PDB;
 using PESpy.View.Builder;
 using static ClrDebug.PDB.SYM_ENUM_e;
@@ -50,24 +51,31 @@ namespace PESpy.View
             FileAccessor fileAccessor,
             IFileDisassembler disassembler = null,
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
-            IFileAnalyzerProgress? progress = null)
+            IFileAnalyzerProgress? progress = null,
+            bool trackXRefs = true,
+            CancellationToken cancellationToken = default)
         {
             var fileAccessor = AnalyzeInternal(file, disassembler, progress);
 
+            AnalyzeInternal(fileAccessor, disassembler, httpPolicy, progress, trackXRefs);
+
+            GCLargeObjectHeap();
         private static void AnalyzeInternal(
             FileAccessor fileAccessor,
             IFileDisassembler disassembler,
             LocatorHttpPolicy httpPolicy,
-            IFileAnalyzerProgress? progress)
+            IFileAnalyzerProgress? progress,
+            bool trackXRefs,
+            CancellationToken cancellationToken)
         {
             FileAnalyzer fileAnalyzer = fileAccessor.File.Kind switch
             {
-                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, httpPolicy, progress),
+                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, httpPolicy, progress, trackXRefs, cancellationToken),
                 //FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, disassembler, progress),
-                FileKind.PDB => new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress),
+                FileKind.PDB => new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
                 //FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, disassembler, progress),
                 //FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, disassembler, progress),
@@ -117,12 +125,16 @@ namespace PESpy.View
         protected readonly FileAccessor _fileAccessor;
         protected readonly IFileDisassembler? _fileDisassembler;
 
-        private readonly LocatorHttpPolicy _httpPolicy;
-        private readonly IFileAnalyzerProgress? _progress;
+        protected readonly LocatorHttpPolicy _httpPolicy;
+        protected readonly IFileAnalyzerProgress? _progress;
         private readonly HashSet<int> _queuedAddresses = new HashSet<int>();
         protected readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         protected long _lastStopwatchCheckpoint;
         private FileAnalyzerProgressPhase _lastPhase;
+
+        //This is super way faster than trying to do everything directly within SpanAllocator
+        private bool _trackXRefs;
+        private List<XRef> _xrefs;
 
         protected long GetPhaseTime()
         {
@@ -161,14 +173,26 @@ namespace PESpy.View
         private readonly object _globalWorkQueueLock = new object();
         protected readonly ViewWriter _viewWriter;
 
-        protected FileAnalyzer(FileAccessor fileAccessor, IFileDisassembler? fileDisassembler, IFileAnalyzerProgress? progress)
-        protected FileAnalyzer(FileAccessor fileAccessor, IFileDisassembler? fileDisassembler, LocatorHttpPolicy httpPolicy, IFileAnalyzerProgress? progress)
+        protected readonly CancellationToken _cancellationToken;
+
+        protected FileAnalyzer(
+            FileAccessor fileAccessor,
+            IFileDisassembler? fileDisassembler,
+            LocatorHttpPolicy httpPolicy,
+            IFileAnalyzerProgress? progress,
+            bool trackXRefs,
+            CancellationToken cancellationToken)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
             _httpPolicy = httpPolicy;
             _progress = progress;
             _viewWriter = CreateViewWriter();
+            _trackXRefs = trackXRefs;
+            _cancellationToken = cancellationToken;
+
+            if (trackXRefs)
+                _xrefs = new List<XRef>();
         }
 
         protected abstract ViewWriter CreateViewWriter();
@@ -241,6 +265,8 @@ namespace PESpy.View
         protected void DiscoverSymbols(ISectionDataAccessor sectionDataAccessor)
         {
             Log(FileAnalyzerProgressPhase.LocateSymbols);
+
+            _cancellationToken.ThrowIfCancellationRequested();
 
             var symbolAccessor = _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress);
 
@@ -581,7 +607,11 @@ namespace PESpy.View
                 case SymTagEnum.VTable:
                     //S_LDATA32 can have no name
                     if (symType.TryGetName(out name) && name.Length > 0)
+                    {
+                        //Sometimes globals assigns data symbols to areas that publics says are functions.
+                        //ProcessDataSymbol will correctly handle this
                         ProcessDataSymbol(rva, name, sectionDataAccessor);
+                    }
                     break;
 
                 //case SymTagEnum.Annotation:
@@ -647,9 +677,7 @@ namespace PESpy.View
 
             if (sectionDataAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
             {
-                var pViewByte = _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, 1);
-
-                if (name.Length > 0)
+                if (_fileAccessor.TryAddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, 1, out var pViewByte) && name.Length > 0)
                     AddName(targetAddress, pViewByte, name);
             }
         }
@@ -701,7 +729,7 @@ namespace PESpy.View
 
             /* If we're NativeAOT, we should also check for a __modules_a symbol. This marks the start of
              * the area where pseudo ReadyToRunReader entries live. InitializeModules() is then called with the difference between __modules_z and __modules_a being
-             * the count. (need to consider the size of a pointer here).
+             * the count. (need to consider the size of a pointer here). Watch out, because InitializeRuntime + InitializeModules may be inlined into main
              * 
              * These are not the same thing as READYTORUN_HEADER (which PESpy calls "ReadyToRunHeader"), these are literally also called
              * "ReadyToRunHeader" and have a slightly different layout. The end of these headers is demarcated by a __modules_z symbol.
@@ -827,6 +855,8 @@ namespace PESpy.View
 
         protected void DiscoverDirectories()
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             var dataDirectories = new PooledList<DirectoryInfo>();
 
             try
@@ -1112,6 +1142,15 @@ namespace PESpy.View
             }
         }
 
+        public unsafe void AddXRef(int source, int target)
+        {
+            if (!_trackXRefs)
+                return;
+
+            _xrefs.Add(new XRef(self: source, other: target, kind: XRefKind.From));
+            _xrefs.Add(new XRef(self: target, other: source, kind: XRefKind.To));
+        }
+
         protected void Finalize(bool expandUnknownData)
         {
             //Important to do this prior to expanding unknown data, as we may discover that a given head
@@ -1139,6 +1178,7 @@ namespace PESpy.View
 
             //Must do this before attempting to validate names below
             _fileAccessor.Finalize(
+                _xrefs,
                 _names,
                 _numNameRefs,
                 _stringAddresses
@@ -1225,7 +1265,7 @@ namespace PESpy.View
             do
             {
                 pViewByte++;
-            } while (pViewByte < pEnd && ((pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Body)));
+            } while (pViewByte < pEnd && (((pViewByte->Kind == ViewByteKind.Unknown && !pViewByte->IsFunction) || pViewByte->Kind == ViewByteKind.Body)));
 
             //Don't think it should be possible to have body at this stage, unless we're dealing with
             //known data of an unknown kind. Note: at least one way you _could_ get Body is if we had a struct
@@ -1286,6 +1326,7 @@ namespace PESpy.View
 
                     if (pViewByte->Kind == ViewByteKind.Data && (pViewByte->DataKind == ViewByteDataKind.String || pViewByte->DataKind == ViewByteDataKind.Unknown))
                     {
+                        pViewByte->DataKind = default;
                         pViewByte->Kind = ViewByteKind.Code;
                         pViewByte++;
 
@@ -1299,7 +1340,8 @@ namespace PESpy.View
                     }
                     else
                     {
-                        Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Body);
+                        //We allow any type _but_ Data here
+                        Debug.Assert(pViewByte->Kind != ViewByteKind.Data); //Kind may aleady be code if we ran into an unknown other than body above
                         pViewByte->Kind = ViewByteKind.Code;
 
                         pViewByte++;
@@ -1311,7 +1353,23 @@ namespace PESpy.View
                         //if we're in the same section contrib and have to change the Kind from Body to Code above, we expect
                         //our length will go to the end of the same section contrib as well, thus I think it's safe to abort early
                         if (pViewByte->Kind != ViewByteKind.Unknown)
-                            break;
+                        {
+                            if (pViewByte->Kind == ViewByteKind.Data)
+                            {
+                                if (pViewByte->DataKind == ViewByteDataKind.String)
+                                {
+                                    //Get rid of this string
+                                    pViewByte->DataKind = default;
+                                }
+                            }
+                            else if (pViewByte->Kind == ViewByteKind.Code)
+                                break; //e.g. the previous function ended with a jmp and the next function started right after it
+                        }
+                        else
+                        {
+                            if (pViewByte->IsFunction)
+                                break; //There's a function that hasn't been claimed yet; it should still be in the queue
+                        }
 
                         pViewByte->Kind = ViewByteKind.Body;
                         pViewByte++;
@@ -1336,6 +1394,8 @@ namespace PESpy.View
         {
             Log(FileAnalyzerProgressPhase.ExpandUnknownData);
 
+            _cancellationToken.ThrowIfCancellationRequested();
+
             //Try and expand all unknown data items up to the start of the next item that follows them.
             //Any items that are xref'd to from other values should already have been tagged
 
@@ -1359,7 +1419,17 @@ namespace PESpy.View
                         {
                             if (pViewByte->Kind == ViewByteKind.Unknown)
                             {
-                                pViewByte->Kind = ViewByteKind.Body;
+                                if (pViewByte->IsFunction)
+                                {
+                                    //This is some code we didn't process because we didn't have a decompiler. We need to mark it as code,
+                                    //not a data body
+                                    pViewByte->Kind = ViewByteKind.Code;
+                                }
+                                else
+                                {
+                                    pViewByte->Kind = ViewByteKind.Body;
+                                }
+
                                 pViewByte++;
                             }
                             else
@@ -1390,6 +1460,8 @@ namespace PESpy.View
         protected void MarkPadding()
         {
             Log(FileAnalyzerProgressPhase.MarkPadding);
+
+            _cancellationToken.ThrowIfCancellationRequested();
 
             var sectionAccessors = _fileAccessor.SectionAccessors;
 
@@ -1528,6 +1600,8 @@ namespace PESpy.View
         private void MarkLargeAreas()
         {
             Log(FileAnalyzerProgressPhase.MarkLargeAreas);
+
+            _cancellationToken.ThrowIfCancellationRequested();
 
             var sectionAccessors = _fileAccessor.SectionAccessors;
 

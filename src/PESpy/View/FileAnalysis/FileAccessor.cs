@@ -13,16 +13,16 @@ namespace PESpy.View
     /// </summary>
     public abstract unsafe class FileAccessor : IDisposable
     {
-        public static FileAccessor Create(IFile file, bool trackXRefs = true)
+        public static FileAccessor Create(IFile file)
         {
             return file.Kind switch
             {
-                FileKind.PE          => new PEFileAccessor((PEFile) file, trackXRefs),
+                FileKind.PE          => new PEFileAccessor((PEFile) file, ViewMode.Default),
                 //FileKind.NE          => new NEFileAccessor((NEFile) file),
                 //FileKind.LE          => new LEFileAccessor((LEFile) file),
                 //FileKind.DOS         => new DOSFileAccessor((DOSFile) file),
                 //FileKind.DBG         => new DBGFileAccessor((DBGFile) file),
-                FileKind.PDB         => new PDBFileAccessor((PDBFile) file, trackXRefs),
+                FileKind.PDB         => new PDBFileAccessor((PDBFile) file),
                 //FileKind.PortablePDB => new PortablePDBFileAccessor((PortablePDBFile) file),
                 //FileKind.OBJ         => new OBJFileAccessor((OBJFile) file),
                 //FileKind.LIB         => new LIBFileAccessor((LIBFile) file),
@@ -99,15 +99,15 @@ namespace PESpy.View
 
         private int[] _stringAddresses;
 
-        private bool _trackXRefs;
-
         public object Overview => _overview ??= CreateOverview();
 
         //I tried SegmentedDictionary but the performance was _way_ worse
         internal Dictionary<int, ViewInfo> _infoMap = new Dictionary<int, ViewInfo>();
         private bool _disposed;
 
-        protected FileAccessor(int bitness, bool trackXRefs)
+        protected abstract ViewKind FileViewKind { get; }
+
+        protected FileAccessor(int bitness)
         {
             if (trackXRefs)
                 _xrefs = new SpanAllocator<XRef>(100);
@@ -160,6 +160,21 @@ namespace PESpy.View
             var pViewByte = GetViewByte(address, out var sectionIndex);
 
             return GetEntity(address, pViewByte, sectionIndex);
+        }
+
+        public ViewEntity GetEntity(ViewByte* pViewByte)
+        {
+            for (var i = 0; i < SectionAccessors.Length; i++)
+            {
+                ref var accessor = ref SectionAccessors[i];
+
+                if (accessor.Contains(pViewByte))
+                {
+                    return GetEntity(pViewByte, i);
+                }
+            }
+
+            throw new InvalidOperationException($"The specified {nameof(ViewByte)} does not belong to any section of the current {nameof(FileAccessor)}");
         }
 
         public ViewEntity GetEntity(ViewByte* pViewByte, int sectionIndex)
@@ -240,7 +255,10 @@ namespace PESpy.View
             );
         }
 
-        public FileView GetFileView()
+        public FileView GetFileView() =>
+            GetFileView(ViewMode.Default);
+
+        internal FileView GetFileView(ViewMode viewMode)
         {
             var sectionAccessors = SectionAccessors;
 
@@ -282,6 +300,13 @@ namespace PESpy.View
 
             if (nextIndex != sectionViews.Length)
                 Array.Resize(ref sectionViews, nextIndex);
+
+            if (viewMode == ViewMode.Default && FileViewKind == ViewKind.PEFile)
+                viewMode = ((PEFileAccessor) this).IsLoaded ? ViewMode.Virtual : ViewMode.Physical;
+
+            return new FileView(viewMode, File.Name, sectionViews, GetViewWriter(), FileViewKind);
+        }
+
         public ViewEntity[] Entities => EnumerateEntities().ToArray();
 
         public IEnumerable<ViewEntity> EnumerateEntities()
@@ -359,6 +384,7 @@ namespace PESpy.View
                 var targetAddress = stringAddresses[i];
 
                 var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
+
                 Debug.Assert(pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String);
 
                 ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
@@ -504,7 +530,7 @@ namespace PESpy.View
 
             var structKind = GetStructKind(headOffset);
             var chunk = GetMemoryChunkFromAddress(headOffset);
-            var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, chunk, GetViewWriter());
+            var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, pStartViewByte->GetLength(limit), chunk, GetViewWriterForAddress(offset));
 
             //Traverse the struct until we find the struct we were looking for
 
@@ -622,9 +648,24 @@ namespace PESpy.View
             return pViewByte;
         }
 
-        internal ViewByte* AddData(int targetAddress, int sectionIndex, ViewByteDataKind dataKind, int length)
+        internal bool TryAddData(
+            int targetAddress,
+            int sectionIndex,
+            ViewByteDataKind dataKind,
+            int length,
+            out ViewByte* pViewByte)
         {
-            var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
+            pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
+
+            //CodeFlags will only return if we're code or unknown, so this check is safe
+            if (pViewByte->IsFunction)
+            {
+                //Watch out; in NativeAOT, there is a symbol [S_GDATA32] RhpAssignRefAVLocation in globals
+                //which points to the address of a function. The symbol in publics clearly states its a function,
+                //so we need to have logic to say, if we're trying to set something as data that we already
+                //known to be a function, ignore the data request
+                return false;
+            }
 
             //In devenv.exe we got a completely bogus symbol telling us that __guard_xfg_dispatch_icall_fptr is shortly
             //after the beginning of the load config table, and in sqlncli11.dll we got a symbol that said it was halfway
@@ -634,7 +675,7 @@ namespace PESpy.View
             Debug.Assert(pViewByte->Kind == ViewByteKind.Unknown || pViewByte->Kind == ViewByteKind.Data || pViewByte->Kind == ViewByteKind.Body);
 
             if (pViewByte->DataKind != ViewByteDataKind.Unknown)
-                return pViewByte; //We already know about this byte
+                return true; //We already know about this byte
 
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = dataKind;
@@ -647,7 +688,7 @@ namespace PESpy.View
                 i->Kind = ViewByteKind.Body;
             }
 
-            return pViewByte;
+            return true;
         }
 
         internal ViewByte* AddString(int targetAddress, int sectionIndex, bool isWide, int numBytes)
@@ -750,59 +791,9 @@ namespace PESpy.View
         #endregion
         #region XRef
 
-        public unsafe void AddXRef(int source, int target)
-        {
-            if (!_trackXRefs)
-                return;
-            void AddXRef(int address, XRef xref)
-            {
-                List<XRef> xrefs;
-
-                if (!_infoMap.TryGetValue(address, out var data))
-                {
-                    var handle = _xrefs.Alloc(new Span<XRef>(&xref, 1));
-
-                    data = new ViewInfo
-                    {
-                        XRefs = handle
-                    };
-                    _infoMap[address] = data;
-
-                    //This is the first time we're adding xrefs to this entity, so we need to mark
-                    //it as having xrefs
-                    var pViewByte = GetViewByte(address, out _);
-                    pViewByte->HasXRefs = true;
-                }
-                else
-                {
-                    if (data.XRefs.IsEmpty)
-                    {
-                        data.XRefs = _xrefs.Alloc(new Span<XRef>(&xref, 1));
-
-                        //This is the first time we're adding xrefs to this entity, so we need to mark
-                        //it as having xrefs
-                        var pViewByte = GetViewByte(address, out _);
-                        pViewByte->HasXRefs = true;
-                    }
-                    else
-                    {
-                        data.XRefs = _xrefs.Realloc(data.XRefs, new Span<XRef>(&xref, 1));
-                    }
-
-                    _infoMap[address] = data;
-                }
-            }
-
-            AddXRef(source, new XRef(self: source, other: target, kind: XRefKind.From));
-            AddXRef(target, new XRef(self: target, other: source, kind: XRefKind.To));
-
-            //Binary search source to see if we already have this target. 
-            //todo: but we're not doing that. do we need to do that?
-        }
-
         public Span<XRef> GetXRefs(int targetAddress)
         {
-            if (!_trackXRefs)
+            if (_xrefs == null)
                 return default;
 
             var handle = _infoMap[targetAddress].XRefs;
@@ -987,15 +978,67 @@ namespace PESpy.View
         }
 
         internal void Finalize(
+            List<XRef>? xrefs,
             List<(FixedUtf8String name, List<int> refs)> namesAndRefs,
             int numNameRefs,
             int[] stringAddresses)
         {
+            var infoMap = _infoMap;
+
 #if NET
-            _infoMap.TrimExcess();
+            infoMap.TrimExcess();
 #endif
-            if (_trackXRefs)
-                _xrefs.Trim();
+            if (xrefs != null)
+            {
+                xrefs.Sort((a, b) => a.Self.CompareTo(b.Self));
+
+                var array = xrefs.ToArray();
+
+                var i = 0;
+
+                while (i < array.Length)
+                {
+                    ref var item = ref array[i];
+
+                    var startAddr = item.Self;
+
+                    var j = i + 1;
+
+                    for (; j < array.Length; j++)
+                    {
+                        ref var nextItem = ref array[j];
+
+                        if (nextItem.Self != startAddr)
+                            break;
+                    }
+
+                    var handle = new SpanAllocatorHandle(i, j - i);
+
+                    if (!_infoMap.TryGetValue(startAddr, out var data))
+                    {
+                        data = new ViewInfo
+                        {
+                            XRefs = handle
+                        };
+                        _infoMap[startAddr] = data;
+
+                        //This is the first time we're adding xrefs to this entity, so we need to mark
+                        //it as having xrefs
+                        var pViewByte = GetViewByte(startAddr, out _);
+                        pViewByte->HasXRefs = true;
+                    }
+                    else
+                    {
+                        data.XRefs = handle;
+                    }
+
+                    _infoMap[startAddr] = data;
+
+                    i = j;
+                }
+
+                _xrefs = new SpanAllocator<XRef>(array);
+            }
 
             _stringAddresses = stringAddresses;
 

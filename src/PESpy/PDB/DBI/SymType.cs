@@ -102,7 +102,7 @@ namespace PESpy.PDB
             codeViewModuleAccessor ??= SymbolMemoryTracker.GetModuleAccessor((long) (SYMTYPE*) symType);
 
             if (codeViewModuleAccessor == null)
-                throw new InvalidOperationException($"Cannot get the parent symbol without an {nameof(ICodeViewModuleAccessor)}");
+                return default; //Can't throw here because publics/globals aren't part of modules
 
             var symTypeList = codeViewModuleAccessor.Symbols;
 
@@ -280,7 +280,15 @@ namespace PESpy.PDB
 
         public static SymType NextSymbol(in SymType symType) => (SymType) (SYMTYPE*) (((byte*) (SYMTYPE*) symType) + GetSymbolLength(symType, null));
 
-        internal static SymString ReadString<T>(T* symType, byte* start, ICodeViewAccessor? codeViewAccessor = null) where T : unmanaged
+        //Having a generic ReadString makes it easier at all sites to pass the owning symbol in, however
+        //we don't want to make ReadString itself generic as that will explode our code size, with each
+        //symbol getting its own implementation. As such, inline the generic helper so we get ergonomics
+        //without increased code size
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static SymString ReadString<T>(T* symType, byte* start, ICodeViewAccessor? codeViewAccessor = null) where T : unmanaged =>
+            ReadString((SYMTYPE*) symType, start, codeViewAccessor);
+
+        private static SymString ReadString(SYMTYPE* symType, byte* start, ICodeViewAccessor? codeViewAccessor = null)
         {
             bool isLengthPrefixedData;
 
@@ -305,9 +313,7 @@ namespace PESpy.PDB
              * and VC70 is VC70Dep, so I think dumppdb is just ignoring VC70Dep, which means > impvVC98 and >= PDBImpvVC70 are saying
              * the same thing */
 
-            var raw = (SYMTYPE*) symType;
-
-            if (isLengthPrefixedData && raw->rectyp < S_ST_MAX)
+            if (isLengthPrefixedData && symType->rectyp < S_ST_MAX)
                 return new SymString(start + 1, isLengthPrefixed: true);
             else
                 return new SymString(start, isLengthPrefixed: false);

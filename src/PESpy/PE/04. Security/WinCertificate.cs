@@ -43,7 +43,7 @@ namespace PESpy
 
                         default:
                             Debug.Assert(false, $"Don't know how to parse a certificate of type {CertificateType}");
-                            certificate = new ByteBlob(chunk.Slice(8), certificateLength);
+                            certificate = new ByteBlob(chunk.Slice(8), certificateLength, ViewKind.CertificateBytes);
                             break;
                     }
                 }

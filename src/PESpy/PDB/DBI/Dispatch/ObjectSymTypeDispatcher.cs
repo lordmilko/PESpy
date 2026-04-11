@@ -2,6 +2,10 @@
 
 namespace PESpy.PDB
 {
+    /// <summary>
+    /// Provides facilities for converting a <see cref="PESpy.PDB.SymType"/> to its true
+    /// underlying symbol type, and returning that value as an <see cref="object"/>.
+    /// </summary>
     public sealed class ObjectSymTypeDispatcher : SymTypeDispatcher<object>
     {
         public static readonly ObjectSymTypeDispatcher Instance = new();

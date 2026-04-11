@@ -75,12 +75,13 @@ namespace PESpy.View
         Decimal,
 
         Assembly,
+        IL,
 
         DataDirectory,
-
         ILMethods,
-
         UnwindInfos,
+        Thunks,
+        Functions,
 
         #region Headers
 
@@ -90,7 +91,7 @@ namespace PESpy.View
         ImageDosHeader,
 
         /// <summary>
-        /// A <see cref="ByteBlob"/> that contains the bytes of the DOS Stub.
+        /// A <see cref="ByteBlobView"/> that contains the bytes of the DOS Stub.
         /// </summary>
         DosStub,
 
@@ -330,6 +331,11 @@ namespace PESpy.View
         /// </summary>
         Manifest,
 
+        /// <summary>
+        /// A <see cref="ByteBlobView"/> containing the bytes of a resource not currently supported by PESpy.
+        /// </summary>
+        UnknownResource,
+
         #endregion
         #region Exception Table (3)
 
@@ -412,6 +418,8 @@ namespace PESpy.View
 
         SignedData,
 
+        CertificateBytes,
+
         #endregion
         #region Base Relocation Table (5)
 
@@ -462,6 +470,8 @@ namespace PESpy.View
 
         Omap,
 
+        BBT,
+
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VCFeature"/>
         /// </summary>
@@ -493,6 +503,8 @@ namespace PESpy.View
         PdbChecksum,
 
         ExDllCharacteristics,
+
+        UnknownDebugData,
 
         #endregion
         #region Copyright Table (7)
@@ -760,17 +772,35 @@ namespace PESpy.View
         /// </summary>
         ImageCorILMethodFat,
 
-        ImageCorILMethodSectEH,
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSectEH"/>
+        /// </summary>
+        ImageCorILMethodSectEHFat,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSectEH"/>
+        /// </summary>
+        ImageCorILMethodSectEHSmall,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSect"/>
         /// </summary>
-        ImageCorILMethodSect,
+        ImageCorILMethodSectFat,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSect"/>
+        /// </summary>
+        ImageCorILMethodSectSmall,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSectEHClause"/>
         /// </summary>
-        ImageCorILMethodSectEHClause,
+        ImageCorILMethodSectEHClauseFat,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageCorILMethodSectEHClause"/>
+        /// </summary>
+        ImageCorILMethodSectEHClauseSmall,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.StorageSignature"/>
@@ -919,28 +949,112 @@ namespace PESpy.View
 
         CorCompileVirtualSectionInfo,
 
+        ModuleImage,
+
+        StrongNameSignature,
+
         #endregion
         #region R2R
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ReadyToRunHeader"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.R2R.ReadyToRunHeader"/>
         /// </summary>
         ReadyToRunHeader,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ReadyToRunCoreHeader"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.R2R.ReadyToRunCoreHeader"/>
         /// </summary>
         ReadyToRunCoreHeader,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ReadyToRunSection"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.R2R.ReadyToRunSection"/>
         /// </summary>
         ReadyToRunSection,
 
         ReadyToRunSection_CompilerIdentifier,
 
+        #region ReadyToRunSection Bytes
+
+        ReadyToRunSection_ImportSections,
+        ReadyToRunSection_RuntimeFunctions,
+        ReadyToRunSection_MethodDefEntryPoints,
+        ReadyToRunSection_ExceptionInfo,
+        ReadyToRunSection_DebugInfo,
+        ReadyToRunSection_DelayLoadMethodCallThunks,
+        ReadyToRunSection_AvailableTypes,
+        ReadyToRunSection_InstanceMethodEntryPoints,
+        ReadyToRunSection_InliningInfo,
+        ReadyToRunSection_ProfileDataInfo,
+        ReadyToRunSection_ManifestMetadata,
+        ReadyToRunSection_AttributePresence,
+        ReadyToRunSection_InliningInfo2,
+        ReadyToRunSection_ComponentAssemblies,
+        ReadyToRunSection_OwnerCompositeExecutable,
+        ReadyToRunSection_PgoInstrumentationData,
+        ReadyToRunSection_ManifestAssemblyMvids,
+        ReadyToRunSection_CrossModuleInlineInfo,
+        ReadyToRunSection_HotColdMap,
+        ReadyToRunSection_MethodIsGenericMap,
+        ReadyToRunSection_EnclosingTypeMap,
+        ReadyToRunSection_TypeGenericInfoMap,
+        ReadyToRunSection_ExternalTypeMaps,
+        ReadyToRunSection_ProxyTypeMaps,
+        ReadyToRunSection_TypeMapAssemblyTargets,
+        ReadyToRunSection_StringTable,
+        ReadyToRunSection_GCStaticRegion,
+        ReadyToRunSection_ThreadStaticRegion,
+        ReadyToRunSection_TypeManagerIndirection,
+        ReadyToRunSection_EagerCctor,
+        ReadyToRunSection_FrozenObjectRegion,
+        ReadyToRunSection_DehydratedData,
+        ReadyToRunSection_ThreadStaticOffsetRegion,
+        ReadyToRunSection_ImportAddressTables,
+        ReadyToRunSection_ModuleInitializerList,
+        ReadyToRunSection_ReadonlyBlobRegionStart,
+        ReadyToRunSection_TypeMap,
+        ReadyToRunSection_ArrayMap,
+        ReadyToRunSection_PointerTypeMap,
+        ReadyToRunSection_GenericInstanceMap,
+        ReadyToRunSection_FunctionPointerTypeMap,
+        ReadyToRunSection_GenericParameterMap,
+        ReadyToRunSection_BlockReflectionTypeMap,
+        ReadyToRunSection_InvokeMap,
+        ReadyToRunSection_VirtualInvokeMap,
+        ReadyToRunSection_CommonFixupsTable,
+        ReadyToRunSection_FieldAccessMap,
+        ReadyToRunSection_CCtorContextMap,
+        ReadyToRunSection_ByRefTypeMap,
+        ReadyToRunSection_DiagGenericInstanceMap,
+        ReadyToRunSection_DiagGenericParameterMap,
+        ReadyToRunSection_EmbeddedMetadata,
+        ReadyToRunSection_DefaultConstructorMap,
+        ReadyToRunSection_UnboxingAndInstantiatingStubMap,
+        ReadyToRunSection_StructMarshallingStubMap,
+        ReadyToRunSection_DelegateMarshallingStubMap,
+        ReadyToRunSection_GenericVirtualMethodTable,
+        ReadyToRunSection_InterfaceGenericVirtualMethodTable,
+        ReadyToRunSection_TypeTemplateMap,
+        ReadyToRunSection_GenericMethodsTemplateMap,
+        ReadyToRunSection_DynamicInvokeTemplateData,
+        ReadyToRunSection_BlobIdResourceIndex,
+        ReadyToRunSection_BlobIdResourceData,
+        ReadyToRunSection_BlobIdStackTraceEmbeddedMetadata,
+        ReadyToRunSection_BlobIdStackTraceMethodRvaToTokenMapping,
+        ReadyToRunSection_BlobIdStackTraceLineNumbers,
+        ReadyToRunSection_BlobIdStackTraceDocuments,
+        ReadyToRunSection_NativeLayoutInfo,
+        ReadyToRunSection_NativeReferences,
+        ReadyToRunSection_GenericsHashtable,
+        ReadyToRunSection_NativeStatics,
+        ReadyToRunSection_StaticsInfoHashtable,
+        ReadyToRunSection_GenericMethodsHashtable,
+        ReadyToRunSection_ExactMethodInstantiationsHashtable,
+        ReadyToRunSection_ReadonlyBlobRegionEnd,
+
+        #endregion
+
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ReadyToRunImportSection"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.R2R.ReadyToRunImportSection"/>
         /// </summary>
         ReadyToRunImportSection,
 
@@ -997,12 +1111,42 @@ namespace PESpy.View
         RuntimeConfigJson,
 
         //Native AOT
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NativeAOT.DotNetRuntimeDebugHeader"/>
+        /// </summary>
         DotNetRuntimeDebugHeader,
+
         DebugTypeEntries,
         GlobalValueEntries,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.DebugTypeEntry"/>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
+        NativeAOTModulesA,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
+        NativeAOTModuleAddress,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// </summary>
+        NativeAOTModulesZ,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NativeAOT.ReadyToRunHeader"/>
+        /// </summary>
+        NativeAOTReadyToRunHeader,
+
+        ModuleInfoRowV1,
+        ModuleInfoRowV2,
+
+        UnknownModuleInfoRowData,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NativeAOT.DebugTypeEntry"/>
         /// </summary>
         DebugTypeEntry,
 
@@ -1010,7 +1154,7 @@ namespace PESpy.View
         DebugTypeEntry_FieldName,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GlobalValueEntry"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NativeAOT.GlobalValueEntry"/>
         /// </summary>
         GlobalValueEntry,
 
@@ -1224,6 +1368,9 @@ namespace PESpy.View
         NumericValue,
         NumericStringLength,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="PdbFeature"/>.
+        /// </summary>
         PdbFeature,
 
         /// <summary>
@@ -1233,6 +1380,10 @@ namespace PESpy.View
 
         HRFile,
         HashBucketsBitmap,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
         HashBuckets,
 
         CvDebugSSubsectionHeader,
@@ -1478,8 +1629,6 @@ namespace PESpy.View
         MlMethod,
         MlMethod16t,
 
-        NumericData,
-
         #endregion
 
         //Globals
@@ -1491,6 +1640,21 @@ namespace PESpy.View
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.PSGSIHDR"/>.
         /// </summary>
         PSGSIHDR,
+
+        /// <summary>
+        /// An <see cref="IFieldView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
+        AddressMap,
+
+        /// <summary>
+        /// An <see cref="IFieldView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
+        ThunkMap,
+
+        /// <summary>
+        /// An <see cref="IFieldView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="SO"/>
+        /// </summary>
+        SectionMap,
 
         //DBG
 
@@ -1543,6 +1707,9 @@ namespace PESpy.View
         OMFSegDesc,
         OMFSymHash,
 
+        UnknownSymHash,
+        UnknownAddrHash,
+
         //NB02
         dnt,
         nsg,
@@ -1564,6 +1731,14 @@ namespace PESpy.View
         DNRB_Types,
         DNRB_Symbols,
         DNRB_SourceLines,
+
+        DNRBSecOffset,
+        DNRBVersion,
+        DNRBSignature,
+        DNRBSecTblOffset,
+        LfoDir,
+        LfoBase,
+        cDir,
 
         //DOS
         DOSFile

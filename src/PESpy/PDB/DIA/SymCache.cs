@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Threading;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.PDB
@@ -15,12 +16,18 @@ namespace PESpy.PDB
         private ModCache GetModCache(ushort imod)
         {
             if (_modCaches == null)
-                _modCaches = new ModCache[NumModules];
+                Interlocked.CompareExchange(ref _modCaches, new ModCache[NumModules], null);
 
-            ref var modCache = ref _modCaches[imod];
+            var modCache = _modCaches[imod];
 
             if (modCache == null)
+            {
                 modCache = CreateModCache(imod);
+
+                var original = Interlocked.CompareExchange(ref _modCaches[imod], modCache, null);
+
+                modCache = original ?? modCache;
+            }
 
             return modCache;
         }

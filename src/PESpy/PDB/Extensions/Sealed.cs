@@ -15,19 +15,26 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_sealed"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_sealed"/>
         /// </summary>
-        public static bool TryGetSealed(in this TypType typType, out bool @sealed)
+        public static bool TryGetSealed(in this TypType typType, out bool @sealed) =>
+            TryGetSealed((LfEasy) typType, out @sealed);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_sealed"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_sealed"/>
+        /// </summary>
+        public static bool TryGetSealed(in this LfEasy lfEasy, out bool @sealed)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfBClass
                 case LF_BCLASS:
                 case LF_BINTERFACE:
-                    @sealed = ((LfBClass) typType).attr.@sealed;
+                    @sealed = ((LfBClass) lfEasy).attr.@sealed;
                     return true;
 
                 //LfBClass16t
                 case LF_BCLASS_16t:
-                    @sealed = ((LfBClass16t) typType).attr.@sealed;
+                    @sealed = ((LfBClass16t) lfEasy).attr.@sealed;
                     return true;
 
                 //LfClass
@@ -36,97 +43,97 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    @sealed = ((LfClass) typType).property.@sealed;
+                    @sealed = ((LfClass) lfEasy).property.@sealed;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    @sealed = ((LfClass16t) typType).property.@sealed;
+                    @sealed = ((LfClass16t) lfEasy).property.@sealed;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    @sealed = ((LfEnum) typType).property.@sealed;
+                    @sealed = ((LfEnum) lfEasy).property.@sealed;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    @sealed = ((LfEnum16t) typType).property.@sealed;
+                    @sealed = ((LfEnum16t) lfEasy).property.@sealed;
                     return true;
 
                 //LfEnumerate
                 case LF_ENUMERATE:
                 case LF_ENUMERATE_ST:
-                    @sealed = ((LfEnumerate) typType).attr.@sealed;
+                    @sealed = ((LfEnumerate) lfEasy).attr.@sealed;
                     return true;
 
                 //LfVBClass16t
                 case LF_IVBCLASS_16t:
                 case LF_VBCLASS_16t:
-                    @sealed = ((LfVBClass16t) typType).attr.@sealed;
+                    @sealed = ((LfVBClass16t) lfEasy).attr.@sealed;
                     return true;
 
                 //LfMember
                 case LF_MEMBER:
                 case LF_MEMBER_ST:
-                    @sealed = ((LfMember) typType).attr.@sealed;
+                    @sealed = ((LfMember) lfEasy).attr.@sealed;
                     return true;
 
                 //LfMember16t
                 case LF_MEMBER_16t:
-                    @sealed = ((LfMember16t) typType).attr.@sealed;
+                    @sealed = ((LfMember16t) lfEasy).attr.@sealed;
                     return true;
 
                 //LfMemberModify
                 case LF_MEMBERMODIFY:
                 case LF_MEMBERMODIFY_ST:
-                    @sealed = ((LfMemberModify) typType).attr.@sealed;
+                    @sealed = ((LfMemberModify) lfEasy).attr.@sealed;
                     return true;
 
                 //LfNestTypeEx
                 case LF_NESTTYPEEX:
                 case LF_NESTTYPEEX_ST:
-                    @sealed = ((LfNestTypeEx) typType).attr.@sealed;
+                    @sealed = ((LfNestTypeEx) lfEasy).attr.@sealed;
                     return true;
 
                 //LfOneMethod
                 case LF_ONEMETHOD:
                 case LF_ONEMETHOD_ST:
-                    @sealed = ((LfOneMethod) typType).attr.@sealed;
+                    @sealed = ((LfOneMethod) lfEasy).attr.@sealed;
                     return true;
 
                 //LfOneMethod16t
                 case LF_ONEMETHOD_16t:
-                    @sealed = ((LfOneMethod16t) typType).attr.@sealed;
+                    @sealed = ((LfOneMethod16t) lfEasy).attr.@sealed;
                     return true;
 
                 //LfSTMember
                 case LF_STMEMBER:
                 case LF_STMEMBER_ST:
-                    @sealed = ((LfSTMember) typType).attr.@sealed;
+                    @sealed = ((LfSTMember) lfEasy).attr.@sealed;
                     return true;
 
                 //LfSTMember16t
                 case LF_STMEMBER_16t:
-                    @sealed = ((LfSTMember16t) typType).attr.@sealed;
+                    @sealed = ((LfSTMember16t) lfEasy).attr.@sealed;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    @sealed = ((LfUnion) typType).property.@sealed;
+                    @sealed = ((LfUnion) lfEasy).property.@sealed;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    @sealed = ((LfUnion16t) typType).property.@sealed;
+                    @sealed = ((LfUnion16t) lfEasy).property.@sealed;
                     return true;
 
                 //LfVBClass
                 case LF_VBCLASS:
-                    @sealed = ((LfVBClass) typType).attr.@sealed;
+                    @sealed = ((LfVBClass) lfEasy).attr.@sealed;
                     return true;
             }
 

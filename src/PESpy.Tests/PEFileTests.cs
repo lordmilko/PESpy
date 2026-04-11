@@ -1,9 +1,17 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using ClrDebug;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
 using PESpy.View;
+using static ClrDebug.IMAGE_FILE_MACHINE;
+using static PESpy.IMAGE_FILE;
+using static PESpy.IMAGE_DEBUG_TYPE;
+using static PESpy.IMAGE_DLLCHARACTERISTICS;
+using static PESpy.IMAGE_DLLCHARACTERISTICS_EX;
+using static PESpy.IMAGE_DYNAMIC_RELOCATION_KIND;
+using static PESpy.IMAGE_SYM_TYPE;
 
 namespace PESpy.Tests
 {

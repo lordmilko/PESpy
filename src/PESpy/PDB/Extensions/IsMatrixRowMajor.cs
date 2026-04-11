@@ -15,13 +15,20 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isMatrixRowMajor"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isMatrixRowMajor"/>
         /// </summary>
-        public static bool TryGetIsMatrixRowMajor(in this TypType typType, out bool isMatrixRowMajor)
+        public static bool TryGetIsMatrixRowMajor(in this TypType typType, out bool isMatrixRowMajor) =>
+            TryGetIsMatrixRowMajor((LfEasy) typType, out isMatrixRowMajor);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_isMatrixRowMajor"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_isMatrixRowMajor"/>
+        /// </summary>
+        public static bool TryGetIsMatrixRowMajor(in this LfEasy lfEasy, out bool isMatrixRowMajor)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfMatrix
                 case LF_MATRIX:
-                    isMatrixRowMajor = ((LfMatrix) typType).matattr.row_major;
+                    isMatrixRowMajor = ((LfMatrix) lfEasy).matattr.row_major;
                     return true;
             }
 

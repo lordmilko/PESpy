@@ -15,13 +15,20 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_builtInKind"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_builtInKind"/>
         /// </summary>
-        public static bool TryGetBuiltInKind(in this TypType typType, out int builtInKind)
+        public static bool TryGetBuiltInKind(in this TypType typType, out int builtInKind) =>
+            TryGetBuiltInKind((LfEasy) typType, out builtInKind);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_builtInKind"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_builtInKind"/>
+        /// </summary>
+        public static bool TryGetBuiltInKind(in this LfEasy lfEasy, out int builtInKind)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfHLSL
                 case LF_HLSL:
-                    builtInKind = ((LfHLSL) typType).kind;
+                    builtInKind = ((LfHLSL) lfEasy).kind;
                     return true;
             }
 

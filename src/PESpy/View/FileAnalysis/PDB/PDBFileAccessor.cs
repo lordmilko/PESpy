@@ -14,11 +14,13 @@ namespace PESpy.View
 
         public override IFile File => PDBFile;
 
+        protected override ViewKind FileViewKind => ViewKind.PDBFile;
+
         internal readonly Dictionary<PN, int> _pageNumberToSIIndex;
         internal int[] _pagesToSectionAccessors;
         private ViewWriter _viewWriter;
 
-        public PDBFileAccessor(PDBFile pdbFile, bool trackXRefs) : base(GetBitness(pdbFile), trackXRefs)
+        public PDBFileAccessor(PDBFile pdbFile) : base(GetBitness(pdbFile))
         {
             PDBFile = pdbFile;
 

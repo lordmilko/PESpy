@@ -10,9 +10,14 @@ namespace PESpy
 {
     
         public static unsafe IView CreateStructView(ViewKind kind, in MemoryChunk chunk, ViewWriter viewWriter, bool isSplit = false)
+        public static unsafe IView CreateStructView(ViewKind kind, int length, in MemoryChunk chunk, ViewWriter viewWriter, bool isSplit = false)
         {
             return kind switch
             {
+                ViewKind.Data                                        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.Padding                                     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.CC                                          => GetBytes(chunk, viewWriter, length, kind),
+
                 #region Headers
 
                 ViewKind.ImageDosHeader                              => Write(new ImageDosHeader(chunk),                              viewWriter),
@@ -67,6 +72,7 @@ namespace PESpy
                 //ViewKind.MessageResourceBlock                        => Write(new MessageResourceBlock(chunk),                        viewWriter),
                 ViewKind.MessageResourceEntry                        => Write(new MessageResourceEntry(chunk),                        viewWriter),
                 ViewKind.Manifest                                    => WriteFixedUtf8String(chunk, viewWriter, length, kind),
+                ViewKind.UnknownResource                             => GetBytes(chunk, viewWriter, length, kind),
 
                 #endregion
                 #region Exception Table (3)
@@ -176,8 +182,12 @@ namespace PESpy
                 ViewKind.ImageCor20Header                            => Write(new ImageCor20Header(chunk),                            viewWriter),
                 ViewKind.ImageCorILMethodTiny                        => Write(new ImageCorILMethod(chunk),                            viewWriter),
                 ViewKind.ImageCorILMethodFat                         => Write(new ImageCorILMethod(chunk),                            viewWriter),
-                //ViewKind.ImageCorILMethodSect                        => Write(new ImageCorILMethodSect(chunk),                        viewWriter),
-                //ViewKind.ImageCorILMethodSectEHClause                => Write(new ImageCorILMethodSectEHClause(chunk),                viewWriter),
+                ViewKind.ImageCorILMethodSectEHFat                   => Write(new ImageCorILMethodSectEH(chunk, isFat: true),         viewWriter),
+                ViewKind.ImageCorILMethodSectEHSmall                 => Write(new ImageCorILMethodSectEH(chunk, isFat: false),        viewWriter),
+                ViewKind.ImageCorILMethodSectFat                     => Write(new ImageCorILMethodSect(chunk, isFat: true),           viewWriter),
+                ViewKind.ImageCorILMethodSectSmall                   => Write(new ImageCorILMethodSect(chunk, isFat: false),          viewWriter),
+                ViewKind.ImageCorILMethodSectEHClauseFat             => Write(new ImageCorILMethodSectEHClause(chunk, isFat: true),   viewWriter),
+                ViewKind.ImageCorILMethodSectEHClauseSmall           => Write(new ImageCorILMethodSectEHClause(chunk, isFat: false),  viewWriter),
                 ViewKind.StorageSignature                            => Write(new StorageSignature(chunk),                            viewWriter),
                 ViewKind.StorageHeader                               => GetStorageHeader(chunk, viewWriter),
                 //ViewKind.StorageStream                               => Write(new StorageStream(chunk),                               viewWriter),
@@ -259,10 +269,91 @@ namespace PESpy
 
                 #region R2R
 
-                ViewKind.ReadyToRunHeader                            => Write(new ReadyToRunHeader(chunk),                            viewWriter),
-                ViewKind.ReadyToRunCoreHeader                        => Write(new ReadyToRunCoreHeader(chunk),                        viewWriter),
-                ViewKind.ReadyToRunSection                           => Write(new ReadyToRunSection(chunk),                           viewWriter),
-                ViewKind.ReadyToRunImportSection                     => Write(new ReadyToRunImportSection(chunk),                     viewWriter),
+                ViewKind.ReadyToRunHeader                            => Write(new R2R.ReadyToRunHeader(chunk),                        viewWriter),
+                ViewKind.ReadyToRunCoreHeader                        => Write(new R2R.ReadyToRunCoreHeader(chunk),                    viewWriter),
+                ViewKind.ReadyToRunSection                           => Write(new R2R.ReadyToRunSection(chunk),                       viewWriter),
+
+                #region ReadyToRunSection Bytes
+
+                ViewKind.ReadyToRunSection_ImportSections            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_RuntimeFunctions          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_MethodDefEntryPoints      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ExceptionInfo             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DebugInfo                 => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DelayLoadMethodCallThunks => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_AvailableTypes            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_InstanceMethodEntryPoints => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_InliningInfo              => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ProfileDataInfo           => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ManifestMetadata          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_AttributePresence         => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_InliningInfo2             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ComponentAssemblies       => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_OwnerCompositeExecutable  => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_PgoInstrumentationData    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ManifestAssemblyMvids     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_CrossModuleInlineInfo     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_HotColdMap                => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_MethodIsGenericMap        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_EnclosingTypeMap          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_TypeGenericInfoMap        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ExternalTypeMaps          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ProxyTypeMaps             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_TypeMapAssemblyTargets    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_StringTable               => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GCStaticRegion            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ThreadStaticRegion        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_TypeManagerIndirection    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_EagerCctor                => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_FrozenObjectRegion        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DehydratedData            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ThreadStaticOffsetRegion  => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ImportAddressTables       => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ModuleInitializerList     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ReadonlyBlobRegionStart   => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_TypeMap                   => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ArrayMap                  => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_PointerTypeMap            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericInstanceMap        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_FunctionPointerTypeMap    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericParameterMap       => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlockReflectionTypeMap    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_InvokeMap                 => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_VirtualInvokeMap          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_CommonFixupsTable         => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_FieldAccessMap            => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_CCtorContextMap           => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ByRefTypeMap              => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DiagGenericInstanceMap    => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DiagGenericParameterMap   => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_EmbeddedMetadata          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DefaultConstructorMap     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_UnboxingAndInstantiatingStubMap => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_StructMarshallingStubMap  => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DelegateMarshallingStubMap => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericVirtualMethodTable => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_InterfaceGenericVirtualMethodTable => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_TypeTemplateMap           => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericMethodsTemplateMap => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_DynamicInvokeTemplateData => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdResourceIndex       => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdResourceData        => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdStackTraceEmbeddedMetadata => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdStackTraceMethodRvaToTokenMapping => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdStackTraceLineNumbers => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_BlobIdStackTraceDocuments => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_NativeLayoutInfo          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_NativeReferences          => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericsHashtable         => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_NativeStatics             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_StaticsInfoHashtable      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_GenericMethodsHashtable   => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ExactMethodInstantiationsHashtable => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.ReadyToRunSection_ReadonlyBlobRegionEnd     => GetBytes(chunk, viewWriter, length, kind),
+
+                #endregion
+
+                ViewKind.ReadyToRunImportSection                     => Write(new R2R.ReadyToRunImportSection(chunk),                 viewWriter),
 
                 #endregion
 
@@ -276,8 +367,13 @@ namespace PESpy
                 ViewKind.BundleEncodedString                         => Write(new BundleEncodedString(chunk),                         viewWriter),
                 ViewKind.DepsJson                                    => WriteFixedUtf8String(chunk, viewWriter, length, kind),
                 ViewKind.RuntimeConfigJson                           => WriteFixedUtf8String(chunk, viewWriter, length, kind),
-                ViewKind.DebugTypeEntry                              => Write(new DebugTypeEntry(chunk),                              viewWriter),
-                ViewKind.GlobalValueEntry                            => Write(new GlobalValueEntry(chunk),                            viewWriter),
+                ViewKind.DotNetRuntimeDebugHeader                    => GetDotNetRuntimeDebugHeader(chunk, viewWriter),
+                ViewKind.NativeAOTModulesA                           => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.NativeAOTModuleAddress                      => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.NativeAOTModulesZ                           => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
+                ViewKind.NativeAOTReadyToRunHeader                   => Write(new NativeAOT.ReadyToRunHeader(chunk),                  viewWriter),
+                ViewKind.DebugTypeEntry                              => Write(new NativeAOT.DebugTypeEntry(chunk),                    viewWriter),
+                ViewKind.GlobalValueEntry                            => Write(new NativeAOT.GlobalValueEntry(chunk),                  viewWriter),
 
                 #endregion
                 #region RTTI
@@ -288,6 +384,7 @@ namespace PESpy
 
                 #endregion
 
+                ViewKind.PN                                          => viewWriter.NewValue(chunk.AbsoluteOffset, (PN) (length == 2 ? chunk.PeekUInt16(0) : chunk.PeekInt32(0)), length, kind),
                 ViewKind.MsfHdr                                      => Write(new PDB.MsfHdr(chunk),                                  viewWriter),
                 ViewKind.BigMsfHdr                                   => Write(new PDB.BigMsfHdr(chunk),                               viewWriter),
                 ViewKind.StreamTable                                 => GetStreamTable(chunk, viewWriter),
@@ -310,7 +407,11 @@ namespace PESpy
                 ViewKind.OMFFileIndex                                => GetOMFFileIndex(chunk, viewWriter),
                 ViewKind.NameTable                                   => Write(new PDB.NMT(chunk),                                     viewWriter),
                 ViewKind.DbgDataHdr                                  => Write(chunk.PDBFile().DBI.DbgHdr, viewWriter),
+                ViewKind.PdbFeature                                  => viewWriter.NewValue(chunk.AbsoluteOffset, (PdbFeature) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.CvSignature                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (CV_SIGNATURE) chunk.PeekUInt32(0), sizeof(int), kind),
+                ViewKind.HRFile                                      => WriteUnmanaged<HRFile>(chunk, viewWriter, kind),
+                ViewKind.HashBucketsBitmap                           => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.HashBuckets                                 => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
 
                 #region Symbols
 
@@ -533,6 +634,9 @@ namespace PESpy
                 #endregion
 
                 ViewKind.PSGSIHDR                                    => Write(new PDB.PSGSIHDR(chunk),                                viewWriter),
+                ViewKind.AddressMap                                  => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.AddressMap),
+                ViewKind.ThunkMap                                    => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.ThunkMap),
+                ViewKind.SectionMap                                  => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.SectionMap),
 
                 _ => throw new InvalidOperationException($"Don't know how to handle kind '{kind}'")
             };
@@ -618,6 +722,11 @@ namespace PESpy
             return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length, kind);
         }
 
+        private static IView WriteGlobalField<T>(in MemoryChunk chunk, int length, ViewKind kind, T value, FixedUtf8String name)
+        {
+            return new FieldView<T>(chunk.AbsoluteOffset, name.ToString(), value, length, default, kind);
+        }
+
         private static unsafe IView WriteSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var oldOffset = viewWriter.UnmanagedOffset;
@@ -659,9 +768,12 @@ namespace PESpy
         private static IView Write(RawValue<Guid> value, ViewWriter viewWriter, ViewKind viewKind) =>
             viewWriter.NewValue(value.Offset, value.Value, 16, viewKind);
 
+        private static unsafe IView WriteUnmanaged<T>(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind viewKind) where T : unmanaged =>
+            viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekUnmanaged<T>(0), sizeof(T), viewKind);
+
         private static ByteBlobView GetBytes(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)
         {
-            return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(chunk.AbsoluteOffset, length), kind);
+            return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(0, length), kind);
         }
 
         private static IStructView GetCoffSymbolTable(in MemoryChunk chunk, ViewWriter viewWriter)
@@ -681,11 +793,12 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
-        private static IStructView GetBundleFileEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        private static IStructView GetDotNetRuntimeDebugHeader(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var peFile = chunk.PEFile();
 
-            var files = peFile.AppHostSignature.BundleHeaderOffset.Value.Files;
+            return Write(peFile.DotNetRuntimeDebugHeader, viewWriter);
+        }
 
             foreach (var file in files)
             {

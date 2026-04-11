@@ -1,4 +1,5 @@
 ﻿using System;
+using ClrDebug;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
@@ -11,7 +12,7 @@ namespace PESpy
         //entries. We don't want to risk any issues however, so we'll treat the sequence and order of all
         //directory entries are untrusted regardless
 
-        public NB09SymbolAccessor(IFile file) : base(file)
+        public NB09SymbolAccessor(IFile file, IMAGE_FILE_MACHINE machineType) : base(file, machineType)
         {
         }
 

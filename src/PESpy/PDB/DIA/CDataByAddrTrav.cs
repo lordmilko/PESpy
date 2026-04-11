@@ -4,18 +4,24 @@
     /// Models the essential functionality of the msdia140!CDataByAddrTrav class used
     /// for resolving an RVA to its "nearest" data symbol within a specific module.
     /// </summary>
-    internal class CDataByAddrTrav : CModSymsByAddrTrav
+    internal struct CDataByAddrTrav<TEnumProvider> : IModSymFinder where TEnumProvider : IEnumProvider
     {
+        private CModSymsByAddrTrav<TEnumProvider> _modTrav;
+
         public CDataByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
+            TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(parentTrav, targetOffSeg, bestOffSeg)
+            OffSegSym bestOffSeg)
         {
+            _modTrav = new CModSymsByAddrTrav<TEnumProvider>(enumProvider, targetOffSeg, bestOffSeg);
         }
 
-        protected override bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg)
+        public bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg)
         {
-            if (!_parentTrav._symCache.TryGetDataSymbol(_imod, _targetSeg, _targetOff, out candidateOffSeg))
+            var targetSeg = _modTrav._targetSeg;
+            var targetOff = _modTrav._targetOff;
+
+            if (!_modTrav._enumProvider.SymCache.TryGetDataSymbol(_modTrav._imod, targetSeg, targetOff, out candidateOffSeg))
                 return false;
 
             //ModCache::dataByAddr may be handed a module where all of its symbols are way before the offset we're after. This is an issue,
@@ -25,7 +31,7 @@
             var candidateOff = candidateOffSeg.off;
             var candidateSeg = candidateOffSeg.seg;
 
-            if (candidateSeg != _targetSeg || candidateOff > _targetOff ||
+            if (candidateSeg != targetSeg || candidateOff > targetOff ||
                 scSeg >= candidateSeg && (scSeg != candidateSeg || scOff > candidateOff))
             {
                 return false;
@@ -34,11 +40,11 @@
             return true;
         }
 
-        public override bool next(out TraverserResult result)
+        public bool next(out TraverserResult result)
         {
             //DIA just COMDAT folds into CFuncByAddrTrav::next which just forwards to CModSymsByAddrTrav::FInit
 
-            if (base.FInit(out result))
+            if (_modTrav.FInit(ref this, out result))
             {
                 result.hasName = true; //We only include symbols that have names in our cache, so implicitly we know we have a name
                 return true;

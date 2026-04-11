@@ -2284,6 +2284,32 @@ namespace PESpy
         }
 
         /// <summary>
+        /// ReadyToRunHeader
+        /// </summary>
+        internal static FixedUtf8String ReadyToRunHeader
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x52, 0x65, 0x61, 0x64, 0x79, 0x54, 0x6F, 0x52, 0x75, 0x6E, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72 })
+                    return new FixedUtf8String(p, 16);
+            }
+        }
+
+        /// <summary>
+        /// ModuleInfoRow
+        /// </summary>
+        internal static FixedUtf8String ModuleInfoRow
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x6F, 0x64, 0x75, 0x6C, 0x65, 0x49, 0x6E, 0x66, 0x6F, 0x52, 0x6F, 0x77 })
+                    return new FixedUtf8String(p, 13);
+            }
+        }
+
+        /// <summary>
         /// _RTTIBaseClassDescriptor
         /// </summary>
         internal static FixedUtf8String _RTTIBaseClassDescriptor

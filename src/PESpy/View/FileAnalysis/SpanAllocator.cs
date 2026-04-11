@@ -24,6 +24,11 @@ namespace PESpy.View
             _freeList.AddFirst(new SpanAllocatorHandle(0, capacity));
         }
 
+        public SpanAllocator(T[] buffer)
+        {
+            _buffer = buffer;
+        }
+
         private LinkedList<SpanAllocatorHandle> _freeList = new LinkedList<SpanAllocatorHandle>();
 
         public SpanAllocatorHandle Alloc(Span<T> items)

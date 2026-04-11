@@ -15,28 +15,35 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_callingConvention"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_callingConvention"/>
         /// </summary>
-        public static bool TryGetCallingConvention(in this TypType typType, out CV_call_e callingConvention)
+        public static bool TryGetCallingConvention(in this TypType typType, out CV_call_e callingConvention) =>
+            TryGetCallingConvention((LfEasy) typType, out callingConvention);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_callingConvention"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_callingConvention"/>
+        /// </summary>
+        public static bool TryGetCallingConvention(in this LfEasy lfEasy, out CV_call_e callingConvention)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfMFunc
                 case LF_MFUNCTION:
-                    callingConvention = ((LfMFunc) typType).calltype;
+                    callingConvention = ((LfMFunc) lfEasy).calltype;
                     return true;
 
                 //LfMFunc16t
                 case LF_MFUNCTION_16t:
-                    callingConvention = ((LfMFunc16t) typType).calltype;
+                    callingConvention = ((LfMFunc16t) lfEasy).calltype;
                     return true;
 
                 //LfProc
                 case LF_PROCEDURE:
-                    callingConvention = ((LfProc) typType).calltype;
+                    callingConvention = ((LfProc) lfEasy).calltype;
                     return true;
 
                 //LfProc16t
                 case LF_PROCEDURE_16t:
-                    callingConvention = ((LfProc16t) typType).calltype;
+                    callingConvention = ((LfProc16t) lfEasy).calltype;
                     return true;
             }
 

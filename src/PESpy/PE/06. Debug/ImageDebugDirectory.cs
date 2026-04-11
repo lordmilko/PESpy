@@ -143,7 +143,7 @@ namespace PESpy
                                 if (SizeOfData > 0) //Don't know that it can be 0, but good to be defensive
                                 {
                                     Debug.Assert(SizeOfData == 4);
-                                    data = new ByteBlob(valueChunk, SizeOfData);
+                                    data = new ByteBlob(valueChunk, SizeOfData, ViewKind.BBT);
                                 }
                                 else
                                     data = default;
@@ -199,7 +199,7 @@ namespace PESpy
                                     data = new RawValue<IMAGE_DLLCHARACTERISTICS_EX>(valueChunk.AbsoluteOffset, value);
                                 }
                                 else if (SizeOfData > 0) //Defensively check for 0 length. Has never known to not be 4 bytes
-                                    data = new ByteBlob(valueChunk, SizeOfData);
+                                    data = new ByteBlob(valueChunk, SizeOfData, ViewKind.ExDllCharacteristics);
                                 else
                                     data = default;
                                 break;
@@ -211,7 +211,7 @@ namespace PESpy
 #endif
                                 //Defensively check for 0 length
                                 if (SizeOfData > 0)
-                                    data = new ByteBlob(valueChunk, SizeOfData);
+                                    data = new ByteBlob(valueChunk, SizeOfData, ViewKind.UnknownDebugData);
                                 else
                                     data = default;
                                 break;
@@ -293,7 +293,7 @@ namespace PESpy
                 //OMF
                 case CodeViewSig.NB09: //Note that I don't think you can actually have NB09 in a PE file
                 case CodeViewSig.NB11:
-                    return OMFReader.ReadNB05(chunk, sig, chunk.PeekInt32(sizeOfData - 4), sizeOfData); //The last 4 bytes of the data should be lfoBase, which should be the same value as sizeOfData as well
+                    return OMFReader.ReadNB05(chunk, sig, chunk.PeekInt32(sizeOfData - 4), sizeOfData, chunk.PEFile().FileHeader.Machine); //The last 4 bytes of the data should be lfoBase, which should be the same value as sizeOfData as well
 
                 //PDB v7.0
                 case CodeViewSig.RSDS:
@@ -303,7 +303,7 @@ namespace PESpy
                     Debug.Assert(false, $"Don't know how to read CodeView signature '{chunk.PeekAnsiFixedLength(0, 4)}' (0x{chunk.PeekUInt32(0):X})");
 
                     //Unsupported value; read as a byte blob
-                    return new ByteBlob(chunk, sizeOfData);
+                    return new ByteBlob(chunk, sizeOfData, ViewKind.UnknownDebugData);
             }
         }
 
@@ -325,7 +325,7 @@ namespace PESpy
                     Debug.Assert(false, $"Don't know how to read Pogo signature '{signature:X}'");
 
                     //Unsupported value; read as a byte blob
-                    return new ByteBlob(chunk, sizeOfData);
+                    return new ByteBlob(chunk, sizeOfData, ViewKind.PogoData);
             }
         }
 

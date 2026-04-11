@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using PESpy.View;
 
 namespace PESpy
@@ -92,7 +93,7 @@ namespace PESpy
 
         int Length { get; }
 
-        FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None);
+        FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default);
 
         //If no symbol accessor could be found, returns the NullSymbolAccessor
         ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null);

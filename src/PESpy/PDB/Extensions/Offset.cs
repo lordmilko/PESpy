@@ -6,69 +6,9 @@ using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using static ClrDebug.PDB.SYM_ENUM_e;
-using static ClrDebug.PDB.LEAF_ENUM_e;
 
 namespace PESpy.PDB
 {
-    public static partial class TypTypeExtensions
-    {
-        /// <summary>
-        /// <inheritdoc cref="IDiaSymbol.get_offset"/><para/>
-        /// Corresponds to <see cref="IDiaSymbol.get_offset"/>
-        /// </summary>
-        public static bool TryGetOffset(in this LfEasy lfEasy, out int offset)
-        {
-            switch (lfEasy.leaf)
-            {
-                //LfBClass
-                case LF_BCLASS:
-                case LF_BINTERFACE:
-                    offset = (int) ((LfBClass) lfEasy).offset;
-                    return true;
-
-                //LfBClass16t
-                case LF_BCLASS_16t:
-                    offset = (int) ((LfBClass16t) lfEasy).offset;
-                    return true;
-
-                //LfVBClass16t
-                case LF_IVBCLASS_16t:
-                case LF_VBCLASS_16t:
-                    offset = (int) ((LfVBClass16t) lfEasy).offset;
-                    return true;
-
-                //LfMember
-                case LF_MEMBER:
-                case LF_MEMBER_ST:
-                    offset = ((LfMember) lfEasy).offset;
-                    return true;
-
-                //LfMember16t
-                case LF_MEMBER_16t:
-                    offset = ((LfMember16t) lfEasy).offset;
-                    return true;
-
-                //LfVBClass
-                case LF_VBCLASS:
-                    offset = (int) ((LfVBClass) lfEasy).offset;
-                    return true;
-
-                //LfVFuncOff
-                case LF_VFUNCOFF:
-                    offset = ((LfVFuncOff) lfEasy).offset;
-                    return true;
-
-                //LfVFuncOff16t
-                case LF_VFUNCOFF_16t:
-                    offset = ((LfVFuncOff16t) lfEasy).offset;
-                    return true;
-            }
-
-            offset = default;
-            return false;
-        }
-    }
-
     public static partial class SymTypeExtensions
     {
         /// <summary>
@@ -79,37 +19,16 @@ namespace PESpy.PDB
         {
             switch (symType.rectyp)
             {
-                //AnnotationSym
-                case S_ANNOTATION:
-                    offset = ((AnnotationSym) symType).off;
-                    return true;
-
                 //FrameRelSym
                 case S_ATTR_FRAMEREL:
                 case S_MANFRAMEREL:
-                case S_MANFRAMEREL_ST:
                     offset = ((FrameRelSym) symType).off;
                     return true;
 
                 //AttrRegRel
                 case S_ATTR_REGREL:
                 case S_MANREGREL:
-                case S_MANREGREL_ST:
                     offset = ((AttrRegRel) symType).off;
-                    return true;
-
-                //BlockSym16
-                case S_BLOCK16:
-                case S_WITH16:
-                    offset = ((BlockSym16) symType).off;
-                    return true;
-
-                //BlockSym32
-                case S_BLOCK32:
-                case S_BLOCK32_ST:
-                case S_WITH32:
-                case S_WITH32_ST:
-                    offset = ((BlockSym32) symType).off;
                     return true;
 
                 //BPRelSym16
@@ -128,141 +47,14 @@ namespace PESpy.PDB
                     offset = ((BPRelSym3216t) symType).off;
                     return true;
 
-                //CallSiteInfo
-                case S_CALLSITEINFO:
-                    offset = ((CallSiteInfo) symType).off;
+                //DefRangeSymFramePointerRel
+                case S_DEFRANGE_FRAMEPOINTER_REL:
+                    offset = ((DefRangeSymFramePointerRel) symType).offFramePointer;
                     return true;
 
-                //CExMSym16
-                case S_CEXMODEL16:
-                    offset = ((CExMSym16) symType).off;
-                    return true;
-
-                //CExMSym32
-                case S_CEXMODEL32:
-                    offset = ((CExMSym32) symType).off;
-                    return true;
-
-                //CoffGroupSym
-                case S_COFFGROUP:
-                    offset = ((CoffGroupSym) symType).off;
-                    return true;
-
-                //FrameCookie
-                case S_FRAMECOOKIE:
-                    offset = ((FrameCookie) symType).off;
-                    return true;
-
-                //DataSym16
-                case S_GDATA16:
-                case S_LDATA16:
-                case S_PUB16:
-                    offset = ((DataSym16) symType).off;
-                    return true;
-
-                //DataSym32
-                case S_GDATA32:
-                case S_GDATA32_ST:
-                case S_GMANDATA:
-                case S_GMANDATA_ST:
-                case S_GTHREAD32:
-                case S_GTHREAD32_ST:
-                case S_LDATA32:
-                case S_LDATA32_ST:
-                case S_LMANDATA:
-                case S_LMANDATA_ST:
-                case S_LTHREAD32:
-                case S_LTHREAD32_ST:
-                    offset = ((DataSym32) symType).off;
-                    return true;
-
-                //DataSym3216t
-                case S_GDATA32_16t:
-                case S_GTHREAD32_16t:
-                case S_LDATA32_16t:
-                case S_LTHREAD32_16t:
-                case S_PUB32_16t:
-                    offset = ((DataSym3216t) symType).off;
-                    return true;
-
-                //ManProcSym
-                case S_GMANPROC:
-                case S_GMANPROC_ST:
-                case S_LMANPROC:
-                case S_LMANPROC_ST:
-                    offset = ((ManProcSym) symType).off;
-                    return true;
-
-                //ProcSym16
-                case S_GPROC16:
-                case S_LPROC16:
-                    offset = ((ProcSym16) symType).off;
-                    return true;
-
-                //ProcSym32
-                case S_GPROC32:
-                case S_GPROC32_ID:
-                case S_GPROC32_ST:
-                case S_LPROC32:
-                case S_LPROC32_DPC:
-                case S_LPROC32_DPC_ID:
-                case S_LPROC32_ID:
-                case S_LPROC32_ST:
-                    offset = ((ProcSym32) symType).off;
-                    return true;
-
-                //ProcSym3216t
-                case S_GPROC32_16t:
-                case S_LPROC32_16t:
-                    offset = ((ProcSym3216t) symType).off;
-                    return true;
-
-                //ProcSymIA64
-                case S_GPROCIA64:
-                case S_GPROCIA64_ID:
-                case S_GPROCIA64_ST:
-                case S_LPROCIA64:
-                case S_LPROCIA64_ID:
-                case S_LPROCIA64_ST:
-                    offset = ((ProcSymIA64) symType).off;
-                    return true;
-
-                //ProcSymMips
-                case S_GPROCMIPS:
-                case S_GPROCMIPS_ID:
-                case S_GPROCMIPS_ST:
-                case S_LPROCMIPS:
-                case S_LPROCMIPS_ID:
-                case S_LPROCMIPS_ST:
-                    offset = ((ProcSymMips) symType).off;
-                    return true;
-
-                //ProcSymMips16t
-                case S_GPROCMIPS_16t:
-                case S_LPROCMIPS_16t:
-                    offset = ((ProcSymMips16t) symType).off;
-                    return true;
-
-                //HeapAllocSite
-                case S_HEAPALLOCSITE:
-                    offset = ((HeapAllocSite) symType).off;
-                    return true;
-
-                //LabelSym16
-                case S_LABEL16:
-                    offset = ((LabelSym16) symType).off;
-                    return true;
-
-                //LabelSym32
-                case S_LABEL32:
-                case S_LABEL32_ST:
-                    offset = ((LabelSym32) symType).off;
-                    return true;
-
-                //PubSym32
-                case S_PUB32:
-                case S_PUB32_ST:
-                    offset = ((PubSym32) symType).off;
+                //DefRangeSymFramePointerRelFullScope
+                case S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE:
+                    offset = ((DefRangeSymFramePointerRelFullScope) symType).offFramePointer;
                     return true;
 
                 //RegRel16
@@ -272,35 +64,14 @@ namespace PESpy.PDB
 
                 //RegRel32
                 case S_REGREL32:
+                case S_REGREL32_ENCTMP:
                 case S_REGREL32_ST:
-                case S_REGREL32_ENCTMP: //Not supported by DIA
                     offset = ((RegRel32) symType).off;
                     return true;
 
                 //RegRel3216t
                 case S_REGREL32_16t:
                     offset = ((RegRel3216t) symType).off;
-                    return true;
-
-                //SepCodeSym
-                case S_SEPCODE:
-                    offset = ((SepCodeSym) symType).off;
-                    return true;
-
-                //SLink32
-                case S_SLINK32:
-                    offset = ((SLink32) symType).off;
-                    return true;
-
-                //ThunkSym16
-                case S_THUNK16:
-                    offset = ((ThunkSym16) symType).off;
-                    return true;
-
-                //ThunkSym32
-                case S_THUNK32:
-                case S_THUNK32_ST:
-                    offset = ((ThunkSym32) symType).off;
                     return true;
             }
 

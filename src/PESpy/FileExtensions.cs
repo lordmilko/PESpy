@@ -9,7 +9,7 @@ namespace PESpy
             switch (file.Kind)
             {
                 case FileKind.PDB:
-                    return ((PDBFile) file).DBI?.SectionHdr;
+                    return ((PDBFile) file).GetSectionHeaders(); //Non-extension method; handles fallback section headers as well
 
                 case FileKind.PE:
                     return ((PEFile) file).SectionHeaders;

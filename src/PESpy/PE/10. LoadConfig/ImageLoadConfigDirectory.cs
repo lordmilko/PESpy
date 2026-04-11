@@ -213,11 +213,11 @@ namespace PESpy
         /// </summary>
         public long EditList => chunk.TryPeekPointer(32 + (6 * chunk.PointerSize), Size);
 
+        private VA<ulong> securityCookie;
+
         /// <summary>
         /// A pointer to a cookie that is used by Visual C++ or GS implementation.
         /// </summary>
-        private VA<ulong> securityCookie;
-
         public VA<ulong> SecurityCookie
         {
             get

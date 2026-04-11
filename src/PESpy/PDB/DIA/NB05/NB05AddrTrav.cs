@@ -4,15 +4,18 @@ using ClrDebug.OMF;
 
 namespace PESpy.PDB.DIA
 {
-    internal sealed class NB05AddrTrav : CAllSymsByAddrTrav
+    internal struct NB05AddrTrav : IEnumProvider
     {
         private NB05EnumPubsByAddr _enumByAddr;
         private EnumSC _enumSC;
 
+        public SymCache SymCache { get; }
+
         internal NB05AddrTrav(
             NB05SymCache symCache,
-            ISectionContribs sectionContribs) : base(symCache)
+            ISectionContribs sectionContribs)
         {
+            SymCache = symCache;
             var entries = symCache._symbolAccessor._globalEntries;
 
             for (var i = 0; i < entries.Length; i++)
@@ -44,10 +47,10 @@ namespace PESpy.PDB.DIA
             _enumSC = new EnumSC(sectionContribs);
         }
 
-        public override bool EnumByAddrLocate(ISECT seg, int off) =>
+        public bool EnumByAddrLocate(ISECT seg, int off) =>
             _enumByAddr?.Locate(seg, off) == true;
 
-        public override bool EnumByAddrNext(out SymType symType)
+        public bool EnumByAddrNext(out SymType symType)
         {
             if (_enumByAddr?.Next() == true)
             {
@@ -59,10 +62,10 @@ namespace PESpy.PDB.DIA
             return false;
         }
 
-        public override bool EnumContribLocate(ISECT seg, int off) =>
+        public bool EnumContribLocate(ISECT seg, int off) =>
             _enumSC.Locate(seg, off);
 
-        public override bool EnumContribNext(out SC40 sc)
+        public bool EnumContribNext(out SC40 sc)
         {
             if (_enumSC.Next())
             {
@@ -74,7 +77,7 @@ namespace PESpy.PDB.DIA
             return false;
         }
 
-        public override bool EnumContribPrev(out SC40 sc)
+        public bool EnumContribPrev(out SC40 sc)
         {
             if (_enumSC.Previous())
             {

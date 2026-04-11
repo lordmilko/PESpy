@@ -1,20 +1,25 @@
 ﻿namespace PESpy.PDB
 {
-    internal class CGlobalDataByAddrTrav : Traverser
+    internal struct CGlobalDataByAddrTrav<TEnumProvider> where TEnumProvider : IEnumProvider
     {
-        private CAllSymsByAddrTrav _parentTrav;
+        private TEnumProvider _enumProvider;
+
+        private ISECT _targetSeg;
+        private int _targetOff;
 
         public CGlobalDataByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
-            OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(targetOffSeg, bestOffSeg)
+            TEnumProvider enumProvider,
+            OffSeg targetOffSeg)
         {
-            _parentTrav = parentTrav;
+            _enumProvider = enumProvider;
+
+            _targetSeg = targetOffSeg.seg;
+            _targetOff = targetOffSeg.off;
         }
 
-        public override bool next(out TraverserResult result)
+        public bool next(out TraverserResult result)
         {
-            if (_parentTrav._symCache.TryGetGlobalSymbol(_targetSeg, _targetOff, out var globalSym))
+            if (_enumProvider.SymCache.TryGetGlobalSymbol(_targetSeg, _targetOff, out var globalSym))
             {
                 result = new TraverserResult
                 {

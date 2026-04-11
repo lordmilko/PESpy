@@ -11,7 +11,7 @@ namespace PESpy
         //If not found, we'll set it to -1
         private int segMapIndex = -2;
 
-        public DOSNB09SymbolAccessor(IFile file) : base(file)
+        public DOSNB09SymbolAccessor(IFile file, IMAGE_FILE_MACHINE machineType) : base(file, machineType)
         {
             dosFile = (DOSFile) file;
         }

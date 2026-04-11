@@ -4,6 +4,11 @@ using ClrDebug.PDB;
 
 namespace PESpy.PDB
 {
+    /// <summary>
+    /// Provides facilities for converting a symbol to another value, based on the type of
+    /// symbol represented by a given <see cref="PESpy.PDB.SymType"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of value that the symbol should be converted to.</typeparam>
     public abstract class SymTypeDispatcher<T>
     {
         public T Dispatch(SymType symType)

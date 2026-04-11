@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.LIB;
 using PESpy.OBJ;
@@ -13,6 +14,8 @@ namespace PESpy
         public bool HasLengthPrefixedStrings { get; }
 
         private LongImportLibraryMember longImportLibraryMember;
+
+        IMAGE_FILE_MACHINE ICodeViewAccessor.MachineType => longImportLibraryMember.FileHeader.Machine;
 
         public LongImportLibraryMemberSymbolAccessor(LongImportLibraryMember longImportLibraryMember, bool hasLengthPrefixedStrings)
         {

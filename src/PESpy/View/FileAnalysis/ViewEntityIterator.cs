@@ -100,6 +100,11 @@ namespace PESpy.View
             return true;
         }
 
+#if DEBUG_VIEWENTITY
+        //Used to debug differences between ViewEntityIterator and GlobalViewProvider
+        private List<object> _debugEntities = new List<object>();
+#endif
+
         internal struct CountState
         {
             public IList<RegionBuilder> Regions;
@@ -164,15 +169,14 @@ namespace PESpy.View
 
             if (kind != GlobalViewProviderKind.Region)
             {
-                IList<RegionBuilder> dataDirectories = fileAccessor.TopLevelDirectories;
-                var nextDataDirectoryIndex = 0;
-                var nextDataDirectoryOffset = -1;
+                state.DataDirectories = fileAccessor.TopLevelDirectories;
+                state.NextDataDirectoryIndex = 0;
 
                 if (state.HasDataDirectories)
                 {
                     //Find the first directory prior to the start of this section
 
-                    FindStartRegion(dataDirectories, targetStart, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
+                    FindStartRegion(state.DataDirectories, targetStart, ref state.NextDataDirectoryIndex, ref state.NextDataDirectoryOffset);
 
                     if (kind == GlobalViewProviderKind.Directory)
                         DrillIntoRegion(ref state.DataDirectories, depthAtStartOffset, ref state.NextDataDirectoryIndex, ref state.NextDataDirectoryOffset);
@@ -183,20 +187,33 @@ namespace PESpy.View
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
                     Debug.Assert(_names != null);
                     var entity = new ViewEntity(symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
-                    Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
+                    Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body || entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
 
                     if (entity.TargetAddress == state.NextDataDirectoryOffset)
                     {
                         SkipOverDirectory(dataDirectories, sectionAccessor, ref bytesRead, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
+#if DEBUG_VIEWENTITY
+                        _debugEntities.Add("Directory");
+#endif
                         SkipOverDirectory(
                             sectionAccessor,
                             ref bytesRead,
                             ref state
                         );
                     }
-                    else if (entity.TargetAddress == nextRegionOffset)
+                    else if (entity.TargetAddress == state.NextRegionOffset)
                     {
-                        SkipOverRegion(regions, sectionAccessor, ref bytesRead, ref nextRegionIndex, ref nextRegionOffset);
+#if DEBUG_VIEWENTITY
+                        _debugEntities.Add("Region");
+#endif
+                        SkipOverRegion(sectionAccessor, ref bytesRead, ref state);
+                    }
+                    else if (kind != GlobalViewProviderKind.NestedFile && entity.TargetAddress == state.NextNestedFileOffset)
+                    {
+#if DEBUG_VIEWENTITY
+                        _debugEntities.Add("NestedFile");
+#endif
+                        SkipOverNestedFile(sectionAccessor, ref bytesRead, ref state);
                     }
                     else
                     {
@@ -209,7 +226,9 @@ namespace PESpy.View
                         if (state.NextRegionOffset != -1)
                             Debug.Assert(entity.TargetAddress < state.NextRegionOffset);
 #endif
+#if DEBUG_VIEWENTITY
                         entities.Add(entity);
+#endif
                     }
 
                     count++;
@@ -237,11 +256,19 @@ namespace PESpy.View
 
                     if (entity.TargetAddress == state.NextRegionOffset)
                     {
-                        SkipOverRegion(regions, sectionAccessor, ref bytesRead, ref nextRegionIndex, ref nextRegionOffset);
+#if DEBUG_VIEWENTITY
+                        _debugEntities.Add("Region");
+#endif
+                        SkipOverRegion(sectionAccessor, ref bytesRead, ref state);
+                    }
                     }
                     else
                     {
                         bytesRead += entity.Length;
+#if DEBUG_VIEWENTITY
+                        _debugEntities.Add(entity);
+#endif
+                    }
 
                     count++;
                 }

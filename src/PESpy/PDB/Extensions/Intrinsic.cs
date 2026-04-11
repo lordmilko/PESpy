@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_intrinsic"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_intrinsic"/>
         /// </summary>
-        public static bool TryGetIntrinsic(in this TypType typType, out bool intrinsic)
+        public static bool TryGetIntrinsic(in this TypType typType, out bool intrinsic) =>
+            TryGetIntrinsic((LfEasy) typType, out intrinsic);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_intrinsic"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_intrinsic"/>
+        /// </summary>
+        public static bool TryGetIntrinsic(in this LfEasy lfEasy, out bool intrinsic)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,35 +32,35 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    intrinsic = ((LfClass) typType).property.intrinsic;
+                    intrinsic = ((LfClass) lfEasy).property.intrinsic;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    intrinsic = ((LfClass16t) typType).property.intrinsic;
+                    intrinsic = ((LfClass16t) lfEasy).property.intrinsic;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    intrinsic = ((LfEnum) typType).property.intrinsic;
+                    intrinsic = ((LfEnum) lfEasy).property.intrinsic;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    intrinsic = ((LfEnum16t) typType).property.intrinsic;
+                    intrinsic = ((LfEnum16t) lfEasy).property.intrinsic;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    intrinsic = ((LfUnion) typType).property.intrinsic;
+                    intrinsic = ((LfUnion) lfEasy).property.intrinsic;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    intrinsic = ((LfUnion16t) typType).property.intrinsic;
+                    intrinsic = ((LfUnion16t) lfEasy).property.intrinsic;
                     return true;
             }
 

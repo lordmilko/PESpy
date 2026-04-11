@@ -295,7 +295,7 @@ namespace PESpy.View
                     break;
 
                 case ViewKind.DebugTypeEntry:
-                    var debugTypeEntry = (DebugTypeEntry) value;
+                    var debugTypeEntry = (NativeAOT.DebugTypeEntry) value;
 
                     if (!debugTypeEntry.FieldName.IsValid)
                     {

@@ -41,7 +41,32 @@ namespace PESpy.View
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => (ViewByteKind) (_value & KindMask);
-            set => _value = (byte) (((byte) (_value & ~KindMask)) | (byte) value);
+            set
+            {
+#if DEBUG
+                //If we already have kind-specific bytes when converting from one byte kind to another,
+                //this indicates we're likely erroneously overwriting something we're not supposed to be
+                //touching. The exception to this is when we're setting Unknown to Code, because we set
+                //Unknown to IsFunction prior to disassembly, and convert Unknown to Code as each byte is processed
+                if (value != Kind && value != ViewByteKind.Code)
+                {
+                    //All byte kinds share the same "kind specific bits", so we're just using
+                    //BodyKindMask here
+                    Debug.Assert((_value & BodyKindMask) == 0, $"Attempted to convert {Kind} -> {value} on a byte that has kind-specific properties. This indicates a write spiralled out of control and is overwriting the wrong bytes");
+                }
+#endif
+
+                _value = (byte) (((byte) (_value & ~KindMask)) | (byte) value);
+
+#if DEBUG
+                //If the BodyKind is already SplitHead at the point where you set the kind,
+                //that means we've just erroneously converted one type to another
+                if (Kind == ViewByteKind.Body)
+                {
+                    Debug.Assert(BodyKind == ViewByteBodyKind.None, $"Attempted to set the kind to Body on a byte that is already known to have BodyKind '{BodyKind}'. This indicates this '{BodyKind}' is being clobbered over by the entity that comes before it");
+                }
+#endif
+            }
         }
 
         #region Common Flags
@@ -305,6 +330,8 @@ namespace PESpy.View
                 return (int) (i - me);
             }
         }
+
+        public static implicit operator byte(ViewByte b) => b._value;
 
         public override string ToString()
         {

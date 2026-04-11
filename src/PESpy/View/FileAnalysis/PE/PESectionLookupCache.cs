@@ -12,16 +12,16 @@ namespace PESpy.View
         private int _lastSectionHeaderPhysicalStart;
         private int _lastSectionHeaderPhysicalEnd;
         private bool _lastSectionIsCode;
-        private bool _isLoaded;
 
         private PEFile _peFile;
+        internal bool _wantVirtual;
 
         internal long ImageBase => _peFile.OptionalHeader.ImageBase;
 
-        public PESectionLookupCache(PEFile peFile)
+        public PESectionLookupCache(PEFile peFile, bool wantVirtual)
         {
             _peFile = peFile;
-            _isLoaded = peFile.IsLoadedImage;
+            _wantVirtual = wantVirtual;
 
             _sectionIndex = default;
             _lastSectionHeaderVirtualStart = default;
@@ -69,7 +69,9 @@ namespace PESpy.View
                 }
             }
 
-            if (_isLoaded)
+            //If we're actually virtual, the address can be used as is. But if we're just faking it, we need to check
+            //whether the given address is within the bounds of the physical area, which we do in the else path below
+            if (_peFile.IsLoadedImage)
                 targetAddress = rva;
             else
             {
@@ -77,6 +79,7 @@ namespace PESpy.View
                 //RVAs can point to addresses that will only exist in the loaded process. If we're trying to represent
                 //an unloaded module, we can't allow these to be shown
 
+                //Even if we want virtual, we still need to check whether the address is in bounds
                 targetAddress = (rva - _lastSectionHeaderVirtualStart) + _lastSectionHeaderPhysicalStart;
 
                 //.textbss sections can have an empty pointer to raw data
@@ -87,6 +90,9 @@ namespace PESpy.View
                     isCode = default;
                     return false;
                 }
+
+                if (_wantVirtual)
+                    targetAddress = rva;
             }
 
             sectionIndex = _sectionIndex;
@@ -97,7 +103,7 @@ namespace PESpy.View
 
         public unsafe void GetRawSectionDataFromTargetAddress(int targetAddress, out byte* pByte, out int remainingLength)
         {
-            if (_peFile.IsLoadedImage)
+            if (_wantVirtual)
                 _peFile.GetRawSectionDataFromRVA(targetAddress, out pByte, out remainingLength);
             else
                 _peFile.GetRawSectionDataFromOffset(targetAddress, out pByte, out remainingLength);
@@ -105,10 +111,10 @@ namespace PESpy.View
 
         public unsafe void GetRawSectionDataFromTargetAddress(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength)
         {
-            if (_peFile.IsLoadedImage)
+            if (_wantVirtual)
                 _peFile.GetRawSectionDataFromRVA(targetAddress, sectionIndex, out pByte, out remainingLength);
             else
-                _peFile.GetRawSectionDataFromOffset(targetAddress, sectionIndex, out pByte, out remainingLength);
+                _peFile.GetRawSectionDataFromPhysicalOffset(targetAddress, sectionIndex, out pByte, out remainingLength);
         }
     }
 }

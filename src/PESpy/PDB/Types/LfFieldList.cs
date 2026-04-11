@@ -28,7 +28,7 @@ namespace PESpy.PDB
         //Our length includes the size of our "leaf" field in it
         public LfEasy[] fields => EnumerateFields(null).ToArray();
 
-        internal IEnumerable<LfEasy> EnumerateFields(ICodeViewAccessor? codeViewAccessor) => EnumerateFields(typlen - sizeof(ushort), (IntPtr) value->data, null);
+        public IEnumerable<LfEasy> EnumerateFields(ICodeViewAccessor? codeViewAccessor) => EnumerateFields(typlen - sizeof(ushort), (IntPtr) value->data, null);
 
         //We share the same logic for LfFIeldList and LfFieldList16t
         internal static IEnumerable<LfEasy> EnumerateFields(int length, IntPtr ptr, ICodeViewAccessor? codeViewAccessor)

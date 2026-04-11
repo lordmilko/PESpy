@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using ClrDebug.PDB;
@@ -21,7 +22,10 @@ namespace PESpy.PDB
 
         public LEAF_ENUM_e leaf => value->leaf;
 
-        public LfEasy[] fields => LfFieldList.EnumerateFields(typlen - sizeof(ushort), (IntPtr) value->data, null).ToArray();
+        public LfEasy[] fields => EnumerateFields(null).ToArray();
+
+        public IEnumerable<LfEasy> EnumerateFields(ICodeViewAccessor? codeViewAccessor) =>
+            LfFieldList.EnumerateFields(typlen - sizeof(ushort), (IntPtr) value->data, codeViewAccessor);
 
         internal const int FixedStructSize =
             sizeof(ushort);  //leaf

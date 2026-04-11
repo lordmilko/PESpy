@@ -193,6 +193,9 @@ namespace PESpy.Tests
         public static readonly string VS22_LTCG_OBJ;
         public static readonly string VS22_LTCG_PDB;
 
+        public static readonly string VS22_Debug_EXE;
+        public static readonly string VS22_Debug_PDB;
+
         #endregion
         #region 15. CLR
 
@@ -343,6 +346,9 @@ namespace PESpy.Tests
             VS22_LTCG_OBJ = MakePath("14. vs22\\LTCG\\TestApp.obj");
             VS22_LTCG_PDB = MakePath("14. vs22\\LTCG\\TestApp.pdb");
 
+            VS22_Debug_EXE = MakePath("14. vs22\\Debug\\TestApp.exe");
+            VS22_Debug_PDB = MakePath("14. vs22\\Debug\\TestApp.pdb");
+
             #endregion
             #region 15. CLR
 
@@ -388,6 +394,7 @@ namespace PESpy.Tests
                     VC60_PDB,
                     VS22_PDB,
                     VS22_LTCG_PDB,
+                    VS22_Debug_PDB,
                     Framework_PDB,
                     Interop_PDB,
                     Interop_Core_PDB,

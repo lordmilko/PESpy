@@ -1,27 +1,38 @@
 ﻿namespace PESpy.PDB
 {
-    internal class CFuncByAddrTrav : CModSymsByAddrTrav
+    internal interface IModSymFinder
     {
+        bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg);
+    }
+
+    internal struct CFuncByAddrTrav<TEnumProvider> : IModSymFinder where TEnumProvider : IEnumProvider
+    {
+        internal CModSymsByAddrTrav<TEnumProvider> _modTrav;
+
         public CFuncByAddrTrav(
-            CAllSymsByAddrTrav parentTrav,
+            TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg) : base(parentTrav, targetOffSeg, bestOffSeg)
+            OffSegSym bestOffSeg)
         {
+            _modTrav = new CModSymsByAddrTrav<TEnumProvider>(enumProvider, targetOffSeg, bestOffSeg);
         }
 
-        protected override bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg)
+        public bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg)
         {
-            if (!_parentTrav._symCache.TryGetFunctionSymbol(_imod, _targetSeg, _targetOff, out candidateOffSeg))
+            var targetSeg = _modTrav._targetSeg;
+            var targetOff = _modTrav._targetOff;
+
+            if (!_modTrav._enumProvider.SymCache.TryGetFunctionSymbol(_modTrav._imod, targetSeg, targetOff, out candidateOffSeg))
                 return false;
 
-            if (candidateOffSeg.seg >= _targetSeg && (candidateOffSeg.seg != _targetSeg || candidateOffSeg.off > _targetOff))
+            if (candidateOffSeg.seg >= targetSeg && (candidateOffSeg.seg != targetSeg || candidateOffSeg.off > targetOff))
                 return false;
 
             if (scSeg < candidateOffSeg.seg || scSeg == candidateOffSeg.seg && scOff <= candidateOffSeg.off)
                 return true;
 
-            var displacement = _targetSeg == candidateOffSeg.seg
-                ? (uint) (_targetOff - candidateOffSeg.off)
+            var displacement = targetSeg == candidateOffSeg.seg
+                ? (uint) (targetOff - candidateOffSeg.off)
                 : uint.MaxValue;
 
             candidateOffSeg.symType.TryGetLength(out var length);
@@ -32,9 +43,9 @@
             return true;
         }
 
-        public override bool next(out TraverserResult result)
+        public bool next(out TraverserResult result)
         {
-            if (FInit(out result))
+            if (_modTrav.FInit(ref this, out result))
             {
                 result.hasName = true; //All functions should have names
                 return true;

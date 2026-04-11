@@ -15,9 +15,16 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_constructor"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_constructor"/>
         /// </summary>
-        public static bool TryGetConstructor(in this TypType typType, out bool constructor)
+        public static bool TryGetConstructor(in this TypType typType, out bool constructor) =>
+            TryGetConstructor((LfEasy) typType, out constructor);
+
+        /// <summary>
+        /// <inheritdoc cref="IDiaSymbol.get_constructor"/><para/>
+        /// Corresponds to <see cref="IDiaSymbol.get_constructor"/>
+        /// </summary>
+        public static bool TryGetConstructor(in this LfEasy lfEasy, out bool constructor)
         {
-            switch (typType.leaf)
+            switch (lfEasy.leaf)
             {
                 //LfClass
                 case LF_CLASS:
@@ -25,55 +32,55 @@ namespace PESpy.PDB
                 case LF_INTERFACE:
                 case LF_STRUCTURE:
                 case LF_STRUCTURE_ST:
-                    constructor = ((LfClass) typType).property.ctor;
+                    constructor = ((LfClass) lfEasy).property.ctor;
                     return true;
 
                 //LfClass16t
                 case LF_CLASS_16t:
                 case LF_STRUCTURE_16t:
-                    constructor = ((LfClass16t) typType).property.ctor;
+                    constructor = ((LfClass16t) lfEasy).property.ctor;
                     return true;
 
                 //LfEnum
                 case LF_ENUM:
                 case LF_ENUM_ST:
-                    constructor = ((LfEnum) typType).property.ctor;
+                    constructor = ((LfEnum) lfEasy).property.ctor;
                     return true;
 
                 //LfEnum16t
                 case LF_ENUM_16t:
-                    constructor = ((LfEnum16t) typType).property.ctor;
+                    constructor = ((LfEnum16t) lfEasy).property.ctor;
                     return true;
 
                 //LfMFunc
                 case LF_MFUNCTION:
-                    constructor = ((LfMFunc) typType).funcattr.ctor;
+                    constructor = ((LfMFunc) lfEasy).funcattr.ctor;
                     return true;
 
                 //LfMFunc16t
                 case LF_MFUNCTION_16t:
-                    constructor = ((LfMFunc16t) typType).funcattr.ctor;
+                    constructor = ((LfMFunc16t) lfEasy).funcattr.ctor;
                     return true;
 
                 //LfProc
                 case LF_PROCEDURE:
-                    constructor = ((LfProc) typType).funcattr.ctor;
+                    constructor = ((LfProc) lfEasy).funcattr.ctor;
                     return true;
 
                 //LfProc16t
                 case LF_PROCEDURE_16t:
-                    constructor = ((LfProc16t) typType).funcattr.ctor;
+                    constructor = ((LfProc16t) lfEasy).funcattr.ctor;
                     return true;
 
                 //LfUnion
                 case LF_UNION:
                 case LF_UNION_ST:
-                    constructor = ((LfUnion) typType).property.ctor;
+                    constructor = ((LfUnion) lfEasy).property.ctor;
                     return true;
 
                 //LfUnion16t
                 case LF_UNION_16t:
-                    constructor = ((LfUnion16t) typType).property.ctor;
+                    constructor = ((LfUnion16t) lfEasy).property.ctor;
                     return true;
             }
 
