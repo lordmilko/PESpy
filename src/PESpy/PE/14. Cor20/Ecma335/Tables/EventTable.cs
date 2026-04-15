@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(EventIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EventRow this[EventIndex index] => GetRow((int) index);
+        public EventRow this[EventIndex index] => GetRowSafe((int) index);
 
         protected override EventRow GetRow(int index) => new EventRow((EventIndex) index, this);
     }

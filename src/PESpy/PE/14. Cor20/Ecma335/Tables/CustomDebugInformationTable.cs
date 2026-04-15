@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(CustomDebugInformationIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public CustomDebugInformationRow this[CustomDebugInformationIndex index] => GetRow((int) index);
+        public CustomDebugInformationRow this[CustomDebugInformationIndex index] => GetRowSafe((int) index);
 
         protected override CustomDebugInformationRow GetRow(int index) => new CustomDebugInformationRow((CustomDebugInformationIndex) index, this);
     }

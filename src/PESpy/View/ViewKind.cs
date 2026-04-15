@@ -1,7 +1,21 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
+using ClrDebug.PDB;
 
 namespace PESpy.View
 {
+    public enum FieldViewFlags : ushort
+    {
+        //Specifies that this value is an address and that numbers should exclusively be displayed as hex
+        Address = 1,
+
+        //Specifies that the hexadecimal number represents a string, e.g. MZ, PE00, etc
+        HexString = 2,
+
+        //Specifies that the value represents a size amount in bytes
+        Size = 4
+    }
+
     /// <summary>
     /// Specifies the kind of value contained in a view.
     /// </summary>
@@ -30,22 +44,28 @@ namespace PESpy.View
         Overlay,
 
         /// <summary>
-        /// A <see cref="ByteBlob"/> containing at least one non-<see langword="0"/> byte, indicating
+        /// A <see cref="ByteBlobView"/> containing at least one non-<see langword="0"/> byte, indicating
         /// that the bytes represent code or data whose meaning could not be automatically determined.
         /// </summary>
         Data,
 
         /// <summary>
-        /// A <see cref="ByteBlob"/> whose bytes are all <see langword="0" />, indicating
+        /// A <see cref="ByteBlobView"/> whose bytes are all <see langword="0" />, indicating
         /// that the bytes are merely used for padding.
         /// </summary>
         Padding,
 
         /// <summary>
-        /// A <see cref="ByteBlob"/> whose bytes are all <see langword="0xCC" />, indicating
+        /// A <see cref="ByteBlobView"/> whose bytes are all <see langword="0xCC" />, indicating
         /// that the bytes are merely used for padding.
         /// </summary>
         CC,
+
+        FF,
+
+        NOP,
+
+        MultiByteNOP,
 
         ImageArchivePad,
 
@@ -57,11 +77,9 @@ namespace PESpy.View
         BitField,
 
         /// <summary>
-        /// A simple <see cref="IValueView"/> that was discovered through an RVA, or is known to exist
-        /// within a larger <see cref="LogicalRegionView"/>.<para/>
-        /// If the <see cref="IValueView"/> contains a <see cref="string"/>, the type will instead be <see cref="String"/>.
+        /// A jump table that has been discovered through data flow analysis
         /// </summary>
-        Value,
+        JumpTable,
 
         /// <summary>
         /// A <see cref="LogicalRegionView"/> that encapsulates one or more strings.
@@ -243,7 +261,8 @@ namespace PESpy.View
 
         /// <summary>
         /// A <see cref="LogicalRegionView"/> that encapsulates the <see cref="ImageImportByName"/> structures (and the padding between them)
-        /// pointed to by the <see cref="ImageThunkData"/> structures of the <see cref="ImportLookupTable"/> in <see cref="ImageImportDescriptor.OriginalFirstThunk"/>.
+        /// pointed to by the <see cref="ImageThunkData"/> structures of the <see cref="ImportLookupTable"/> in <see cref="ImageImportDescriptor.OriginalFirstThunk"/>
+        /// or the <see cref="DelayImportLookupTable"/> in <see cref="ImageDelayLoadDescriptor.ImportNameTableRVA"/>
         /// </summary>
         [Description("Import Strings")]
         ImportStrings,
@@ -534,7 +553,8 @@ namespace PESpy.View
         ImageLoadConfigCodeIntegrity,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageEnclaveConfig"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageEnclaveConfig"/><para/>
+        /// ___enclave_config
         /// </summary>
         ImageEnclaveConfig,
 
@@ -544,22 +564,26 @@ namespace PESpy.View
         ImageEnclaveImport,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardAddressTakenIatEntryTable"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardAddressTakenIatEntryTable"/><para/>
+        /// __guard_iat_table
         /// </summary>
         GuardAddressTakenIatEntryTable,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardCFFunctionTable"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardCFFunctionTable"/>.<para/>
+        /// __guard_fids_table
         /// </summary>
         GuardCFFunctionTable,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardEHContinuationTable"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardEHContinuationTable"/><para/>
+        /// __guard_eh_cont_table
         /// </summary>
         GuardEHContinuationTable,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardLongJumpTargetTable"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardLongJumpTargetTable"/><para/>
+        /// __guard_longjmp_table
         /// </summary>
         GuardLongJumpTargetTable,
 
@@ -573,67 +597,80 @@ namespace PESpy.View
         /// <summary>
         /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
         /// </summary>
-        LockPrefixTable,
+        LockPrefixTable, //Haven't found a PE FIle with this yet so I don't know what the symbol is called
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __security_cookie
         /// </summary>
         SecurityCookie,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/><para/>
+        /// __safe_se_handler_table
         /// </summary>
         SEHandlerTable,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_check_icall_fptr
         /// </summary>
         GuardCFCheckFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_dispatch_icall_fptr
         /// </summary>
         GuardCFDispatchFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_ss_verify_failure_fptr
         /// </summary>
         GuardRFFailureRoutineFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_ss_verify_sp_fptr
         /// </summary>
         GuardRFVerifyStackPointerFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_xfg_check_icall_fptr
         /// </summary>
         GuardXFGCheckFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_xfg_dispatch_icall_fptr
         /// </summary>
         GuardXFGDispatchFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_xfg_table_dispatch_icall_fptr
         /// </summary>
         GuardXFGTableDispatchFunctionPointer,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __castguard_check_failure_os_handled_fptr
         /// </summary>
         CastGuardOsDeterminedFailureMode,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
+        /// __guard_memcpy_fptr<para/>
+        /// Contains a pointer to the memcpy function. <see cref="ImageLoadConfigDirectory.GuardMemcpyFunctionPointer"/> is therefore
+        /// a pointer to a pointer.
         /// </summary>
         GuardMemcpyFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.
         /// </summary>
-        UmaFunctionPointers,
+        UmaFunctionPointers, //Don't know what the symbol name is; haven't found a file with this yet
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageDynamicRelocationTable"/>
@@ -746,13 +783,6 @@ namespace PESpy.View
         DelayImportAddressTable,
 
         DelayUnloadInformationTable,
-
-        /// <summary>
-        /// A <see cref="LogicalRegionView"/> that encapsulates the <see cref="ImageImportByName"/> structures (and the padding between them)
-        /// pointed to by the <see cref="ImageThunkData"/> structures of the <see cref="DelayImportLookupTable"/> in <see cref="ImageDelayLoadDescriptor.ImportNameTableRVA"/>.
-        /// </summary>
-        [Description("Delay Import Strings")]
-        DelayImportStrings,
 
         #endregion
         #region CorHeader Directory (14)
@@ -1364,7 +1394,7 @@ namespace PESpy.View
         TypType,
 
         NumericData,
-        NumericLeafKind, //lfFieldList padding, numeric data
+        LeafKind, //lfFieldList padding, numeric data. Not necessarily part of numeric data however
         NumericValue,
         NumericStringLength,
 
@@ -1379,6 +1409,9 @@ namespace PESpy.View
         CvSignature,
 
         HRFile,
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
         HashBucketsBitmap,
 
         /// <summary>

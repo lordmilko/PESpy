@@ -11,7 +11,7 @@ namespace PESpy
     //then we can use this for copy-on-write when editing PDBs?
     internal unsafe class RemoteMemoryBlock : MemoryBlock
     {
-        private IMemoryReader reader;
+        private IMemoryAccessor memoryAccessor;
 
         private PEFile peFile;
 
@@ -23,13 +23,13 @@ namespace PESpy
             long baseAddress,
             int rva,
             int size,
-            IMemoryReader reader,
+            IMemoryAccessor memoryAccessor,
             IMemoryBlockProvider provider,
             PEFile peFile,
             bool is32Bit) : base(provider)
         {
             RemoteStartOffset = rva;
-            this.reader = reader;
+            this.memoryAccessor = memoryAccessor;
 
 
             mmf = MemoryMappedFile.CreateNew(null, size);
@@ -60,7 +60,7 @@ namespace PESpy
             Is32Bit = is32Bit;
 
             //RVA is either VirtualAddress or PointerToRawData
-            reader.ReadVirtual(baseAddress + rva, (IntPtr) LocalPointer, Length);
+            memoryAccessor.ReadVirtual(baseAddress + rva, (IntPtr) LocalPointer, Length);
         }
 
         public override void Dispose(bool disposing)

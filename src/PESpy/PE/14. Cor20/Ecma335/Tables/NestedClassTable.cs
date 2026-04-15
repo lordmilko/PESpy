@@ -55,7 +55,7 @@
 
         public int GetRowOffset(NestedClassIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public NestedClassRow this[NestedClassIndex index] => GetRow((int) index);
+        public NestedClassRow this[NestedClassIndex index] => GetRowSafe((int) index);
 
         protected override NestedClassRow GetRow(int index) => new NestedClassRow((NestedClassIndex) index, this);
     }

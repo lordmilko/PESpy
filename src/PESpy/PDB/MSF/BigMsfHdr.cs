@@ -13,6 +13,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the BIGMSF_HDR structure used in PDB v7 files.
     /// </summary>
+    [Source(SourceKind.msf_cpp)]
     public readonly partial struct BigMsfHdr : IValue, IViewable
     {
         internal const string BigHdrMagic = "Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0";

@@ -7,6 +7,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents the MSF_HDR structure used in PDB v2 files.
     /// </summary>
+    [Source(SourceKind.msf_cpp)]
     public readonly partial struct MsfHdr : IValue, IViewable
     {
         internal const string HdrMagic = "Microsoft C/C++ program database 2.00\r\n\u001aJG\0\0";

@@ -43,7 +43,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(ImportScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ImportScopeRow this[ImportScopeIndex index] => GetRow((int) index);
+        public ImportScopeRow this[ImportScopeIndex index] => GetRowSafe((int) index);
 
         protected override ImportScopeRow GetRow(int index) => new ImportScopeRow((ImportScopeIndex) index, this);
     }

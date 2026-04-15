@@ -38,7 +38,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(StandAloneSigIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public StandAloneSigRow this[StandAloneSigIndex index] => GetRow((int) index);
+        public StandAloneSigRow this[StandAloneSigIndex index] => GetRowSafe((int) index);
 
         protected override StandAloneSigRow GetRow(int index) => new StandAloneSigRow((StandAloneSigIndex) index, this);
     }

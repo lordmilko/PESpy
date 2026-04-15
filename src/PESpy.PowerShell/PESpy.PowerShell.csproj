@@ -6,7 +6,12 @@
   <PropertyGroup>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\SymHelp\src\SymHelp\Symbols\NameMatcher.cs" Link="NameMatcher.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
@@ -17,6 +22,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PESpy\PESpy.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="PESpy.psd1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="PESpy.Types.ps1xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

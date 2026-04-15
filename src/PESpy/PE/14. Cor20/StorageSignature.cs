@@ -8,6 +8,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="STORAGESIGNATURE"/> type that is pointed to by <see cref="IMAGE_COR20_HEADER.MetaData"/>.
     /// </summary>
+    [Source(SourceKind.mdfileformat_h)]
     public readonly struct StorageSignature : IValue, IViewable
     {
         public const uint STORAGE_MAGIC_SIG = 0x424A5342; //BSJB

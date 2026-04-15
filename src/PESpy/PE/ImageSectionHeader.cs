@@ -18,8 +18,8 @@ namespace PESpy
         private const int VirtualAddressOffset = 12;
         private const int SizeOfRawDataOffset = 16;
         private const int PointerToRawDataOffset = 20;
-        private const int PointerToRelocationsOffset = 24;
-        private const int PointerToLineNumbersOffset = 28;
+        internal const int PointerToRelocationsOffset = 24;
+        internal const int PointerToLineNumbersOffset = 28;
         private const int NumberOfRelocationsOffset = 32;
         private const int NumberOfLineNumbersOffset = 34;
         private const int CharacteristicsOffset = 36;

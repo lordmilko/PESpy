@@ -8,8 +8,8 @@ using PESpy.View;
 
 namespace PESpy
 {
-    
-        public static unsafe IView CreateStructView(ViewKind kind, in MemoryChunk chunk, ViewWriter viewWriter, bool isSplit = false)
+    class ViewProvider
+    {
         public static unsafe IView CreateStructView(ViewKind kind, int length, in MemoryChunk chunk, ViewWriter viewWriter, bool isSplit = false)
         {
             return kind switch
@@ -776,6 +776,38 @@ namespace PESpy
             return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(0, length), kind);
         }
 
+        private static IStructView GetBundleFileEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var files = peFile.AppHostSignature.BundleHeaderOffset.Value.Files;
+
+            foreach (var file in files)
+            {
+                if (file.Offset == chunk.AbsoluteOffset)
+                    return Write(file, viewWriter);
+            }
+
+            throw new InvalidOperationException($"Failed to find the file entry associated with offset '0x{chunk.AbsoluteOffset:X}'");
+        }
+
+        private static IStructView GetBundleFileEntryFixed(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var peFile = chunk.PEFile();
+
+            var files = peFile.AppHostSignature.BundleHeaderOffset.Value.Files;
+
+            foreach (var file in files)
+            {
+                var header = file.Header;
+
+                if (header.Offset == chunk.AbsoluteOffset)
+                    return Write(file, viewWriter);
+            }
+
+            throw new InvalidOperationException($"Failed to find the file entry associated with offset '0x{chunk.AbsoluteOffset:X}'");
+        }
+
         private static IStructView GetCoffSymbolTable(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var peFile = chunk.PEFile();
@@ -800,13 +832,11 @@ namespace PESpy
             return Write(peFile.DotNetRuntimeDebugHeader, viewWriter);
         }
 
-            foreach (var file in files)
-            {
-                if (file.Offset == chunk.AbsoluteOffset)
-                    return Write(file, viewWriter);
-            }
-
+        private static IStructView GetImageSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
             throw new NotImplementedException();
+        }
+
         private static IStructView GetImageResourceDirectory(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var peFile = chunk.PEFile();
@@ -834,6 +864,12 @@ namespace PESpy
 
                         queue.Enqueue(directory);
                     }
+                }
+            }
+
+            throw new InvalidOperationException($"Failed to find the {nameof(ImageResourceDirectory)} associated with address '0x{chunk.AbsoluteOffset:X}'");
+        }
+
         private static IStructView GetImageResourceDirectoryEntry(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var peFile = chunk.PEFile();
@@ -958,7 +994,10 @@ namespace PESpy
         private static ImageDebugDirectory GetDebugDirectory(in MemoryChunk chunk, ViewWriter viewWriter, IMAGE_DEBUG_TYPE type)
         {
             var peFile = chunk.PEFile();
-            Debug.Assert(!peFile.IsLoadedImage);
+
+            //Regardless of whether we're presenting as virtual or not, the MemoryChunk is going to be virtual based if we're loaded
+            //and physical based if we're not
+
             var debugTable = peFile.DebugTable;
             var fileRelativeChunkOffset = chunk.AbsoluteOffset - peFile.Offset;
 
@@ -966,7 +1005,9 @@ namespace PESpy
             {
                 ref var entry = ref debugTable[i];
 
-                if (entry.Type == type && entry.PointerToRawData == fileRelativeChunkOffset)
+                var target = peFile.IsLoadedImage ? entry.AddressOfRawData : entry.PointerToRawData;
+
+                if (entry.Type == type && target == fileRelativeChunkOffset)
                 {
                     return entry;
                 }
@@ -993,6 +1034,65 @@ namespace PESpy
 
             return Write(ecmaMetadata.Header, viewWriter);
         }
+
+        private static EcmaMetadata GetEcmaMetadata(in MemoryChunk chunk)
+        {
+            var file = chunk.File();
+
+            if (file.Kind == FileKind.PE)
+            {
+                //There are several locations in PE Files that contain EcmaMetadata, depending on whether it's a managed, NGEN or single file app
+
+                var peFile = (PEFile) file;
+                var fileRelativeChunkOffset = chunk.AbsoluteOffset - peFile.Offset;
+
+                //todo: make virtual
+                Debug.Assert(!peFile.IsLoadedImage);
+
+                var cor20Header = peFile.Cor20Header;
+
+                if (cor20Header != null && peFile.TryGetDirectoryOffset(cor20Header.Metadata, out var offset, false) && (fileRelativeChunkOffset >= offset && fileRelativeChunkOffset < offset + cor20Header.Metadata.Size))
+                {
+                    return peFile.EcmaMetadata;
+                }
+
+                var ngenHeader = peFile.NgenHeader;
+
+                if (ngenHeader != null && peFile.TryGetDirectoryOffset(ngenHeader.ManifestMetaData, out offset, false) && (fileRelativeChunkOffset >= offset && fileRelativeChunkOffset < offset + ngenHeader.ManifestMetaData.Size))
+                {
+                    throw new NotImplementedException();
+                }
+
+                //If we're a nested file, we should not be given the top level PEFile; the caller should have given us the correct PEFile
+                throw new InvalidOperationException($"Failed to find the {nameof(EcmaMetadata)} associated with offset '0x{chunk.AbsoluteOffset:X}'");
+            }
+            else if (file.Kind == FileKind.PortablePDB)
+            {
+                throw new NotImplementedException();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
+
+        private static IStructView GetStreamTable(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            //Is it the main stream table or the previous stream table?
+
+            var pdbFile = chunk.PDBFile();
+
+            var streamTable = pdbFile.StreamTable;
+
+            if (streamTable.Offset != chunk.AbsoluteOffset)
+            {
+                streamTable = pdbFile.PreviousStreamTable;
+
+                if (streamTable == null || streamTable.Offset != chunk.AbsoluteOffset)
+                    throw new InvalidOperationException($"Failed to find the {nameof(IStreamTable)} associated with offset '0x{chunk.AbsoluteOffset:X}'");
+            }
+
+            return Write(streamTable, viewWriter);
         }
+    }
 }

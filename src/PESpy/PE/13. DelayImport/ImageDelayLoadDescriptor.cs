@@ -62,9 +62,9 @@ namespace PESpy
             }
         }
 
-        private RVA<ImageThunkData[]> importAddressTableRVA;
+        private RVA<ImageThunkDataList> importAddressTableRVA;
 
-        public RVA<ImageThunkData[]> ImportAddressTableRVA
+        public RVA<ImageThunkDataList> ImportAddressTableRVA
         {
             get
             {
@@ -80,9 +80,9 @@ namespace PESpy
             }
         }
 
-        private RVA<ImageThunkData[]> importNameTableRVA;
+        private RVA<ImageThunkDataList> importNameTableRVA;
 
-        public RVA<ImageThunkData[]> ImportNameTableRVA
+        public RVA<ImageThunkDataList> ImportNameTableRVA
         {
             get
             {
@@ -100,9 +100,9 @@ namespace PESpy
 
         public int BoundImportAddressTableRVA => chunk.PeekInt32(BoundImportAddressTableRVAOffset);
 
-        private RVA<ImageThunkData[]> unloadInformationTable;
+        private RVA<ImageThunkDataList> unloadInformationTable;
 
-        public RVA<ImageThunkData[]> UnloadInformationTable
+        public RVA<ImageThunkDataList> UnloadInformationTable
         {
             get
             {
@@ -173,7 +173,7 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteValues(ImportAddressTableRVA.Value);
+                r.WriteValues<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(ImportAddressTableRVA.Value);
             }
 
             if (ImportNameTableRVA.IsValid && ImportNameTableRVA.ListedOffset != 0)
@@ -190,7 +190,7 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteValues(ImportNameTableRVA.Value);
+                r.WriteValues<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(ImportNameTableRVA.Value);
             }
 
             if (UnloadInformationTable.IsValid && UnloadInformationTable.ListedOffset != 0)
@@ -207,7 +207,7 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteValues(UnloadInformationTable.Value);
+                r.WriteValues<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(UnloadInformationTable.Value);
             }
         }
 
@@ -233,11 +233,11 @@ namespace PESpy
                     break;
 
                 case 3:
-                    structWriter.WriteRVAField(nameof(ImportAddressTableRVA), ImportAddressTableRVAOffset, ImportAddressTableRVA);
+                    structWriter.WriteRVAField<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(nameof(ImportAddressTableRVA), ImportAddressTableRVAOffset, ImportAddressTableRVA);
                     break;
 
                 case 4:
-                    structWriter.WriteRVAField(nameof(ImportNameTableRVA), ImportNameTableRVAOffset, ImportNameTableRVA);
+                    structWriter.WriteRVAField<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(nameof(ImportNameTableRVA), ImportNameTableRVAOffset, ImportNameTableRVA);
                     break;
 
                 case 5:
@@ -245,7 +245,7 @@ namespace PESpy
                     break;
 
                 case 6:
-                    structWriter.WriteRVAField(nameof(UnloadInformationTable), UnloadInformationTableOffset, UnloadInformationTable);
+                    structWriter.WriteRVAField<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(nameof(UnloadInformationTable), UnloadInformationTableOffset, UnloadInformationTable);
                     break;
 
                 case 7:

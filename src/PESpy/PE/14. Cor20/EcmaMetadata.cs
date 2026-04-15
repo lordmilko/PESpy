@@ -5,8 +5,12 @@ using static PESpy.StorageStream;
 
 namespace PESpy
 {
-    //This type does not have a well-known native struct declaration
-    //EMCA-335 II.24.2
+    /// <summary>
+    /// Encapsulates the data structures used to define ECMA-335 Metadata<para/>
+    /// This wrapper type does not have a well-known native struct declaration<para/>
+    /// EMCA-335 II.24.2
+    /// </summary>
+    [Source(SourceKind.Synthetic)]
     public class EcmaMetadata : IValue, IViewable
     {
         public StorageSignature Signature { get; }

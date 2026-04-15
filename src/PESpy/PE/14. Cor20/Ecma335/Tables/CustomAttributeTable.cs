@@ -94,7 +94,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public CustomAttributeRow this[CustomAttributeIndex index] => GetRow((int) index);
+        public CustomAttributeRow this[CustomAttributeIndex index] => GetRowSafe((int) index);
 
         protected override CustomAttributeRow GetRow(int index) => new CustomAttributeRow((CustomAttributeIndex) index, this);
     }

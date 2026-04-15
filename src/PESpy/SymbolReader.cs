@@ -29,41 +29,42 @@ namespace PESpy
         {
             if (symbolAccessor is ExternalFileSymbolAccessor e && e.GetUnderlyingSymbolAccessorUnsafe() is PDBFileSymbolAccessor p)
             {
-                symbolReader = new SymbolReader(peFile, p);
-                return true;
+                var publicSymbols = p.PDBFile.PSGSI?.Symbols;
+
+                //Managed PDBs don't have symbols
+                if (publicSymbols != null)
+                {
+                    symbolReader = new SymbolReader(peFile, p.PDBFile, publicSymbols);
+                    return true;
+                }
             }
 
             symbolReader = default;
             return false;
         }
 
-        private unsafe SymbolReader(PEFile peFile, PDBFileSymbolAccessor symbolAccessor)
+        private unsafe SymbolReader(PEFile peFile, PDBFile pdbFile, GlobalSymTypeList symbols)
         {
-            var psgsi = symbolAccessor.PDBFile.PSGSI;
+            using var builder = new Builder(peFile);
 
-            if (psgsi != null)
-            {
-                using var builder = new Builder(peFile);
+            builder.InitializeFromPDB(pdbFile, symbols);
 
-                builder.InitializeFromPDB(symbolAccessor.PDBFile, psgsi);
+            if (builder._vftableInfos.Count > 0)
+                Vftables = builder._vftableInfos.ToArray();
 
-                if (builder._vftableInfos.Count > 0)
-                    Vftables = builder._vftableInfos.ToArray();
+            NullTerminatedUtf8Strings = builder._nullTerminatedUtf8Strings.ToArray();
+            NullTerminatedUtf16Strings = builder._nullTerminatedUtf16Strings.ToArray();
 
-                NullTerminatedUtf8Strings = builder._nullTerminatedUtf8Strings.ToArray();
-                NullTerminatedUtf16Strings = builder._nullTerminatedUtf16Strings.ToArray();
+            FixedUtf8Strings = builder._fixedUtf8Strings.ToArray();
+            FixedUtf16Strings = builder._fixedUtf16Strings.ToArray();
 
-                FixedUtf8Strings = builder._fixedUtf8Strings.ToArray();
-                FixedUtf16Strings = builder._fixedUtf16Strings.ToArray();
+            if (builder._rttiCompleteObjectLocators.Count > 0)
+                RTTICompleteObjectLocators = builder._rttiCompleteObjectLocators.ToArray();
 
-                if (builder._rttiCompleteObjectLocators.Count > 0)
-                    RTTICompleteObjectLocators = builder._rttiCompleteObjectLocators.ToArray();
+            Floats = builder._real8.ToArray();
+            Doubles = builder._real16.ToArray();
 
-                Floats = builder._real8.ToArray();
-                Doubles = builder._real16.ToArray();
-
-                NativeAOTModules = builder._nativeAOTModules;
-            }
+            NativeAOTModules = builder._nativeAOTModules;
         }
 
         public ref struct Builder
@@ -94,12 +95,12 @@ namespace PESpy
                 _imageBase = _peFile.OptionalHeader.ImageBase;
             }
 
-            internal unsafe void InitializeFromPDB(PDBFile pdbFile, MsfStream.PSGSI psgsi)
+            internal unsafe void InitializeFromPDB(PDBFile pdbFile, GlobalSymTypeList symbols)
             {
                 SymType nativeAOTModulesA = default;
                 SymType nativeAOTModulesZ = default;
 
-                foreach (var symType in psgsi.Symbols)
+                foreach (var symType in symbols)
                 {
                     if (!symType.TryGetName(out var name, pdbFile))
                         return;

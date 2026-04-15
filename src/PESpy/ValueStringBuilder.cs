@@ -3,11 +3,13 @@
 
 using System;
 using System.Buffers;
+#if !NET
+using System.Buffers.Text;
+#endif
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using PESpy;
 
 #nullable enable
 
@@ -17,9 +19,10 @@ namespace PESpy
     /// Represents a non-allocating string builder capable of being backed
     /// by either stack memory or a rented array.
     /// </summary>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public ref partial struct ValueStringBuilder
     {
-        private string DebuggerDisplay => ToString();
+        private string DebuggerDisplay => ToString().Replace("\0", "\\0");
 
         private char[]? _arrayToReturnToPool;
         private Span<char> _chars;
@@ -232,6 +235,48 @@ namespace PESpy
             _pos = pos;
         }
 
+        public unsafe void Append(float value)
+        {
+            //The real max is less than 40 but this'll do
+            const int max = 40;
+            EnsureCapacity(Length + max);
+
+#if NET
+            var result = value.TryFormat(_chars.Slice(Length), out var charsWritten);
+            Debug.Assert(result);
+
+            _pos += charsWritten;
+#else
+            byte* pBuffer = stackalloc byte[max];
+            var buffer = new Span<byte>(pBuffer, max);
+
+            var result = Utf8Formatter.TryFormat(value, buffer, out var bytesWritten);
+            Debug.Assert(result);
+            Append(buffer.Slice(0, bytesWritten));
+#endif
+        }
+
+        public unsafe void Append(double value)
+        {
+            //The real max is less than 40, like float, but this'll do
+            const int max = 80;
+            EnsureCapacity(Length + max);
+
+#if NET
+            var result = value.TryFormat(_chars.Slice(Length), out var charsWritten);
+            Debug.Assert(result);
+
+            _pos += charsWritten;
+#else
+            byte* pBuffer = stackalloc byte[max];
+            var buffer = new Span<byte>(pBuffer, max);
+
+            var result = Utf8Formatter.TryFormat(value, buffer, out var bytesWritten);
+            Debug.Assert(result);
+            Append(buffer.Slice(0, bytesWritten));
+#endif
+        }
+
         public void Remove(int startIndex, int length)
         {
             if (length > Length - startIndex)
@@ -272,7 +317,76 @@ namespace PESpy
             }
         }
 
-        public void AppendRightPadded(string? s, int padRight, char c = ' ')
+        private static string[] units =
+        {
+            "B",
+            "KB",
+            "MB",
+            "GB",
+            "TB"
+        };
+
+        public unsafe void AppendSize(double size, bool forceDecimal = false)
+        {
+            if (size < 0)
+                throw new ArgumentException("Size cannot be negative");
+
+            if (size < 1024)
+            {
+                Append((long) size);
+                Append(" B");
+                return;
+            }
+
+            var i = 0;
+
+            while (size >= 1024 && i < units.Length - 1)
+            {
+                size /= 1024;
+                i++;
+            }
+
+            //The real max is less than 40, like float, but this'll do
+            const int max = 80;
+
+            //F2 means always have 2 decimal places (1 -> 1.00)
+            //0.## will trim trailing 0's
+
+#if NET
+            EnsureCapacity(Length + max);
+            var result = size.TryFormat(_chars.Slice(Length), out var charsWritten, forceDecimal ? "F2" : "0.##");
+            Debug.Assert(result);
+
+            _pos += charsWritten;
+#else
+
+
+            byte* pBuffer = stackalloc byte[max];
+            var buffer = new Span<byte>(pBuffer, max);
+
+            var result = Utf8Formatter.TryFormat(size, buffer, out var bytesWritten, new StandardFormat('F', 2));
+            Debug.Assert(result);
+            var str = buffer.Slice(0, bytesWritten);
+
+            i = str.Length - 1;
+
+            while (i > 0 && str[i] == '0')
+                i--;
+
+            if (str[i] == '.')
+                i--;
+
+            Append(buffer.Slice(0, i + 1));
+#endif
+
+            Append(' ');
+            Append(units[i]);
+        }
+
+        //We don't want to call this "AppendRightPadded" or any other name with
+        //another "P" in the word as that often causes intellisense to get messed up
+        //and recommend this method over Append (e.g. you type AP)
+        public void AppendRight(string? s, int padRight, char c = ' ')
         {
             if (s == null)
                 return;
@@ -546,10 +660,68 @@ namespace PESpy
                 if (index == -1)
                     break;
 
-                indices.Add(pos + index);
+                var matchIndex = pos + index;
+                indices.Add(matchIndex);
 
-                pos = index + oldValue.Length;
+                pos = matchIndex + oldValue.Length;
             }
+
+            if (indices.Count == 0)
+                return;
+
+            if (newValue.Length > oldValue.Length)
+            {
+                var extraBytesPerItem = newValue.Length - oldValue.Length;
+                var numNewChars = extraBytesPerItem * indices.Count;
+                var originalLength = Length;
+                EnsureCapacity(originalLength + numNewChars);
+                _pos += numNewChars;
+
+                var chars = _chars;
+
+                var shiftRemaining = numNewChars;
+
+                for (var i = indices.Count - 1; i >= 0; i--)
+                {
+                    var valueToReplaceStartIndex = indices[i];
+                    var valueToReplaceLength = oldValue.Length;
+
+                    var valueToReplace = chars.Slice(valueToReplaceStartIndex, valueToReplaceLength);
+
+                    var contentAfterValueStartIndex = valueToReplaceStartIndex + valueToReplaceLength;
+                    var contentAfterValueLength = (i < indices.Count - 1 ? indices[i + 1] : originalLength) - contentAfterValueStartIndex;
+
+                    var contentAfterValue = chars.Slice(contentAfterValueStartIndex, contentAfterValueLength);
+
+                    if (contentAfterValueLength > 0)
+                    {
+                        contentAfterValue.CopyTo(chars.Slice(contentAfterValueStartIndex + shiftRemaining));
+#if DEBUG
+                        //For debugging
+                        //contentAfterValue.Clear();
+#endif
+                    }
+
+                    shiftRemaining -= extraBytesPerItem;
+                    var newValueRegion = chars.Slice(valueToReplaceStartIndex + shiftRemaining, newValue.Length);
+                    newValue.CopyTo(newValueRegion);
+
+#if DEBUG
+                    //For debugging
+                    //valueToReplace.Clear();
+#endif
+                    
+                }
+            }
+            else if (newValue.Length == oldValue.Length)
+            {
+                //Overwrite each occurrence with the new value
+
+                for (var i = 0; i < indices.Count; i++)
+                    newValue.CopyTo(overallSpan.Slice(indices[i], newValue.Length));
+            }
+            else
+            {
                 //Write the new values directly. We can immediately start by writing the first value over
                 //the first match
 

@@ -5,6 +5,14 @@ using PESpy.View;
 
 namespace PESpy
 {
+    /// <summary>
+    /// Represents the <see cref="Native.CLR_ENGINE_METRICS"/> type used to provide
+    /// debuggers with the <see cref="CorDebugInterfaceVersion"/> and location of the g_hContinueStartupEvent
+    /// event required to attach a debugger during early .NET Core process startup.<para/>
+    /// This data structure is exported as "g_CLREngineMetrics" at ordinal 2 in coreclr.dll and
+    /// the single file apphost (singlefileapp.exe)
+    /// </summary>
+    [Source(SourceKind.dbgenginemetrics_h)]
     public class ClrEngineMetrics : IValue, IViewable
     {
         private const int SizeOffset = 0;

@@ -22,11 +22,14 @@ namespace PESpy
 
         private int _length;
         private SafeWinHttpHandle _hRequest;
+        private int totalRead;
+        private ILocatorProgress? _progress;
 
-        internal WinHttpResponseStream(SafeWinHttpHandle hRequest, int length)
+        internal WinHttpResponseStream(SafeWinHttpHandle hRequest, int length, ILocatorProgress? progress)
         {
             _hRequest = hRequest;
             _length = length;
+            _progress = progress;
         }
 
         public override void Flush() => throw new NotSupportedException();
@@ -53,6 +56,12 @@ namespace PESpy
 
                 if (!result)
                     return 0;
+
+                totalRead += numBytesRead;
+
+                var percent = (double) totalRead / _length * 100;
+
+                _progress?.Notify(LocatorProgressEventArgs.CreateCopyCascadeProgress(percent, totalRead, (int) _length));
 
                 return numBytesRead;
             }

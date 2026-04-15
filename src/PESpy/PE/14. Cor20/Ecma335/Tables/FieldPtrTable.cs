@@ -30,7 +30,7 @@
 
         public int GetRowOffset(FieldPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldPtrRow this[FieldPtrIndex index] => GetRow((int) index);
+        public FieldPtrRow this[FieldPtrIndex index] => GetRowSafe((int) index);
 
         protected override FieldPtrRow GetRow(int index) => new FieldPtrRow((FieldPtrIndex) index, this);
     }

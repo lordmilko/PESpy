@@ -5,6 +5,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //SI_PERSIST
+    [Source(SourceKind.msf_cpp)]
     public readonly struct SI_PERSIST : IViewableValue
     {
         private const int ByteCountOffset = 0;

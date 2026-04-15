@@ -20,7 +20,7 @@
 
         public int GetRowOffset(AssemblyProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyProcessorRow this[AssemblyProcessorIndex index] => GetRow((int) index);
+        public AssemblyProcessorRow this[AssemblyProcessorIndex index] => GetRowSafe((int) index);
 
         protected override AssemblyProcessorRow GetRow(int index) => new AssemblyProcessorRow((AssemblyProcessorIndex) index, this);
     }

@@ -4,7 +4,6 @@
     {
         Strings = 1,
         LogicalRegion,
-        ImportFunctionNames,
-        DelayImportFunctionNames
+        ImportFunctionNames
     }
 }

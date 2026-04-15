@@ -82,7 +82,7 @@
 
         public int GetRowOffset(PropertyMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public PropertyMapRow this[PropertyMapIndex index] => GetRow((int) index);
+        public PropertyMapRow this[PropertyMapIndex index] => GetRowSafe((int) index);
 
         protected override PropertyMapRow GetRow(int index) => new PropertyMapRow((PropertyMapIndex) index, this);
     }

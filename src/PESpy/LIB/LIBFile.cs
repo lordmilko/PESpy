@@ -247,7 +247,10 @@ namespace PESpy
             ImportLibrary = imports.ToArray();
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
+        public FileView GetView(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default)
         {
             var writer = new LIBViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -257,7 +260,10 @@ namespace PESpy
 
         internal LIBFileBuilder ToBuilder() => new LIBFileBuilder(this);
 
-        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, isLibFile: true);
 

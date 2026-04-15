@@ -14,6 +14,7 @@ namespace PESpy.PDB
         private const int reclenOffset = 0;
         private const int rectypOffset = 2;
         private const int flagsOffset = 4;
+        private const int rgszOffset = 5;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly ENVBLOCKSYM* value;
@@ -84,7 +85,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(Strings.ENVBLOCKSYM, this, ViewKind.EnvBlockSym, SymType.GetSymbolLength((SYMTYPE*) value, writer.GetSymbolAccessor()));
 
-        int IViewable.NumChildren() => 4;
+        int IViewable.NumChildren() => 5;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -109,6 +110,10 @@ namespace PESpy.PDB
                     break;
 
                 #endregion
+
+                case 4:
+                    structWriter.WriteNullTerminatedField(nameof(rgsz), rgszOffset, rgsz);
+                    break;
 
                 default:
                     throw new IndexOutOfRangeException();

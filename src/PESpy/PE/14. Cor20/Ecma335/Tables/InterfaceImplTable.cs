@@ -71,7 +71,7 @@
 
         public int GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public InterfaceImplRow this[InterfaceImplIndex index] => GetRow((int) index);
+        public InterfaceImplRow this[InterfaceImplIndex index] => GetRowSafe((int) index);
 
         protected override InterfaceImplRow GetRow(int index) => new InterfaceImplRow((InterfaceImplIndex) index, this);
     }

@@ -104,7 +104,7 @@
 
         public int GetRowOffset(EventMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public EventMapRow this[EventMapIndex index] => GetRow((int) index);
+        public EventMapRow this[EventMapIndex index] => GetRowSafe((int) index);
 
         protected override EventMapRow GetRow(int index) => new EventMapRow((EventMapIndex) index, this);
     }

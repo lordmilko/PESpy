@@ -267,9 +267,10 @@ namespace PESpy.PDB
             else
             {
                 //If the symbol we matched against was the last symbol in the given section before the section we're actually after,
-                //we need to advance to the first symbol in the next section
+                //we need to advance to the first symbol in the next section. Note that we don't accept the .Base symbol as a match,
+                //so if we've hit that we need to skip over it
 
-                while (itemSeg < sectionNumber)
+                while (itemSeg < sectionNumber || IsBaseThunkIndex(low))
                 {
                     low++;
 
@@ -283,9 +284,6 @@ namespace PESpy.PDB
                     item = GetVirtualSymbol(low);
 
                     item.TryGetOffSeg(out _, out itemSeg);
-
-                    if (itemSeg == sectionNumber)
-                        break;
 
                     if (itemSeg > sectionNumber)
                     {
@@ -302,7 +300,9 @@ namespace PESpy.PDB
             //the section being different in calculating the displacement
 
             symType.TryGetOffSeg(out var resultOff, out var resultSeg);
-            Debug.Assert(sectionNumber == resultSeg);
+
+            //PSGSI::NearestSym doesn't seem to do -1 stuff; when we wanted off/seg 0/0 and got 0/1 the displacement
+            //was still 0. And when we had 1/0 and got 1/1 the displacement was 1, so it seems like the section is ignored
             displacement = relativeOffset - resultOff; //The symbol we match against will always be <= our requested symbol
             return true;
         }

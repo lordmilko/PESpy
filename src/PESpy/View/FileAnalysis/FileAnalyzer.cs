@@ -268,7 +268,7 @@ namespace PESpy.View
 
             _cancellationToken.ThrowIfCancellationRequested();
 
-            var symbolAccessor = _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress);
+            var symbolAccessor = _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress, _cancellationToken);
 
             Log(FileAnalyzerProgressPhase.ProcessSymbols);
 
@@ -807,6 +807,8 @@ namespace PESpy.View
         {
             Log(FileAnalyzerProgressPhase.WorkDisasmQueue);
 
+            _cancellationToken.ThrowIfCancellationRequested();
+
             var disassembler = _fileDisassembler;
 
             if (disassembler == null)
@@ -828,7 +830,7 @@ namespace PESpy.View
                 {
                     try
                     {
-                        disassembler.WorkThreadProc(_fileAccessor, importMap, _globalWorkQueue, _globalWorkQueueLock, numThreads);
+                        disassembler.WorkThreadProc(_fileAccessor, this, importMap, _globalWorkQueue, _globalWorkQueueLock, numThreads, _cancellationToken);
                     }
                     catch (Exception ex)
                     {
@@ -1153,6 +1155,8 @@ namespace PESpy.View
 
         protected void Finalize(bool expandUnknownData)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             //Important to do this prior to expanding unknown data, as we may discover that a given head
             //actually points to a string
             CollectStrings();
@@ -1191,6 +1195,8 @@ namespace PESpy.View
         private void CollectStrings()
         {
             Log(FileAnalyzerProgressPhase.CollectStrings);
+
+            _cancellationToken.ThrowIfCancellationRequested();
 
             var sectionAccessors = _fileAccessor.SectionAccessors;
 
@@ -1287,6 +1293,8 @@ namespace PESpy.View
             public int SectionAddress;
             public ViewByte* SectionStart;
 
+            public int StartAddress => SectionAddress + (int) (pStart - SectionStart);
+
             internal StringRange(ViewByte* pStart, byte* pBytes, int length, int sectionAddress, ViewByte* pSectionStart)
             {
                 this.pStart = pStart;
@@ -1299,91 +1307,113 @@ namespace PESpy.View
 
         private void ExpandUnclaimedCode()
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             var queue = _globalWorkQueue;
 
             var symbolAccessor = _fileAccessor.GetSymbolAccessor();
 
-            //For each address, expand it up to the next item that follows it. We need to be careful however because when we only have
-            //public symbols, we rely on the size of the section contrib to get the length of each method, and this can sometimes (often?)
-            //be incorrect. While we could allocate a new buffer, sort the queue into it, then read it backwards, in practice I feel like
-            //it's probably fine just to write the queue in whatever order its in and then just overwrite body bytes with code as needed.
-            //This only messes up our ability to do reliable asserts
-
-            Parallel.ForEach(queue, item =>
+            if (symbolAccessor is NullSymbolAccessor)
             {
-                if (symbolAccessor.TryGetLengthFromAddress(item.RVA, _fileAccessor as ISectionDataAccessor, out var length))
+                //We're not going to know the length of each item, so we need to at least eagerly tag each item as code
+                
+                foreach (var item in queue)
+                {
+                    var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
+
+                    pViewByte->Kind = ViewByteKind.Code;
+                }
+
+                //Now that we've done that, eagerly expand until we hit something else
+                Parallel.ForEach(queue, item =>
                 {
                     var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
 
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-                    _fileAccessor.GetRawSectionData(sectionAccessor, out var pBytes, out _, out _);
-                    pBytes += (pViewByte - sectionAccessor.pViewBytes);
                     var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
-                    var end = (ViewByte*) Math.Min((long) (pViewByte + length), (long) limit);
 
                     //If we erroneously detected this sequence of bytes as being a string, we need to convert it back to code
                     //and skip over its bytes before we continue eating regular bytes
 
-                    if (pViewByte->Kind == ViewByteKind.Data && (pViewByte->DataKind == ViewByteDataKind.String || pViewByte->DataKind == ViewByteDataKind.Unknown))
+                Parallel.ForEach(queue, item =>
+                {
+                    if (symbolAccessor.TryGetLengthFromAddress(item.RVA, _fileAccessor as ISectionDataAccessor, out var length))
                     {
-                        pViewByte->DataKind = default;
-                        pViewByte->Kind = ViewByteKind.Code;
-                        pViewByte++;
+                        var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
+                        var start = pViewByte;
+
+                        ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+                        var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                        var end = (ViewByte*) Math.Min((long) (pViewByte + length), (long) limit);
+
+                        //If we erroneously detected this sequence of bytes as being a string, we need to convert it back to code
+                        //and skip over its bytes before we continue eating regular bytes
+
+                        if (pViewByte->Kind == ViewByteKind.Data && (pViewByte->DataKind == ViewByteDataKind.String || pViewByte->DataKind == ViewByteDataKind.Unknown))
+                        {
+                            pViewByte->DataKind = default;
+                            pViewByte->Kind = ViewByteKind.Code;
+                            pViewByte++;
+
+                            while (pViewByte < end)
+                            {
+                                if (pViewByte->Kind != ViewByteKind.Body)
+                                    break;
+
+                                pViewByte++;
+                            }
+                        }
+                        else
+                        {
+                            //We allow any type _but_ Data here
+                            Debug.Assert(pViewByte->Kind != ViewByteKind.Data); //Kind may aleady be code if we ran into an unknown other than body above
+                            pViewByte->Kind = ViewByteKind.Code;
+
+                            pViewByte++;
+                        }
 
                         while (pViewByte < end)
                         {
-                            if (pViewByte->Kind != ViewByteKind.Body)
-                                break;
+                            //In the event we're dealing with public symbols, and we only had a section contrib to tell us our length,
+                            //if we're in the same section contrib and have to change the Kind from Body to Code above, we expect
+                            //our length will go to the end of the same section contrib as well, thus I think it's safe to abort early
+                            if (pViewByte->Kind != ViewByteKind.Unknown)
+                            {
+                                if (pViewByte->Kind == ViewByteKind.Data)
+                                {
+                                    if (pViewByte->DataKind == ViewByteDataKind.String)
+                                    {
+                                        //Get rid of this string
+                                        pViewByte->DataKind = default;
+                                    }
+                                }
+                                else if (pViewByte->Kind == ViewByteKind.Code)
+                                    break; //e.g. the previous function ended with a jmp and the next function started right after it
+                            }
+                            else
+                            {
+                                if (pViewByte->IsFunction)
+                                    break; //There's a function that hasn't been claimed yet; it should still be in the queue
+                            }
 
+                            pViewByte->Kind = ViewByteKind.Body;
                             pViewByte++;
+                            Debug.Assert(pViewByte >= end || pViewByte->BodyKind == ViewByteBodyKind.None);
+                        }
+
+                        if (end < limit && end->Kind == ViewByteKind.Body)
+                        {
+                            //I'm going to assume we just wrote in the middle of a Data Unknown area. Set the next byte to be Data Unknown too
+                            end->Kind = ViewByteKind.Data;
+                            end->DataKind = ViewByteDataKind.Unknown;
                         }
                     }
                     else
                     {
-                        //We allow any type _but_ Data here
-                        Debug.Assert(pViewByte->Kind != ViewByteKind.Data); //Kind may aleady be code if we ran into an unknown other than body above
-                        pViewByte->Kind = ViewByteKind.Code;
-
-                        pViewByte++;
+                        Debug.Assert(false, "We were told this address contains code, but we can't get a length for it; what should we do?");
                     }
-
-                    while (pViewByte < end)
-                    {
-                        //In the event we're dealing with public symbols, and we only had a section contrib to tell us our length,
-                        //if we're in the same section contrib and have to change the Kind from Body to Code above, we expect
-                        //our length will go to the end of the same section contrib as well, thus I think it's safe to abort early
-                        if (pViewByte->Kind != ViewByteKind.Unknown)
-                        {
-                            if (pViewByte->Kind == ViewByteKind.Data)
-                            {
-                                if (pViewByte->DataKind == ViewByteDataKind.String)
-                                {
-                                    //Get rid of this string
-                                    pViewByte->DataKind = default;
-                                }
-                            }
-                            else if (pViewByte->Kind == ViewByteKind.Code)
-                                break; //e.g. the previous function ended with a jmp and the next function started right after it
-                        }
-                        else
-                        {
-                            if (pViewByte->IsFunction)
-                                break; //There's a function that hasn't been claimed yet; it should still be in the queue
-                        }
-
-                        pViewByte->Kind = ViewByteKind.Body;
-                        pViewByte++;
-                        Debug.Assert(pViewByte >= end || pViewByte->BodyKind == ViewByteBodyKind.None);
-                    }
-
-                    if (end < limit && end->Kind == ViewByteKind.Body)
-                    {
-                        //I'm going to assume we just wrote in the middle of a Data Unknown area. Set the next byte to be Data Unknown too
-                        end->Kind = ViewByteKind.Data;
-                        end->DataKind = ViewByteDataKind.Unknown;
-                    }
-                }
-            });
+                });
+            }
 
             queue.Clear();
         }

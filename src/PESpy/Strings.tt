@@ -601,8 +601,11 @@ var strings = new[]{
 
     //Symbols
     "__security_cookie",
+    "__safe_se_handler_table",
     "__guard_check_icall_fptr",
     "__guard_dispatch_icall_fptr",
+    "__guard_ss_verify_failure_fptr",
+    "__guard_ss_verify_sp_fptr",
     "__guard_fids_table",
     "__guard_iat_table",
     "__guard_longjmp_table",
@@ -611,6 +614,8 @@ var strings = new[]{
     "__guard_xfg_check_icall_fptr",
     "__guard_xfg_dispatch_icall_fptr",
     "__guard_xfg_table_dispatch_icall_fptr",
+    "__castguard_check_failure_os_handled_fptr",
+    "__guard_memcpy_fptr",
 
     "::<unnamed-tag>",
     "::__unnamed"

@@ -93,10 +93,16 @@ namespace PESpy
 
         int Length { get; }
 
-        FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default);
+        FileView GetView(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default);
 
         //If no symbol accessor could be found, returns the NullSymbolAccessor
-        ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null);
+        ISymbolAccessor GetSymbolAccessor(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default);
     }
 
     internal interface IFileWithCodeViewData

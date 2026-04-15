@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Types>
+    <Type>
+        <Name>PESpy.PEFile</Name>
+        <TypeAdapter>
+            <TypeName>PESpy.PowerShell.Adapters.PEFileAdapter</TypeName>
+        </TypeAdapter>
+    </Type>
+    <Type>
+        <Name>PESpy.PDB.SymType</Name>
+        <TypeAdapter>
+            <TypeName>PESpy.PowerShell.Adapters.SymTypeAdapter</TypeName>
+        </TypeAdapter>
+    </Type>
+</Types>

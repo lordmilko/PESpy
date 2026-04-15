@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
 
@@ -8,6 +7,10 @@ namespace PESpy.NE
     //There are two types: new_seg and new_seg1. Not sure how to know when each one is used. new_seg1 has an additional field:
     //ns_handle
 
+    /// <summary>
+    /// Represents the <see cref="IMAGE_OS2_HEADER"/> structure that identifies a file using the New Executable (NE) format.
+    /// </summary>
+    [Source(SourceKind.winnt_h | SourceKind.newexe_h)] //Also known as new_exe in newexe.h
     public readonly struct ImageOS2Header : IValue, IViewable
     {
         public const ushort IMAGE_OS2_SIGNATURE = 0x454E;    //NE

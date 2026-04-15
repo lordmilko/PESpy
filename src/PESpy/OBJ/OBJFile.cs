@@ -298,7 +298,10 @@ namespace PESpy
             return new RawValue<NativeSpan<byte>>(sectionChunk.AbsoluteOffset, sectionChunk.PeekNativeSpan<byte>(0, sizeOfRawData));
         }
 
-        public unsafe FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
+        public FileView GetView(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default)
         {
             var writer = new OBJViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
@@ -307,7 +310,10 @@ namespace PESpy
         }
 
         //There isn't really "one" symbol accessor; each section may have its own accessor with its own rules
-        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

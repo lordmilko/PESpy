@@ -420,9 +420,8 @@
     "OemId":                                    [],
     "OemSymbolId":                              [],
 
-    //Offset only applies when the LocationType is LocIsRegRel or LocIsBitField. Offsets used by RVA's go in the AddressOffset field
-    //todo: S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE's frame pointer also turns into an offset
-    "Offset":                                   [ { "value": [ ".off", ".offset", ".offFramePointer" ], "condition": [ "LocIsRegRel", "LocIsBitField" ] } ],
+    //Offset only applies when the LocationType is LocIsRegRel, LocIsBitField or if it's a type. Offsets used by RVA's go in the AddressOffset field
+    "Offset":                                   [ { "value": [ ".off", ".offset", ".offFramePointer" ], "condition": [ "LocIsRegRel", "LocIsBitField", "LEAF_ENUM_e" ] } ],
     "OffsetInUdt":                              [],
     "OptimizedCodeDebugInfo":                   [ "CV_PROCFLAGS.CV_PFLAG_OPTDBGINFO" ],
     "Ordinal":                                  [ "EXPORTSYM.ordinal" ],

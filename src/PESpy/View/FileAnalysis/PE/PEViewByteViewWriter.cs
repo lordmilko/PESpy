@@ -205,7 +205,12 @@ namespace PESpy.View
             if (targetOffset == 0)
                 return;
 
-            _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetOffset);
+            //The offsets we're given needs to be converted to ViewMode space. We can't trust
+            //the target, as that may not exist in the current ViewMode
+            TryGetViewOffset(structOffset, out structOffset);
+
+            if (_fileAccessor.TryGetTargetAddress(targetOffset, out var targetAddress, out _))
+                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
         }
 
         public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
@@ -219,7 +224,7 @@ namespace PESpy.View
 
         public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         private ViewByte* RegisterStruct(FixedUtf8String name, int offset, ViewKind kind)
@@ -276,7 +281,7 @@ namespace PESpy.View
                 _currentRegion.End += size;
             }
 
-            var pViewByte = RegisterValueInternal(_fileAccessor, offset, size, kind, out _);
+            var pViewByte = RegisterValueInternal(_fileAccessor, _fileAnalyzer, offset, size, kind, out _);
 
             for (var i = pViewByte + 1; i < pViewByte + size; i++)
                 i->Kind = ViewByteKind.Body;
@@ -286,6 +291,7 @@ namespace PESpy.View
 
         internal static ViewByte* RegisterValueInternal(
             FileAccessor fileAccessor,
+            FileAnalyzer fileAnalyzer,
             int offset,
             int size,
             ViewKind kind,
@@ -356,74 +362,76 @@ namespace PESpy.View
                     throw new System.NotImplementedException();
             }
 
-            return pViewByte;
+            /* Certain values have well known symbol names. We don't want to apply these names if
+             * it turns out we'll have symbols however, as that'll cause us to double up. So instead,
+             * we'll collect a series of "pending" names, and then figure out whether or not we want
+             * to commit them after we know what kind of symbols we have
+             */
 
             switch (kind)
             {
-                //todo: certain data references like the reference to the security cookie do use the actual rva,
-                //regardless of what the physical offset we're using is. this will cause an issue when attempting
-                //to resolve the symbol reference. when we disassembled the code, we set the IP to the physical offset.
-                //so some things are physical relative and others arent?
-                case ViewKind.SecurityCookie:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__security_cookie);
-                    break;
-
-                case ViewKind.GuardCFCheckFunctionPointer:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_check_icall_fptr);
-                    break;
-
-                case ViewKind.GuardCFDispatchFunctionPointer:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_dispatch_icall_fptr);
+                case ViewKind.GuardAddressTakenIatEntryTable:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_iat_table);
                     break;
 
                 case ViewKind.GuardCFFunctionTable:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_fids_table);
-                    break;
-
-                case ViewKind.GuardAddressTakenIatEntryTable:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_iat_table);
-                    break;
-
-                case ViewKind.GuardLongJumpTargetTable:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_longjmp_table);
-                    break;
-
-                case ViewKind.ImageEnclaveConfig:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.___enclave_config);
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_fids_table);
                     break;
 
                 case ViewKind.GuardEHContinuationTable:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_eh_cont_table);
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_eh_cont_table);
+                    break;
+
+                case ViewKind.GuardLongJumpTargetTable:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_longjmp_table);
+                    break;
+
+                case ViewKind.SecurityCookie:
+                    fileAnalyzer.AddPendingName(offset, Strings.__security_cookie);
+                    break;
+
+                case ViewKind.SEHandlerTable:
+                    fileAnalyzer.AddPendingName(offset, Strings.__safe_se_handler_table);
+                    break;
+
+                case ViewKind.GuardCFCheckFunctionPointer:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_check_icall_fptr);
+                    break;
+
+                case ViewKind.GuardCFDispatchFunctionPointer:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_dispatch_icall_fptr);
+                    break;
+
+                case ViewKind.GuardRFFailureRoutineFunctionPointer:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_ss_verify_failure_fptr);
+                    break;
+
+                case ViewKind.GuardRFVerifyStackPointerFunctionPointer:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_ss_verify_sp_fptr);
                     break;
 
                 case ViewKind.GuardXFGCheckFunctionPointer:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_xfg_check_icall_fptr);
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_check_icall_fptr);
                     break;
 
                 case ViewKind.GuardXFGDispatchFunctionPointer:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_xfg_dispatch_icall_fptr);
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_dispatch_icall_fptr);
                     break;
 
                 case ViewKind.GuardXFGTableDispatchFunctionPointer:
-                    _fileAccessor.AddName(offset, pViewByte, Strings.__guard_xfg_table_dispatch_icall_fptr);
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_table_dispatch_icall_fptr);
                     break;
 
-                    /* Additional symbols we need to assign:
-                     *     __safe_se_handler_table
-                     *     @_guard_check_icall_nop@4
-                     *     __guard_dispatch_icall_nop
-                     *     __dynamic_value_reloc_table
-                     *     __chpe_metadata
-                     *     __guard_ss_verify_failure
-                     *     __guard_ss_verify_failure_fptr
-                     *     __guard_ss_verify_sp_fptr
-                     *     __volatile_metadata
-                     *     __guard_xfg_dispatch_icall_nop
-                     *     __castguard_check_failure_os_handled_fptr
-                     */
+                case ViewKind.CastGuardOsDeterminedFailureMode:
+                    fileAnalyzer.AddPendingName(offset, Strings.__castguard_check_failure_os_handled_fptr);
+                    break;
+
+                case ViewKind.GuardMemcpyFunctionPointer:
+                    fileAnalyzer.AddPendingName(offset, Strings.__guard_memcpy_fptr);
+                    break;
             }
 
-            return null;
+            return pViewByte;
         }
 
         public override void WriteDosStub(in ByteBlob byteBlob)

@@ -413,10 +413,12 @@ namespace PESpy.View
                     pStart->DataKind = ViewByteDataKind.String;
                     pStart->IsWide = true;
 
-                    lock (stringAddresses)
-                        stringAddresses.Add(sectionAddress + (int) (pStart - pSectionStart));
+                    var addr = sectionAddress + (int) (pStart - pSectionStart);
 
-                    for (var k = pStart + 1; k < pStart + (length / 2); k++)
+                    lock (stringAddresses)
+                        stringAddresses.Add(addr);
+
+                    for (var k = pStart + 1; k < pStart + length; k++)
                         k->Kind = ViewByteKind.Body;
                 }
 

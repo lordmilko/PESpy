@@ -64,7 +64,7 @@
 
         public int GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public GenericParamConstraintRow this[GenericParamConstraintIndex index] => GetRow((int) index);
+        public GenericParamConstraintRow this[GenericParamConstraintIndex index] => GetRowSafe((int) index);
 
         protected override GenericParamConstraintRow GetRow(int index) => new GenericParamConstraintRow((GenericParamConstraintIndex) index, this);
     }

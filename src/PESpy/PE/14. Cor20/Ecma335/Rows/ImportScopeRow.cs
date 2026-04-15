@@ -16,7 +16,18 @@ namespace PESpy.Ecma335
         public int Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public ImportScopeRow ParentRow => table[Parent];
+        public ImportScopeRow? ParentRow
+        {
+            get
+            {
+                var parent = Parent;
+
+                if (parent.IsNil)
+                    return null;
+
+                return table[parent];
+            }
+        }
 
         private readonly ImportScopeTable table;
 

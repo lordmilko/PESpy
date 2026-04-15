@@ -15,7 +15,7 @@ namespace PESpy.View
         {
             var builder = new StringBuilder();
             WriteRange(builder, view);
-            builder.Append(view.Name);
+            builder.Append(view.Name ?? "<Code>");
 
             return builder.ToString();
         }
@@ -364,7 +364,31 @@ namespace PESpy.View
             var builder = new StringBuilder();
             WriteRange(builder, view);
 
-            if (view.Name.Length > 0)
+            bool ShouldAddName()
+            {
+                if (view.Name.Length == 0)
+                    return false;
+
+                if (view.Value is string ||
+                    view.Value is AnsiString ||
+                    view.Value is FixedAnsiString ||
+                    view.Value is Utf8String ||
+                    view.Value is FixedUtf8String ||
+                    view.Value is Utf16String ||
+                    view.Value is FixedUtf16String ||
+                    view.Value is NullTerminatedString ||
+                    view.Value is SymString)
+                {
+                    if (view.Name.ToString() == view.Value.ToString())
+                        return false;
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (ShouldAddName())
                 builder.Append(view.Name).Append(" = ");
 
             if (view.Kind == ViewKind.ExDllCharacteristics)

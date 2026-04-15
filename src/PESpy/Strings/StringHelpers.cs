@@ -245,7 +245,7 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool StartsWithIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2)
+        public static bool StartsWithIgnoreCase(this ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2)
         {
 #if NET9_0_OR_GREATER
             return str1.StartsWithOrdinalIgnoreCaseUtf8(str2);
@@ -281,6 +281,37 @@ namespace PESpy
         public static bool EndsWithIgnoreCase(byte* str1, byte* str2)
         {
             throw new NotImplementedException();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool EndsWithIgnoreCase(this ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2)
+        {
+            if (str2.Length > str1.Length)
+                return false;
+
+            int offset = str1.Length - str2.Length;
+
+            for (int i = 0; i < str2.Length; i++)
+            {
+                byte a = str1[offset + i];
+                byte b = str2[i];
+
+                if (a == b)
+                    continue;
+
+                // ASCII case fold
+                // 'A'..'Z' -> 'a'..'z'
+                if ((uint) (a - (byte) 'A') <= ('Z' - 'A'))
+                    a = (byte) (a | 0x20);
+
+                if ((uint) (b - (byte) 'A') <= ('Z' - 'A'))
+                    b = (byte) (b | 0x20);
+
+                if (a != b)
+                    return false;
+            }
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

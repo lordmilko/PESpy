@@ -45,7 +45,7 @@ namespace PESpy
 
         private ImageBDDInfo bddInfo;
 
-        public ref readonly ImageBDDInfo BDDInfo
+        public ImageBDDInfo BDDInfo
         {
             get
             {
@@ -59,7 +59,7 @@ namespace PESpy
                     bddInfo = new ImageBDDInfo(chunk.Slice(read));
                 }
 
-                return ref bddInfo;
+                return bddInfo;
             }
         }
 

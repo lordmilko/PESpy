@@ -4,6 +4,9 @@ using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
+
+namespace PESpy.Tests
+{
     struct MarshalStruct
     {
         [MarshalAs(UnmanagedType.LPWStr)]
@@ -132,6 +135,18 @@ using PESpy.Ecma335;
                 Assert.AreEqual(type.RowIndex, field.DeclaringType.Value.RowIndex);
             });
         }
+
+        [TestMethod]
+        public void Ecma335_FieldRow_DefaultValue()
+        {
+            Test(heap =>
+            {
+                //Enum members will be listed here
+                var row = heap.FieldTable.First(v => v.Name.GetString() == "ByteBlob");
+                Assert.AreEqual(3, (int) row.DefaultValueRow.Value.ClrValue);
+            });
+        }
+
         //We're getting a bunch of fields in <PrivateImplementationDetails> but I don't know how to generate these myself
         //Ecma335_FieldRow_RelativeVirtualAddress
 
@@ -320,6 +335,20 @@ using PESpy.Ecma335;
                 Assert.AreEqual(2, module.CustomAttributes.Count);
             });
         }
+
+        #endregion
+        #region ParamRow
+
+        [TestMethod]
+        public void Ecma335_ParamRow_DefaultValue()
+        {
+            Test(heap =>
+            {
+                var row = heap.ParamTable.First(v => v.Name.GetString() == "projectName");
+                Assert.AreEqual("PESpy", row.DefaultValueRow.Value.ClrValue.ToString());
+            });
+        }
+
         [TestMethod]
         public void Ecma335_ParamRow_MarshallingDescriptor()
         {

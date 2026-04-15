@@ -211,6 +211,21 @@ namespace PESpy.PDB
                 case S_TRAMPOLINE:
                     length = ((TrampolineSym) symType).cbThunk;
                     return true;
+
+                default:
+                    //If it's a thing with an off/seg, fallback to probing the section contrib.
+                    //I'm not sure if this goes beyond what DIA does
+                    if (symType.TryGetOffSeg(out var off, out var seg))
+                    {
+                        codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+
+                        if (codeViewAccessor.TryGetSectionContrib(symType, seg, off, out var sc))
+                        {
+                            length = sc.cb - (off - sc.off);
+                            return true;
+                        }
+                    }
+                    break;
             }
 
             length = default;

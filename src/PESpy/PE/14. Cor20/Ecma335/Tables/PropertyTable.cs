@@ -84,7 +84,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(PropertyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public PropertyRow this[PropertyIndex index] => GetRow((int) index);
+        public PropertyRow this[PropertyIndex index] => GetRowSafe((int) index);
 
         protected override PropertyRow GetRow(int index) => new PropertyRow((PropertyIndex) index, this);
     }

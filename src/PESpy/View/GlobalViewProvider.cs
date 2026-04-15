@@ -61,22 +61,49 @@ namespace PESpy.View
             return _numChildren;
         }
 
+#if DEBUG_VIEWENTITY
+        private List<object> _debugEntities = new List<object>();
+#endif
+
         public unsafe void WriteChild(int index, ref StructWriter structWriter)
         {
             var sw = Stopwatch.StartNew();
 
             ViewEntity entity;
-            DirectoryInfo directoryInfo;
+            RegionBuilder directory;
+            NestedFileRange nestedFileRange;
 
             if (index != _nextChild)
-                        if (_fileAccessor.TryGetDirectory(entity.TargetAddress, out directoryInfo))
-                            _entities.MoveTo(directoryInfo.End);
+            {
+                //Construct a new enumerator and fast forward to the specified child
+
+                _entities.Reset();
+
+                for (var i = 0; i < index; i++)
+                {
+                    //We're supposed to know how many children we have
+                    if (!_entities.MoveNext())
+                        throw new InvalidOperationException($"Failed to move to child {index}: ran out of children while processing index {i}. This may potentially indicate a critical error between {nameof(GlobalViewProvider)} and{nameof(ViewEntityIterator)}.");
+
+                    entity = _entities.Current;
+
+                    if (_kind == GlobalViewProviderKind.Global)
+                    {
+                        //An entity that represents the first child of a directory or region could appear at any time,
+                        //so we need to check after each child to see if it's directory time
+
+                        if (_fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+                            _entities.MoveTo(nestedFileRange.EndOffset);
+                        if (_fileAccessor.TryGetDirectory(entity.TargetAddress, _depthAtStartOffset, out directory))
+                            _entities.MoveTo(directory.End);
                         else if (_fileAccessor.TryGetRegion(entity.TargetAddress, _depthAtStartOffset, out var region))
                             _entities.MoveTo(region.End);
                     }
                     else
                     {
-                        if (_fileAccessor.TryGetRegion(entity.TargetAddress, _depthAtStartOffset, out var region))
+                        if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+                            _entities.MoveTo(nestedFileRange.EndOffset);
+                        else if (_fileAccessor.TryGetRegion(entity.TargetAddress, _depthAtStartOffset, out var region))
                             _entities.MoveTo(region.End);
                     }
                 }
@@ -86,7 +113,26 @@ namespace PESpy.View
             entity = _entities.Current;
             int childOffset;
 
-            if (_kind != GlobalViewProviderKind.Region && _fileAccessor.TryGetDirectory(entity.TargetAddress, (childOffset = (entity.TargetAddress == _entities.StartTargetAddress && _kind == GlobalViewProviderKind.Directory ? _depthAtStartOffset + 1 : 0)), out directory))
+            //Watch our for a struct inside of a region inside of a nested file
+            if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+            {
+                structWriter.Field = new FileView(
+                    nestedFileRange,
+                    _fileAccessor,
+                    _entities.SliceFromCurrent(nestedFileRange.Length)
+                );
+
+#if DEBUG_VIEWENTITY
+                _debugEntities.Add(structWriter.Field);
+#endif
+
+                //Skip over the file
+                _entities.MoveTo(nestedFileRange.EndOffset);
+
+                _nextChild++;
+                return;
+            }
+            else if (_kind != GlobalViewProviderKind.Region && _fileAccessor.TryGetDirectory(entity.TargetAddress, (childOffset = (entity.TargetAddress == _entities.StartTargetAddress && _kind == GlobalViewProviderKind.Directory ? _depthAtStartOffset + 1 : 0)), out directory))
             {
                 structWriter.Field = new LogicalRegionView(
                     directory,
@@ -95,6 +141,10 @@ namespace PESpy.View
                     _entities.SliceFromCurrent(directory.Length),
                     childOffset
                 );
+
+#if DEBUG_VIEWENTITY
+                _debugEntities.Add(structWriter.Field);
+#endif
 
                 //Skip over the directory
                 _entities.MoveTo(directory.End);
@@ -112,6 +162,12 @@ namespace PESpy.View
                     childOffset
                 );
 
+                Debug.Assert(region.Length > 0);
+
+#if DEBUG_VIEWENTITY
+                _debugEntities.Add(structWriter.Field);
+#endif
+
                 //Skip over the region
                 _entities.MoveTo(region.End);
 
@@ -122,6 +178,10 @@ namespace PESpy.View
             //Now write the appropriate view based on the type of the entity
 
             if (entity.Kind != 0)
+            {
+                structWriter.Field = ViewProvider.CreateStructView(entity.Kind, entity.Length, _fileAccessor.GetMemoryChunkFromAddress(entity.TargetAddress), structWriter.ViewWriter, entity.IsSplit);
+            }
+            else
             {
                 switch (entity.ViewByte->Kind)
                 {
@@ -139,34 +199,83 @@ namespace PESpy.View
                                 if (entity.IsSplit)
                                     throw new NotImplementedException(); //Just get the bytes before the split?
 
+                                //Note that even if it _is_ null terminated, we _do_ still want to include the null terminator
+                                //in the name so we can print it properly
                                 if (entity.ViewByte->IsWide)
-                                    structWriter.Field = new ValueView<FixedUtf16String>(entity.TargetAddress, new FixedUtf16String((char*) (byte*) entity.Bytes, entity.Length), entity.Length, ViewKind.String);
+                                {
+                                    var str = new FixedUtf16String((char*) (byte*) entity.Bytes, entity.Length / 2);
+                                    structWriter.Field = new ValueView<FixedUtf16String>(entity.TargetAddress, str, entity.Length, ViewKind.String, entity.Name);
+                                }
                                 else
-                                    structWriter.Field = new ValueView<FixedUtf8String>(entity.TargetAddress, new FixedUtf8String((byte*) entity.Bytes, entity.Length), entity.Length, ViewKind.String);
+                                {
+                                    var str = new FixedUtf8String((byte*) entity.Bytes, entity.Length);
+                                    structWriter.Field = new ValueView<FixedUtf8String>(entity.TargetAddress, str, entity.Length, ViewKind.String, entity.Name);
+                                }
                                 break;
 
                             case ViewByteDataKind.Unknown:
                                 if (entity.IsSplit)
                                     throw new NotImplementedException(); //Just get the bytes before the split?
 
-                                structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null);
+                                structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null, entity.Name);
+                                break;
+
+                            case ViewByteDataKind.Decimal:
+                                if (entity.IsSplit)
+                                if (entity.Length == 4)
+                                    structWriter.Field = new ValueView<float>(entity.TargetAddress, *(float*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, entity.Name);
+                                else
+                                    structWriter.Field = new ValueView<double>(entity.TargetAddress, *(double*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, entity.Name);
+
                                 break;
 
                             default:
                                 throw new NotImplementedException();
                         }
+                        break;
+
+                    case ViewByteKind.Code:
+                        if (entity.IsSplit)
+                        var range = new AsmRange<object>(startOffset: entity.TargetAddress, startRVA: entity.TargetAddress, functionRVA: (int) (entity.TargetAddress - entity.Displacement), entity.Name);
+                        range.EndOffset = entity.TargetAddress + entity.Length;
+
+                        structWriter.Field = new AsmView<object>(entity.TargetAddress, (byte) _fileAccessor.Bitness, range, entity.ViewByte->IsIL ? ViewKind.IL : ViewKind.Assembly);
+                        break;
+
                     case ViewByteKind.Unknown:
                         if (entity.IsSplit)
                             throw new NotImplementedException(); //Just get the bytes before the split?
 
                         structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null);
                         break;
+
+                    case ViewByteKind.Body:
+                        Debug.Assert(entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
+
+                        //We want to create a view that just encapsulates the portion that this body encapsulates.
+                        //First, we need to rewind to get the head
+
+                        var origin = entity.GetSplitHeadOrigin(_fileAccessor, out var bytesRewound);
+
+                        if (origin.Kind != 0)
+                        {
+                            //We use origin.TargetAddress to get the head; we're then going to split it at the point we're actually after
+                            var baseView = ViewProvider.CreateStructView(origin.Kind, entity.Length, _fileAccessor.GetMemoryChunkFromAddress(origin.TargetAddress), structWriter.ViewWriter, entity.IsSplit);
+                            if (baseView is ISplittableView sv)
+                            {
+                                var (first, second) = sv.Split(entity.TargetAddress, baseView.Offset + bytesRewound);
+                                structWriter.Field = second;
+                            }
                         break;
 
                     default:
                         throw new NotImplementedException();
                 }
             }
+
+#if DEBUG_VIEWENTITY
+            _debugEntities.Add(structWriter.Field);
+#endif
 
             _nextChild++;
         }

@@ -133,16 +133,16 @@ namespace PESpy.Tests
             Assert.IsFalse(str.Equals(null), "Str <-> null failed");
 
             //StartsWith
-            //Assert.IsTrue(str.StartsWith(startStr));
-            //Assert.IsFalse(str.StartsWith(endStr));
+            Assert.IsTrue(str.StartsWith(startStr));
+            Assert.IsFalse(str.StartsWith(endStr));
 
             //EndsWith
-            //Assert.IsTrue(str.EndsWith(endStr));
-            //Assert.IsFalse(str.EndsWith(startStr));
+            Assert.IsTrue(str.EndsWith(endStr));
+            Assert.IsFalse(str.EndsWith(startStr));
 
             //Contains
-            //Assert.IsTrue(str.Contains(containsStr));
-            //Assert.IsFalse(str.Contains(randomStr));
+            Assert.IsTrue(str.Contains(containsStr));
+            Assert.IsFalse(str.Contains(randomStr));
 
             //Equals
             Assert.IsTrue(str.Equals(str), "Str <-> Str failed");

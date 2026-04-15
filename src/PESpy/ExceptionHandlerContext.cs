@@ -52,7 +52,7 @@ namespace PESpy
                     if (iat == null)
                         continue;
 
-                    for (var j = 0; j < iat.Length; j++)
+                    for (var j = 0; j < iat.Count; j++)
                     {
                         if (iat[j].Offset == offset)
                         {

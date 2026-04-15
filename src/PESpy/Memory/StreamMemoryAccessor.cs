@@ -3,14 +3,14 @@ using System.IO;
 
 namespace PESpy
 {
-    class StreamMemoryReader : IMemoryReader
+    internal class StreamMemoryAccessor : IMemoryAccessor
     {
         private const int BufferSize = 4096;
 
         private Stream stream;
         private byte[] buffer;
 
-        public StreamMemoryReader(Stream stream)
+        internal StreamMemoryAccessor(Stream stream)
         {
             this.stream = stream;
             this.buffer = new byte[BufferSize];

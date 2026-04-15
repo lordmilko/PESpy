@@ -162,7 +162,7 @@ namespace PESpy
             }
         }
 
-        private static unsafe bool TryDetectFile(
+        internal static unsafe bool TryDetectFile(
             string path,
             MemoryMappedFileHolder mmf,
             long length,

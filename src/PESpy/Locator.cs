@@ -120,16 +120,30 @@ namespace PESpy
         #region String -> Artifacts
 
         //Locate all artifacts associated with a given *.exe or *.dbg file
+
+        /// <summary>
+        /// Locates all debug artifacts associated with a given *.exe or *.dbg file.
+        /// </summary>
+        /// <param name="exeOrDbgPath">The path to the *.exe or *.dbg file to resolve debug artifacts for.</param>
+        /// <param name="result">Stores all debug artifacts that were found.</param>
+        /// <param name="symStoreKey">If a debug artifact was found on the symbol server, stores the <see cref="SymStoreKey"/> of the best artifact that was found on the symbol server.</param>
+        /// <param name="httpPolicy">Specifies under what circumstance the <see cref="Locator"/> should be allowed to make HTTP requests to external symbol servers for locating debug artifacts.</param>
+        /// <param name="searchPath">A custom search path that should be used for locating symbols. This value must match the standard format used by symbol paths.<para/>
+        /// For more info, see MSDN: <see href="https://learn.microsoft.com/en-us/windows/win32/debug/symbol-paths"/></param>
+        /// <param name="progress">An object that can be used to receive progress notifications as <see cref="Locator"/> tries to resolve symbols from upstream symbol stores.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>True if any artifacts could be found. Otherwise, false.</returns>
         public static bool TryLocate(
             string exeOrDbgPath,
             out Artifacts result,
             out SymStoreKey? symStoreKey,
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             string? searchPath = null,
-            ILocatorProgress progress = null)
+            ILocatorProgress progress = null,
+            CancellationToken cancellationToken = default)
         {
             Artifacts? artifacts;
-            (artifacts, symStoreKey) = LocateInternal(exeOrDbgPath, null, SearchFlags.All, httpPolicy, searchPath, progress, default);
+            (artifacts, symStoreKey) = LocateInternal(exeOrDbgPath, null, SearchFlags.All, httpPolicy, searchPath, progress, cancellationToken);
 
             if (artifacts != null)
             {
@@ -155,11 +169,19 @@ namespace PESpy
             out SymStoreKey? symStoreKey, //If the file was found on the symbol store, contains the key that was used to identify the file
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             string? searchPath = null,
-            ILocatorProgress? progress = null)
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default)
         {
+            if (exeOrDbgFile.FileName == null)
+            {
+                result = default;
+                symStoreKey = default;
+                return false;
+            }
+
             Artifacts? artifacts;
 
-            (artifacts, symStoreKey) = TryLocate(exeOrDbgFile, httpPolicy, searchPath, progress);
+            (artifacts, symStoreKey) = LocateInternal(null, exeOrDbgFile, SearchFlags.All, httpPolicy, searchPath, progress, cancellationToken);
 
             if (artifacts != null)
             {
@@ -171,57 +193,40 @@ namespace PESpy
             return false;
         }
 
-
-        public static (Artifacts? artifacts, SymStoreKey? symStoreKey) TryLocate(
-            IFile exeOrDbgFile,
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
-            string? searchPath = null,
-            ILocatorProgress? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (exeOrDbgFile == null)
-                throw new ArgumentNullException(nameof(exeOrDbgFile));
-
-            return LocateInternal(null, exeOrDbgFile, SearchFlags.All, httpPolicy, searchPath, progress, cancellationToken);
-        }
-
 #if !NATIVEAOT
-        public static ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> TryLocateAsync(
-            IFile exeOrDbgFile,
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
-            string? searchPath = null,
-            ILocatorProgress? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (exeOrDbgFile == null)
-                throw new ArgumentNullException(nameof(exeOrDbgFile));
-
-            return LocateInternalAsync(null, exeOrDbgFile, SearchFlags.All, httpPolicy, searchPath, progress, cancellationToken);
-        }
+        public static ValueTask<(Artifacts? artifacts, SymStoreKey? symStoreKey)> TryLocateAsync(IFile exeOrDbgFile, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress progress = null, CancellationToken cancellationToken = default) =>
+            LocateInternalAsync(null, exeOrDbgFile, SearchFlags.All, httpPolicy, searchPath, progress, cancellationToken);
 #endif
 
         #endregion
         #region SymStoreKey -> String
 
-        public static string Locate(SymStoreKey key, ILocatorProgress progress = null)
+        public static string Locate(SymStoreKey key, ILocatorProgress progress = null, CancellationToken cancellationToken = default)
         {
-            if (!TryLocate(key, out var result, progress))
+            if (!TryLocate(key, out var result, progress, cancellationToken))
                 throw new FileNotFoundException($"Failed to locate the file associated with {nameof(SymStoreKey)} '{key}'");
 
             return result;
         }
 
         //Locate a file with a given key from the symbol server
-        public static bool TryLocate(SymStoreKey key, out string? result, ILocatorProgress progress = null)
+        public static bool TryLocate(SymStoreKey key, out string? result, ILocatorProgress progress = null, CancellationToken cancellationToken = default)
         {
-            result = TryLocate(key, progress);
+            result = TryLocateInternal(key, progress, default);
 
             return result != null;
         }
 
+#if !NATIVEAOT
+        public static ValueTask<string?> TryLocateAsync(
+            SymStoreKey key,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default) => TryLocateInternalAsync(key, progress, cancellationToken);
+#endif
+
         //We don't support LocatorHttpPolicy here because we don't need to load the file, and don't currently pass along
         //the path to the file to the HttpSymStore in order to load it
-        public static string? TryLocate(
+        private static string? TryLocateInternal(
             SymStoreKey key,
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default)
@@ -245,7 +250,7 @@ namespace PESpy
 #if !NATIVEAOT
         //We don't support LocatorHttpPolicy here because we don't need to load the file, and don't currently pass along
         //the path to the file to the HttpSymStore in order to load it
-        public static async ValueTask<string?> TryLocateAsync(
+        private static async ValueTask<string?> TryLocateInternalAsync(
             SymStoreKey key,
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default)
@@ -314,17 +319,17 @@ namespace PESpy
             return LocatePDB(exeOrDbgPath, httpPolicy, progress: progress);
         }
 
-        public static string LocatePDB(string exeOrDbgPath, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null)
+        public static string LocatePDB(string exeOrDbgPath, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null, CancellationToken cancellationToken = default)
         {
-            if (!TryLocatePDB(exeOrDbgPath, out var result, httpPolicy, searchPath, progress))
+            if (!TryLocatePDB(exeOrDbgPath, out var result, httpPolicy, searchPath, progress, cancellationToken))
                 throw new FileNotFoundException($"Failed to locate the PDB associated with file '{exeOrDbgPath}'");
 
             return result;
         }
 
-        public static bool TryLocatePDB(string exeOrDbgPath, out string? result, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null)
+        public static bool TryLocatePDB(string exeOrDbgPath, out string? result, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null, CancellationToken cancellationToken = default)
         {
-            var (artifacts, _) = LocateInternal(exeOrDbgPath, null, SearchFlags.PDB, httpPolicy, searchPath, progress, default);
+            var (artifacts, _) = LocateInternal(exeOrDbgPath, null, SearchFlags.PDB, httpPolicy, searchPath, progress, cancellationToken);
 
             result = artifacts?.PDBPath;
 
@@ -350,6 +355,14 @@ namespace PESpy
 
         #endregion
         #region String -> IFile (PDB)
+
+        public static string LocatePDB(IFile exeOrDbgPath, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null, CancellationToken cancellationToken = default)
+        {
+            if (!TryLocatePDB(exeOrDbgPath, out var result, httpPolicy, searchPath, progress))
+                throw new FileNotFoundException($"Failed to locate the PDB associated with file '{exeOrDbgPath}'");
+
+            return result;
+        }
 
         public static bool TryLocatePDB(IFile exeOrDbgFile, out string? result, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, string? searchPath = null, ILocatorProgress? progress = null)
         {
@@ -467,7 +480,7 @@ namespace PESpy
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
-            SetupLocate(ref exeOrDbgPath, file, flags, searchPath, out var ownsPEFile, out var state, out var ctx, out var run);
+            SetupLocate(ref exeOrDbgPath, file, flags, ref searchPath, out var ownsPEFile, out var state, out var ctx, out var run);
 
             try
             {
@@ -524,7 +537,7 @@ namespace PESpy
             ILocatorProgress progress,
             CancellationToken cancellationToken)
         {
-            SetupLocate(ref exeOrDbgPath, file, flags, searchPath, out var ownsPEFile, out var state, out var ctx, out var run);
+            SetupLocate(ref exeOrDbgPath, file, flags, ref searchPath, out var ownsPEFile, out var state, out var ctx, out var run);
 
             try
             {
@@ -576,7 +589,7 @@ namespace PESpy
             ref string? exeOrDbgPath,
             IFile? file,
             SearchFlags flags,
-            string? searchPath,
+            ref string? searchPath,
             out bool ownsPEFile,
             out State state,
             out LocatorContext ctx,
@@ -594,6 +607,28 @@ namespace PESpy
 
                 if (exeOrDbgPath == null)
                     throw new ArgumentException("The specifid file does not have a FileName");
+            }
+
+            /* Systems often don't have _NT_SYMBOL_PATH defined, so it's up to us to define it for them. The way we'll do this is we'll say if it's not defined,
+             * we'll append it to the user's custom search path and store any symbols we locate in %temp%
+             *
+             * Note that when RDP'd into a server, the temp path may include a session number at the end, and that folder
+             * may not actually exist. When we go to save the file, we'll check if this directory exists, and if not create it */
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH")))
+            {
+                const string extraSearchPath = "srv*%temp%\\symbols*http://msdl.microsoft.com/download/symbols";
+
+                if (searchPath == null)
+                    searchPath = extraSearchPath;
+                else
+                {
+                    using var builder = new ValueStringBuilder(searchPath.Length + extraSearchPath.Length + 1);
+                    builder.Append(searchPath);
+                    builder.Append(';');
+                    builder.Append(extraSearchPath);
+
+                    searchPath = builder.ToString();
+                }
             }
 
             state = State.None;

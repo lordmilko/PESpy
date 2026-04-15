@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy
@@ -107,14 +108,38 @@ namespace PESpy
             structWriter.WriteInline(this[index]);
         }
 
-        [DebuggerDisplay("{DebuggerDisplay,nq}")]
+        [DebuggerDisplay("{DebuggerDisplay(),nq}")]
         public readonly struct Entry : IValue, IViewable
         {
             private const int FunctionOffset = 0;
             private const int FlagsOffset = 4;
 
-            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string DebuggerDisplay => $"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
+            private string DebuggerDisplay()
+            {
+                var symbolAccessor = peFile.GetSymbolAccessor(LocatorHttpPolicy.None);
+
+                var builder = new StringBuilder();
+                builder.Append($"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}");
+
+                if (symbolAccessor is not NullSymbolAccessor)
+                {
+                    builder.Append(", Symbol = ");
+
+                    if (symbolAccessor.TryGetNameFromAddress(Function, out var name, out var displacement))
+                    {
+                        builder.Append(name);
+
+                        if (displacement != 0)
+                            builder.Append("+0x").Append(displacement.ToString("X"));
+                    }
+                    else
+                    {
+                        builder.Append("?");
+                    }
+                }
+
+                return builder.ToString();
+            }
 
             public int Function { get; init; }
 
@@ -124,9 +149,12 @@ namespace PESpy
 
             public int Offset { get; init; }
 
+            private readonly PEFile peFile;
+
             internal Entry(in MemoryChunk chunk, int metadataSize, PEFile peFile)
             {
                 Offset = (int) chunk.AbsoluteOffset;
+                this.peFile = peFile;
 
                 Function = chunk.PeekInt32(0);
                 XFG = default;

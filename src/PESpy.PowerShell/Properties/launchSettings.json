@@ -3,7 +3,7 @@
     "PESpy.PowerShell": {
       "commandName": "Executable",
       "executablePath": "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe",
-      "commandLineArgs": "-noexit -command \"&{ ipmo .\\PESpy.PowerShell.dll -Verbose; cd \\;  }\"",
+      "commandLineArgs": "-noexit -command \"&{ ipmo .\\PESpy.psd1 -Verbose; cd \\;  }\"",
       "nativeDebugging": false
     }
   }

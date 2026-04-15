@@ -185,19 +185,30 @@ namespace PESpy.View
             }
             else
             {
-                while (body < pEnd)
+                if (largeAddresses != null && largeAddresses.TryGetValue(TargetAddress, out var length))
                 {
-                    if (body->Kind == ViewByteKind.Body)
+                    body += length - 1;
+                }
+                else
+                {
+                    while (body < pEnd)
                     {
                         if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                        if (body->Kind == ViewByteKind.Body)
                         {
-                            //There's more data in the next page
-                            body++; //We own this byte
-                            IsSplit = true;
+                            if (body->BodyKind == ViewByteBodyKind.SplitTail)
+                            {
+                                //There's more data in the next page
+                                body++; //We own this byte
+                                IsSplit = true;
+                                break;
+                            }
+
+                            body++;
+                        }
+                        else
                             break;
                     }
-                    else
-                        break;
                 }
 
                 HasChildren = false;
@@ -209,7 +220,7 @@ namespace PESpy.View
 
             if (!measureOnly)
             {
-                if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String)
+                if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String && !pViewByte->HasName)
                 {
                     if (pViewByte->IsWide)
                         NameWide = new FixedUtf16String((char*) pData, Length / 2);
@@ -238,7 +249,7 @@ namespace PESpy.View
             if (ViewByte == default)
                 return;
 
-            if (ViewByte->Kind == ViewByteKind.Data && ViewByte->DataKind == ViewByteDataKind.String)
+            if (ViewByte->Kind == ViewByteKind.Data && ViewByte->DataKind == ViewByteDataKind.String && !ViewByte->HasName)
             {
                 if (ViewByte->IsWide)
                 {

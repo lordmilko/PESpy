@@ -16,7 +16,18 @@ namespace PESpy.Ecma335
         public int Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public DocumentRow DocumentRow => table.CompressedModelHeap.DocumentTable[Document];
+        public DocumentRow? DocumentRow
+        {
+            get
+            {
+                var document = Document;
+
+                if (document.IsNil)
+                    return null;
+
+                return table.CompressedModelHeap.DocumentTable[document];
+            }
+        }
 
         private readonly MethodDebugInformationTable table;
 

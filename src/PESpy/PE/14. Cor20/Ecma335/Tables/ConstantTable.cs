@@ -77,7 +77,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(ConstantIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ConstantRow this[ConstantIndex index] => GetRow((int) index);
+        public ConstantRow this[ConstantIndex index] => GetRowSafe((int) index);
 
         protected override ConstantRow GetRow(int index) => new ConstantRow((ConstantIndex) index, this);
     }

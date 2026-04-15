@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using ClrDebug;
 using PESpy.View;
 
@@ -51,7 +52,7 @@ namespace PESpy
                 if (index < 0 || index >= Count)
                     throw new IndexOutOfRangeException();
 
-                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, chunk.PEFile());
 
                 return entry;
             }
@@ -61,7 +62,7 @@ namespace PESpy
         {
             if (ImageLoadConfigDirectory.TryGetGuardEntry(rva, metadataSize, Count, chunk.Pointer, out var offset))
             {
-                entry = new Entry(chunk.Slice(offset), metadataSize);
+                entry = new Entry(chunk.Slice(offset), metadataSize, chunk.PEFile());
                 return true;
             }
 
@@ -90,14 +91,38 @@ namespace PESpy
             structWriter.WriteInline(this[index]);
         }
 
-        [DebuggerDisplay("{DebuggerDisplay,nq}")]
+        [DebuggerDisplay("{DebuggerDisplay(),nq}")]
         public readonly struct Entry : IValue, IViewable
         {
             private const int TargetOffset = 0;
             private const int FlagsOffset = 4;
 
-            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string DebuggerDisplay => $"Target = 0x{Target:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
+            private string DebuggerDisplay()
+            {
+                var symbolAccessor = peFile.GetSymbolAccessor(LocatorHttpPolicy.None);
+
+                var builder = new StringBuilder();
+                builder.Append($"Target = 0x{Target:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}");
+
+                if (symbolAccessor is not NullSymbolAccessor)
+                {
+                    builder.Append(", Symbol = ");
+
+                    if (symbolAccessor.TryGetNameFromAddress(Target, out var name, out var displacement))
+                    {
+                        builder.Append(name);
+
+                        if (displacement != 0)
+                            builder.Append("+0x").Append(displacement.ToString("X"));
+                    }
+                    else
+                    {
+                        builder.Append("?");
+                    }
+                }
+
+                return builder.ToString();
+            }
 
             public int Target { get; init; } //RVA of the target of the jump
 
@@ -105,9 +130,12 @@ namespace PESpy
 
             public int Offset { get; init; }
 
-            internal Entry(in MemoryChunk chunk, int metadataSize)
+            private readonly PEFile peFile;
+
+            internal Entry(in MemoryChunk chunk, int metadataSize, PEFile peFile)
             {
                 Offset = (int) chunk.AbsoluteOffset;
+                this.peFile = peFile;
 
                 Target = chunk.PeekInt32(0);
 
@@ -166,6 +194,7 @@ namespace PESpy
             private int index;
             private readonly int count;
             private readonly int metadataSize;
+            private readonly PEFile peFile;
 
             internal Enumerator(int count, int metadataSize, in MemoryChunk chunk)
             {
@@ -173,6 +202,7 @@ namespace PESpy
                 this.count = count;
                 this.metadataSize = metadataSize;
                 index = default;
+                peFile = chunk.PEFile();
 
                 Current = default;
             }
@@ -185,7 +215,7 @@ namespace PESpy
             {
                 if (index < count)
                 {
-                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, peFile);
                     index++;
                     return true;
                 }

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
@@ -28,9 +29,9 @@ namespace PESpy
      * We will go for option #2
      */
 
-    internal class RemoteMemoryBlockProvider : IFileMemoryBlockProvider
+    internal class RemoteMemoryBlockProvider : IFileMemoryBlockProvider, IDisposable
     {
-        private IMemoryReader reader;
+        private IMemoryAccessor memoryAccessor;
         private long baseAddress;
 
         public PEFile File { get; }
@@ -41,14 +42,21 @@ namespace PESpy
 
         internal bool is32Bit;
 
-        public RemoteMemoryBlockProvider(IMemoryReader reader, long baseAddress, PEFile peFile)
+        public RemoteMemoryBlockProvider(IMemoryAccessor memoryAccessor, long baseAddress, PEFile peFile)
         {
-            this.reader = reader;
+            this.memoryAccessor = memoryAccessor;
             this.baseAddress = baseAddress;
             File = peFile;
         }
 
+        //I'm presuming that a section must accurately describe the bounds of its virtual region; if that weren't true,
+        //how could it have been loaded? And therefore we presume the section must be safe to read
         public MemoryBlock CreateBlock(int rva, int size) =>
-            new RemoteMemoryBlock(baseAddress, rva, size, reader, this, File, is32Bit);
+            new RemoteMemoryBlock(baseAddress, rva, size, memoryAccessor, this, File, is32Bit);
+
+        public void Dispose()
+        {
+            (memoryAccessor as IDisposable)?.Dispose();
+        }
     }
 }

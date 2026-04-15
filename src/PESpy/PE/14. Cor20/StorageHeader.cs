@@ -9,6 +9,7 @@ namespace PESpy
     /// Represents the <see cref="STORAGEHEADER"/> type that is pointed to by <see cref="IMAGE_COR20_HEADER.MetaData"/>.<para/>
     /// This type immediately follows the <see cref="STORAGESIGNATURE"/> (which has a variable length due to the presence of the version string).
     /// </summary>
+    [Source(SourceKind.mdfileformat_h)]
     public readonly struct StorageHeader : IValue, IViewable
     {
         private const int FlagsOffset = 0;

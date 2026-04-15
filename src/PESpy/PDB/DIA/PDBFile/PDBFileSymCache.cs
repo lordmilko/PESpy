@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 
 namespace PESpy.PDB.DIA
 {
@@ -41,7 +42,10 @@ namespace PESpy.PDB.DIA
 
             try
             {
-                var globals = _pdbFile.GSI.Symbols;
+                var globals = _pdbFile.GSI?.Symbols;
+
+                if (globals == null)
+                    return Array.Empty<OffSegSym>();
 
                 foreach (var symType in globals)
                     ProcessGlobalDataSymbol(symType, ref globalDataList);

@@ -62,7 +62,7 @@ namespace PESpy.View
 
         private IView? RegisterValue(int offset, int size, ViewKind kind, bool fromRegion)
         {
-            var pViewByte = PEViewByteViewWriter.RegisterValueInternal(_fileAccessor, offset, size, kind, out var sectionAccessorIndex);
+            var pViewByte = PEViewByteViewWriter.RegisterValueInternal(_fileAccessor, _fileAnalyzer, offset, size, kind, out var sectionAccessorIndex);
 
             SetPagedBody(offset, size, pViewByte, sectionAccessorIndex);
 

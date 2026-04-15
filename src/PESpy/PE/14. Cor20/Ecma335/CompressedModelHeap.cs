@@ -135,7 +135,7 @@ namespace PESpy.Ecma335
 
         private readonly MetadataSizes sizes;
 
-        public ref readonly MetadataSizes Sizes => ref sizes;
+        public MetadataSizes Sizes => sizes;
 
         internal IFile File() => chunk.File();
 

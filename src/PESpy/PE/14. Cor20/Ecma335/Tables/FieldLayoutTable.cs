@@ -38,7 +38,7 @@
 
         public int GetRowOffset(FieldLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldLayoutRow this[FieldLayoutIndex index] => GetRow((int) index);
+        public FieldLayoutRow this[FieldLayoutIndex index] => GetRowSafe((int) index);
 
         protected override FieldLayoutRow GetRow(int index) => new FieldLayoutRow((FieldLayoutIndex) index, this);
     }

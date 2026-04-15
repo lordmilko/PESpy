@@ -282,7 +282,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public TypeDefRow this[TypeDefIndex index] => GetRow((int) index);
+        public TypeDefRow this[TypeDefIndex index] => GetRowSafe((int) index);
 
         protected override TypeDefRow GetRow(int index) => new TypeDefRow((TypeDefIndex) index, this);
     }

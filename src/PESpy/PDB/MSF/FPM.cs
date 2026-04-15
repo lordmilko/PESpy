@@ -8,7 +8,7 @@ namespace PESpy.PDB
     /// <summary>
     /// Represents a Free Page Map which tracks which pages are available for use within the PDB.
     /// </summary>
-    public struct FPM
+    public struct FPM //While it's defined in msf.cpp, the struct is purely in memory
     {
         /// <summary>
         /// Gets the pages that the FPM spans. This value is determined based on the number

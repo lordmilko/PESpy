@@ -414,6 +414,17 @@ namespace PESpy.View
             _viewWriter.VerifyXRef(value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void WriteRVAField<TLightweightList, TEnumerator, TElement>(string name, int relativeOffset, RVA<TLightweightList> value)
+            where TLightweightList : ILightweightList<TEnumerator, TElement>
+            where TEnumerator : IEnumerator<TElement>
+            where TElement : IViewable, IValue
+        {
+            WriteField(name, relativeOffset, value.ListedOffset, FieldViewFlags.Address);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
         #endregion
         #region Typedefs
 
@@ -586,6 +597,22 @@ namespace PESpy.View
         #region String[]
 
         public void WriteUtf8NullTerminatedField(string name, int relativeOffse, string[] value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            var size = 0;
+
+            foreach (var item in value)
+                size += item.Length + 1;
+
+            RelayField(name, relativeOffse, value, size);
+        }
+
+        public void WriteNullTerminatedField(string name, int relativeOffse, AnsiString[] value)
         {
             if (value.Length == 0)
             {

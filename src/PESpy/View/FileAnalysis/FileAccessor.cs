@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using ClrDebug;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
@@ -812,7 +813,11 @@ namespace PESpy.View
 
         internal abstract ISectionDataAccessor CreateThreadLocalSectionDataAccessor();
 
-        internal abstract ISymbolAccessor GetSymbolAccessor(bool load = false, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null);
+        internal abstract ISymbolAccessor GetSymbolAccessor(
+            bool load = false,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default);
 
         internal bool TryGetNameFromAddress(int targetAddress, out FixedUtf8String name)
         {

@@ -137,8 +137,12 @@ namespace PESpy
             ContentLengthHeaderMissing = 6,
         }
 
-        internal unsafe static WinHttpResult GetFileViaWinHttp(
+        internal unsafe static WinHttpResult GetFileViaWinHttp(string uri, out Stream stream, out int statusCode) =>
+            GetFileViaWinHttp(uri, null, out stream, out statusCode);
+
+        private unsafe static WinHttpResult GetFileViaWinHttp(
             string uri,
+            ILocatorProgress? progress,
             out Stream stream,
             out int statusCode)
         {
@@ -299,13 +303,15 @@ namespace PESpy
                         if (!TryGetNumericHeader(hRequest, WINHTTP_QUERY_STATUS_CODE, out statusCode))
                             return WinHttpResult.StatusCodeHeaderMissing;
 
+                        progress?.Notify(LocatorProgressEventArgs.CreateGotHttpResponse((int) statusCode));
+
                         if (statusCode != 200)
                             return WinHttpResult.BadStatusCode;
 
                         if (!TryGetNumericHeader(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, out var contentLength))
                             return WinHttpResult.ContentLengthHeaderMissing;
 
-                        stream = new WinHttpResponseStream(hRequest, contentLength);
+                        stream = new WinHttpResponseStream(hRequest, contentLength, progress);
                         hRequest = null; //Ownership transferred to the response
 
                         return WinHttpResult.Success;
@@ -346,7 +352,8 @@ namespace PESpy
 
             var uri = builder.ToString();
 
-            var result = GetFileViaWinHttp(uri, out var stream, out var statusCode);
+            progress?.Notify(LocatorProgressEventArgs.CreateBeginHttpRequest(uri));
+            var result = GetFileViaWinHttp(uri, progress, out var stream, out var statusCode);
 
             if (result < 0)
                 throw new HttpRequestException(result.ToString());

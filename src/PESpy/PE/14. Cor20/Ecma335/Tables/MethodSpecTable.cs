@@ -50,7 +50,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(MethodSpecIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodSpecRow this[MethodSpecIndex index] => GetRow((int) index);
+        public MethodSpecRow this[MethodSpecIndex index] => GetRowSafe((int) index);
 
         protected override MethodSpecRow GetRow(int index) => new MethodSpecRow((MethodSpecIndex) index, this);
     }

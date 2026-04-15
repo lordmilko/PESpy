@@ -113,7 +113,10 @@ namespace PESpy
                     return new PDB1File(fileStream.Name, mmf);
 
                 if (*(uint*) mmf.Address == StorageSignature.STORAGE_MAGIC_SIG)
-                    throw new InvalidOperationException("Portable PDB files cannot be opened using this method. Use PortablePDB.FromFile() instead");
+                    throw new InvalidOperationException("Portable PDB files cannot be opened using this method. Use PortablePDBFile.FromFile() instead");
+
+                if (Detector.TryDetectFile(fileStream.Name, mmf, mmf.Length, out var kind, out _))
+                    throw new InvalidOperationException($"Expected a PDB file however a {kind} was provided");
 
                 throw new BadImageFormatException("File did not contain a PDB magic signature");
             }
@@ -827,21 +830,19 @@ namespace PESpy
              * can also contain "junk" symbols, such as REFSYM2 items that point to a symbol that doesn't exist. The REFSYM2
              * that you find isn't the _real_ REFSYM2 that you should be using, it's an older stale one. The real REFSYM2
              * is pointed to by globals */
-            var symbols = dbi.Symbols;
+            var gsiSymbols = GSI?.Symbols;
 
-            var gsi = GSI;
-
-            if (gsi != null)
+            if (gsiSymbols != null)
             {
-                foreach (var item in gsi.Symbols)
+                foreach (var item in gsiSymbols)
                     yield return item;
             }
 
-            var psgsi = PSGSI;
+            var psgsiSymbols = PSGSI?.Symbols;
 
-            if (psgsi != null)
+            if (psgsiSymbols != null)
             {
-                foreach (var item in psgsi.Symbols)
+                foreach (var item in psgsiSymbols)
                     yield return item;
             }
 
@@ -1221,12 +1222,15 @@ namespace PESpy
 
         private FileAccessor? _viewAccessor;
 
-        public FileView GetView(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None, CancellationToken cancellationToken = default)
+        public FileView GetView(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default)
         {
             if (_viewAccessor == null)
             {
                 var accessor = FileAccessor.Create(this);
-                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: false, cancellationToken: cancellationToken);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
                 _viewAccessor = accessor;
             }
 
@@ -1241,7 +1245,10 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public ISymbolAccessor GetSymbolAccessor(LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
+        public ISymbolAccessor GetSymbolAccessor(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
         internal ByteViewProvider CreateByteViewProvider() => new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
 

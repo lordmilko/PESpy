@@ -137,6 +137,47 @@ namespace PESpy
             Kind = kind;
         }
 
+        public SymStoreKey(string index)
+        {
+            Index = index;
+
+            //Try and detect the kind
+            var ext = Path.GetExtension(index).ToLower();
+
+            switch (ext)
+            {
+                case ".exe":
+                case ".dll":
+                case ".sys":
+                    Kind = SymStoreKeyKind.PE;
+                    break;
+
+                case ".pdb":
+                    //Check if the age part is -1; if so they're specifically
+                    //after a PortablePDB
+                    var lastSlash = index.LastIndexOf('/');
+
+                    if (lastSlash != -1)
+                    {
+                        var str = index.AsSpan(0, lastSlash);
+
+                        if (str.EndsWith("FFFFFFFF".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            Kind = SymStoreKeyKind.PortablePDB;
+                            return;
+                        }
+                    }
+
+                    Kind = SymStoreKeyKind.PDB;
+                    break;
+
+                default:
+                    //If no kind is set, it defaults to PE
+                    Debug.Assert(false);
+                    break;
+            }
+        }
+
         public static bool operator ==(SymStoreKey left, SymStoreKey right) => left.Index == right.Index;
 
         public static bool operator !=(SymStoreKey left, SymStoreKey right) => left.Index != right.Index;

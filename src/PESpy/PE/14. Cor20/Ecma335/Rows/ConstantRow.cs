@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Type = {Type}, Parent = {ParentRow.ToString()}, Value = {Value}")]
+    [DebuggerDisplay("Type = {Type}, Parent = {ParentRow.ToString()}, Value = {ClrValue}")]
     public readonly struct ConstantRow : IValue, IViewable
     {
         public ConstantIndex RowIndex { get; }
@@ -17,6 +17,34 @@ namespace PESpy.Ecma335
         public CodedIndex Parent => table.GetParent(RowIndex);
 
         public BlobIndex Value => table.GetValue(RowIndex);
+
+        public unsafe object ClrValue
+        {
+            get
+            {
+                var bytes = Value.GetBlob().Value;
+                var pValue = (byte*) bytes;
+
+                return Type switch
+                {
+                    //The only possible types are listed in II.22.9
+                    CorElementType.Boolean => *(bool*) pValue,
+                    CorElementType.Char => *(char*) pValue,
+                    CorElementType.I1 => *(sbyte*) pValue,
+                    CorElementType.I2 => *(short*) pValue,
+                    CorElementType.I4 => *(int*) pValue,
+                    CorElementType.I8 => *(long*) pValue,
+                    CorElementType.U1 => *(byte*) pValue,
+                    CorElementType.U2 => *(ushort*) pValue,
+                    CorElementType.U4 => *(uint*) pValue,
+                    CorElementType.U8 => *(ulong*) pValue,
+                    CorElementType.R4 => *(float*) pValue,
+                    CorElementType.R8 => *(double*) pValue,
+                    CorElementType.String => new FixedUtf16String((char*) pValue, bytes.Length / 2).ToString(),
+                    CorElementType.Class => null, //The bytes should be 0 to indicate null
+                };
+            }
+        }
 
         public int Offset => table.GetRowOffset(RowIndex);
 
@@ -66,6 +94,11 @@ namespace PESpy.Ecma335
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            return ClrValue.ToString();
         }
     }
 }

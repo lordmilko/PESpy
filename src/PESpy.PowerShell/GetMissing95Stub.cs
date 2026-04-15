@@ -17,25 +17,14 @@ namespace PESpy.PowerShell
      * is within kernel32.dll itself) or via an import (for exports outside of kernel32.dll)
      */
     [Cmdlet(VerbsCommon.Get, "Missing95Stub")]
-    public class GetMissing95Stub : PECmdlet
+    public class GetMissing95Stub : FileCmdlet<PEFile>
     {
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-        [Alias("PSPath")] //ValueFromPipelineByPropertyName applies to this, and FileInfo objects have a PSPath
-        public string Path { get; set; }
-
-        protected override void ProcessRecord()
+        protected override void ProcessRecordEx()
         {
-            var path = SessionState.Path.GetResolvedProviderPathFromPSPath(Path, out var provider)[0];
-
-            if (!Detector.TryDetectFile(path, out var kind, out _) || kind != FileKind.PE)
-                return;
-
-            using var peFile = PEFile.FromFile(path);
-
             //Do a sanity check as to whether this file even references ordinal #17
 
             //Are we kernel32.dll itself?
-            var exportTable = peFile.ExportTable;
+            var exportTable = File.ExportTable;
 
             var isKernel32 = false;
             ImageThunkData? importThunk = null;
@@ -48,7 +37,7 @@ namespace PESpy.PowerShell
             {
                 //We had better be referencing kernel32.dll then
 
-                var importTable = peFile.ImportTable;
+                var importTable = File.ImportTable;
 
                 if (importTable == null)
                     return;
@@ -63,7 +52,7 @@ namespace PESpy.PowerShell
                         {
                             var ilt = descriptor.OriginalFirstThunk.Value;
 
-                            for (var i = 0; i < ilt.Length; i++)
+                            for (var i = 0; i < ilt.Count; i++)
                             {
                                 var thunk = ilt[i];
 
@@ -84,7 +73,7 @@ namespace PESpy.PowerShell
                     return;
             }
 
-            using var accessor = FileAccessor.Create(peFile);
+            using var accessor = FileAccessor.Create(File);
 
             FileAnalyzer.Analyze(accessor, IntelFileDisassembler.Instance, LocatorHttpPolicy.None);
 
@@ -92,7 +81,7 @@ namespace PESpy.PowerShell
 
             if (isKernel32)
             {
-                var export17 = peFile.ExportTable.Exports[16];
+                var export17 = File.ExportTable.Exports[16];
                 Debug.Assert(export17.Ordinal == 17);
                 Debug.Assert(!export17.ForwardOrAddress.IsForward);
 
@@ -136,7 +125,7 @@ namespace PESpy.PowerShell
 
             var missing = new List<ImageExportDirectory.Export>();
 
-            foreach (var export in peFile.ExportTable.Exports)
+            foreach (var export in File.ExportTable.Exports)
             {
                 if (!export.ForwardOrAddress.IsForward && accessor.TryGetTargetAddress(export.ForwardOrAddress.Address, out var target, out _))
                 {
@@ -147,13 +136,13 @@ namespace PESpy.PowerShell
                 }
             }
 
-            var name = System.IO.Path.GetFileName(path);
+            var name = System.IO.Path.GetFileName(Path);
 
             foreach (var item in missing)
             {
                 var pso = new PSObject();
                 pso.Properties.Add(new PSNoteProperty("Name", name));
-                pso.Properties.Add(new PSNoteProperty("Path", path));
+                pso.Properties.Add(new PSNoteProperty("Path", Path));
                 pso.Properties.Add(new PSNoteProperty("Export", item.Name.ToString()));
                 WriteObject(pso);
             }

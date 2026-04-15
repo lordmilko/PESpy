@@ -589,10 +589,6 @@ end:
                     regionKind = ViewKind.ImportStrings;
                     break;
 
-                case RepeatingGroupMode.DelayImportFunctionNames:
-                    regionKind = ViewKind.DelayImportStrings;
-                    break;
-
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(RepeatingGroupMode)} '{repeatingGroupMode}'");
             }
@@ -637,7 +633,6 @@ end:
             switch (repeatingGroupMode)
             {
                 case RepeatingGroupMode.ImportFunctionNames:
-                case RepeatingGroupMode.DelayImportFunctionNames:
                 case RepeatingGroupMode.Strings:
                 case 0: //We don't have an existing repeating group
 

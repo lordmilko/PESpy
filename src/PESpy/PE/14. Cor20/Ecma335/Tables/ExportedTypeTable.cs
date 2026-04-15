@@ -76,7 +76,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(ExportedTypeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public ExportedTypeRow this[ExportedTypeIndex index] => GetRow((int) index);
+        public ExportedTypeRow this[ExportedTypeIndex index] => GetRowSafe((int) index);
 
         protected override ExportedTypeRow GetRow(int index) => new ExportedTypeRow((ExportedTypeIndex) index, this);
     }

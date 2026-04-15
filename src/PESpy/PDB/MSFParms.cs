@@ -3,7 +3,7 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    struct MSFParms
+    struct MSFParms //While it's defined in msf.cpp, the struct is purely in memory
     {
         private static readonly MSFParms[] smallParams =
         {

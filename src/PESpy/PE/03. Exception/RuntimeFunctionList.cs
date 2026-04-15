@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -19,9 +20,12 @@ namespace PESpy
         public RuntimeFunction[] Items => runtimeFunctionList.ToArray();
     }
 
+    /// <summary>
+    /// Provides access to <see cref="RuntimeFunction"/> instances without allocating an array.
+    /// </summary>
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     [DebuggerTypeProxy(typeof(RuntimeFunctionListDebugView))]
-    public class RuntimeFunctionList : IEnumerable<RuntimeFunction> //Must be a class to denote that the ExceptionTable is missing
+    public class RuntimeFunctionList : IEnumerable<RuntimeFunction>, ILightweightList<RuntimeFunctionList.Enumerator, RuntimeFunction> //Must be a class to denote that the ExceptionTable is missing
     {
         private string DebuggerDisplay() => chunk.block == null ? "null" : $"Count = {Count}";
 

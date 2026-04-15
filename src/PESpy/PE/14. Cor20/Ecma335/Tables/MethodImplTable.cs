@@ -76,7 +76,7 @@
 
         public int GetRowOffset(MethodImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodImplRow this[MethodImplIndex index] => GetRow((int) index);
+        public MethodImplRow this[MethodImplIndex index] => GetRowSafe((int) index);
 
         protected override MethodImplRow GetRow(int index) => new MethodImplRow((MethodImplIndex) index, this);
     }

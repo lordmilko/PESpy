@@ -13,7 +13,7 @@ namespace PESpy
 
         private readonly OMFDirHeader dirHeader;
 
-        public ref readonly OMFDirHeader DirHeader => ref dirHeader;
+        public OMFDirHeader DirHeader => dirHeader;
 
         public OMFDirEntry[] DirEntries { get; }
 

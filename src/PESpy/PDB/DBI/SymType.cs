@@ -211,7 +211,10 @@ namespace PESpy.PDB
                         }
                         else
                         {
-                            //Skip the entire block
+                            //Skip the entire block. pEnd points to the S_END symbol,
+                            //so we need to skip over that as well
+                            end += SymType.GetSymbolLength((SYMTYPE*) end, symTypeList.codeViewAccessor);
+
                             enumerator.MoveTo((byte*) end);
                         }
                     }

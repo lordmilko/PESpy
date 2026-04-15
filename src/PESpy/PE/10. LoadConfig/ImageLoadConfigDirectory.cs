@@ -216,7 +216,8 @@ namespace PESpy
         private VA<ulong> securityCookie;
 
         /// <summary>
-        /// A pointer to a cookie that is used by Visual C++ or GS implementation.
+        /// A pointer to a cookie that is used by Visual C++ or GS implementation.<para/>
+        /// __security_cookie
         /// </summary>
         public VA<ulong> SecurityCookie
         {
@@ -284,7 +285,8 @@ namespace PESpy
         }
 
         /// <summary>
-        /// [x86 only] The count of unique handlers in the table.
+        /// [x86 only] The count of unique handlers in the table.<para/>
+        /// ___safe_se_handler_count
         /// </summary>
         public int SEHandlerCount => (int) chunk.TryPeekPointer(32 + (9 * chunk.PointerSize), Size);
 
@@ -294,7 +296,8 @@ namespace PESpy
         private VA<long> guardCFCheckFunctionPointer;
 
         /// <summary>
-        /// The VA where Control Flow Guard check-function pointer is stored.
+        /// The VA where Control Flow Guard check-function pointer is stored.<para/>
+        /// __guard_check_icall_fptr
         /// </summary>
         public VA<long> GuardCFCheckFunctionPointer =>
             GetFunctionPointer(ref guardCFCheckFunctionPointer, chunk.TryPeekPointer(GuardCFCheckFunctionPointerOffset, Size));
@@ -302,7 +305,8 @@ namespace PESpy
         private VA<long> guardCFDispatchFunctionPointer;
 
         /// <summary>
-        /// The VA where Control Flow Guard dispatch-function pointer is stored.
+        /// The VA where Control Flow Guard dispatch-function pointer is stored.<para/>
+        /// __guard_dispatch_icall_fptr
         /// </summary>
         public VA<long> GuardCFDispatchFunctionPointer =>
             GetFunctionPointer(ref guardCFDispatchFunctionPointer, chunk.TryPeekPointer(GuardCFDispatchFunctionPointerOffset, Size));
@@ -347,12 +351,16 @@ namespace PESpy
         }
 
         /// <summary>
-        /// The count of unique RVAs in the above table.
+        /// The count of unique RVAs in the above table.<para/>
+        /// __guard_fids_count
         /// </summary>
         public long GuardCFFunctionCount => chunk.TryPeekPointer(32 + (13 * chunk.PointerSize), Size);
 
         /// <summary>
-        /// Control Flow Guard related flags.
+        /// Control Flow Guard related flags.<para/>
+        /// __guard_flags<para/>
+        /// Note that the __guard_flags symbol can point to a segment +1 beyond the last segment,
+        /// and contain an offset whose value is the value of this field.
         /// </summary>
         public IMAGE_GUARD GuardFlags => (IMAGE_GUARD) chunk.TryPeekUInt32(32 + (14 * chunk.PointerSize), Size);
 
@@ -471,6 +479,9 @@ namespace PESpy
 
         private VA<long> guardRFFailureRoutineFunctionPointer;
 
+        /// <summary>
+        /// __guard_ss_verify_failure_fptr
+        /// </summary>
         public VA<long> GuardRFFailureRoutineFunctionPointer =>
             GetFunctionPointer(ref guardRFFailureRoutineFunctionPointer, chunk.TryPeekPointer(GuardRFFailureRoutineFunctionPointerOffset, Size));
 
@@ -530,6 +541,9 @@ namespace PESpy
 
         private VA<long> guardRFVerifyStackPointerFunctionPointer;
 
+        /// <summary>
+        /// __guard_ss_verify_sp_fptr
+        /// </summary>
         public VA<long> GuardRFVerifyStackPointerFunctionPointer =>
             GetFunctionPointer(ref guardRFVerifyStackPointerFunctionPointer, chunk.TryPeekPointer(GuardRFVerifyStackPointerFunctionPointerOffset, Size));
 
@@ -618,21 +632,33 @@ namespace PESpy
 
         private VA<long> guardXFGCheckFunctionPointer;
 
+        /// <summary>
+        /// __guard_xfg_check_icall_fptr
+        /// </summary>
         public VA<long> GuardXFGCheckFunctionPointer =>
             GetFunctionPointer(ref guardXFGCheckFunctionPointer, chunk.TryPeekPointer(GuardXFGCheckFunctionPointerOffset, Size));
 
         private VA<long> guardXFGDispatchFunctionPointer;
 
+        /// <summary>
+        /// __guard_xfg_dispatch_icall_fptr
+        /// </summary>
         public VA<long> GuardXFGDispatchFunctionPointer =>
             GetFunctionPointer(ref guardXFGDispatchFunctionPointer, chunk.TryPeekPointer(GuardXFGDispatchFunctionPointerOffset, Size));
 
         private VA<long> guardXFGTableDispatchFunctionPointer;
 
+        /// <summary>
+        /// __guard_xfg_table_dispatch_icall_fptr
+        /// </summary>
         public VA<long> GuardXFGTableDispatchFunctionPointer =>
             GetFunctionPointer(ref guardXFGTableDispatchFunctionPointer, chunk.TryPeekPointer(GuardXFGTableDispatchFunctionPointerOffset, Size));
 
         private VA<long> castGuardOsDeterminedFailureMode;
 
+        /// <summary>
+        /// __castguard_check_failure_os_handled_fptr
+        /// </summary>
         public VA<long> CastGuardOsDeterminedFailureMode => 
             GetFunctionPointer(ref castGuardOsDeterminedFailureMode, chunk.TryPeekPointer(CastGuardOsDeterminedFailureModeOffset, Size));
 
@@ -641,6 +667,9 @@ namespace PESpy
 
         private VA<long> guardMemcpyFunctionPointer;
 
+        /// <summary>
+        /// __guard_memcpy_fptr
+        /// </summary>
         public VA<long> GuardMemcpyFunctionPointer =>
             GetFunctionPointer(ref guardMemcpyFunctionPointer, chunk.TryPeekPointer(GuardMemcpyFunctionPointerOffset, Size));
 

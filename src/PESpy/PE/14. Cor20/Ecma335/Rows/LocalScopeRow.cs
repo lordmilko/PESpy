@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy.Ecma335
 {
-    [DebuggerDisplay("Method = {MethodRow}, ImportScope = {ImportScopeRow}, VariableList = {VariableList}, ConstantList = {ConstantList}, StartOffset = {StartOffset}, Length = {Length}")]
+    [DebuggerDisplay("Method = {MethodRow}, ImportScope = {ImportScope}, VariableList = {VariableList}, ConstantList = {ConstantList}, StartOffset = {StartOffset}, Length = {Length}")]
     public readonly struct LocalScopeRow : IValue, IViewable
     {
         public LocalScopeIndex RowIndex { get; }

@@ -130,11 +130,12 @@ namespace PESpy
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 
-        private static unsafe int KMPSearch(byte[] pattern, byte* bytes, long bytesLength)
+        internal static unsafe int KMPSearch(Span<byte> pattern, byte* bytes, long bytesLength)
         {
             int m = 0;
             int i = 0;
-            int[] table = ComputeKMPFailureFunction(pattern);
+            Span<int> table = stackalloc int[pattern.Length];
+            ComputeKMPFailureFunction(pattern, table);
 
             while (m + i < bytesLength)
             {
@@ -165,9 +166,8 @@ namespace PESpy
         }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-        private static int[] ComputeKMPFailureFunction(byte[] pattern)
+        private static void ComputeKMPFailureFunction(Span<byte> pattern, Span<int> table)
         {
-            int[] table = new int[pattern.Length];
             if (pattern.Length >= 1)
             {
                 table[0] = -1;
@@ -197,7 +197,6 @@ namespace PESpy
                     pos++;
                 }
             }
-            return table;
         }
     }
 }

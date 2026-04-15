@@ -4,19 +4,17 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
-using System.Security.Cryptography;
 using System.Text;
-using ChaosLib;
 using ClrDebug;
 using ClrDebug.DIA;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json.Linq;
 using PESpy.OBJ;
 using PESpy.PDB;
 using PESpy.PowerShell;
 using PESpy.View;
+using PESpy.View.Builder;
 using Stream = System.IO.Stream;
 
 namespace PESpy.Tests
@@ -606,6 +604,8 @@ namespace PESpy.Tests
         [TestMethod]
         public void SymType_AlignSym_Test()
         {
+            //I thought I had seen one of these in my con_samp.exe sample, but that can't be;
+            //it doesn't have a PDB!
             var str = GenerateTest<AlignSym>();
             throw new NotImplementedException();
         }
@@ -656,6 +656,28 @@ namespace PESpy.Tests
             var str = GenerateTest<AttrRegSym>();
             throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void SymType_AttrSlotSym_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x1A, 0x00, 0x20, 0x11, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+                0x74, 0x68, 0x69, 0x73, 0x00, 0x00, 0x00, 0x00
+            };
+
+            TestStruct<AttrSlotSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 26),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_MANSLOT),
+                c => c.VerifyField(name: "iSlot", value: 0),
+                c => c.VerifyField(name: "typind", value: 0x11000004),
+                c => c.VerifyField(name: "attr", value: new CV_lvar_attr { flags = { fIsParam = true } }),
+                c => c.VerifyField(name: "name", value: "this"),
+                c => c.VerifyByteBlob(offset: 4121, value: new byte[] { 0, 0, 0 })
+            );
+        }
+
         [TestMethod]
         public void SymType_BlockSym16_Test()
         {
@@ -1018,6 +1040,23 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
+        public void SymType_DefRangeSymFramePointerRel_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x0E, 0x00, 0x42, 0x11, 0x30, 0x00, 0x00, 0x00, 0x33, 0xA1, 0x08, 0x00, 0x01, 0x00, 0x68, 0x00
+            };
+
+            TestStruct<DefRangeSymFramePointerRel>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 14),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_DEFRANGE_FRAMEPOINTER_REL),
+                c => c.VerifyField(name: "offFramePointer", value: 48),
+                c => c.VerifyFieldIgnoreValue(name: "range")
+            );
+        }
+
+        [TestMethod]
         public void SymType_DefRangeSymFramePointerRelFullScope_Test()
         {
             var bytes = new byte[]
@@ -1039,11 +1078,71 @@ namespace PESpy.Tests
             var str = GenerateTest<DefRangeSymHLSL>();
             throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void SymType_DefRangeSymRegister_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x0E, 0x00, 0x41, 0x11, 0x4A, 0x01, 0x00, 0x00, 0xA0, 0x10, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00
+            };
+
+            TestStruct<DefRangeSymRegister>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 14),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_DEFRANGE_REGISTER),
+                c => c.VerifyField(name: "reg", value: CV_HREG_e.CV_ARM64_V20),
+                c => c.VerifyField(name: "attr", value: new CV_RANGEATTR()),
+                c => c.VerifyFieldIgnoreValue(name: "range")
+            );
+        }
+
+        [TestMethod]
+        public void SymType_DefRangeSymRegisterRel_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x12, 0x00, 0x45, 0x11, 0x4E, 0x01, 0x00, 0x00, 0xE4, 0xFF, 0xFF, 0xFF, 0xE1, 0x14, 0x00, 0x00, 0x01, 0x00, 0x63, 0x00
+            };
+
+            TestStruct<DefRangeSymRegisterRel>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 18),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_DEFRANGE_REGISTER_REL),
+                c => c.VerifyField(name: "baseReg", value: CV_HREG_e.CV_REG_YMM4F2),
+                c => c.VerifyBitField(name: "spilledUdtMember", value: (byte) 0, bits: 1),
+                c => c.VerifyBitField(name: "padding", value: (short) 0, bits: 3),
+                c => c.VerifyBitField(name: "offsetParent", value: (short) 0, bits: 12),
+                c => c.VerifyField(name: "offBasePointer", value: -28),
+                c => c.VerifyFieldIgnoreValue(name: "range")
+            );
+        }
+
         [TestMethod]
         public void SymType_DefRangeSymSubField_Test()
         {
             var str = GenerateTest<DefRangeSymSubField>();
             throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_DefRangeSymSubfieldRegister_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x12, 0x00, 0x43, 0x11, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xBB, 0x08, 0x00, 0x01, 0x00, 0x1D, 0x00
+            };
+
+            TestStruct<DefRangeSymSubfieldRegister>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 18),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_DEFRANGE_SUBFIELD_REGISTER),
+                c => c.VerifyField(name: "reg", value: CV_HREG_e.CV_TRI_D10),
+                c => c.VerifyField(name: "attr", value: new CV_RANGEATTR()),
+                c => c.VerifyBitField(name: "offParent", value: (CV_uoff32_t) 0x0, bits: 12),
+                c => c.VerifyBitField(name: "padding", value: (CV_uoff32_t) 0x0, bits: 20),
+                c => c.VerifyFieldIgnoreValue(name: "range")
+            );
         }
 
         [TestMethod]
@@ -1065,6 +1164,32 @@ namespace PESpy.Tests
         {
             var str = GenerateTest<EntryThisSym>();
             throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void SymType_EnvBlockSym_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x8A, 0x00, 0x3D, 0x11, 0x00, 0x63, 0x77, 0x64, 0x00, 0x43, 0x3A, 0x5C, 0x54, 0x65, 0x73, 0x74, 0x41, 0x70, 0x70, 0x00,
+                0x65, 0x78, 0x65, 0x00, 0x43, 0x3A, 0x5C, 0x50, 0x72, 0x6F, 0x67, 0x72, 0x61, 0x6D, 0x20, 0x46, 0x69, 0x6C, 0x65, 0x73,
+                0x20, 0x28, 0x78, 0x38, 0x36, 0x29, 0x5C, 0x4D, 0x69, 0x63, 0x72, 0x6F, 0x73, 0x6F, 0x66, 0x74, 0x20, 0x56, 0x69, 0x73,
+                0x75, 0x61, 0x6C, 0x20, 0x53, 0x74, 0x75, 0x64, 0x69, 0x6F, 0x5C, 0x32, 0x30, 0x31, 0x39, 0x5C, 0x45, 0x6E, 0x74, 0x65,
+                0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x5C, 0x56, 0x43, 0x5C, 0x54, 0x6F, 0x6F, 0x6C, 0x73, 0x5C, 0x4D, 0x53, 0x56, 0x43,
+                0x5C, 0x31, 0x34, 0x2E, 0x32, 0x39, 0x2E, 0x33, 0x30, 0x31, 0x33, 0x33, 0x5C, 0x62, 0x69, 0x6E, 0x5C, 0x48, 0x6F, 0x73,
+                0x74, 0x58, 0x38, 0x36, 0x5C, 0x78, 0x38, 0x36, 0x5C, 0x6C, 0x69, 0x6E, 0x6B, 0x2E, 0x65, 0x78, 0x65, 0x00, 0x00, 0x00
+            };
+
+            TestStruct<EnvBlockSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 138),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ENVBLOCK),
+                c => c.VerifyBitField(name: "rev", value: (byte) 0, bits: 1),
+                c => c.VerifyBitField(name: "pad", value: (byte) 0, bits: 7),
+                c => c.VerifyFieldIgnoreValue(name: "rgsz")
+            );
+        }
+
         [TestMethod]
         public void SymType_ExportSym_Test()
         {
@@ -1182,6 +1307,25 @@ namespace PESpy.Tests
             var str = GenerateTest<FrameRelSym>();
             throw new NotImplementedException();
         }
+
+        [TestMethod]
+        public void SymType_FunctionList_Test()
+        {
+            var bytes = new byte[]
+            {
+                0x16, 0x00, 0x5A, 0x11, 0x04, 0x00, 0x00, 0x00, 0x1E, 0x10, 0x00, 0x00, 0x1F, 0x10, 0x00, 0x00, 0x20, 0x10, 0x00, 0x00,
+                0x21, 0x10, 0x00, 0x00
+            };
+
+            TestStruct<FunctionList>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 22),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_CALLEES),
+                c => c.VerifyField(name: "count", value: 4),
+                c => c.VerifyFieldIgnoreValue(name: "funcs")
+            );
+        }
+
         [TestMethod]
         public void SymType_HeapAllocSite_Test()
         {
@@ -1202,19 +1346,46 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void SymType_ArmSwitchTable_Test()
+        public void SymType_InlineSiteSym_Test()
         {
-            var str = GenerateTest<ArmSwitchTable>();
-            throw new NotImplementedException();
+            var bytes = new byte[]
+            {
+                0x22, 0x00, 0x4D, 0x11, 0x98, 0x02, 0x00, 0x00, 0xCC, 0x03, 0x00, 0x00, 0x1D, 0x10, 0x00, 0x00, 0x06, 0x02, 0x03, 0x19,
+                0x06, 0x12, 0x03, 0x0B, 0x06, 0x06, 0x0C, 0x49, 0x0C, 0x06, 0x12, 0x0C, 0x28, 0x50, 0x00, 0x00
+            };
+
+            TestStruct<InlineSiteSym>(
+                bytes,
+                c => c.VerifyField(name: "reclen", value: (ushort) 34),
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_INLINESITE),
+                c => c.VerifyField(name: "pParent", value: 664),
+                c => c.VerifyField(name: "pEnd", value: 972),
+                c => c.VerifyField(name: "inlinee", value: (CV_ItemId) 0x101D),
+                c => c.VerifyFieldIgnoreValue(name: "binaryAnnotations")
+            );
         }
 
         [TestMethod]
-        public void SymType_AttrManyRegSym2_Test()
+        public void SymType_InlineSiteSym2_Test()
         {
-            var str = GenerateTest<AttrManyRegSym2>();
-            throw new NotImplementedException();
+            var bytes = new byte[]
+            {
+                0x1A, 0x00, 0x5D, 0x11, 0xEC, 0x02, 0x00, 0x00, 0xC4, 0x03, 0x00, 0x00, 0x0A, 0x39, 0x00, 0x00, 0xB2, 0x51, 0x01, 0x00,
+                0x06, 0x30, 0x0C, 0x04, 0x08, 0x00, 0x00, 0x00
+            };
+
+            TestStruct<InlineSiteSym2>(
+                bytes,
+                c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_INLINESITE2),
+                c => c.VerifyField(name: "reclen", value: (ushort) 26),
+                c => c.VerifyField(name: "pParent", value: 748),
+                c => c.VerifyField(name: "pEnd", value: 964),
+                c => c.VerifyField(name: "inlinee", value: (CV_ItemId) 0x390A),
+                c => c.VerifyField(name: "invocations", value: 86450),
+                c => c.VerifyFieldIgnoreValue(name: "binaryAnnotations")
+            );
         }
-                }
+
         [TestMethod]
         public void SymType_LabelSym16_Test()
         {
@@ -1784,7 +1955,7 @@ namespace PESpy.Tests
                     HasLengthPrefixedStrings = lengthPrefixed
                 };
 
-                SymbolMemoryTracker.RegisterSymbolMemory(pBytes, bytes.Length, codeViewAccessor);
+                SymbolMemoryTracker.RegisterSymbolMemory(pBytes, bytes.Length, codeViewAccessor, null);
 
                 try
                 {
@@ -1823,6 +1994,22 @@ namespace PESpy.Tests
                     SymbolMemoryTracker.ClearSymbolMemory(pBytes);
                 }
             }
+        }
+
+        private unsafe static new string GenerateTest<T>()
+        {
+            //Get all symbols, dispatch to ObjectSymTypeDispatcher, and if the result is of type T get the underlying pointer,
+            //cast it to SymType, call GetStringLength, create a span around the bytes and return them
+
+            ClrDebug.Extensions.DiaStringsUseComHeap = true;
+
+            using var pdbFile = PDBFile.FromFile(
+                //Change this as required to try and get symbols from various PDBs
+                Sample.VC40_PDB
+            );
+
+            var type = typeof(T);
+
             if (type.Name.StartsWith("Lf"))
             {
                 IEnumerable<TypType> types = null;
@@ -1866,6 +2053,9 @@ namespace PESpy.Tests
 
             throw new AssertInconclusiveException();
         }
+
+        private unsafe static string GenerateFieldListTest<T>()
+        {
             using var pdbFile = PDBFile.FromFile(Sample.VC20_PDB);
 
             var type = typeof(T);
@@ -1953,7 +2143,7 @@ namespace PESpy.Tests
             builder.AppendLine($"TestStruct<{type.Name}>(");
             builder.AppendLine("    bytes,");
 
-            var byteViewProvider = pdbFile.CreateByteViewProvider();
+            var byteViewProvider = (LocalByteViewProvider) pdbFile.CreateByteViewProvider();
 
             var writer = new MockViewWriter(pdbFile, byteViewProvider);
             writer.UnmanagedOffset = (int) (ptr - byteViewProvider.mmf);
@@ -2902,6 +3092,9 @@ namespace PESpy.Tests
                 0x22, 0x00, 0x02, 0x16, 0x06, 0x11, 0x00, 0x00, 0x07, 0x11, 0x00, 0x00, 0x63, 0x6F, 0x6E, 0x66, 0x69, 0x67, 0x75, 0x72,
                 0x65, 0x5F, 0x61, 0x72, 0x67, 0x76, 0x00, 0x78, 0x92, 0xA0, 0xA6, 0x8D, 0xE0, 0x1E, 0xA9, 0xF1
             };
+
+            //I don't know what the random bytes at the end mean
+
             TestStruct<LfMFuncId>(
                 bytes,
                 c => c.VerifyField(name: "typlen", value: (ushort) 34),
@@ -3618,6 +3811,20 @@ namespace PESpy.Tests
                 }
             );
         }
+
+        [TestMethod]
+        public void Symbols_C13_CrossScopeExports()
+        {
+            TestC13<PDB.LocalIdAndGlobalIdPair[]>(
+                DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS,
+                v =>
+                {
+                    Assert.AreEqual("__vcrt_uninitialize_locks", v[5].localId.ToString());
+                }
+            );
+        }
+
+        [TestMethod]
         public void Symbols_C13_ILLines()
         {
             TestC13<CvDebugSLinesHeader>(

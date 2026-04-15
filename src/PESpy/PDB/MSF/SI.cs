@@ -8,6 +8,7 @@ namespace PESpy.PDB
     /// Describes information about a stream.<para/>
     /// This structure only exists in memory, and is not persisted to disk.
     /// </summary>
+    [Source(SourceKind.msf_cpp)]
     [DebuggerDisplay("ByteCount = {ByteCount}, PageList = [{string.Join(\",\", PageList),nq}]")]
     public struct SI : IValue, IViewable
     {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
+using System.Threading;
 
 namespace PESpy.View
 {
@@ -346,12 +347,16 @@ namespace PESpy.View
             base.Dispose();
         }
 
-        internal override ISymbolAccessor GetSymbolAccessor(bool load, LocatorHttpPolicy httpPolicy, ILocatorProgress? progress)
+        internal override ISymbolAccessor GetSymbolAccessor(
+            bool load,
+            LocatorHttpPolicy httpPolicy,
+            ILocatorProgress? progress,
+            CancellationToken cancellationToken = default)
         {
             if (_symbolAccessor == null)
             {
                 if (load)
-                    _symbolAccessor = PEFile.GetSymbolAccessor(httpPolicy, progress);
+                    _symbolAccessor = PEFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
             }
 
             return _symbolAccessor ?? NullSymbolAccessor.Instance;

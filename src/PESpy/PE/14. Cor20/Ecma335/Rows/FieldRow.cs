@@ -8,7 +8,7 @@ namespace PESpy.Ecma335
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct FieldRow : IValue, IViewable
     {
-        private string DebuggerDisplay() => $"{DeclaringType}.{Name.GetString()}";
+        private string DebuggerDisplay() => $"{DecodeSignature(StringSignatureTypeProvider.Instance, default)} {DeclaringType}.{Name.GetString()}";
 
         public FieldIndex RowIndex { get; }
 

@@ -17,6 +17,13 @@ namespace PESpy.View
         DelayImport
     }
 
+    //Allows us to use generic type constraints to write the contents of a lightweight list to a ViewWriter
+    //using a single generic method definition without needing to box the enumerator type
+    internal interface ILightweightList<TEnumerator, TElement> where TEnumerator : IEnumerator<TElement>
+    {
+        TEnumerator GetEnumerator();
+    }
+
     public abstract partial class ViewWriter
     {
         //When a struct wants to write another struct inside it, it will push its list of fields to the viewStack,
@@ -214,7 +221,10 @@ namespace PESpy.View
             }
         }
 
-        public void WriteGlobal(RuntimeFunctionList? list)
+        internal void WriteGlobal<TLightweightList, TEnumerator, TElement>(TLightweightList? list)
+            where TLightweightList : ILightweightList<TEnumerator, TElement>
+            where TEnumerator : IEnumerator<TElement>
+            where TElement : IViewable
         {
             if (list == null)
                 return;
@@ -228,9 +238,11 @@ namespace PESpy.View
                 return value.WriteStruct(this);
             }
 
-            foreach (var item in list)
+            var enumerator = list.GetEnumerator();
+
+            while (enumerator.MoveNext())
             {
-                var result = Write(item);
+                var result = Write(enumerator.Current);
 
                 if (result != null)
                     globalList.Add(result);
@@ -316,6 +328,27 @@ namespace PESpy.View
             }
         }
 
+        internal void WriteUniqueGlobal<TLightweightList, TEnumerator, TElement>(TLightweightList? value)
+            where TLightweightList : ILightweightList<TEnumerator, TElement>
+                where TEnumerator : IEnumerator<TElement>
+                where TElement : IViewable, IValue
+        {
+            if (value == null)
+                return;
+
+            var enumerator = value.GetEnumerator();
+            
+            while (enumerator.MoveNext())
+            {
+                var item = enumerator.Current;
+
+                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+
+                if (shouldAdd && trackedAddresses.Add(viewOffset))
+                    WriteGlobal(item);
+            }
+        }
+
         public void WriteRegionUniqueGlobal<T>(in T[]? value) where T : IValue, IViewable
         {
             if (value == null)
@@ -324,6 +357,27 @@ namespace PESpy.View
             for (var i = 0; i < value.Length; i++)
             {
                 var item = value[i];
+
+                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+
+                if (shouldAdd && trackedAddresses.Add(viewOffset))
+                    WriteRegionGlobal(item);
+            }
+        }
+
+        internal void WriteRegionUniqueGlobal<TLightweightList, TEnumerator, TElement>(TLightweightList? value)
+                where TLightweightList : ILightweightList<TEnumerator, TElement>
+                where TEnumerator : IEnumerator<TElement>
+                where TElement : IViewable, IValue
+        {
+            if (value == null)
+                return;
+
+            var enumerator = value.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var item = enumerator.Current;
 
                 var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
 
@@ -856,14 +910,21 @@ namespace PESpy.View
         //NOTE: anyone that calls this method must provide the _target_ offset, after having resolved an RVA to its physical location
         public virtual void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
+            //Implementations of this method are responsible for converting both the structOffset and targetOffset to the target ViewMode
+            //address space
         }
 
         public virtual void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
         {
+            //Implementations of this method are responsible for converting both the structOffset and targetOffset to the target ViewMode
+            //address space
         }
 
         public void WriteRVAXRef(int structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
+            //Note that we _don't_ convert structOffset to the target address space here; this is done
+            //in the WriteRVAXRef overload that processes each single element
+
             if (value.IsValid)
             {
                 for (var i = 0; i < value.Value.Length; i++)
@@ -907,7 +968,6 @@ namespace PESpy.View
 
         internal virtual RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
         {
-            return new ValueView<T>(offset, value, size, kind);
             var writer = nestedViewWriter ?? this;
 
             if (global)

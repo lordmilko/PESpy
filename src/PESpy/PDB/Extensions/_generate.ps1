@@ -198,7 +198,8 @@ function ParseExpression($expr)
                         }
                     }
 
-                    $inner = $toInclude
+                    $toInclude
+                    continue
                 }
                 elseif($condition -eq "LocIsBitField")
                 {
@@ -215,14 +216,20 @@ function ParseExpression($expr)
                         }
                     }
 
-                    $inner = $toInclude
+                    $toInclude
+                    continue
+                }
+                elseif($condition -eq "LEAF_ENUM_e")
+                {
+                    $toInclude = $inner | where EntityType -eq "Types"
+
+                    $toInclude
+                    continue
                 }
                 else
                 {
                     throw "Don't know how to handle condition '$condition'"
                 }
-
-                $inner
             }
 
             return
@@ -249,11 +256,7 @@ function ParseExpression($expr)
                 }
                 elseif($condition.StartsWith("Is"))
                 {
-                    # They want all kinds that match the specified category.
-                    # We don't currently support this because it's too complicated
-                    # to handle some of these in our config file and also we want to have
-                    # static methods in SymType.cs that define certain "is" lists, so ideally
-                    # the caller should rework things so they don't need to call this method
+                    # They want all kinds that match the specified category
                     throw
                 }
                 else
@@ -504,6 +507,11 @@ break;
                 {
                     # It's an enum
                     $body = "$fieldType.$($body)"
+                }
+
+                if($field -eq "Offset" -and $caseGroup.EntityType -eq "Types")
+                {
+                    $body = "(int) $body"
                 }
 
                 $builder.AppendLine("$($indent)    $lowerFieldName = $body;") | Out-Null

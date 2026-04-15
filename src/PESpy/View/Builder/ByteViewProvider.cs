@@ -7,8 +7,6 @@ namespace PESpy.View.Builder
 {
     internal abstract unsafe class ByteViewProvider
     {
-        internal byte* mmf;
-        protected int length;
         private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
         private bool isLibFile;
@@ -21,15 +19,17 @@ namespace PESpy.View.Builder
             this.isLibFile = isLibFile;
         }
 
-        public int FileOrSectionLength => length;
+        //Used to get the overlay. Do not use in virtual mode
+        //public int FileOrSectionLength => length;
+        public abstract int FileOrSectionLength { get; }
 
         internal IView ReadBlob(int rva, Func<int, int>? getRealOffset, int length)
         {
-            Debug.Assert(mmf != default);
-
             var realRVA = getRealOffset == null ? rva : getRealOffset(rva);
 
-            var bytes = new NativeSpan<byte>(mmf + realRVA, length);
+            var (pBytes, memoryLength, relativeOffset) = AcquireMemory(realRVA);
+
+            var bytes = new NativeSpan<byte>((byte*) pBytes + relativeOffset, length);
 
             return new ByteBlobView(rva, bytes, null); //Auto-detect the kind
         }
@@ -42,7 +42,10 @@ namespace PESpy.View.Builder
             if (getRealOffset != null)
                 offset = getRealOffset(offset);
 
-            var span = new NativeSpan<byte>(mmf, length);
+            var (pBytes, memoryLength, relativeOffset) = AcquireMemory(offset);
+
+            Debug.Assert(memoryLength != 0);
+            var span = new NativeSpan<byte>((byte*) pBytes, memoryLength);
 
             Debug.Assert(endRVA > currentRVA);
 
@@ -58,16 +61,16 @@ namespace PESpy.View.Builder
                 //When reading the overlay from disk, nothing is certain. We can have some level of confidence about the security section,
                 //but there could even be data listed after that as well
 
-                if (offset >= length)
+                if (relativeOffset >= memoryLength)
                     return null;
 
-                bytesToRead = Math.Min(bytesToRead, length - offset);
+                bytesToRead = Math.Min(bytesToRead, memoryLength - relativeOffset);
 
-                bytes = span.Slice(offset, bytesToRead);
+                bytes = span.Slice(relativeOffset, bytesToRead);
             }
             else
             {
-                bytes = span.Slice(offset, bytesToRead);
+                bytes = span.Slice(relativeOffset, bytesToRead);
             }
 
             IView[]? views;
@@ -190,5 +193,7 @@ namespace PESpy.View.Builder
             i += arr.Length - 1;
             return blob;
         }
+
+        protected abstract unsafe (IntPtr pBytes, int memoryLength, int relativeOffset) AcquireMemory(int targetAddress);
     }
 }

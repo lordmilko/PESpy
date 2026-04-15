@@ -38,7 +38,7 @@
 
         public int GetRowOffset(StateMachineMethodIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public StateMachineMethodRow this[StateMachineMethodIndex index] => GetRow((int) index);
+        public StateMachineMethodRow this[StateMachineMethodIndex index] => GetRowSafe((int) index);
 
         protected override StateMachineMethodRow GetRow(int index) => new StateMachineMethodRow((StateMachineMethodIndex) index, this);
     }

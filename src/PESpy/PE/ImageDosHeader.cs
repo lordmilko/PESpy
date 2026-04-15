@@ -8,6 +8,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="IMAGE_DOS_HEADER"/> structure.
     /// </summary>
+    [Source(SourceKind.winnt_h | SourceKind.exehdr_h)] //Also known as exe_hdr in old versions of Windows
     public readonly struct ImageDosHeader : IValue, IViewable
     {
         public const ushort IMAGE_DOS_SIGNATURE = 0x5A4D;     //MZ

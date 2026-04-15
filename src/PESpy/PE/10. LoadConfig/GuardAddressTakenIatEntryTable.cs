@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using PESpy.View;
 
 namespace PESpy
@@ -51,7 +52,7 @@ namespace PESpy
                     throw new IndexOutOfRangeException();
 
                 var peFile = chunk.PEFile();
-                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+                var entry = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, chunk.PEFile());
 
                 return entry;
             }
@@ -61,7 +62,7 @@ namespace PESpy
         {
             if (ImageLoadConfigDirectory.TryGetGuardEntry(rva, metadataSize, Count, chunk.Pointer, out var offset))
             {
-                entry = new Entry(chunk.Slice(offset), metadataSize);
+                entry = new Entry(chunk.Slice(offset), metadataSize, chunk.PEFile());
                 return true;
             }
 
@@ -106,20 +107,42 @@ namespace PESpy
                         if (isDelayImport)
                         {
                             ref var descriptor = ref peFile.DelayImportTable![descriptorIndex];
-                            ref var thunk = ref descriptor.ImportNameTableRVA.Value[thunkIndex];
+                            var thunk = descriptor.ImportNameTableRVA.Value[thunkIndex];
 
                             return $"[Delay] {descriptor.DllNameRVA} {thunk}";
                         }
                         else
                         {
                             ref var descriptor = ref peFile.ImportTable![descriptorIndex];
-                            ref var thunk = ref descriptor.OriginalFirstThunk.Value[thunkIndex];
+                            var thunk = descriptor.OriginalFirstThunk.Value[thunkIndex];
 
                             return $"[Import] {descriptor.Name} {thunk}";
                         }
                     }
 
-                    return $"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}";
+                    var symbolAccessor = peFile.GetSymbolAccessor(LocatorHttpPolicy.None);
+
+                    var builder = new StringBuilder();
+                    builder.Append($"Function = 0x{Function:X}, Flags = {(Flags.HasValue ? Flags.Value.ToString() : "null")}");
+
+                    if (symbolAccessor is not NullSymbolAccessor)
+                    {
+                        builder.Append(", Symbol = ");
+
+                        if (symbolAccessor.TryGetNameFromAddress(Function, out var name, out var displacement))
+                        {
+                            builder.Append(name);
+
+                            if (displacement != 0)
+                                builder.Append("+0x").Append(displacement.ToString("X"));
+                        }
+                        else
+                        {
+                            builder.Append("?");
+                        }
+                    }
+
+                    return builder.ToString();
                 }
             }
 
@@ -131,10 +154,10 @@ namespace PESpy
 
             private readonly PEFile peFile;
 
-            internal Entry(in MemoryChunk chunk, int metadataSize)
+            internal Entry(in MemoryChunk chunk, int metadataSize, PEFile peFile)
             {
                 Offset = chunk.AbsoluteOffset;
-                this.peFile = chunk.PEFile();
+                this.peFile = peFile;
 
                 Function = chunk.PeekInt32(0);
 
@@ -244,22 +267,22 @@ namespace PESpy
                 return false;
             }
 
-            private static bool TrySearchThunkList(int targetAddress, ImageThunkData[] thunkList, out int index)
+            private static bool TrySearchThunkList(int targetAddress, ImageThunkDataList thunkList, out int index)
             {
-                if (thunkList.Length == 0)
+                if (thunkList.Count == 0)
                 {
                     index = -1;
                     return false;
                 }
 
-                if (targetAddress < thunkList[0].Offset || targetAddress > thunkList[thunkList.Length - 1].Offset)
+                if (targetAddress < thunkList[0].Offset || targetAddress > thunkList[thunkList.Count - 1].Offset)
                 {
                     index = -1;
                     return false;
                 }
 
                 var lo = 0;
-                var hi = thunkList.Length - 1;
+                var hi = thunkList.Count - 1;
 
                 while (lo <= hi)
                 {
@@ -321,6 +344,7 @@ namespace PESpy
             private int index;
             private readonly int count;
             private readonly int metadataSize;
+            private readonly PEFile peFile;
 
             internal Enumerator(int count, int metadataSize, in MemoryChunk chunk)
             {
@@ -328,6 +352,7 @@ namespace PESpy
                 this.count = count;
                 this.metadataSize = metadataSize;
                 index = default;
+                this.peFile = chunk.PEFile();
 
                 Current = default;
             }
@@ -340,7 +365,7 @@ namespace PESpy
             {
                 if (index < count)
                 {
-                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize);
+                    Current = new Entry(chunk.Slice(index * (sizeof(int) + metadataSize)), metadataSize, peFile);
                     index++;
                     return true;
                 }

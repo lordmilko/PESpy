@@ -1,26 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management.Automation;
-using System.Threading;
 
 namespace PESpy.PowerShell
 {
-    class PowerShellLocatorProgress : ILocatorProgress, IDisposable
+    class PowerShellLocatorProgress : ILocatorProgress
     {
-        private ProgressRecord progressRecord;
-        private PSCmdlet cmdlet;
-        private object objLock = new();
-        private Queue<Action> queue = new();
-        private Stopwatch startTime;
+        private ProgressRecord _progressRecord;
+        private PSCmdlet _cmdlet;
+        private Stopwatch _startTime;
 
-        private int notificationIndex = 0;
-
-        internal AutoResetEvent WaitHandle = new AutoResetEvent(false);
+        private int _notificationIndex = 0;
 
         internal PowerShellLocatorProgress(PSCmdlet cmdlet)
         {
-            this.cmdlet = cmdlet;
+            _cmdlet = cmdlet;
         }
 
         public void Notify(LocatorProgressEventArgs eventArgs)
@@ -30,66 +24,32 @@ namespace PESpy.PowerShell
                 case LocatorProgressEventKind.BeginHttpRequest:
                     var beginRequestEventArgs = eventArgs.BeginHttpRequest;
 
-                    lock (objLock)
-                    {
-                        queue.Enqueue(() =>
-                        {
-                            progressRecord = new ProgressRecord(0, "Get-PEFile", $"Requesting file '{beginRequestEventArgs.Uri}'");
+                    _progressRecord = new ProgressRecord(0, _cmdlet.MyInvocation.MyCommand.Name, $"Requesting file '{beginRequestEventArgs.Uri}'");
 
-                            cmdlet.WriteProgress(progressRecord);
-                        });
-
-                        WaitHandle.Set();
-                    }
+                    _cmdlet.WriteProgress(_progressRecord);
                     break;
 
                 case LocatorProgressEventKind.GotHttpResponse:
-                    startTime = Stopwatch.StartNew();
+                    _startTime = Stopwatch.StartNew();
                     break;
 
                 case LocatorProgressEventKind.CopyCascadeProgress:
                     var progressEventArgs = eventArgs.CopyCascadeProgress;
 
                     //Displaying progress on every single read massively slows reading down
-                    if (notificationIndex++ % 50 != 0)
+                    if (_notificationIndex++ % 50 != 0)
                         return;
 
-                    lock (objLock)
-                    {
-                        queue.Enqueue(() =>
-                        {
-                            progressRecord.PercentComplete = (int) progressEventArgs.Percent;
-                            progressRecord.CurrentOperation = $"Downloading file ({Math.Round((double) progressEventArgs.TotalRead / 1_000_000, 2)} MB/{Math.Round((double) progressEventArgs.Length / 1_000_000, 2)} MB)";
+                    _progressRecord.PercentComplete = (int) progressEventArgs.Percent;
+                    _progressRecord.CurrentOperation = $"Downloading file ({Math.Round((double) progressEventArgs.TotalRead / 1_000_000, 2)} MB/{Math.Round((double) progressEventArgs.Length / 1_000_000, 2)} MB)";
 
-                            var bytesPerSecond = progressEventArgs.TotalRead / startTime.Elapsed.TotalSeconds;
-                            var remainingBytes = progressEventArgs.Length - progressEventArgs.TotalRead;
-                            progressRecord.SecondsRemaining = (int) (remainingBytes / bytesPerSecond);
+                    var bytesPerSecond = progressEventArgs.TotalRead / _startTime.Elapsed.TotalSeconds;
+                    var remainingBytes = progressEventArgs.Length - progressEventArgs.TotalRead;
+                    _progressRecord.SecondsRemaining = (int) (remainingBytes / bytesPerSecond);
 
-                            cmdlet.WriteProgress(progressRecord);
-                        });
-
-                        WaitHandle.Set();
-                    }
+                    _cmdlet.WriteProgress(_progressRecord);
                     break;
             }
-        }
-
-        public void DrainQueue()
-        {
-            lock (objLock)
-            {
-                while (queue.Count > 0)
-                {
-                    var action = queue.Dequeue();
-
-                    action();
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            WaitHandle.Dispose();
         }
     }
 }

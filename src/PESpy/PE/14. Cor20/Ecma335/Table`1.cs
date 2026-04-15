@@ -60,6 +60,14 @@ namespace PESpy.Ecma335
             }
         }
 
+        protected T GetRowSafe(int index)
+        {
+            if (index == 0)
+                throw new ArgumentException("Index must not be nil");
+
+            return GetRow(index);
+        }
+
         protected abstract T GetRow(int index);
 
         internal T FromOffset(int offset)

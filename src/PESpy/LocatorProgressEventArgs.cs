@@ -95,6 +95,8 @@ namespace PESpy
 
         public struct BeginHttpRequestEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.BeginHttpRequest;
+
             public string Uri { get; }
 
             internal BeginHttpRequestEventArgs(string uri)
@@ -105,6 +107,8 @@ namespace PESpy
 
         public struct GotHttpResponseEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.GotHttpResponse;
+
             public int ResponseCode { get; }
 
             internal GotHttpResponseEventArgs(int responseCode)
@@ -115,6 +119,8 @@ namespace PESpy
 
         public struct BeginCascadeStoreEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.BeginCascadeStore;
+
             public SymStoreKey Key { get; }
 
             public string DestinationStore { get; }
@@ -131,6 +137,8 @@ namespace PESpy
 
         public struct CopyCascadeFileEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.CopyCascadeFile;
+
             public SymStoreKey Key { get; }
 
             public string DestinationStore { get; }
@@ -150,6 +158,8 @@ namespace PESpy
 
         public struct CopyCascadeProgressEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.CopyCascadeProgress;
+
             public double Percent { get; }
 
             public int TotalRead { get; }
@@ -166,6 +176,8 @@ namespace PESpy
 
         public struct EndCascadeStoreEventArgs
         {
+            public LocatorProgressEventKind Kind => LocatorProgressEventKind.EndCascadeStore;
+
             public SymStoreKey Key { get; }
 
             public string DestinationStore { get; }

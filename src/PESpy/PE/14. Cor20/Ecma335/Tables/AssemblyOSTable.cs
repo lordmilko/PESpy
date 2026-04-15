@@ -34,7 +34,7 @@
 
         public int GetRowOffset(AssemblyOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public AssemblyOSRow this[AssemblyOSIndex index] => GetRow((int) index);
+        public AssemblyOSRow this[AssemblyOSIndex index] => GetRowSafe((int) index);
 
         protected override AssemblyOSRow GetRow(int index) => new AssemblyOSRow((AssemblyOSIndex) index, this);
     }

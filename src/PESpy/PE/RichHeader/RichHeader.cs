@@ -6,6 +6,35 @@ using PESpy.View;
 
 namespace PESpy
 {
+    /* https://learn.microsoft.com/en-us/cpp/overview/compiler-versions?view=msvc-170
+     * 
+     * Note that the rich header versions follow the MSVC version, _not_ the Visual Studio version
+     * 
+     * _MSC_VER stores MMNN (major minor)
+     * _MSC_FULL_VER stores MMNNBBBBB (major minor build)
+     * From VS6 - VS2015, for major releases
+     * - _MSC_VER increases by 100 and
+     * - _MSC_FULL_VER increases by 10,000,000
+     * 
+     * and for minor releases
+     * - _MSC_VER increases by 100 and
+     * - _MSC_FULL_VER increases by 1,000,000
+     * 
+     * For example, VS2013 has
+     * 
+     * _MSC_VER: 1800
+     * _MSC_VER_FULL: 180021005
+     * 
+     * VS2015 has
+     * 
+     * - _MSC_VER: 1900
+     * - _MSC_VER_FULL: 190023026
+     * 
+     * the second digit from the left increased by 1
+     * 
+     * conversely, Visual Studio 2010 goes from 1000 to 1010 for a minor update.
+     */
+
     /// <summary>
     /// Represents the undocumented Rich Header structure. This type does not have a well-known native struct declaration.
     /// </summary>

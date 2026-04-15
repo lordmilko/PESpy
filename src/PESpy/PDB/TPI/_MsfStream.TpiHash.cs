@@ -126,12 +126,15 @@ namespace PESpy.PDB
 
             public readonly struct TypeAndHash //Like PRECEX
             {
-                public readonly TYPTYPE* TypType;
+                //Span<T> disallows having a pointer to a struct that itself contains pointers, so we use IntPtr
+                //to hide this fact instead
+                public TYPTYPE* TypType => (TYPTYPE*) _typType;
+                public readonly IntPtr _typType;
                 public readonly uint Hash;
 
                 internal TypeAndHash(TYPTYPE* typType)
                 {
-                    TypType = typType;
+                    _typType = (nint) typType;
                     Hash = MsfStream.TpiHash.hashPrecFull(typType);
                 }
             }

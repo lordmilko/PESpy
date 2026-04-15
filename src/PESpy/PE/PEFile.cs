@@ -9,7 +9,9 @@ using PESpy.View;
 using PESpy.View.Builder;
 using Stream = System.IO.Stream;
 using static PESpy.IMAGE_DEBUG_TYPE;
-
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using static PESpy.NativeMethods;
 
 namespace PESpy
 {
@@ -55,7 +57,7 @@ namespace PESpy
         public ImageTlsDirectory? TlsDirectory => peFile.TlsDirectory;
         public ImageLoadConfigDirectory? LoadConfigTable => peFile.LoadConfigTable;
         public ImageBoundImportDescriptor[]? BoundImportTable => peFile.BoundImportTable;
-        public ImageThunkData[]? ImportAddressTable => peFile.ImportAddressTable;
+        public ImageThunkDataList? ImportAddressTable => peFile.ImportAddressTable;
         public ImageDelayLoadDescriptor[]? DelayImportTable => peFile.DelayImportTable;
 
         #region Cor20Header
@@ -76,7 +78,7 @@ namespace PESpy
 
         public IValue? Cor20ManagedNativeHeader => peFile.Cor20ManagedNativeHeader;
 
-        public ImageCorILMethod[]? ILMethods => peFile.ILMethods;
+        public ImageCorILMethodList? ILMethods => peFile.ILMethods;
 
         #endregion
         #endregion
@@ -112,7 +114,8 @@ namespace PESpy
 
         #endregion
 
-        public ReadyToRunHeader? ReadyToRunHeader => peFile.ReadyToRunHeader;
+        //Don't do "using" for ReadyToRunHeader, as in NativeAOT there's a similar structure with a different layout
+        public R2R.ReadyToRunHeader? ReadyToRunHeader => peFile.ReadyToRunHeader;
 
         public AppHostSignature? AppHostSignature => peFile.AppHostSignature;
 
@@ -120,7 +123,13 @@ namespace PESpy
 
         public RuntimeInfo? DotNetRuntimeInfo => peFile.DotNetRuntimeInfo;
 
-        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
+        public NativeAOT.DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
+
+        public NativeAOTModulesList? NativeAOTModules => peFile.GetNativeAOTModules(debugger: true);
+
+        public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators => peFile.GetRTTICompleteObjectLocators(debugger: true);
+
+        public VftableInfo[]? Vftables => peFile.GetVftables(debugger: true);
     }
 
     /// <summary>
@@ -182,33 +191,259 @@ namespace PESpy
         }
 
         /// <summary>
-        /// Reads a <see cref="PEFile"/> from a module contained in a remote process.
+        /// Reads a <see cref="PEFile"/> from a module contained in a remote process.<para/>
+        /// This method can only be used on Windows. To read process memory on other operating systems,
+        /// use <see cref="PEFile.FromMemory"/>
         /// </summary>
-        /// <param name="hProcess">A handle to the process containing the module that should be read.</param>
-        /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
-        /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.</param>
-        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
-        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true)
+        /// <param name="processId">The ID of the process containing the module.</param>
+        /// <param name="moduleName">The name of the module to be read. This may be the module name either with
+        /// or without a file extension (e.g. "ntdll", "ntdll.dll"). In the event no file extension is specified,
+        /// the first module whose base name matches the specified module name will be used. This method
+        /// only supports guessing file extensions that end in ".exe" or ".dll". If a non-standard file
+        /// extension is used, the file extension must be explicitly specified.</param>
+        /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.
+        /// If the file has been manually mapped via CreateFileMapping(), this value should be false.</param>
+        /// <returns></returns>
+        public static unsafe PEFile FromProcess(int processId, string moduleName, bool isLoaded = true)
         {
-#if NETSTANDARD
-            if (true)
-#else
-            if (OperatingSystem.IsWindows())
-#endif
+            //We're going to end up duplicating the handle so we're always going to need to free it
+
+            const int PROCESS_VM_OPERATION = 0x8;
+            const int PROCESS_VM_READ = 0x10;
+            const int PROCESS_VM_WRITE = 0x20;
+            const int PROCESS_DUP_HANDLE = 0x40;
+
+            var hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_DUP_HANDLE, 0, processId);
+
+            if (hProcess == default)
+                throw new DebugException($"Failed to open process '{processId}'", (HRESULT) Marshal.GetHRForLastWin32Error());
+
+            IntPtr pModuleName = default;
+
+            try
             {
-                if (NativeMethods.GetProcessId(hProcess) == NativeMethods.GetCurrentProcessId())
+                //Convert to ANSI for faster comparison
+                pModuleName = Marshal.StringToHGlobalAnsi(moduleName);
+
+                if (!TryGetProcessModule(hProcess, new ReadOnlySpan<byte>((byte*) pModuleName, moduleName.Length), out var hModule, out var fileName))
+                    throw new InvalidOperationException($"Failed to find a module named '{moduleName}' in process {processId}");
+
+                if (GetCurrentProcessId() == processId)
                 {
                     var moduleInfo = new MODULEINFO();
 
-                    if (NativeMethods.GetModuleInformation(hProcess, moduleBase, &moduleInfo, sizeof(MODULEINFO)) != 0)
+                    if (GetModuleInformation(hProcess, hModule, &moduleInfo, sizeof(MODULEINFO)) != 0)
                     {
                         //Fast path: just memory map it
-                        return new PEFile(null, new MemoryMappedFileHolder((byte*) moduleBase, moduleInfo.SizeOfImage), isLoaded);
+                        return new PEFile(fileName, new MemoryMappedFileHolder((byte*) hModule, moduleInfo.SizeOfImage), isLoaded);
                     }
+                }
+
+                return new PEFile(new ProcessMemoryAccessor(hProcess), (long) (void*) hModule, isLoaded, fileName);
+            }
+            finally
+            {
+                if (pModuleName != default)
+                    Marshal.FreeHGlobal(pModuleName);
+
+                CloseHandle(hProcess);
+            }
+        }
+
+        private unsafe static bool TryGetProcessModule(
+            IntPtr hProcess,
+            ReadOnlySpan<byte> targetName,
+            out IntPtr hModule,
+            out string fileName)
+        {
+            //It's a bit hard to say whether the module name has a file extension or not,
+            //because you can have legitimate module names that have dots in them
+
+            var need32BitModulesFor64BitProcess = IntPtr.Size == 8 && IsWow64ProcessOrDefault(hProcess);
+
+            IntPtr[] x86Modules = null;
+            HashSet<IntPtr> addedModules = null;
+
+            if (need32BitModulesFor64BitProcess)
+            {
+                x86Modules = EnumProcessModulesEx(hProcess, LIST_MODULES.LIST_MODULES_32BIT);
+
+                //The application itself has the same module base in both the 32-bit and 64-bit sections of the process, so we need to check
+                //to see whether we've added a module before
+                addedModules = new HashSet<IntPtr>();
+            }
+
+            var buffer = RtlCreateQueryDebugBuffer();
+
+            try
+            {
+                //MODULES32 implies MODULES, so we need to filter out the retrieved modules for only the ones we're looking for
+                RtlQueryProcessDebugInformation((IntPtr) GetProcessId(hProcess), (need32BitModulesFor64BitProcess ? RTL_QUERY_PROCESS.MODULES32 : RTL_QUERY_PROCESS.MODULES) | RTL_QUERY_PROCESS.NONINVASIVE, buffer);
+
+                var pModules = buffer->Modules;
+
+                RTL_PROCESS_MODULE_INFORMATION* pFallbackModule = default;
+
+                for (var i = 0; i < pModules->NumberOfModules; i++)
+                {
+                    var moduleInfo = ((RTL_PROCESS_MODULE_INFORMATION*) &pModules->Modules) + i;
+
+                    if (!need32BitModulesFor64BitProcess || (!addedModules.Contains(moduleInfo->ImageBase) && Array.IndexOf(x86Modules, moduleInfo->ImageBase) != -1))
+                    {
+                        if (need32BitModulesFor64BitProcess)
+                        {
+                            //This is an x86 module. Load it!
+                            Debug.Assert(moduleInfo->ImageBase != IntPtr.Zero);
+                            addedModules.Add(moduleInfo->ImageBase);
+                        }
+
+                        var modulePath = new AnsiString(moduleInfo->FullPathName).AsSpan();
+
+                        var lastSlash = modulePath.LastIndexOf((byte) Path.DirectorySeparatorChar);
+
+                        ReadOnlySpan<byte> currentName = lastSlash == -1 ? modulePath : modulePath.Slice(lastSlash + 1);
+
+                        if (targetName.EqualsOrdinalIgnoreCaseUtf8(currentName))
+                        {
+                            hModule = pFallbackModule->ImageBase;
+                            fileName = new AnsiString(pFallbackModule->FullPathName).ToString();
+                            return true;
+                        }
+
+                        /* Suppose you're after foo.dll, but you ask for foo, and there's
+                         * loaded images foo.dll and foo.bar (without file extension). Stripping
+                         * "bar" off foo.bar gives foo, and stripping "dll" of foo.dll also gives
+                         * "foo", but "foo.dll" was closer to "foo" than "foo.bar" was. The issue we
+                         * have though is we have no way of knowing that "bar" is not a file extension.
+                         * As such, we only support guessing file extensions that end in ".exe" or ".dll"
+                         */
+
+                        if (pFallbackModule == null && currentName.Length == targetName.Length + 4 &&
+                            currentName.StartsWithIgnoreCase(targetName) &&
+                            (currentName.EndsWithIgnoreCase(".dll"u8) || currentName.EndsWithIgnoreCase(".exe"u8)))
+                        {
+                            pFallbackModule = moduleInfo;
+                        }
+                    }
+                }
+
+                //We failed to find a perfect match, so if we got a fallback module, use that
+                if (pFallbackModule != default)
+                {
+                    hModule = pFallbackModule->ImageBase;
+                    fileName = new AnsiString(pFallbackModule->FullPathName).ToString();
+                    return true;
+                }
+
+                hModule = default;
+                fileName = default;
+                return false;
+            }
+            finally
+            {
+                RtlDestroyQueryDebugBuffer(buffer);
+            }
+        }
+
+        /// <summary>
+        /// Reads a <see cref="PEFile"/> from a module contained in a remote process.<para/>
+        /// This method can only be used on Windows. To read process memory on other operating systems,
+        /// use <see cref="PEFile.FromMemory"/>
+        /// </summary>
+        /// <param name="hProcess">A handle to the process containing the module that should be read.
+        /// This handle will be duplicated by <see cref="PEFile"/>, and can be closed by the caller once they are no
+        /// longer using it.</param>
+        /// <param name="moduleBase">The base address of the module in the remote process that should be read.</param>
+        /// <param name="isLoaded">Whether the PE File has been processed by the operating system loader.
+        /// If the file has been manually mapped via CreateFileMapping(), this value should be false.</param>
+        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
+        public static unsafe PEFile FromProcess(IntPtr hProcess, IntPtr moduleBase, bool isLoaded = true)
+        {
+            string fileName = null;
+
+#if !NETSTANDARD
+            if (!OperatingSystem.IsWindows())
+                throw new InvalidOperationException("Reading process memory is only supported on Windows. Consider using PEFile.FromMemory() instead with a custom IMemoryAccessor");
+#endif
+
+            fileName = GetModuleFileName(hProcess, moduleBase);
+
+            if (GetProcessId(hProcess) == GetCurrentProcessId())
+            {
+                var moduleInfo = new MODULEINFO();
+
+                if (GetModuleInformation(hProcess, moduleBase, &moduleInfo, sizeof(MODULEINFO)) != 0)
+                {
+                    //Fast path: just memory map it
+                    return new PEFile(fileName, new MemoryMappedFileHolder((byte*) moduleBase, moduleInfo.SizeOfImage), isLoaded);
                 }
             }
 
-            return new PEFile(new RemoteMemoryReader(hProcess), (long) (void*) moduleBase, isLoaded, null);
+            //ProcessMemoryAccessor will clone the process handle
+            return new PEFile(new ProcessMemoryAccessor(hProcess), (long) (void*) moduleBase, isLoaded, fileName);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="PEFile"/> from a custom memory source, such as a dump file.
+        /// </summary>
+        /// <param name="memoryAccessor">The user defined memory accessor that provides access to the bytes of the <see cref="PEFile"/>.</param>
+        /// <param name="isLoaded"></param>
+        /// <param name="fileName">The full path to the module that this <see cref="PEFile"/> encapsulates, or the name with
+        /// file extension if the full path is not available. This value may be used by <see cref="Locator"/> for the purpose
+        /// of locating symbol files in the same directory as this <see cref="PEFile"/>, as well as looking for symbols on
+        /// a remote symbol server if local symbols cannot be found. If this value is not specified, this <see cref="PEFile"/>
+        /// will be unable to provide access to entities that must be located using symbols.</param>
+        /// <param name="baseAddress">The base address of the module within the address space that <paramref name="memoryAccessor"/> provides access to.
+        /// This value will be added to each memory address that is passed to <paramref name="memoryAccessor"/> (e.g. to faciliate
+        /// reading process memory). If <paramref name="memoryAccessor"/> is implicitly scoped to the bytes that pertain to this
+        /// <see cref="PEFile"/>, this value can be 0.</param>
+        /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified module.</returns>
+        public static PEFile FromMemory(
+            IMemoryAccessor memoryAccessor,
+            bool isLoaded = true,
+            string? fileName = null,
+            long baseAddress = 0)
+        {
+            if (memoryAccessor == null)
+                throw new ArgumentNullException(nameof(memoryAccessor));
+
+            return new PEFile(memoryAccessor, baseAddress, isLoaded, fileName);
+        }
+
+        private static unsafe string? GetModuleFileName(IntPtr hProcess, IntPtr hModule)
+        {
+            var need32BitModulesFor64BitProcess = IntPtr.Size == 8 && IsWow64ProcessOrDefault(hProcess);
+
+            var buffer = RtlCreateQueryDebugBuffer();
+
+            //Note that the x64 and x86 modules have different image bases. Therefore, whichever one the caller is asking for,
+            //we'll give them
+
+            try
+            {
+                //MODULES32 implies MODULES, so we need to filter out the retrieved modules for only the ones we're looking for
+                RtlQueryProcessDebugInformation((IntPtr) GetProcessId(hProcess), (need32BitModulesFor64BitProcess ? RTL_QUERY_PROCESS.MODULES32 : RTL_QUERY_PROCESS.MODULES) | RTL_QUERY_PROCESS.NONINVASIVE, buffer);
+
+                var pModules = buffer->Modules;
+
+                for (var i = 0; i < pModules->NumberOfModules; i++)
+                {
+                    var moduleInfo = ((RTL_PROCESS_MODULE_INFORMATION*) &pModules->Modules)[i];
+
+                    if (moduleInfo.ImageBase == hModule)
+                    {
+                        var modulePath = new AnsiString(moduleInfo.FullPathName);
+
+                        return modulePath.ToString();
+                    }
+                }
+
+                return null;
+            }
+            finally
+            {
+                RtlDestroyQueryDebugBuffer(buffer);
+            }
         }
 
         public static PEFile FromStream(Stream stream, bool isLoadedImage, string? fileName = null)
@@ -230,7 +465,7 @@ namespace PESpy
                 }
             }
 
-            return new PEFile(new StreamMemoryReader(stream), stream.Position, isLoadedImage, fileName);
+            return new PEFile(new StreamMemoryAccessor(stream), stream.Position, isLoadedImage, fileName);
         }
 
         #endregion
@@ -536,6 +771,8 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PE;
 
+        //In a single file app, the nested PEFile instances use NestedMemoryBlockProvider which is
+        //a type of LocalMemoryBlockProvider
         public int Length => blockProvider is LocalMemoryBlockProvider l ? (int) l.Length : (int) OptionalHeader.SizeOfImage;
 
         /// <summary>
@@ -553,7 +790,7 @@ namespace PESpy
         /// <summary>
         /// Gets the MS-DOS 2.0 compatible <see cref="IMAGE_DOS_HEADER"/>.
         /// </summary>
-        public ref readonly ImageDosHeader DosHeader => ref dosHeader;
+        public ImageDosHeader DosHeader => dosHeader;
 
         #endregion
         #region DosStub
@@ -565,7 +802,7 @@ namespace PESpy
         /// Gets the bytes of the DOS Stub that represents the program that should be run in the event that the <see cref="PEFile"/>
         /// is executed under MS-DOS.
         /// </summary>
-        public ref readonly ByteBlob DosStub
+        public ByteBlob DosStub
         {
             get
             {
@@ -597,10 +834,10 @@ namespace PESpy
 
                     var length = (int) (end - start);
 
-                    dosStub = new ByteBlob(new MemoryChunk(headerBlock, start), length);
+                    dosStub = new ByteBlob(new MemoryChunk(headerBlock, start), length, ViewKind.DosStub);
                 }
 
-                return ref dosStub;
+                return dosStub;
             }
         }
 
@@ -637,7 +874,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageNtHeaders ntHeaders;
 
-        public ref readonly ImageNtHeaders NtHeaders => ref ntHeaders;
+        public ImageNtHeaders NtHeaders => ntHeaders;
 
         /// <summary>
         /// Gets the <see cref="IMAGE_NT_HEADERS.FileHeader"/> field that represents the file header of the image.
@@ -1157,13 +1394,13 @@ namespace PESpy
         #region Import Address Table (12)
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private ImageThunkData[]? importAddressTable;
+        private ImageThunkDataList? importAddressTable;
 
         /// <summary>
         /// Gets the import address table pointed to by <see cref="ImageOptionalHeader.ImportAddressTableDirectory"/> (IMAGE_DIRECTORY_ENTRY_IAT).<para/>
         /// If the image does not have an import address table, this property returns <see langword="null"/>.
         /// </summary>
-        public ImageThunkData[]? ImportAddressTable
+        public ImageThunkDataList? ImportAddressTable
         {
             get
             {
@@ -1172,7 +1409,11 @@ namespace PESpy
                     var directory = OptionalHeader.ImportAddressTableDirectory;
 
                     if (directory.HasData && TryGetDirectoryChunk(directory, out var chunk))
-                        importAddressTable = ImageImportDescriptor.ParseIATThunks(chunk, directory.Size);
+                    {
+                        //Unlike when parsing thunks for a particular import descriptor, when parsing thunks for the whole IAT,
+                        //we don't stop when a null thunk is hit; we stop when we reach the end
+                        importAddressTable = new ImageThunkDataList(chunk, directory.Size / chunk.PointerSize, true);
+                    }
                 }
 
                 return importAddressTable;
@@ -1387,7 +1628,7 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
-                            cor20StrongNameSignature = new ByteBlob(chunk, table.Size);
+                            cor20StrongNameSignature = new ByteBlob(chunk, table.Size, ViewKind.StrongNameSignature);
                         }
                     }
                 }
@@ -1534,8 +1775,8 @@ namespace PESpy
                                     cor20ManagedNativeHeader = new CorCompileHeader(chunk);
                                     break;
 
-                                case ReadyToRunHeader.R2RSignature:
-                                    cor20ManagedNativeHeader = new ReadyToRunHeader(chunk);
+                                case R2R.ReadyToRunHeader.R2RSignature:
+                                    cor20ManagedNativeHeader = new R2R.ReadyToRunHeader(chunk);
                                     break;
                             }
                         }
@@ -1548,13 +1789,13 @@ namespace PESpy
 
         #endregion
 
-        private ImageCorILMethod[]? ilMethods;
+        private ImageCorILMethodList? ilMethods;
 
         /// <summary>
         /// Gets the IL Methods pointed to by the MethodDef table in ECMA-335 metadata. If this <see cref="PEFile"/> does not contain
         /// any ECMA-335 metadata, or does not have a MethodDef table, this property returns <see langword="null"/>.
         /// </summary>
-        public ImageCorILMethod[]? ILMethods
+        public ImageCorILMethodList? ILMethods
         {
             get
             {
@@ -1567,24 +1808,7 @@ namespace PESpy
                     if (methodDefs == null)
                         return null;
 
-                    using var results = new PooledList<ImageCorILMethod>();
-
-                    foreach (var methodDef in methodDefs)
-                    {
-                        //Certain methods (such as interface methods) have an RVA of 0, and so do not
-                        //have an IL method
-
-                        if (!TryGetILValueChunk(methodDef, out var valueChunk))
-                            continue;
-
-                        var ilMethod = new ImageCorILMethod(valueChunk, out var isValid);
-
-                        //You can have P/Invokes that say they have RVAs but these don't point to valid data
-                        if (isValid)
-                            results.Add(ilMethod);
-                    }
-
-                    ilMethods = results.ToArray();
+                    ilMethods = new ImageCorILMethodList(methodDefs, this);
                 }
 
                 return ilMethods;
@@ -1624,9 +1848,10 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryGetILValueChunk(in Ecma335.MethodDefRow row, out MemoryChunk valueChunk)
+        internal bool TryGetILValueChunk(in Ecma335.MethodDefRow row, out MemoryChunk valueChunk)
         {
-            var rva = row.RVA;valueChunk = default;
+            var rva = row.RVA;
+            valueChunk = default;
 
             return rva != 0 && (row.ImplFlags & CorMethodImpl.miNative) == 0 && TryGetValueChunkFromSection(rva, out valueChunk);
         }
@@ -1922,7 +2147,7 @@ namespace PESpy
                             //I don't feel like this would be a backwards compatible data structure; either way, too complex
                             //for now so we'll just return a byte blob
 
-                            ngenModuleImage = new ByteBlob(chunk, table.Size);
+                            ngenModuleImage = new ByteBlob(chunk, table.Size, ViewKind.ModuleImage);
                         }
                     }
                 }
@@ -2081,6 +2306,8 @@ namespace PESpy
 
                         if (table.HasData && TryGetDirectoryChunk(table, out var chunk))
                         {
+                            //I haven't found a file that has this yet; in my NGEN sample, all of the bytes were 0 which makes it hard to verify anything
+
                             ngenEEInfoTable = null;
                             throw new NotImplementedException();
                         }
@@ -2101,7 +2328,7 @@ namespace PESpy
         /// <summary>
         /// Gets the R2R header that is pointed to by the <see cref="ImageCor20Header.ManagedNativeHeader"/> directory.
         /// </summary>
-        public ReadyToRunHeader? ReadyToRunHeader => Cor20ManagedNativeHeader as ReadyToRunHeader;
+        public R2R.ReadyToRunHeader? ReadyToRunHeader => Cor20ManagedNativeHeader as R2R.ReadyToRunHeader;
 
         #endregion
         #region AppHost
@@ -2130,6 +2357,10 @@ namespace PESpy
                  * The practical effect of this is that the bundle marker is injected into the .data section. There is no requirement that the .data
                  * section be used. From our perspective, this basically creates a challenge for us because for a remote debug target, we essentially
                  * have to copy the whole thing into our memory just to check whether the signature exists.
+                 * 
+                 * NativeAOT builds do not appear to use AppHost; the logic that main implements for them is quite different. In the event you've got
+                 * A NativeAOT app that includes logic for parsing the AppHost, that code will be located in DehydratedData pseudo-R2R section of
+                 * the .rdata section. As such, for now we will limit the scope of our search to the .data section
                  */
 
                 if (appHostSignature == null && !hasTriedAppHostSignature)
@@ -2150,24 +2381,14 @@ namespace PESpy
                     //because we looked at the properties of the PEFile
                     Debugger.NotifyOfCrossThreadDependency();
 
-                    if (blockProvider is LocalMemoryBlockProvider l)
+                    var sections = SectionHeaders;
+
+                    for (var i = 0; i < sections.Length; i++)
                     {
-                        //We can just search the whole file at once
-                        var index = AppHostSignature.FindBundleHeader(l.Pointer, l.Length);
+                        ref var section = ref sections[i];
 
-                        if (index != -1)
-                            appHostSignature = new AppHostSignature(headerBlock, index);
-                    }
-                    else
-                    {
-                        //We need to iterate over each section one at a time
-
-                        var sections = SectionHeaders;
-
-                        for (var i = 0; i < sections.Length; i++)
+                        if (section.Name == ".data")
                         {
-                            ref var section = ref sections[i];
-
                             var block = GetSectionBlock(i, section);
 
                             var index = AppHostSignature.FindBundleHeader(block.LocalPointer, block.Length);
@@ -2201,14 +2422,39 @@ namespace PESpy
                 {
                     ImageExportDirectory.Export export = default;
 
-                    //Doesn't seem like the base matters; if the base is 2, g_CLREngineMetrics is still at ordinal 2
-                    //after factoring in ordinal + base (which is what export.Ordinal shows)
-                    if (ExportTable?.TryGetExport("g_CLREngineMetrics", out export) == true && !export.ForwardOrAddress.IsForward && export.Ordinal == 2)
-                    {
-                        var rva = export.ForwardOrAddress.Address;
+                    /* CLR_ENGINE_METRICS are exported by g_CLREngineMetrics, however they're also found at ordinal 2.
+                     * You can locate metrics much faster by just jumping straight to the target ordinal rather than trying
+                     * to specifically search for g_CLREngineMetrics. However, the issue we have is that we need to be able
+                     * to parse any random PE File, so just blindly trusting ordinal 2 isn't going to cut it */
 
-                        if (TryGetValueChunkFromSection(rva, out var valueChunk))
-                            clrEngineMetrics = new ClrEngineMetrics(valueChunk);
+                    var exportTable = ExportTable;
+
+                    const int kOrdinalForMetrics = 2;
+
+                    if (exportTable != null)
+                    {
+                        var realIndex = kOrdinalForMetrics - exportTable.Base;
+
+                        if ((uint) realIndex < exportTable.NumberOfFunctions)
+                        {
+                            var rvaOfRva = exportTable.RawAddressOfFunctions + (realIndex * sizeof(int));
+
+                            if (TryGetValueChunkFromSection(rvaOfRva, out var chunk))
+                            {
+                                var rva = chunk.PeekInt32(0);
+
+                                if (TryGetValueChunkFromSection(rva, out var valueChunk) && valueChunk.PeekInt32(0) == ClrEngineMetrics.StructSize(Is32Bit))
+                                {
+                                    //It's looking good that this might be g_CLREngineMetrics, but now let's actually check that
+                                    //ordinal 2 actually is g_CLREngineMetrics
+
+                                    //Doesn't seem like the base matters; if the base is 2, g_CLREngineMetrics is still at ordinal 2
+                                    //after factoring in ordinal + base (which is what export.Ordinal shows)
+                                    if (exportTable.TryGetExport("g_CLREngineMetrics", out export) == true && !export.ForwardOrAddress.IsForward && export.Ordinal == 2)
+                                        clrEngineMetrics = new ClrEngineMetrics(valueChunk);
+                                }
+                            }
+                        }
                     }
 
                     hasTriedClrEngineMetrics = true;
@@ -2263,13 +2509,13 @@ namespace PESpy
         #region Native AOT
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private DotNetRuntimeDebugHeader? dotNetRuntimeDebugHeader;
+        private NativeAOT.DotNetRuntimeDebugHeader? dotNetRuntimeDebugHeader;
         private bool hasTriedDotNetRuntimeDebugHeader;
 
         /// <summary>
         /// Gets the structure pointed to by the "DotNetRuntimeDebugHeader" export that provides debugging information for Native AOT executables.
         /// </summary>
-        public DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
+        public NativeAOT.DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader
         {
             get
             {
@@ -2280,7 +2526,7 @@ namespace PESpy
                     if (ExportTable?.TryGetExport("DotNetRuntimeDebugHeader", out export) == true && !export.ForwardOrAddress.IsForward)
                     {
                         if (TryGetValueChunkFromSection(export.ForwardOrAddress.Address, out var chunk))
-                            dotNetRuntimeDebugHeader = new DotNetRuntimeDebugHeader(chunk);
+                            dotNetRuntimeDebugHeader = new NativeAOT.DotNetRuntimeDebugHeader(chunk);
                     }
 
                     hasTriedDotNetRuntimeDebugHeader = true;
@@ -2290,18 +2536,338 @@ namespace PESpy
             }
         }
 
+        private NativeAOTModulesList? nativeAOTModules;
+        private bool hasTriedNativeAOTModules;
+
+        /// <summary>
+        /// Gets the <see cref="NativeAOT.ReadyToRunHeader"/> module headers, if this is a NativeAOT executable.<para/>
+        /// This member will attempt to query for symbols, which may cause a delay in accessing this member.<para/>
+        /// In the event that symbols are not available, if a NativeAOT <see cref="DotNetRuntimeDebugHeader"/> is present,
+        /// this property will attempt to locate the region that points to the <see cref="NativeAOT.ReadyToRunHeader"/> items.<para/>
+        /// Due to the way in which the linker injects this information into the executable, this list may contain
+        /// "null" entries, which the caller is responsible for skipping over.
+        /// </summary>
+        public NativeAOTModulesList? NativeAOTModules => GetNativeAOTModules(debugger: false);
+
+        //If the debugger is asking whether we have any modules, disallow performing expensive operations that would upset the debugger
+        internal unsafe NativeAOTModulesList? GetNativeAOTModules(
+            bool debugger,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress progress = null)
+        {
+            if (nativeAOTModules == null && !hasTriedNativeAOTModules)
+            {
+                if (TryGetSymbolReader(debugger, httpPolicy, progress, out var symbolReader))
+                {
+                    nativeAOTModules = symbolReader.NativeAOTModules;
+                    hasTriedNativeAOTModules = true;
+                }
+                else
+                {
+                    if (debugger)
+                    {
+                        //We're going to need to do a series of KMP Searches, which we can't be doing under the debugger
+                        Debugger.NotifyOfCrossThreadDependency();
+                        return null;
+                    }
+                    else
+                    {
+                        if (DotNetRuntimeDebugHeader != null)
+                        {
+                            /* It looks like we're a NativeAOT file, so KMP Search for a NativeAOT ReadyToRunHeader. We're interested in finding
+                             * something that has the Signature "R2R", and EntryType 1 (which all headers are currently hardcoded to have) */
+
+                            var sectionHeaders = SectionHeaders;
+
+                            for (var i = 0; i < sectionHeaders.Length; i++)
+                            {
+                                ref var sectionHeader = ref sectionHeaders[i];
+
+                                if (sectionHeader.Name == ".rdata")
+                                {
+                                    var block = GetSectionBlock(i, sectionHeader);
+
+                                    if (TryFindNativeAOTModuleHeader(block, out var offset))
+                                    {
+                                        //If this fails, we tried our best!
+                                        TryFindNativeAOTModuleHeaderList(sectionHeader, block, offset, out nativeAOTModules);
+                                    }
+                                    
+                                    break;
+                                }
+                            }
+
+                            hasTriedNativeAOTModules = true;
+                        }
+                    }
+                }
+            }
+
+            return nativeAOTModules;
+        }
+
+        private unsafe bool TryFindNativeAOTModuleHeader(MemoryBlock block, out int offset)
+        {
+            var sig = NativeAOT.ReadyToRunHeader.R2RSignature;
+            var sigSpan = new Span<byte>((byte*) &sig, sizeof(int));
+
+            var read = 0;
+            offset = default;
+
+            while (read < block.Length)
+            {
+                var start = block.LocalPointer + read;
+                var remaining = block.Length - read;
+                var index = PESpy.AppHostSignature.KMPSearch(sigSpan, start, remaining);
+
+                if (index == -1)
+                    return false;
+
+                //We've got a potential match; check if it fits in the remaining area
+                var pReadyToRunHeader = start + index;
+                var readyToRunAvailableLength = remaining - index;
+
+                if (readyToRunAvailableLength < NativeAOT.ReadyToRunHeader.FixedStructSize)
+                    return false; //Not only will a ReadyToRunHeader not fit, but there isn't going to be enough bytes after us to try another match either
+
+                //As of writing, EntryType is hardcoded to always be 1, which makes for a good sanity check
+                var entryType = *(pReadyToRunHeader + NativeAOT.ReadyToRunHeader.EntryTypeOffset);
+
+                if (entryType != 1)
+                    continue;
+
+                offset = read + index;
+                return true;
+            }
+
+            return false;
+        }
+
+        private unsafe bool TryFindNativeAOTModuleHeaderList(
+            in ImageSectionHeader sectionHeader,
+            MemoryBlock block,
+            int offset,
+            out NativeAOTModulesList list)
+        {
+            //This is looking like a ReadyToRunHeader. Now, try and find a VA pointing to this entry
+            //also in the .rdata section
+            Span<byte> vaSpan;
+            list = default;
+
+            var imageBase = OptionalHeader.ImageBase;
+
+            if (Is32Bit)
+            {
+                var va = (uint) imageBase + sectionHeader.VirtualAddress + offset;
+                vaSpan = new Span<byte>((byte*) &va, sizeof(int));
+            }
+            else
+            {
+                var va = imageBase + sectionHeader.VirtualAddress + offset;
+                vaSpan = new Span<byte>((byte*) &va, sizeof(long));
+            }
+
+            var read = 0;
+
+            while (read < block.Length)
+            {
+                var start = block.LocalPointer + read;
+                var remaining = block.Length - read;
+                var index = PESpy.AppHostSignature.KMPSearch(vaSpan, start, remaining);
+
+                if (index == -1)
+                    return false;
+
+                /* We've got a potential candidate. We expect to have a sequence of VA's pointing to
+                 * NativeAOT.ReadyToRunHeader instances, separated by 0's. Our first step is to iterate
+                 * forwards and backwards to sanity check that all non-0 values that we see are indeed
+                 * VA's that point to additional NativeAOT.ReadyToRunHeader instances. Once we've done
+                 * that, we can expand out further in both directions trying to find the first and last
+                 * position that points to a valid module header */
+
+                var midpointChunk = new MemoryChunk(block, read + index);
+
+                var pointerSize = Is32Bit ? 4 : 8;
+
+                //Skip over the midpoint
+                var skipped = pointerSize;
+
+                var lastValueWasZero = false;
+
+                //Find additional items after us
+                while (skipped < midpointChunk.Remaining)
+                {
+                    var value = midpointChunk.PeekPointer(skipped);
+
+                    if (value == 0)
+                    {
+                        //Two zero's in a row; I don't think that would occur; I'm expecting
+                        //when module contributions are aggregated together there'll just be a single 0 between
+                        //them (this is just a guess though)
+                        if (lastValueWasZero)
+                            break;
+
+                        lastValueWasZero = true;
+                    }
+                    else
+                    {
+                        if (!IsValidNativeAOTModuleHeader((long) value))
+                            break;
+
+                        lastValueWasZero = false;
+                    }
+
+                    skipped += pointerSize;
+                }
+
+                var numItemsAfter = (skipped / pointerSize) - 1; //Subtract 1 because we had to skip over the midpoint to start with
+                skipped = pointerSize;
+
+                lastValueWasZero = false;
+
+                //Find additional items before us
+                while (skipped < midpointChunk.RelativeOffset)
+                {
+                    var value = midpointChunk.PeekPointer(-skipped);
+
+                    if (value == 0)
+                    {
+                        //Two zero's in a row; I don't think that would occur; I'm expecting
+                        //when module contributions are aggregated together there'll just be a single 0 between
+                        //them (this is just a guess though)
+                        if (lastValueWasZero)
+                            break;
+
+                        lastValueWasZero = true;
+                    }
+                    else
+                    {
+                        if (!IsValidNativeAOTModuleHeader((long) value))
+                            break;
+
+                        lastValueWasZero = false;
+                    }
+
+                    skipped += pointerSize;
+                }
+
+                var numItemsBefore = (skipped / pointerSize) - 1; //Subtract 1 because we had to skip over the midpoint to start with
+
+                //The first item is __modules_a and the last item is __modules_z which is not included in the count
+                //You can't slice backwards, because we cast the offset to uint
+                var chunkStart = new MemoryChunk(block, midpointChunk.RelativeOffset - (numItemsBefore * pointerSize));
+                list = new NativeAOTModulesList(chunkStart, numItemsBefore + numItemsAfter); //We want to do numitemsBefore + numItemsAfter + 1 - 1 to include the midpoint and exclude __modules_z, which cancels out to just numItemsBefore + numItemsAfter
+                return true;
+            }
+
+            return false;
+        }
+
+        //Check this is a valid VA, and that it points to something with enough bytes remaining to be
+        //a ReadyToRunHeader, that it has the R2R signature and has EntryType 1
+        private bool IsValidNativeAOTModuleHeader(long va)
+        {
+            var rva = (int) (va - OptionalHeader.ImageBase);
+
+            if (TryGetValueChunkFromSection(rva, out var memoryChunk) && NativeAOT.ReadyToRunHeader.FixedStructSize < memoryChunk.Remaining)
+            {
+                var readyToRunHeader = new NativeAOT.ReadyToRunHeader(memoryChunk);
+
+                //EntryType is currently always known to be 1
+                if (readyToRunHeader.Signature == NativeAOT.ReadyToRunHeader.R2RSignature && readyToRunHeader.EntryType == 1)
+                    return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+        #region RTTICompleteObjectLocators
+
+        public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators => GetRTTICompleteObjectLocators(debugger: false);
+
+        internal RTTICompleteObjectLocator[]? GetRTTICompleteObjectLocators(
+            bool debugger,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress progress = null)
+        {
+            if (TryGetSymbolReader(debugger, httpPolicy, progress, out var symbolReader))
+                return symbolReader.RTTICompleteObjectLocators;
+
+            return null;
+        }
+
+        #endregion
+        #region Vftables
+
+        public VftableInfo[] Vftables => GetVftables(debugger: false);
+
+        internal VftableInfo[]? GetVftables(
+            bool debugger,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress progress = null)
+        {
+            if (TryGetSymbolReader(debugger, httpPolicy, progress, out var symbolReader))
+                return symbolReader.Vftables;
+
+            return null;
+        }
+
+
         #endregion
 
-        public FileView GetView() => GetView(ViewMode.Default);
+        public FileView GetViewOld() => GetViewOld(ViewMode.Default);
+
+        private FileAccessor? _viewAccessorPhysical;
+        private FileAccessor? _viewAccessorVirtual;
+
+        public FileView GetView(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default) =>
+            GetView(ViewMode.Default, httpPolicy, trackXRefs, cancellationToken);
+
+        public FileView GetView(
+            ViewMode viewMode,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default)
+        {
+            var wantVirtual = viewMode switch
+            {
+                ViewMode.Default => IsLoadedImage,
+                ViewMode.Physical => false,
+                ViewMode.Virtual => true
+            };
+
+            var viewAccessor = wantVirtual ? _viewAccessorVirtual : _viewAccessorPhysical;
+
+            if (viewAccessor == null)
+            {
+                viewAccessor = new PEFileAccessor(this, viewMode);
+                FileAnalyzer.Analyze(viewAccessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                ((PEFileAccessor) viewAccessor).OwnsPEFile = false;
+
+                if (wantVirtual)
+                    _viewAccessorVirtual = viewAccessor;
+                else
+                    _viewAccessorPhysical = viewAccessor;
+            }
+
+            return viewAccessor.GetFileView(viewMode);
+        }
 
         private ISymbolAccessor? symbolAccessor;
 
-        public ISymbolAccessor GetSymbolAccessor(ILocatorProgress? progress = null)
+        public ISymbolAccessor GetSymbolAccessor(
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default)
         {
             if (symbolAccessor != null)
                 return symbolAccessor;
 
-            if (Locator.TryLocate(this, out var artifacts, out _, progress: progress))
+            if (Locator.TryLocate(this, out var artifacts, out _, httpPolicy: httpPolicy, progress: progress, cancellationToken: cancellationToken))
             {
                 switch (artifacts.BestKind)
                 {
@@ -2369,9 +2935,101 @@ namespace PESpy
                     return symbolAccessor;
             }
 
+            if (httpPolicy != LocatorHttpPolicy.All)
+            {
+                //If we didn't try our hardest, don't set the symbol accessor, so we can potentially try again harder next time
+                return NullSymbolAccessor.Instance;
+            }
+
             //Fail: use NullSymbolAccessor
             symbolAccessor = NullSymbolAccessor.Instance;
             return symbolAccessor;
+        }
+
+        private SymbolReader? _symbolReader;
+        private bool _hasTriedSymbolReader;
+
+        /// <summary>
+        /// Sets the <see cref="PDBFile"/> that this <see cref="PEFile"/> should
+        /// use inside of its <see cref="ISymbolAccessor"/>. This method allows
+        /// you to use the <see cref="PDBFile"/> that you've already located, without
+        /// forcing the <see cref="PEFile"/> to try and locate the <see cref="PDBFile"/>
+        /// again from scratch.<para/>
+        /// 
+        /// If no <see cref="ISymbolAccessor"/> has been loaded, or the <see cref="PEFile"/>
+        /// failed to find any meaningful symbol source, the <see cref="ISymbolAccessor"/>
+        /// will be overwritten with a new <see cref="ISymbolAccessor"/> that encapsulates
+        /// the specified <see cref="PDBFile"/>. Otherwise, whatever <see cref="ISymbolAccessor"/>
+        /// the <see cref="PEFile"/> already has will be left in place.<para/>
+        /// 
+        /// If this method returns true, this method may also ahve cleared any properties that are best located using symbols that
+        /// we may have used fallback locator logic to detect.
+        /// </summary>
+        /// <param name="pdbFile">The <see cref="PDBFile"/> that pertains to this <see cref="PEFile"/>.</param>
+        /// <returns>True if the <see cref="ISymbolAccessor"/> was replaced with a new accessor
+        /// based on the specified <see cref="PDBFile"/>. Otherwise, false.</returns>
+        public bool SetPDBFile(PDBFile pdbFile)
+        {
+            if (symbolAccessor == null || symbolAccessor is NullSymbolAccessor)
+            {
+                //If we're NativeAOT, we can now detect the location of NativeAOT modules properly
+                if (DotNetRuntimeDebugHeader != null)
+                {
+                    hasTriedNativeAOTModules = true;
+                    nativeAOTModules = null;
+                }
+
+                symbolAccessor = new ExternalFileSymbolAccessor(pdbFile);
+                return true;
+            }
+
+            return false;
+        }
+
+        internal bool TryGetSymbolReader(bool debugger, LocatorHttpPolicy httpPolicy, ILocatorProgress? progress, out SymbolReader? symbolReader)
+        {
+            if (_symbolReader != null)
+            {
+                symbolReader = _symbolReader;
+                return true;
+            }
+
+            if (_hasTriedSymbolReader)
+            {
+                symbolReader = default;
+                return false;
+            }
+
+            var symbolAccessor = GetSymbolAccessor(debugger ? LocatorHttpPolicy.None : httpPolicy, progress);
+
+            if (symbolAccessor is not NullSymbolAccessor)
+            {
+                //We successfully got the "real" symbol accessor!
+
+                if (SymbolReader.TryCreate(this, symbolAccessor, out symbolReader))
+                {
+                    _hasTriedSymbolReader = true;
+                    _symbolReader = symbolReader;
+                    return true;
+                }
+
+                //It's not a SymbolReader kind that we support (e.g. there's nothing for us to do with a Portable PDB)
+                _hasTriedSymbolReader = true;
+                return false;
+            }
+            else
+            {
+                if (debugger)
+                {
+                    //We're not in a position to get the ISymbolAccessor right now (we might need to
+                    //make a HTTP request to get symbols)
+                    Debugger.NotifyOfCrossThreadDependency();
+                }
+
+                //Don't set _hasTriedSymbolReader
+                symbolReader = default;
+                return false;
+            }
         }
 
         /// <summary>
@@ -2380,7 +3038,7 @@ namespace PESpy
         /// <param name="mode">Specifies the addressing mode that should be used in the returned view. If this value is <see cref="ViewMode.Default"/>,
         /// <see cref="ViewMode.Virtual"/> or <see cref="ViewMode.Physical"/> will automatically be selected based on the value of <see cref="IsLoadedImage"/>.</param>
         /// <returns>A <see cref="FileView"/> that provides a view over the structure of the PE File.</returns>
-        public FileView GetView(ViewMode mode)
+        public FileView GetViewOld(ViewMode mode)
         {
             var writer = GetViewWriter(mode, null);
             ((IViewable) this).WriteGlobals(writer);
@@ -2388,7 +3046,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public FileView GetView<T>(ViewDisassembler<T> viewDisassembler, ViewMode mode = ViewMode.Default)
+        public FileView GetViewOld<T>(ViewDisassembler<T> viewDisassembler, ViewMode mode = ViewMode.Default)
         {
             var writer = GetViewWriter(mode, viewDisassembler);
 
@@ -2397,7 +3055,7 @@ namespace PESpy
             return (FileView) writer.Finalize();
         }
 
-        public unsafe IView GetView(IViewable viewable, ViewMode mode = ViewMode.Default)
+        public unsafe IView GetViewOld(IViewable viewable, ViewMode mode = ViewMode.Default)
         {
             var writer = GetViewWriter(mode, null);
             viewable.WriteStruct(writer);
@@ -2422,7 +3080,7 @@ namespace PESpy
             if (blockProvider is LocalMemoryBlockProvider l)
                 return new LocalByteViewProvider(l.Pointer, (int) l.Length, viewDisassembler);
 
-            return new RemoteByteViewProvider(this, SectionHeaders, viewDisassembler);
+            return new RemoteByteViewProvider(this, viewDisassembler);
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile
@@ -2510,7 +3168,7 @@ namespace PESpy
         }
 
         //ctor for initializing PEFile from an IMemoryReader that reads remote memory
-        private PEFile(IMemoryReader reader, long address, bool isLoadedImage, string? fileName)
+        private PEFile(IMemoryAccessor memoryAccessor, long address, bool isLoadedImage, string? fileName)
         {
             try
             {
@@ -2522,11 +3180,11 @@ namespace PESpy
 
                 IsLoadedImage = isLoadedImage;
 
-                var remoteProvider = new RemoteMemoryBlockProvider(reader, address, this);
+                var remoteProvider = new RemoteMemoryBlockProvider(memoryAccessor, address, this);
                 blockProvider = remoteProvider;
 
                 //Will automatically demand
-                headerBlock = new RemoteHeaderMemoryBlock(reader, address, blockProvider);
+                headerBlock = new RemoteHeaderMemoryBlock(memoryAccessor, address, blockProvider);
 
                 InitializeHeaders();
 
@@ -2687,7 +3345,7 @@ namespace PESpy
                 return false;
             }
 
-            var section = SectionHeaders[sectionIndex];
+            ref var section = ref SectionHeaders[sectionIndex];
             lastUsedSection = section;
 
             if (IsLoadedImage)
@@ -2710,6 +3368,33 @@ namespace PESpy
             }
 
             return true;
+        }
+
+        public bool TryGetOffset(int sectionRelativeOffset, int sectionIndex, out int fileOffset)
+        {
+            var sectionHeaders = SectionHeaders;
+
+            if (sectionIndex < sectionHeaders.Length)
+            {
+                ref var section = ref SectionHeaders[sectionIndex];
+
+                if (IsLoadedImage)
+                {
+                    fileOffset = section.VirtualAddress + sectionRelativeOffset;
+                    return true;
+                }
+                else
+                {
+                    if (sectionRelativeOffset < section.SizeOfRawData)
+                    {
+                        fileOffset = section.PointerToRawData + sectionRelativeOffset;
+                        return true;
+                    }
+                }
+            }
+
+            fileOffset = default;
+            return false;
         }
 
         public bool TryGetRVA(int offset, out int rva)
@@ -2844,6 +3529,29 @@ namespace PESpy
             if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
             {
                 chunk = new MemoryChunk(block!, relativeOffset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        internal bool TryGetValueChunkFromSection(int relativeOffset, int sectionIndex, out MemoryChunk chunk)
+        {
+            var sectionHeaders = SectionHeaders;
+
+            if (sectionIndex < sectionHeaders.Length)
+            {
+                ref var sectionHeader = ref SectionHeaders[sectionIndex];
+
+                if (!IsLoadedImage && relativeOffset >= sectionHeader.SizeOfRawData)
+                {
+                    chunk = default;
+                    return false;
+                }
+
+                var block = GetSectionBlock(sectionIndex, sectionHeader);
+                chunk = new MemoryChunk(block, relativeOffset);
                 return true;
             }
 
@@ -3092,13 +3800,26 @@ namespace PESpy
             throw new BadImageFormatException();
         }
 
-        public unsafe void GetRawSectionDataFromOffset(int offset, int sectionIndex, out byte* ptr, out int remainingLength)
+        public unsafe void GetRawSectionDataFromPhysicalOffset(int physicalOffset, int sectionIndex, out byte* ptr, out int remainingLength)
         {
             ref var section = ref SectionHeaders[sectionIndex];
 
+            var relativeOffset = physicalOffset - section.PointerToRawData;
+
             var block = GetSectionBlock(sectionIndex, section);
 
-            var relativeOffset = offset - section.PointerToRawData;
+            ptr = block.LocalPointer + relativeOffset;
+            remainingLength = block.Length - relativeOffset;
+        }
+
+        public unsafe void GetRawSectionDataFromRelativeOffset(int relativeOffset, int sectionIndex, out byte* ptr, out int remainingLength)
+        {
+            ref var section = ref SectionHeaders[sectionIndex];
+
+            Debug.Assert(relativeOffset < section.VirtualSize, "Did you accidentally pass an absolute offset?");
+
+            var block = GetSectionBlock(sectionIndex, section);
+
             ptr = block.LocalPointer + relativeOffset;
             remainingLength = block.Length - relativeOffset;
         }
@@ -3183,8 +3904,12 @@ namespace PESpy
 
             writer.WriteGlobal(ExportTable);
 
+            /* The slowest parts of writing a PEFile are the ExceptionTable and the GuardCFFunctionTable.
+             * As such, we do the LoadConfigTable and ExceptionTable last so we can display meaningful progress
+             * for all other items in our UI. */
+
             writer.WriteGlobal(ImportTable);
-            writer.WriteUniqueGlobal(ImportAddressTable); //The default logic of the merger will be to create an ImportAddressTable region around the ImportAddressTable sub-regions, which will be redundant because all of these will be wrapped in an ImportAddressTableDirectory anyway. As such, we'll block that from happening
+            writer.WriteUniqueGlobal<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(ImportAddressTable); //The default logic of the merger will be to create an ImportAddressTable region around the ImportAddressTable sub-regions, which will be redundant because all of these will be wrapped in an ImportAddressTableDirectory anyway. As such, we'll block that from happening
             writer.WriteGlobal(ResourceDirectory);
             //ExceptionTable written last because it's slow
             writer.WriteGlobal(SecurityTable);
@@ -3198,11 +3923,35 @@ namespace PESpy
             writer.WriteGlobal(DelayImportTable);
             writer.WriteGlobal(Cor20Header);
 
-            writer.WriteGlobal(ILMethods);
+            writer.WriteGlobal<ImageCorILMethodList, ImageCorILMethodList.Enumerator, ImageCorILMethod>(ILMethods);
 
             #region Cor20
 
             writer.WriteGlobal(EcmaMetadata);
+            //Cor20Resources
+            //Cor20StrongNameSignature
+            //Cor20CodeManagerTable
+            writer.WriteGlobal(Cor20VTableFixups);
+            //Cor20ExportAddressTableJumps
+
+            #endregion
+            #region NGEN
+
+            //NgenHeader
+            //NgenHelperTable
+            //NgenImportSections
+            //NgenStubsData
+            //NgenVersionInfo
+            //NgenDependencies
+            //NgenDebugMap
+            //NgenModuleImage
+            //NgenCodeManagerTable
+            //NgenProfileDataList
+            //NgenManifestMetaData
+            //NgenVirtualSectionsTable
+            //NgenEEInfoTable
+
+            #endregion
 
             writer.WriteGlobal(ReadyToRunHeader);
 
@@ -3210,10 +3959,11 @@ namespace PESpy
             writer.WriteGlobal(ClrEngineMetrics);
             writer.WriteGlobal(DotNetRuntimeInfo);
             writer.WriteGlobal(DotNetRuntimeDebugHeader);
+            writer.WriteGlobal(GetNativeAOTModules(debugger: false, writer._httpPolicy, writer._progress));
 
             //We write these last because they're the slowest
             writer.WriteGlobal(LoadConfigTable);
-            writer.WriteGlobal(ExceptionTable);
+            writer.WriteGlobal<RuntimeFunctionList, RuntimeFunctionList.Enumerator, RuntimeFunction>(ExceptionTable);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;
@@ -3235,7 +3985,8 @@ namespace PESpy
             if (disposing)
             {
                 symbolAccessor?.Dispose();
-                _viewAccessor?.Dispose();
+                _viewAccessorPhysical?.Dispose();
+                _viewAccessorVirtual?.Dispose();
 
                 headerBlock.Dispose();
 

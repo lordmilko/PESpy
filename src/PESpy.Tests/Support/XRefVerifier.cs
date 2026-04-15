@@ -162,6 +162,8 @@ namespace PESpy.Tests
                         nameof(ImageLoadConfigDirectory.GuardXFGDispatchFunctionPointer)          => GetStoreFile(WellKnownTestModule.ntdll).LoadConfigTable,
                         nameof(ImageLoadConfigDirectory.GuardXFGTableDispatchFunctionPointer)     => GetStoreFile(WellKnownTestModule.ntdll).LoadConfigTable,
                         nameof(ImageLoadConfigDirectory.GuardMemcpyFunctionPointer)               => GetStoreFile(WellKnownTestModule.coreclr).LoadConfigTable,
+                        nameof(ImageLoadConfigDirectory.CastGuardOsDeterminedFailureMode)         => throw new System.NotImplementedException(),
+                        nameof(ImageLoadConfigDirectory.UmaFunctionPointers)                      => throw new System.NotImplementedException()
                     },
 
                     nameof(ImageResourceDataEntry) => propertyName switch

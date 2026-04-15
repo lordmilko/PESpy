@@ -13,7 +13,7 @@ namespace PESpy.NativeAOT
         private const int FlagsOffset = 8;
         public const short NumberOfSectionsOffset = 12;
         public const byte EntrySizeOffset = 14;
-        public const byte EntryTypeOffset = 15;
+        internal const byte EntryTypeOffset = 15;
 
         public int Signature => chunk.PeekInt32(SignatureOffset);
         public short MajorVersion => chunk.PeekInt16(MajorVersionOffset);

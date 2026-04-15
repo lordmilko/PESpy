@@ -2,7 +2,7 @@
 
 namespace PESpy
 {
-    public interface IMemoryReader
+    public interface IMemoryAccessor
     {
         void ReadVirtual(long address, IntPtr buffer, int size);
     }

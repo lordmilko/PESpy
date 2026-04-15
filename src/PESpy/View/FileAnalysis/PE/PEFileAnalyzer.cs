@@ -86,10 +86,8 @@ namespace PESpy.View
                 {
                     var thunks = desc.FirstThunk.Value;
 
-                    for (var j = 0; j < thunks.Length; j++)
+                    foreach (var thunk in thunks)
                     {
-                        ref var thunk = ref thunks[j];
-
                         //The last null function
                         if (thunk.Value == 0 || !_peFile.TryGetRVA(thunk.Offset, out var rva))
                             continue;
@@ -439,6 +437,10 @@ namespace PESpy.View
                             if (!pViewByte->HasFlow && pViewByte->Kind != ViewByteKind.Data && !pViewByte->IsFunction)
                             {
                                 pViewByte->IsFunction = true;
+
+                                //Our expectation is that ExpandUnknownCode should get the size of each symbol, and mark the relevant
+                                //code regions as code. But if we failed to get the length, we're not going to do anything! That's a bit
+                                //of an issue
                                 Debug.Assert(pViewByte->Kind == ViewByteKind.Code);
                             }
                         }
@@ -489,23 +491,31 @@ namespace PESpy.View
                                         //As such, we'll say if we see a sequence of UNWIND_INFO + random bytes, we'll group this up into
                                         //an Unwind Info Region
                                         case ViewKind.UnwindInfo:
-                                            ReadUnwindInfo(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                                            MarkUnwindInfoRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                                             continue;
 
                                         //IL Methods appear to be listed all in a row. Starting with the first ImageCorILMethodFat/Tiny,
                                         //group the IL Method, IL, and any padding (0xCC only) up into a single region
                                         case ViewKind.ImageCorILMethodTiny:
                                         case ViewKind.ImageCorILMethodFat:
-                                            ReadILMethodRegion(ref pViewByte, ref targetAddress, pEnd);
+                                            MarkILMethodRegion(ref pViewByte, ref targetAddress, pEnd);
+                                            continue;
+
+                                        case ViewKind.ImageImportByName:
+                                            MarkImportByNameRegion(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                                             continue;
                                     }
 
                                     break;
 
+                                case ViewByteDataKind.String:
+                                    MarkStringRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                                    continue;
+
                                 case ViewByteDataKind.Padding:
                                     //We may be at the padding at a start of a series of functions. If we're not,
                                     //we won't create a region
-                                    ReadFunctions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                                    MarkFunctionRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                                     continue;
                             }
 
@@ -525,7 +535,7 @@ namespace PESpy.View
                             break;
 
                         case ViewByteKind.Code:
-                            ReadFunctions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                            MarkFunctionRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                             break;
 
                         default:
@@ -587,7 +597,7 @@ namespace PESpy.View
             }
         }
 
-        private void ReadUnwindInfo(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkUnwindInfoRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
         {
             var length = pViewByte->GetLength(pEnd);
 
@@ -665,7 +675,7 @@ namespace PESpy.View
             writer._topLevelRegions.Add(builder);
         }
 
-        private void ReadILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
+        private void MarkILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
         {
             var length = pViewByte->GetLength(pEnd);
 
@@ -748,7 +758,6 @@ namespace PESpy.View
                         length = pViewByte->GetUnknownLength(pEnd);
                         pViewByte += length;
                         targetAddress += length;
-                        builder.End += length;
                         continue;
 
                     default:
@@ -759,8 +768,9 @@ namespace PESpy.View
                 pViewByte += length;
                 Debug.Assert(pViewByte->Kind != ViewByteKind.Body);
                 targetAddress += length;
-                builder.End += length;
             }
+
+            builder.End = targetAddress;
 
             var writer = (PEViewByteViewWriter) _viewWriter;
 
@@ -788,7 +798,7 @@ namespace PESpy.View
             return length;
         }
 
-        private void ReadFunctions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkFunctionRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
         {
             var builder = new RegionBuilder
             {
@@ -841,6 +851,140 @@ namespace PESpy.View
             }
 
             if (numFunctions > 1)
+            {
+                builder.End = targetAddress;
+
+                var writer = (PEViewByteViewWriter) _viewWriter;
+
+                writer._firstRegionByAddress.Add(builder);
+                writer._topLevelRegions.Add(builder);
+            }
+        }
+
+        private void MarkImportByNameRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        {
+            var builder = new RegionBuilder
+            {
+                Name = "Import Strings",
+                Kind = ViewKind.ImportStrings,
+                Start = targetAddress,
+            };
+
+            var fileAccessor = _fileAccessor;
+
+            var @continue = true;
+
+            int length;
+
+            var numStrings = 0;
+
+            while (pViewByte < pEnd && @continue)
+            {
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Data:
+                        switch (pViewByte->DataKind)
+                        {
+                            case ViewByteDataKind.Struct:
+                                var kind = fileAccessor.GetStructKind(targetAddress);
+
+                                if (kind != ViewKind.ImageImportByName)
+                                {
+                                    @continue = false;
+                                    continue;
+                                }
+
+                                numStrings++;
+
+                                length = pViewByte->GetLength(pEnd);
+                                pViewByte += length;
+                                targetAddress += length;
+                                break;
+
+                            case ViewByteDataKind.Padding:
+                                if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                    length = pViewByte->GetLength(pEnd);
+
+                                pViewByte += length;
+                                targetAddress += length;
+                                break;
+
+                            default:
+                                @continue = false;
+                                continue;
+                        }
+                        break;
+
+                    default:
+                        @continue = false;
+                        continue;
+                }
+            }
+
+            if (numStrings > 1)
+            {
+                builder.End = targetAddress;
+
+                var writer = (PEViewByteViewWriter) _viewWriter;
+
+                writer._firstRegionByAddress.Add(builder);
+                writer._topLevelRegions.Add(builder);
+            }
+        }
+
+        private void MarkStringRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        {
+            var builder = new RegionBuilder
+            {
+                Name = "Strings",
+                Kind = ViewKind.Strings,
+                Start = targetAddress,
+            };
+
+            var @continue = true;
+
+            int length;
+
+            var numStrings = 0;
+
+            while (pViewByte < pEnd && @continue)
+            {
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Data:
+                        switch (pViewByte->DataKind)
+                        {
+                            case ViewByteDataKind.String:
+                                numStrings++;
+
+                                length = pViewByte->GetLength(pEnd);
+
+                                pViewByte += length;
+                                targetAddress += length;
+                                break;
+
+                            case ViewByteDataKind.Padding:
+                                //Strings are commonly interspersed with padding, so include padding in the area
+                                if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                    length = pViewByte->GetLength(pEnd);
+
+                                pViewByte += length;
+                                targetAddress += length;
+                                break;
+
+                            default:
+                                @continue = false;
+                                continue;
+                        }
+                        break;
+
+                    default:
+                        @continue = false;
+                        continue;
+                }
+            }
+
+            if (numStrings > 1)
             {
                 builder.End = targetAddress;
 

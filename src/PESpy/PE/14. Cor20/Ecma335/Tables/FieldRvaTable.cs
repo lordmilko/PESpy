@@ -52,7 +52,7 @@
 
         public int GetRowOffset(FieldRvaIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldRvaRow this[FieldRvaIndex index] => GetRow((int) index);
+        public FieldRvaRow this[FieldRvaIndex index] => GetRowSafe((int) index);
 
         protected override FieldRvaRow GetRow(int index) => new FieldRvaRow((FieldRvaIndex) index, this);
     }

@@ -76,7 +76,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(MethodSemanticsIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public MethodSemanticsRow this[MethodSemanticsIndex index] => GetRow((int) index);
+        public MethodSemanticsRow this[MethodSemanticsIndex index] => GetRowSafe((int) index);
 
         protected override MethodSemanticsRow GetRow(int index) => new MethodSemanticsRow((MethodSemanticsIndex) index, this);
     }

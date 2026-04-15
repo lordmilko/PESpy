@@ -9,6 +9,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="STORAGESTREAM"/> type that describes a stream header and is included in a CLR <see cref="STORAGEHEADER"/>.
     /// </summary>
+    [Source(SourceKind.mdfileformat_h)]
     public struct StorageStream : IValue, IViewable
     {
         //Names based on mdcommon.h

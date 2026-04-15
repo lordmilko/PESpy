@@ -62,7 +62,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(FieldMarshalIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public FieldMarshalRow this[FieldMarshalIndex index] => GetRow((int) index);
+        public FieldMarshalRow this[FieldMarshalIndex index] => GetRowSafe((int) index);
 
         protected override FieldMarshalRow GetRow(int index) => new FieldMarshalRow((FieldMarshalIndex) index, this);
     }

@@ -212,8 +212,7 @@ namespace PESpy.View
             AddVirtualDirectory(ref dataDirectories, o.ResourceTableDirectory, nameof(o.ResourceTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.ExceptionTableDirectory, nameof(o.ExceptionTableDirectory));
 
-            if (o.SecurityTableDirectory.VirtualAddress != 0)
-                dataDirectories.Add(new DirectoryInfo(nameof(o.SecurityTableDirectory), (Int32) o.SecurityTableDirectory.VirtualAddress, o.SecurityTableDirectory.Size));
+            AddPhysicalDirectory(ref dataDirectories, o.SecurityTableDirectory, nameof(o.SecurityTableDirectory));
 
             AddVirtualDirectory(ref dataDirectories, o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.DebugTableDirectory, nameof(o.DebugTableDirectory));
@@ -222,8 +221,7 @@ namespace PESpy.View
             AddVirtualDirectory(ref dataDirectories, o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
 
-            if (o.BoundImportTableDirectory.VirtualAddress != 0)
-                dataDirectories.Add(new DirectoryInfo(nameof(o.BoundImportTableDirectory), (Int32) o.BoundImportTableDirectory.VirtualAddress, o.BoundImportTableDirectory.Size));
+            AddPhysicalDirectory(ref dataDirectories, o.BoundImportTableDirectory, nameof(o.BoundImportTableDirectory));
 
             AddVirtualDirectory(ref dataDirectories, o.ImportAddressTableDirectory, nameof(o.ImportAddressTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.DelayImportTableDirectory, nameof(o.DelayImportTableDirectory));
@@ -326,29 +324,16 @@ namespace PESpy.View
             dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
         }
 
-        void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
+        private void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
         {
             if (directory.HasData)
             {
-                bool isVirtualMode;
-
-                switch (mode)
+                var wantVirtual = mode switch
                 {
-                    case ViewMode.Default:
-                        isVirtualMode = peFile.IsLoadedImage; //Whatever the PEFile says
-                        break;
-
-                    case ViewMode.Physical:
-                        isVirtualMode = false;
-                        break;
-
-                    case ViewMode.Virtual:
-                        isVirtualMode = true;
-                        break;
-
-                    default:
-                        throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
-                }
+                    ViewMode.Default => peFile.IsLoadedImage,
+                    ViewMode.Physical => false,
+                    ViewMode.Virtual => true
+                };
 
                 var sectionIndex = peFile.GetSectionContainingRVA(directory.VirtualAddress);
 
@@ -359,7 +344,7 @@ namespace PESpy.View
 
                 int offset;
 
-                if (isVirtualMode)
+                if (wantVirtual)
                 {
                     offset = directory.VirtualAddress;
                 }
@@ -370,8 +355,49 @@ namespace PESpy.View
                     offset = section.PointerToRawData + relativeOffset;
                 }
 
-                dataDirectories.Add(new DirectoryInfo(name, offset + peFile.blockProvider.StartOffset, directory.Size));
+                var directoryInfo = new DirectoryInfo(name, offset + peFile.blockProvider.StartOffset, directory.Size);
+
+                //If the directory is out of bounds, thats an issue, but it's not up to us to deal with that
+
+                dataDirectories.Add(directoryInfo);
             }
+        }
+
+        private void AddPhysicalDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
+        {
+            if (directory.VirtualAddress == 0)
+                return;
+
+            var wantVirtual = mode switch
+            {
+                ViewMode.Default => peFile.IsLoadedImage,
+                ViewMode.Physical => false,
+                ViewMode.Virtual => true
+            };
+
+            var sectionIndex = peFile.GetSectionContainingOffset(directory.VirtualAddress);
+
+            if (sectionIndex == -1)
+                return;
+
+            var section = peFile.SectionHeaders[sectionIndex];
+
+            int offset;
+
+            if (wantVirtual)
+            {
+                var relativeOffset = (int) (directory.VirtualAddress - section.PointerToRawData);
+
+                offset = section.VirtualAddress + relativeOffset;
+            }
+            else
+                offset = directory.VirtualAddress;
+
+            var directoryInfo = new DirectoryInfo(name, offset + peFile.blockProvider.StartOffset, directory.Size);
+
+            //If the directory is out of bounds, thats an issue, but it's not up to us to deal with that
+
+            dataDirectories.Add(directoryInfo);
         }
     }
 }

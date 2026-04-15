@@ -70,7 +70,7 @@ namespace PESpy.Ecma335
 
         public int GetRowOffset(LocalVariableIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
-        public LocalVariableRow this[LocalVariableIndex index] => GetRow((int) index);
+        public LocalVariableRow this[LocalVariableIndex index] => GetRowSafe((int) index);
 
         protected override LocalVariableRow GetRow(int index) => new LocalVariableRow((LocalVariableIndex) index, this);
     }

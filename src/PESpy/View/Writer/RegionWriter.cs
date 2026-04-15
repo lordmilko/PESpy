@@ -99,29 +99,53 @@ namespace PESpy.View
                 {
                     var item = value[i];
 
-                    var oldFromRegion = viewWriter.FromRegion;
-
-                    viewWriter.FromRegion = false;
-
-                    try
-                    {
-                        item.WriteGlobals(viewWriter);
-
-                        viewWriter.FromRegion = true;
-
-                        var result = item.WriteStruct(viewWriter);
-
-                        if (result != null)
-                            views.Add(result);
-                    }
-                    finally
-                    {
-                        viewWriter.FromRegion = oldFromRegion;
-                    }
+                    WriteValueElement(item);
                 }
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;
+            }
+
+            public void WriteValues<TLightweightList, TEnumerator, TElement>(TLightweightList? value)
+                where TLightweightList : ILightweightList<TEnumerator, TElement>
+                where TEnumerator : IEnumerator<TElement>
+                where TElement : IViewable, IValue
+            {
+                if (value == null)
+                    return;
+
+                var startIndex = views.Count;
+
+                var enumerator = value.GetEnumerator();
+
+                while (enumerator.MoveNext())
+                    WriteValueElement(enumerator.Current);
+
+                for (var i = startIndex; i < views.Count; i++)
+                    currentOffset += views[i].Size;
+            }
+
+            private void WriteValueElement<T>(T item) where T : IViewable
+            {
+                var oldFromRegion = viewWriter.FromRegion;
+
+                viewWriter.FromRegion = false;
+
+                try
+                {
+                    item.WriteGlobals(viewWriter);
+
+                    viewWriter.FromRegion = true;
+
+                    var result = item.WriteStruct(viewWriter);
+
+                    if (result != null)
+                        views.Add(result);
+                }
+                finally
+                {
+                    viewWriter.FromRegion = oldFromRegion;
+                }
             }
 
             //The region just encapsulates the _RVA_ of the string. The string itself is located _outside_ of the region
@@ -171,6 +195,26 @@ namespace PESpy.View
                 Push();
 
                 viewWriter.WriteRegionUniqueGlobal(value);
+
+                for (var i = startIndex; i < views.Count; i++)
+                    currentOffset += views[i].Size;
+
+                Pop();
+            }
+
+            internal void WriteUnique<TLightweightList, TEnumerator, TElement>(TLightweightList? value)
+                where TLightweightList : ILightweightList<TEnumerator, TElement>
+                where TEnumerator : IEnumerator<TElement>
+                where TElement : IViewable, IValue
+            {
+                if (value == null)
+                    return;
+
+                var startIndex = views.Count;
+
+                Push();
+
+                viewWriter.WriteRegionUniqueGlobal<TLightweightList, TEnumerator, TElement>(value);
 
                 for (var i = startIndex; i < views.Count; i++)
                     currentOffset += views[i].Size;

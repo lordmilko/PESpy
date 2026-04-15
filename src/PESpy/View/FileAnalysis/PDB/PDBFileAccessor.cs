@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
+using System.Threading;
 using PESpy.PDB;
 using PESpy.View.Builder;
 
@@ -277,7 +278,11 @@ namespace PESpy.View
 
         //We are our own symbol accessor, so we don't need to be afraid to return ourselves right away even if we don't want to allow loading.
         //The PDBFile stores the actual reference to the symbol accessor
-        internal override ISymbolAccessor GetSymbolAccessor(bool load, LocatorHttpPolicy httpPolicy, ILocatorProgress? progress) => PDBFile.GetSymbolAccessor(httpPolicy, progress);
+        internal override ISymbolAccessor GetSymbolAccessor(
+            bool load,
+            LocatorHttpPolicy httpPolicy,
+            ILocatorProgress? progress,
+            CancellationToken cancellationToken = default) => PDBFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
 
         internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref int offset, out int sectionIndex, out int bytesRewound)
         {

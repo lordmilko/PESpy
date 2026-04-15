@@ -1,18 +1,36 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ClrDebug;
 
 namespace PESpy
 {
-    public unsafe class RemoteMemoryReader : IMemoryReader
+    internal unsafe class ProcessMemoryAccessor : IMemoryAccessor, IDisposable
     {
         public const int PAGE_SIZE = 0x1000;
 
         private IntPtr hProcess;
 
-        public RemoteMemoryReader(IntPtr hProcess)
+        public ProcessMemoryAccessor(IntPtr hProcess)
         {
-            this.hProcess = hProcess;
+            IntPtr duplicatedHandle;
+
+            var currentProcess = NativeMethods.GetCurrentProcess();
+
+            var result = NativeMethods.DuplicateHandle(
+                currentProcess,
+                hProcess,
+                currentProcess,
+                &duplicatedHandle,
+                0,
+                0,
+                2 //DUPLICATE_SAME_ACCESS
+            ) != 0;
+
+            if (!result)
+                throw new DebugException("Failed to duplicate process handle", (HRESULT) Marshal.GetHRForLastWin32Error());
+
+            this.hProcess = duplicatedHandle;
         }
 
         public void ReadVirtual(long address, IntPtr buffer, int size)
@@ -56,8 +74,8 @@ namespace PESpy
             int dwSize,
             out int lpNumberOfBytesRead)
         {
-
-            var result = ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, new IntPtr(dwSize), out var read);
+            IntPtr read;
+            var result = NativeMethods.ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, new IntPtr(dwSize), &read) != 0;
 
             if (!result)
             {
@@ -79,12 +97,13 @@ namespace PESpy
             return result;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool ReadProcessMemory(
-            [In] IntPtr hProcess,
-            [In] IntPtr lpBaseAddress,
-            [Out] IntPtr lpBuffer,
-            [In] IntPtr dwSize,
-            [Out] out IntPtr lpNumberOfBytesRead);
+        public void Dispose()
+        {
+            if (hProcess != default)
+            {
+                NativeMethods.CloseHandle(hProcess);
+                hProcess = default;
+            }
+        }
     }
 }

@@ -22,9 +22,9 @@ namespace PESpy
         /// <summary>
         /// The RVA of the import lookup table. This table contains a name or ordinal for each import.
         /// </summary>
-        private RVA<ImageThunkData[]>? originalFirstThunk;
+        private RVA<ImageThunkDataList>? originalFirstThunk;
 
-        public RVA<ImageThunkData[]> OriginalFirstThunk
+        public RVA<ImageThunkDataList> OriginalFirstThunk
         {
             get
             {
@@ -35,7 +35,7 @@ namespace PESpy
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         originalFirstThunk = ParseThunks(rva, valueChunk, false);
                     else
-                        originalFirstThunk = new RVA<ImageThunkData[]>(rva);
+                        originalFirstThunk = new RVA<ImageThunkDataList>(rva);
                 }
 
                 return originalFirstThunk.Value;
@@ -81,9 +81,9 @@ namespace PESpy
         /// <summary>
         /// The RVA of the import address table. The contents of this table are identical to the contents of the import lookup table until the image is bound.
         /// </summary>
-        private RVA<ImageThunkData[]>? firstThunk;
+        private RVA<ImageThunkDataList>? firstThunk;
 
-        public RVA<ImageThunkData[]> FirstThunk
+        public RVA<ImageThunkDataList> FirstThunk
         {
             get
             {
@@ -94,7 +94,7 @@ namespace PESpy
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                         firstThunk = ParseThunks(rva, valueChunk, true);
                     else
-                        firstThunk = new RVA<ImageThunkData[]>(rva);
+                        firstThunk = new RVA<ImageThunkDataList>(rva);
                 }
 
                 return firstThunk.Value;
@@ -110,14 +110,14 @@ namespace PESpy
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public RVA<ImageThunkData[]> ImportLookupTable => OriginalFirstThunk;
+        public RVA<ImageThunkDataList> ImportLookupTable => OriginalFirstThunk;
 
         /// <summary>
         /// Gets the Import Address Table (<see cref="FirstThunk"/>) representing the actual imports once they've been loaded into memory.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public RVA<ImageThunkData[]> ImportAddressTable => FirstThunk;
+        public RVA<ImageThunkDataList> ImportAddressTable => FirstThunk;
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -141,39 +141,9 @@ namespace PESpy
 #endif
         }
 
-        internal static RVA<ImageThunkData[]> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
+        internal static RVA<ImageThunkDataList> ParseThunks(int rva, in MemoryChunk valueChunk, bool isIAT)
         {
-            using var results = new PooledList<ImageThunkData>();
-
-            var size = valueChunk.PointerSize;
-
-            ImageThunkData thunk;
-
-            var read = 0;
-
-            do
-            {
-                thunk = new ImageThunkData(valueChunk.Slice(read), isIAT);
-                results.Add(thunk);
-                read += size;
-            } while (thunk.Value != 0); //Needs to be a value that works for both loaded and unloaded thunks
-
-            return new RVA<ImageThunkData[]>(rva, valueChunk.AbsoluteOffset, results.ToArray());
-        }
-
-        internal static ImageThunkData[] ParseIATThunks(in MemoryChunk valueChunk, int directorySize)
-        {
-            //Unlike when parsing thunks for a particular import descriptor, when parsing thunks for the whole IAT,
-            //we don't stop when a null thunk is hitl we stop when we reach the end
-
-            var ptrSize = valueChunk.PointerSize;
-
-            var results = new ImageThunkData[directorySize / ptrSize];
-
-            for (var i = 0; i < results.Length; i++)
-                results[i] = new ImageThunkData(valueChunk.Slice(i * ptrSize), true);
-
-            return results;
+            return new RVA<ImageThunkDataList>(rva, valueChunk.AbsoluteOffset, new ImageThunkDataList(valueChunk, null, isIAT));
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -196,7 +166,7 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteUnique(OriginalFirstThunk.Value);
+                r.WriteUnique<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(OriginalFirstThunk.Value);
             }
 
             //This name may also be written by ImageEnclaveImport
@@ -216,7 +186,7 @@ namespace PESpy
 #endif
                 );
 
-                r.WriteUnique(FirstThunk.Value);
+                r.WriteUnique<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(FirstThunk.Value);
             }
         }
 
@@ -230,7 +200,7 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteRVAField(nameof(OriginalFirstThunk), OriginalFirstThunkOffset, OriginalFirstThunk);
+                    structWriter.WriteRVAField<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(nameof(OriginalFirstThunk), OriginalFirstThunkOffset, OriginalFirstThunk);
                     break;
 
                 case 1:
@@ -246,7 +216,7 @@ namespace PESpy
                     break;
 
                 case 4:
-                    structWriter.WriteRVAField(nameof(FirstThunk), FirstThunkOffset, FirstThunk);
+                    structWriter.WriteRVAField<ImageThunkDataList, ImageThunkDataList.Enumerator, ImageThunkData>(nameof(FirstThunk), FirstThunkOffset, FirstThunk);
                     break;
 
                 default:

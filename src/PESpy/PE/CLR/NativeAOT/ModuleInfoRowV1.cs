@@ -55,7 +55,7 @@ namespace PESpy.NativeAOT
                 if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                 {
                     var kind = GetViewKind(sectionId);
-                    data = new VA<IValue>(start, rva, new ByteBlob(valueChunk, length, ViewKind.UnknownModuleInfoRowData));
+                    data = new VA<IValue>(start, rva, new ByteBlob(valueChunk, length, kind));
                 }
                 else
                     data = new VA<IValue>(start);
