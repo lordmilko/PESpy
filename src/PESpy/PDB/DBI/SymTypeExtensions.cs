@@ -10,10 +10,9 @@ namespace PESpy.PDB
 {
     public static partial class SymTypeExtensions
     {
-        //todo: need an overload that also takes a codeviewaccessor
-        public static int GetRVA(in this SymType symType) => GetRVA(symType, null);
+        #region GetRVA
 
-        public static int GetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor)
+        public static int GetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor = null)
         {
             if (!symType.TryGetRVA(codeViewAccessor, out var rva))
                 throw new InvalidOperationException($"Could not resolve an RVA for symbol '{symType}'");
@@ -25,11 +24,20 @@ namespace PESpy.PDB
         public static unsafe bool TryGetRVA(in this SymType symType, out int rva) =>
             TryGetRVA(symType, null, out rva);
 
+        /// <summary>
+        /// Gets the OMAP-aware relative virtual address that is associated with the given symbol.
+        /// </summary>
+        /// <param name="symType">The symbol to get the RVA of.</param>
+        /// <param name="codeViewAccessor">An <see cref="ICodeViewAccessor"/> that provides access to the <see cref="ImageSectionHeader"/> instances that should be used to compute the RVA.
+        /// If this value is not specified, this method will attempt to lookup the <see cref="ImageSectionHeader"/> that is associated
+        /// with the given symbol address.</param>
+        /// <param name="rva">The OMAP-aware relative virtual address that is associated with the given symbol.</param>
+        /// <returns>True if an RVA could be computed. Otherwise, false.</returns>
         public static unsafe bool TryGetRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out int rva)
         {
-            if (TryGetOffSeg(symType, out var off, out var seg))
+            if (TryGetRawOffSeg(symType, out var off, out var seg))
             {
-                var rawRva = SymType.GetRelativeVirtualAddress((SYMTYPE*) symType, seg, off, codeViewAccessor);
+                var rawRva = SymType.GetOmapRelativeVirtualAddress((SYMTYPE*) symType, seg, off, codeViewAccessor);
 
                 //Data symbols can have a section index of 0, indicating they don't physically exist
                 if (rawRva != null)
@@ -43,20 +51,40 @@ namespace PESpy.PDB
             return false;
         }
 
-        public static unsafe bool TryGetRVA(in this SymType symType, ushort seg, ushort off, out int rva)
-        {
-            var rawRva = SymType.GetRelativeVirtualAddress((SYMTYPE*) symType, seg, off, null);
+        #endregion
+        #region GetRawRVA
 
-            //Data symbols can have a section index of 0, indicating they don't physically exist
-            if (rawRva != null)
+        public static int GetRawRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor = null)
+        {
+            if (!symType.TryGetRawRVA(codeViewAccessor, out var rva))
+                throw new InvalidOperationException($"Could not resolve an RVA for symbol '{symType}'");
+
+            return rva;
+        }
+
+        //This method _does_ traverse ref symbols
+        public static unsafe bool TryGetRawRVA(in this SymType symType, out int rva) =>
+            TryGetRawRVA(symType, null, out rva);
+
+        public static unsafe bool TryGetRawRVA(in this SymType symType, ICodeViewAccessor? codeViewAccessor, out int rva)
+        {
+            if (TryGetRawOffSeg(symType, out var off, out var seg))
             {
-                rva = rawRva.Value;
-                return true;
+                var rawRva = SymType.GetRawRelativeVirtualAddress((SYMTYPE*) symType, seg, off, codeViewAccessor);
+
+                //Data symbols can have a section index of 0, indicating they don't physically exist
+                if (rawRva != null)
+                {
+                    rva = rawRva.Value;
+                    return true;
+                }
             }
 
             rva = default;
             return false;
         }
+
+        #endregion
 
         public static SymString GetName(in this SymType symType) => GetName(symType, null);
 
@@ -403,7 +431,53 @@ namespace PESpy.PDB
             return false;
         }
 
-        public static bool TryGetOffSeg(in this SymType symType, out int off, out ISECT seg)
+        public static unsafe bool TryGetOffSeg(in this SymType symType, out int off, out ISECT seg, ICodeViewAccessor? codeViewAccessor = null)
+        {
+            codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+
+            //If we have OMAP data, we need to get an RVA and deconstruct that into an off/seg
+            if (codeViewAccessor.HasOmapFromSrc)
+            {
+                if (TryGetRawOffSeg(symType, out off, out seg))
+                {
+                    var rva = SymType.GetRawRelativeVirtualAddress(symType, seg, off, codeViewAccessor);
+
+                    if (rva != null)
+                    {
+                        var omapFromSrc = codeViewAccessor.GetOmapFromSrc();
+
+                        if (omapFromSrc.TryConvertOmapFromSrc(rva.Value, out var omapRva))
+                        {
+                            //Split this back into an off/seg
+                            if (codeViewAccessor.TryGetSectionAndOffset(omapRva, out var omapOff, out var omapSeg))
+                            {
+                                off = omapOff;
+                                seg = omapSeg;
+                                return true;
+                            }
+                        }
+
+                        //DbgHelp doesn't seem to use the original address if we failed to translate it
+                        return false;
+                    }
+                }
+
+                return false;
+            }
+
+            return TryGetRawOffSeg(symType, out off, out seg);
+        }
+
+        /// <summary>
+        /// Gets the raw, OMAP-unaware offset and segment that is associated with the given symbol.
+        /// If OmapFromSrc data is present, this value may need to be converted into an RVA, translated
+        /// into an OMAP-aware RVA, and then deconstructed to get an OMAP-aware offset and segment.
+        /// </summary>
+        /// <param name="symType">The symbol to get the offset and segment of.</param>
+        /// <param name="off">The raw offset of the symbol</param>
+        /// <param name="seg">The segment of the symbol</param>
+        /// <returns>True if the given symbol has an offset and segment. Otherwise, false.</returns>
+        public static bool TryGetRawOffSeg(in this SymType symType, out int off, out ISECT seg)
         {
             //The following symbol kinds have a "seg" member which indicates they may store an RVA
 
@@ -647,14 +721,14 @@ namespace PESpy.PDB
                 case S_PROCREF_ST: //Not supported by DIA
                 case S_DATAREF_ST: //Not supported by DIA
                 case S_LPROCREF_ST: //Not supported by DIA
-                    return ((RefSym) symType).Symbol.TryGetOffSeg(out off, out seg);
+                    return ((RefSym) symType).Symbol.TryGetRawOffSeg(out off, out seg);
 
                 case S_PROCREF:
                 case S_DATAREF:
                 case S_LPROCREF:
                 case S_ANNOTATIONREF:
                 case S_TOKENREF:
-                    return ((RefSym2) symType).Symbol.TryGetOffSeg(out off, out seg);
+                    return ((RefSym2) symType).Symbol.TryGetRawOffSeg(out off, out seg);
 
                 case S_SEPCODE:
                 {

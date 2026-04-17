@@ -465,7 +465,7 @@ namespace PESpy.View
         #region Enums
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteField<T>(string name, int relativeOffset, T value, int size) where T : Enum =>
+        public void WriteField<T>(string name, int relativeOffset, T value, int size) =>
             RelayField(name, relativeOffset, value, size);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

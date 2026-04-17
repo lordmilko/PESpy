@@ -175,7 +175,7 @@ namespace PESpy.PDB
                                 {
                                     var nextSym = addressMap.GetVirtualSymbol(virtualLow + 1);
 
-                                    if (!nextSym.TryGetOffSeg(out var nextOff, out var nextSeg))
+                                    if (!nextSym.TryGetRawOffSeg(out var nextOff, out var nextSeg))
                                         break;
 
                                     if (nextSeg == pubSym.seg)
@@ -215,7 +215,7 @@ namespace PESpy.PDB
                 default:
                     //If it's a thing with an off/seg, fallback to probing the section contrib.
                     //I'm not sure if this goes beyond what DIA does
-                    if (symType.TryGetOffSeg(out var off, out var seg))
+                    if (symType.TryGetRawOffSeg(out var off, out var seg))
                     {
                         codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
 

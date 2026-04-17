@@ -83,6 +83,11 @@ namespace PESpy
         /// https://github.com/microsoft/microsoft-pdb/blob/master/PDB/msf/msf.cpp
         /// </summary>
         msf_cpp = 1 << 13,
+
+        /// <summary>
+        /// Represents a type defined in <c>ehdata4_export.h</c> which defines the format of __CxxFrameHandler4 metadata.
+        /// </summary>
+        ehdata4_export_h = 1 << 14,
     }
 
     /// <summary>

@@ -3,10 +3,8 @@ using System.Diagnostics;
 
 namespace PESpy.View
 {
-    public interface IBitFieldView : IView
+    public interface IBitFieldView : IFieldView
     {
-        string Name { get; }
-        object Value { get; }
         int Bits { get; }
     }
 
@@ -19,7 +17,9 @@ namespace PESpy.View
 
         public TValue Value { get; }
 
-        object IBitFieldView.Value => Value!;
+        object IFieldView.Value => Value!;
+
+        public string ValueType => typeof(TValue).Name;
 
         public int Bits { get; }
 
@@ -30,6 +30,8 @@ namespace PESpy.View
         public int Size { get; private set; }
 
         public ViewKind Kind => ViewKind.BitField;
+
+        public FieldViewFlags Flags => default;
 
         public BitFieldView(int offset, string name, TValue value, int bits, int size)
         {

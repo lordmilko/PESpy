@@ -2,6 +2,11 @@
 
 namespace PESpy.View
 {
+    public sealed class NullViewWalker : ViewWalker
+    {
+        public static readonly NullViewWalker Instance = new NullViewWalker();
+    }
+
     public abstract class ViewWalker : ViewVisitor
     {
         protected internal override void VisitAsm(IAsmView view)

@@ -219,7 +219,7 @@ namespace PESpy.PDB
             //EnumPubsByAddr::locate then does some funny business with m_iPubs and negative numbers, but we're following
             //NearestSym so we don't need to worry about that
 
-            item.TryGetOffSeg(out var itemOff, out var itemSeg);
+            item.TryGetRawOffSeg(out var itemOff, out var itemSeg);
 
             if (itemSeg == sectionNumber)
             {
@@ -283,7 +283,7 @@ namespace PESpy.PDB
 
                     item = GetVirtualSymbol(low);
 
-                    item.TryGetOffSeg(out _, out itemSeg);
+                    item.TryGetRawOffSeg(out _, out itemSeg);
 
                     if (itemSeg > sectionNumber)
                     {
@@ -299,7 +299,7 @@ namespace PESpy.PDB
             //The above logic does not allow landing in a section other than the one we're after, so we don't need to worry about
             //the section being different in calculating the displacement
 
-            symType.TryGetOffSeg(out var resultOff, out var resultSeg);
+            symType.TryGetRawOffSeg(out var resultOff, out var resultSeg);
 
             //PSGSI::NearestSym doesn't seem to do -1 stuff; when we wanted off/seg 0/0 and got 0/1 the displacement
             //was still 0. And when we had 1/0 and got 1/1 the displacement was 1, so it seems like the section is ignored
@@ -359,7 +359,7 @@ namespace PESpy.PDB
 
         internal static int CompareSectionAndOffset(SymType symType, int relativeOffset, int sectionNumber)
         {
-            var result = symType.TryGetOffSeg(out var pubOff, out var pubSeg);
+            var result = symType.TryGetRawOffSeg(out var pubOff, out var pubSeg);
             Debug.Assert(result, "Expected the symbol to be a public with an offset and segment");
 
             if (pubSeg == sectionNumber)
@@ -382,7 +382,7 @@ namespace PESpy.PDB
 
         internal static int CompareSectionAndOffset(SymType first, SymType second)
         {
-            var result = first.TryGetOffSeg(out var off, out var seg);
+            var result = first.TryGetRawOffSeg(out var off, out var seg);
             Debug.Assert(result);
 
             return CompareSectionAndOffset(second, off, seg);

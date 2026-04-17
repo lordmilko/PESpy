@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using ClrDebug;
 using PESpy.Native;
@@ -9,9 +11,8 @@ using PESpy.View;
 using PESpy.View.Builder;
 using Stream = System.IO.Stream;
 using static PESpy.IMAGE_DEBUG_TYPE;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using static PESpy.NativeMethods;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -52,8 +53,8 @@ namespace PESpy
         public WinCertificate[]? SecurityTable => peFile.SecurityTable;
         public ImageBaseRelocation[]? BaseRelocationTable => peFile.BaseRelocationTable;
         public ImageDebugDirectory[]? DebugTable => peFile.DebugTable;
-        //Copyright Table
-        //Global Pointer Table
+        public RawValue<FixedAnsiString>? Copyright => peFile.Copyright;
+        public int GlobalPointer => peFile.GlobalPointer;
         public ImageTlsDirectory? TlsDirectory => peFile.TlsDirectory;
         public ImageLoadConfigDirectory? LoadConfigTable => peFile.LoadConfigTable;
         public ImageBoundImportDescriptor[]? BoundImportTable => peFile.BoundImportTable;
@@ -1272,12 +1273,47 @@ namespace PESpy
         #endregion
         #region Copyright Table (7)
 
-        //I haven't been able to find any examples of this section yet
+        //NT 4 shows this is a legacy section that used to contain a string and that it represents a physical offset.
+        //Unsure whether IMAGE_DIRECTORY_ENTRY_ARCHITECTURE is the same thing. I've seen evidence that IMAGE_DIRECTORY_ENTRY_COPYRIGHT
+        //only pertained to x86. I haven't found a sample either way
+
+        internal RawValue<FixedAnsiString>? Copyright //If we expose this externally, need to make sure we write it in WriteGlobals
+        {
+            get
+            {
+                var copyrightTable = OptionalHeader.CopyrightTableDirectory;
+
+                if (copyrightTable.HasData && TryGetValueChunkFromPhysicalOffset(copyrightTable.Offset, out var chunk) && copyrightTable.Size < chunk.Remaining)
+                    return new RawValue<FixedAnsiString>(chunk.AbsoluteOffset, chunk.PeekAnsiFixedLength(0, copyrightTable.Size));
+
+                return default;
+            }
+        }
 
         #endregion
         #region Global Pointer Table (8)
 
-        //I haven't been able to find any examples of this section yet
+        /// <summary>
+        /// Gets the RVA of the shared data segment that allows sharing data between all processes that load a given DLL<para/>
+        /// The IMAGE_DIRECTORY_ENTRY_GLOBALPTR directory is created in a <see cref="PEFile"/> when an *.obj file is linked
+        /// containing an .sdata section that targets <see cref="IMAGE_FILE_MACHINE_R4000"/>, <see cref="IMAGE_FILE_MACHINE_R10000"/> or
+        /// <see cref="IMAGE_FILE_MACHINE_ALPHA"/>.<para/>
+        /// 
+        /// <code>
+        /// //Declare globals inside the shared data segment
+        /// #pragma data_seg(".sdata")
+        /// 
+        /// int a = 1;
+        /// 
+        /// //Restore the original data segment so any other globals
+        /// //listed after this are declared in the regular data segment
+        /// #pragma data_seg()
+        /// </code>
+        /// The resulting <see cref="PEFile"/> will not contain an .sdata directory. Curiously, global fields declared inside the .sdata section
+        /// may appear before the RVA pointed to by the IMAGE_DIRECTORY_ENTRY_GLOBALPTR directory; coupled with the fact that this directory does not have
+        /// a listed size, it's not clear how exactly this works.
+        /// </summary>
+        public int GlobalPointer => OptionalHeader.GlobalPointerTableDirectory.VirtualAddress; //ImageDataDirectory has logic for handling a null MemoryChunk so we don't need to consider NumberOfRvaAndSizes
 
         #endregion
         #region Thread Local Storage Table (9)
@@ -2557,6 +2593,13 @@ namespace PESpy
         {
             if (nativeAOTModules == null && !hasTriedNativeAOTModules)
             {
+                if (!debugger && DotNetRuntimeDebugHeader == null)
+                {
+                    //Don't waste time loading symbols when we know we're not NativeAOT
+                    hasTriedNativeAOTModules = true;
+                    return null;
+                }
+
                 if (TryGetSymbolReader(debugger, httpPolicy, progress, out var symbolReader))
                 {
                     nativeAOTModules = symbolReader.NativeAOTModules;
@@ -2572,33 +2615,30 @@ namespace PESpy
                     }
                     else
                     {
-                        if (DotNetRuntimeDebugHeader != null)
+                        /* It looks like we're a NativeAOT file, so KMP Search for a NativeAOT ReadyToRunHeader. We're interested in finding
+                         * something that has the Signature "R2R", and EntryType 1 (which all headers are currently hardcoded to have) */
+
+                        var sectionHeaders = SectionHeaders;
+
+                        for (var i = 0; i < sectionHeaders.Length; i++)
                         {
-                            /* It looks like we're a NativeAOT file, so KMP Search for a NativeAOT ReadyToRunHeader. We're interested in finding
-                             * something that has the Signature "R2R", and EntryType 1 (which all headers are currently hardcoded to have) */
+                            ref var sectionHeader = ref sectionHeaders[i];
 
-                            var sectionHeaders = SectionHeaders;
-
-                            for (var i = 0; i < sectionHeaders.Length; i++)
+                            if (sectionHeader.Name == ".rdata")
                             {
-                                ref var sectionHeader = ref sectionHeaders[i];
+                                var block = GetSectionBlock(i, sectionHeader);
 
-                                if (sectionHeader.Name == ".rdata")
+                                if (TryFindNativeAOTModuleHeader(block, out var offset))
                                 {
-                                    var block = GetSectionBlock(i, sectionHeader);
-
-                                    if (TryFindNativeAOTModuleHeader(block, out var offset))
-                                    {
-                                        //If this fails, we tried our best!
-                                        TryFindNativeAOTModuleHeaderList(sectionHeader, block, offset, out nativeAOTModules);
-                                    }
-                                    
-                                    break;
+                                    //If this fails, we tried our best!
+                                    TryFindNativeAOTModuleHeaderList(sectionHeader, block, offset, out nativeAOTModules);
                                 }
-                            }
 
-                            hasTriedNativeAOTModules = true;
+                                break;
+                            }
                         }
+
+                        hasTriedNativeAOTModules = true;
                     }
                 }
             }
@@ -3663,8 +3703,7 @@ namespace PESpy
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private MemoryBlock GetSectionBlock(int sectionIndex, in ImageSectionHeader section)
+        internal MemoryBlock GetSectionBlock(int sectionIndex, in ImageSectionHeader section)
         {
             if (sectionBlocks == null)
                 Interlocked.CompareExchange(ref sectionBlocks, new MemoryBlock[ntHeaders.FileHeader.NumberOfSections], null);
@@ -3824,7 +3863,7 @@ namespace PESpy
             remainingLength = block.Length - relativeOffset;
         }
 
-        private bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)
+        public bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)
         {
             if (rva == 0)
             {
@@ -3855,7 +3894,7 @@ namespace PESpy
             return false;
         }
 
-        private bool TryGetSectionContainingOffset(int offset, out int index, out ImageSectionHeader header)
+        public bool TryGetSectionContainingOffset(int offset, out int index, out ImageSectionHeader header)
         {
             if (offset == 0)
             {
@@ -3915,8 +3954,17 @@ namespace PESpy
             writer.WriteGlobal(SecurityTable);
             writer.WriteGlobal(BaseRelocationTable);
             writer.WriteGlobal(DebugTable);
-            //Copyright Table
-            //Global Pointer Table
+
+            var copyright = Copyright;
+
+            if (copyright != null)
+            {
+                var val = copyright.Value;
+
+                writer.WriteGlobal(val.Offset, copyright.Value, val.Value.Length, ViewKind.Copyright);
+            }
+
+            //Global Pointer Table is not a directory and doesn't need writing
             writer.WriteGlobal(TlsDirectory);
             //LoadConfigTable written last because it's slow
             writer.WriteGlobal(BoundImportTable);
@@ -3963,7 +4011,11 @@ namespace PESpy
 
             //We write these last because they're the slowest
             writer.WriteGlobal(LoadConfigTable);
-            writer.WriteGlobal<RuntimeFunctionList, RuntimeFunctionList.Enumerator, RuntimeFunction>(ExceptionTable);
+
+            var exceptionTable = ExceptionTable;
+
+            if (exceptionTable != null)
+                exceptionTable.WriteFast(writer);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

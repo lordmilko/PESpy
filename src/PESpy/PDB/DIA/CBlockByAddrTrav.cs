@@ -51,7 +51,7 @@
                 if (!childSymType.IsBlockSym())
                     continue;
 
-                if (!childSymType.TryGetOffSeg(out var off, out var seg) || !childSymType.TryGetLength(out var length))
+                if (!childSymType.TryGetRawOffSeg(out var off, out var seg) || !childSymType.TryGetLength(out var length))
                     continue;
 
                 if (seg > targetSeg || (seg == targetSeg && off > targetOff))

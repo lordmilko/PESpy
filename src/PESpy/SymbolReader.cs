@@ -232,6 +232,9 @@ namespace PESpy
                  * Need to support either using heuristics or using a PDB, which we then may or may not auto lookup or have the user provide,
                  * and if we auto look it up then we're responsible for disposing it
                  * https://github.com/kweatherman/IDA_ClassInformer_PlugIn/blob/master/RTTI.cpp
+                 * 
+                 * Note that in a shock twist, it doesn't actually seem that Visual Studio uses RTTI info itself;
+                 * it just looks up the vftable and queries the type encoded in the name
                  */
 
                 if (!symType.TryGetOffSeg(out var off, out var seg))

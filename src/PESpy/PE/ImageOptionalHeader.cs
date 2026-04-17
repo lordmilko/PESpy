@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using PESpy.Native;
 using PESpy.View;
+using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
@@ -278,7 +279,8 @@ namespace PESpy
         public ImageDataDirectory CopyrightTableDirectory => NumberOfRvaAndSizes >= 8 ? new ImageDataDirectory(chunk.Slice(CopyrightTableDirectoryOffset)) : default;
 
         /// <remarks>
-        /// Gets information about the size and location of the the relative virtual address of the global pointer (IMAGE_DIRECTORY_ENTRY_GLOBALPTR).
+        /// Gets information about the size and location of the the relative virtual address of the global pointer (IMAGE_DIRECTORY_ENTRY_GLOBALPTR).<para/>
+        /// For more info on this directory, see the documentation on <see cref="PEFile.GlobalPointer"/>.
         /// </remarks>
         public ImageDataDirectory GlobalPointerTableDirectory => NumberOfRvaAndSizes >= 9 ? new ImageDataDirectory(chunk.Slice(GlobalPointerTableDirectoryOffset)) : default;
 

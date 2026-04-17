@@ -216,8 +216,12 @@ namespace PESpy.View
 
             AddVirtualDirectory(ref dataDirectories, o.BaseRelocationTableDirectory, nameof(o.BaseRelocationTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.DebugTableDirectory, nameof(o.DebugTableDirectory));
-            AddVirtualDirectory(ref dataDirectories, o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
-            AddVirtualDirectory(ref dataDirectories, o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
+
+            //The only evidence of this section I've found showed it was physical
+            AddPhysicalDirectory(ref dataDirectories, o.CopyrightTableDirectory, nameof(o.CopyrightTableDirectory));
+
+            //Doesn't point to a directory; just stores an RVA
+            //AddVirtualDirectory(ref dataDirectories, o.GlobalPointerTableDirectory, nameof(o.GlobalPointerTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.ThreadLocalStorageTableDirectory, nameof(o.ThreadLocalStorageTableDirectory));
             AddVirtualDirectory(ref dataDirectories, o.LoadConfigTableDirectory, nameof(o.LoadConfigTableDirectory));
 

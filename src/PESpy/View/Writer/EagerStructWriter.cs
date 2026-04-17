@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
@@ -289,7 +290,7 @@ namespace PESpy.View
         #endregion
         #region Enums
 
-        public void WriteField<T>(string name, T value, int size) where T : Enum
+        public void WriteField<T>(string name, T value, int size) //Generic constraint removed because we need to be able to write compressed integers in FuncInfo4
         {
             structWriter.WriteField(name, currentFieldOffset, value, size);
 
@@ -455,6 +456,34 @@ namespace PESpy.View
             {
                 items.Add(result);
                 currentFieldOffset += result.Size;
+            }
+
+            viewWriter.UnmanagedOffset = oldOffset;
+        }
+
+        public void WriteUnmanagedInline<TLightweightList, TEnumerator, TElement>(TLightweightList value)
+            where TLightweightList : ILightweightList<TEnumerator, TElement>
+            where TEnumerator : IEnumerator<TElement>
+            where TElement : IViewable
+        {
+            var viewWriter = structWriter.ViewWriter;
+
+            var oldOffset = viewWriter.UnmanagedOffset;
+            viewWriter.UnmanagedOffset = structWriter.ParentOffset + currentFieldOffset;
+
+            var enumerator = value.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var item = enumerator.Current;
+
+                var result = item.WriteStruct(viewWriter);
+
+                if (result != null)
+                {
+                    items.Add(result);
+                    currentFieldOffset += result.Size;
+                }
             }
 
             viewWriter.UnmanagedOffset = oldOffset;

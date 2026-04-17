@@ -19,6 +19,6 @@
             };
     #pragma warning(pop)
         };*/
-        public int value;
+        public byte value;
     }
 }

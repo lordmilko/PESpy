@@ -31,10 +31,11 @@ namespace PESpy
     /// </summary>
     public struct UnwindInfo : IValue, IViewable
     {
-        private const int versionAndFlagsOffset = 0;
+        internal const int versionAndFlagsOffset = 0;
         private const int SizeOfPrologOffset = 1;
-        private const int CountOfCodesOffset = 2;
-        private const int frameRegisterAndOffsetOffset = 3;
+        internal const int CountOfCodesOffset = 2;
+        internal const int frameRegisterAndOffsetOffset = 3;
+        internal const int UnwindCodeOffset = 4;
 
         public byte Version => (byte) (versionAndFlags & 0x7); //bottom 3 bits
 
@@ -48,93 +49,69 @@ namespace PESpy
 
         private byte frameRegisterAndOffset => chunk.PeekByte(frameRegisterAndOffsetOffset);
 
-        public byte FrameRegister => (byte) (frameRegisterAndOffset & 0x0F);
+        public Register FrameRegister => (Register) (frameRegisterAndOffset & 0x0F);
 
         //The actual frame offset is this 16 * FrameOffset
         public byte FrameOffset => (byte) ((frameRegisterAndOffset & 0xF0) >> 4);
 
-        private UnwindCode[]? unwindCode;
+        /// <summary>
+        /// Gets the UNWIND_CODE instances associated with this UNWIND_INFO.<para/>
+        /// Note that if <see cref="CountOfCodes"/> is not even, this list will end
+        /// with a "null" alignment code, whose <see cref="UnwindCode.IsNull"/>
+        /// will return <see langword="true"/>.<para/>
+        /// To get all unwind codes excluding the "null" alignment code, use <see cref="GetUnwindCode(bool)"/>.
+        /// </summary>
+        public unsafe UnwindCodeList UnwindCode => new UnwindCodeList(chunk.Pointer, true);
 
-        public UnwindCode[] UnwindCode
-        {
-            get
-            {
-                if (unwindCode == null)
-                {
-                    //For alignment purposes, this array always has an even number of entries, and the final entry is
-                    //potentially unused. In that case, the array is one longer than indicated by the count of unwind
-                    //codes field
-                    var alignedCount = (CountOfCodes + 1) & ~1;
-
-                    //CountOfCodes represents a count of "slots" that follow. A "slot" is a 16 bit value
-                    //that either contains an UNWIND_CODE, or some additional data relating to the previous
-                    //UNWIND_CODE. Thus, we don't know how many top level "codes" we'll actually have
-                    using var unwindCodes = new PooledList<UnwindCode>();
-
-                    for (var i = 0; i < CountOfCodes; i++)
-                    {
-                        var offset = 4 + (i * 2);
-                        var codeOffset = chunk.PeekByte(offset);
-
-                        var unwindOpAndInfo = chunk.PeekByte(offset + 1);
-
-                        var unwindOp = (UWOP) (unwindOpAndInfo & 0x0F);
-                        var opInfo = (byte) ((unwindOpAndInfo & 0xF0) >> 4);
-
-                        //https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#struct-unwind_code
-                        unwindCodes.Add(GetUnwindCodeInfo(offset, codeOffset, unwindOp, opInfo, chunk.Slice(offset), ref i));
-                    }
-
-                    if (alignedCount > CountOfCodes)
-                    {
-                        var offset = 4 + (CountOfCodes * 2);
-                        var codeOffset = chunk.PeekByte(offset);
-                        var unwindOpAndInfo = chunk.PeekByte(offset + 1);
-
-                        var unwindOp = (UWOP) (unwindOpAndInfo & 0x0F);
-                        var opInfo = (byte) ((unwindOpAndInfo & 0xF0) >> 4);
-
-                        unwindCodes.Add(new UnwindCode.NullUnwindCode(chunk.AbsoluteOffset + offset, codeOffset, (UWOP) unwindOp, opInfo));
-                    }
-
-                    unwindCode = unwindCodes.ToArray();
-                }
-
-                return unwindCode;
-            }
-        }
+        public unsafe UnwindCodeList GetUnwindCode(bool includeAlignment) => new UnwindCodeList(chunk.Pointer, includeAlignment);
 
         public int ExceptionHandler { get; }
 
         //Needs to be indirected via a reference type, because we can't have UnwindInfo and RuntimeFunction both be reference types
         public ChainedRuntimeFunction? FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
-        public IValue? ExceptionData { get; }
+
+        private IValue? exceptionData;
+        public IValue? ExceptionData => exceptionData ??= GetExceptionDataForHandlerKind(chunk, ExtraDataStart, ExceptionHandlerKind);
+
+        private WellKnownExceptionHandlerKind exceptionHandlerKind;
+
+        public WellKnownExceptionHandlerKind ExceptionHandlerKind
+        {
+            get
+            {
+                if (exceptionHandlerKind == 0)
+                {
+                    if (ExceptionHandler != 0)
+                    {
+                        //Computing the exception handler kind can be fairly computationally expensive.
+                        //We may need to lookup symbols, or analyze _all_ RUNTIME_FUNCTION records in order
+                        //to compute the maximum possible length of each UNWIND_INFO item's ExceptionData.
+                        //We'll leave it to the ExceptionHandlerContext to decide
+                        //whether to block the debugger from querying things
+
+                        exceptionHandlerKind = chunk.PEFile().ExceptionHandlerContext.GetKind(ExceptionHandler);
+                    }
+                    else
+                    {
+                        exceptionHandlerKind = WellKnownExceptionHandlerKind.None;
+                    }
+                }
+
+                return exceptionHandlerKind;
+            }
+        }
 
         public int Offset => chunk.AbsoluteOffset;
 
-        internal int StructSize
+        internal int FixedStructSize
         {
             get
             {
                 var size = 4 + (((CountOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
 
-                if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
+                if (HasExceptionHandler)
                 {
                     size += sizeof(int); //ExceptionHandler
-
-                    var data = ExceptionData;
-
-                    if (data != null)
-                    {
-                        if (data is RawValue<int>)
-                            size += sizeof(int);
-                        else if (data is ScopeTable s)
-                            size += s.StructSize;
-                        else if (data is RVA<FuncInfoV1> || data is RVA<FuncInfo> || data is RVA<FuncInfo4>)
-                            size += sizeof(int);
-                        else
-                            throw new NotImplementedException();
-                    }
                 }
                 else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
                 {
@@ -145,15 +122,29 @@ namespace PESpy
             }
         }
 
-        private readonly MemoryChunk chunk;
+        /// <summary>
+        /// Gets whether the <see cref="Flags"/> of this <see cref="UnwindInfo"/> indicate that it should have an <see cref="ExceptionHandler"/>
+        /// and <see cref="ExceptionData"/>.
+        /// </summary>
+        public bool HasExceptionHandler => ((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0;
 
-        internal UnwindInfo(in MemoryChunk chunk)
+        internal readonly MemoryChunk chunk;
+        private readonly int functionAddress;
+
+        //Following the unwind codes is either an ExceptionHandler, FunctionEntry or ExceptionData
+        private int ExtraDataStart => 4 + (((CountOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
+
+        //Should be used by ViewProvider only. FunctionAddress is not written in the view
+        internal UnwindInfo(in MemoryChunk chunk) : this(chunk, 0)
+        {
+        }
+
+        internal UnwindInfo(in MemoryChunk chunk, int functionAddress)
         {
             this.chunk = chunk;
-            unwindCode = default;
             ExceptionHandler = default;
             FunctionEntry = default;
-            ExceptionData = default;
+            exceptionData = default;
 
             Debug.Assert(Version is 1 or 2 or 3);
 
@@ -161,116 +152,11 @@ namespace PESpy
             _ = UnwindCode;
 #endif
 
-            //Following the unwind codes is either an ExceptionHandler, FunctionEntry or ExceptionData
-            var extraDataStart = 4 + (((CountOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
-
-            if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
+            if (HasExceptionHandler)
             {
-                ExceptionHandler = chunk.PeekInt32(extraDataStart);
+                ExceptionHandler = chunk.PeekInt32(ExtraDataStart);
 
-                /* After the ExceptionHandler is the ExceptionData. Contrary to popular belief, the type of data pointed to by
-                 * ExceptionHandler is not always a SCOPE_TABLE. Rather, the type of value pointed to by this RVA depends on the
-                 * exception handler used. Other people have also had the same observation: https://reactos.org/wiki/Techwiki:SEH64
-                 *
-                 * The PE file does not need to know what kind of data is contained in the ExceptionData; it does not matter. Whatever it is,
-                 * a pointer to it will be passed to the ExceptionHandler routine, which will know what to do with it.
-                 *
-                 * There are two ways to identify function that is pointed to by ExceptionHandler
-                 * 1. Using symbols
-                 * 2. Using byte signatures
-                 *
-                 * Using symbols will obviously be the most reliable, however it will also complicate our API design. At the same time,
-                 * any time there's any minor variations that violate a pattern, we won't be able to get a match. As such, we support
-                 * both strategies: if we can't match via patterns, fallback to using symbols. We opt to prefer patterns, as we don't
-                 * want to force a symbol load if we don't have to. Fortunately, because the ExceptionTable will be lazily loaded,
-                 * we can load a PEFile for the purposes of locating symbols prior to attempting to access the ExceptionTable. */
-
-                var peFile = chunk.PEFile();
-
-                if (ExceptionHandlerDetector.TryMatch(peFile, ExceptionHandler, out var kind))
-                {
-                    var dataChunk = chunk.Slice(extraDataStart + 4);
-
-                    //I think PEAnatomist determines the function type by looking at how much data is remaining.
-                    //It then tries all possible heuristics on each piece of data
-
-                    switch (kind)
-                    {
-                        case WellKnownExceptionHandlerKind.__GSHandlerCheck:
-                            //Data is an Int32, whose meaning is unknown. Possibly _GS_HANDLER_DATA, but GS_HANDLER_DATA seems to be at least two bytes (alignment is optional). AlignedBaseOffset would also need to be optional for that to work
-                            //Maybe the data is the security cookie, or the offset to the cookie?
-                            //PEAnatomist considers there to be a __GSHandlerCheck if the last 3 bits of the data value are not set
-                            //and there's at least 4 bytes of data between this value and the value after it
-
-                            ExceptionData = new RawValue<int>(dataChunk.AbsoluteOffset, dataChunk.PeekInt32(0));
-                            break;
-
-                        case WellKnownExceptionHandlerKind.__C_specific_handler:
-                        case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
-                            ExceptionData = new ScopeTable(dataChunk);
-                            break;
-
-                        case WellKnownExceptionHandlerKind.__CxxFrameHandler:
-                        {
-                            //Value is an RVA to the FuncInfo. Not typically right after the unwind info
-                            var infoRVA = dataChunk.PeekInt32(0);
-
-                            if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
-                            {
-                                ExceptionData = new RVA<FuncInfoV1>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfoV1(infoChunk));
-                            }
-                            else
-                                ExceptionData = new RVA<FuncInfoV1>(infoRVA);
-
-                            break;
-                        }
-
-                        case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
-                        {
-                            //Value is an RVA to the FuncInfo. Not typically right after the unwind info
-                            var infoRVA = dataChunk.PeekInt32(0);
-
-                            if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
-                            {
-                                ExceptionData = new RVA<FuncInfo>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo(infoChunk));
-                            }
-                            else
-                                ExceptionData = new RVA<FuncInfo>(infoRVA);
-
-                            break;
-                        }
-
-                        case WellKnownExceptionHandlerKind.__CxxFrameHandler4:
-                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4:
-                        {
-                            //Value is an RVA to the FuncInfo4 (which is typically right after the unwind info)
-                            /*var infoRVA = (RVA) reader.ReadInt32();
-
-                            if (peFile.TryGetOffset(infoRVA, out var infoOffset))
-                            {
-                                reader.Seek(infoOffset);
-                                ExceptionData = new RVA<FuncInfo4>(infoRVA, infoOffset, new FuncInfo4(reader));
-                            }
-                            else
-                                ExceptionData = new RVA<FuncInfo4>(infoRVA);*/
-                            //FuncInfo4 is not supported yet
-
-                            break;
-                        }
-
-                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //Apparently it's a ScopeTable and the Int32 GS Data from GSHandlerCheck
-                            //GSHandlerCheck_SEH_noexcept too?
-
-                            //http://www.hexblog.com/wp-content/uploads/2012/06/Recon-2012-Skochinsky-Compiler-Internals.pdf
-                            ExceptionData = new ScopeTable(dataChunk);
-                            break;
-
-                        //case ByteMatch.__GSHandlerCheck_EH: //Apparently it's an RVA to a FuncInfo and the Int32 GS Data from GSHandlerCheck
-
-                        default:
-                            throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
-                    }
-                }
+                //ExceptionData is lazily computed
             }
             else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
             {
@@ -284,92 +170,249 @@ namespace PESpy
                  * chained RUNTIME_FUNCTION now follows
                  */
 
-                FunctionEntry = new ChainedRuntimeFunction(chunk.Slice(extraDataStart));
+                FunctionEntry = new ChainedRuntimeFunction(chunk.Slice(ExtraDataStart));
             }
         }
 
-        private UnwindCode GetUnwindCodeInfo(
-            int relativeOffset,
-            byte codeOffset,
-            UWOP unwindOp,
-            byte opInfo,
-            in MemoryChunk chunk,
-            ref int i)
+        private unsafe IValue GetExceptionDataForHandlerKind(WellKnownExceptionHandlerKind kind)
         {
-            var absoluteOffset = chunk.AbsoluteOffset;
+            /* After the ExceptionHandler is the ExceptionData. Contrary to popular belief, the type of data pointed to by
+             * ExceptionHandler is not always a SCOPE_TABLE. Rather, the type of value pointed to by this RVA depends on the
+             * exception handler used. Other people have also had the same observation: https://reactos.org/wiki/Techwiki:SEH64
+             *
+             * The PE file does not need to know what kind of data is contained in the ExceptionData; it does not matter. Whatever it is,
+             * a pointer to it will be passed to the ExceptionHandler routine, which will know what to do with it.
+             * 
+             * The easiest way to detect what handler is used is to use symbols. If symbols are not available however, we can do a
+             * pretty good job of heuristically determining the type of handler that is used by collecting all UNWIND_INFO addresses
+             * (which we presume will all be sequentially listed within a single given section), calculating the gap between all
+             * items that have ExceptionData, and then checking for various patterns based on the expected layout of GS_HANDLER_DATA,
+             * SCOPE_TABLE and FuncInfo items.
+             *
+             * Regardless of what mechanism we use to detect the handler, we'll end up with a WellKnownExceptionHandlerKind,
+             * which directly maps to a particular type of data
+             */
 
-            switch (unwindOp)
+            var dataChunk = chunk.Slice(ExtraDataStart + 4);
+
+            //I think PEAnatomist determines the function type by looking at how much data is remaining.
+            //It then tries all possible heuristics on each piece of data
+
+            int infoRVA;
+            PEFile peFile;
+            MemoryChunk infoChunk;
+
+            //Note: any new items also need to be added to WriteUnwindInfo below
+
+            switch (kind)
             {
-                case UWOP.PUSH_NONVOL:
-                    return new UnwindCode.PushNonVolatile(absoluteOffset, codeOffset, (X64Register) opInfo);
+                case WellKnownExceptionHandlerKind.Unknown:
+                case WellKnownExceptionHandlerKind.None:
+                    return null;
 
-                case UWOP.ALLOC_LARGE:
-                    if (opInfo == 0)
-                    {
-                        //If the operation info equals 0, then the size of the allocation divided by 8 is recorded in the next slot,
-                        //allowing an allocation up to 512K - 8
-                        var size = chunk.PeekUInt16(relativeOffset + 2); //Slots are 16
+                #region GSHandlerCheck
 
-                        i++;
-                        return new UnwindCode.AllocLarge(absoluteOffset, codeOffset, opInfo, size);
-                    }
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck: //_GS_HANDLER_DATA
+                    return new GsHandlerData(dataChunk.AbsoluteOffset, dataChunk.Pointer);
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //SCOPE_TABLE + _GS_HANDLER_DATA
+                    return new ScopeTableAndGsHandlerData(dataChunk);
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH: //RVA<FuncInfo> + _GS_HANDLER_DATA
+                    return new FuncInfoAndGsHandlerData(dataChunk);
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4: //RVA<FuncInfo4> + _GS_HANDLER_DATA
+                    return new FuncInfo4AndGsHandlerData(dataChunk, functionAddress);
+
+                #endregion
+                #region C Specific Handler
+
+                case WellKnownExceptionHandlerKind.__C_specific_handler:
+                case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
+                    return new ScopeTable(dataChunk);
+
+                #endregion
+                #region CxxFrameHandler
+
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler:
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler2:
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
+                    //Value is an RVA to the FuncInfo. FuncInfo struct may or may not be right after its RVA
+                    infoRVA = dataChunk.PeekInt32(0);
+
+                    peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromSection(infoRVA, out infoChunk))
+                        return new RVA<FuncInfo>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo(infoChunk));
                     else
-                    {
-                        //If the operation info equals 1, then the unscaled size of the allocation is recorded in the next two slots
-                        //in little-endian format, allowing allocations up to 4GB - 8
+                        return new RVA<FuncInfo>(infoRVA);
 
-                        var sizeLo = chunk.PeekInt16(relativeOffset + 2);
-                        var sizeHi = chunk.PeekInt16(relativeOffset + 4);
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler4:
+                    //Value is an RVA to the FuncInfo4. FuncInfo4 struct may or may not be right after its RVA
+                    infoRVA = dataChunk.PeekInt32(0);
 
-                        var size = sizeLo + (sizeHi << 16);
+                    peFile = chunk.PEFile();
 
-                        i += 2;
-                        return new UnwindCode.AllocLarge(absoluteOffset, codeOffset, opInfo, size);
-                    }
-
-                case UWOP.ALLOC_SMALL:
-                    //The size of the allocation is the operation info field * 8 + 8, allowing allocations from 8 to 128 bytes
-                    return new UnwindCode.AllocSmall(absoluteOffset, codeOffset, opInfo * 8 + 8);
-
-                case UWOP.SET_FPREG:
-                    //The offset is equal to the Frame Register offset (scaled) field in the UNWIND_INFO * 16
-                    return new UnwindCode.SetFpReg(absoluteOffset, codeOffset, (X64Register) FrameRegister, opInfo, FrameOffset * 16);
-
-                case UWOP.SAVE_NONVOL:
-                    i++;
-                    return new UnwindCode.SaveNonVolatile(absoluteOffset, codeOffset, (X64Register) opInfo, chunk.PeekUInt16(2));
-
-                case UWOP.SAVE_NONVOL_FAR:
-                    //The operation info is the number of the register. The unscaled stack offset is recorded in the next two unwind operation code slots,
-                    i += 2;
-                    return new UnwindCode.SaveNonVolatileFar(absoluteOffset, codeOffset, (X64Register) opInfo, chunk.PeekInt16(2) + (chunk.PeekInt16(4) << 16));
-
-                case UWOP.UWOP_EPILOG:
-                    //Contrary to what https://www.winehq.org/pipermail/wine-devel/2019-August/149669.html says,
-                    //regardless of whether opInfo was 0 or 1 it didn't seem like there was another slot after this one
-                    //that needed to be read
-                    if (Version == 1 || Version == 2)
-                        return new UnwindCode.Epilog(absoluteOffset, codeOffset, opInfo);
+                    if (peFile.TryGetValueChunkFromSection(infoRVA, out infoChunk))
+                        return new RVA<FuncInfo4>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo4(infoChunk, functionAddress));
                     else
-                        throw new InvalidOperationException($"Don't know how to handle UWOP_EPILOG when using version {Version}");
+                        return new RVA<FuncInfo4>(infoRVA);
 
-                case UWOP.SAVE_XMM128:
-                    i++;
-                    return new UnwindCode.SaveXmm128(absoluteOffset, codeOffset, (X64Register) opInfo, chunk.PeekUInt16(2));
+                #endregion
 
-                case UWOP.SAVE_XMM128_FAR:
-                    i += 2;
-                    return new UnwindCode.SaveXmm128Far(absoluteOffset, codeOffset, (X64Register) opInfo, chunk.PeekInt16(2) + (chunk.PeekInt16(4) << 16));
-
-                case UWOP.PUSH_MACHFRAME:
-                    return new UnwindCode.PushMachFrame(absoluteOffset, codeOffset, opInfo);
+                case WellKnownExceptionHandlerKind.LdrpICallHandler:
+                case WellKnownExceptionHandlerKind.KiUserApcHandler:
+                case WellKnownExceptionHandlerKind.KiUserCallbackDispatcherHandler:
+                case WellKnownExceptionHandlerKind.RtlpUnwindHandler:
+                case WellKnownExceptionHandlerKind.RtlpExceptionHandler:
+                case WellKnownExceptionHandlerKind.RtlpEnclaveCallDispatchFilter:
+                case WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange:
+                    //Not supported
+                    return null;
 
                 default:
-                    throw new NotImplementedException($"Don't know how to handle {nameof(UWOP)} '{unwindOp}'.");
+                    throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
             }
         }
 
-        public enum X64Register : byte
+        internal static unsafe void WriteUnwindInfo(
+            PEViewByteViewWriter viewWriter,
+            in MemoryChunk dataChunk,
+            ViewByte* pViewByte,
+            int structOffset,
+            int targetAddress,
+            int fieldOffset,
+            WellKnownExceptionHandlerKind kind)
+        {
+            //Avoid boxing the data and get the structs directly in here
+
+            int scopeTableCount;
+            int scopeTableSize;
+
+            var structSize = fieldOffset;
+
+            //Note: any new items need to be added to GetExceptionDataForHandlerKind above
+
+            switch (kind)
+            {
+                case WellKnownExceptionHandlerKind.Unknown:
+                case WellKnownExceptionHandlerKind.None:
+                    break;
+
+                #region GSHandlerCheck
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck: //_GS_HANDLER_DATA
+                    structSize += new GsHandlerData(0, dataChunk.Pointer).StructSize;
+                    break;
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //SCOPE_TABLE + _GS_HANDLER_DATA
+                    scopeTableCount = *(int*) dataChunk.Pointer;
+                    scopeTableSize = sizeof(int) + (scopeTableCount * ScopeTable.ScopeRecord.StructSize);
+                    structSize += scopeTableSize + new GsHandlerData(0, dataChunk.Pointer + scopeTableSize).StructSize;
+                    break;
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH: //RVA<FuncInfo> + _GS_HANDLER_DATA
+                    WriteFuncInfo(viewWriter, dataChunk, structOffset, fieldOffset);
+                    structSize += sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
+                    break;
+
+                case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4: //RVA<FuncInfo4> + _GS_HANDLER_DATA
+                    WriteFuncInfo4(viewWriter, dataChunk, structOffset, fieldOffset);
+                    structSize += sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
+                    break;
+
+                #endregion
+                #region C Specific Handler
+
+                case WellKnownExceptionHandlerKind.__C_specific_handler: //SCOPE_TABLE
+                case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
+                    scopeTableCount = *(int*) dataChunk.Pointer;
+                    scopeTableSize = sizeof(int) + (scopeTableCount * ScopeTable.ScopeRecord.StructSize);
+                    structSize += scopeTableSize;
+                    break;
+
+                #endregion
+                #region CxxFrameHandler
+
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler: //RVA<FuncInfo>
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler2:
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
+                    WriteFuncInfo(viewWriter, dataChunk, structOffset, fieldOffset);
+
+                    //Whether the RVA was valid or not, it _was_ there
+                    structSize += sizeof(int);
+                    break;
+
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler4: //RVA<FuncInfo4>
+                    WriteFuncInfo4(viewWriter, dataChunk, structOffset, fieldOffset);
+
+                    //Whether the RVA was valid or not, it _was_ there
+                    structSize += sizeof(int);
+                    break;
+
+                #endregion
+
+                case WellKnownExceptionHandlerKind.LdrpICallHandler:
+                case WellKnownExceptionHandlerKind.KiUserApcHandler:
+                case WellKnownExceptionHandlerKind.KiUserCallbackDispatcherHandler:
+                case WellKnownExceptionHandlerKind.RtlpEnclaveCallDispatchFilter:
+                case WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange:
+                    //Not supported
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
+            }
+
+            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
+
+            for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
+                i->Kind = ViewByteKind.Body;
+        }
+
+        private static void WriteFuncInfo(
+            PEViewByteViewWriter viewWriter,
+            in MemoryChunk dataChunk,
+            int structOffset,
+            int fieldOffset)
+        {
+            //Value is an RVA to the FuncInfo. FuncInfo struct may or may not be right after its RVA
+            var infoRVA = dataChunk.PeekInt32(0);
+
+            var peFile = dataChunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
+            {
+                viewWriter.WriteRVAField(
+                    new RVA<FuncInfo>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo(infoChunk)),
+                    structOffset,
+                    fieldOffset
+                );
+            }
+        }
+
+        private static void WriteFuncInfo4(
+            PEViewByteViewWriter viewWriter,
+            in MemoryChunk dataChunk,
+            int structOffset,
+            int fieldOffset)
+        {
+            //Value is an RVA to the FuncInfo4. FuncInfo4 struct may or may not be right after its RVA
+            var infoRVA = dataChunk.PeekInt32(0);
+
+            var peFile = dataChunk.PEFile();
+
+            if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
+            {
+                viewWriter.WriteRVAField(
+                    new RVA<FuncInfo4>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo4(infoChunk, functionAddress: 0)), //FunctionAddress is not important here so we can just set it to 0
+                    structOffset,
+                    fieldOffset
+                );
+            }
+        }
+
+        public enum Register : byte
         {
             //These values match the encoding that is used in ModR/M and UNWIND_INFO
             //(ModR/M requires REX.R=1 or REX.B=1 to achieve these values however)
@@ -393,25 +436,12 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            var structOffset = Offset;
-
-            if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
-            {
-                var fieldOffset = 4 + (((CountOfCodes + 1) & ~1) * 2) + 4; //4 fixed bytes + CountOfCodes aligned to an even number + ExceptionHandler
-
-                var data = ExceptionData;
-
-                if (data is RVA<FuncInfoV1> r1)
-                    writer.WriteRVAField(r1, structOffset, fieldOffset);
-                else if (data is RVA<FuncInfo> r2)
-                    writer.WriteRVAField(r2, structOffset, fieldOffset);
-                //else if (data is RVA<FuncInfo4> r4)
-                //    writer.WriteRVAField(r4, fieldOffset);
-            }
+            //No globals. The ExceptionData is considered part of
+            //the UNWIND_INFO
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, StructSize);
+            writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, FixedStructSize);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
@@ -438,7 +468,7 @@ namespace PESpy
             }
 
             //If CountOfCodes is odd, this includes the empty one at the end
-            s.WriteInline(UnwindCode);
+            s.WriteUnmanagedInline<UnwindCodeList, UnwindCodeList.Enumerator, UnwindCode>(UnwindCode);
 
             //What follows next depends on the Flags
 
@@ -446,30 +476,16 @@ namespace PESpy
             {
                 s.WriteField(nameof(ExceptionHandler), ExceptionHandler);
 
-                var data = ExceptionData;
+                //We don't write UnwindInfo via IViewable; we collect all UnwindInfo items directly
+                //in WriteUnwindInfo. So at the point where we access the ExceptionData, either we're
+                //already inside a FileView and know what the exception handler kind is, or somewone
+                //is using a custom writer, in which case we _do_ need to eagerly compute the kind
 
-                if (data != null)
-                {
-                    if (data is IViewableValue v)
-                        s.WriteInline(v);
-                    else if (data is RawValue<int> r)
-                        s.WriteInline(r, ViewKind.UnwindInfo_ExceptionData);
-                    else if (data is RVA<FuncInfoV1> r1)
-                        s.WriteInline(r1, ViewKind.UnwindInfo_ExceptionData);
-                    else if (data is RVA<FuncInfo> r2)
-                        s.WriteInline(r2, ViewKind.UnwindInfo_ExceptionData);
-                    //else if (data is RVA<FuncInfo4> r4)
-                    //    s.WriteInline(r4, ViewKind.UnwindInfo_ExceptionData);
-                    else
-                        throw new NotImplementedException($"Don't know how to handle a value of type '{data.GetType().Name}'");
-                }
+                var exceptionData = ExceptionData;
+
+                if (exceptionData is IViewableValue v)
+                    s.WriteInline(v);
                 else
-                {
-                    var diff = StructSize - s.Size;
-
-                    if (diff > 0)
-                        s.Pad(diff); //We don't know how to parse these bytes
-                }
             }
             else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
             {

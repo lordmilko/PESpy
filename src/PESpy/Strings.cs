@@ -516,6 +516,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// _GS_HANDLER_DATA
+        /// </summary>
+        internal static FixedUtf8String _GS_HANDLER_DATA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x5F, 0x47, 0x53, 0x5F, 0x48, 0x41, 0x4E, 0x44, 0x4C, 0x45, 0x52, 0x5F, 0x44, 0x41, 0x54, 0x41 })
+                    return new FixedUtf8String(p, 16);
+            }
+        }
+
+        /// <summary>
         /// SCOPE_TABLE
         /// </summary>
         internal static FixedUtf8String SCOPE_TABLE
@@ -555,15 +568,28 @@ namespace PESpy
         }
 
         /// <summary>
-        /// FuncInfoV1
+        /// FuncInfo4
         /// </summary>
-        internal static FixedUtf8String FuncInfoV1
+        internal static FixedUtf8String FuncInfo4
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x75, 0x6E, 0x63, 0x49, 0x6E, 0x66, 0x6F, 0x56, 0x31 })
-                    return new FixedUtf8String(p, 10);
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x75, 0x6E, 0x63, 0x49, 0x6E, 0x66, 0x6F, 0x34 })
+                    return new FixedUtf8String(p, 9);
+            }
+        }
+
+        /// <summary>
+        /// FuncInfoHeader
+        /// </summary>
+        internal static FixedUtf8String FuncInfoHeader
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x75, 0x6E, 0x63, 0x49, 0x6E, 0x66, 0x6F, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72 })
+                    return new FixedUtf8String(p, 14);
             }
         }
 

@@ -11,8 +11,8 @@ namespace PESpy
     [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
     public struct RuntimeFunction : IViewableValue
     {
-        private const int BeginAddressOffset = 0;
-        private const int EndAddressOffset = 4;
+        internal const int BeginAddressOffset = 0;
+        internal const int EndAddressOffset = 4;
         internal const int UnwindDataOffset = 8;
 
         public int BeginAddress => chunk.PeekInt32(BeginAddressOffset);
@@ -42,7 +42,7 @@ namespace PESpy
                         rva <= (exceptionTableDirectory.VirtualAddress + exceptionTableDirectory.Size)) &&
                         peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
-                        var data = new UnwindInfo(valueChunk);
+                        var data = new UnwindInfo(valueChunk, BeginAddress);
 
                         unwindData = new RVA<UnwindInfo>(rva, valueChunk.AbsoluteOffset, data);
                     }
@@ -89,6 +89,9 @@ namespace PESpy
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
+            //Note that when constructing a ViewByte model, we don't write RuntimeFunction directly;
+            //we access the raw pointer memory for improved performance iterating the list
+
             switch (index)
             {
                 case 0:

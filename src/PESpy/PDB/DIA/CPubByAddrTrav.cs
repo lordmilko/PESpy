@@ -36,7 +36,7 @@ namespace PESpy.PDB
 
                     while (true)
                     {
-                        pubSym.TryGetOffSeg(out off, out seg);
+                        pubSym.TryGetRawOffSeg(out off, out seg);
 
                         if (((ulong) seg << 32 | (uint) off) > ((ulong) _targetSeg << 32 | (uint) _targetOff))
                             break;

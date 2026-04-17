@@ -124,7 +124,7 @@ namespace PESpy.PDB
             {
                 do
                 {
-                    pubSym.TryGetOffSeg(out var candidateOff, out var candidateSeg);
+                    pubSym.TryGetRawOffSeg(out var candidateOff, out var candidateSeg);
 
                     if ((_targetSeg < candidateSeg || _targetSeg == candidateSeg && _targetOff <= candidateOff) && (_targetSeg != candidateSeg || _targetOff != candidateOff))
                     {

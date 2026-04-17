@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.Collections.Internal;
@@ -17,6 +18,7 @@ namespace Microsoft.CodeAnalysis.Collections
     /// collection uses segmented arrays to avoid placing objects on the Large Object Heap.
     /// </summary>
     /// <typeparam name="T">The type of elements stored in the array.</typeparam>
+    [DebuggerDisplay("Length = {Length}")]
     internal readonly partial struct SegmentedArray<T> : ICloneable, IList, IStructuralComparable, IStructuralEquatable, IList<T>, IReadOnlyList<T>, IEquatable<SegmentedArray<T>>
     {
         /// <summary>

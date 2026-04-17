@@ -29,7 +29,7 @@ namespace PESpy
             return true;
         }
 
-        public override int? GetRelativeVirtualAddress(ushort seg, int off)
+        public override int? GetRawRelativeVirtualAddress(ushort seg, int off)
         {
             //We don't know how to properly resolve symbols that are not in segment 1
             if (seg != 1)

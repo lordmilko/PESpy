@@ -48,6 +48,47 @@ namespace PESpy
 
         public IMAGE_FILE_MACHINE MachineType { get; }
 
+        private int hasOmapFromSrc = -1;
+        private NativeSpan<OMAP_DATA> omapFromSrc;
+
+        public bool HasOmapFromSrc
+        {
+            get
+            {
+                //If we're backed by a PEFile, see if we have an OmapFromSrc debug directory item
+
+                if (hasOmapFromSrc == -1)
+                {
+                    if (_file.Kind == FileKind.PE)
+                    {
+                        var peFile = (PEFile) _file;
+
+                        var debugTable = peFile.DebugTable;
+
+                        if (debugTable == null)
+                            hasOmapFromSrc = 0;
+                        else
+                        {
+                            for (var i = 0; i < debugTable.Length; i++)
+                            {
+                                ref var item = ref debugTable[i];
+
+                                if (item.Type == IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_OMAP_FROM_SRC)
+                                {
+                                    omapFromSrc = (NativeSpan<OMAP_DATA>) item.Data;
+                                    break;
+                                }
+                            }
+
+                            hasOmapFromSrc = omapFromSrc != null ? 1 : 0;
+                        }
+                    }
+                }
+
+                return hasOmapFromSrc != 0;
+            }
+        }
+
         public NB05SymbolAccessor(IFile file, IMAGE_FILE_MACHINE machineType)
         {
             _file = file;
@@ -81,8 +122,19 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
-        public virtual int? GetRelativeVirtualAddress(ushort seg, int off) =>
+        public int? GetOmapRelativeVirtualAddress(ushort rawSeg, int rawOff) =>
+            GetRawRelativeVirtualAddress(rawSeg, rawOff);
+
+        public virtual int? GetRawRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
+
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset)
+        {
+            throw new NotImplementedException();
+        }
+
+        //Caller must have asked if we have OmapFromSrc data before calling this method
+        public NativeSpan<OMAP_DATA> GetOmapFromSrc() => omapFromSrc;
 
         #endregion
         #region ISymbolAccessor

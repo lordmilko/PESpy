@@ -50,9 +50,11 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? ThunkRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectThunk, offThunk);
+        public int? ThunkRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectThunk, offThunk);
+        public int? RawThunkRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectThunk, offThunk);
 
-        public int? TargetRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectTarget, offTarget);
+        public int? TargetRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectTarget, offTarget);
+        public int? RawTargetRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectTarget, offTarget);
 
         public SymType Parent => GetParent(null);
 

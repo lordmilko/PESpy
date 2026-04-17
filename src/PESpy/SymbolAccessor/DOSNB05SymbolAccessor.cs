@@ -19,7 +19,7 @@ namespace PESpy
         {
         }
 
-        public override int? GetRelativeVirtualAddress(ushort seg, int off)
+        public override int? GetRawRelativeVirtualAddress(ushort seg, int off)
         {
             throw new NotImplementedException("Reading RVAs from DOS segments + offsets is not implemented");
         }

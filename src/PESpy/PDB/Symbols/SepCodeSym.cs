@@ -70,9 +70,15 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sect, off);
+        /// <inheritdoc cref="AnnotationSym.RelativeVirtualAddress"/>
+        public int? RelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sect, off);
 
-        public int? ParentRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectParent, offParent);
+        /// <inheritdoc cref="AnnotationSym.RawRelativeVirtualAddress"/>
+        public int? RawRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sect, off);
+
+        public int? ParentRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectParent, offParent);
+
+        public int? RawParentRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectParent, offParent);
 
         public SymTypeChildList Children => GetChildren(null);
 

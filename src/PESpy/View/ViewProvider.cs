@@ -82,7 +82,6 @@ namespace PESpy
                 ViewKind.ScopeTable                                  => Write(new ScopeTable(chunk),                                  viewWriter),
                 ViewKind.ScopeRecord                                 => Write(new ScopeTable.ScopeRecord(chunk),                      viewWriter),
                 ViewKind.FuncInfo                                    => Write(new FuncInfo(chunk),                                    viewWriter),
-                ViewKind.FuncInfoV1                                  => Write(new FuncInfoV1(chunk),                                  viewWriter),
                 //ViewKind.FuncInfoHeader                              => Write(new FuncInfoHeader(chunk),                              viewWriter),
                 ViewKind.HandlerType                                 => Write(new HandlerType(chunk),                                 viewWriter),
                 ViewKind.IptoStateMapEntry                           => Write(new IptoStateMapEntry(chunk),                           viewWriter),

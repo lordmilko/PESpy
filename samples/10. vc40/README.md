@@ -33,3 +33,20 @@ This sample consists of two programs:
 con_samp is a PE file with NB09
 
 cvxdsamp.sym gets created by mapsym.exe. [SYM files are derived from MAP files](https://win-archaeology.fandom.com/wiki/.SYM_Format)
+
+### MIPS
+
+"C:\Program Files (x86)\qemu\qemu-img.exe" create -f qcow2 nt4_server_mips.qcow2 4G
+"C:\Program Files (x86)\qemu\qemu-system-mips64el.exe" -M magnum -m 128 -net nic -net user -global ds1225y.filename=nvram -bios NTPROM.RAW  -hda nt4_server_mips.qcow2 -cdrom winnt40wks_sp1_en.iso
+
+Install Visual C++ 4.0 for MIPS
+
+The GlobalPointerTableDirectory is created when an *.obj file contains a .sdata section, which occurs as a result of doing
+
+#pragma data_seg(".sdata")
+
+int a = 1;
+
+.sdata is shared memory
+
+my a = 1 wasn't actually set at the rva it indicated

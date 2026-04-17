@@ -1,4 +1,5 @@
-﻿using ClrDebug;
+﻿using System;
+using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.PDB;
 
@@ -9,6 +10,8 @@ namespace PESpy
         public bool HasLengthPrefixedStrings { get; }
 
         public IMAGE_FILE_MACHINE MachineType => objFile.FileHeader.Machine;
+
+        public bool HasOmapFromSrc => false;
 
         private OBJFile objFile;
 
@@ -43,8 +46,21 @@ namespace PESpy
             throw new System.NotImplementedException();
         }
 
-        public int? GetRelativeVirtualAddress(ushort seg, int off) =>
+        public int? GetOmapRelativeVirtualAddress(ushort rawSeg, int rawOff) =>
+            GetRawRelativeVirtualAddress(rawSeg, rawOff);
+
+        public int? GetRawRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
+
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset)
+        {
+            throw new NotImplementedException();
+        }
+
+        public NativeSpan<OMAP_DATA> GetOmapFromSrc()
+        {
+            throw new NotImplementedException();
+        }
 
         public bool TryGetSymbolBySectionAndOffset(
             ISECT sectionNumber,
@@ -53,7 +69,7 @@ namespace PESpy
             out int displacement,
             out IMOD imod)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }

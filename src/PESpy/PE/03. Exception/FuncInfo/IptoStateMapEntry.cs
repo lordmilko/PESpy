@@ -1,27 +1,25 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct UnwindMapEntry : IValue, IViewable
+    public readonly struct IptoStateMapEntry : IValue, IViewable
     {
-        private const int ToStateOffset = 0;
-        private const int ActionOffset = 4;
+        private const int IpOffset = 0;
+        private const int StateOffset = 4;
+        public int Ip => chunk.PeekInt32(IpOffset);
 
-        public int ToState => chunk.PeekInt32(ToStateOffset);
-
-        public int Action => chunk.PeekInt32(ActionOffset);
+        public int State => chunk.PeekInt32(StateOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
-            sizeof(int) + //ToState
-            sizeof(int);  //Action
+            sizeof(int) + //Ip
+            sizeof(int);  //State
 
         private readonly MemoryChunk chunk;
 
-        internal UnwindMapEntry(in MemoryChunk chunk)
+        internal IptoStateMapEntry(in MemoryChunk chunk)
         {
             this.chunk = chunk;
         }
@@ -32,7 +30,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.UnwindMapEntry, this, ViewKind.UnwindMapEntry, StructSize);
+            writer.NewStruct(Strings.IptoStateMapEntry, this, ViewKind.IptoStateMapEntry, StructSize);
 
         int IViewable.NumChildren() => 2;
 
@@ -41,11 +39,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("toState", ToStateOffset, ToState);
+                    structWriter.WriteField(nameof(Ip), IpOffset, Ip);
                     break;
 
                 case 1:
-                    structWriter.WriteField("action", ActionOffset, Action);
+                    structWriter.WriteField(nameof(State), StateOffset, State);
                     break;
 
                 default:

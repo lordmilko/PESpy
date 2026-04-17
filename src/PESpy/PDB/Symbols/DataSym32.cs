@@ -43,7 +43,11 @@ namespace PESpy.PDB
         #region PESpy
 
         //If seg is 0, there's no RVA
-        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+        /// <inheritdoc cref="AnnotationSym.RelativeVirtualAddress"/>
+        public int? RelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, seg, off);
+
+        /// <inheritdoc cref="AnnotationSym.RawRelativeVirtualAddress"/>
+        public int? RawRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, seg, off);
 
         public SymString GetName(ICodeViewAccessor? codeViewAccessor) => SymType.ReadString(value, value->name, codeViewAccessor);
 

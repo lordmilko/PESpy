@@ -62,7 +62,17 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+        /// <summary>
+        /// Gets the OMAP-aware relative virtual address that is associated with this symbol.
+        /// </summary>
+        public int? RelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, seg, off);
+
+        /// <summary>
+        /// Gets the raw, OMAP-unaware relative virtual address that is associated with this symbol, as indicated by the offset
+        /// and segment defined on this symbol. The physical location of this symbol in the executable may be different
+        /// if <see cref="MsfStream.DBI.OmapFromSrc"/> data is present.
+        /// </summary>
+        public int? RawRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, seg, off);
 
         public SymType Parent => GetParent(null);
 

@@ -120,7 +120,9 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? ExHdlrRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectExHdlr, offExHdlr);
+        public int? ExHdlrRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectExHdlr, offExHdlr);
+
+        public int? RawExHdlrRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectExHdlr, offExHdlr);
 
         public CV_HREG_e GetLocalBasePointer(IMAGE_FILE_MACHINE machineType) =>
             PdbExtensions.ExpandEncodedBasePointerReg(machineType, encodedLocalBasePointer);

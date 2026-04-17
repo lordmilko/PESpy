@@ -55,7 +55,11 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? RelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, seg, off);
+        /// <inheritdoc cref="AnnotationSym.RelativeVirtualAddress"/>
+        public int? RelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, seg, off);
+
+        /// <inheritdoc cref="AnnotationSym.RawRelativeVirtualAddress"/>
+        public int? RawRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, seg, off);
 
         public SymTypeChildList Children => GetChildren(null);
 

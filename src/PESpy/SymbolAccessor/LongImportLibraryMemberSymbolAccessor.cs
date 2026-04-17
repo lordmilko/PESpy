@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using ClrDebug;
 using ClrDebug.PDB;
 using PESpy.LIB;
@@ -17,6 +18,8 @@ namespace PESpy
 
         IMAGE_FILE_MACHINE ICodeViewAccessor.MachineType => longImportLibraryMember.FileHeader.Machine;
 
+        bool ICodeViewAccessor.HasOmapFromSrc => false;
+
         public LongImportLibraryMemberSymbolAccessor(LongImportLibraryMember longImportLibraryMember, bool hasLengthPrefixedStrings)
         {
             this.longImportLibraryMember = longImportLibraryMember;
@@ -30,12 +33,12 @@ namespace PESpy
 
         public ImageSectionHeader[]? GetSectionHeaders()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public bool TryGetSectionContrib(SymType symType, ISECT sectionNumber, int relativeOffset, out SC40 sc)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public TypType GetTypTypeFromIndex(CV_typ_t typeIndex)
@@ -45,7 +48,7 @@ namespace PESpy
                 typesTable = longImportLibraryMember.GetSectionData<OBJTypesTable>(".debug$T").FirstOrDefault();
 
                 if (typesTable == null)
-                    throw new System.NotImplementedException();
+                    throw new NotImplementedException();
             }
 
             return typesTable.GetTypTypeFromIndex(typeIndex);
@@ -53,11 +56,24 @@ namespace PESpy
 
         public TypType GetTypTypeFromIndex(CV_ItemId typeIndex)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
-        public int? GetRelativeVirtualAddress(ushort seg, int off) =>
+        public int? GetOmapRelativeVirtualAddress(ushort rawSeg, int rawOff) =>
+            GetRawRelativeVirtualAddress(rawSeg, rawOff);
+
+        public int? GetRawRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), seg, off);
+
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset)
+        {
+            throw new NotImplementedException();
+        }
+
+        NativeSpan<OMAP_DATA> ICodeViewAccessor.GetOmapFromSrc()
+        {
+            throw new NotImplementedException();
+        }
 
         public bool TryGetSymbolBySectionAndOffset(
             ISECT sectionNumber,
@@ -66,7 +82,7 @@ namespace PESpy
             out int displacement,
             out IMOD imod)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }

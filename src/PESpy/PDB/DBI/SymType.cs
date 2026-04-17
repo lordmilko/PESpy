@@ -322,16 +322,36 @@ namespace PESpy.PDB
                 return new SymString(start, isLengthPrefixed: false);
         }
 
-        internal static int? GetRelativeVirtualAddress<T>(T* symType, ushort seg, int off, ICodeViewAccessor? codeViewAccessor = null) where T : unmanaged
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int? GetRawRelativeVirtualAddress<T>(T* symType, ushort rawSeg, int rawOff, ICodeViewAccessor? codeViewAccessor = null) where T : unmanaged =>
+            GetRawRelativeVirtualAddress((SYMTYPE*) symType, rawSeg, rawOff, codeViewAccessor);
+
+        internal static int? GetRawRelativeVirtualAddress(SYMTYPE* symType, ushort rawSeg, int rawOff, ICodeViewAccessor? codeViewAccessor = null)
         {
             //DataSym32 items may have a section number of 0, e.g. IID_IClassFactory in mscordbi. These also don't have an offset,
             //and so therefore don't have an RVA
-            if (seg == 0)
+            if (rawSeg == 0)
                 return null;
 
             codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
 
-            return codeViewAccessor?.GetRelativeVirtualAddress(seg, off);
+            return codeViewAccessor?.GetRawRelativeVirtualAddress(rawSeg, rawOff);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int? GetOmapRelativeVirtualAddress<T>(T* symType, ushort rawSeg, int rawOff, ICodeViewAccessor? codeViewAccessor = null) where T : unmanaged =>
+            GetOmapRelativeVirtualAddress((SYMTYPE*) symType, rawSeg, rawOff, codeViewAccessor);
+
+        internal static int? GetOmapRelativeVirtualAddress(SYMTYPE* symType, ushort rawSeg, int rawOff, ICodeViewAccessor? codeViewAccessor = null)
+        {
+            //DataSym32 items may have a section number of 0, e.g. IID_IClassFactory in mscordbi. These also don't have an offset,
+            //and so therefore don't have an RVA
+            if (rawSeg == 0)
+                return null;
+
+            codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
+
+            return codeViewAccessor?.GetOmapRelativeVirtualAddress(rawSeg, rawOff);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -349,7 +369,11 @@ namespace PESpy.PDB
             return sectionHeader.VirtualAddress + off;
         }
 
-        internal static SymType GetSymbol<T>(T* symType, ushort imod, int ibSym, ICodeViewAccessor? codeViewAccessor) where T : unmanaged
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static SymType GetSymbol<T>(T* symType, ushort imod, int ibSym, ICodeViewAccessor? codeViewAccessor) where T : unmanaged =>
+            GetSymbol((SYMTYPE*) symType, imod, ibSym, codeViewAccessor);
+
+        internal static SymType GetSymbol(SYMTYPE* symType, ushort imod, int ibSym, ICodeViewAccessor? codeViewAccessor)
         {
             //To get the symbol that this ref points to, lookup the module indicated by imod (which is 1 based) and then get the symbol at ibSym bytes into the module's address space
 

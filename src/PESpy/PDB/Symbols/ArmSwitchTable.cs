@@ -58,11 +58,14 @@ namespace PESpy.PDB
 
         #region PESpy
 
-        public int? BaseRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectBase, offsetBase);
+        public int? BaseRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectBase, offsetBase);
+        public int? RawBaseRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectBase, offsetBase);
 
-        public int? BranchRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectBranch, offsetBranch);
+        public int? BranchRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectBranch, offsetBranch);
+        public int? RawBranchRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectBranch, offsetBranch);
 
-        public int? TableRelativeVirtualAddress => SymType.GetRelativeVirtualAddress(value, sectTable, offsetTable);
+        public int? TableRelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sectTable, offsetTable);
+        public int? RawTableRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sectTable, offsetTable);
 
         public SymType Parent => GetParent(null);
 

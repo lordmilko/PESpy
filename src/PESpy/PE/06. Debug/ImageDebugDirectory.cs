@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using ClrDebug.PDB;
 using PESpy.Native;
 using PESpy.View;
 using static PESpy.IMAGE_DEBUG_TYPE;
@@ -75,7 +76,7 @@ namespace PESpy
         /// </summary>
         private object? data;
 
-        public object? Data
+        public unsafe object? Data
         {
             get
             {
@@ -132,8 +133,13 @@ namespace PESpy
                                 break;
                             }
 
-                            case IMAGE_DEBUG_TYPE_OMAP_TO_SRC: //OMAP type?
-                            case IMAGE_DEBUG_TYPE_OMAP_FROM_SRC: //OMAP type?
+                            case IMAGE_DEBUG_TYPE_OMAP_TO_SRC:
+                            case IMAGE_DEBUG_TYPE_OMAP_FROM_SRC:
+                                //NB05SymbolAccessor requires a NativeSpan<OMAP_DATA> so it can return it from
+                                //ICodeViewAccessor.GetOmapFromSrc()
+                                data = valueChunk.PeekNativeSpan<OMAP_DATA>(0, SizeOfData / sizeof(OMAP_DATA));
+                                break;
+
                             case IMAGE_DEBUG_TYPE_BORLAND:
                                 goto default;
 

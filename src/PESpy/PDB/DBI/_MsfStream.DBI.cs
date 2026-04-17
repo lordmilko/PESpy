@@ -252,12 +252,12 @@ namespace PESpy.PDB
             //Exception
             //Fixup
 
-            private OMAP_DATA[]? omapToSrc;
+            private NativeSpan<OMAP_DATA>? omapToSrc;
 
             //Given an address that is relative to the base address of the image, checks whether this address
-            //was actually the result of an OMAP transformation, and gets the original RVA that the PDB symbols
+            //was actually the result of an OMAP transformation, and gets the original RVA that the symbols
             //in the PDB use.
-            public OMAP_DATA[]? OmapToSrc
+            public NativeSpan<OMAP_DATA>? OmapToSrc
             {
                 get
                 {
@@ -273,7 +273,7 @@ namespace PESpy.PDB
                             {
                                 var numItems = valueChunk.Remaining / 8;
 
-                                omapToSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems).ToArray();
+                                omapToSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems);
                             }
                         }
                     }
@@ -282,12 +282,12 @@ namespace PESpy.PDB
                 }
             }
 
-            private OMAP_DATA[]? omapFromSrc;
+            private NativeSpan<OMAP_DATA>? omapFromSrc;
 
             //Given an RVA in a PDB symbol, binary search for the OMAP entry that the RVA would be associated with.
             //If the "rvaTo" of this entry is not null, then this RVA has a "translated" address that needs to be
             //taken into consideration.
-            public OMAP_DATA[]? OmapFromSrc
+            public NativeSpan<OMAP_DATA>? OmapFromSrc
             {
                 get
                 {
@@ -303,7 +303,7 @@ namespace PESpy.PDB
                             {
                                 var numItems = valueChunk.Remaining / 8;
 
-                                omapFromSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems).ToArray();
+                                omapFromSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems);
                             }
                         }
                     }
@@ -311,9 +311,6 @@ namespace PESpy.PDB
                     return omapFromSrc;
                 }
             }
-
-            //OmapToSrc
-            //OmapFromSrc
 
             #region SectionHdr
 

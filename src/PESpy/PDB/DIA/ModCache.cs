@@ -45,7 +45,7 @@ namespace PESpy.PDB
 
                 if (symType.IsBlockSym() || symType.rectyp == SYM_ENUM_e.S_TRAMPOLINE)
                 {
-                    if (!symType.TryGetOffSeg(out var candidateOff, out var candidateSeg) || !symType.TryGetLength(out var length))
+                    if (!symType.TryGetRawOffSeg(out var candidateOff, out var candidateSeg) || !symType.TryGetLength(out var length))
                         continue;
 
                     if (candidateSeg < targetSeg || candidateSeg == targetSeg && candidateOff <= targetOff)
@@ -128,7 +128,7 @@ namespace PESpy.PDB
             {
                 if (symType.IsBlockSym() || symType.rectyp == SYM_ENUM_e.S_TRAMPOLINE)
                 {
-                    symType.TryGetOffSeg(out var off, out var seg);
+                    symType.TryGetRawOffSeg(out var off, out var seg);
 
                     var key = (ulong) seg << 32 | (uint) off;
 

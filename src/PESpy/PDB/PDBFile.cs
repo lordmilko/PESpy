@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
@@ -886,6 +887,17 @@ namespace PESpy
 
         public ImageSectionHeader[]? GetSectionHeaders() => DBI?.SectionHdr ?? fallbackSectionHeaders;
 
+        /// <summary>
+        /// Attempts to get the symbol associated with the given RVA.<para/>
+        /// If the PDB contains OmapToSrc information, this method will assume that <paramref name="rva"/>
+        /// refers to a physical location in the <see cref="PEFile"/> in the post-OMAP address space, and will
+        /// convert the address into a pre-OMAP (src) address prior to attempting symbol lookup. If <paramref name="rva"/>
+        /// is already a src address, consider using <see cref="TryGetSymbolByRawRVA(int, out SymType, out int)"/> instead.
+        /// </summary>
+        /// <param name="rva">The address to resolve.</param>
+        /// <param name="symType">The symbol associated with the given address.</param>
+        /// <param name="displacement">The displacement of <paramref name="symType"/> relative to the given address.</param>
+        /// <returns>True if a symbol was found, otherwise false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement) =>
             TryGetSymbolByRVA(rva, out symType, out displacement, out _);
@@ -895,11 +907,26 @@ namespace PESpy
             symType = default;
             displacement = 0;
 
-            GetSectionAndOffset(rva, out var sectionNumber, out var relativeOffset, out _);
+            GetOmapSectionAndOffset(ref rva, out var sectionNumber, out var relativeOffset, out _);
 
             return TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out imod);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetSymbolByRawRVA(int rawRVA, out SymType symType, out int displacement) =>
+            TryGetSymbolByRawRVA(rawRVA, out symType, out displacement, out _);
+
+        public bool TryGetSymbolByRawRVA(int rawRVA, out SymType symType, out int displacement, out IMOD imod)
+        {
+            symType = default;
+            displacement = 0;
+
+            GetSectionAndOffset(rawRVA, out var sectionNumber, out var relativeOffset, out _);
+
+            return TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out imod);
+        }
+
+        //Caller must have converted the raw RVA + section number to OMAP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetSymbolBySectionAndOffset(
             ISECT sectionNumber,
@@ -908,6 +935,7 @@ namespace PESpy
             out int displacement) =>
             TryGetSymbolBySectionAndOffset(sectionNumber, relativeOffset, out symType, out displacement, out _);
 
+        //Caller must have converted the raw RVA + section number to OMAP
         public bool TryGetSymbolBySectionAndOffset(
             ISECT sectionNumber,
             int relativeOffset,
@@ -997,7 +1025,9 @@ namespace PESpy
         /// <summary>
         /// Gets the section number and offset into the section that maps to the specified RVA.<para/>
         /// If the RVA does not lie within the bounds of a section (i.e. it resides prior to the start of the first section,
-        /// between the end and start of two sections, or past the bounds of the last section) this method will return <see langword="false"/>.
+        /// between the end and start of two sections, or past the bounds of the last section) this method will return <see langword="false"/>.<para/>
+        /// This method does perform OMAP transformations; it merely detects the <see cref="ImageSectionHeader"/> that the given
+        /// RVA lies within.
         /// </summary>
         /// <param name="rva">The RVA to resolve to a section number and offset</param>
         /// <param name="sectionNumber">The 1-based section number of the section that contains this RVA.</param>
@@ -1027,6 +1057,29 @@ namespace PESpy
         /// <param name="isValid">Whether the specified RVA resides within the virtual bounds of the section it is listed as pertaining to.</param>
         public void GetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset, out bool isValid) =>
             ImageSectionHeader.GetSectionAndOffset(GetSectionHeaders(), rva, out sectionNumber, out relativeOffset, out isValid);
+
+        /// <summary>
+        /// Converts the specified in OMAP address space to Src address space if needed, and then gets the best-effort
+        /// section number and offset against the section that maps to that RVA.
+        /// </summary>
+        /// <param name="rva">The RVA in OMAP address space to resolve. If the PDB does not have OMAP information,
+        /// the OMAP and Src address spaces are the same.</param>
+        /// <param name="sectionNumber">The 1-based section number of the section that contains this RVA, or 0 if the RVA resides prior to the start of the first section.</param>
+        /// <param name="relativeOffset">The relative offset past the start the section that the RVA represents.</param>
+        /// <param name="isValid">Whether the specified RVA resides within the virtual bounds of the section it is listed as pertaining to.</param>
+        public void GetOmapSectionAndOffset(ref int rva, out ISECT sectionNumber, out int relativeOffset, out bool isValid)
+        {
+            if (HasOmapToSrc)
+            {
+                //TryConvertOmapToSrc preserves the rva
+                if (!omapToSrc.TryConvertOmapToSrc(rva, out rva))
+                {
+                    Debug.Assert(false); //Not sure what we should do here
+                }
+            }
+
+            ImageSectionHeader.GetSectionAndOffset(GetSectionHeaders(), rva, out sectionNumber, out relativeOffset, out isValid);
+        }
 
         public bool TryGetModuleBySectionAndOffset(
             ISECT sectionNumber,
@@ -1094,7 +1147,7 @@ namespace PESpy
         //Requires that the module have a segment and offset to help us locate the module via section contribs
         public bool TryGetModuleIndexBySymType(in SymType symType, out IMOD imod)
         {
-            if (!symType.TryGetOffSeg(out var off, out var seg))
+            if (!symType.TryGetRawOffSeg(out var off, out var seg))
             {
                 imod = IMOD.Nil;
                 return false;
@@ -1142,6 +1195,70 @@ namespace PESpy
             }
         }
 
+        //We cache these values here for faster lookup
+        private int hasOmapFromSrc = -1;
+        private NativeSpan<OMAP_DATA> omapFromSrc;
+        bool ICodeViewAccessor.HasOmapFromSrc => HasOmapFromSrc;
+        private bool HasOmapFromSrc
+        {
+            get
+            {
+                if (hasOmapFromSrc == -1)
+                {
+                    var dbi = DBI;
+                    var dbgHdr = dbi?.DbgHdr;
+
+                    if (dbgHdr != null && dbgHdr.OmapFromSrc != SN.Nil)
+                    {
+                        //Now let's check if we actually have OMAP data
+                        omapFromSrc = dbi.OmapFromSrc ?? default;
+
+                        if (omapFromSrc.Length > 0)
+                            hasOmapFromSrc = 1;
+                        else
+                            hasOmapFromSrc = 0; //This is not good, we're not going to be able to translate addresses!
+                    }
+                    else
+                        hasOmapFromSrc = 0;
+                }
+
+                return hasOmapFromSrc != 0;
+            }
+        }
+
+        //We cache these values here for faster lookup
+        private int hasOmapToSrc = -1;
+        private NativeSpan<OMAP_DATA> omapToSrc;
+        private bool HasOmapToSrc
+        {
+            get
+            {
+                if (hasOmapToSrc == -1)
+                {
+                    var dbi = DBI;
+                    var dbgHdr = dbi?.DbgHdr;
+
+                    if (dbgHdr != null && dbgHdr.OmapToSrc != SN.Nil)
+                    {
+                        //Now let's check if we actually have OMAP data
+                        omapToSrc = dbi.OmapToSrc ?? default;
+
+                        if (omapToSrc.Length > 0)
+                            hasOmapToSrc = 1;
+                        else
+                            hasOmapToSrc = 0; //This is not good, we're not going to be able to translate addresses!
+                    }
+                    else
+                        hasOmapToSrc = 0;
+                }
+
+                return hasOmapToSrc != 0;
+            }
+        }
+
+        //Caller must have asked if we have OmapFromSrc data before calling this method
+        NativeSpan<OMAP_DATA> ICodeViewAccessor.GetOmapFromSrc() => omapFromSrc;
+
         ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr;
 
         SymType ICodeViewAccessor.GetModuleSymbol(ushort imod, int ibSym)
@@ -1184,8 +1301,33 @@ namespace PESpy
             }
         }
 
-        int? ICodeViewAccessor.GetRelativeVirtualAddress(ushort seg, int off) =>
+        int? ICodeViewAccessor.GetRawRelativeVirtualAddress(ushort seg, int off) =>
             SymType.GetRelativeVirtualAddressFromSectionHeaders(((ICodeViewAccessor) this).GetSectionHeaders(), seg, off);
+
+        int? ICodeViewAccessor.GetOmapRelativeVirtualAddress(ushort rawSeg, int rawOff)
+        {
+            var rawRVA = SymType.GetRelativeVirtualAddressFromSectionHeaders(((ICodeViewAccessor) this).GetSectionHeaders(), rawSeg, rawOff);
+
+            if (rawRVA != null)
+            {
+                //Convert to OMAP-aware
+
+                if (HasOmapFromSrc)
+                {
+                    if (omapFromSrc.TryConvertOmapFromSrc(rawRVA.Value, out var omapRva))
+                    {
+                        return omapRva;
+                    }
+
+                    Debug.Assert(false);
+                    return null; //Not sure what we should do
+                }
+                else
+                    return rawRVA;
+            }
+            else
+                return null;
+        }
 
         #endregion
         #region IViewable
