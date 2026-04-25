@@ -15,7 +15,7 @@ namespace PESpy.View
             return ((LongImportLibraryMember) ((GlobalSubMemoryBlock) chunk.block).Owner).FileHeader.Machine;
         }
 
-        internal unsafe LIBViewWriter(LIBFile libFile) : base(libFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe LIBViewWriter(LIBFile libFile) : base(libFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
         {
             this.libFile = libFile;
         }
@@ -69,7 +69,7 @@ namespace PESpy.View
 
             var results = merger.MergeLIB();
 
-            return new FileView(ViewMode.Physical, libFile.Name, results, this, ViewKind.LIBFile);
+            return new FileView(ViewMode.Physical, libFile, results, this, ViewKind.LIBFile);
         }
     }
 }

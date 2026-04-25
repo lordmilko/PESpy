@@ -16,7 +16,7 @@ namespace PESpy.View
     /// <typeparam name="T"></typeparam>
     internal class SpanAllocator<T>
     {
-        private T[] _buffer;
+        internal T[] _buffer;
 
         public SpanAllocator(int capacity)
         {

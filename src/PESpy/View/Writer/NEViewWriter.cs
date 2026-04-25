@@ -34,7 +34,7 @@ namespace PESpy.View
 
             var results = merger.MergeNE();
 
-            return new FileView(ViewMode.Physical, neFile.Name, results, this, ViewKind.NEFile);
+            return new FileView(ViewMode.Physical, neFile, results, this, ViewKind.NEFile);
         }
     }
 }

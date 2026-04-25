@@ -6,26 +6,26 @@ namespace PESpy
 {
     public struct TryBlockMapEntry : IValue, IViewable
     {
-        private const int TryLowOffset = 0;
-        private const int TryHighOffset = 4;
-        private const int CatchHighOffset = 8;
+        private const int tryLowOffset = 0;
+        private const int tryHighOffset = 4;
+        private const int catchHighOffset = 8;
         private const int nCatchesOffset = 12;
-        internal const int HandlerArrayOffset = 16;
+        internal const int dispHandlerArrayOffset = 16;
 
         /// <summary>
         /// Lowest state index of try
         /// </summary>
-        public int TryLow => chunk.PeekInt32(TryLowOffset);
+        public int tryLow => chunk.PeekInt32(tryLowOffset);
 
         /// <summary>
         /// Highest state index of try
         /// </summary>
-        public int TryHigh => chunk.PeekInt32(TryHighOffset);
+        public int tryHigh => chunk.PeekInt32(tryHighOffset);
 
         /// <summary>
         /// Highest state index of any associated catch
         /// </summary>
-        public int CatchHigh => chunk.PeekInt32(CatchHighOffset);
+        public int catchHigh => chunk.PeekInt32(catchHighOffset);
 
         /// <summary>
         /// Number of entries in array
@@ -35,15 +35,15 @@ namespace PESpy
         /// <summary>
         /// Image relative offset of list of handlers for this try
         /// </summary>
-        private RVA<HandlerType[]> handlerArray;
+        private RVA<HandlerType[]> _dispHandlerArray;
 
-        public RVA<HandlerType[]> HandlerArray
+        public RVA<HandlerType[]> dispHandlerArray
         {
             get
             {
-                if (handlerArray.ListedOffset == 0)
+                if (_dispHandlerArray.ListedOffset == 0)
                 {
-                    var dispHandlerArray = chunk.PeekInt32(HandlerArrayOffset);
+                    var dispHandlerArray = chunk.PeekInt32(dispHandlerArrayOffset);
 
                     var peFile = chunk.PEFile();
 
@@ -54,13 +54,13 @@ namespace PESpy
                         for (var i = 0; i < nCatches; i++)
                             handlers[i] = new HandlerType(valueChunk.Slice(i * HandlerType.StructSize));
 
-                        handlerArray = new RVA<HandlerType[]>(dispHandlerArray, nCatches, handlers);
+                        _dispHandlerArray = new RVA<HandlerType[]>(dispHandlerArray, nCatches, handlers);
                     }
                     else
-                        handlerArray = new RVA<HandlerType[]>(dispHandlerArray);
+                        _dispHandlerArray = new RVA<HandlerType[]>(dispHandlerArray);
                 }
 
-                return handlerArray;
+                return _dispHandlerArray;
             }
         }
 
@@ -78,12 +78,12 @@ namespace PESpy
         internal TryBlockMapEntry(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-            handlerArray = default;
+            _dispHandlerArray = default;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(HandlerArray, Offset, fieldOffset: HandlerArrayOffset);
+            writer.WriteUniqueRVAField(dispHandlerArray, Offset, fieldOffset: dispHandlerArrayOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -96,23 +96,23 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("tryLow", TryLowOffset, TryLow);
+                    structWriter.WriteField(nameof(tryLow), tryLowOffset, tryLow);
                     break;
 
                 case 1:
-                    structWriter.WriteField("tryHigh", TryHighOffset, TryHigh);
+                    structWriter.WriteField(nameof(tryHigh), tryHighOffset, tryHigh);
                     break;
 
                 case 2:
-                    structWriter.WriteField("catchHigh", CatchHighOffset, CatchHigh);
+                    structWriter.WriteField(nameof(catchHigh), catchHighOffset, catchHigh);
                     break;
 
                 case 3:
-                    structWriter.WriteField("nCatches", nCatchesOffset, nCatches);
+                    structWriter.WriteField(nameof(nCatches), nCatchesOffset, nCatches);
                     break;
 
                 case 4:
-                    structWriter.WriteRVAField("dispHandlerArray", HandlerArrayOffset, HandlerArray);
+                    structWriter.WriteRVAField(nameof(dispHandlerArray), dispHandlerArrayOffset, dispHandlerArray);
                     break;
 
                 default:

@@ -16,18 +16,36 @@ namespace PESpy.View
     {
         private readonly ViewWriter _viewWriter;
         private readonly int _parentOffset;
+        internal readonly IView? _parentView;
 
-        internal IView? Field;
+        private IView? _field;
+
+        internal IView? Field
+        {
+            get => _field;
+            set
+            {
+                if (value != null)
+                {
+                    Debug.Assert(value is IViewInternal);
+                    var @internal = Unsafe.As<IView, IViewInternal>(ref value);
+                    @internal.SetParent(_parentView);
+                }
+
+                _field = value;
+            }
+        }
         internal IView[]? EagerFields;
 
         internal ViewWriter ViewWriter => _viewWriter;
         internal int ParentOffset => _parentOffset;
 
-        internal StructWriter(ViewWriter viewWriter, int parentOffset)
+        internal StructWriter(ViewWriter viewWriter, int parentOffset, IView? parentView)
         {
             _viewWriter = viewWriter;
             _parentOffset = parentOffset;
-            Field = default;
+            _parentView = parentView;
+            _field = default;
             EagerFields = default;
         }
 
@@ -90,6 +108,15 @@ namespace PESpy.View
                 case ViewKind.VarFileInfo:
                 case ViewKind.VarFileInfo_Var:
                 case ViewKind.VsVersionInfo:
+                case ViewKind.FuncInfo4:
+                case ViewKind.HandlerMap4:
+                case ViewKind.IPtoStateMap4:
+                case ViewKind.SepIPtoStateMap4:
+                case ViewKind.TryBlockMap4:
+                case ViewKind.UWMap4:
+                case ViewKind.HandlerType4:
+                case ViewKind.UnwindMapEntry4:
+                case ViewKind.TryBlockMapEntry4:
                     return true;
 
                 default:

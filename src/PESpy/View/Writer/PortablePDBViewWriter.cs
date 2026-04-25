@@ -7,7 +7,7 @@ namespace PESpy.View
     {
         private PortablePDBFile portablePDBFile;
 
-        internal unsafe PortablePDBViewWriter(PortablePDBFile portablePDBFile) : base(portablePDBFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe PortablePDBViewWriter(PortablePDBFile portablePDBFile) : base(portablePDBFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
         {
             this.portablePDBFile = portablePDBFile;
         }

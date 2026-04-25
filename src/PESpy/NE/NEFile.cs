@@ -291,12 +291,7 @@ namespace PESpy
             return NullSymbolAccessor.Instance;
         }
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
-        {
-            viewDisassembler?.Initialize(this);
-
-            return new LocalByteViewProvider(mmf.Address, (int) mmf.Length, viewDisassembler);
-        }
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawPointer(out byte* pointer, out int length)

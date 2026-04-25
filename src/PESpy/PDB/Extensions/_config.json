@@ -242,7 +242,7 @@
     "IsProc": [ "ProcSym*", "ManProcSym", "S_*PROC32EX*" ],
     "IsThunk": [ "ThunkSym*" ],
     "IsRef": [],
-    "IsDefRangeSym": { "include": [ "S_DEFRANGE*", "" ], "exclude": "*_2005" }, //DIA doesn't have the 2005 ones, not sure if we should include
+    "IsDefRangeSym": { "include": [ "S_DEFRANGE*" ], "exclude": "*_2005" }, //DIA doesn't have the 2005 ones, not sure if we should include
     "IsBlockSym": [
       "S_THUNK*", "S_BLOCK*", "S_WITH*", "S_LPROC*", "S_GPROC*", "S_LPROCMIPS*", "S_GPROCMIPS*", "S_LPROCIA64*", "S_GPROCIA64*", "S_GMANPROC*", "S_LMANPROC*",
       "S_SEPCODE", "S_LPROC32_ID", "S_GPROC32_ID", "S_LPROCMIPS_ID", "S_GPROCMIPS_ID", "S_LPROCIA64_ID", "S_GPROCIA64_ID", "S_INLINESITE", "S_LPROC32_DPC", "S_LPROC32_DPC_ID", "S_INLINESITE2", "S_GPROC32EX", "S_LPROC32EX", "S_GPROC32EX_ID", "S_LPROC32EX_ID"
@@ -297,11 +297,11 @@
     "ConstType":                                [],
     "Container":                                [],
     "CoroutineKind":                            [],
-    "Count":                                    [],
+    //"Count":                                  [], //Complex; handled manually
     "CountLiveRanges":                          [],
     "CustomCallingConvention":                  [ "CV_PROCFLAGS.CV_PFLAG_CUST_CALL" ],
     "DataExport":                               [ "EXPORTSYM.fData" ], //I think there's also logic for public syms to look at whether their segment is CNT_CODE
-    "DataKind":                                 [],
+    //"DataKind":                               [], //Complex; handled manually
     "EditAndContinueEnabled":                   [ "COMPILESYM.fEC", "COMPILESYM3.fEC" ],
     "ExceptionHandlerAddressOffset":            [ "FRAMEPROCSYM.offExHdlr" ],
     "ExceptionHandlerAddressSection":           [ "FRAMEPROCSYM.sectExHdlr" ],
@@ -388,7 +388,7 @@
     "IsVirtualInheritance":                     [],
     "IsWinRTPointer":                           [],
     "Language":                                 [ "CFLAGSYM.language", "COMPILESYM.iLanguage", "COMPILESYM3.iLanguage" ],
-    "Length":                                   [],
+    //"Length":                                 [], //Length is complex and is handled manually
     "LexicalParent":                            [],
     "LexicalParentId":                          [],
     "LibraryName":                              [],

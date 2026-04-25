@@ -26,7 +26,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            writer.WriteUniqueRVAXRef(Offset, IpOffset, Ip);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

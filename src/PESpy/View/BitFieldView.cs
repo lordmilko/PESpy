@@ -8,8 +8,7 @@ namespace PESpy.View
         int Bits { get; }
     }
 
-    [DebuggerDisplay("{ViewDebuggerDisplay.BitField(this),nq}")]
-    public class BitFieldView<TValue> : IBitFieldView, ISplittableView
+    public class BitFieldView<TValue> : IBitFieldView, IViewInternal, ISplittableView
     {
         public int Offset { get; }
 
@@ -29,18 +28,34 @@ namespace PESpy.View
         /// </summary>
         public int Size { get; private set; }
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
         public ViewKind Kind => ViewKind.BitField;
+
+        //I wouldn't expect any xrefs, but I guess it's not impossible for something to be pointing to a struct, and the first field is a bitfield
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.BitField;
+
+        //This type is not capable of having children
+        public ViewChildList Children => default;
 
         public FieldViewFlags Flags => default;
 
-        public BitFieldView(int offset, string name, TValue value, int bits, int size)
+        private readonly FileAccessor _fileAccessor;
+
+        public BitFieldView(int offset, string name, TValue value, int bits, int size, FileAccessor fileAccessor)
         {
             Offset = offset;
             Name = name;
             Value = value;
             Bits = bits;
             Size = size;
+            _fileAccessor = fileAccessor;
         }
+
+        public IView this[int index] => throw new InvalidOperationException("This view does not contain children");
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitBitField(this);
 
@@ -63,10 +78,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitBitFieldView<TValue>(Offset, Name, Value, Bits, Size - diff);
+                first = new SplitBitFieldView<TValue>(Offset, Name, Value, Bits, Size - diff, _fileAccessor);
             }
 
-            var second = new SplitBitFieldView<TValue>(newBaseOffset, Name, Value, Bits, diff);
+            var second = new SplitBitFieldView<TValue>(newBaseOffset, Name, Value, Bits, diff, _fileAccessor);
             second.Previous = first;
             first.Next = second;
 
@@ -80,10 +95,15 @@ namespace PESpy.View
 
             if (this is SplitBitFieldView<TValue> sv)
             {
-                throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
+                throw new NotImplementedException("Need to set Previous and Next. Not sure how to do that");
             }
 
-            return new SplitBitFieldView<TValue>(newOffset, Name, Value, Bits, Size);
+            return new SplitBitFieldView<TValue>(newOffset, Name, Value, Bits, Size, _fileAccessor);
+        }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatBitField(this);
         }
     }
 
@@ -93,7 +113,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitBitFieldView(int offset, string name, TValue value, int bits, int size) : base(offset, name, value, bits, size)
+        public SplitBitFieldView(int offset, string name, TValue value, int bits, int size, FileAccessor fileAccessor) : base(offset, name, value, bits, size, fileAccessor)
         {
         }
     }

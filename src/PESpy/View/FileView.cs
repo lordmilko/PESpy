@@ -6,34 +6,43 @@ using System.Linq;
 
 namespace PESpy.View
 {
-    [DebuggerDisplay("{ViewDebuggerDisplay.File(this),nq}")]
-    public class FileView : IContainerView, IEnumerable<IView>
+    public class FileView : IViewInternal, IEnumerable<IView>
     {
         public ViewMode ViewMode { get; }
 
-        public string? Name { get; }
+        public string? Name => File.Name;
+
+        public IFile File { get; }
 
         public int Offset { get; }
         public int Size { get; }
 
         public ViewKind Kind { get; }
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        //This type does not participate in xrefs
+        ViewXRefList IView.XRefs => default;
+
+        public ViewImplKind ImplKind => ViewImplKind.File;
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        public FileView(ViewMode viewMode, string? name, IView[] children, ViewWriter viewWriter, ViewKind kind)
+        internal FileView(ViewMode viewMode, IFile file, IView[] children, ViewWriter viewWriter, ViewKind kind)
         {
             if (viewMode == ViewMode.Default)
                 throw new ArgumentException($"ViewMode {viewMode} should have been transformed into a more specific type");
 
             ViewMode = viewMode;
-            Name = name;
+            File = file;
             Offset = children.Length > 0 ? children[0].Offset : 0;
             Size = children.Sum(r => r.Size);
-            childProvider = new ViewChildProvider(children);
+            childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
             Kind = kind;
         }
@@ -43,7 +52,7 @@ namespace PESpy.View
             FileAccessor fileAccessor,
             ViewEntityIterator iterator)
         {
-            Name = range.File.Name;
+            File = range.File;
             ViewMode = ViewMode.Physical;
             Offset = range.StartOffset;
             Size = range.Length;
@@ -86,7 +95,7 @@ namespace PESpy.View
                 if (lastSectionEnd != range.EndOffset)
                     throw new NotImplementedException(); //There's also an overlay
 
-                childProvider = new ViewChildProvider(list.ToArray());
+                childProvider = new ViewChildProvider<IView>(list.ToArray());
                 Kind = ViewKind.PEFile;
             }
             else
@@ -100,5 +109,10 @@ namespace PESpy.View
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitFile(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitFile(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatFile(this);
+        }
     }
 }

@@ -1,10 +1,108 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
+using static ClrDebug.PDB.LEAF_ENUM_e;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.PDB
 {
+    public static partial class TypTypeExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetLength(this TypType typType, out int length) =>
+            TryGetLength((LfEasy) typType, out length);
+
+        public static bool TryGetLength(this LfEasy lfEasy, out int length)
+        {
+            switch (lfEasy.leaf)
+            {
+                case LF_ENUM:
+                case LF_ENUM_ST: //Not supported by DIA
+                    return TryGetLength(((LfEnum) lfEasy).utype, out length);
+
+                case LF_ENUM_16t:
+                    throw new NotImplementedException();
+
+                case LF_POINTER_16t:
+                    throw new NotImplementedException();
+
+                case LF_POINTER:
+                    var lfPointer = (LfPointer) lfEasy;
+
+                    //msdia140!getPtrData first tries to use the size specified in the record,
+                    //but if the size is 0 it looks at the pointer mode instead
+
+                    var ptr = (LfPointer) lfEasy;
+                    var size = ptr.attr.size;
+
+                    if (size != 0)
+                        length = size;
+                    else
+                        length = ptr.attr.ptrtype == CV_ptrtype_e.CV_PTR_64 ? 8 : 4;
+
+                    return true;
+
+                //LfArray
+                case LF_ARRAY:
+                case LF_ARRAY_ST:
+                    length = ((LfArray) lfEasy).length;
+                    return true;
+
+                //LfArray16t
+                case LF_ARRAY_16t:
+                    length = ((LfArray16t) lfEasy).length;
+                    return true;
+
+                //LfBitfield
+                case LF_BITFIELD:
+                    length = ((LfBitfield) lfEasy).length;
+                    return true;
+
+                //LfBitfield16t
+                case LF_BITFIELD_16t:
+                    length = ((LfBitfield16t) lfEasy).length;
+                    return true;
+
+                //LfClass
+                case LF_CLASS:
+                case LF_CLASS_ST:
+                case LF_INTERFACE:
+                case LF_STRUCTURE:
+                case LF_STRUCTURE_ST:
+                    /* NativeAOT LF_CLASS information is completely broken;
+                     * they report that all LF_CLASS instances are the size of a pointer,
+                     * on the basis that these are reference types
+                     * This was fixed here https://github.com/dotnet/runtime/pull/115293 on May 5th, 2025,
+                     * however it's not our job to take care of this; PDBFile merely exposes what's contained
+                     * in the PDB. Consumers need to wrap the data contained in PDBFile into coherent "symbols"
+                     * that account for any issues like this */
+                    length = ((LfClass) lfEasy).length;
+                    return true;
+
+                //LfClass16t
+                case LF_CLASS_16t:
+                case LF_STRUCTURE_16t:
+                    length = ((LfClass16t) lfEasy).length;
+                    return true;
+
+                //LfUnion
+                case LF_UNION:
+                case LF_UNION_ST:
+                    length = ((LfUnion) lfEasy).length;
+                    return true;
+
+                //LfUnion16t
+                case LF_UNION_16t:
+                    length = ((LfUnion16t) lfEasy).length;
+                    return true;
+            }
+
+            length = default;
+            return false;
+        }
+    }
+
     public static partial class SymTypeExtensions
     {
         /// <summary>

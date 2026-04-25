@@ -46,12 +46,13 @@ namespace PESpy.View
 
         internal ByteViewProvider byteViewProvider;
         private HashSet<int> trackedAddresses;
+        private HashSet<(int source, int dest)> trackedRVAXRefs;
         protected ViewMode mode;
         private ViewTag currentTag;
         private ViewKind currentScope;
         private List<IView>? scopedList;
         private Stack<List<IView>> listPool;
-        internal TryGetOffsetDelegate tryGetViewOffset;
+        private TryGetOffsetDelegate _tryGetViewOffset;
         internal Func<int, int>? getRealOffset;
 #if DEBUG
         private HashSet<long> globalFields;
@@ -59,6 +60,7 @@ namespace PESpy.View
 #endif
 
         internal ViewWriter? NestedViewWriter;
+        internal bool IsByteViewWriter;
 
         internal int UnmanagedOffset;
 
@@ -75,6 +77,7 @@ namespace PESpy.View
         private ViewTypTypeDispatcher? _typTypeDispatcher;
         internal LocatorHttpPolicy _httpPolicy;
         internal ILocatorProgress _progress;
+        internal readonly FileAccessor? _fileAccessor;
 
         internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
 
@@ -82,16 +85,19 @@ namespace PESpy.View
             ByteViewProvider byteViewProvider,
             ViewMode mode,
             TryGetOffsetDelegate tryGetViewOffset,
-            Func<int, int>? getRealOffset)
+            Func<int, int>? getRealOffset,
+            FileAccessor fileAccessor = null)
         {
             this.mode = mode;
-            this.tryGetViewOffset = tryGetViewOffset;
+            _tryGetViewOffset = tryGetViewOffset;
             this.getRealOffset = getRealOffset;
             this.byteViewProvider = byteViewProvider;
+            _fileAccessor = fileAccessor;
             globalList = new List<IView>();
             listPool = new Stack<List<IView>>();
             viewStack = new Stack<List<IView>>();
             trackedAddresses = new HashSet<int>();
+            trackedRVAXRefs = new HashSet<(int source, int dest)>();
 
 #if DEBUG
             globalFields = new HashSet<long>();
@@ -106,7 +112,7 @@ namespace PESpy.View
             Func<int, int>? getRealOffset)
         {
             this.mode = parentWriter.mode;
-            this.tryGetViewOffset = tryGetViewOffset;
+            _tryGetViewOffset = tryGetViewOffset;
             this.getRealOffset = getRealOffset;
             this.byteViewProvider = byteViewProvider;
             globalList = new List<IView>(); ;
@@ -119,8 +125,9 @@ namespace PESpy.View
 #endif
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryGetViewOffset(int rva, out int offset) =>
-            tryGetViewOffset(rva, out offset);
+            _tryGetViewOffset(rva, out offset);
 
         private void Push(List<IView> list)
         {
@@ -266,7 +273,7 @@ namespace PESpy.View
              * against it using global addresses
              */
 
-            var byteViewProvider = new LocalByteViewProvider(provider.Pointer - provider.StartOffset, provider.StartOffset + length, this.byteViewProvider.ViewDisassembler);
+            var byteViewProvider = new LocalByteViewProvider(provider.Pointer - provider.StartOffset, provider.StartOffset + length, _fileAccessor);
 
             EnterNestedFile(provider.StartOffset, length, peFile);
 
@@ -321,7 +328,7 @@ namespace PESpy.View
             {
                 var item = value[i];
 
-                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+                var shouldAdd = _tryGetViewOffset(item.Offset, out var viewOffset);
 
                 if (shouldAdd && trackedAddresses.Add(viewOffset))
                     WriteGlobal(item);
@@ -342,7 +349,7 @@ namespace PESpy.View
             {
                 var item = enumerator.Current;
 
-                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+                var shouldAdd = _tryGetViewOffset(item.Offset, out var viewOffset);
 
                 if (shouldAdd && trackedAddresses.Add(viewOffset))
                     WriteGlobal(item);
@@ -358,7 +365,7 @@ namespace PESpy.View
             {
                 var item = value[i];
 
-                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+                var shouldAdd = _tryGetViewOffset(item.Offset, out var viewOffset);
 
                 if (shouldAdd && trackedAddresses.Add(viewOffset))
                     WriteRegionGlobal(item);
@@ -379,7 +386,7 @@ namespace PESpy.View
             {
                 var item = enumerator.Current;
 
-                var shouldAdd = tryGetViewOffset(item.Offset, out var viewOffset);
+                var shouldAdd = _tryGetViewOffset(item.Offset, out var viewOffset);
 
                 if (shouldAdd && trackedAddresses.Add(viewOffset))
                     WriteRegionGlobal(item);
@@ -388,7 +395,7 @@ namespace PESpy.View
 
         public void WriteUniqueGlobal<T>(in T value) where T : IValue, IViewable
         {
-            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(value.Offset, out var viewOffset);
 
             if (shouldAdd && trackedAddresses.Add(viewOffset))
                 WriteGlobal(value);
@@ -396,7 +403,7 @@ namespace PESpy.View
 
         public void WriteGlobal<T>(int offset, in T value, int size, ViewKind kind)
         {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
             {
@@ -415,7 +422,7 @@ namespace PESpy.View
 
         public void WriteUniqueGlobal<T>(int offset, in T value, int size, ViewKind kind)
         {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd && trackedAddresses.Add(viewOffset))
             {
@@ -457,13 +464,13 @@ namespace PESpy.View
 
         public virtual void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
         {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
             {
                 Push(globalList);
 
-                AddView(new FieldView<T>(offset, name.ToString(), value, size, default));
+                AddView(new FieldView<T>(offset, name.ToString(), value, size, default, _fileAccessor));
 
                 Pop();
             }
@@ -474,7 +481,7 @@ namespace PESpy.View
             if (global)
                 Push(globalList);
 
-            var shouldAdd = tryGetViewOffset(block.RemoteStartOffset + startRelativeOffset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(block.RemoteStartOffset + startRelativeOffset, out var viewOffset);
 
             return new PageWriter(viewOffset - block.RemoteStartOffset, block, this, global, shouldAdd);
         }
@@ -548,7 +555,7 @@ namespace PESpy.View
 
         public virtual void WriteDosStub(in ByteBlob byteBlob)
         {
-            var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(byteBlob.Offset, out var viewOffset);
 
             if (shouldAdd)
             {
@@ -563,29 +570,31 @@ namespace PESpy.View
                     AddView(new ByteBlobView(
                         viewOffset,
                         byteBlob.Bytes,
-                        ViewKind.DosStub
+                        ViewKind.DosStub,
+                        _fileAccessor
                     ));
             }
         }
 
         public virtual void WriteIL(int offset, NativeSpan<byte> ilBytes)
         {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
-                AddView(new ByteBlobView(viewOffset, ilBytes, ViewKind.IL));
+                AddView(new ByteBlobView(viewOffset, ilBytes, ViewKind.IL, _fileAccessor));
         }
 
         public virtual ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
-            var shouldAdd = tryGetViewOffset(byteBlob.Offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(byteBlob.Offset, out var viewOffset);
 
             if (shouldAdd)
             {
                 return new ByteBlobView(
                     viewOffset,
                     byteBlob.Bytes,
-                    byteBlob.viewKind
+                    byteBlob.viewKind,
+                    _fileAccessor
                 );
             }
 
@@ -594,14 +603,15 @@ namespace PESpy.View
 
         public virtual ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
         {
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
             {
                 return new ByteBlobView(
                     viewOffset,
                     bytes,
-                    ViewKind.Padding
+                    ViewKind.Padding,
+                    _fileAccessor
                 );
             }
 
@@ -867,13 +877,29 @@ namespace PESpy.View
         {
             if (value.IsValid && value.ListedOffset != 0)
             {
-                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
+                WriteUniqueOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 
 #if DEBUG
                 globalFields.Add(value.ListedOffset);
 #endif
 
                 WriteUniqueGlobal(value.Value);
+            }
+        }
+
+        public void WriteUniqueRVAField<T>(RVA<T[]> value, int structOffset, int fieldOffset) where T : IViewable, IValue
+        {
+            if (value.IsValid && value.ListedOffset != 0 && trackedRVAXRefs.Add((structOffset + fieldOffset, value.ActualOffset)))
+            {
+                _wroteUniqueXRef = true;
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
+                _wroteUniqueXRef = false;
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.Value);
             }
         }
 
@@ -897,7 +923,7 @@ namespace PESpy.View
         protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
             where T : IValue, IViewable
         {
-            var shouldAdd = tryGetViewOffset(value.Offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(value.Offset, out var viewOffset);
 
             if (!shouldAdd)
                 return null;
@@ -907,21 +933,53 @@ namespace PESpy.View
             return view;
         }
 
+        public void WriteUniqueOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
+        {
+            if (trackedRVAXRefs.Add((structOffset + fieldOffset, targetOffset)))
+            {
+                _wroteUniqueXRef = true;
+                WriteOffsetXRef(structOffset, fieldOffset, targetOffset);
+                _wroteUniqueXRef = false;
+            }
+        }
+
         //NOTE: anyone that calls this method must provide the _target_ offset, after having resolved an RVA to its physical location
         public virtual void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             //Implementations of this method are responsible for converting both the structOffset and targetOffset to the target ViewMode
             //address space
         }
 
+        public void WriteUniqueRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+            if (trackedRVAXRefs.Add((structOffset + fieldOffset, targetRVA)))
+            {
+                _wroteUniqueXRef = true;
+                WriteRVAXRef(structOffset, fieldOffset, targetRVA);
+                _wroteUniqueXRef = false;
+            }
+        }
+
         public virtual void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             //Implementations of this method are responsible for converting both the structOffset and targetOffset to the target ViewMode
             //address space
         }
 
         public void WriteRVAXRef(int structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             //Note that we _don't_ convert structOffset to the target address space here; this is done
             //in the WriteRVAXRef overload that processes each single element
 
@@ -934,10 +992,17 @@ namespace PESpy.View
 
         public virtual void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
         }
 
         public void WriteVAXRef(int structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             if (value.IsValid)
             {
                 for (var i = 0; i < value.Value.Length; i++)
@@ -945,10 +1010,30 @@ namespace PESpy.View
             }
         }
 
+#if DEBUG
+        private bool _forceUniqueXRef;
+        private bool _wroteUniqueXRef;
+
+        internal void EnterUniqueXRef()
+        {
+            _forceUniqueXRef = true;
+        }
+
+        internal void ExitUniqueXRef()
+        {
+            _forceUniqueXRef = false;
+        }
+
+        protected void VerifyWritingUniqueXRef()
+        {
+            Debug.Assert(!_forceUniqueXRef || _wroteUniqueXRef, "Failed to write an xref uniquely. Method call should be modified to start with 'WriteUnique'");
+        }
+#endif
+
         protected internal virtual IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
         {
             Debug.Assert(UnmanagedOffset != 0);
-            var shouldAdd = tryGetViewOffset(UnmanagedOffset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(UnmanagedOffset, out var viewOffset);
 
             if (!shouldAdd)
                 return null;
@@ -963,7 +1048,7 @@ namespace PESpy.View
 
         protected internal virtual IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion = false)
         {
-            return new ValueView<T>(offset, value, size, kind);
+            return new ValueView<T>(offset, value, size, kind, _fileAccessor);
         }
 
         internal virtual RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
@@ -973,7 +1058,7 @@ namespace PESpy.View
             if (global)
                 writer.Push(globalList);
 
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             return new RegionWriter(viewOffset, name, kind, writer, global, default, shouldAdd);
         }
@@ -1000,7 +1085,7 @@ namespace PESpy.View
             if (global)
                 writer.Push(globalList);
 
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             return new RegionWriter(viewOffset, name, kind, writer, global, default, shouldAdd);
         }
@@ -1035,7 +1120,7 @@ namespace PESpy.View
             globalFields.Add(listedOffset);
 #endif
 
-            var shouldAdd = tryGetViewOffset(offset, out var viewOffset);
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             return new RegionWriter(viewOffset, name, kind, nestedViewWriter ?? this, false, scopeKind, shouldAdd);
         }
@@ -1101,9 +1186,9 @@ namespace PESpy.View
             }
         }
 
-        public IView GetChild<TParent>(int parentOffset, TParent parent, int index) where TParent : IViewable
+        internal IView GetChild(int parentOffset, IViewable parent, int index, IView parentView)
         {
-            var structWriter = new StructWriter(this, parentOffset);
+            var structWriter = new StructWriter(this, parentOffset, parentView);
 
             parent.WriteChild(index, ref structWriter);
 
@@ -1113,9 +1198,9 @@ namespace PESpy.View
             return structWriter.Field!;
         }
 
-        public IView[] GetChildren<TParent>(int parentOffset, TParent parent) where TParent : IViewable
+        internal IView[] GetChildren(int parentOffset, IViewable parent, IView parentView)
         {
-            var structWriter = new StructWriter(this, parentOffset);
+            var structWriter = new StructWriter(this, parentOffset, parentView);
 
             //For entities that only support eager loading, -1 is the magic index
             parent.WriteChild(-1, ref structWriter);
@@ -1167,7 +1252,7 @@ namespace PESpy.View
             FieldViewFlags flags,
             ref StructWriter structWriter)
         {
-            structWriter.Field = new FieldView<T>(parentOffset + fieldOffset, name, value, size, flags);
+            structWriter.Field = new FieldView<T>(parentOffset + fieldOffset, name, value, size, flags, _fileAccessor);
         }
 
         internal void WriteBitField<T>(
@@ -1179,7 +1264,7 @@ namespace PESpy.View
             int bits,
             ref StructWriter structWriter)
         {
-            structWriter.Field = new BitFieldView<T>(parentOffset + fieldOffset, name, value, bits, size);
+            structWriter.Field = new BitFieldView<T>(parentOffset + fieldOffset, name, value, bits, size, _fileAccessor);
         }
 
         internal void WriteByteBlob(
@@ -1203,7 +1288,7 @@ namespace PESpy.View
             ViewKind kind,
             ref StructWriter structWriter)
         {
-            structWriter.Field = new ValueView<T>(parentOffset + fieldOffset, value, size, kind);
+            structWriter.Field = new ValueView<T>(parentOffset + fieldOffset, value, size, kind, _fileAccessor);
         }
 
         internal void WriteStructField<T>(
@@ -1247,7 +1332,8 @@ namespace PESpy.View
 
             structWriter.Field = new StructFieldView(
                 view,
-                fieldName
+                fieldName,
+                _fileAccessor
             );
         }
 
@@ -1274,7 +1360,8 @@ namespace PESpy.View
 
             structWriter.Field = new StructArrayFieldView(
                 results,
-                fieldName
+                fieldName,
+                this
             );
         }
 

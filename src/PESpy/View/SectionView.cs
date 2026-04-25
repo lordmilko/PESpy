@@ -5,8 +5,7 @@ namespace PESpy.View
     /// <summary>
     /// Provides a view over the contents of a section described by a <see cref="ImageSectionHeader"/>.
     /// </summary>
-    [DebuggerDisplay("{ViewDebuggerDisplay.Section(this),nq}")]
-    public class SectionView : IContainerView
+    public class SectionView : IViewInternal
     {
         public string Name { get; }
 
@@ -14,17 +13,25 @@ namespace PESpy.View
         public int Size { get; }
         public ViewKind Kind => ViewKind.Section;
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        //This type does not participate in xrefs
+        ViewXRefList IView.XRefs => default;
+
+        public ViewImplKind ImplKind => ViewImplKind.Section;
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        public SectionView(int offset, string name, IView[] children, ViewWriter viewWriter, int size)
+        internal SectionView(int offset, string name, IView[] children, ViewWriter viewWriter, int size)
         {
             Offset = offset;
             Name = name;
-            childProvider = new ViewChildProvider(children);
+            childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
             Size = size;
         }
@@ -37,6 +44,8 @@ namespace PESpy.View
             childProvider = new GlobalViewProvider(sectionIndex, fileAccessor);
             this.viewWriter = viewWriter;
         }
+
+        public IView this[int index] => Children[index];
 
         //For nested files
         internal SectionView(int offset, int size, string name, FileAccessor fileAccessor, in ViewEntityIterator iterator, ViewWriter viewWriter)
@@ -51,5 +60,10 @@ namespace PESpy.View
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitSection(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitSection(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatSection(this);
+        }
     }
 }

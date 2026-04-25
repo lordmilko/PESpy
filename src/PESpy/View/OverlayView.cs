@@ -6,23 +6,30 @@ namespace PESpy.View
     /// Provides a view of the "overlay" information appended to the end of a Portable Executable file, after all normal
     /// sections have been listed.
     /// </summary>
-    [DebuggerDisplay("{ViewDebuggerDisplay.Overlay(this),nq}")]
-    public class OverlayView : IContainerView
+    public class OverlayView : IViewInternal
     {
         public int Offset { get; }
         public int Size { get; }
         public ViewKind Kind => ViewKind.Overlay;
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        //This type does not participate in xrefs
+        ViewXRefList IView.XRefs => default;
+
+        public ViewImplKind ImplKind => ViewImplKind.Overlay;
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        public OverlayView(int offset, IView[] children, ViewWriter viewWriter, int size)
+        internal OverlayView(int offset, IView[] children, ViewWriter viewWriter, int size)
         {
             Offset = offset;
-            childProvider = new ViewChildProvider(children);
+            childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
             Size = size;
         }
@@ -35,8 +42,15 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        public IView this[int index] => Children[index];
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitOverlay(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitOverlay(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatOverlay(this);
+        }
     }
 }

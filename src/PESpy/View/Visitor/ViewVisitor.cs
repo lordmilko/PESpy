@@ -21,7 +21,7 @@ namespace PESpy.View
         protected internal abstract void VisitStructArrayField(IStructArrayFieldView view);
         protected internal abstract void VisitValue(IValueView view);
 
-        protected virtual void VisitChildren(IContainerView view)
+        protected virtual void VisitChildren(IView view)
         {
             foreach (var child in view.Children)
                 Visit(child);

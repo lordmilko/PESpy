@@ -29,7 +29,7 @@ namespace PESpy
     {
         private string DebuggerDisplay() => chunk.block == null ? "null" : $"Count = {Count}";
 
-        private readonly MemoryChunk chunk;
+        internal readonly MemoryChunk chunk;
 
         public int Count { get; }
 
@@ -57,6 +57,13 @@ namespace PESpy
             }
         }
 
+        /// <summary>
+        /// Tries to find the <see cref="RuntimeFunction"/> whose bounds a given RVA
+        /// lies within.
+        /// </summary>
+        /// <param name="rva">The RVA to search for.</param>
+        /// <param name="runtimeFunction">The <see cref="RuntimeFunction"/> whose begin and end address enclose the specified RVA.</param>
+        /// <returns>True if an associated entry was found, otherwise false.</returns>
         public unsafe bool TryFindEntry(long rva, out RuntimeFunction runtimeFunction)
         {
             var pRuntimeFunction = (RUNTIME_FUNCTION*) chunk.Pointer;

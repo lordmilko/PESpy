@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace PESpy.View
 {
@@ -18,8 +19,7 @@ namespace PESpy.View
     /// Provides a view over a named field in an <see cref="IStructView"/>.
     /// </summary>
     /// <typeparam name="TValue">The type of value contained in the field.</typeparam>
-    [DebuggerDisplay("{ViewDebuggerDisplay.Field(this),nq}")]
-    public class FieldView<TValue> : IFieldView, ISplittableView
+    public class FieldView<TValue> : IFieldView, IViewInternal, ISplittableView
     {
         public int Offset { get; }
 
@@ -33,11 +33,30 @@ namespace PESpy.View
 
         public int Size { get; private set; }
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
         public ViewKind Kind { get; }
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.Field;
+
+        //This type is not capable of having children
+        public ViewChildList Children => default;
 
         public FieldViewFlags Flags { get; }
 
-        public FieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, ViewKind kind = ViewKind.Field)
+        private readonly FileAccessor _fileAccessor;
+
+        public FieldView(
+            int offset,
+            string name,
+            TValue value,
+            int size,
+            FieldViewFlags flags,
+            FileAccessor fileAccessor,
+            ViewKind kind = ViewKind.Field)
         {
             Offset = offset;
             Name = name;
@@ -45,9 +64,12 @@ namespace PESpy.View
             Size = size;
             Flags = flags;
             Kind = kind;
+            _fileAccessor = fileAccessor;
 
             //We can't assert that we have a size because the first item in the ECMA 335 blob heap is an empty array
         }
+
+        public IView this[int index] => throw new InvalidOperationException("This view does not contain children");
 
         [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitField(this);
@@ -72,10 +94,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff, Flags, Kind);
+                first = new SplitFieldView<TValue>(Offset, Name, Value, Size - diff, Flags, _fileAccessor, Kind);
             }
 
-            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff, Flags, Kind);
+            var second = new SplitFieldView<TValue>(newBaseOffset, Name, Value, diff, Flags, _fileAccessor, Kind);
             second.Previous = first;
             first.Next = second;
 
@@ -89,10 +111,15 @@ namespace PESpy.View
 
             if (this is SplitFieldView<TValue> sv)
             {
-                throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
+                throw new NotImplementedException("Need to set Previous and Next. Not sure how to do that");
             }
 
-            return new FieldView<TValue>(newOffset, Name, Value, Size, Flags);
+            return new FieldView<TValue>(newOffset, Name, Value, Size, Flags, _fileAccessor);
+        }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatField(this);
         }
     }
 
@@ -102,7 +129,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, ViewKind kind) : base(offset, name, value, size, flags, kind)
+        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, FileAccessor fileAccessor, ViewKind kind) : base(offset, name, value, size, flags, fileAccessor, kind)
         {
         }
     }

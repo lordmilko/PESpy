@@ -29,6 +29,7 @@ namespace PESpy.View
         private byte* _pData;
 
         internal ViewEntity(
+            int sectionAccessorIndex,
             ISymbolAccessor symbolAccessor,
             in SectionAccessor sectionAccessor,
             int sectionAccessorOffset,
@@ -39,6 +40,7 @@ namespace PESpy.View
             Dictionary<int, int> largeAddresses,
             bool measureOnly = false)
             : this(
+                  sectionAccessorIndex,
                   symbolAccessor: symbolAccessor,
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
@@ -53,6 +55,7 @@ namespace PESpy.View
         }
 
         internal ViewEntity(
+            int sectionAccessorIndex,
             ISymbolAccessor symbolAccessor,
             int targetAddress,
             ViewByte* pViewByte,
@@ -66,6 +69,7 @@ namespace PESpy.View
         {
             TargetAddress = targetAddress;
             ViewByte = pViewByte;
+            SectionAccessorIndex = sectionAccessorIndex;
 
             var relativeOffset = (int) (pViewByte - pStart);
             var pData = pBytes + relativeOffset;
@@ -319,6 +323,36 @@ namespace PESpy.View
             ((PDBFileAccessor) fileAccessor).GetSplitHeadOrigin(ref pViewByte, ref offset, out var sectionIndex, out bytesRewound);
 
             return fileAccessor.GetEntity(offset, pViewByte, sectionIndex);
+        }
+
+        internal ViewEntity GetHead(FileAccessor fileAccessor, out int bytesRewound)
+        {
+            var pViewByte = ViewByte;
+
+            while (pViewByte->Kind == ViewByteKind.Body && pViewByte->BodyKind != ViewByteBodyKind.SplitHead)
+            {
+                pViewByte--;
+            }
+
+            bytesRewound = (int) (ViewByte - pViewByte);
+
+            if (pViewByte->Kind == ViewByteKind.Body)
+            {
+                Debug.Assert(pViewByte->BodyKind == ViewByteBodyKind.SplitHead);
+
+                //Need to get the split head origin to continue
+                var offset = TargetAddress - bytesRewound;
+
+                var originalBytesRewound = bytesRewound;
+
+                ((PDBFileAccessor) fileAccessor).GetSplitHeadOrigin(ref pViewByte, ref offset, out var sectionIndex, out bytesRewound);
+
+                bytesRewound += originalBytesRewound;
+
+                return fileAccessor.GetEntity(offset, pViewByte, sectionIndex);
+            }
+
+            return fileAccessor.GetEntity(TargetAddress - bytesRewound, pViewByte, SectionAccessorIndex);
         }
 
         public override string ToString()

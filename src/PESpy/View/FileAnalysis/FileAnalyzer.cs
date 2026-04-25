@@ -55,11 +55,11 @@ namespace PESpy.View
             bool trackXRefs = true,
             CancellationToken cancellationToken = default)
         {
-            var fileAccessor = AnalyzeInternal(file, disassembler, progress);
-
-            AnalyzeInternal(fileAccessor, disassembler, httpPolicy, progress, trackXRefs);
+            AnalyzeInternal(fileAccessor, disassembler, httpPolicy, progress, trackXRefs, cancellationToken);
 
             GCLargeObjectHeap();
+        }
+
         private static void AnalyzeInternal(
             FileAccessor fileAccessor,
             IFileDisassembler disassembler,
@@ -262,13 +262,18 @@ namespace PESpy.View
 
         #region DiscoverSymbols
 
-        protected void DiscoverSymbols(ISectionDataAccessor sectionDataAccessor)
+        protected ISymbolAccessor LocateSymbols()
         {
             Log(FileAnalyzerProgressPhase.LocateSymbols);
 
             _cancellationToken.ThrowIfCancellationRequested();
 
-            var symbolAccessor = _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress, _cancellationToken);
+            return _fileAccessor.GetSymbolAccessor(load: true, _httpPolicy, _progress, _cancellationToken);
+        }
+
+        protected void DiscoverSymbols(ISectionDataAccessor sectionDataAccessor)
+        {
+            var symbolAccessor = _fileAccessor.GetSymbolAccessor();
 
             Log(FileAnalyzerProgressPhase.ProcessSymbols);
 
@@ -881,7 +886,10 @@ namespace PESpy.View
                 {
                     ref var directoryInfo = ref dataDirectories.ItemRef(i);
 
-                    var pStartByte = _fileAccessor.GetViewByte(directoryInfo.Start, out var sectionAccessorIndex);
+                    //Watch out for directories that don't exist in the current ViewMode
+                    if (!_fileAccessor.TryGetViewByte(directoryInfo.Start, out var pStartByte, out var sectionAccessorIndex))
+                        continue;
+
                     SplitDirectoryStart(pStartByte, sectionAccessorIndex);
 
                     var pEndByte = pStartByte + directoryInfo.Length - 1;

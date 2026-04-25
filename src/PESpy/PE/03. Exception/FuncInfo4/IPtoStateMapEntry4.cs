@@ -1,7 +1,11 @@
-﻿namespace PESpy
+﻿using System;
+using System.Diagnostics;
+using PESpy.View;
+
+namespace PESpy
 {
     [Source(SourceKind.ehdata4_export_h)]
-    public readonly struct IPtoStateMapEntry4
+    public readonly struct IPtoStateMapEntry4 : IViewableValue
     {
         /// <summary>
         /// Image relative offset of IP<para/>
@@ -10,7 +14,7 @@
         /// Thus, the final value is equal to <see cref="RuntimeFunction.BeginAddress"/> + the sum of this
         /// <see cref="Ip"/> and all previous <see cref="Ip"/> values in the <see cref="IPtoStateMap4"/>.
         /// </summary>
-        public int Ip { get; } //todo: we need to add xrefs from these to the functions they reference!
+        public int Ip { get; }
 
         public int RawIp { get; }
 
@@ -18,13 +22,57 @@
         //the value with -1 applied to it
         public int State { get; }
 
-        internal unsafe IPtoStateMapEntry4(ref byte* pData, int functionAddress, int prevAmount)
+        public int Offset { get; }
+
+        internal int StructSize =>
+            FuncInfo4.GetLength((uint) RawIp) +
+            FuncInfo4.GetLength((uint) (State + 1));
+
+        private readonly int functionAddress;
+
+        internal unsafe IPtoStateMapEntry4(int offset, ref byte* pData, int functionAddress, int prevAmount)
         {
+            Offset = offset;
+            this.functionAddress = functionAddress;
             RawIp = (int) FuncInfo4.ReadUnsigned(ref pData);
             Ip = functionAddress + prevAmount + RawIp;
 
             // States are encoded +1 so as to not encode a negative
             State = (int) (FuncInfo4.ReadUnsigned(ref pData) - 1);
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //Asserting on Ip != RawIp doesn't work because you might have some prevAmount in there too
+            Debug.Assert(functionAddress != 0, "Cannot write xrefs when the functionAddress was not specified");
+
+            if (functionAddress != 0)
+                writer.WriteUniqueRVAXRef(Offset, 0, Ip);
+
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(Strings.IPtoStateMapEntry4, this, ViewKind.IPtoStateMapEntry4, StructSize);
+
+        int IViewable.NumChildren() => 2;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(Ip), 0, RawIp, FuncInfo4.GetLength((uint) RawIp));
+                    break;
+
+                case 1:
+                    var adjustedState = State + 1;
+                    structWriter.WriteField(nameof(State), FuncInfo4.GetLength((uint) RawIp), adjustedState, FuncInfo4.GetLength((uint) adjustedState));
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

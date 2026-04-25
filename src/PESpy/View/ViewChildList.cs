@@ -27,20 +27,22 @@ namespace PESpy.View
         private readonly IViewable parent;
         private readonly ViewWriter viewWriter;
         private readonly int numChildren;
+        private readonly IView _parentView;
 
         public int Count => numChildren;
 
-        internal ViewChildList(int parentOffset, IViewable parent, ViewWriter viewWriter)
+        internal ViewChildList(int parentOffset, IViewable parent, ViewWriter viewWriter, IView parentView)
         {
             this.parentOffset = parentOffset;
             this.parent = parent;
             this.viewWriter = viewWriter;
             numChildren = parent.NumChildren();
+            _parentView = parentView;
         }
 
-        public IView this[int index] => viewWriter.GetChild(parentOffset, parent, index);
+        public IView this[int index] => viewWriter.GetChild(parentOffset, parent, index, _parentView);
 
-        public Enumerator GetEnumerator() => new Enumerator(parentOffset, parent, viewWriter, numChildren);
+        public Enumerator GetEnumerator() => new Enumerator(parentOffset, parent, viewWriter, numChildren, _parentView);
 
         IEnumerator<IView> IEnumerable<IView>.GetEnumerator() => GetEnumerator();
 
@@ -52,14 +54,16 @@ namespace PESpy.View
             private readonly IViewable parent;
             private readonly ViewWriter viewWriter;
             private readonly int numChildren;
+            private readonly IView _parentView;
             private int index;
 
-            internal Enumerator(int parentOffset, in IViewable parent, ViewWriter viewWriter, int numChildren)
+            internal Enumerator(int parentOffset, in IViewable parent, ViewWriter viewWriter, int numChildren, IView parentView)
             {
                 this.parentOffset = parentOffset;
                 this.parent = parent;
                 this.viewWriter = viewWriter;
                 this.numChildren = numChildren;
+                _parentView = parentView;
                 index = 0;
                 Current = default;
             }
@@ -68,7 +72,8 @@ namespace PESpy.View
             {
                 if (index < numChildren)
                 {
-                    Current = viewWriter.GetChild(parentOffset, parent, index);
+                    Current = viewWriter.GetChild(parentOffset, parent, index, _parentView);
+                    Debug.Assert(Current.Parent == _parentView);
                     index++;
                     return true;
                 }

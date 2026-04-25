@@ -6,8 +6,7 @@ namespace PESpy.View
     /// Provides a view over the initial headers at the start of a Portable Executable file, prior to the start of any sections
     /// defined by <see cref="ImageSectionHeader"/>.
     /// </summary>
-    [DebuggerDisplay("{ViewDebuggerDisplay.Header(this),nq}")]
-    public class HeaderView : IContainerView
+    public class HeaderView : IViewInternal
     {
         public int Offset { get; }
 
@@ -15,17 +14,25 @@ namespace PESpy.View
 
         public ViewKind Kind => ViewKind.Header;
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        //This type does not participate in xrefs
+        ViewXRefList IView.XRefs => default;
+
+        public ViewImplKind ImplKind => ViewImplKind.Header;
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        public HeaderView(int offset, int size, IView[] children, ViewWriter viewWriter)
+        internal HeaderView(int offset, int size, IView[] children, ViewWriter viewWriter)
         {
             Offset = offset;
             Size = size;
-            childProvider = new ViewChildProvider(children);
+            childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
         }
 
@@ -46,8 +53,15 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        public IView this[int index] => Children[index];
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitHeader(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitHeader(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatHeader(this);
+        }
     }
 }

@@ -5,62 +5,63 @@ namespace PESpy
 {
     public struct HandlerType : IValue, IViewable
     {
-        private const int AdjectivesOffset = 0;
-        internal const int TypeOffset = 4;
-        private const int CatchObjOffset = 8;
-        private const int HandlerOffset = 12;
-        private const int FrameOffset = 16;
+        private const int adjectivesOffset = 0;
+        internal const int dispTypeOffset = 4;
+        private const int dispCatchObjOffset = 8;
+        private const int dispOfHandlerOffset = 12;
+        private const int dispFrameOffset = 16;
 
-        public int Adjectives => chunk.PeekInt32(AdjectivesOffset);
+        public HT adjectives => (HT) chunk.PeekUInt32(adjectivesOffset);
 
-        private RVA<TypeDescriptor> type;
+        private RVA<TypeDescriptor> _dispType;
 
-        public RVA<TypeDescriptor> Type
+        public RVA<TypeDescriptor> dispType
         {
             get
             {
-                if (type.ListedOffset == 0)
+                if (_dispType.ListedOffset == 0)
                 {
-                    var dispType = chunk.PeekInt32(TypeOffset);
+                    var dispType = chunk.PeekInt32(dispTypeOffset);
 
                     var peFile = chunk.PEFile();
 
                     if (peFile.TryGetValueChunkFromSection(dispType, out var valueChunk))
-                        type = new RVA<TypeDescriptor>(dispType, dispType, new TypeDescriptor(valueChunk));
+                        _dispType = new RVA<TypeDescriptor>(dispType, dispType, new TypeDescriptor(valueChunk));
                     else
-                        type = new RVA<TypeDescriptor>(dispType);
+                        _dispType = new RVA<TypeDescriptor>(dispType);
                 }
 
-                return type;
+                return _dispType;
             }
         }
 
-        public int CatchObj => chunk.PeekInt32(CatchObjOffset);
+        public int dispCatchObj => chunk.PeekInt32(dispCatchObjOffset);
 
-        public int Handler => chunk.PeekInt32(HandlerOffset);
+        public int dispOfHandler => chunk.PeekInt32(dispOfHandlerOffset);
 
-        public int Frame => chunk.PeekInt32(FrameOffset);
+        public int dispFrame => chunk.PeekInt32(dispFrameOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
-            sizeof(int) + //Adjectives
-            sizeof(int) + //Type
-            sizeof(int) + //CatchObj
-            sizeof(int) + //Handler
-            sizeof(int); //Frame
+            sizeof(int) + //adjectives
+            sizeof(int) + //dispType
+            sizeof(int) + //dispCatchObj
+            sizeof(int) + //dispOfHandler
+            sizeof(int); //dispFrame
 
         private readonly MemoryChunk chunk;
 
         internal HandlerType(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-            type = default;
+            _dispType = default;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            writer.WriteRVAField(Type, Offset, fieldOffset: TypeOffset);
+            writer.WriteUniqueRVAField(dispType, Offset, fieldOffset: dispTypeOffset);
+            writer.WriteUniqueRVAXRef(Offset, dispOfHandlerOffset, dispOfHandler);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -73,23 +74,23 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("adjectives", AdjectivesOffset, Adjectives);
+                    structWriter.WriteField(nameof(adjectives), adjectivesOffset, adjectives, sizeof(int));
                     break;
 
                 case 1:
-                    structWriter.WriteRVAField("dispType", TypeOffset, Type);
+                    structWriter.WriteRVAField(nameof(dispType), dispTypeOffset, dispType);
                     break;
 
                 case 2:
-                    structWriter.WriteField("dispCatchObj", CatchObjOffset, CatchObj);
+                    structWriter.WriteField(nameof(dispCatchObj), dispCatchObjOffset, dispCatchObj);
                     break;
 
                 case 3:
-                    structWriter.WriteField("dispOfHandler", HandlerOffset, Handler);
+                    structWriter.WriteField(nameof(dispOfHandler), dispOfHandlerOffset, dispOfHandler);
                     break;
 
                 case 4:
-                    structWriter.WriteField("dispFrame", FrameOffset, Frame);
+                    structWriter.WriteField(nameof(dispFrame), dispFrameOffset, dispFrame);
                     break;
 
                 default:

@@ -8,7 +8,7 @@ namespace PESpy.PDB
 {
     public static partial class TypTypeExtensions
     {
-        public static SymTagEnum? GetSymTagEnum(in this TypOrEnumType type)
+        public static SymTagEnum GetSymTagEnum(in this TypOrEnumType type)
         {
             var typType = type.TypTyp;
 
@@ -27,10 +27,10 @@ namespace PESpy.PDB
             }
         }
 
-        public static SymTagEnum? GetSymTagEnum(in this TypType typType) =>
+        public static SymTagEnum GetSymTagEnum(in this TypType typType) =>
             GetSymTagEnum((LfEasy) typType);
 
-        public static SymTagEnum? GetSymTagEnum(in this LfEasy lfEasy)
+        public static SymTagEnum GetSymTagEnum(in this LfEasy lfEasy)
         {
             /* DIA does not return all type symbols when it enumerates types. CAllTypesTrav::next works by iterating over each type index from TiMin to TiMac
              * and then for each record calls TPI1::QueryPbCVRecordForTi(). However, not all type records get sent to the type dispatcher: certain records
@@ -57,7 +57,7 @@ namespace PESpy.PDB
                 case LF_DERIVED_16t: //Not supported by DIA
                 case LF_METHODLIST:
                 case LF_METHODLIST_16t: //Not supported by DIA
-                    return null;
+                    return SymTagEnum.Null;
 
                 //Some types do have dispatchers associated with them, however these dispatchers are only called upon to build up information for an outer,
                 //surfaced type. These inner types do not exist as standalone entities
@@ -96,7 +96,7 @@ namespace PESpy.PDB
                 case LF_DATE:
                 case LF_UTF8STRING:
                 case LF_REAL16:
-                    return null;
+                    return SymTagEnum.Null;
 
                 case LF_ALIAS: //disp_LF_ALIAS
                 case LF_ALIAS_ST: //Not supported by DIA
@@ -394,12 +394,27 @@ namespace PESpy.PDB
                     locationType = LocationType.LocIsBitField;
                     return true;
 
+                case LF_MEMBER:
+                case LF_MEMBER_ST: //Not supported by DIA
+                case LF_MEMBER_16t:  //Not supported by DIA
+                    locationType = LocationType.LocIsThisRel;
+                    return true;
+
+                case LF_STMEMBER:
+                case LF_STMEMBER_ST: //Not supported by DIA
+                case LF_STMEMBER_16t:  //Not supported by DIA
+                    locationType = LocationType.LocIsStatic;
+                    return true;
+
                 default:
                     //Haven't researched other leaf-related locations
                     locationType = default;
                     return false;
             }
         }
+
+        public static bool IsFwdRef(this TypType typType) =>
+            IsFwdRef((LfEasy) typType);
 
         public static bool IsFwdRef(this LfEasy lfEasy)
         {
@@ -1079,55 +1094,6 @@ namespace PESpy.PDB
 
                 return true;
             }
-        }
-
-        public static bool TryGetLength(this LfEasy lfEasy, out int length)
-        {
-            //This is not an exhaustive list
-            switch (lfEasy.leaf)
-            {
-                case LF_ENUM:
-                case LF_ENUM_ST: //Not supported by DIA
-                    return TryGetLength(((LfEnum) lfEasy).utype, out length);
-
-                case LF_ENUM_16t:
-                    throw new NotImplementedException();
-
-                case LF_POINTER_16t:
-                    throw new NotImplementedException();
-
-                case LF_POINTER:
-                    var lfPointer = (LfPointer) lfEasy;
-
-                    //msdia140!getPtrData first tries to use the size specified in the record,
-                    //but if the size is 0 it looks at the pointer mode instead
-
-                    var ptr = (LfPointer) lfEasy;
-                    var size = ptr.attr.size;
-
-                    if (size != 0)
-                        length = size;
-                    else
-                        length = ptr.attr.ptrtype == CV_ptrtype_e.CV_PTR_64 ? 8 : 4;
-
-                    return true;
-
-                case LF_ARRAY_16t:
-                    var lfArray16 = (LfArray16t) lfEasy;
-
-                    length = lfArray16.length;
-                    return true;
-
-                case LF_ARRAY:
-                case LF_ARRAY_ST:
-                    var lfArray = (LfArray) lfEasy;
-
-                    length = lfArray.length;
-                    return true;
-            }
-
-            length = default;
-            return false;
         }
 
         private static int GetFloatLength(CV_real_e kind)

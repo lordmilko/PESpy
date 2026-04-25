@@ -1,14 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace PESpy.View
+﻿namespace PESpy.View
 {
-    /// <summary>
-    /// Represents a view that is a container for other views.
-    /// </summary>
-    public interface IContainerView : IView
+    public enum ViewImplKind
     {
-        ViewChildList Children { get; }
+        Asm,
+        BitField,
+        ByteBlob,
+        Field,
+        Header,
+        LogicalRegion,
+        Overlay,
+        File,
+        Section,
+        Struct,
+        StructField,
+        StructArrayField,
+        Value
+    }
+
+    internal interface IViewInternal : IView
+    {
+        void SetParent(IView? parent);
     }
 
     /// <summary>
@@ -29,9 +40,22 @@ namespace PESpy.View
         int Size { get; }
 
         /// <summary>
-        /// Gets the kind of value, structure or region from the PE File that this view represents.
+        /// Gets the kind of value, structure or region from the <see cref="IFile"/> that this view represents.
         /// </summary>
         ViewKind Kind { get; }
+
+        public IView? Parent { get; }
+
+        /// <summary>
+        /// Gets all xrefs going to or from this address.
+        /// </summary>
+        ViewXRefList XRefs { get; }
+
+        ViewImplKind ImplKind { get; }
+
+        ViewChildList Children { get; }
+
+        IView this[int index] { get; }
 
         T Accept<T>(ViewVisitor<T> visitor);
 
@@ -52,19 +76,5 @@ namespace PESpy.View
         public ISplitView? Previous { get; }
 
         public ISplitView? Next { get; }
-    }
-
-    internal interface IViewDisassembler
-    {
-        void Initialize(IFile file);
-
-        bool TryParseDosStub(ref int offset, ref NativeSpan<byte> bytes, List<IView> results);
-
-        //offset is the address that should be listed in the resulting IView. It represents a value
-        //in the address space we're trying to represent in the output view; i.e. a physical or virtual
-        //offset (regardless of what we actually are). RVA is the "real" RVA of the bytes. "offset" is
-        //what the result value should then be reported as. e.g. if offset is 0x1000 and RVA is 0x2000, lookup
-        //the function at 0x2000 and report that it existed at 0x1000
-        bool TryParseBytes(ref int offset, int rva, ref NativeSpan<byte> bytes, List<IView> results);
     }
 }

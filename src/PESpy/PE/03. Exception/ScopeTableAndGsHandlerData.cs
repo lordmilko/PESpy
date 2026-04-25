@@ -3,7 +3,10 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct ScopeTableAndGsHandlerData : IViewableValue
+    /// <summary>
+    /// Encapsulates the data that is passed to the <see cref="WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH"/> exception handler.
+    /// </summary>
+    public readonly struct ScopeTableAndGsHandlerData : IValue //Not IViewable because this is just a transparent struct
     {
         public ScopeTable ScopeTable { get; }
 
@@ -21,17 +24,10 @@ namespace PESpy
             GsHandlerData = new GsHandlerData(chunk.AbsoluteOffset + scopeTableSize, chunk.Pointer + scopeTableSize);
         }
 
-        void IViewable.WriteGlobals(ViewWriter writer)
+        internal void WriteInline(ref EagerStructWriter s)
         {
-            //Both values are globals
-            writer.WriteGlobal(ScopeTable);
-            writer.WriteGlobal(GsHandlerData);
+            s.WriteInline(ScopeTable);
+            s.WriteInline(GsHandlerData);
         }
-
-        IView? IViewable.WriteStruct(ViewWriter writer) => null;
-
-        int IViewable.NumChildren() => throw new NotSupportedException();
-
-        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }
 }

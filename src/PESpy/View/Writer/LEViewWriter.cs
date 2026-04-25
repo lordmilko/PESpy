@@ -30,7 +30,7 @@ namespace PESpy.View
 
             var results = merger.MergeLE();
 
-            return new FileView(ViewMode.Physical, leFile.Name, results, this, ViewKind.LEFile);
+            return new FileView(ViewMode.Physical, leFile, results, this, ViewKind.LEFile);
         }
     }
 }

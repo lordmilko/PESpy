@@ -5,7 +5,7 @@ namespace PESpy.PowerShell
 {
     public class ViewAlignmentVerifier : ViewWalker
     {
-        protected override void VisitChildren(IContainerView view)
+        protected override void VisitChildren(IView view)
         {
             for (var i = 0; i < view.Children.Count; i++)
             {

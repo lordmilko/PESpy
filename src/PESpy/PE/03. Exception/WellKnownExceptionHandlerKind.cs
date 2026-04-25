@@ -74,15 +74,5 @@
         __CxxFrameHandler4,
 
         #endregion
-
-        LastSupportedHandler,
-
-        LdrpICallHandler, //ntdll
-        KiUserApcHandler, //ntdll
-        KiUserCallbackDispatcherHandler, //ntdll
-        RtlpExceptionHandler, //ntdll
-        RtlpUnwindHandler, //ntdll
-        RtlpEnclaveCallDispatchFilter, //ntdll
-        CrashForExceptionInNonABICompliantCodeRange, //msedge, but PEAnatomist can detect it so it might be more standard than we realize
     }
 }

@@ -376,6 +376,11 @@ namespace PESpy.View
         UnwindCode,
 
         /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GsHandlerData"/>.
+        /// </summary>
+        GsHandlerData,
+
+        /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ScopeTable"/>.
         /// </summary>
         ScopeTable,
@@ -385,22 +390,14 @@ namespace PESpy.View
         /// </summary>
         ScopeRecord,
 
+        #region FuncInfo
+
+        FuncInfoRva,
+
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.FuncInfo"/>.
         /// </summary>
         FuncInfo,
-
-        /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.FuncInfoV1"/>.
-        /// </summary>
-        FuncInfoV1,
-
-        FuncInfo4,
-
-        /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.FuncInfoHeader"/>.
-        /// </summary>
-        FuncInfoHeader,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.HandlerType"/>.
@@ -427,6 +424,77 @@ namespace PESpy.View
         /// </summary>
         UnwindMapEntry,
 
+        #endregion
+        #region FuncInfo4
+
+        FuncInfo4Rva,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.FuncInfo4"/>.
+        /// </summary>
+        FuncInfo4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.FuncInfoHeader"/>.
+        /// </summary>
+        FuncInfoHeader,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.HandlerMap4"/>.
+        /// </summary>
+        HandlerMap4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.IPtoStateMap4"/>.
+        /// </summary>
+        IPtoStateMap4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SepIPtoStateMap4"/>.
+        /// </summary>
+        SepIPtoStateMap4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.TryBlockMap4"/>.
+        /// </summary>
+        TryBlockMap4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.UWMap4"/>.
+        /// </summary>
+        UWMap4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.HandlerType4"/>.
+        /// </summary>
+        HandlerType4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.HandlerTypeHeader"/>.
+        /// </summary>
+        HandlerTypeHeader,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.IPtoStateMapEntry4"/>.
+        /// </summary>
+        IPtoStateMapEntry4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SepIPtoStateMapEntry4"/>.
+        /// </summary>
+        SepIPtoStateMapEntry4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.TryBlockMapEntry4"/>.
+        /// </summary>
+        TryBlockMapEntry4,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.UnwindMapEntry4"/>.
+        /// </summary>
+        UnwindMapEntry4,
+
+        #endregion
         #endregion
         #region Security Table (4)
 
@@ -527,6 +595,8 @@ namespace PESpy.View
 
         #endregion
         #region Copyright Table (7)
+
+        Copyright,
 
         #endregion
         #region Global Pointer Table (8)

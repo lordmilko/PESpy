@@ -126,6 +126,11 @@ namespace PESpy
         public ReadOnlySpan<char> AsSpan(int start) => _chars.Slice(start, _pos - start);
         public ReadOnlySpan<char> AsSpan(int start, int length) => _chars.Slice(start, length);
 
+        //Many APIs only work on ReadOnlySpan, so it makes sense to have that as the default
+        //implementation of AsSpan(). But if we want to mess with the underylying buffer,
+        //we now need a new way of doing that
+        public Span<char> AsMutableSpan() => _chars.Slice(0, _pos);
+
         public bool TryCopyTo(Span<char> destination, out int charsWritten)
         {
             if (_chars.Slice(0, _pos).TryCopyTo(destination))
@@ -350,11 +355,12 @@ namespace PESpy
             const int max = 80;
 
             //F2 means always have 2 decimal places (1 -> 1.00)
+            //N2 means include thousands separator
             //0.## will trim trailing 0's
 
 #if NET
             EnsureCapacity(Length + max);
-            var result = size.TryFormat(_chars.Slice(Length), out var charsWritten, forceDecimal ? "F2" : "0.##");
+            var result = size.TryFormat(_chars.Slice(Length), out var charsWritten, forceDecimal ? "N2" : "0.##");
             Debug.Assert(result);
 
             _pos += charsWritten;
@@ -364,7 +370,7 @@ namespace PESpy
             byte* pBuffer = stackalloc byte[max];
             var buffer = new Span<byte>(pBuffer, max);
 
-            var result = Utf8Formatter.TryFormat(size, buffer, out var bytesWritten, new StandardFormat('F', 2));
+            var result = Utf8Formatter.TryFormat(size, buffer, out var bytesWritten, new StandardFormat('N', 2));
             Debug.Assert(result);
             var str = buffer.Slice(0, bytesWritten);
 
@@ -441,7 +447,17 @@ namespace PESpy
                 Grow(s.Length);
             }
 
-            s.AsSpan().CopyTo(_chars.Slice(pos));
+            //Perform s.AsSpan().CopyTo(_chars.Slice(pos));
+            //without bounds checks
+            ref var dst = ref MemoryMarshal.GetReference(_chars);
+            ref var src = ref MemoryMarshal.GetReference(s.AsSpan());
+
+            Unsafe.CopyBlockUnaligned(
+                ref Unsafe.As<char, byte>(ref Unsafe.Add(ref dst, pos)),
+                ref Unsafe.As<char, byte>(ref src),
+                (uint) (s.Length * 2)
+            );
+
             _pos += s.Length;
         }
 
@@ -475,7 +491,17 @@ namespace PESpy
             _pos += value.Length;
         }
 
-        public unsafe void Append(FixedUtf8String value) => Append(value.AsSpan());
+        public void Append(FixedUtf8String value) => Append(value.AsSpan());
+
+        public void Append(FixedUtf16String value) => Append(value.AsSpan());
+
+        public void Append(NullTerminatedString value)
+        {
+            if (value.Kind == StringKind.UTF16)
+                Append(value.AsWideSpan());
+            else
+                Append(value.AsSpan());
+        }
 
         public unsafe void Append(Span<byte> value)
         {

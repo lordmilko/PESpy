@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 
 namespace PESpy.View
 {
@@ -11,8 +10,7 @@ namespace PESpy.View
         new IStructView[] Value { get; }
     }
 
-    [DebuggerDisplay("{ViewDebuggerDisplay.StructArrayField(this),nq}")]
-    public class StructArrayFieldView : IStructArrayFieldView, ISplittableView
+    public class StructArrayFieldView : IViewInternal, IStructArrayFieldView, ISplittableView
     {
         public int Offset => Value[0].Offset;
 
@@ -40,14 +38,22 @@ namespace PESpy.View
 
         public ViewKind Kind => Value[0].Kind;
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _viewWriter._fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.StructArrayField;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public ViewChildList Children => new ViewChildList(Offset, _viewChildProvider, _viewWriter, this);
+
         public string FieldName { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public StructView[] Value { get; private set; }
+        public IStructView[] Value => _viewChildProvider._children;
 
         public string ValueType => $"{Value[0].ValueType}[]";
-
-        IStructView[] IStructArrayFieldView.Value => Value.Cast<IStructView>().ToArray();
 
         string IFieldView.Name => FieldName;
         object IFieldView.Value => Value!;
@@ -58,11 +64,16 @@ namespace PESpy.View
 
         public void Accept(ViewVisitor visitor) => visitor.VisitStructArrayField(this);
 
-        public StructArrayFieldView(StructView[] value, string fieldName)
+        private readonly ViewWriter _viewWriter;
+        private readonly ViewChildProvider<IStructView> _viewChildProvider;
+
+        public StructArrayFieldView(IStructView[] value, string fieldName, ViewWriter viewWriter)
         {
-            Value = value;
+            _viewChildProvider = new ViewChildProvider<IStructView>(value);
             FieldName = fieldName;
         }
+
+        public IView this[int index] => Value[index];
 
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
         {
@@ -108,19 +119,19 @@ namespace PESpy.View
                         //Mutate in place
                         first = s;
 
-                        StructView[] newChildren;
+                        IStructView[] newChildren;
 
                         if (firstChild == null)
                         {
                             Debug.Assert(numLeftChildren > 0);
-                            newChildren = new StructView[numLeftChildren];
+                            newChildren = new IStructView[numLeftChildren];
 
                             for (var j = 0; j < numLeftChildren; j++)
                                 newChildren[j] = children[j];
                         }
                         else
                         {
-                            newChildren = new StructView[numLeftChildren];
+                            newChildren = new IStructView[numLeftChildren];
 
                             for (var j = 0; j < numLeftChildren - 1; j++)
                                 newChildren[j] = children[j];
@@ -128,18 +139,18 @@ namespace PESpy.View
                             newChildren[numLeftChildren - 1] = (StructView) firstChild;
                         }
 
-                        Value = newChildren;
+                        _viewChildProvider._children = newChildren;
                         size -= diff;
                     }
                     else
                     {
                         //Create a new split struct
 
-                        StructView[] firstChildren;
+                        IStructView[] firstChildren;
 
                         if (firstChild == null)
                         {
-                            firstChildren = new StructView[numLeftChildren];
+                            firstChildren = new IStructView[numLeftChildren];
 
                             for (var j = 0; j < numLeftChildren; j++)
                                 firstChildren[j] = children[j];
@@ -155,7 +166,7 @@ namespace PESpy.View
                             firstChildren[numLeftChildren - 1] = (StructView) firstChild;
                         }
 
-                        first = new SplitStructArrayFieldView(firstChildren, FieldName);
+                        first = new SplitStructArrayFieldView(firstChildren, FieldName, _viewWriter);
                     }
 
                     //Create second
@@ -177,7 +188,7 @@ namespace PESpy.View
                         }
                     }
 
-                    var second = new SplitStructArrayFieldView(secondChildren, FieldName);
+                    var second = new SplitStructArrayFieldView(secondChildren, FieldName, _viewWriter);
 
                     second.Previous = first;
                     first.Next = second;
@@ -191,7 +202,12 @@ namespace PESpy.View
 
         IView ISplittableView.WithOffset(int newOffset)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatStructArrayField(this);
         }
     }
 
@@ -201,7 +217,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructArrayFieldView(StructView[] value, string fieldName) : base(value, fieldName)
+        public SplitStructArrayFieldView(IStructView[] value, string fieldName, ViewWriter viewWriter) : base(value, fieldName, viewWriter)
         {
         }
     }

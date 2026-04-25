@@ -71,7 +71,7 @@ namespace PESpy
         public ChainedRuntimeFunction? FunctionEntry { get; } //UNWIND_INFO says that it's an int, but it's really a RUNTIME_FUNCTION
 
         private IValue? exceptionData;
-        public IValue? ExceptionData => exceptionData ??= GetExceptionDataForHandlerKind(chunk, ExtraDataStart, ExceptionHandlerKind);
+        public IValue? ExceptionData => exceptionData ??= GetExceptionDataForHandlerKind(ExceptionHandlerKind);
 
         private WellKnownExceptionHandlerKind exceptionHandlerKind;
 
@@ -122,6 +122,21 @@ namespace PESpy
             }
         }
 
+        internal int StructSize
+        {
+            get
+            {
+                if (HasExceptionHandler)
+                {
+                    var offset = FixedStructSize;
+
+                    return offset + GetExceptionDataSize(ExceptionHandlerKind, chunk.Slice(offset), out _);
+                }
+
+                return FixedStructSize;
+            }
+        }
+
         /// <summary>
         /// Gets whether the <see cref="Flags"/> of this <see cref="UnwindInfo"/> indicate that it should have an <see cref="ExceptionHandler"/>
         /// and <see cref="ExceptionData"/>.
@@ -145,6 +160,7 @@ namespace PESpy
             ExceptionHandler = default;
             FunctionEntry = default;
             exceptionData = default;
+            this.functionAddress = functionAddress;
 
             Debug.Assert(Version is 1 or 2 or 3);
 
@@ -260,16 +276,6 @@ namespace PESpy
 
                 #endregion
 
-                case WellKnownExceptionHandlerKind.LdrpICallHandler:
-                case WellKnownExceptionHandlerKind.KiUserApcHandler:
-                case WellKnownExceptionHandlerKind.KiUserCallbackDispatcherHandler:
-                case WellKnownExceptionHandlerKind.RtlpUnwindHandler:
-                case WellKnownExceptionHandlerKind.RtlpExceptionHandler:
-                case WellKnownExceptionHandlerKind.RtlpEnclaveCallDispatchFilter:
-                case WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange:
-                    //Not supported
-                    return null;
-
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
             }
@@ -281,15 +287,83 @@ namespace PESpy
             ViewByte* pViewByte,
             int structOffset,
             int targetAddress,
+            int unwindInfoRVA,
             int fieldOffset,
+            int exceptionHandler,
             WellKnownExceptionHandlerKind kind)
+        {
+            viewWriter.EnterUniqueXRef();
+
+            var structSize = fieldOffset + GetExceptionDataSize(kind, dataChunk, out var dataKind);
+
+            switch (dataKind)
+            {
+                case SpecialExceptionDataKind.None:
+                    break;
+
+                case SpecialExceptionDataKind.ScopeTable:
+                    viewWriter._specialUnwindInfos.Add(unwindInfoRVA, dataKind);
+                    var scopeTableCount = dataChunk.PeekInt32(0);
+
+                    for (var i = 0; i < scopeTableCount; i++)
+                    {
+                        var scopeTableRecord = dataChunk.Slice(sizeof(int) + (i * ScopeTable.ScopeRecord.StructSize));
+
+                        viewWriter.RelayGlobals(new ScopeTable.ScopeRecord(scopeTableRecord));
+                    }
+
+                    break;
+
+                case SpecialExceptionDataKind.FuncInfo:
+                    viewWriter._specialUnwindInfos.Add(unwindInfoRVA, dataKind);
+                    WriteFuncInfo(viewWriter, dataChunk, structOffset, fieldOffset);
+                    break;
+
+                case SpecialExceptionDataKind.FuncInfo4:
+                    viewWriter.WriteUniqueRVAXRef(structOffset, fieldOffset, dataChunk.PeekInt32(0));
+
+                    //In order to write xrefs that need to include the RUNTIME_FUNCTION.BeginAddress, we can't write the FuncInfo4 here; instead, we need to just collect
+                    //the addresses of all UNWIND_INFO items that contain a FuncInfo4, and then when we iterate over all RUNTIME_FUNCTION items again later, we'll
+                    //write the FuncInfo4 properly for anyone whose UnwindData value in our list
+
+                    viewWriter._specialUnwindInfos.Add(unwindInfoRVA, dataKind);
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            viewWriter.ExitUniqueXRef();
+
+            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
+
+            for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
+                i->Kind = ViewByteKind.Body;
+
+            //We're guaranteed to only call WriteUnwindInfo for each unique item, so we don't need to worry about
+            //tracking uniqueness here
+            viewWriter.WriteTargetAddressXRef(targetAddress, fieldOffset - sizeof(int), exceptionHandler);
+        }
+
+        public enum SpecialExceptionDataKind
+        {
+            None,
+            ScopeTable,
+            FuncInfo,
+            FuncInfo4
+        }
+
+        private static unsafe int GetExceptionDataSize(
+            WellKnownExceptionHandlerKind kind,
+            in MemoryChunk dataChunk,
+            out SpecialExceptionDataKind dataKind)
         {
             //Avoid boxing the data and get the structs directly in here
 
             int scopeTableCount;
             int scopeTableSize;
 
-            var structSize = fieldOffset;
+            dataKind = default;
 
             //Note: any new items need to be added to GetExceptionDataForHandlerKind above
 
@@ -297,29 +371,26 @@ namespace PESpy
             {
                 case WellKnownExceptionHandlerKind.Unknown:
                 case WellKnownExceptionHandlerKind.None:
-                    break;
+                    return 0;
 
                 #region GSHandlerCheck
 
                 case WellKnownExceptionHandlerKind.__GSHandlerCheck: //_GS_HANDLER_DATA
-                    structSize += new GsHandlerData(0, dataChunk.Pointer).StructSize;
-                    break;
+                    return new GsHandlerData(0, dataChunk.Pointer).StructSize;
 
                 case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //SCOPE_TABLE + _GS_HANDLER_DATA
                     scopeTableCount = *(int*) dataChunk.Pointer;
                     scopeTableSize = sizeof(int) + (scopeTableCount * ScopeTable.ScopeRecord.StructSize);
-                    structSize += scopeTableSize + new GsHandlerData(0, dataChunk.Pointer + scopeTableSize).StructSize;
-                    break;
+                    dataKind = SpecialExceptionDataKind.ScopeTable;
+                    return scopeTableSize + new GsHandlerData(0, dataChunk.Pointer + scopeTableSize).StructSize;
 
                 case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH: //RVA<FuncInfo> + _GS_HANDLER_DATA
-                    WriteFuncInfo(viewWriter, dataChunk, structOffset, fieldOffset);
-                    structSize += sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
-                    break;
+                    dataKind = SpecialExceptionDataKind.FuncInfo;
+                    return sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
 
                 case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4: //RVA<FuncInfo4> + _GS_HANDLER_DATA
-                    WriteFuncInfo4(viewWriter, dataChunk, structOffset, fieldOffset);
-                    structSize += sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
-                    break;
+                    dataKind = SpecialExceptionDataKind.FuncInfo4;
+                    return sizeof(int) + new GsHandlerData(0, dataChunk.Pointer + sizeof(int)).StructSize;
 
                 #endregion
                 #region C Specific Handler
@@ -328,8 +399,8 @@ namespace PESpy
                 case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
                     scopeTableCount = *(int*) dataChunk.Pointer;
                     scopeTableSize = sizeof(int) + (scopeTableCount * ScopeTable.ScopeRecord.StructSize);
-                    structSize += scopeTableSize;
-                    break;
+                    dataKind = SpecialExceptionDataKind.ScopeTable;
+                    return scopeTableSize;
 
                 #endregion
                 #region CxxFrameHandler
@@ -337,37 +408,22 @@ namespace PESpy
                 case WellKnownExceptionHandlerKind.__CxxFrameHandler: //RVA<FuncInfo>
                 case WellKnownExceptionHandlerKind.__CxxFrameHandler2:
                 case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
-                    WriteFuncInfo(viewWriter, dataChunk, structOffset, fieldOffset);
+                    dataKind = SpecialExceptionDataKind.FuncInfo;
 
                     //Whether the RVA was valid or not, it _was_ there
-                    structSize += sizeof(int);
-                    break;
+                    return sizeof(int);
 
                 case WellKnownExceptionHandlerKind.__CxxFrameHandler4: //RVA<FuncInfo4>
-                    WriteFuncInfo4(viewWriter, dataChunk, structOffset, fieldOffset);
+                    dataKind = SpecialExceptionDataKind.FuncInfo4;
 
                     //Whether the RVA was valid or not, it _was_ there
-                    structSize += sizeof(int);
-                    break;
+                    return sizeof(int);
 
                 #endregion
-
-                case WellKnownExceptionHandlerKind.LdrpICallHandler:
-                case WellKnownExceptionHandlerKind.KiUserApcHandler:
-                case WellKnownExceptionHandlerKind.KiUserCallbackDispatcherHandler:
-                case WellKnownExceptionHandlerKind.RtlpEnclaveCallDispatchFilter:
-                case WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange:
-                    //Not supported
-                    break;
 
                 default:
                     throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{kind}'");
             }
-
-            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
-
-            for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
-                i->Kind = ViewByteKind.Body;
         }
 
         private static void WriteFuncInfo(
@@ -383,29 +439,8 @@ namespace PESpy
 
             if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
             {
-                viewWriter.WriteRVAField(
+                viewWriter.WriteUniqueRVAField(
                     new RVA<FuncInfo>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo(infoChunk)),
-                    structOffset,
-                    fieldOffset
-                );
-            }
-        }
-
-        private static void WriteFuncInfo4(
-            PEViewByteViewWriter viewWriter,
-            in MemoryChunk dataChunk,
-            int structOffset,
-            int fieldOffset)
-        {
-            //Value is an RVA to the FuncInfo4. FuncInfo4 struct may or may not be right after its RVA
-            var infoRVA = dataChunk.PeekInt32(0);
-
-            var peFile = dataChunk.PEFile();
-
-            if (peFile.TryGetValueChunkFromSection(infoRVA, out var infoChunk))
-            {
-                viewWriter.WriteRVAField(
-                    new RVA<FuncInfo4>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo4(infoChunk, functionAddress: 0)), //FunctionAddress is not important here so we can just set it to 0
                     structOffset,
                     fieldOffset
                 );
@@ -436,63 +471,164 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals. The ExceptionData is considered part of
-            //the UNWIND_INFO
+            //We need to assert that all xrefs we write descending from the UnwindInfo are written uniquely,
+            //as multiple RUNTIME_FUNCTION entries may point to the same UnwindInfo
+            writer.EnterUniqueXRef();
+
+            //If the ExceptionData is an RVA, there's globals
+            switch (ExceptionHandlerKind)
+            {
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler:
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler2:
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
+                    writer.WriteRVAField((RVA<FuncInfo>) ExceptionData, Offset, ExtraDataStart + sizeof(int));
+                    break;
+
+                case WellKnownExceptionHandlerKind.__CxxFrameHandler4:
+                    writer.WriteRVAField((RVA<FuncInfo4>) ExceptionData, Offset, ExtraDataStart + sizeof(int));
+                    break;
+
+                default:
+                    var data = ExceptionData as IViewable;
+
+                    if (data != null)
+                        data.WriteGlobals(writer);
+
+                    break;
+            }
+
+            writer.ExitUniqueXRef();
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, FixedStructSize);
+            writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, writer.IsByteViewWriter ? FixedStructSize : StructSize);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 
-        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        unsafe void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
             if (index != -1)
                 throw StructWriter.GetEagerLoadOnlyException();
 
-            using var s = structWriter.CreateEagerWriter();
+            var s = structWriter.CreateEagerWriter();
 
-            using (var b = s.WriteBitFields<byte>(2))
+            try
             {
-                b.WriteField("Version", Version, 3);
-                b.WriteField("Flags", Flags, 5);
+                using (var b = s.WriteBitFields<byte>(2))
+                {
+                    b.WriteField("Version", Version, 3);
+                    b.WriteField("Flags", Flags, 5);
+                }
+
+                s.WriteField(nameof(SizeOfProlog), SizeOfProlog);
+                s.WriteField(nameof(CountOfCodes), CountOfCodes);
+
+                using (var b = s.WriteBitFields<byte>(2))
+                {
+                    b.WriteField(nameof(FrameRegister), FrameRegister, 4);
+                    b.WriteField(nameof(FrameOffset), FrameOffset, 4);
+                }
+
+                //If CountOfCodes is odd, this includes the empty one at the end
+                s.WriteUnmanagedInline<UnwindCodeList, UnwindCodeList.Enumerator, UnwindCode>(UnwindCode);
+
+                //What follows next depends on the Flags
+
+                if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
+                {
+                    s.WriteField(nameof(ExceptionHandler), ExceptionHandler);
+
+                    //We don't write UnwindInfo via IViewable; we collect all UnwindInfo items directly
+                    //in WriteUnwindInfo. So at the point where we access the ExceptionData, either we're
+                    //already inside a FileView and know what the exception handler kind is, or somewone
+                    //is using a custom writer, in which case we _do_ need to eagerly compute the kind
+
+                    var dataChunk = chunk.Slice(ExtraDataStart + 4);
+
+                    int infoRVA;
+                    PEFile peFile;
+                    MemoryChunk infoChunk;
+
+                    switch (ExceptionHandlerKind)
+                    {
+                        case WellKnownExceptionHandlerKind.Unknown:
+                        case WellKnownExceptionHandlerKind.None:
+                            break;
+
+                        #region GSHandlerCheck
+
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck: //_GS_HANDLER_DATA
+                            s.WriteInline(new GsHandlerData(dataChunk.AbsoluteOffset, dataChunk.Pointer));
+                            break;
+
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_SEH: //SCOPE_TABLE + _GS_HANDLER_DATA
+                            new ScopeTableAndGsHandlerData(dataChunk).WriteInline(ref s);
+                            break;
+
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH: //RVA<FuncInfo> + _GS_HANDLER_DATA
+                            new FuncInfoAndGsHandlerData(dataChunk).WriteInline(ref s);
+                            break;
+
+                        case WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4: //RVA<FuncInfo4> + _GS_HANDLER_DATA
+                            new FuncInfo4AndGsHandlerData(dataChunk, functionAddress).WriteInline(ref s);
+                            break;
+
+                        #endregion
+                        #region C Specific Handler
+
+                        case WellKnownExceptionHandlerKind.__C_specific_handler:
+                        case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
+                            s.WriteInline(new ScopeTable(dataChunk));
+                            break;
+
+                        #endregion
+                        #region CxxFrameHandler
+
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler:
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler2:
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler3:
+                            //Value is an RVA to the FuncInfo. FuncInfo struct may or may not be right after its RVA
+                            infoRVA = dataChunk.PeekInt32(0);
+
+                            peFile = chunk.PEFile();
+
+                            if (peFile.TryGetValueChunkFromSection(infoRVA, out infoChunk))
+                                s.WriteInline(new RVA<FuncInfo>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo(infoChunk)), ViewKind.FuncInfoRva);
+                            else
+                                s.WriteInline(new RVA<FuncInfo>(infoRVA), ViewKind.FuncInfoRva);
+
+                            break;
+
+                        case WellKnownExceptionHandlerKind.__CxxFrameHandler4:
+                            //Value is an RVA to the FuncInfo4. FuncInfo4 struct may or may not be right after its RVA
+                            infoRVA = dataChunk.PeekInt32(0);
+
+                            peFile = chunk.PEFile();
+
+                            if (peFile.TryGetValueChunkFromSection(infoRVA, out infoChunk))
+                                s.WriteInline(new RVA<FuncInfo4>(infoRVA, infoChunk.AbsoluteOffset, new FuncInfo4(infoChunk, functionAddress)), ViewKind.FuncInfo4Rva);
+                            else
+                                s.WriteInline(new RVA<FuncInfo4>(infoRVA), ViewKind.FuncInfo4Rva);
+
+                            break;
+
+                        #endregion
+
+                        default:
+                            throw new NotImplementedException($"Don't know how to handle {nameof(WellKnownExceptionHandlerKind)} '{ExceptionHandlerKind}'");
+                    }
+                }
+                else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
+                {
+                    s.WriteInline((RuntimeFunction) FunctionEntry!);
+                }
+
+                structWriter.EagerFields = s.ToArray();
             }
-
-            s.WriteField(nameof(SizeOfProlog), SizeOfProlog);
-            s.WriteField(nameof(CountOfCodes), CountOfCodes);
-
-            using (var b = s.WriteBitFields<byte>(2))
+            finally
             {
-                b.WriteField(nameof(FrameRegister), FrameRegister, 4);
-                b.WriteField(nameof(FrameOffset), FrameOffset, 4);
-            }
-
-            //If CountOfCodes is odd, this includes the empty one at the end
-            s.WriteUnmanagedInline<UnwindCodeList, UnwindCodeList.Enumerator, UnwindCode>(UnwindCode);
-
-            //What follows next depends on the Flags
-
-            if (((int) Flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) Flags & (int) UNW_FLAG.UHANDLER) != 0)
-            {
-                s.WriteField(nameof(ExceptionHandler), ExceptionHandler);
-
-                //We don't write UnwindInfo via IViewable; we collect all UnwindInfo items directly
-                //in WriteUnwindInfo. So at the point where we access the ExceptionData, either we're
-                //already inside a FileView and know what the exception handler kind is, or somewone
-                //is using a custom writer, in which case we _do_ need to eagerly compute the kind
-
-                var exceptionData = ExceptionData;
-
-                if (exceptionData is IViewableValue v)
-                    s.WriteInline(v);
-                else
-            }
-            else if (((int) Flags & (int) UNW_FLAG.CHAININFO) != 0)
-            {
-                s.WriteInline((RuntimeFunction) FunctionEntry!);
-            }
-
-            structWriter.EagerFields = s.ToArray();
+                s.Dispose();
+            }            
         }
     }
 }

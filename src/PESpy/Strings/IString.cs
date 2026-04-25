@@ -2,12 +2,7 @@
 
 namespace PESpy
 {
-    public interface IString<TString, TChar> :
-        IEquatable<TString>,
-        IComparable<TString>
-        //You're not allowed to explicitly implement IEquatable<string> in case TString is also string, which would mean we already have an IEquatable<string> above
-        //IEquatable<string>,
-        //IComparable<string>
+    public interface IString
     {
         int Length { get; }
 
@@ -17,13 +12,7 @@ namespace PESpy
 
         bool Contains(string value);
 
-        void CopyTo(Span<TChar> destination);
-
         void CopyTo(Span<char> destination);
-
-        Span<TChar> AsSpan();
-
-        int CompareToIgnoreCase(TString other);
 
         //IEquatable<string> / IComparable<string>
 
@@ -32,5 +21,20 @@ namespace PESpy
         bool Equals(ReadOnlySpan<char> other);
 
         int CompareTo(string other);
+    }
+
+    public interface IString<TString, TChar> :
+        IEquatable<TString>,
+        IComparable<TString>,
+        IString
+        //You're not allowed to explicitly implement IEquatable<string> in case TString is also string, which would mean we already have an IEquatable<string> above
+        //IEquatable<string>,
+        //IComparable<string>
+    {
+        void CopyTo(Span<TChar> destination);
+
+        Span<TChar> AsSpan();
+
+        int CompareToIgnoreCase(TString other);
     }
 }

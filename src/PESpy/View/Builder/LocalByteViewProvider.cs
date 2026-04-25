@@ -10,7 +10,7 @@ namespace PESpy.View.Builder
 
         public override int FileOrSectionLength => length;
 
-        public LocalByteViewProvider(byte* mmf, int length, IViewDisassembler? viewDisassembler = null, bool isLibFile = false) : base(viewDisassembler, isLibFile)
+        public LocalByteViewProvider(byte* mmf, int length, FileAccessor fileAccessor, bool isLibFile = false) : base(fileAccessor, isLibFile)
         {
             if (mmf == default || length == 0)
                 throw new ArgumentException("Empty MMF specified");

@@ -126,7 +126,6 @@ namespace PESpy.View
             }
 
             SectionAccessors = null!;
-            _trackXRefs = trackXRefs;
         }
 
         protected abstract object CreateOverview();
@@ -178,9 +177,9 @@ namespace PESpy.View
             throw new InvalidOperationException($"The specified {nameof(ViewByte)} does not belong to any section of the current {nameof(FileAccessor)}");
         }
 
-        public ViewEntity GetEntity(ViewByte* pViewByte, int sectionIndex)
+        public ViewEntity GetEntity(ViewByte* pViewByte, int sectionAccessorIndex)
         {
-            ref var accessor = ref SectionAccessors[sectionIndex];
+            ref var accessor = ref SectionAccessors[sectionAccessorIndex];
 
             var offset = (int) (pViewByte - accessor.pViewBytes);
 
@@ -188,16 +187,17 @@ namespace PESpy.View
 
             var pBytes = GetRawSectionData(accessor);
 
-            return GetEntity(sectionIndex, targetAddress, pViewByte, accessor, pBytes);
+            return GetEntity(sectionAccessorIndex, targetAddress, pViewByte, accessor, pBytes);
         }
 
-        public ViewEntity GetEntity(int address, ViewByte* pViewByte, int sectionIndex)
+        public ViewEntity GetEntity(int address, ViewByte* pViewByte, int sectionAccessorIndex)
         {
-            ref var accessor = ref SectionAccessors[sectionIndex];
+            ref var accessor = ref SectionAccessors[sectionAccessorIndex];
 
             var pBytes = GetRawSectionData(accessor);
 
             return new ViewEntity(
+                sectionAccessorIndex,
                 GetSymbolAccessor(),
                 address,
                 pViewByte,
@@ -212,13 +212,14 @@ namespace PESpy.View
 
         //For when you already have all the various pieces
         internal unsafe ViewEntity GetEntity(
-            int sectionIndex,
+            int sectionAccessorIndex,
             int targetAddress,
             ViewByte* pViewByte,
             in SectionAccessor sectionAccessor,
             IntPtr pBytes)
         {
             return new ViewEntity(
+                sectionAccessorIndex,
                 GetSymbolAccessor(),
                 targetAddress,
                 pViewByte,
@@ -231,7 +232,7 @@ namespace PESpy.View
             );
         }
 
-        public ViewEntity GetEntity(int address, int sectionIndex)
+        public ViewEntity GetEntity(int address, int sectionIndex) //_not_ a sectionAccessorIndex
         {
             ref var accessor = ref SectionAccessors[sectionIndex + 1]; //The first section is the header
 
@@ -244,6 +245,7 @@ namespace PESpy.View
             var pViewByte = &accessor.pViewBytes[relativeOffset];
 
             return new ViewEntity(
+                sectionIndex + 1,
                 GetSymbolAccessor(),
                 address,
                 pViewByte,
@@ -305,7 +307,7 @@ namespace PESpy.View
             if (viewMode == ViewMode.Default && FileViewKind == ViewKind.PEFile)
                 viewMode = ((PEFileAccessor) this).IsLoaded ? ViewMode.Virtual : ViewMode.Physical;
 
-            return new FileView(viewMode, File.Name, sectionViews, GetViewWriter(), FileViewKind);
+            return new FileView(viewMode, File, sectionViews, GetViewWriter(), FileViewKind);
         }
 
         public ViewEntity[] Entities => EnumerateEntities().ToArray();
@@ -326,7 +328,7 @@ namespace PESpy.View
                 while (j < sectionLength)
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
-                    var entity = new ViewEntity(symbolAccessor, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names, LargeAddresses);
+                    var entity = new ViewEntity(i, symbolAccessor, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names, LargeAddresses);
 
                     j += entity.Length;
 
@@ -511,6 +513,45 @@ namespace PESpy.View
             }
         }
 
+        public IView GetView(int targetAddress)
+        {
+            var entity = GetEntity(targetAddress);
+
+            if (entity.ViewByte->Kind == ViewByteKind.Body)
+            {
+                var head = entity.GetHead(this, out _);
+
+                if (head.Kind == 0)
+                {
+                    throw new NotImplementedException(); //An xref partway into an entity; that's tricky
+                }
+
+                var parent = GetViewFromEntity(head);
+
+                var @continue = true;
+
+                while (@continue)
+                {
+                    @continue = false;
+
+                    foreach (var child in parent.Children)
+                    {
+                        if (child.Contains(targetAddress))
+                        {
+                            if (child.IsContainer())
+                            {
+                                parent = child;
+
+                                @continue = true;
+                                break;
+                            }
+
+                            //The xref had better be at the start of the value!
+                            Debug.Assert(child.Offset == targetAddress);
+                            return child;
+                        }
+                    }
+                }
         //Not related to being in a nested file
         private IStructView GetNestedStructView(ViewByte* pViewByte, ViewByte* limit, int offset, ViewKind viewKind)
         {
@@ -797,11 +838,28 @@ namespace PESpy.View
             if (_xrefs == null)
                 return default;
 
-            var handle = _infoMap[targetAddress].XRefs;
+            if (!_infoMap.TryGetValue(targetAddress, out var value))
+                return default; 
 
-            Debug.Assert(!handle.IsEmpty);
+            var handle = value.XRefs;
+
+            if (handle.IsEmpty)
+                return default;
 
             return _xrefs.GetSpan(handle);
+        }
+
+        internal XRef[] GetXRefBuffer() => _xrefs._buffer;
+
+        internal SpanAllocatorHandle GetXRefsHandle(int targetAddress)
+        {
+            if (_xrefs == null)
+                return default;
+
+            if (!_infoMap.TryGetValue(targetAddress, out var value))
+                return default;
+
+            return value.XRefs;
         }
 
         #endregion

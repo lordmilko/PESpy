@@ -9,10 +9,24 @@ using PESpy.View;
 
 namespace PESpy
 {
+    internal class ScopeRecordDebugView
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public ScopeTable.ScopeRecord[] Items => scopeTable.ToArray();
+
+        private ScopeTable scopeTable;
+
+        internal ScopeRecordDebugView(ScopeTable scopeTable)
+        {
+            this.scopeTable = scopeTable;
+        }
+    }
+
     /// <summary>
     /// Represents the <see cref="SCOPE_TABLE"/> structure.
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(ScopeRecordDebugView))]
     public struct ScopeTable : IViewableValue, IEnumerable<ScopeTable.ScopeRecord>
     {
         private const int CountOffset = 0;
@@ -20,27 +34,6 @@ namespace PESpy
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Count => chunk.PeekInt32(CountOffset);
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        private ScopeRecord[]? records;
-
-        public ScopeRecord[] Records
-        {
-            get
-            {
-                if (records == null)
-                {
-                    var results = new ScopeRecord[Count];
-
-                    for (var i = 0; i < Count; i++)
-                        results[i] = new ScopeRecord(chunk.Slice(RecordsOffset + (i * ScopeRecord.StructSize)));
-
-                    records = results;
-                }
-
-                return records;
-            }
-        }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -53,23 +46,35 @@ namespace PESpy
         internal ScopeTable(in MemoryChunk chunk)
         {
             this.chunk = chunk;
-            records = default;
         }
 
-        public IEnumerator<ScopeRecord> GetEnumerator() => Records.Select(v => v).GetEnumerator();
+        public ScopeRecord this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= Count)
+                    throw new IndexOutOfRangeException();
+
+                return new ScopeRecord(chunk.Slice(sizeof(int) + (index * ScopeRecord.StructSize)));
+            }
+        }
+
+        public Enumerator GetEnumerator() => new Enumerator(chunk, Count);
+
+        IEnumerator<ScopeRecord> IEnumerable<ScopeRecord>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            foreach (var record in this)
+                writer.RelayGlobals(record);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.SCOPE_TABLE, this, ViewKind.ScopeTable, StructSize);
 
-        int IViewable.NumChildren() => 1 + Records.Length;
+        int IViewable.NumChildren() => 1 + Count;
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -80,8 +85,46 @@ namespace PESpy
                     break;
 
                 default:
-                    structWriter.WriteInline(Records[index - 1]);
+                    structWriter.WriteInline(this[index - 1]);
                     break;
+            }
+        }
+
+        public struct Enumerator : IEnumerator<ScopeRecord>
+        {
+            private readonly int _end;
+            private readonly MemoryChunk chunk;
+            private int _offset;
+
+            internal Enumerator(in MemoryChunk chunk, int count)
+            {
+                this.chunk = chunk;
+                _offset = sizeof(int);
+                _end = sizeof(int) + (count * ScopeRecord.StructSize);
+            }
+
+            public ScopeRecord Current { get; private set; }
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext()
+            {
+                if (_offset < _end)
+                {
+                    Current = new ScopeRecord(chunk.Slice(_offset));
+                    _offset += ScopeTable.ScopeRecord.StructSize;
+                    return true;
+                }
+
+                return false;
+            }
+
+            public void Reset()
+            {
+            }
+
+            public void Dispose()
+            {
             }
         }
 
@@ -144,16 +187,15 @@ namespace PESpy
             {
                 var structOffset = Offset;
 
-                writer.WriteRVAXRef(structOffset, BeginAddressOffset, BeginAddress);
-                writer.WriteRVAXRef(structOffset, EndAddressOffset, EndAddress);
-
+                writer.WriteUniqueRVAXRef(structOffset, BeginAddressOffset, BeginAddress);
+                writer.WriteUniqueRVAXRef(structOffset, EndAddressOffset, EndAddress);
 
                 var handlerAddress = HandlerAddress;
 
                 if (handlerAddress > 1)
-                    writer.WriteRVAXRef(structOffset, HandlerAddressOffset, handlerAddress);
+                    writer.WriteUniqueRVAXRef(structOffset, HandlerAddressOffset, handlerAddress);
 
-                writer.WriteRVAXRef(structOffset, JumpTargetOffset, JumpTarget);
+                writer.WriteUniqueRVAXRef(structOffset, JumpTargetOffset, JumpTarget);
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>

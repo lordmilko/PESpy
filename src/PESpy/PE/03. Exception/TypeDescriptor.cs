@@ -7,27 +7,33 @@ namespace PESpy
     public readonly struct TypeDescriptor : IValue, IViewable
     {
         private const int pVFTableOffset = 0;
-        private const int SpareOffset = 8;
-        private const int NameOffset = 16;
+        private const int spareOffset = 8;
+        private const int nameOffset = 16;
 
-        public ulong pVFTable => chunk.PeekUInt64(pVFTableOffset);
+        public ulong pVFTable { get; }
 
-        public ulong Spare => chunk.PeekUInt64(SpareOffset);
+        public ulong spare { get; }
 
-        public AnsiString Name => chunk.PeekAnsiNullTerminatedString(NameOffset);
+        public AnsiString name { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public int Offset { get; }
 
         internal int StructSize =>
             sizeof(long) + //pVFTable
-            sizeof(long) + //Spare
-            Name.Length + 1; //Name
+            sizeof(long) + //spare
+            name.Length + 1; //name
 
-        private readonly MemoryChunk chunk;
 
         internal TypeDescriptor(in MemoryChunk chunk)
         {
-            this.chunk = chunk;
+            //HandlerType4 needs to take the address of itself to expose its
+            //continuationAddresses which it can't do if TypeDescriptor stores a MemoryChunk; so we need
+            //to eagerly read here
+            Offset = chunk.AbsoluteOffset;
+
+            pVFTable = chunk.PeekUInt64(pVFTableOffset);
+            spare = chunk.PeekUInt64(spareOffset);
+            name = chunk.PeekAnsiNullTerminatedString(nameOffset);
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -45,15 +51,15 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WritePointerField("pVFTable", pVFTableOffset, pVFTable);
+                    structWriter.WritePointerField(nameof(pVFTable), pVFTableOffset, pVFTable);
                     break;
 
                 case 1:
-                    structWriter.WritePointerField("spare", SpareOffset, Spare);
+                    structWriter.WritePointerField(nameof(spare), spareOffset, spare);
                     break;
 
                 case 2:
-                    structWriter.WriteAnsiNullTerminatedField("name", NameOffset, Name);
+                    structWriter.WriteAnsiNullTerminatedField(nameof(name), nameOffset, name);
                     break;
 
                 default:
@@ -63,7 +69,7 @@ namespace PESpy
 
         public override string ToString()
         {
-            return Name.ToString();
+            return name.ToString();
         }
     }
 }

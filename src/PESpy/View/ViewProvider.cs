@@ -79,15 +79,37 @@ namespace PESpy
 
                 ViewKind.RuntimeFunction                             => Write(new RuntimeFunction(chunk),                             viewWriter),
                 ViewKind.UnwindInfo                                  => Write(new UnwindInfo(chunk),                                  viewWriter),
+                ViewKind.GsHandlerData                               => Write(new GsHandlerData(chunk),                               viewWriter),
                 ViewKind.ScopeTable                                  => Write(new ScopeTable(chunk),                                  viewWriter),
                 ViewKind.ScopeRecord                                 => Write(new ScopeTable.ScopeRecord(chunk),                      viewWriter),
+
+                #region FuncInfo
+
                 ViewKind.FuncInfo                                    => Write(new FuncInfo(chunk),                                    viewWriter),
-                //ViewKind.FuncInfoHeader                              => Write(new FuncInfoHeader(chunk),                              viewWriter),
                 ViewKind.HandlerType                                 => Write(new HandlerType(chunk),                                 viewWriter),
                 ViewKind.IptoStateMapEntry                           => Write(new IptoStateMapEntry(chunk),                           viewWriter),
                 ViewKind.TryBlockMapEntry                            => Write(new TryBlockMapEntry(chunk),                            viewWriter),
                 ViewKind.TypeDescriptor                              => Write(new TypeDescriptor(chunk),                              viewWriter),
                 ViewKind.UnwindMapEntry                              => Write(new UnwindMapEntry(chunk),                              viewWriter),
+
+                #endregion
+                #region FuncInfo4
+
+                ViewKind.FuncInfo4                                   => Write(new FuncInfo4(chunk),                                   viewWriter),
+                //ViewKind.FuncInfoHeader                              => Write(new FuncInfoHeader(chunk),                              viewWriter),
+                ViewKind.HandlerMap4                                 => Write(new HandlerMap4(chunk),                                 viewWriter),
+                ViewKind.IPtoStateMap4                               => Write(new IPtoStateMap4(chunk),                               viewWriter),
+                ViewKind.SepIPtoStateMap4                            => Write(new SepIPtoStateMap4(chunk),                            viewWriter),
+                ViewKind.TryBlockMap4                                => Write(new TryBlockMap4(chunk),                                viewWriter),
+                ViewKind.UWMap4                                      => Write(new UWMap4(chunk),                                      viewWriter),
+                //ViewKind.HandlerType4                                => Write(new HandlerType4(chunk),                                viewWriter),
+                //ViewKind.HandlerTypeHeader                           => Write(new HandlerTypeHeader(chunk),                           viewWriter),
+                //ViewKind.IPtoStateMapEntry4                          => Write(new IPtoStateMapEntry4(chunk),                          viewWriter),
+                //ViewKind.SepIPtoStateMapEntry4                       => Write(new SepIPtoStateMapEntry4(chunk),                       viewWriter),
+                //ViewKind.TryBlockMapEntry4                           => Write(new TryBlockMapEntry4(chunk),                           viewWriter),
+                //ViewKind.UnwindMapEntry4                             => Write(new UnwindMapEntry4(chunk),                             viewWriter),
+
+                #endregion
 
                 #endregion
                 #region Security Table (4)
@@ -633,9 +655,9 @@ namespace PESpy
                 #endregion
 
                 ViewKind.PSGSIHDR                                    => Write(new PDB.PSGSIHDR(chunk),                                viewWriter),
-                ViewKind.AddressMap                                  => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.AddressMap),
-                ViewKind.ThunkMap                                    => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.ThunkMap),
-                ViewKind.SectionMap                                  => WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.SectionMap),
+                ViewKind.AddressMap                                  => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.AddressMap),
+                ViewKind.ThunkMap                                    => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.ThunkMap),
+                ViewKind.SectionMap                                  => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.SectionMap),
 
                 _ => throw new InvalidOperationException($"Don't know how to handle kind '{kind}'")
             };
@@ -721,9 +743,9 @@ namespace PESpy
             return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length, kind);
         }
 
-        private static IView WriteGlobalField<T>(in MemoryChunk chunk, int length, ViewKind kind, T value, FixedUtf8String name)
+        private static IView WriteGlobalField<T>(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind, T value, FixedUtf8String name)
         {
-            return new FieldView<T>(chunk.AbsoluteOffset, name.ToString(), value, length, default, kind);
+            return new FieldView<T>(chunk.AbsoluteOffset, name.ToString(), value, length, default, viewWriter._fileAccessor, kind);
         }
 
         private static unsafe IView WriteSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
@@ -772,7 +794,7 @@ namespace PESpy
 
         private static ByteBlobView GetBytes(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)
         {
-            return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(0, length), kind);
+            return new ByteBlobView(chunk.AbsoluteOffset, chunk.PeekNativeSpan<byte>(0, length), kind, viewWriter._fileAccessor);
         }
 
         private static IStructView GetBundleFileEntry(in MemoryChunk chunk, ViewWriter viewWriter)

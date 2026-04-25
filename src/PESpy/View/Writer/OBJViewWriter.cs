@@ -10,7 +10,7 @@ namespace PESpy.View
 
         IMAGE_FILE_MACHINE IMachineWriter.GetMachine(in MemoryChunk chunk) => objFile.FileHeader.Machine;
 
-        internal unsafe OBJViewWriter(OBJFile objFile) : base(objFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe OBJViewWriter(OBJFile objFile) : base(objFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
         {
             this.objFile = objFile;
         }
@@ -33,7 +33,7 @@ namespace PESpy.View
 
             var results = merger.MergeOBJ();
 
-            return new FileView(ViewMode.Physical, objFile.Name, results, this, ViewKind.OBJFile);
+            return new FileView(ViewMode.Physical, objFile, results, this, ViewKind.OBJFile);
         }
     }
 }

@@ -186,7 +186,7 @@ namespace PESpy.View
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
                     Debug.Assert(_names != null);
-                    var entity = new ViewEntity(symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
+                    var entity = new ViewEntity(SectionAccessorIndex, symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
                     Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body || entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
 
                     if (entity.TargetAddress == state.NextDataDirectoryOffset)
@@ -251,7 +251,7 @@ namespace PESpy.View
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
                     Debug.Assert(_names != null);
-                    var entity = new ViewEntity(symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
+                    var entity = new ViewEntity(SectionAccessorIndex, symbolAccessor, sectionAccessor, bytesRead, sectionLength, pBytes, infoMap, names, largeAddresses, measureOnly: true);
                     Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
 
                     if (entity.TargetAddress == state.NextRegionOffset)
@@ -470,6 +470,6 @@ namespace PESpy.View
             _bytesRead = _startOffset;
         }
 
-        private ViewEntity GetEntity() => new ViewEntity(_symbolAccessor, SectionAccessor, _bytesRead, _sectionLength, _pBytes, _infoMap, _names, _largeAddresses);
+        private ViewEntity GetEntity() => new ViewEntity(SectionAccessorIndex, _symbolAccessor, SectionAccessor, _bytesRead, _sectionLength, _pBytes, _infoMap, _names, _largeAddresses);
     }
 }

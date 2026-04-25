@@ -5,12 +5,12 @@ namespace PESpy
 {
     public readonly struct UnwindMapEntry : IValue, IViewable
     {
-        private const int ToStateOffset = 0;
-        private const int ActionOffset = 4;
+        private const int toStateOffset = 0;
+        private const int actionOffset = 4;
 
-        public int ToState => chunk.PeekInt32(ToStateOffset);
+        public int toState => chunk.PeekInt32(toStateOffset);
 
-        public int Action => chunk.PeekInt32(ActionOffset);
+        public int action => chunk.PeekInt32(actionOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -27,7 +27,7 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            writer.WriteUniqueRVAXRef(Offset, actionOffset, action);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
@@ -40,11 +40,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("toState", ToStateOffset, ToState);
+                    structWriter.WriteField(nameof(toStateOffset), toStateOffset, toState);
                     break;
 
                 case 1:
-                    structWriter.WriteField("action", ActionOffset, Action);
+                    structWriter.WriteField(nameof(actionOffset), actionOffset, action);
                     break;
 
                 default:

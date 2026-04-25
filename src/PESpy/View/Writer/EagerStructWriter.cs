@@ -513,7 +513,7 @@ namespace PESpy.View
         public unsafe void WriteInline<T>(RawValue<T> value, ViewKind kind) where T : unmanaged
         {
             Debug.Assert(structWriter.ParentOffset + currentFieldOffset == value.Offset);
-            items.Add(new ValueView<T>(value.Offset, value.Value, sizeof(T), kind));
+            items.Add(new ValueView<T>(value.Offset, value.Value, sizeof(T), kind, structWriter.ViewWriter._fileAccessor));
             currentFieldOffset += sizeof(T);
         }
 
@@ -640,15 +640,18 @@ namespace PESpy.View
         #endregion
         #region BitField
 
-        internal unsafe BitFieldWriter WriteBitFields<TSize>(int numFields) where TSize : unmanaged
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal unsafe BitFieldWriter WriteBitFields<TSize>(int numFields) where TSize : unmanaged =>
+            WriteBitFields(numFields, sizeof(TSize));
+
+        internal unsafe BitFieldWriter WriteBitFields(int numFields, int size)
         {
             //Our child writer can't store a reference to us (and even though we're both ref structs, it seems to me that trying to assign ourselves still creates a copy).
             //So pre-emptively increase the number of bytes written; our child writer will then assert that the specified number of bytes is what was written
             var off = structWriter.ParentOffset + currentFieldOffset;
-            var bytes = sizeof(TSize);
-            currentFieldOffset += bytes;
+            currentFieldOffset += size;
             var buffer = items.GetBuffer(numFields);
-            return new BitFieldWriter(off, buffer, bytes);
+            return new BitFieldWriter(off, buffer, size, structWriter.ViewWriter._fileAccessor);
         }
 
         #endregion

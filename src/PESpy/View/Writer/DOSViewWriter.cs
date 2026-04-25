@@ -34,7 +34,7 @@ namespace PESpy.View
 
             var results = merger.MergeDOS();
 
-            return new FileView(ViewMode.Physical, dosFile.Name, results, this, ViewKind.DOSFile);
+            return new FileView(ViewMode.Physical, dosFile, results, this, ViewKind.DOSFile);
         }
     }
 }

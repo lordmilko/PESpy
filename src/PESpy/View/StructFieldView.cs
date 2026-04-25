@@ -9,8 +9,7 @@ namespace PESpy.View
         new IStructView Value { get; }
     }
 
-    [DebuggerDisplay("{ViewDebuggerDisplay.StructField(this),nq}")]
-    public class StructFieldView : IStructFieldView, ISplittableView
+    public class StructFieldView : IStructFieldView, IViewInternal, ISplittableView
     {
         public int Offset => Value.Offset;
 
@@ -20,18 +19,28 @@ namespace PESpy.View
 
         public ViewKind Kind => Value.Kind;
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.StructField;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public ViewChildList Children => Value.Children;
+
         public string FieldName { get; }
 
-        public StructView Value { get; private set; }
+        public IStructView Value { get; private set; }
 
         public string ValueType => Value.ValueType;
-
-        IStructView IStructFieldView.Value => Value;
 
         string IFieldView.Name => FieldName;
         object IFieldView.Value => Value!;
 
         public FieldViewFlags Flags => default;
+
+        public IView this[int index] => Value[index];
 
         [DebuggerStepThrough]
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitStructField(this);
@@ -39,10 +48,13 @@ namespace PESpy.View
         [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitStructField(this);
 
-        public StructFieldView(StructView value, string fieldName)
+        private readonly FileAccessor _fileAccessor;
+
+        public StructFieldView(IStructView value, string fieldName, FileAccessor fileAccessor)
         {
             Value = value;
             FieldName = fieldName;
+            _fileAccessor = fileAccessor;
         }
 
         (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
@@ -65,10 +77,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitStructFieldView((StructView) firstStruct, FieldName);
+                first = new SplitStructFieldView((StructView) firstStruct, FieldName, _fileAccessor);
             }
 
-            var second = new SplitStructFieldView((StructView) secondStruct, FieldName);
+            var second = new SplitStructFieldView((StructView) secondStruct, FieldName, _fileAccessor);
             second.Previous = first;
             first.Next = second;
 
@@ -85,7 +97,12 @@ namespace PESpy.View
                 throw new System.NotImplementedException("Need to set Previous and Next. Not sure how to do that");
             }
 
-            return new StructFieldView((StructView) ((ISplittableView) Value).WithOffset(newOffset), FieldName);
+            return new StructFieldView((StructView) ((ISplittableView) Value).WithOffset(newOffset), FieldName, _fileAccessor);
+        }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatStructField(this);
         }
     }
 
@@ -95,7 +112,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        internal SplitStructFieldView(StructView value, string fieldName) : base(value, fieldName)
+        internal SplitStructFieldView(StructView value, string fieldName, FileAccessor fileAccessor) : base(value, fieldName, fileAccessor)
         {
         }
     }

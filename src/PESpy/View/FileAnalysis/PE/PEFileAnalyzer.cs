@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using ClrDebug;
 
@@ -39,8 +40,45 @@ namespace PESpy.View
 
             _cancellationToken.ThrowIfCancellationRequested();
 
-            //Mark all data structures that our PEFile knows about as being data
-            ((IViewable) _peFile).WriteGlobals(_viewWriter);
+            var exceptionTable = _peFile.ExceptionTable;
+
+            PEViewByteViewWriter viewWriter = null;
+
+            if (exceptionTable != null)
+            {
+                viewWriter = (PEViewByteViewWriter) _viewWriter;
+                viewWriter._unwindInfos = new UnwindInfoHashSet(exceptionTable.Count); //Worst case scenario
+            }
+
+            ISymbolAccessor symbolAccessor = null;
+
+            var success = false;
+
+            try
+            {
+                //Mark all data structures that our PEFile knows about as being data
+                ((IViewable) _peFile).WriteGlobals(_viewWriter); //Not passing our local since I feel like that might cause a type conversion in NativeAOT? Not sure
+
+                symbolAccessor = LocateSymbols();
+
+                success = true;
+            }
+            finally
+            {
+                if (exceptionTable != null)
+                {
+                    if (success)
+                    {
+                        Log(FileAnalyzerProgressPhase.DiscoverExceptionData);
+
+                        ExceptionHandlerContext.WriteUnwindInfos(_peFile, viewWriter, symbolAccessor);
+
+                        ProcessSpecialUnwindInfos(viewWriter, exceptionTable);
+                    }
+
+                    viewWriter._unwindInfos.Dispose();
+                }
+            }
 
             //We may or may not have symbols. Collect any code locations pointed to by the PEFile
             //so we can at least disassemble something
@@ -100,6 +138,116 @@ namespace PESpy.View
             return importMap;
         }
 
+        private void ProcessSpecialUnwindInfos(PEViewByteViewWriter viewWriter, RuntimeFunctionList exceptionTable)
+        {
+            var specialUnwindInfos = viewWriter._specialUnwindInfos;
+
+            if (specialUnwindInfos.Count == 0)
+                return;
+
+            var pRuntimeFunction = (RUNTIME_FUNCTION*) exceptionTable.chunk.Pointer;
+
+            var pEnd = pRuntimeFunction + exceptionTable.Count;
+
+            var lookupCache = _lookupCache;
+
+            if (!_peFile.TryGetSectionContainingRVA(specialUnwindInfos.First().Key, out var sectionIndex, out var sectionHeader))
+            {
+                Debug.Assert(false);
+                return;
+            }
+
+            //We assume that all UNWIND_INFO items are in the same section
+
+            var block = _peFile.GetSectionBlock(sectionIndex, sectionHeader);
+
+            var vaStart = sectionHeader.VirtualAddress;
+            var vaEnd = vaStart + sectionHeader.VirtualSize;
+
+            //This works for both loaded and unloaded cases
+            var pData = block.LocalPointer - vaStart;
+
+            viewWriter.EnterUniqueXRef();
+
+            for (; pRuntimeFunction < pEnd; pRuntimeFunction++)
+            {
+                var unwindInfoRVA = pRuntimeFunction->UnwindData;
+
+                if (unwindInfoRVA == 0)
+                    continue;
+
+                //In debug builds, your exception table can be full of items that are all 0
+
+                if (lookupCache.TryGetSectionInfo(pRuntimeFunction->BeginAddress, out var targetAddress, out sectionIndex, out _))
+                {
+                    //todo: apparently the begin address also always denotes the start of a function, based on ida
+                    AddCode(targetAddress, pRuntimeFunction->BeginAddress);
+                }
+
+                if (!specialUnwindInfos.TryGetValue(unwindInfoRVA, out var dataKind))
+                    continue;
+
+                if (unwindInfoRVA < vaStart || unwindInfoRVA >= vaEnd)
+                {
+                    //A critical assumption we've made has failed. We don't currently implement fallback logic.
+                    //Skip this item for now
+                    Debug.Assert(false);
+                    continue;
+                }
+
+                var pUnwindInfo = pData + unwindInfoRVA;
+
+                //This is an RVA to an UNWIND_INFO whose ExceptionData starts with an RVA<FuncInfo4>
+
+                var countOfCodes = *(pUnwindInfo + UnwindInfo.CountOfCodesOffset);
+                var extraDataStart = 4 + (((countOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
+                var exceptionHandler = *(int*) (pUnwindInfo + extraDataStart);
+
+                var exceptionDataStart = (pUnwindInfo + extraDataStart + sizeof(int));
+
+                MemoryChunk valueChunk;
+
+                switch (dataKind)
+                {
+                    case UnwindInfo.SpecialExceptionDataKind.ScopeTable:
+                        valueChunk = new MemoryChunk(block, (int) (exceptionDataStart - block.LocalPointer));
+                        var scopeTable = new ScopeTable(valueChunk);
+                        DiscoverScopeTable(ref lookupCache, scopeTable);
+                        break;
+
+                    case UnwindInfo.SpecialExceptionDataKind.FuncInfo:
+                        var rvaOfFuncInfo = *(int*) exceptionDataStart;
+
+                        if (_peFile.TryGetValueChunkFromSection(rvaOfFuncInfo, out valueChunk))
+                        {
+                            var funcInfo = new FuncInfo(valueChunk);
+                            DiscoverFuncInfoCodeRoots(funcInfo);
+                        }
+                        break;
+
+                    case UnwindInfo.SpecialExceptionDataKind.FuncInfo4:
+                        //The xref for the RVA to the FuncInfo4 is written in UnwindInfo.WriteUnwindInfo because we already have
+                        //the UnwindInfo struct offset at that point
+                        var rvaOfFuncInfo4 = *(int*) exceptionDataStart;
+
+                        if (_peFile.TryGetValueChunkFromSection(rvaOfFuncInfo4, out valueChunk))
+                        {
+                            var funcInfo4 = new FuncInfo4(valueChunk, pRuntimeFunction->BeginAddress);
+                            viewWriter.WriteGlobal(funcInfo4);
+
+                            //While we're here, let's also discover code roots
+                            DiscoverFuncInfo4CodeRoots(ref lookupCache, funcInfo4);
+                        }
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+
+            viewWriter.ExitUniqueXRef();
+        }
+
         #region DiscoverCodeRoots
 
         private void DiscoverCodeRoots()
@@ -120,7 +268,6 @@ namespace PESpy.View
             //with them should have been handled when we analyzed the structs contained in the PEFile
 
             ProcessExports();
-            ProcessExceptionTable();
             ProcessLoadConfigTable();
 
             ProcessEcmaMetadata();
@@ -172,64 +319,176 @@ namespace PESpy.View
             }
         }
 
-        private void ProcessExceptionTable()
+        private void DiscoverScopeTable(
+            ref PESectionLookupCache lookupCache,
+            in ScopeTable scopeTable)
         {
-            _cancellationToken.ThrowIfCancellationRequested();
-
-            var exceptionTable = _peFile.ExceptionTable;
-
-            if (exceptionTable != null)
+            foreach (var record in scopeTable)
             {
-                //I expect every value should be in the pdata section
-
-                ref var lookupCache = ref _lookupCache;
-
-                foreach (var item in _peFile.ExceptionTable)
+                if (lookupCache.TryGetSectionInfo(record.BeginAddress, out var targetAddress, out var sectionIndex, out _))
                 {
-                    //In debug builds, your exception table can be full of items that are all 0
+                    //End is normally the same as jump target, but not always
+                    AddCode(targetAddress, record.BeginAddress);
+                }
 
-                    if (item.BeginAddress != 0 && lookupCache.TryGetSectionInfo(item.BeginAddress, out var targetAddress, out int sectionIndex, out _))
+                if (lookupCache.TryGetSectionInfo(record.EndAddress, out targetAddress, out sectionIndex, out _))
+                    AddCode(targetAddress, record.EndAddress);
+
+                /* If no custom handler has been specified, this value is EXCEPTION_EXECUTE_HANDLER (1).
+                 * Ostensibly, it should also be possible for this value to be EXCEPTION_CONTINUE_SEARCH (0)
+                 * and EXCEPTION_CONTINUE_EXECUTION (-1) */
+                if (record.HandlerAddress > 1)
+                {
+                    if (lookupCache.TryGetSectionInfo(record.HandlerAddress, out targetAddress, out sectionIndex, out _))
+                        AddCode(targetAddress, record.HandlerAddress);
+                }
+
+                if (lookupCache.TryGetSectionInfo(record.JumpTarget, out targetAddress, out sectionIndex, out _))
+                    AddCode(targetAddress, record.JumpTarget);
+            }
+        }
+
+        private void DiscoverFuncInfoCodeRoots(in FuncInfo funcInfo)
+        {
+            ref var lookupCache = ref _lookupCache;
+
+            var dispUnwindMap = funcInfo.dispUnwindMap.ValueOrDefault;
+
+            if (dispUnwindMap != null)
+            {
+                for (var i = 0; i < dispUnwindMap.Length; i++)
+                {
+                    ref var unwindMapEntry = ref dispUnwindMap[i];
+
+                    if (lookupCache.TryGetSectionInfo(unwindMapEntry.action, out var targetAddress, out int sectionIndex, out _))
+                        AddCode(targetAddress, unwindMapEntry.action);
+                }
+            }
+
+            var dispTryBlockMap = funcInfo.dispTryBlockMap.ValueOrDefault;
+
+            if (dispTryBlockMap != null)
+            {
+                for (var i = 0; i < dispTryBlockMap.Length; i++)
+                {
+                    ref var tryBlockMapEntry = ref dispTryBlockMap[i];
+
+                    var dispHandlerArray = tryBlockMapEntry.dispHandlerArray.ValueOrDefault;
+
+                    if (dispHandlerArray != null)
                     {
-                        //todo: apparently the begin address also always denotes the start of a function, based on ida
-                        AddCode(targetAddress, item.BeginAddress);
-                    }
-
-                    var unwindData = item.UnwindData;
-
-                    if (unwindData.IsValid)
-                    {
-                        var exceptionData = unwindData.Value.ExceptionData;
-
-                        if (exceptionData is ScopeTable s)
+                        for (var j = 0; j < dispHandlerArray.Length; j++)
                         {
-                            var records = s.Records;
+                            ref var handlerType = ref dispHandlerArray[j];
 
-                            for (var j = 0; j < records.Length; j++)
+                            if (lookupCache.TryGetSectionInfo(handlerType.dispOfHandler, out var targetAddress, out int sectionIndex, out _))
+                                AddCode(targetAddress, handlerType.dispOfHandler);
+                        }
+                    }
+                }
+            }
+
+            var dispIPtoStateMap = funcInfo.dispIPtoStateMap.ValueOrDefault;
+
+            if (dispIPtoStateMap != null)
+            {
+                for (var i = 0; i < dispIPtoStateMap.Length; i++)
+                {
+                    ref var ipToStateMapEntry = ref dispIPtoStateMap[i];
+
+                    if (lookupCache.TryGetSectionInfo(ipToStateMapEntry.Ip, out var targetAddress, out int sectionIndex, out _))
+                        AddCode(targetAddress, ipToStateMapEntry.Ip);
+                }
+            }
+        }
+
+        private void DiscoverFuncInfo4CodeRoots(ref PESectionLookupCache lookupCache, in FuncInfo4 funcInfo4)
+        {
+            var maybeDispUnwindMap = funcInfo4.dispUnwindMap;
+
+            if (maybeDispUnwindMap.IsValid)
+            {
+                var dispUnwindMap = maybeDispUnwindMap.Value;
+
+                foreach (var unwindMapEntry in dispUnwindMap)
+                {
+                    if (unwindMapEntry.action != 0)
+                    {
+                        if (lookupCache.TryGetSectionInfo(unwindMapEntry.action, out var targetAddress, out var sectionIndex, out _))
+                            AddCode(targetAddress, unwindMapEntry.action);
+                    }
+                }
+            }
+
+            var maybeDispTryBlockMap = funcInfo4.dispTryBlockMap;
+
+            if (maybeDispTryBlockMap.IsValid)
+            {
+                var dispTryBlockMap = maybeDispTryBlockMap.Value;
+
+                foreach (var tryBlockMapEntry in dispTryBlockMap)
+                {
+                    var maybeDispHandlerArray = tryBlockMapEntry.dispHandlerArray;
+
+                    if (maybeDispHandlerArray.IsValid)
+                    {
+                        var dispHandlerArray = tryBlockMapEntry.dispHandlerArray.Value;
+
+                        foreach (var handlerType in dispHandlerArray)
+                        {
+                            if (lookupCache.TryGetSectionInfo(handlerType.dispOfHandler, out var targetAddress, out var sectionIndex, out _))
+                                AddCode(targetAddress, handlerType.dispOfHandler);
+
+                            foreach (var continuationAddress in handlerType.continuationAddresses)
                             {
-                                ref var record = ref records[j];
-
-                                if (lookupCache.TryGetSectionInfo(record.BeginAddress, out targetAddress, out sectionIndex, out _))
-                                {
-                                    //End is normally the same as jump target, but not always
-                                    AddCode(targetAddress, record.BeginAddress);
-                                }
-
-                                if (lookupCache.TryGetSectionInfo(record.EndAddress, out targetAddress, out sectionIndex, out _))
-                                    AddCode(targetAddress, record.EndAddress);
-
-                                /* If no custom handler has been specified, this value is EXCEPTION_EXECUTE_HANDLER (1).
-                                 * Ostensibly, it should also be possible for this value to be EXCEPTION_CONTINUE_SEARCH (0)
-                                 * and EXCEPTION_CONTINUE_EXECUTION (-1) */
-                                if (record.HandlerAddress > 1)
-                                {
-                                    if (lookupCache.TryGetSectionInfo(record.HandlerAddress, out targetAddress, out sectionIndex, out _))
-                                        AddCode(targetAddress, record.HandlerAddress);
-                                }
-
-                                if (lookupCache.TryGetSectionInfo(record.JumpTarget, out targetAddress, out sectionIndex, out _))
-                                    AddCode(targetAddress, record.JumpTarget);
+                                if (lookupCache.TryGetSectionInfo(continuationAddress, out targetAddress, out sectionIndex, out _))
+                                    AddCode(targetAddress, continuationAddress);
                             }
                         }
+                    }
+                }
+            }
+
+            if (funcInfo4.header.isSeparated)
+            {
+                var maybeDispToSegMap = funcInfo4.dispToSegMap;
+
+                if (maybeDispToSegMap.IsValid)
+                {
+                    var dispToSegMap = maybeDispToSegMap.Value;
+
+                    foreach (var segMapEntry in dispToSegMap)
+                    {
+                        if (lookupCache.TryGetSectionInfo(segMapEntry.addrStartRVA, out var targetAddress, out var sectionIndex, out _))
+                            AddCode(targetAddress, segMapEntry.addrStartRVA);
+
+                        var maybeDispIPtoStateMap = funcInfo4.dispIPtoStateMap;
+
+                        if (maybeDispIPtoStateMap.IsValid)
+                        {
+                            var dispIPtoStateMap = maybeDispIPtoStateMap.Value;
+
+                            foreach (var stateMapEntry in dispIPtoStateMap)
+                            {
+                                if (lookupCache.TryGetSectionInfo(stateMapEntry.Ip, out targetAddress, out sectionIndex, out _))
+                                    AddCode(targetAddress, stateMapEntry.Ip);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                var maybeDispIPtoStateMap = funcInfo4.dispIPtoStateMap;
+
+                if (maybeDispIPtoStateMap.IsValid)
+                {
+                    var dispIPtoStateMap = maybeDispIPtoStateMap.Value;
+
+                    foreach (var stateMapEntry in dispIPtoStateMap)
+                    {
+                        if (lookupCache.TryGetSectionInfo(stateMapEntry.Ip, out var targetAddress, out var sectionIndex, out _))
+                            AddCode(targetAddress, stateMapEntry.Ip);
                     }
                 }
             }

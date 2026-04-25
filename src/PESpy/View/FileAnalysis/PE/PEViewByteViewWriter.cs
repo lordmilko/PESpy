@@ -7,7 +7,6 @@ namespace PESpy.View
 {
     internal unsafe class PEViewByteViewWriter : PEViewWriter
     {
-        private readonly FileAccessor _fileAccessor;
         private readonly IFileDisassembler? _fileDisassembler;
         private readonly FileAnalyzer _fileAnalyzer;
 
@@ -17,8 +16,15 @@ namespace PESpy.View
         internal List<(int start, int end, IFile file)> _nestedFileRanges = new List<(int start, int end, IFile file)>();
         private int _nestedFileDepth;
 
+        internal UnwindInfoHashSet _unwindInfos;
+
         internal List<RegionBuilder> _topLevelRegions = new List<RegionBuilder>();
         internal List<RegionBuilder> _firstRegionByAddress = new List<RegionBuilder>();
+
+        //Regardless of whether it's __GSHandlerCheck_EH4 or __CxxFrameHandler4, either way
+        //the ExceptionData will start with an RVA<FuncInfo4>. We also add FuncInfo and SCOPE_TABLE
+        //entries to this so we can collect code from them later
+        internal Dictionary<int, UnwindInfo.SpecialExceptionDataKind> _specialUnwindInfos = new();
 
         public PEViewByteViewWriter(
             PEFile peFile,
@@ -27,13 +33,14 @@ namespace PESpy.View
             IFileDisassembler fileDisassembler,
             FileAnalyzer fileAnalyzer,
             LocatorHttpPolicy httpPolicy,
-            ILocatorProgress progress) : base(peFile, peFile.CreateByteViewProvider(null), mode)
+            ILocatorProgress progress) : base(peFile, peFile.CreateByteViewProvider(null), mode, fileAccessor)
         {
-            _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
             _fileAnalyzer = fileAnalyzer;
             _httpPolicy = httpPolicy;
             _progress = progress;
+
+            IsByteViewWriter = true;
         }
 
         protected internal override IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
@@ -43,9 +50,16 @@ namespace PESpy.View
 
         protected internal override unsafe IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
         {
+            NewStruct(name, value.Offset, structSize, kind);
+            return null;
+        }
+
+        internal void NewStruct(FixedUtf8String name, int offset, int structSize, ViewKind kind)
+        {
             //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
 
-            TryGetViewOffset(value.Offset, out var offset);
+            if (!TryGetViewOffset(offset, out offset))
+                return;
 
             if (_inRegion && FromRegion)
             {
@@ -55,11 +69,11 @@ namespace PESpy.View
 
             //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
 
-            var pViewByte = RegisterStruct(name, offset, kind);
+            var pViewByte = _fileAccessor.GetViewByte(offset, out _);
+            RegisterStruct(pViewByte, name, offset, kind);
 
             for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
                 i->Kind = ViewByteKind.Body;
-            return null;
         }
 
         internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
@@ -121,7 +135,7 @@ namespace PESpy.View
 
         private void EnterRegion(int offset, string name, bool global, ViewKind kind)
         {
-            var shouldAdd = tryGetViewOffset(offset, out offset);
+            var shouldAdd = TryGetViewOffset(offset, out offset);
 
             var newRegion = new RegionBuilder
             {
@@ -202,21 +216,49 @@ namespace PESpy.View
 
         public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             if (targetOffset == 0)
                 return;
 
             //The offsets we're given needs to be converted to ViewMode space. We can't trust
             //the target, as that may not exist in the current ViewMode
-            TryGetViewOffset(structOffset, out structOffset);
+            if (!TryGetViewOffset(structOffset, out structOffset))
+                return;
 
-            if (_fileAccessor.TryGetTargetAddress(targetOffset, out var targetAddress, out _))
+            //Don't use TryGetTargetAddress because targetOffset is not an RVA
+            if (TryGetViewOffset(targetOffset, out var targetAddress))
                 _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
         }
 
         public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             if (targetRVA == 0)
                 return;
+
+            if (!TryGetViewOffset(structOffset, out structOffset))
+                return;
+
+            if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
+                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
+        }
+
+        public void WriteTargetAddressXRef(int structOffset, int fieldOffset, int targetRVA)
+        {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
+            if (targetRVA == 0)
+                return;
+
+            //structOffset is already in targetAddress space, so we don't need to convert it
 
             if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
                 _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
@@ -224,18 +266,19 @@ namespace PESpy.View
 
         public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
         {
+#if DEBUG
+            VerifyWritingUniqueXRef();
+#endif
+
             throw new NotImplementedException();
         }
 
-        private ViewByte* RegisterStruct(FixedUtf8String name, int offset, ViewKind kind)
+        internal void RegisterStruct(ViewByte* pViewByte, FixedUtf8String name, int offset, ViewKind kind)
         {
-            var pViewByte = _fileAccessor.GetViewByte(offset, out _);
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
             _fileAnalyzer.AddName(offset, pViewByte, name);
             _fileAccessor.AddStructKind(offset, kind);
-
-            return pViewByte;
         }
 
         private void ProcessCorILMethodTiny(ViewByte* pViewByte, ImageCorILMethod value)
@@ -479,7 +522,8 @@ namespace PESpy.View
 
         public override void WriteIL(int offset, NativeSpan<byte> ilBytes)
         {
-            TryGetViewOffset(offset, out offset);
+            if (!TryGetViewOffset(offset, out offset))
+                return;
 
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
 
@@ -492,7 +536,8 @@ namespace PESpy.View
 
         public override ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
         {
-            TryGetViewOffset(byteBlob.Offset, out var offset);
+            if (!TryGetViewOffset(byteBlob.Offset, out var offset))
+                return null;
 
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
             pViewByte->Kind = ViewByteKind.Data;
@@ -507,7 +552,8 @@ namespace PESpy.View
 
         public override ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
         {
-            TryGetViewOffset(offset, out offset);
+            if (!TryGetViewOffset(offset, out offset))
+                return null;
 
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
             Debug.Assert(pViewByte->Kind != ViewByteKind.Body);
@@ -518,6 +564,11 @@ namespace PESpy.View
                 i->Kind = ViewByteKind.Body;
 
             return null;
+        }
+
+        internal void RecordUnwindInfo(int rva)
+        {
+            _unwindInfos.Add(rva);
         }
     }
 }

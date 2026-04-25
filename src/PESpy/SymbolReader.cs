@@ -157,7 +157,7 @@ namespace PESpy
 
                 if (textWindow.TryNextChar(out var stringKind) && Demangler.TryParseNumber(ref textWindow, out _, out var strLength))
                 {
-                    if (!symType.TryGetOffSeg(out var off, out var seg) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
+                    if (!symType.TryGetRawOffSeg(out var off, out var seg) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
                         return;
 
                     _peFile.GetRawSectionDataFromRelativeOffset(off, seg - 1, out var pString, out var _);
@@ -185,7 +185,7 @@ namespace PESpy
                 //It's a vftable. Add each entry as code in the work queue, and
                 //also add xrefs from each slot to the target function
 
-                if (!symType.TryGetOffSeg(out var off, out var seg) || !symType.TryGetLength(out var length, pdbFile) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
+                if (!symType.TryGetRawOffSeg(out var off, out var seg) || !symType.TryGetLength(out var length, pdbFile) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
                     return;
 
                 _peFile.GetRawSectionDataFromRelativeOffset(off, seg - 1, out var pVftable, out var remainingLength);
@@ -237,7 +237,7 @@ namespace PESpy
                  * it just looks up the vftable and queries the type encoded in the name
                  */
 
-                if (!symType.TryGetOffSeg(out var off, out var seg))
+                if (!symType.TryGetRawOffSeg(out var off, out var seg))
                     return;
 
                 if (!_peFile.TryGetValueChunkFromSection(off, seg - 1, out var chunk))
@@ -255,7 +255,7 @@ namespace PESpy
                 //Ostensibly it's going to be __real@ followed by either 8 or 16 hex digits. I'm not sure if you could ever
                 //have any other characters at the end; for now; we'll just assume it'll always be the simple case
 
-                if (!symType.TryGetOffSeg(out var off, out var seg) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
+                if (!symType.TryGetRawOffSeg(out var off, out var seg) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
                     return;
 
                 switch (span.Length)
@@ -289,7 +289,7 @@ namespace PESpy
                 {
                     //I'm expecting this data should span only a single section, so we'll just check that the sections are the same so we don't
                     //need to spend time doing RVA math
-                    if (nativeAOTModulesA.TryGetOffSeg(out var offA, out var segA) && nativeAOTModulesZ.TryGetOffSeg(out var offZ, out var segZ) && segA == segZ)
+                    if (nativeAOTModulesA.TryGetRawOffSeg(out var offA, out var segA) && nativeAOTModulesZ.TryGetRawOffSeg(out var offZ, out var segZ) && segA == segZ)
                     {
                         if (_peFile.TryGetValueChunkFromSection(offA, segA - 1, out var chunk))
                         {

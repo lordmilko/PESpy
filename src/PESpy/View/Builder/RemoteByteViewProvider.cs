@@ -10,7 +10,7 @@ namespace PESpy.View.Builder
         //This property should not be accessed when we're in virtual mode
         public override int FileOrSectionLength => throw new NotSupportedException();
 
-        public RemoteByteViewProvider(PEFile peFile, IViewDisassembler? viewDisassembler) : base(viewDisassembler, isLibFile: false)
+        public RemoteByteViewProvider(PEFile peFile, FileAccessor fileAccessor) : base(fileAccessor, isLibFile: false)
         {
             this.peFile = peFile;
         }

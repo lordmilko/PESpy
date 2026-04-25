@@ -1,4 +1,8 @@
-﻿$str = (gc "$PSScriptRoot\_config.json"|where { $_ -notlike "*//*" }) -join "`r`n"
+﻿$str = (gc "$PSScriptRoot\_config.json"|where { !$_.ToString().TrimStart().StartsWith("//") }) -join "`r`n"
+
+# Strip comments
+$str = $str -replace '(?m)(?<=^([^"]|"[^"]*")*)//.*' -replace '(?ms)/\*.*?\*/'
+
 $config = $str | convertfrom-json
 
 $symbolMap = @{}

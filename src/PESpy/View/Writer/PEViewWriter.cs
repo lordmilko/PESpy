@@ -57,7 +57,8 @@ namespace PESpy.View
         internal unsafe PEViewWriter(
             PEFile peFile,
             ByteViewProvider byteViewProvider,
-            ViewMode mode) : base(byteViewProvider, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode))
+            ViewMode mode,
+            FileAccessor fileAccessor = null) : base(byteViewProvider, mode, GetViewOffsetResolver(peFile, mode), GetRealOffsetResolver(peFile, mode), fileAccessor)
         {
             this.peFile = peFile;
         }
@@ -189,7 +190,7 @@ namespace PESpy.View
                     mode == ViewMode.Default
                         ? (peFile.IsLoadedImage ? ViewMode.Virtual : ViewMode.Physical)
                         : mode,
-                    peFile.Name,
+                    peFile,
                     results,
                     this,
                     ViewKind.PEFile

@@ -3080,16 +3080,7 @@ namespace PESpy
         /// <returns>A <see cref="FileView"/> that provides a view over the structure of the PE File.</returns>
         public FileView GetViewOld(ViewMode mode)
         {
-            var writer = GetViewWriter(mode, null);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
-        public FileView GetViewOld<T>(ViewDisassembler<T> viewDisassembler, ViewMode mode = ViewMode.Default)
-        {
-            var writer = GetViewWriter(mode, viewDisassembler);
-
+            var writer = GetViewWriter(mode);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -3097,7 +3088,7 @@ namespace PESpy
 
         public unsafe IView GetViewOld(IViewable viewable, ViewMode mode = ViewMode.Default)
         {
-            var writer = GetViewWriter(mode, null);
+            var writer = GetViewWriter(mode);
             viewable.WriteStruct(writer);
 
             if (writer.Current.Count != 1)
@@ -3106,21 +3097,19 @@ namespace PESpy
             return writer.Current[0];
         }
 
-        private unsafe PEViewWriter GetViewWriter(ViewMode mode, IViewDisassembler? viewDisassembler)
+        private unsafe PEViewWriter GetViewWriter(ViewMode mode)
         {
-            var writer = new PEViewWriter(this, CreateByteViewProvider(viewDisassembler), mode);
+            var writer = new PEViewWriter(this, CreateByteViewProvider(null), mode);
 
             return writer;
         }
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor)
         {
-            viewDisassembler?.Initialize(this);
-
             if (blockProvider is LocalMemoryBlockProvider l)
-                return new LocalByteViewProvider(l.Pointer, (int) l.Length, viewDisassembler);
+                return new LocalByteViewProvider(l.Pointer, (int) l.Length, fileAccessor);
 
-            return new RemoteByteViewProvider(this, viewDisassembler);
+            return new RemoteByteViewProvider(this, fileAccessor);
         }
 
         //Provides MemoryBlock objects which encompass an area of a PEFile

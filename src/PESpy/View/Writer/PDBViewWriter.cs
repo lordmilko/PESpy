@@ -14,7 +14,7 @@ namespace PESpy.View
 
         internal override ICodeViewAccessor GetSymbolAccessor() => pdbFile;
 
-        internal unsafe PDBViewWriter(PDBFile pdbFile) : base(pdbFile.CreateByteViewProvider(), ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe PDBViewWriter(PDBFile pdbFile) : base(pdbFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
         {
             this.pdbFile = pdbFile;
         }
@@ -45,7 +45,7 @@ namespace PESpy.View
 
                 var results = merger.MergePDB(contiguousSections);
 
-                return new FileView(ViewMode.Physical, pdbFile.Name, results, this, ViewKind.PDBFile);
+                return new FileView(ViewMode.Physical, pdbFile, results, this, ViewKind.PDBFile);
             }
             finally
             {

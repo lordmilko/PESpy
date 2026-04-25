@@ -34,6 +34,11 @@ namespace PESpy
 
         public int Offset { get; }
 
+        //For use by ViewProvider
+        internal GsHandlerData(in MemoryChunk chunk) : this(chunk.AbsoluteOffset, chunk.Pointer)
+        {
+        }
+
         public GsHandlerData(int offset, byte* value)
         {
             Offset = offset;

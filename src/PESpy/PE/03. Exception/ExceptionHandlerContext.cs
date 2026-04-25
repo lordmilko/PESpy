@@ -169,7 +169,7 @@ namespace PESpy
                         continue;
 #else
                     //Get the symbol name to assist with debugging
-                    symbolAccessor.TryGetNameFromAddress(exceptionHandler, out var handlerName, out var displacement);
+                    var gotName = symbolAccessor.TryGetNameFromAddress(exceptionHandler, out var handlerName, out var displacement);
 #endif
                     if (exceptionHandler == 0)
                     {
@@ -186,12 +186,12 @@ namespace PESpy
 
                     var allocationSize = GetAllocationSize(pUnwindInfo);
 
-                    var computedKind = CategorizeExceptionData(_peFile, pExceptionData, exceptionDataLength, allocationSize);
+                    var computedKind = CategorizeExceptionData(_peFile, pExceptionData, exceptionDataLength, allocationSize, block);
 
 #if DEBUG
                     var exceptionDataSpan = new Span<byte>(pExceptionData, (int) exceptionDataLength);
 
-                    if (displacement == 0)
+                    if (gotName && displacement == 0)
                     {
                         var symbolKind = GetKindFromName(handlerName.AsSpan());
 
@@ -201,14 +201,7 @@ namespace PESpy
                             case WellKnownExceptionHandlerKind.__C_specific_handler_noexcept:
                                 symbolKind = WellKnownExceptionHandlerKind.__C_specific_handler;
                                 break;
-
-                            case WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange:
-                                //Not currently supported
-                                symbolKind = WellKnownExceptionHandlerKind.Unknown;
-                                break;
                         }
-
-                        Debug.Assert(symbolKind == computedKind);
                     }
 
                     if (displacement == 0 && knownExceptionHandlers.TryGetValue(exceptionHandler, out var existingKind))
@@ -241,7 +234,12 @@ namespace PESpy
             //If we've got symbols, use them. Otherwise, we need to compute what each ExceptionHandler is
             if (symbolAccessor is not NullSymbolAccessor)
             {
-                WriteUnwindInfosFromSymbols();
+                WriteUnwindInfosFromSymbols(
+                    peFile,
+                    viewWriter,
+                    symbolAccessor,
+                    hashSet.Entries
+                );
                 return;
             }
 
@@ -262,13 +260,10 @@ namespace PESpy
             var vaStart = sectionHeader.VirtualAddress;
             var vaEnd = vaStart + sectionHeader.VirtualSize;
 
-            var structOffsetBase =
-                peFile.IsLoadedImage ? 0 : (sectionHeader.PointerToRawData - sectionHeader.VirtualAddress);
-
             //This works for both loaded and unloaded cases
             var pData = block.LocalPointer - vaStart;
 
-            for (var i = 0; i < sortedUnwindInfoRVAs.Length - 1; i++)
+            for (var i = 0; i < sortedUnwindInfoRVAs.Length; i++)
             {
                 var unwindInfoRVA = sortedUnwindInfoRVAs[i];
 
@@ -291,11 +286,14 @@ namespace PESpy
 
                 var pViewByte = sectionAccessor.pViewBytes + unwindInfoRelativeOffset;
 
+                var bytesUsed = extraDataStart;
+
                 if (((int) flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) flags & (int) UNW_FLAG.UHANDLER) != 0)
                 {
+                    //xref is written below regardless of whether we can make sense of the handler kind or not
                     var exceptionHandler = *(int*) (pUnwindInfo + extraDataStart);
 
-                    var bytesUsed = extraDataStart + sizeof(int);
+                    bytesUsed += sizeof(int);
 
 #if DEBUG
                     symbolAccessor.TryGetNameFromAddress(exceptionHandler, out var handlerName, out var displacement);
@@ -309,14 +307,24 @@ namespace PESpy
                             continue;
                         }
 
-                        var nextUnwindInfoRVA = sortedUnwindInfoRVAs[i + 1];
-                        uint exceptionDataLength = (uint) (nextUnwindInfoRVA - (unwindInfoRVA + bytesUsed)); //Very important we do unsigned comparisons, e.g. SCOPE_TABLE Count could give us so much data we're negative
+                        uint exceptionDataLength;
+
+                        if (i == sortedUnwindInfoRVAs.Length - 1)
+                        {
+                            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                            exceptionDataLength = (uint) (pViewByte->Kind == ViewByteKind.Unknown ? pViewByte->GetUnknownLength(limit) : pViewByte->GetLength(limit));
+                        }
+                        else
+                        {
+                            var nextUnwindInfoRVA = sortedUnwindInfoRVAs[i + 1];
+                            exceptionDataLength = (uint) (nextUnwindInfoRVA - (unwindInfoRVA + bytesUsed)); //Very important we do unsigned comparisons, e.g. SCOPE_TABLE Count could give us so much data we're negative
+                        }
 
                         var pExceptionData = pUnwindInfo + bytesUsed;
 
                         var allocationSize = GetAllocationSize(pUnwindInfo);
 
-                        kind = CategorizeExceptionData(peFile, pExceptionData, exceptionDataLength, allocationSize);
+                        kind = CategorizeExceptionData(peFile, pExceptionData, exceptionDataLength, allocationSize, block);
 
                         //If displacement is not 0, this indicates we potentially added something we're not supposed to have.
                         //We encounter this issue with msedge.dll
@@ -332,46 +340,213 @@ namespace PESpy
                         knownExceptionHandlers[exceptionHandler] = kind;
                     }
 
-                    if (kind == WellKnownExceptionHandlerKind.Unknown)
+                    var targetAddress = sectionAccessor.StartAddress + unwindInfoRelativeOffset;
+
+                    if (kind != WellKnownExceptionHandlerKind.Unknown)
+                    {
+                        var dataChunk = new MemoryChunk(block, unwindInfoRelativeOffset + bytesUsed);
+
+                        var physicalOffset = unwindInfoRelativeOffset + block.RemoteStartOffset;
+
+                        UnwindInfo.WriteUnwindInfo(
+                            viewWriter,
+                            dataChunk,
+                            pViewByte,
+                            physicalOffset,
+                            targetAddress,
+                            unwindInfoRVA,
+                            fieldOffset: bytesUsed,
+                            exceptionHandler,
+                            kind
+                        );
+
                         continue;
+                    }
 
-                    var dataChunk = new MemoryChunk(block, unwindInfoRelativeOffset + bytesUsed);
-
-                    UnwindInfo.WriteUnwindInfo(
-                        viewWriter,
-                        dataChunk,
-                        pViewByte,
-                        structOffsetBase + unwindInfoRelativeOffset + block.RemoteStartOffset,
-                        sectionAccessor.StartAddress + unwindInfoRelativeOffset,
-                        fieldOffset: bytesUsed,
-                        kind
-                    );
+                    //Fall through
+                    viewWriter.WriteRVAXRef(targetAddress, extraDataStart, exceptionHandler);
                 }
-                else
-                {
-                    var structSize = extraDataStart;
 
-                    if (((int) flags & (int) UNW_FLAG.CHAININFO) != 0)
-                        structSize += sizeof(RUNTIME_FUNCTION);
+                //Either we don't have exception handler data, or we do
+                //but it's unknown (in which case bytesUsed has been incremented
+                //to include the fact there _is_ an ExceptionHandler, without accounting
+                //for what its data might be)
+                WriteSimpleUnwindInfo(
+                    viewWriter,
+                    pViewByte,
+                    sectionAccessor,
+                    unwindInfoRelativeOffset,
+                    flags,
+                    bytesUsed
+                );
+            }
+        }
+
+        private static unsafe void WriteUnwindInfosFromSymbols(
+            PEFile peFile,
+            PEViewByteViewWriter viewWriter,
+            ISymbolAccessor symbolAccessor,
+            Span<int> entries)
+        {
+            //Iterate over all UnwindInfo items and check if we need a handler.
+            //If so, get the exception handler kind and write the UnwindInfo data
+            //if not, write a simple UnwindInfo
+
+            if (entries.Length == 0)
+                return;
+
+            //We have to watch out because entries contains empty items, and we haven't sorted the list
+
+            var entryIndex = 0;
+
+            for (; entryIndex < entries.Length; entryIndex++)
+            {
+                if (entries[entryIndex] != 0)
+                    break;
+            }
+
+            if (entryIndex == entries.Length)
+                return;
+
+            if (!peFile.TryGetSectionContainingRVA(entries[entryIndex], out var sectionIndex, out var sectionHeader))
+            {
+                //We rely on two things: a. the RVA of the first item being valid so we can quickly compute the physical offset
+                //of each item, and b. all items being in the same section! If we can't get a section here, neither of those
+                //things are true. Fail completely for now
+                Debug.Assert(false);
+                return;
+            }
+
+            ref var sectionAccessor = ref viewWriter._fileAccessor.SectionAccessors[sectionIndex + 1];
+
+            var block = peFile.GetSectionBlock(sectionIndex, sectionHeader);
+
+            var vaStart = sectionHeader.VirtualAddress;
+            var vaEnd = vaStart + sectionHeader.VirtualSize;
+
+            //This works for both loaded and unloaded cases
+            var pData = block.LocalPointer - vaStart;
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                var unwindInfoRVA = entries[i];
+
+                if (unwindInfoRVA == 0)
+                    continue;
+
+                if (unwindInfoRVA < vaStart || unwindInfoRVA >= vaEnd)
+                {
+                    //A critical assumption we've made has failed. We don't currently implement fallback logic.
+                    //Skip this item for now
+                    Debug.Assert(false);
+                    continue;
+                }
+
+                var pUnwindInfo = pData + unwindInfoRVA;
+
+                var flags = (UNW_FLAG) ((*(pUnwindInfo + UnwindInfo.versionAndFlagsOffset) >> 3) & 0x1f);
+
+                var countOfCodes = *(pUnwindInfo + UnwindInfo.CountOfCodesOffset);
+                var extraDataStart = 4 + (((countOfCodes + 1) & ~1) * 2); //4 fixed bytes + CountOfCodes aligned to an even number
+
+                var unwindInfoRelativeOffset = (int) (pUnwindInfo - block.LocalPointer);
+
+                var pViewByte = sectionAccessor.pViewBytes + unwindInfoRelativeOffset;
+
+                var knownExceptionHandlers = new Dictionary<int, WellKnownExceptionHandlerKind>();
+
+                var bytesUsed = extraDataStart;
+
+                if (((int) flags & (int) UNW_FLAG.EHANDLER) != 0 || ((int) flags & (int) UNW_FLAG.UHANDLER) != 0)
+                {
+                    //xref is written below
+                    var exceptionHandler = *(int*) (pUnwindInfo + extraDataStart);
+
+                    bytesUsed += sizeof(int);
+
+                    if (!knownExceptionHandlers.TryGetValue(exceptionHandler, out var kind))
+                    {
+                        //While the parameter says it wants a "targetAddress",
+                        //it's not a SectionAccessor style target address, it's an RVA
+                        if (symbolAccessor.TryGetNameFromAddress(exceptionHandler, out var name, out var displacement))
+                        {
+                            if (displacement != 0)
+                                kind = WellKnownExceptionHandlerKind.Unknown;
+                            else
+                                kind = GetKindFromName(name.AsSpan());
+                        }
+                        else
+                            kind = WellKnownExceptionHandlerKind.Unknown;
+
+                        knownExceptionHandlers[exceptionHandler] = kind;
+                    }
 
                     var targetAddress = sectionAccessor.StartAddress + unwindInfoRelativeOffset;
-                    viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
 
-                    for (var j = pViewByte + 1; j < pViewByte + structSize; j++)
-                        j->Kind = ViewByteKind.Body;
+                    if (kind != WellKnownExceptionHandlerKind.Unknown)
+                    {
+                        var dataChunk = new MemoryChunk(block, unwindInfoRelativeOffset + bytesUsed);
+
+                        UnwindInfo.WriteUnwindInfo(
+                            viewWriter,
+                            dataChunk,
+                            pViewByte,
+                            unwindInfoRelativeOffset + block.RemoteStartOffset,
+                            targetAddress,
+                            unwindInfoRVA,
+                            fieldOffset: bytesUsed,
+                            exceptionHandler,
+                            kind
+                        );
+
+                        continue;
+                    }
+
+                    //Fall through
+                    viewWriter.WriteRVAXRef(targetAddress, extraDataStart, exceptionHandler);
                 }
+
+                WriteSimpleUnwindInfo(
+                    viewWriter,
+                    pViewByte,
+                    sectionAccessor,
+                    unwindInfoRelativeOffset,
+                    flags,
+                    bytesUsed
+                );
+            }
+        }
+
+        private static unsafe void WriteSimpleUnwindInfo(
+            PEViewByteViewWriter viewWriter,
+            ViewByte* pViewByte,
+            in SectionAccessor sectionAccessor,
+            int unwindInfoRelativeOffset,
+            UNW_FLAG flags,
+            int structSize)
         {
+            if (((int) flags & (int) UNW_FLAG.CHAININFO) != 0)
+                structSize += sizeof(RUNTIME_FUNCTION);
+
+            var targetAddress = sectionAccessor.StartAddress + unwindInfoRelativeOffset;
+            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
+
+            for (var j = pViewByte + 1; j < pViewByte + structSize; j++)
+                j->Kind = ViewByteKind.Body;
+        }
+
         private static unsafe WellKnownExceptionHandlerKind CategorizeExceptionData(
             PEFile peFile,
             byte* pExceptionData,
             uint exceptionDataLength,
-            int allocationSize)
+            int allocationSize,
+            MemoryBlock block)
         {
             var analysis = new ExceptionDataAnalysis();
 
             DetectGSHandlerData(ref analysis.HasGSHandlerData, pExceptionData, exceptionDataLength, allocationSize);
             DetectScopeTable(ref analysis, pExceptionData, exceptionDataLength, allocationSize);
-            DetectFuncInfo(peFile, ref analysis, pExceptionData, exceptionDataLength, allocationSize);
+            DetectFuncInfo(peFile, ref analysis, pExceptionData, exceptionDataLength, allocationSize, block);
 
             return analysis.Kind;
         }
@@ -452,7 +627,8 @@ namespace PESpy
             ref ExceptionDataAnalysis analysis,
             byte* pExceptionData,
             uint exceptionDataLength,
-            int allocationSize)
+            int allocationSize,
+            MemoryBlock block)
         {
             //Check for an RVA that points to a value that seems to start with an EH_MAGIC_NUMBER
             if (exceptionDataLength >= 4)
@@ -479,17 +655,30 @@ namespace PESpy
                                 analysis.HasFuncInfo = true;
                                 analysis.FuncInfoMagicNumber = magicNumber;
 
-                                //If the FuncInfo was located right after the RVA, the ValueChunk we got wil simply be 4 bytes
-                                //ahead of the pExceptionData, in which case we don't want to try and interpret the data as being
-                                //_GS_HANDLER_DATA
-                                if (exceptionDataLength >= 8 && (valueChunk.Pointer - pExceptionData) != sizeof(int)) //RVA was 4 bytes and we're saying we need at least anotehr 4 more
+                                /* If the FuncInfo was located right after the RVA, the ValueChunk we got wil simply be 4 bytes
+                                 * ahead of the pExceptionData, in which case we don't want to try and interpret the data as being
+                                 * _GS_HANDLER_DATA. In addition, it's possible that the FuncInfo is far away,
+                                 * but then some of its referenced entities are then placed right after the RVA
+                                 * to the FuncInfo. So in this case we need to check whether any entities are pointing to
+                                 * the position directly after the RVA to the FuncInfo */
+
+                                if (CanHaveFuncInfoGSData(exceptionDataLength, valueChunk, pExceptionData, block))
                                 {
                                     //I've seen some strange data after both __CxxFrameHandler3 and __GSHandlerCheck_EH in msedsge.dll
                                     //that ends in 4 bytes of 0xFF. I'm not sure what that data is yet
                                     DetectGSHandlerData(ref analysis.HasFuncInfoGSHandlerData, pExceptionData + sizeof(int), exceptionDataLength - 4, allocationSize);
                                 }
+
                                 return;
                         }
+                    }
+
+                    if (analysis.HasGSHandlerData)
+                    {
+                        //It's easy to get tripped up and consider a small value as being an RVA. I don't currently know what we should
+                        //be asserting the bounds that contain FuncInfo items as being. So for now we'll say if we already have GSHandlerData,
+                        //disallow checking for FuncInfo4 which is easy to go awry
+                        return;
                     }
 
                     //If it's EH_MAGIC_NUMBER it 100% can't be FuncInfo4, so if we failed to match that above, continue on below.
@@ -534,16 +723,91 @@ namespace PESpy
                     //ahead of the pExceptionData, in which case we don't want to try and interpret the data as being
                     //_GS_HANDLER_DATA
 
-                    if ((valueChunk.Pointer - pExceptionData) != sizeof(int))
+                    if (CanHaveFuncInfo4GSData(exceptionDataLength, valueChunk, pExceptionData))
                     {
-                        //When we're __GSHandlerCheck_EH4, the FuncInfo4 isn't directly after the RVA to it
-                        if (exceptionDataLength >= 8) //RVA was 4 bytes and we're saying we need at least anotehr 4 more
-                        {
-                            DetectGSHandlerData(ref analysis.HasFuncInfoGSHandlerData, pExceptionData + sizeof(int), exceptionDataLength - sizeof(int), allocationSize);
-                        }
+                        DetectGSHandlerData(ref analysis.HasFuncInfoGSHandlerData, pExceptionData + sizeof(int), exceptionDataLength - sizeof(int), allocationSize);
                     }
                 }
             }
+        }
+
+        private static unsafe bool CanHaveFuncInfoGSData(
+            uint exceptionDataLength,
+            in MemoryChunk valueChunk,
+            byte* pExceptionData,
+            MemoryBlock block)
+        {
+            if (exceptionDataLength < 8)
+                return false; //Not enough room for an RVA<FuncInfo> + _GS_HANDLER_DATA
+
+            if ((valueChunk.Pointer - pExceptionData) == sizeof(int))
+                return false; //The FuncInfo was directly after the RVA<FuncInfo>
+
+            //The FuncInfo is somewhere else...but the entities that descend from the FuncInfo
+            //may decide to have RVAs then point back into the exception data area, despite the fact
+            //the top level FuncInfo entity is located somewhere else
+
+            if (exceptionDataLength == 8)
+                return true; //Not enough room for random entities pointed to by the FuncInfo
+
+            var rvaToFuncInfoOffset = (int) (pExceptionData - block.LocalPointer) + block.RemoteStartOffset;
+            var dataAfterRvaOffset = rvaToFuncInfoOffset + sizeof(int);
+
+            var funcInfo = new FuncInfo(valueChunk);
+
+            if (HasItemAtOffset(funcInfo.dispUnwindMap, dataAfterRvaOffset))
+                return false;
+
+            if (HasItemAtOffset(funcInfo.dispTryBlockMap, dataAfterRvaOffset))
+                return false;
+
+            if (HasItemAtOffset(funcInfo.dispIPtoStateMap, dataAfterRvaOffset))
+                return false;
+
+            //We're assuming that if data is in the exception data area, it'll be a first level
+            //entity referenced from the FuncInfo, not a grandchild entity
+            return true;
+        }
+
+        private static bool HasItemAtOffset<T>(RVA<T[]> rvaToItems, int offset) where T : IValue
+        {
+            if (rvaToItems.IsValid)
+            {
+                var items = rvaToItems.Value;
+
+                for (var i = 0; i < items.Length; i++)
+                {
+                    ref var item = ref items[i];
+
+                    if (item.Offset == offset)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static unsafe bool CanHaveFuncInfo4GSData(
+            uint exceptionDataLength,
+            in MemoryChunk valueChunk,
+            byte* pExceptionData)
+        {
+            if (exceptionDataLength < 8)
+                return false; //Not enough room for an RVA<FuncInfo4> + _GS_HANDLER_DATA
+
+            if ((valueChunk.Pointer - pExceptionData) == sizeof(int))
+                return false; //The FuncInfo was directly after the RVA<FuncInfo4>
+
+            //The FuncInfo4 is somewhere else...but the entities that descend from the FuncInfo
+            //may decide to have RVAs then point back into the exception data area, despite the fact
+            //the top level FuncInfo4 entity is located somewhere else
+
+            if (exceptionDataLength == 8)
+                return true; //Not enough room for random entities pointed to by the FuncInfo4
+
+            //I hit this in msedge.dll but it wasn't the scenario we were looking for it was another random handler
+            //we don't know how to deal with
+            return false;
         }
 
         private static unsafe int GetAllocationSize(byte* pUnwindInfo)
@@ -599,27 +863,6 @@ namespace PESpy
             if (name.SequenceEqual("__GSHandlerCheck_EH4"u8))
                 return WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4;
 
-            if (name.SequenceEqual("LdrpICallHandler"u8))
-                return WellKnownExceptionHandlerKind.LdrpICallHandler;
-
-            if (name.SequenceEqual("KiUserApcHandler"u8))
-                return WellKnownExceptionHandlerKind.KiUserApcHandler;
-
-            if (name.SequenceEqual("KiUserCallbackDispatcherHandler"u8))
-                return WellKnownExceptionHandlerKind.KiUserCallbackDispatcherHandler;
-
-            if (name.SequenceEqual("RtlpUnwindHandler"u8))
-                return WellKnownExceptionHandlerKind.RtlpUnwindHandler;
-
-            if (name.SequenceEqual("RtlpExceptionHandler"u8))
-                return WellKnownExceptionHandlerKind.RtlpExceptionHandler;
-
-            if (name.SequenceEqual("RtlpEnclaveCallDispatchFilter"u8))
-                return WellKnownExceptionHandlerKind.RtlpEnclaveCallDispatchFilter;
-
-            if (name.SequenceEqual("CrashForExceptionInNonABICompliantCodeRange"u8))
-                return WellKnownExceptionHandlerKind.CrashForExceptionInNonABICompliantCodeRange;
-
             if (name.StartsWith("@ILT+"u8))
             {
                 var openParen = name.IndexOf((byte) '(');
@@ -639,7 +882,11 @@ namespace PESpy
             fixed (byte* pName = name)
             {
                 var str = new FixedUtf8String(pName, name.Length);
-                Debug.Assert(false);
+
+                if (str.Contains("CxxFrameHandler") || str.Contains("C_specific_handler") || str.Contains("GSHandlerCheck"))
+                {
+                    Debug.Assert(false);
+                }
             }
 #endif
             return WellKnownExceptionHandlerKind.Unknown;

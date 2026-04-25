@@ -25,8 +25,7 @@ namespace PESpy.View
     }
 
     [DebuggerTypeProxy(typeof(ByteBlobViewDebugView))]
-    [DebuggerDisplay("{ViewDebuggerDisplay.ByteBlob(this),nq}")]
-    public class ByteBlobView : IView, ISplittableView
+    public class ByteBlobView : IViewInternal, ISplittableView
     {
         /// <inheritdoc />
         public int Offset { get; }
@@ -87,6 +86,16 @@ namespace PESpy.View
             }
         }
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.ByteBlob;
+
+        //This type is not capable of having children
+        public ViewChildList Children => default;
+
         private bool IsPrefixedMultiByteNop()
         {
             var bytes = Bytes;
@@ -133,24 +142,30 @@ namespace PESpy.View
             return true;
         }
 
-        public ByteBlobView(int offset, NativeSpan<byte> bytes, ViewKind? kind, FixedUtf8String name = default)
+        private readonly FileAccessor _fileAccessor;
+
+        public ByteBlobView(int offset, NativeSpan<byte> bytes, ViewKind? kind, FileAccessor fileAccessor, FixedUtf8String name = default)
         {
             Offset = offset;
             Bytes = bytes;
             Size = bytes.Length;
             this.kind = kind;
             Name = name;
+            _fileAccessor = fileAccessor;
         }
 
         //For SplitByteBlobView only
-        protected ByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind? kind, FixedUtf8String name)
+        protected ByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind? kind, FileAccessor fileAccessor, FixedUtf8String name)
         {
             Offset = offset;
             Bytes = bytes;
             Size = size;
             this.kind = kind;
             Name = name;
+            _fileAccessor = fileAccessor;
         }
+
+        public IView this[int index] => throw new InvalidOperationException("This view does not contain children");
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitByteBlob(this);
 
@@ -173,10 +188,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitByteBlobView(Offset, Bytes, Size - diff, Kind, Name);
+                first = new SplitByteBlobView(Offset, Bytes, Size - diff, Kind, _fileAccessor, Name);
             }
 
-            var second = new SplitByteBlobView(newBaseOffset, Bytes, diff, Kind, Name);
+            var second = new SplitByteBlobView(newBaseOffset, Bytes, diff, Kind, _fileAccessor, Name);
             second.Previous = first;
             first.Next = second;
 
@@ -191,7 +206,7 @@ namespace PESpy.View
             if (this is SplitByteBlobView sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitByteBlobView(newOffset, Bytes, Size, Kind, Name);
+                var newValue = new SplitByteBlobView(newOffset, Bytes, Size, Kind, _fileAccessor, Name);
 
                 if (sv.Previous != null)
                 {
@@ -209,7 +224,12 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new SplitByteBlobView(newOffset, Bytes, Size, Kind, Name);
+            return new SplitByteBlobView(newOffset, Bytes, Size, Kind, _fileAccessor, Name);
+        }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatByteBlob(this);
         }
     }
 
@@ -219,7 +239,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind kind, FixedUtf8String name) : base(offset, bytes, size, kind, name)
+        public SplitByteBlobView(int offset, NativeSpan<byte> bytes, int size, ViewKind kind, FileAccessor fileAccessor, FixedUtf8String name) : base(offset, bytes, size, kind, fileAccessor, name)
         {
         }
     }

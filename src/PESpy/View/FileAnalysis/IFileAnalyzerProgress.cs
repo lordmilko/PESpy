@@ -3,8 +3,9 @@
     public enum FileAnalyzerProgressPhase
     {
         DiscoverGlobals,
-        DiscoverCodeRoots,
         LocateSymbols,
+        DiscoverExceptionData,
+        DiscoverCodeRoots,
         ProcessSymbols,
         WorkDisasmQueue,
         CollectStrings,

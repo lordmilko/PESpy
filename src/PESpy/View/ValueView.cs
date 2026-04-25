@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
-
+﻿using System;
+using System.Diagnostics;
 
 namespace PESpy.View
 {
     public interface IValueView : IView
     {
+        FixedUtf8String Name { get; }
+
         object Value { get; }
     }
 
@@ -12,8 +14,7 @@ namespace PESpy.View
     /// Provides a view over a simple value.
     /// </summary>
     /// <typeparam name="TValue">The type of value contained in the view.</typeparam>
-    [DebuggerDisplay("{ViewDebuggerDisplay.Value(this),nq}")]
-    public class ValueView<TValue> : IValueView, ISplittableView
+    public class ValueView<TValue> : IValueView, IViewInternal, ISplittableView
     {
         /// <inheritdoc />
         public int Offset { get; }
@@ -32,12 +33,23 @@ namespace PESpy.View
 
         public ViewKind Kind => (ViewKind) (_kind & 0x7FFF);
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.Value;
+
+        //This type is not capable of having children
+        public ViewChildList Children => default;
+
         public bool IsSplit => (_kind & 0x8000) != 0;
 
         //We stash IsSplit in the top bit
         private ushort _kind;
+        private FileAccessor _fileAccessor;
 
-        public ValueView(int offset, TValue value, int size, ViewKind kind, FixedUtf8String name = default)
+        public ValueView(int offset, TValue value, int size, ViewKind kind, FileAccessor fileAccessor, FixedUtf8String name = default)
         {
             Debug.Assert(size >= 0);
             Debug.Assert(kind != 0);
@@ -49,7 +61,10 @@ namespace PESpy.View
             Size = size;
             _kind = (ushort) kind;
             Name = name;
+            _fileAccessor = fileAccessor;
         }
+
+        public IView this[int index] => throw new InvalidOperationException("This view does not contain children");
 
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitValue(this);
 
@@ -72,10 +87,10 @@ namespace PESpy.View
             else
             {
                 //Create a new split view
-                first = new SplitValueView<TValue>(Offset, Value, Size - diff, Kind, Name);
+                first = new SplitValueView<TValue>(Offset, Value, Size - diff, Kind, _fileAccessor, Name);
             }
 
-            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff, Kind, Name);
+            var second = new SplitValueView<TValue>(newBaseOffset, Value, diff, Kind, _fileAccessor, Name);
             second.Previous = first;
             first.Next = second;
 
@@ -90,7 +105,7 @@ namespace PESpy.View
             if (this is SplitValueView<TValue> sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitValueView<TValue>(newOffset, Value, Size, Kind, Name);
+                var newValue = new SplitValueView<TValue>(newOffset, Value, Size, Kind, _fileAccessor, Name);
 
                 if (sv.Previous != null)
                 {
@@ -108,8 +123,10 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new ValueView<TValue>(newOffset, Value, Size, Kind, Name);
+            return new ValueView<TValue>(newOffset, Value, Size, Kind, _fileAccessor, Name);
         }
+
+        public override string ToString() => ViewFormatter.FormatValue(this);
     }
 
     class SplitValueView<TValue> : ValueView<TValue>, ISplitView
@@ -118,7 +135,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind, FixedUtf8String name) : base(offset, value, size, viewKind, name)
+        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind, FileAccessor fileAccessor, FixedUtf8String name) : base(offset, value, size, viewKind, fileAccessor, name)
         {
         }
     }

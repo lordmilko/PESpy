@@ -3,7 +3,10 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public readonly struct FuncInfo4AndGsHandlerData : IViewableValue
+    /// <summary>
+    /// Encapsulates the data that is passed to the <see cref="WellKnownExceptionHandlerKind.__GSHandlerCheck_EH4"/> exception handler.
+    /// </summary>
+    public readonly struct FuncInfo4AndGsHandlerData : IValue
     {
         public RVA<FuncInfo4> FuncInfo { get; }
 
@@ -28,17 +31,10 @@ namespace PESpy
             GsHandlerData = new GsHandlerData(chunk.AbsoluteOffset + sizeof(int), chunk.Pointer + sizeof(int));
         }
 
-        void IViewable.WriteGlobals(ViewWriter writer)
+        internal void WriteInline(ref EagerStructWriter s)
         {
-            //Both values are globals
-            writer.WriteRVAField(FuncInfo, Offset, 0);
-            writer.WriteGlobal(GsHandlerData);
+            s.WriteInline(FuncInfo, ViewKind.FuncInfo4Rva);
+            s.WriteInline(GsHandlerData);
         }
-
-        IView? IViewable.WriteStruct(ViewWriter writer) => null;
-
-        int IViewable.NumChildren() => throw new NotSupportedException();
-
-        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
     }
 }

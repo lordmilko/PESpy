@@ -10,8 +10,7 @@ namespace PESpy.View
         byte Bitness { get; }
     }
 
-    [DebuggerDisplay("{ViewDebuggerDisplay.Asm(this),nq}")]
-    public class AsmView<T> : IAsmView
+    public class AsmView<T> : IAsmView, IViewInternal
     {
         public int Offset { get; }
 
@@ -38,22 +37,42 @@ namespace PESpy.View
         }
 
         public int Size => range.Length;
+
         public ViewKind Kind { get; }
+
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
+        public ViewXRefList XRefs => new ViewXRefList(this, _fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.Asm;
+
+        //This type is not capable of having children
+        public ViewChildList Children => default;
 
         public byte Bitness { get; }
 
         private AsmRange<T> range;
+        private readonly FileAccessor _fileAccessor;
 
-        public AsmView(int offset, byte bitness, in AsmRange<T> range, ViewKind kind = ViewKind.Assembly)
+        public AsmView(int offset, byte bitness, in AsmRange<T> range, FileAccessor fileAccessor, ViewKind kind = ViewKind.Assembly)
         {
             Offset = offset;
             Kind = kind;
             Bitness = bitness;
             this.range = range;
+            _fileAccessor = fileAccessor;
         }
+
+        public IView this[int index] => throw new InvalidOperationException("This view does not contain children");
 
         public TResult Accept<TResult>(ViewVisitor<TResult> visitor) => visitor.VisitAsm(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitAsm(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatAsm(this);
+        }
     }
 }

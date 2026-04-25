@@ -9,31 +9,38 @@ namespace PESpy.View
     /// the rows of CLR metadata tables are loosely stored, however logically should be grouped together
     /// based on their token type.
     /// </summary>
-    [DebuggerDisplay("{ViewDebuggerDisplay.LogicalRegion(this),nq}")]
-    public class LogicalRegionView : IContainerView
+    public class LogicalRegionView : IViewInternal
     {
         public int Offset { get; }
 
         public string Name { get; }
 
+        //This type does not participate in xrefs
+        ViewXRefList IView.XRefs => default;
+
+        public ViewImplKind ImplKind => ViewImplKind.LogicalRegion;
+
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter);
+        public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
         public ViewKind Kind { get; }
+
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
 
         public int Size { get; }
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        public LogicalRegionView(int offset, string name, IView[] children, ViewWriter viewWriter, ViewKind kind, int size)
+        internal LogicalRegionView(int offset, string name, IView[] children, ViewWriter viewWriter, ViewKind kind, int size)
         {
             Debug.Assert(size != 0);
             Debug.Assert(kind != 0);
 
             Offset = offset;
             Name = name;
-            childProvider = new ViewChildProvider(children);
+            childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
             Kind = kind;
             Size = size;
@@ -54,8 +61,15 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        public IView this[int index] => Children[index];
+
         public T Accept<T>(ViewVisitor<T> visitor) => visitor.VisitLogicalRegion(this);
 
         public void Accept(ViewVisitor visitor) => visitor.VisitLogicalRegion(this);
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatLogicalRegion(this);
+        }
     }
 }

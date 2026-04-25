@@ -11,6 +11,8 @@ namespace PESpy.Tests
 
         public IMAGE_FILE_MACHINE MachineType => IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_I386;
 
+        public bool HasOmapFromSrc => false;
+
         public SymType GetModuleSymbol(ushort imod, int ibSym)
         {
             throw new NotImplementedException();
@@ -31,7 +33,22 @@ namespace PESpy.Tests
             throw new NotImplementedException();
         }
 
-        public int? GetRelativeVirtualAddress(ushort seg, int off)
+        public int? GetOmapRelativeVirtualAddress(ushort seg, int off)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int? GetRawRelativeVirtualAddress(ushort seg, int off)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TryGetSectionAndOffset(int rva, out ISECT sectionNumber, out int relativeOffset)
+        {
+            throw new NotImplementedException();
+        }
+
+        public NativeSpan<OMAP_DATA> GetOmapFromSrc()
         {
             throw new NotImplementedException();
         }

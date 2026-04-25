@@ -52,6 +52,11 @@ namespace PESpy
             }
         }
 
+        //For use by ViewProvider only
+        internal FuncInfo4(in MemoryChunk chunk) : this(chunk, 0)
+        {
+        }
+
         internal FuncInfo4(in MemoryChunk chunk, int functionAddress)
         {
             Offset = chunk.AbsoluteOffset;
@@ -164,6 +169,41 @@ namespace PESpy
             else
                 dispFrame = default;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            var offset = Offset;
+
+            var pBytes = _pBytes;
+
+            pBytes++;
+
+            if (header.BBT)
+                ReadUnsigned(ref pBytes); //bbtFlags
+
+            if (header.UnwindMap)
+            {
+                writer.WriteUniqueRVAField(dispUnwindMap, offset, (int) (pBytes - _pBytes));
+                ReadInt(ref pBytes); //dispUnwindMap
+            }
+
+            if (header.TryBlockMap)
+            {
+                writer.WriteUniqueRVAField(dispTryBlockMap, offset, (int) (pBytes - _pBytes));
+                ReadInt(ref pBytes); //dispTryBlockMap
+            }
+
+            if (header.isSeparated)
+                writer.WriteUniqueRVAField(dispToSegMap, offset, (int) (pBytes - _pBytes));
+            else
+                writer.WriteUniqueRVAField(dispIPtoStateMap, offset, (int) (pBytes - _pBytes));
+
+            ReadInt(ref pBytes); //dispIPtoStateMap
+
+            if (header.isCatch)
+                ReadUnsigned(ref pBytes); //dispFrame
+        }
+
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(Strings.FuncInfo4, this, ViewKind.FuncInfo4, StructSize);
 
@@ -203,7 +243,12 @@ namespace PESpy
             }
 
             var dispIPtoStateMap = ReadInt(ref pBytes);
-            s.WriteField(nameof(dispIPtoStateMap), dispIPtoStateMap);
+            s.WriteField(
+                header.isSeparated
+                    ? nameof(dispToSegMap)
+                    : nameof(dispIPtoStateMap),
+                dispIPtoStateMap
+            );
 
             if (header.isCatch)
             {
@@ -212,6 +257,8 @@ namespace PESpy
                 var length = (int) (pBytes - before);
                 s.WriteField(nameof(dispFrame), dispFrame, length);
             }
+
+            structWriter.EagerFields = s.ToArray();
         }
 
         #region Decompression
@@ -274,6 +321,27 @@ namespace PESpy
             pbEncoding -= negLength;
 
             return result;
+        }
+
+        internal static int GetLength(uint value)
+        {
+            // Lower 4 bits of the MSB determine the number of bytes to read:
+            // XXX0: 1 byte
+            // XX01: 2 bytes
+            // X011: 3 bytes
+            // 0111: 4 bytes
+            // 1111: 5 bytes
+
+            if (value < 128)
+                return 1;
+            else if (value < 128 * 128)
+                return 2;
+            else if (value < 128 * 128 * 128)
+                return 3;
+            else if (value < 128 * 128 * 128 * 128)
+                return 4;
+            else
+                return 5;
         }
 
         internal static int ReadInt(ref byte* buffer)

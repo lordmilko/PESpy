@@ -1,43 +1,21 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 
 namespace PESpy.View
 {
-    public interface IStructView : IContainerView
+    public interface IStructView : IView
     {
         FixedUtf8String Name { get; }
 
         bool TryGetEnhancedName(out string name);
-    }
 
-    internal class StructViewDebugView
-    {
-        private IStructView structView;
-
-        public int Offset => structView.Offset;
-
-        public FixedUtf8String Name => structView.Name;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public IView[] Children => structView.Children.ToArray();
-
-        public int Size => structView.Size;
-
-        public ViewKind Kind => structView.Kind;
-
-        internal StructViewDebugView(IStructView structView)
-        {
-            this.structView = structView;
-        }
+        string ValueType { get; }
     }
 
     /// <summary>
     /// Provides a view over a structure and the data contained within its bounds.
     /// </summary>
-    [DebuggerTypeProxy(typeof(StructViewDebugView))]
-    [DebuggerDisplay("{ViewDebuggerDisplay.Struct(this),nq}")]
-    public class StructView : IStructView, IContainerView, ISplittableView
+    public class StructView : IStructView, IViewInternal, ISplittableView
     {
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
@@ -49,20 +27,25 @@ namespace PESpy.View
         /// </summary>
         public FixedUtf8String Name { get; }
 
+        public ViewXRefList XRefs => new ViewXRefList(this, viewWriter._fileAccessor);
+
+        public ViewImplKind ImplKind => ViewImplKind.Struct;
+
         //Boxes
 
         /// <summary>
         /// Gets the contents of this struct. This may be fields, bit-fields, binary blobs, or even other structs.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public ViewChildList Children
         {
             get
             {
                 //We can do better in the non-generic ViewChildList type: just wrap the children up in a fake parent; then we don't need to check whether we were eager or not with each child we access
-                if (StructWriter.NeedsEagerChildren(Kind) && value is not ViewChildProvider) //If we've already split the value, don't create another ViewChildProvider
-                    return new ViewChildList(Offset, new ViewChildProvider(viewWriter.GetChildren(Offset, value)), viewWriter);
+                if (StructWriter.NeedsEagerChildren(Kind) && value is not ViewChildProvider<IView>) //If we've already split the value, don't create another ViewChildProvider
+                    return new ViewChildList(Offset, new ViewChildProvider<IView>(viewWriter.GetChildren(Offset, value, this)), viewWriter, this);
 
-                return new ViewChildList(Offset, value, viewWriter);
+                return new ViewChildList(Offset, value, viewWriter, this);
             }
         }
 
@@ -73,11 +56,14 @@ namespace PESpy.View
 
         public ViewKind Kind { get; }
 
+        public IView? Parent { get; private set; }
+        void IViewInternal.SetParent(IView parent) => Parent = parent;
+
         public string ValueType
         {
             get
             {
-                if (value is ViewChildProvider)
+                if (value is ViewChildProvider<IView>)
                     throw new NotImplementedException();
 
                 return value.GetType().Name;
@@ -102,6 +88,8 @@ namespace PESpy.View
             Kind = kind;
             this.viewWriter = viewWriter;
         }
+
+        public IView this[int index] => Children[index];
 
         //newBaseOffset is the start address of the next page.
         //cutoff is the end of the current page
@@ -169,7 +157,7 @@ namespace PESpy.View
                             newChildren[numLeftChildren - 1] = firstChild;
                         }
 
-                        value = new ViewChildProvider(newChildren);
+                        value = new ViewChildProvider<IView>(newChildren);
                         Size -= diff;
                     }
                     else
@@ -267,7 +255,7 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new StructView(newOffset, Name, new ViewChildProvider(newChildren), Size, Kind, viewWriter);
+            return new StructView(newOffset, Name, new ViewChildProvider<IView>(newChildren), Size, Kind, viewWriter);
         }
 
         public bool TryGetEnhancedName(out string name)
@@ -320,6 +308,11 @@ namespace PESpy.View
             name = default;
             return false;
         }
+
+        public override string ToString()
+        {
+            return ViewFormatter.FormatStruct(this);
+        }
     }
 
     class SplitStructView : StructView, ISplitView
@@ -328,7 +321,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructView(int offset, FixedUtf8String name, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, new ViewChildProvider(children), size, kind, viewWriter)
+        public SplitStructView(int offset, FixedUtf8String name, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, new ViewChildProvider<IView>(children), size, kind, viewWriter)
         {
         }
     }

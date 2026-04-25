@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <GhidraRoot>$(MSBuildThisFileDirectory)\..\..\..\C++\GhidraDecompiler\</GhidraRoot>
+    <GhidraRoot Condition="!Exists('$(GhidraRoot)')">$(MSBuildThisFileDirectory)\..\..\GhidraDecompiler\</GhidraRoot>
+    <LocalGhidraSharp Condition="'$(UseLatestTargetFramework)' != 'yes'">$(GhidraRoot)GhidraSharp\bin\Debug\netstandard2.0\GhidraSharp.dll</LocalGhidraSharp>
+    <LocalGhidraSharp Condition="'$(UseLatestTargetFramework)' == 'yes'">$(GhidraRoot)GhidraSharp\bin\Debug\net6.0\GhidraSharp.dll</LocalGhidraSharp>
+    <GhidraStaticLib>$(GhidraRoot)GhidraDecompiler\bin\Static\x64\GhidraDecompiler.lib</GhidraStaticLib>
+    <GhidraDynamicLib>$(GhidraRoot)GhidraDecompiler\bin\Release\x64\GhidraDecompiler.dll</GhidraDynamicLib>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(GhidraDynamicLib)" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="x64\%(FileName)%(Extension)" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- If GhidraSharp has been cloned to the parent directory containing both GhidraSharp and ReDbg,
+         prefer the local version for development purposes -->
+    <PackageReference Include="GhidraSharp" Version="$(GhidraSharpVersion)" Condition="!Exists('$(LocalGhidraSharp)')" />
+
+    <Reference Include="GhidraSharp" Condition="Exists('$(LocalGhidraSharp)')">
+      <HintPath>$(LocalGhidraSharp)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

@@ -33,7 +33,7 @@ namespace PESpy.View
 
         public bool TryGetSectionInfo(int rva, out int targetAddress, out int sectionIndex, out bool isCode)
         {
-            if (rva < _lastSectionHeaderVirtualStart || rva > _lastSectionHeaderVirtualEnd)
+            if (rva < _lastSectionHeaderVirtualStart || rva >= _lastSectionHeaderVirtualEnd)
             {
                 _sectionIndex = _peFile.GetSectionContainingRVA(rva);
 

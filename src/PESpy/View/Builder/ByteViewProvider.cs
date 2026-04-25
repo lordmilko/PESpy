@@ -7,15 +7,13 @@ namespace PESpy.View.Builder
 {
     internal abstract unsafe class ByteViewProvider
     {
-        private IViewDisassembler? viewDisassembler;
         private List<IView> rawBytesResults = new List<IView>();
         private bool isLibFile;
+        private readonly FileAccessor _fileAccessor;
 
-        public IViewDisassembler? ViewDisassembler => viewDisassembler;
-
-        internal ByteViewProvider(IViewDisassembler? viewDisassembler, bool isLibFile)
+        internal ByteViewProvider(FileAccessor fileAccessor, bool isLibFile)
         {
-            this.viewDisassembler = viewDisassembler;
+            _fileAccessor = fileAccessor;
             this.isLibFile = isLibFile;
         }
 
@@ -31,7 +29,7 @@ namespace PESpy.View.Builder
 
             var bytes = new NativeSpan<byte>((byte*) pBytes + relativeOffset, length);
 
-            return new ByteBlobView(rva, bytes, null); //Auto-detect the kind
+            return new ByteBlobView(rva, bytes, null, _fileAccessor); //Auto-detect the kind
         }
 
         internal IView[]? ReadBytes(ref int currentRVA, int endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
@@ -80,7 +78,7 @@ namespace PESpy.View.Builder
                 if (bytes.Length == 1 && isLibFile && kind == null && bytes[0] == IMAGE_ARCHIVE_MEMBER_HEADER.IMAGE_ARCHIVE_PAD)
                     kind = ViewKind.ImageArchivePad;
 
-                var result = new ByteBlobView(currentRVA, bytes, kind);
+                var result = new ByteBlobView(currentRVA, bytes, kind, _fileAccessor);
                 views = new IView[] { result };
             }
 
@@ -94,38 +92,6 @@ namespace PESpy.View.Builder
             //Try get code first, then strings
 
             rawBytesResults.Clear();
-
-            if (kind == ViewKind.DosStub)
-            {
-                if (bytes.Length > 0)
-                {
-                    if (viewDisassembler != null)
-                    {
-                        viewDisassembler.TryParseDosStub(ref offset, ref bytes, rawBytesResults);
-                    }
-                }
-            }
-            else
-            {
-                if (getRVA != null) //Known padding does not provide a getRVA
-                {
-                    //If all bytes are padding, don't ask to parse bytes
-
-                    var isPadding = true;
-
-                    for (var i = 0; i < bytes.Length; i++)
-                    {
-                        if (bytes[i] != 0)
-                        {
-                            isPadding = false;
-                            break;
-                        }
-                    }
-
-                    if (!isPadding)
-                        viewDisassembler?.TryParseBytes(ref offset, getRVA(offset), ref bytes, rawBytesResults);
-                }
-            }
 
             if (bytes.Length >= StringParser.MinimumStringLength || rawBytesResults.Count > 0) //If we've already read some assembly code, force processing
             {
@@ -160,9 +126,9 @@ namespace PESpy.View.Builder
                     if (nextValue.Start == i)
                     {
                         if (nextValue.IsUnicode)
-                            results.Add(new ValueView<FixedUtf16String>(offset + nextValue.Start, nextValue.Unicode, nextValue.Length, ViewKind.String));
+                            results.Add(new ValueView<FixedUtf16String>(offset + nextValue.Start, nextValue.Unicode, nextValue.Length, ViewKind.String, _fileAccessor));
                         else
-                            results.Add(new ValueView<AnsiString>(offset + nextValue.Start, nextValue.Ansi, nextValue.Length, ViewKind.String));
+                            results.Add(new ValueView<AnsiString>(offset + nextValue.Start, nextValue.Ansi, nextValue.Length, ViewKind.String, _fileAccessor));
 
                         i += nextValue.Length - 1;
                         strIndex++;
@@ -189,7 +155,7 @@ namespace PESpy.View.Builder
             if (localKind != null && arr.All(b => b == 0))
                 localKind = null;
 
-            var blob = new ByteBlobView(offset + i, arr, localKind);
+            var blob = new ByteBlobView(offset + i, arr, localKind, _fileAccessor);
             i += arr.Length - 1;
             return blob;
         }

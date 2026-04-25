@@ -187,12 +187,7 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= NullSymbolAccessor.Instance;
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(IViewDisassembler? viewDisassembler)
-        {
-            viewDisassembler?.Initialize(this);
-
-            return new LocalByteViewProvider(mmf.Address, (int) mmf.Length);
-        }
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

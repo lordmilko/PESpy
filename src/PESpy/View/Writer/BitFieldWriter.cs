@@ -12,15 +12,17 @@ namespace PESpy.View
             private int bitsUsed;
             private int maxSize;
             private int fieldIndex;
+            private FileAccessor _fileAccessor;
 
             //The caller must ensure that the pooled list is expanded to be able to fit
             //all of the required fields
-            public BitFieldWriter(int offset, Span<IView> fields, int bytes)
+            public BitFieldWriter(int offset, Span<IView> fields, int bytes, FileAccessor fileAccessor)
             {
                 this.offset = offset;
                 this.fields = fields;
                 bitsUsed = 0;
                 maxSize = bytes;
+                _fileAccessor = fileAccessor;
             }
 
             public void WriteField(string name, byte value, int bits) =>
@@ -48,7 +50,7 @@ namespace PESpy.View
 
             private void WriteFieldInternal<T>(string name, T value, int bits)
             {
-                var element = new BitFieldView<T>(offset, name, value, bits, maxSize);
+                var element = new BitFieldView<T>(offset, name, value, bits, maxSize, _fileAccessor);
 
                 bitsUsed += bits;
 
