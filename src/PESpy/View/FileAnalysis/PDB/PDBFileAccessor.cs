@@ -246,7 +246,7 @@ namespace PESpy.View
         {
             if (_viewWriter == null)
             {
-                _viewWriter = new PDBViewWriter(PDBFile);
+                _viewWriter = new PDBViewWriter(PDBFile, this);
 
 #if DEBUG
                 _viewWriter.ShouldVerifyXRefs = false;

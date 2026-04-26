@@ -238,7 +238,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.MODI_60_Persist, this, ViewKind.Modi60Persist, StructSize);
+            writer.NewStruct(this, ViewKind.Modi60Persist, StructSize);
 
         //Note that it doesn't seem to be possible for a MODI to have a DEBUG_S_SYMBOLS C13 item;
         //I feel like you can only get DEBUG_S_SYMBOLS in an OBJ file. On that basis,

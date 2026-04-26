@@ -35,7 +35,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.BlobEntry, this, ViewKind.Metadata_Blob, StructSize);
+            writer.NewStruct(this, ViewKind.Metadata_Blob, StructSize);
 
         int IViewable.NumChildren() => length == 0 ? 1 : 2;
 

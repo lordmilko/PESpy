@@ -88,24 +88,11 @@ namespace PESpy
         {
             var isFat = (Sect.Kind & CorILMethodSect.FatFormat) != 0;
 
-            if (isFat)
-            {
-                return writer.NewStruct(
-                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_FAT,
-                    this,
-                    ViewKind.ImageCorILMethodSectEHFat,
-                    StructSize
-                );
-            }
-            else
-            {
-                return writer.NewStruct(
-                    Strings.IMAGE_COR_ILMETHOD_SECT_EH_SMALL,
-                    this,
-                    ViewKind.ImageCorILMethodSectEHSmall,
-                    StructSize
-                );
-            }
+            return writer.NewStruct(
+                this,
+                isFat ? ViewKind.ImageCorILMethodSectEHFat : ViewKind.ImageCorILMethodSectEHSmall,
+                StructSize
+            );
         }
 
         int IViewable.NumChildren() => (Sect.Kind & CorILMethodSect.FatFormat) != 0 ? 2 : 3;

@@ -54,7 +54,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.RVAAndFrameData, this, ViewKind.RvaAndFrameData, StructSize);
+            writer.NewStruct(this, ViewKind.RvaAndFrameData, StructSize);
 
         int IViewable.NumChildren() => 1 + FrameData.Length;
 

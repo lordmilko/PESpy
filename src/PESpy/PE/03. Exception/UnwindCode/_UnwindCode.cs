@@ -139,7 +139,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewUnmanagedStruct(Strings.UNWIND_CODE, this, ViewKind.UnwindCode, StructSize);
+            writer.NewUnmanagedStruct(this, ViewKind.UnwindCode, StructSize);
 
         int IViewable.NumChildren()
         {

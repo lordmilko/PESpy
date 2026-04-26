@@ -87,7 +87,7 @@ namespace PESpy
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => WriteChild(index, ref structWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.ANON_OBJECT_HEADER, this, ViewKind.AnonObjectHeader, StructSize);
+            writer.NewStruct(this, ViewKind.AnonObjectHeader, StructSize);
 
         protected virtual int NumChildren => 7;
 

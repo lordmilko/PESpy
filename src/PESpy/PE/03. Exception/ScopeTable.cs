@@ -72,7 +72,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.SCOPE_TABLE, this, ViewKind.ScopeTable, StructSize);
+            writer.NewStruct(this, ViewKind.ScopeTable, StructSize);
 
         int IViewable.NumChildren() => 1 + Count;
 
@@ -199,7 +199,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.ScopeRecord, this, ViewKind.ScopeRecord, StructSize);
+                writer.NewStruct(this, ViewKind.ScopeRecord, StructSize);
 
             int IViewable.NumChildren() => 4;
 

@@ -59,7 +59,7 @@ namespace PESpy.PDB
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => WriteChild(index, ref structWriter);
 
         protected virtual IView? WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.PDBStream, this, ViewKind.PDBStream, StructSize);
+            writer.NewStruct(this, ViewKind.PDBStream, StructSize);
 
         protected virtual int NumChildren => 3;
 

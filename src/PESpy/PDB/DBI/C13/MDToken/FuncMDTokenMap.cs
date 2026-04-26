@@ -81,7 +81,7 @@ namespace PESpy.PDB
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, ViewKind.FuncMDTokenMap_Entry, StructSize);
+                writer.NewStruct(this, ViewKind.FuncMDTokenMap_Entry, StructSize);
 
             int IViewable.NumChildren() => HasMethodData ? 2 : 3;
 
@@ -126,7 +126,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.FuncMDTokenMap, this, ViewKind.FuncMDTokenMap, StructSize);
+            writer.NewStruct(this, ViewKind.FuncMDTokenMap, StructSize);
 
         int IViewable.NumChildren() => 2 + Entries.Length;
 

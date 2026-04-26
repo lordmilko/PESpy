@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.StateMachineMethodRow, this, ViewKind.PortablePdb_StateMachineMethodRow, table.RowSize);
+            writer.NewStruct(this, ViewKind.PortablePdb_StateMachineMethodRow, table.RowSize);
 
         int IViewable.NumChildren() => 2;
 

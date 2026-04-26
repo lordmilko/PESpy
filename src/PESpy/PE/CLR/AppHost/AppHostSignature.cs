@@ -105,7 +105,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.AppHostSignature, this, ViewKind.AppHostSignature, StructSize);
+            writer.NewStruct(this, ViewKind.AppHostSignature, StructSize);
 
         int IViewable.NumChildren() => 2;
 

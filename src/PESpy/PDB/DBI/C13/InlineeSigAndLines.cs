@@ -109,7 +109,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.InlineeSigAndLines, this, ViewKind.InlineeSigAndLines, StructSize);
+            writer.NewStruct(this, ViewKind.InlineeSigAndLines, StructSize);
 
         int IViewable.NumChildren() => 1 + Lines.Length;
 

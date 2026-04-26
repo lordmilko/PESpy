@@ -19,12 +19,12 @@ namespace PESpy.Tests
             Kind = kind;
         }
 
-        protected internal override IView NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal override IView NewStruct<T>(in T value, ViewKind kind, int structSize)
         {
             if (kind == Kind)
                 Matches.Add(value);
 
-            return base.NewStruct(name, value, kind, structSize);
+            return base.NewStruct(value, kind, structSize);
         }
 
         protected internal override IView NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)

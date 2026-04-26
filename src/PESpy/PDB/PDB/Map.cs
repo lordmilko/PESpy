@@ -189,7 +189,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.Map, this, ViewKind.Map, StructSize);
+            writer.NewStruct(this, ViewKind.Map, StructSize);
 
         int IViewable.NumChildren() => 5 + (DeletedWords.Length == 0 ? 0 : 1) + Entries.Length;
 
@@ -262,7 +262,7 @@ namespace PESpy.PDB
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, ViewKind.Map_Entry, StructSize);
+                writer.NewStruct(this, ViewKind.Map_Entry, StructSize);
 
             int IViewable.NumChildren() => 2;
 

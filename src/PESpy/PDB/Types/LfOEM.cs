@@ -49,7 +49,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewUnmanagedStruct(Strings.lfOEM, this, ViewKind.LfOEM, typlen + sizeof(short));
+            writer.NewUnmanagedStruct(this, ViewKind.LfOEM, typlen + sizeof(short));
 
         int IViewable.NumChildren() => 5;
 

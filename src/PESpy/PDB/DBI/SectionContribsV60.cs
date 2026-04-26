@@ -62,7 +62,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.SectionContribs, this, ViewKind.SectionContribsV60, StructSize);
+            writer.NewStruct(this, ViewKind.SectionContribsV60, StructSize);
 
         int IViewable.NumChildren() => 1 + Entries.Length;
 

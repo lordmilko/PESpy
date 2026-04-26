@@ -201,11 +201,11 @@ namespace PESpy
             {
                 case CorILMethodFlags.TinyFormat:
                 case CorILMethodFlags.TinyFormat1:
-                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_TINY, this, ViewKind.ImageCorILMethodTiny, TinyStructSize);
+                    return writer.NewStruct(this, ViewKind.ImageCorILMethodTiny, TinyStructSize);
 
                 case CorILMethodFlags.FatFormat:
 
-                    return writer.NewStruct(Strings.IMAGE_COR_ILMETHOD_FAT, this, ViewKind.ImageCorILMethodFat, FatStructSize);
+                    return writer.NewStruct(this, ViewKind.ImageCorILMethodFat, FatStructSize);
 
                 default:
                     return null;

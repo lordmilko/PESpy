@@ -56,7 +56,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_TLS_DIRECTORY, this, ViewKind.ImageTlsDirectory, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.ImageTlsDirectory, StructSize(((PEViewWriter) writer).Is32Bit));
 
         int IViewable.NumChildren() => 6;
 

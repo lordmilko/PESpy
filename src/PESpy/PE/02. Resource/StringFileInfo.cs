@@ -97,7 +97,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.StringFileInfo, this, ViewKind.StringFileInfo, Length);
+                writer.NewStruct(this, ViewKind.StringFileInfo, Length);
 
             int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 

@@ -76,7 +76,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.MergedAssemblyInfo, this, ViewKind.MergedAssemblyInfo, StructSize);
+            writer.NewStruct(this, ViewKind.MergedAssemblyInfo, StructSize);
 
         int IViewable.NumChildren() => 4;
 

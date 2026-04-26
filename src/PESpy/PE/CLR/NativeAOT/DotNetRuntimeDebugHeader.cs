@@ -209,7 +209,7 @@ namespace PESpy.NativeAOT
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.DotNetRuntimeDebugHeader, this, ViewKind.DotNetRuntimeDebugHeader, StructSize);
+            writer.NewStruct(this, ViewKind.DotNetRuntimeDebugHeader, StructSize);
 
         int IViewable.NumChildren() => 7;
 

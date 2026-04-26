@@ -383,7 +383,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CV_DebugSSubsectionHeader_t, this, ViewKind.CvDebugSSubsectionHeader, StructSize);
+            writer.NewStruct(this, ViewKind.CvDebugSSubsectionHeader, StructSize);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 

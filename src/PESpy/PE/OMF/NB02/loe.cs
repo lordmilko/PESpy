@@ -64,7 +64,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.loe, this, ViewKind.loe, StructSize);
+            writer.NewStruct(this, ViewKind.loe, StructSize);
 
         int IViewable.NumChildren() => (hasSeg ? 3 : 2) + cOff;
 
@@ -121,7 +121,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewUnmanagedStruct(Strings.LineNumberOffset, this, ViewKind.LineNumberOffset, StructSize);
+                writer.NewUnmanagedStruct(this, ViewKind.LineNumberOffset, StructSize);
 
             int IViewable.NumChildren() => 2;
 

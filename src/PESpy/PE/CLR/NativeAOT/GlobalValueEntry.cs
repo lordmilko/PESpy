@@ -57,7 +57,7 @@ namespace PESpy.NativeAOT
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.GlobalValueEntry, this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.GlobalValueEntry, StructSize(((PEViewWriter) writer).Is32Bit));
 
         int IViewable.NumChildren() => 2;
 

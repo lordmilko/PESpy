@@ -335,7 +335,7 @@ namespace PESpy
 
             viewWriter.ExitUniqueXRef();
 
-            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
+            viewWriter.RegisterStruct(pViewByte, targetAddress, ViewKind.UnwindInfo);
 
             for (var i = pViewByte + 1; i < pViewByte + structSize; i++)
                 i->Kind = ViewByteKind.Body;
@@ -501,7 +501,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.UNWIND_INFO, this, ViewKind.UnwindInfo, writer.IsByteViewWriter ? FixedStructSize : StructSize);
+            writer.NewStruct(this, ViewKind.UnwindInfo, writer.IsByteViewWriter ? FixedStructSize : StructSize);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 

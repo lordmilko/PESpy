@@ -90,7 +90,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.FPO_DATA, this, ViewKind.FpoData, StructSize);
+            writer.NewStruct(this, ViewKind.FpoData, StructSize);
 
         int IViewable.NumChildren() => 10;
 

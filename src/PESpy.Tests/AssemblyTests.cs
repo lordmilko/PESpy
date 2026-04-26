@@ -548,6 +548,12 @@ namespace PESpy.Tests
                             case nameof(ViewKind.SC40):
                             case nameof(ViewKind.SC):
                             case nameof(ViewKind.SC2):
+                            case nameof(ViewKind.HandlerType4):
+                            case nameof(ViewKind.HandlerTypeHeader):
+                            case nameof(ViewKind.IPtoStateMapEntry4):
+                            case nameof(ViewKind.SepIPtoStateMapEntry4):
+                            case nameof(ViewKind.TryBlockMapEntry4):
+                            case nameof(ViewKind.UnwindMapEntry4):
                                 skip = "//";
                                 break;
                         }
@@ -697,11 +703,11 @@ namespace PESpy.Tests
                                     switch (structKind)
                                     {
                                         case "NativeSpan<int>":
-                                            builder.AppendLine($"WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.{enumValue}),");
+                                            builder.AppendLine($"WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.{enumValue}),");
                                             break;
 
                                         case "NativeSpan<SO>":
-                                            builder.AppendLine($"WriteGlobalField(chunk, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.{enumValue}),");
+                                            builder.AppendLine($"WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.{enumValue}),");
                                             break;
 
                                         default:
@@ -801,6 +807,116 @@ namespace PESpy.Tests
             }
 
             File.WriteAllLines(path, viewProviderLines.ToArray());
+        }
+
+        [TestMethod]
+        public void GenerateViewProviderNames()
+        {
+            var builder = new StringBuilder();
+
+            builder.AppendLine("using System.Runtime.CompilerServices;");
+            builder.AppendLine("using PESpy.View;");
+            builder.AppendLine();
+            builder.AppendLine("namespace PESpy");
+            builder.AppendLine("{");
+
+            builder.AppendLine("    internal partial class ViewProvider");
+            builder.AppendLine("    {");
+
+            builder.AppendLine("        private static readonly FixedUtf8String[] _structNames =");
+            builder.AppendLine("        {");
+
+            var kinds = Enum.GetValues<ViewKind>();
+
+            var longestName = kinds.Select(v => v.ToString().Length).Max();
+
+            for (var i = 0; i < kinds.Length; i++)
+            {
+                var kind = kinds[i];
+
+                builder.Append("            /* ");
+                builder.Append(kind.ToString().PadRight(longestName));
+                builder.Append(" */ ");
+
+                if (kind.TryGetDescription(out var description) &&!description.Contains(" "))
+                {
+                    builder.Append("Strings.");
+                    builder.Append(description);
+                }
+                else
+                    builder.Append("default");
+
+                if (i < kinds.Length - 1)
+                    builder.AppendLine(",");
+                else
+                    builder.AppendLine();
+            }
+
+            builder.AppendLine("        };");
+
+            builder.AppendLine();
+
+            //Also gets field names for ViewEntity items
+            builder.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+            builder.AppendLine("        internal static FixedUtf8String GetName(ViewKind kind) => _structNames[(int) kind - 1];");
+
+            builder.AppendLine();
+
+            var fieldKinds = new[]
+            {
+                ViewKind.AddressMap,
+                ViewKind.ThunkMap,
+                ViewKind.SectionMap,
+                ViewKind.DNRBSecOffset,
+                ViewKind.DNRBVersion,
+                ViewKind.DNRBSignature,
+                ViewKind.DNRBSecTblOffset,
+                ViewKind.LfoDir,
+                ViewKind.cDir,
+                ViewKind.LfoBase
+            };
+
+            var longestFieldName = fieldKinds.Select(v => v.ToString().Length).Max();
+
+            builder.AppendLine("        internal static string GetFieldName(ViewKind kind)");
+            builder.AppendLine("        {");
+            builder.AppendLine("            return kind switch");
+            builder.AppendLine("            {");
+
+            for (var i = 0; i < fieldKinds.Length; i++)
+            {
+                var kind = fieldKinds[i];
+
+                var propertyName = kind.GetDescription();
+                var propertyInfo = typeof(Strings).GetPropertyInfo(propertyName);
+                var str = ((FixedUtf8String) propertyInfo.GetValue(null)).ToString();
+
+                builder.Append("                ViewKind.");
+                builder.Append(kind.ToString().PadRight(longestFieldName));
+                builder.Append(" => ");
+                builder.Append($"\"{str}\"");
+
+                if (i < fieldKinds.Length - 1)
+                    builder.AppendLine(",");
+                else
+                    builder.AppendLine();
+            }
+
+            builder.AppendLine("            };");
+
+            builder.AppendLine("        }");
+
+            builder.AppendLine("    }");
+
+            builder.AppendLine("}");
+
+            var result = builder.ToString();
+
+            var location = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(AssemblyTests).Assembly.Location), "..\\..\\..\\..\\PESpy\\View"));
+
+            var path = Path.Combine(location, "ViewProvider.Name.cs");
+
+            File.WriteAllText(path, result, Encoding.UTF8);
         }
 
         private void WithSemanticModels(Action<SemanticModel> action, string projectName = "PESpy")

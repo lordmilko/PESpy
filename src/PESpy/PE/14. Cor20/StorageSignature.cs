@@ -62,7 +62,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.STORAGESIGNATURE, this, ViewKind.StorageSignature, StructSize);
+            writer.NewStruct(this, ViewKind.StorageSignature, StructSize);
 
         int IViewable.NumChildren() => 6;
 

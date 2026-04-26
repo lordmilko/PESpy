@@ -14,7 +14,7 @@ namespace PESpy.View
         //This method is not super ideal, because we have to pay for a copy of it for every single struct in PESpy,
         //rather than just the structs that are a child of a PEFile, increasing our file size by a bit in NativeAOT.
         //If we rework NewStruct to just take an offset for 99% of structs, this will help reduce this impact
-        protected internal override IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal override IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
         {
             var previousWriter = outerWriter.NestedViewWriter;
             var previousRegion = outerWriter.FromRegion;
@@ -24,7 +24,7 @@ namespace PESpy.View
 
             try
             {
-                return outerWriter.NewStruct(name, value, kind, structSize);
+                return outerWriter.NewStruct(value, kind, structSize);
             }
             finally
             {
@@ -33,7 +33,7 @@ namespace PESpy.View
             }
         }
 
-        protected internal override IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal override IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize)
         {
             throw new System.NotImplementedException();
         }

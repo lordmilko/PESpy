@@ -8,7 +8,6 @@ namespace PESpy.View
 {
     internal unsafe class PDBViewByteViewWriter : PDBViewWriter
     {
-        private readonly FileAccessor _fileAccessor;
         private readonly int _pageSize;
         private readonly FileAnalyzer _fileAnalyzer;
         private readonly Dictionary<PN, int> _pageNumberToSIIndex;
@@ -17,23 +16,22 @@ namespace PESpy.View
             PDBFile pdbFile,
             FileAccessor fileAccessor,
             FileAnalyzer fileAnalyzer,
-            Dictionary<PN, int> pageNumberToSIIndex) : base(pdbFile)
+            Dictionary<PN, int> pageNumberToSIIndex) : base(pdbFile, fileAccessor)
         {
-            _fileAccessor = fileAccessor;
             _pageSize = pdbFile.PageSize;
             _fileAnalyzer = fileAnalyzer;
             _pageNumberToSIIndex = pageNumberToSIIndex;
         }
 
-        protected internal override IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal override IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize)
         {
-            return RegisterStruct(name, UnmanagedOffset, kind, structSize);
+            return RegisterStruct(UnmanagedOffset, kind, structSize);
         }
 
-        protected internal override IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal override IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
         {
             //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
-            return RegisterStruct(name, value.Offset, kind, structSize);
+            return RegisterStruct(value.Offset, kind, structSize);
         }
 
         protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
@@ -41,17 +39,19 @@ namespace PESpy.View
             return RegisterValue(offset, size, kind, fromRegion);
         }
 
-        public override void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
+        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind)
         {
-            RegisterStruct(name, offset, kind, size);
+            RegisterStruct(offset, kind, size);
         }
 
-        private IView? RegisterStruct(FixedUtf8String name, int offset, ViewKind kind, int structSize)
+        private IView? RegisterStruct(int offset, ViewKind kind, int structSize)
         {
+            var name = ViewProvider.GetName(kind);
+
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
-            _fileAnalyzer.AddName(offset, pViewByte, name);
+            pViewByte->HasName = true;
             _fileAccessor.AddStructKind(offset, kind);
 
             SetPagedBody(offset, structSize, pViewByte, sectionAccessorIndex);

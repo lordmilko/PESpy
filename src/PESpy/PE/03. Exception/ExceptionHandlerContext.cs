@@ -529,7 +529,7 @@ namespace PESpy
                 structSize += sizeof(RUNTIME_FUNCTION);
 
             var targetAddress = sectionAccessor.StartAddress + unwindInfoRelativeOffset;
-            viewWriter.RegisterStruct(pViewByte, Strings.UNWIND_INFO, targetAddress, ViewKind.UnwindInfo);
+            viewWriter.RegisterStruct(pViewByte, targetAddress, ViewKind.UnwindInfo);
 
             for (var j = pViewByte + 1; j < pViewByte + structSize; j++)
                 j->Kind = ViewByteKind.Body;

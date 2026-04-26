@@ -69,7 +69,7 @@ namespace PESpy.NE
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.new_seg, this, ViewKind.NewSeg, StructSize);
+            writer.NewStruct(this, ViewKind.NewSeg, StructSize);
 
         int IViewable.NumChildren() => 4;
 

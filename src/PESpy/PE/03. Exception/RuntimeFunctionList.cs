@@ -118,7 +118,7 @@ namespace PESpy
 
                 for (var i = pRuntimeFunction; i < pEnd; i++, offset += elementSize)
                 {
-                    w.NewStruct(Strings.RUNTIME_FUNCTION, offset, elementSize, ViewKind.RuntimeFunction);
+                    w.NewStruct(offset, elementSize, ViewKind.RuntimeFunction);
 
                     w.WriteRVAXRef(offset, RuntimeFunction.BeginAddressOffset, i->BeginAddress);
                     w.WriteRVAXRef(offset, RuntimeFunction.EndAddressOffset, i->EndAddress);

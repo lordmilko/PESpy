@@ -72,7 +72,7 @@ namespace PESpy.PDB
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, ViewKind.TypeMDTokenMap_Entry, StructSize);
+                writer.NewStruct(this, ViewKind.TypeMDTokenMap_Entry, StructSize);
 
             int IViewable.NumChildren() => HasSmallTypeSig ? 3 : 2;
 
@@ -122,7 +122,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.TypeMDTokenMap, this, ViewKind.FuncMDTokenMap, StructSize);
+            writer.NewStruct(this, ViewKind.TypeMDTokenMap, StructSize);
 
         int IViewable.NumChildren() => 2 + Entries.Length;
 

@@ -801,7 +801,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_LOAD_CONFIG_DIRECTORY, this, ViewKind.ImageLoadConfigDirectory, Size);
+            writer.NewStruct(this, ViewKind.ImageLoadConfigDirectory, Size);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 

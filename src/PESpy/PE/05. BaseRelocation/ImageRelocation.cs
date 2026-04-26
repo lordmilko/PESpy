@@ -48,7 +48,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_RELOCATION, this, ViewKind.ImageRelocation, StructSize);
+            writer.NewStruct(this, ViewKind.ImageRelocation, StructSize);
 
         int IViewable.NumChildren() => 3;
 

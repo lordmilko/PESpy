@@ -31,7 +31,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.UnwindMapEntry, this, ViewKind.UnwindMapEntry, StructSize);
+            writer.NewStruct(this, ViewKind.UnwindMapEntry, StructSize);
 
         int IViewable.NumChildren() => 2;
 

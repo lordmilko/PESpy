@@ -129,7 +129,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.PropertyRow, this, ViewKind.Metadata_PropertyRow, table.RowSize);
+            writer.NewStruct(this, ViewKind.Metadata_PropertyRow, table.RowSize);
 
         int IViewable.NumChildren() => 3;
 

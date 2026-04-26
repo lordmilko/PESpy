@@ -33,26 +33,11 @@ namespace PESpy.View
             };
         }
 
-        /* When we were storing ViewKind, FixedUtf8String and SpanAllocatorHandle (total: 24 bytes)
-         * in our ViewInfo, in a stress test against in msedge.dll (which is over 300mb) there were
-         * 16.9m entries in the _infoMap, which meant our _infoMap required 405mb just to store all the
-         * Only 2 million (12%) of these records actually had a name, and only 1 million actually had a
-         * distinct name, meaning we were paying 202mb just to store names when we only needed to be paying
-         * 12mb. If we move the 12 byte FixedUtf8String records out into their own separate array, only storing
-         * a single distinct record per name, and then give each ViewInfo record a 4 byte index into this array,
-         * we can cut down the memory usage required to store names down from 202mb to 79.9mb
-         * 
-         * Using this memory that we've freed up, we can implement a reverse "name to things that use that name" lookup.
-         * Alongside our new FixedUtf8String[] we implement a SpanAllocatorHandle[] and a temporary Dictionary<FixedUtf8String, int>
-         * to be used during construction. The SpanAllocator holds all of the entities that refer to a given name, and the
-         * FixedUtf8String[] / SpanAllocatorHandle[] arrays are parallel arrays that provide a mechanism of resolving a given name
-         */
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
         internal struct ViewInfo
         {
             //I tried reordering this to make it 14 bytes with pack 2 but that didn't make any difference
             public ViewKind ViewKind;
-            public int NameIndex;
             public SpanAllocatorHandle XRefs;
         }
 
@@ -94,10 +79,6 @@ namespace PESpy.View
         protected object _overview;
         private SpanAllocator<XRef> _xrefs;
 
-        protected FixedUtf8String[] _names;
-        private SpanAllocatorHandle[] _nameRefHandles;
-        private SpanAllocator<int> _nameRefAllocator;
-
         private int[] _stringAddresses;
 
         public object Overview => _overview ??= CreateOverview();
@@ -110,9 +91,6 @@ namespace PESpy.View
 
         protected FileAccessor(int bitness)
         {
-            if (trackXRefs)
-                _xrefs = new SpanAllocator<XRef>(100);
-
             switch (bitness)
             {
                 case 16:
@@ -197,6 +175,7 @@ namespace PESpy.View
             var pBytes = GetRawSectionData(accessor);
 
             return new ViewEntity(
+                this,
                 sectionAccessorIndex,
                 GetSymbolAccessor(),
                 address,
@@ -205,7 +184,6 @@ namespace PESpy.View
                 accessor.pViewBytes + accessor.Length,
                 pBytes,
                 _infoMap,
-                _names,
                 LargeAddresses
             );
         }
@@ -219,6 +197,7 @@ namespace PESpy.View
             IntPtr pBytes)
         {
             return new ViewEntity(
+                this,
                 sectionAccessorIndex,
                 GetSymbolAccessor(),
                 targetAddress,
@@ -227,7 +206,6 @@ namespace PESpy.View
                 sectionAccessor.pViewBytes + sectionAccessor.Length,
                 pBytes,
                 _infoMap,
-                _names,
                 LargeAddresses
             );
         }
@@ -245,6 +223,7 @@ namespace PESpy.View
             var pViewByte = &accessor.pViewBytes[relativeOffset];
 
             return new ViewEntity(
+                this,
                 sectionIndex + 1,
                 GetSymbolAccessor(),
                 address,
@@ -253,7 +232,6 @@ namespace PESpy.View
                 accessor.pViewBytes + accessor.Length,
                 pBytes,
                 _infoMap,
-                _names,
                 LargeAddresses
             );
         }
@@ -328,7 +306,17 @@ namespace PESpy.View
                 while (j < sectionLength)
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
-                    var entity = new ViewEntity(i, symbolAccessor, sectionAccessor, j, sectionLength, pBytes, _infoMap, _names, LargeAddresses);
+                    var entity = new ViewEntity(
+                        this,
+                        i,
+                        symbolAccessor,
+                        sectionAccessor,
+                        j,
+                        sectionLength,
+                        pBytes,
+                        _infoMap,
+                        LargeAddresses
+                    );
 
                     j += entity.Length;
 
@@ -454,6 +442,7 @@ namespace PESpy.View
             var pBytes = GetRawSectionData(sectionAccessor);
 
             return new ViewEntityIterator(
+                this,
                 0,
                 symbolAccessor,
                 sectionAccessor,
@@ -461,7 +450,6 @@ namespace PESpy.View
                 sectionAccessor.Length,
                 pBytes,
                 _infoMap,
-                _names,
                 LargeAddresses
             );
         }
@@ -752,42 +740,14 @@ namespace PESpy.View
             return pViewByte;
         }
 
-        #region Name
-
-        //Should only be called by the analyzer, which is responsible for doing the rest of the "real"
-        //bookkeeping
-        internal void AddName(int targetAddress, int nameIndex)
-        {
-            //We treat index 0 as "null" so the caller must always skip past it
-            Debug.Assert(nameIndex != 0);
-
-#if NET9_0_OR_GREATER
-            ref var data = ref CollectionsMarshal.GetValueRefOrAddDefault(_infoMap, targetAddress, out _);
-            data.NameIndex = nameIndex;
-#else
-            if (!_infoMap.TryGetValue(targetAddress, out var data))
-            {
-                data = new ViewInfo();
-            }
-
-            data.NameIndex = nameIndex;
-
-            _infoMap[targetAddress] = data;
-#endif
-        }
-
-        public FixedUtf8String GetName(int targetAddress) => _names[_infoMap[targetAddress].NameIndex - 1];
-
-#endregion
         #region Struct
 
-        internal void AddStruct(FileAnalyzer fileAnalyzer, int targetAddress, int sectionIndex, FixedUtf8String name, ViewKind kind, int length)
+        internal void AddStruct(FileAnalyzer fileAnalyzer, int targetAddress, int sectionIndex, ViewKind kind, int length)
         {
             var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
-
-            fileAnalyzer.AddName(targetAddress, pViewByte, name);
+            pViewByte->HasName = true;
             AddStructKind(targetAddress, kind);
 
             var pEnd = pViewByte + length;
@@ -854,13 +814,15 @@ namespace PESpy.View
         internal SpanAllocatorHandle GetXRefsHandle(int targetAddress)
         {
             if (_xrefs == null)
-                return default;
+                throw new InvalidOperationException("XRefs were not tracked by this analysis. Ensure that trackXRefs: true is specified");
 
             if (!_infoMap.TryGetValue(targetAddress, out var value))
                 return default;
 
             return value.XRefs;
         }
+
+        internal XRef GetXRef(SpanAllocatorHandle handle, int index) => _xrefs.GetSpan(handle)[index];
 
         #endregion
         #endregion
@@ -1042,8 +1004,6 @@ namespace PESpy.View
 
         internal void Finalize(
             List<XRef>? xrefs,
-            List<(FixedUtf8String name, List<int> refs)> namesAndRefs,
-            int numNameRefs,
             int[] stringAddresses)
         {
             var infoMap = _infoMap;
@@ -1104,29 +1064,6 @@ namespace PESpy.View
             }
 
             _stringAddresses = stringAddresses;
-
-            var nameRefAllocator = new SpanAllocator<int>(numNameRefs);
-
-            var names = new FixedUtf8String[namesAndRefs.Count];
-            var handles = new SpanAllocatorHandle[namesAndRefs.Count];
-
-            for (var i = 0; i < namesAndRefs.Count; i++)
-            {
-                var item = namesAndRefs[i];
-
-                names[i] = item.name;
-
-#if NET
-                var span = CollectionsMarshal.AsSpan(item.refs);
-#else
-                var span = item.refs.ToArray().AsSpan();
-#endif
-                handles[i] = nameRefAllocator.Alloc(span);
-            }
-
-            _names = names;
-            _nameRefHandles = handles;
-            _nameRefAllocator = nameRefAllocator;
         }
 
         public virtual void Dispose()

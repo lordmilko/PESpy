@@ -82,7 +82,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.GuardLongJumpTargetTable, this, ViewKind.GuardLongJumpTargetTable, StructSize);
+            writer.NewStruct(this, ViewKind.GuardLongJumpTargetTable, StructSize);
 
         int IViewable.NumChildren() => Count;
 
@@ -162,7 +162,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, ViewKind.GuardLongJumpTargetTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
+                writer.NewStruct(this, ViewKind.GuardLongJumpTargetTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
             int IViewable.NumChildren() => Flags == null ? 1 : 2;
 

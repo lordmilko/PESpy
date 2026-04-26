@@ -87,7 +87,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.TryBlockMapEntry, this, ViewKind.TryBlockMapEntry, StructSize);
+            writer.NewStruct(this, ViewKind.TryBlockMapEntry, StructSize);
 
         int IViewable.NumChildren() => 5;
 

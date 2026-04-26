@@ -74,7 +74,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings._GS_HANDLER_DATA, this, ViewKind.GsHandlerData, StructSize);
+            writer.NewStruct(this, ViewKind.GsHandlerData, StructSize);
 
         int IViewable.NumChildren() => HasAlignment ? 6 : 4;
 

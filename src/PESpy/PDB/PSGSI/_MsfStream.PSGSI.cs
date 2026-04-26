@@ -668,7 +668,7 @@ namespace PESpy.PDB
                 if (addressMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(AddressMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.AddressMap, addressMap, psgsiHdr.cbAddrMap, ViewKind.AddressMap);
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, addressMap, psgsiHdr.cbAddrMap, ViewKind.AddressMap);
                 }
 
                 var thunkMap = ThunkMap;
@@ -676,7 +676,7 @@ namespace PESpy.PDB
                 if (thunkMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(ThunkMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.ThunkMap, thunkMap, psgsiHdr.nThunks * sizeof(int), ViewKind.ThunkMap);
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, thunkMap, psgsiHdr.nThunks * sizeof(int), ViewKind.ThunkMap);
                 }
 
                 var sectionMap = SectionMap;
@@ -684,7 +684,7 @@ namespace PESpy.PDB
                 if (sectionMap.Length > 0)
                 {
                     var localThunk = chunk.Slice(SectionMapOffset);
-                    writer.WriteGlobalField(localThunk.AbsoluteOffset, Strings.SectionMap, sectionMap, psgsiHdr.nSects * sizeof(SO), ViewKind.SectionMap);
+                    writer.WriteGlobalField(localThunk.AbsoluteOffset, sectionMap, psgsiHdr.nSects * sizeof(SO), ViewKind.SectionMap);
                 }
             }
 

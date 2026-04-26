@@ -33,7 +33,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_LINENUMBER, this, ViewKind.ImageLineNumber, StructSize);
+            writer.NewStruct(this, ViewKind.ImageLineNumber, StructSize);
 
         int IViewable.NumChildren() => 2;
 

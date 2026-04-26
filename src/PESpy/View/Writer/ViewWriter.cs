@@ -462,7 +462,7 @@ namespace PESpy.View
             UnmanagedOffset = oldOffset;
         }
 
-        public virtual void WriteGlobalField<T>(int offset, FixedUtf8String name, in T value, int size, ViewKind kind)
+        public virtual void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind)
         {
             var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
@@ -470,7 +470,7 @@ namespace PESpy.View
             {
                 Push(globalList);
 
-                AddView(new FieldView<T>(offset, name.ToString(), value, size, default, _fileAccessor));
+                AddView(new FieldView<T>(offset, ViewProvider.GetFieldName(kind), value, size, default, _fileAccessor));
 
                 Pop();
             }
@@ -920,7 +920,7 @@ namespace PESpy.View
         #endregion
         #endregion
 
-        protected internal virtual IView? NewStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize)
+        protected internal virtual IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
             where T : IValue, IViewable
         {
             var shouldAdd = _tryGetViewOffset(value.Offset, out var viewOffset);
@@ -928,7 +928,7 @@ namespace PESpy.View
             if (!shouldAdd)
                 return null;
 
-            var view = new StructView(viewOffset, name, value, structSize, kind, NestedViewWriter ?? this);
+            var view = new StructView(viewOffset, value, structSize, kind, NestedViewWriter ?? this);
 
             return view;
         }
@@ -1030,7 +1030,7 @@ namespace PESpy.View
         }
 #endif
 
-        protected internal virtual IView? NewUnmanagedStruct<T>(FixedUtf8String name, in T value, ViewKind kind, int structSize) where T : IViewable
+        protected internal virtual IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize) where T : IViewable
         {
             Debug.Assert(UnmanagedOffset != 0);
             var shouldAdd = _tryGetViewOffset(UnmanagedOffset, out var viewOffset);
@@ -1038,7 +1038,7 @@ namespace PESpy.View
             if (!shouldAdd)
                 return null;
 
-            var view = new StructView(viewOffset, name, value, structSize, kind, this);
+            var view = new StructView(viewOffset, value, structSize, kind, this);
 
             return view;
         }

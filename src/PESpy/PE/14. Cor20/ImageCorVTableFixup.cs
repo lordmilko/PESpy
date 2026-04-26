@@ -49,7 +49,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_COR_VTABLEFIXUP, this, ViewKind.ImageCorVTableFixup, StructSize);
+            writer.NewStruct(this, ViewKind.ImageCorVTableFixup, StructSize);
 
         int IViewable.NumChildren() => 3;
 

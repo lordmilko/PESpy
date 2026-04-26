@@ -35,7 +35,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_RESOURCE_DIR_STRING_U, this, ViewKind.ImageResourceDirStringU, StructSize);
+            writer.NewStruct(this, ViewKind.ImageResourceDirStringU, StructSize);
 
         int IViewable.NumChildren() => 2;
 

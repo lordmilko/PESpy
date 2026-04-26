@@ -57,7 +57,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.DbgDataHdr, this, ViewKind.DbgDataHdr, maxIndex * sizeof(short));
+            writer.NewStruct(this, ViewKind.DbgDataHdr, maxIndex * sizeof(short));
 
         int IViewable.NumChildren() => maxIndex;
 

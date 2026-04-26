@@ -32,7 +32,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.PdbChecksum, this, ViewKind.PdbChecksum, sizeOfData);
+            writer.NewStruct(this, ViewKind.PdbChecksum, sizeOfData);
 
         int IViewable.NumChildren() => 2;
 

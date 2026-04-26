@@ -212,7 +212,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_DELAYLOAD_DESCRIPTOR, this, ViewKind.ImageDelayLoadDescriptor, StructSize);
+            writer.NewStruct(this, ViewKind.ImageDelayLoadDescriptor, StructSize);
 
         int IViewable.NumChildren() => 8;
 

@@ -219,7 +219,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.RichHeader, this, ViewKind.RichHeader, FixedStructSize + (Items.Length * ProdItem.StructSize));
+            writer.NewStruct(this, ViewKind.RichHeader, FixedStructSize + (Items.Length * ProdItem.StructSize));
 
         int IViewable.NumChildren() => 6 + Items.Length;
 

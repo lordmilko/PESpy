@@ -71,7 +71,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CLR_DEBUG_RESOURCE, this, ViewKind.ClrDebugResource, StructSize);
+            writer.NewStruct(this, ViewKind.ClrDebugResource, StructSize);
 
         int IViewable.NumChildren() => 6;
 

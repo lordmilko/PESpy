@@ -32,7 +32,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.DNRBModule, this, ViewKind.DNRBModule, StructSize);
+            writer.NewStruct(this, ViewKind.DNRBModule, StructSize);
 
         int IViewable.NumChildren() => 2;
 

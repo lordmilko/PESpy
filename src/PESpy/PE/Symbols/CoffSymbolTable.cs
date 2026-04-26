@@ -124,7 +124,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(PESpy.Strings.CoffSymbolTable, this, ViewKind.CoffSymbolTable, StructSize);
+            writer.NewStruct(this, ViewKind.CoffSymbolTable, StructSize);
 
         //Note that numberOfSymbols includes aux symbols, so we must use Symbols.Length!
         int IViewable.NumChildren() => Symbols.Length + 1 + Strings.Length;

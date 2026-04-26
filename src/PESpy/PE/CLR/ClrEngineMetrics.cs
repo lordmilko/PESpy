@@ -43,7 +43,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CLR_ENGINE_METRICS, this, ViewKind.ClrEngineMetrics, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.ClrEngineMetrics, StructSize(((PEViewWriter) writer).Is32Bit));
 
         int IViewable.NumChildren() => 3;
 

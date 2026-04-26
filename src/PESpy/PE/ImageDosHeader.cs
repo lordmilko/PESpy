@@ -231,7 +231,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_DOS_HEADER, this, ViewKind.ImageDosHeader, StructSize);
+            writer.NewStruct(this, ViewKind.ImageDosHeader, StructSize);
 
         int IViewable.NumChildren() => 19;
 

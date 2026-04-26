@@ -102,7 +102,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.StreamNameTable, this, ViewKind.StreamNameTable, StructSize);
+            writer.NewStruct(this, ViewKind.StreamNameTable, StructSize);
 
         int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException();
 

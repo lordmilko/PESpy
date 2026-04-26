@@ -34,7 +34,7 @@ namespace PESpy.Ecma335
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CustomDebugInformationRow, this, ViewKind.PortablePdb_CustomDebugInformationRow, table.RowSize);
+            writer.NewStruct(this, ViewKind.PortablePdb_CustomDebugInformationRow, table.RowSize);
 
         int IViewable.NumChildren() => 3;
 

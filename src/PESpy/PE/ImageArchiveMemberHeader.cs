@@ -93,7 +93,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_ARCHIVE_MEMBER_HEADER, this, ViewKind.ImageArchiveMemberHeader, StructSize);
+            writer.NewStruct(this, ViewKind.ImageArchiveMemberHeader, StructSize);
 
         int IViewable.NumChildren() => dateMissing == 0 ? 7 : 8;
 

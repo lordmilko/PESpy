@@ -302,7 +302,7 @@ namespace PESpy.View
                                 var pViewByte = AddCode(targetAddress, address, sectionIndex);
 
                                 if (export.Name.Length > 0)
-                                    AddName(targetAddress, pViewByte, (FixedUtf8String) export.Name);
+                                    pViewByte->HasName = true;
                             }
                             else
                             {
@@ -310,7 +310,7 @@ namespace PESpy.View
                                 if (_fileAccessor.TryAddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, length: 1, out var pViewByte))
                                 {
                                     if (export.Name.Length > 0)
-                                        AddName(targetAddress, pViewByte, (FixedUtf8String) export.Name);
+                                        pViewByte->HasName = true;
                                 }
                             }
                         }

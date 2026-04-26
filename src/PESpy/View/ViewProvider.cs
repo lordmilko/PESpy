@@ -8,7 +8,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    class ViewProvider
+    internal partial class ViewProvider
     {
         public static unsafe IView CreateStructView(ViewKind kind, int length, in MemoryChunk chunk, ViewWriter viewWriter, bool isSplit = false)
         {

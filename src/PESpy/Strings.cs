@@ -932,6 +932,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// OMAP_DATA
+        /// </summary>
+        internal static FixedUtf8String OMAP_DATA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x41, 0x50, 0x5F, 0x44, 0x41, 0x54, 0x41 })
+                    return new FixedUtf8String(p, 9);
+            }
+        }
+
+        /// <summary>
         /// VCFeature
         /// </summary>
         internal static FixedUtf8String VCFeature
@@ -1374,32 +1387,6 @@ namespace PESpy
         }
 
         /// <summary>
-        /// IMAGE_COR_ILMETHOD_SECT_FAT
-        /// </summary>
-        internal static FixedUtf8String IMAGE_COR_ILMETHOD_SECT_FAT
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x43, 0x4F, 0x52, 0x5F, 0x49, 0x4C, 0x4D, 0x45, 0x54, 0x48, 0x4F, 0x44, 0x5F, 0x53, 0x45, 0x43, 0x54, 0x5F, 0x46, 0x41, 0x54 })
-                    return new FixedUtf8String(p, 27);
-            }
-        }
-
-        /// <summary>
-        /// IMAGE_COR_ILMETHOD_SECT_SMALL
-        /// </summary>
-        internal static FixedUtf8String IMAGE_COR_ILMETHOD_SECT_SMALL
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x43, 0x4F, 0x52, 0x5F, 0x49, 0x4C, 0x4D, 0x45, 0x54, 0x48, 0x4F, 0x44, 0x5F, 0x53, 0x45, 0x43, 0x54, 0x5F, 0x53, 0x4D, 0x41, 0x4C, 0x4C })
-                    return new FixedUtf8String(p, 29);
-            }
-        }
-
-        /// <summary>
         /// IMAGE_COR_ILMETHOD_SECT_EH_FAT
         /// </summary>
         internal static FixedUtf8String IMAGE_COR_ILMETHOD_SECT_EH_FAT
@@ -1422,6 +1409,32 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x43, 0x4F, 0x52, 0x5F, 0x49, 0x4C, 0x4D, 0x45, 0x54, 0x48, 0x4F, 0x44, 0x5F, 0x53, 0x45, 0x43, 0x54, 0x5F, 0x45, 0x48, 0x5F, 0x53, 0x4D, 0x41, 0x4C, 0x4C })
                     return new FixedUtf8String(p, 32);
+            }
+        }
+
+        /// <summary>
+        /// IMAGE_COR_ILMETHOD_SECT_FAT
+        /// </summary>
+        internal static FixedUtf8String IMAGE_COR_ILMETHOD_SECT_FAT
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x43, 0x4F, 0x52, 0x5F, 0x49, 0x4C, 0x4D, 0x45, 0x54, 0x48, 0x4F, 0x44, 0x5F, 0x53, 0x45, 0x43, 0x54, 0x5F, 0x46, 0x41, 0x54 })
+                    return new FixedUtf8String(p, 27);
+            }
+        }
+
+        /// <summary>
+        /// IMAGE_COR_ILMETHOD_SECT_SMALL
+        /// </summary>
+        internal static FixedUtf8String IMAGE_COR_ILMETHOD_SECT_SMALL
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x49, 0x4D, 0x41, 0x47, 0x45, 0x5F, 0x43, 0x4F, 0x52, 0x5F, 0x49, 0x4C, 0x4D, 0x45, 0x54, 0x48, 0x4F, 0x44, 0x5F, 0x53, 0x45, 0x43, 0x54, 0x5F, 0x53, 0x4D, 0x41, 0x4C, 0x4C })
+                    return new FixedUtf8String(p, 29);
             }
         }
 
@@ -2982,6 +2995,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x59, 0x4D, 0x54, 0x59, 0x50, 0x45 })
                     return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// HRFile
+        /// </summary>
+        internal static FixedUtf8String HRFile
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x48, 0x52, 0x46, 0x69, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 6);
             }
         }
 

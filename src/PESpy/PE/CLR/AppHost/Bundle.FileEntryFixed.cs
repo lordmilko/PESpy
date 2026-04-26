@@ -47,7 +47,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.file_entry_fixed_t, this, ViewKind.BundleFileEntryFixed, StructSize);
+                writer.NewStruct(this, ViewKind.BundleFileEntryFixed, StructSize);
 
             int IViewable.NumChildren() => hasCompressedSize ? 4 : 3;
 

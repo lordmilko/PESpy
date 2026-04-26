@@ -52,7 +52,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewUnmanagedStruct(Strings.UNWIND_CODE, this, ViewKind.UnwindCode, StructSize);
+                writer.NewUnmanagedStruct(this, ViewKind.UnwindCode, StructSize);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             int IViewable.NumChildren() => 3; //The FrameRegister and FrameOffset aren't members of the UNWIND_CODE

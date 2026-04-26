@@ -429,7 +429,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_VXD_HEADER, this, ViewKind.ImageVXDHeader, StructSize);
+            writer.NewStruct(this, ViewKind.ImageVXDHeader, StructSize);
 
         int IViewable.NumChildren() => 51;
 

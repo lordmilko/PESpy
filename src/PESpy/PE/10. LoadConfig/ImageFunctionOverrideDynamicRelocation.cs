@@ -91,7 +91,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, this, ViewKind.ImageFunctionOverrideDynamicRelocation, StructSize);
+            writer.NewStruct(this, ViewKind.ImageFunctionOverrideDynamicRelocation, StructSize);
 
         int IViewable.NumChildren() => 5 + BaseRelocs.Length;
 

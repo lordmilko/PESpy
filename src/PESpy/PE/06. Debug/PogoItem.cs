@@ -42,7 +42,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.PogoItem, this, ViewKind.PogoItem, StructSize);
+            writer.NewStruct(this, ViewKind.PogoItem, StructSize);
 
         int IViewable.NumChildren() => 3;
 

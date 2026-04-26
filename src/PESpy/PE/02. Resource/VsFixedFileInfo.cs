@@ -119,7 +119,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.VS_FIXEDFILEINFO, this, ViewKind.VsFixedFileInfo, StructSize);
+            writer.NewStruct(this, ViewKind.VsFixedFileInfo, StructSize);
 
         int IViewable.NumChildren() => 13;
 

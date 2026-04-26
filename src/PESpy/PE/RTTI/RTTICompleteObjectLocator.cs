@@ -74,7 +74,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings._RTTICompleteObjectLocator, this, ViewKind.RTTICompleteObjectLocator, StructSize);
+            writer.NewStruct(this, ViewKind.RTTICompleteObjectLocator, StructSize);
 
         int IViewable.NumChildren() => 6;
 

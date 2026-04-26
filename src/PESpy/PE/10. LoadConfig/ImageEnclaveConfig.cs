@@ -98,7 +98,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_ENCLAVE_CONFIG, this, ViewKind.ImageEnclaveConfig, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.ImageEnclaveConfig, StructSize(((PEViewWriter) writer).Is32Bit));
 
         int IViewable.NumChildren() => 13;
 

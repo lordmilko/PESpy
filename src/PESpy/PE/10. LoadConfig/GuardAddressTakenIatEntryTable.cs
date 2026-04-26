@@ -82,7 +82,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.GuardAddressTakenIatEntryTable, this, ViewKind.GuardAddressTakenIatEntryTable, StructSize);
+            writer.NewStruct(this, ViewKind.GuardAddressTakenIatEntryTable, StructSize);
 
         int IViewable.NumChildren() => Count;
 
@@ -312,7 +312,7 @@ namespace PESpy
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) =>
-                writer.NewStruct(Strings.Entry, this, ViewKind.GuardAddressTakenIatEntryTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
+                writer.NewStruct(this, ViewKind.GuardAddressTakenIatEntryTable_Entry, sizeof(int) + (Flags != null ? 1 : 0));
 
             int IViewable.NumChildren() => Flags == null ? 1 : 2;
 

@@ -75,7 +75,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.IMAGE_COFF_SYMBOLS_HEADER, this, ViewKind.ImageCoffSymbolsHeader, StructSize);
+            writer.NewStruct(this, ViewKind.ImageCoffSymbolsHeader, StructSize);
 
         int IViewable.NumChildren() => 8;
 

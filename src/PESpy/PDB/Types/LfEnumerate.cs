@@ -84,7 +84,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewUnmanagedStruct(Strings.lfEnumerate, this, ViewKind.LfEnumerate, GetStructSize(writer.GetSymbolAccessor())); //Non-primary, should not have a TYPTYPE.len
+            writer.NewUnmanagedStruct(this, ViewKind.LfEnumerate, GetStructSize(writer.GetSymbolAccessor())); //Non-primary, should not have a TYPTYPE.len
 
         int IViewable.NumChildren() => 4;
 

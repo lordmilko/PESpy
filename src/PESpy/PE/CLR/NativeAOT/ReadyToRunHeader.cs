@@ -99,7 +99,7 @@ namespace PESpy.NativeAOT
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.ReadyToRunHeader, this, ViewKind.NativeAOTReadyToRunHeader, StructSize);
+            writer.NewStruct(this, ViewKind.NativeAOTReadyToRunHeader, StructSize);
 
         int IViewable.NumChildren() => 7 + NumberOfSections;
 

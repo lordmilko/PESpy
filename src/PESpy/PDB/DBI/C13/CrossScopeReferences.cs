@@ -44,7 +44,7 @@ namespace PESpy.PDB
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.CrossScopeReferences, this, ViewKind.CrossScopeReferences, FixedStructSize + (countOfCrossReferences * sizeof(int)));
+            writer.NewStruct(this, ViewKind.CrossScopeReferences, FixedStructSize + (countOfCrossReferences * sizeof(int)));
 
         int IViewable.NumChildren() => 3;
 

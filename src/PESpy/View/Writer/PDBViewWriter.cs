@@ -14,7 +14,7 @@ namespace PESpy.View
 
         internal override ICodeViewAccessor GetSymbolAccessor() => pdbFile;
 
-        internal unsafe PDBViewWriter(PDBFile pdbFile) : base(pdbFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null)
+        internal unsafe PDBViewWriter(PDBFile pdbFile, FileAccessor fileAccessor = null) : base(pdbFile.CreateByteViewProvider(null), ViewMode.Default, TryGetViewOffset, null, fileAccessor)
         {
             this.pdbFile = pdbFile;
         }

@@ -25,7 +25,7 @@ namespace PESpy.View
         /// <summary>
         /// Gets the native name of the type that this structure represents.
         /// </summary>
-        public FixedUtf8String Name { get; }
+        public FixedUtf8String Name => ViewProvider.GetName(Kind);
 
         public ViewXRefList XRefs => new ViewXRefList(this, viewWriter._fileAccessor);
 
@@ -79,10 +79,9 @@ namespace PESpy.View
         private IViewable value;
         private readonly ViewWriter viewWriter;
 
-        public StructView(int offset, FixedUtf8String name, in IViewable value, int size, ViewKind kind, ViewWriter viewWriter)
+        public StructView(int offset, in IViewable value, int size, ViewKind kind, ViewWriter viewWriter)
         {
             Offset = offset;
-            Name = name;
             this.value = value;
             Size = size;
             Kind = kind;
@@ -184,7 +183,7 @@ namespace PESpy.View
                             firstChildren[numLeftChildren - 1] = firstChild;
                         }
 
-                        first = new SplitStructView(Offset, Name, firstChildren, Size - diff, Kind, viewWriter);
+                        first = new SplitStructView(Offset, firstChildren, Size - diff, Kind, viewWriter);
                     }
 
                     //Create second
@@ -206,7 +205,7 @@ namespace PESpy.View
                         }
                     }
 
-                    var second = new SplitStructView(newBaseOffset, Name, secondChildren, diff, Kind, viewWriter);
+                    var second = new SplitStructView(newBaseOffset, secondChildren, diff, Kind, viewWriter);
 
                     second.Previous = first;
                     first.Next = second;
@@ -237,7 +236,7 @@ namespace PESpy.View
             if (this is SplitStructView sv)
             {
                 //We're just rewriting ourselves to have a new offset
-                var newValue = new SplitStructView(newOffset, Name, newChildren, Size, Kind, viewWriter);
+                var newValue = new SplitStructView(newOffset, newChildren, Size, Kind, viewWriter);
 
                 if (sv.Previous != null)
                 {
@@ -255,7 +254,7 @@ namespace PESpy.View
                 return newValue;
             }
 
-            return new StructView(newOffset, Name, new ViewChildProvider<IView>(newChildren), Size, Kind, viewWriter);
+            return new StructView(newOffset, new ViewChildProvider<IView>(newChildren), Size, Kind, viewWriter);
         }
 
         public bool TryGetEnhancedName(out string name)
@@ -321,7 +320,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructView(int offset, FixedUtf8String name, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, name, new ViewChildProvider<IView>(children), size, kind, viewWriter)
+        public SplitStructView(int offset, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, new ViewChildProvider<IView>(children), size, kind, viewWriter)
         {
         }
     }

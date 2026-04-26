@@ -155,7 +155,7 @@ namespace PESpy
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(Strings.OMFSegMapDesc, this, ViewKind.OMFSegMapDesc, StructSize);
+            writer.NewStruct(this, ViewKind.OMFSegMapDesc, StructSize);
 
         int IViewable.NumChildren() => 17;
 
