@@ -14,7 +14,19 @@ namespace PESpy.View
         public ViewByte* ViewByte;
         public int SectionAccessorIndex;
         public int TargetAddress;
-        public FixedUtf8String Name;
+        public FixedUtf8String Name
+        {
+            get
+            {
+                if (_name.Length == 0 && ViewByte->HasName)
+                    _name = _fileAccessor.GetNameFromViewByte(TargetAddress, SectionAccessorIndex, ViewByte);
+
+                return _name;
+            }
+        }
+
+        private FixedUtf8String _name;
+
         public FixedUtf16String NameWide;
         public int Length;
         public ViewKind Kind;
@@ -26,9 +38,11 @@ namespace PESpy.View
 
         public NativeSpan<byte> Bytes => new NativeSpan<byte>(_pData, Length);
 
+        private readonly FileAccessor _fileAccessor;
         private byte* _pData;
 
         internal ViewEntity(
+            FileAccessor fileAccessor,
             int sectionAccessorIndex,
             ISymbolAccessor symbolAccessor,
             in SectionAccessor sectionAccessor,
@@ -36,37 +50,39 @@ namespace PESpy.View
             int sectionAccessorLength,
             IntPtr pBytes,
             Dictionary<int, ViewInfo> infoMap,
-            FixedUtf8String[] names,
             Dictionary<int, int> largeAddresses,
             bool measureOnly = false)
             : this(
+                  fileAccessor,
                   sectionAccessorIndex,
                   symbolAccessor: symbolAccessor,
+                  sectionAccessor: sectionAccessor,
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
                   pStart: sectionAccessor.pViewBytes,
                   pEnd: sectionAccessor.pViewBytes + sectionAccessorLength,
                   pBytes,
                   infoMap,
-                  names,
                   largeAddresses,
                   measureOnly)
         {
         }
 
         internal ViewEntity(
+            FileAccessor fileAccessor,
             int sectionAccessorIndex,
             ISymbolAccessor symbolAccessor,
+            in SectionAccessor sectionAccessor,
             int targetAddress,
             ViewByte* pViewByte,
             ViewByte* pStart,
             ViewByte* pEnd,
             IntPtr pBytes,
             Dictionary<int, ViewInfo> infoMap,
-            FixedUtf8String[]? names,
             Dictionary<int, int> largeAddresses,
             bool measureOnly = false)
         {
+            _fileAccessor = fileAccessor;
             TargetAddress = targetAddress;
             ViewByte = pViewByte;
             SectionAccessorIndex = sectionAccessorIndex;
@@ -102,9 +118,11 @@ namespace PESpy.View
             {
                 //If this is the first instruction of a code chunk, roll all the code up into one chunk
 
-                if (!measureOnly && symbolAccessor.TryGetNameFromAddress(targetAddress, out var symName, out var disp))
+                if (!measureOnly &&
+                    _fileAccessor.TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva) &&
+                    symbolAccessor.TryGetNameFromAddress(rva, out var symName, out var disp))
                 {
-                    Name = symName;
+                    _name = symName;
                     Displacement = disp;
                 }
 
@@ -179,7 +197,9 @@ namespace PESpy.View
             {
                 while (body < pEnd)
                 {
-                    if (body->Kind == ViewByteKind.Unknown)
+                    var kind = body->Kind;
+
+                    if (kind == ViewByteKind.Unknown || kind == ViewByteKind.Body)
                         body++;
                     else
                         break;
@@ -229,12 +249,11 @@ namespace PESpy.View
                     if (pViewByte->IsWide)
                         NameWide = new FixedUtf16String((char*) pData, Length / 2);
                     else
-                        Name = new FixedUtf8String((byte*) pData, Length);
+                        _name = new FixedUtf8String((byte*) pData, Length);
                 }
                 else
                 {
-                    if (viewInfo.NameIndex != 0 && names != null)
-                        Name = names[viewInfo.NameIndex - 1];
+                    //Lazily request name when Name property is accessed
                 }
 
                 if (ViewByte->Kind == ViewByteKind.Body && ViewByte->BodyKind == ViewByteBodyKind.SplitHead)

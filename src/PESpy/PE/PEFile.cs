@@ -145,11 +145,13 @@ namespace PESpy
         //might not exist. Also, I think we do need a PEFileBuilder, because when we add/remove items we may have to shift things around, so we probably need to rewrite the whole PE
 
         /// <summary>
-        /// Reads a <see cref="PEFile"/> from a file on disk.
+        /// Reads a <see cref="PEFile"/> from a file on disk.<para/>
+        /// If the file is a compressed WINLZ file (e.g. *.dl_ files with magic signature "SZDD"), this method will decompress
+        /// the file in memory and then open it
         /// </summary>
         /// <param name="path">The path to the file to read.</param>
         /// <returns>A <see cref="PEFile"/> that provides access to the contents of the specified file.</returns>
-        public static PEFile FromFile(string path)
+        public static unsafe PEFile FromFile(string path)
         {
             //Opening the file and creating the MMF, without doing anything else, allocates 1.07KB
             using var fs = File.OpenRead(path);
@@ -158,6 +160,21 @@ namespace PESpy
 
             try
             {
+                if (mmf.Length >= 2 && *(ushort*) mmf.Address != ImageDosHeader.IMAGE_DOS_SIGNATURE)
+                {
+                    if (Detector.TryExtract(mmf, out var decompressionInfo))
+                    {
+                        mmf.Dispose(); //Don't need this anymore!
+
+                        //Replace with our own one
+                        mmf = new MemoryMappedFileHolder(decompressionInfo.Bytes);
+
+                        Detector.TryGetUncompressedFileName(path, decompressionInfo.ExtensionChar, out var name);
+
+                        return new PEFile(path, mmf, name: name);
+                    }
+                }
+
                 return new PEFile(fs.Name, mmf);
             }
             catch
@@ -447,6 +464,7 @@ namespace PESpy
             }
         }
 
+        //Not not support WINLZ files (*.dl_)
         public static PEFile FromStream(Stream stream, bool isLoadedImage, string? fileName = null)
         {
             //If it's a FileStream, implicitly it's not a loaded image
@@ -886,6 +904,33 @@ namespace PESpy
         /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
         public ImageOptionalHeader OptionalHeader => ntHeaders.OptionalHeader;
+
+        internal int GetSizeOfHeaders(ViewMode viewMode)
+        {
+            /* I've seen a PEFile where the physical offset of the first section
+             * was actually before the end of the section headers! As such, we can't
+             * trust the section headers, and need to look at the offset of the first
+             * section when we're really trying to be physical. If we're virtual,
+             * or just pretending to be virtual, the listed size of the headers should
+             * be assumed to be virtual */
+
+            var sizeOfHeaders = OptionalHeader.SizeOfHeaders;
+
+            if (viewMode != ViewMode.Virtual && !IsLoadedImage)
+            {
+                var sectionHeaders = SectionHeaders;
+
+                if (sectionHeaders.Length > 0)
+                {
+                    ref var sectionHeader = ref sectionHeaders[0];
+
+                    if (sectionHeader.PointerToRawData < sizeOfHeaders)
+                        sizeOfHeaders = sectionHeader.PointerToRawData;
+                }
+            }
+
+            return sizeOfHeaders;
+        }
 
         #endregion
         #region SectionHeaders
@@ -2412,10 +2457,7 @@ namespace PESpy
                         return null;
                     }
 
-                    //Scanning the entire DLL for the AppHost signature could be slow,
-                    //so we don't want the Visual Studio debugger to automatically do this just
-                    //because we looked at the properties of the PEFile
-                    Debugger.NotifyOfCrossThreadDependency();
+                    //We'll block the debugger from hanging in AppHostSignature.FindBundleHeader
 
                     var sections = SectionHeaders;
 
@@ -3152,12 +3194,12 @@ namespace PESpy
         //it's faster to do lazy initialization of our core header types. However, once you start
         //accessing members multiple times, it quickly becomes faster to preload everything
 
-        internal PEFile(string fileName, in MemoryMappedFileHolder mmf, bool isLoadedImage = false)
+        internal PEFile(string fileName, in MemoryMappedFileHolder mmf, bool isLoadedImage = false, string name = null)
         {
             IsLoadedImage = isLoadedImage;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             try
             {

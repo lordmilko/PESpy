@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace PESpy
 {
@@ -9,9 +10,33 @@ namespace PESpy
     {
         private MemoryMappedFile? mmf;
         private MemoryMappedViewAccessor? mma;
+        private byte flags;
         public byte* Address;
         public long Length;
-        public bool Writable;
+        
+        public bool Writable
+        {
+            get => (flags & 1) != 0;
+            set
+            {
+                if (value)
+                    flags |= 1;
+                else
+                    flags &= unchecked((byte) ~1);
+            }
+        }
+
+        internal bool Allocted
+        {
+            get => (flags & 2) != 0;
+            set
+            {
+                if (value)
+                    flags |= 2;
+                else
+                    flags &= unchecked((byte) ~2);
+            }
+        }
 
         public MemoryMappedFileHolder(FileStream fs, MemoryMappedFileAccess? access = null)
         {
@@ -84,30 +109,44 @@ namespace PESpy
             Writable = default;
         }
 
+        public MemoryMappedFileHolder(byte[] bytes)
+        {
+            Address = (byte*) Marshal.AllocHGlobal(bytes.Length);
+            Length = bytes.Length;
+            bytes.AsSpan().CopyTo(new Span<byte>(Address, bytes.Length));
+        }
+
         public void Dispose()
         {
 #if NETSTANDARD
             RuntimeHelpers.PrepareConstrainedRegions();
 #endif
-
-            if (Address != (byte*) 0 && mma != null) //If mma is null, it's a fake MMF
+            if (Address != (byte*) 0)
             {
+                if (mma != null) //If mma is null, it's a fake MMF
+                {
 #if NETSTANDARD
-                RuntimeHelpers.PrepareConstrainedRegions();
+                    RuntimeHelpers.PrepareConstrainedRegions();
 #endif
 
-                try
-                {
-                    //Empty
+                    try
+                    {
+                        //Empty
+                    }
+                    finally
+                    {
+                        //If we encountered an exception while trying to open a file, they may have already close the handle for us
+
+                        if (!mma.SafeMemoryMappedViewHandle.IsClosed)
+                            mma.SafeMemoryMappedViewHandle.ReleasePointer();
+
+                        Address = (byte*) 0;
+                    }
                 }
-                finally
+                else if (Allocted)
                 {
-                    //If we encountered an exception while trying to open a file, they may have already close the handle for us
-
-                    if (!mma.SafeMemoryMappedViewHandle.IsClosed)
-                        mma.SafeMemoryMappedViewHandle.ReleasePointer();
-
-                    Address = (byte*) 0;
+                    Marshal.FreeHGlobal((IntPtr) Address);
+                    Address = default;
                 }
             }
 

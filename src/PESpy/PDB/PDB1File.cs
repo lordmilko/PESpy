@@ -12,6 +12,8 @@ namespace PESpy
     {
         private PDB1File pdbFile;
 
+        public PDBFileKind PDBKind => pdbFile.PDBKind;
+
         public string Name => pdbFile.Name;
 
         public string FileName => pdbFile.FileName;
@@ -85,7 +87,7 @@ namespace PESpy
 
         private TpiHashLookup tpiHashLookup;
 
-        internal PDB1File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V1)
+        internal PDB1File(string fileName, in MemoryMappedFileHolder mmf, string name = null) : base(fileName, mmf, PDBFileKind.V1, name)
         {
         }
 

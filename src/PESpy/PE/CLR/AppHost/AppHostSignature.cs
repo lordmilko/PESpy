@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy
@@ -126,7 +127,18 @@ namespace PESpy
             }
         }
 
-        internal static unsafe int FindBundleHeader(byte* bytes, long bytesLength) => KMPSearch(bundleHeaderPlaceholder, bytes, bytesLength);
+        internal static unsafe int FindBundleHeader(byte* bytes, long bytesLength)
+        {
+            //Scanning the entire DLL for the AppHost signature could be slow,
+            //so we don't want the Visual Studio debugger to automatically do this just
+            //because we looked at the properties of the PEFile
+            if (bytesLength > 1_000_000) // This number is currently arbitrary; need to use trial and error to find the best size to use
+            {
+                Debugger.NotifyOfCrossThreadDependency();
+            }
+
+            return KMPSearch(bundleHeaderPlaceholder, bytes, bytesLength);
+        }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 

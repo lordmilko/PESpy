@@ -53,7 +53,7 @@ namespace PESpy
         internal PN[] _pagesOfStreamTablePageListArray;
 
         //Open an existing file
-        internal PDB7File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V7)
+        internal PDB7File(string fileName, in MemoryMappedFileHolder mmf, string name = null) : base(fileName, mmf, PDBFileKind.V7, name)
         {
 #if STRESS_TEST
             _ = PreviousStreamTable;

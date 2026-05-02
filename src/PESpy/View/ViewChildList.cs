@@ -42,6 +42,10 @@ namespace PESpy.View
 
         public IView this[int index] => viewWriter.GetChild(parentOffset, parent, index, _parentView);
 
+        public IView First() => this[0];
+
+        public IView Last() => this[numChildren - 1];
+
         public Enumerator GetEnumerator() => new Enumerator(parentOffset, parent, viewWriter, numChildren, _parentView);
 
         IEnumerator<IView> IEnumerable<IView>.GetEnumerator() => GetEnumerator();

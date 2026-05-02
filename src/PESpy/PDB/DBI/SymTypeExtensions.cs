@@ -543,6 +543,14 @@ namespace PESpy.PDB
                     return true;
                 }
 
+                case S_HEAPALLOCSITE:
+                {
+                    var sym = ((HeapAllocSite) symType);
+                    off = sym.off;
+                    seg = sym.sect;
+                    return true;
+                }
+
                 case S_LDATA16:
                 case S_GDATA16:
                 case S_PUB16:

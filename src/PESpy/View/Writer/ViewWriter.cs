@@ -420,6 +420,56 @@ namespace PESpy.View
             }
         }
 
+        public void WriteGlobal(int offset, in SymString[] value, ViewKind kind)
+        {
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
+
+            if (shouldAdd)
+            {
+                Debug.Assert(currentScope == 0);
+
+                Push(globalList);
+
+                foreach (var item in value)
+                {
+                    var length = item.Length + 1;
+                    var valueView = NewValue(viewOffset, item, length, kind);
+
+                    if (valueView != null)
+                        AddView(valueView);
+
+                    viewOffset += length;
+                }
+
+                Pop();
+            }
+        }
+
+        public void WriteGlobal(int offset, in AnsiString[] value, ViewKind kind)
+        {
+            var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
+
+            if (shouldAdd)
+            {
+                Debug.Assert(currentScope == 0);
+
+                Push(globalList);
+
+                foreach (var item in value)
+                {
+                    var length = item.Length + 1;
+                    var valueView = NewValue(viewOffset, item, length, kind);
+
+                    if (valueView != null)
+                        AddView(valueView);
+
+                    viewOffset += length;
+                }
+
+                Pop();
+            }
+        }
+
         public void WriteUniqueGlobal<T>(int offset, in T value, int size, ViewKind kind)
         {
             var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
@@ -442,6 +492,9 @@ namespace PESpy.View
         public unsafe void WriteGlobal(int offset, SymTypeList value)
         {
             var dispatcher = SymTypeDispatcher;
+
+            if (!_tryGetViewOffset(offset, out offset))
+                return;
 
             var oldOffset = UnmanagedOffset;
             UnmanagedOffset = offset;
@@ -488,6 +541,8 @@ namespace PESpy.View
 
         internal unsafe void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, SymTypeList value)
         {
+            //No need to call tryGetViewOffset; this method should only be called for PDBs
+
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             var oldOffset = UnmanagedOffset;
@@ -502,6 +557,8 @@ namespace PESpy.View
 
         internal void WritePagedGlobal(int startRelativeOffset, PagedMemoryBlock block, TypTypeList value)
         {
+            //No need to call tryGetViewOffset; this method should only be called for PDBs
+
             using var p = CreatePagedWriter(startRelativeOffset, block, global: true);
 
             var oldOffset = UnmanagedOffset;
@@ -532,6 +589,9 @@ namespace PESpy.View
 
         public void WriteGlobal(int offset, TypTypeList value)
         {
+            if (!_tryGetViewOffset(offset, out offset))
+                return;
+
             var dispatcher = TypTypeDispatcher;
 
             var oldOffset = UnmanagedOffset;
@@ -856,6 +916,20 @@ namespace PESpy.View
 #endif
 
                 WriteUniqueGlobal(value.ActualOffset, value.Value, value.Value.Length + 1, viewKind);
+            }
+        }
+
+        public void WriteRVAUtf8FixedLengthField(RVA<FixedUtf8String> value, ViewKind viewKind, int structOffset, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedOffset != 0)
+            {
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedOffset);
+#endif
+
+                WriteGlobal(value.ActualOffset, value.Value, value.Value.Length, viewKind);
             }
         }
 
@@ -1298,6 +1372,9 @@ namespace PESpy.View
             T value,
             ref StructWriter structWriter) where T : IViewable
         {
+            if (!TryGetViewOffset(parentOffset, out parentOffset))
+                return;
+
             var oldOffset = UnmanagedOffset;
             UnmanagedOffset = parentOffset + relativeOffset;
 
@@ -1313,6 +1390,9 @@ namespace PESpy.View
             T[] value,
             ref StructWriter structWriter) where T : unmanaged, IViewable
         {
+            if (!TryGetViewOffset(parentOffset, out parentOffset))
+                return;
+
             var oldOffset = UnmanagedOffset;
             UnmanagedOffset = parentOffset + relativeOffset;
 

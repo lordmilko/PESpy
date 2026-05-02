@@ -40,11 +40,11 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(toStateOffset), toStateOffset, toState);
+                    structWriter.WriteField(nameof(toState), toStateOffset, toState);
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(actionOffset), actionOffset, action);
+                    structWriter.WriteField(nameof(action), actionOffset, action);
                     break;
 
                 default:

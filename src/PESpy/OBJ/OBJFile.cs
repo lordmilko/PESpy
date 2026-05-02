@@ -210,12 +210,12 @@ namespace PESpy
 
         private bool disposed;
 
-        internal unsafe OBJFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal unsafe OBJFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
         {
             this.mmf = mmf;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             FileHeader = default;
             SectionHeaders = null!;

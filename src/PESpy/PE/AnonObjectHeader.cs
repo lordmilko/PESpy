@@ -14,16 +14,17 @@ namespace PESpy
          * referenced on ANON_OBJECT_HEADER_BIGOBJ.ClassID in winnt.h.
          *
          * Note that obj files compiled with LTCG (/GL) seem to have a different ClassID
-         * have a ClassID {0CB3FE38-D9A5-4DAB-AC9B-D6B6222653C2} */
+         * {0CB3FE38-D9A5-4DAB-AC9B-D6B6222653C2} */
         internal static readonly Guid EXTENDED_COFF_OBJ_GUID = new Guid("D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8"); //Used in c2!CoffTerm (called by coff_end)
+        internal static readonly Guid LtcgObjGuid = new Guid("0CB3FE38-D9A5-4DAB-AC9B-D6B6222653C2"); //Real name unknown
 
         private const int Sig1Offset = 0;
-        private const int Sig2Offset = 2;
-        private const int VersionOffset = 4;
+        internal const int Sig2Offset = 2;
+        internal const int VersionOffset = 4;
         private const int MachineOffset = 6;
         private const int TimeDateStampOffset = 8;
-        private const int ClassIDOffset = 12;
-        private const int SizeOfDataOffset = 28;
+        internal const int ClassIDOffset = 12;
+        internal const int SizeOfDataOffset = 28;
 
         /// <summary>
         /// Must be IMAGE_FILE_MACHINE_UNKNOWN

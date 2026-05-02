@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View;
@@ -131,6 +132,7 @@ namespace PESpy
                 ViewKind.XFixupData                                  => Write(new XFixupData(chunk),                                  viewWriter),
                 ViewKind.ImageDebugMisc                              => Write(new ImageDebugMisc(chunk),                              viewWriter),
                 ViewKind.ImageCoffSymbolsHeader                      => Write(new ImageCoffSymbolsHeader(chunk),                      viewWriter),
+                ViewKind.BBT                                         => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.VCFeature                                   => Write(new VCFeature(chunk),                                   viewWriter),
                 ViewKind.PogoData                                    => GetPogoData(chunk, viewWriter),
                 ViewKind.PogoItem                                    => Write(new PogoItem(chunk),                                    viewWriter),
@@ -379,7 +381,6 @@ namespace PESpy
                 #endregion
 
                 ViewKind.AppHostSignature                            => Write(chunk.PEFile().AppHostSignature, viewWriter),
-                ViewKind.BundleManifest                              => Write(new Bundle.Manifest(chunk),                             viewWriter),
                 ViewKind.BundleHeaderFixed                           => Write(new Bundle.HeaderFixed(chunk),                          viewWriter),
                 ViewKind.BundleHeaderFixedV2                         => Write(new Bundle.HeaderFixedV2(chunk),                        viewWriter),
                 ViewKind.BundleFileEntry                             => GetBundleFileEntry(chunk, viewWriter),
@@ -658,6 +659,29 @@ namespace PESpy
                 ViewKind.AddressMap                                  => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.AddressMap),
                 ViewKind.ThunkMap                                    => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<int>(0, length / 4), Strings.ThunkMap),
                 ViewKind.SectionMap                                  => WriteGlobalField(chunk, viewWriter, length, kind, chunk.PeekNativeSpan<SO>(0, length / 8), Strings.SectionMap),
+                ViewKind.OMFDirHeader                                => Write(new OMFDirHeader(chunk),                                viewWriter),
+                ViewKind.OMFDirEntry                                 => GetOMFDirEntry(chunk, viewWriter),
+                ViewKind.CodeViewSig                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.OMFGlobalTypes                              => GetOMFGlobalTypes(chunk, viewWriter),
+                ViewKind.OMFModule                                   => Write(new OMFModule(chunk),                                   viewWriter),
+                ViewKind.OMFSegDesc                                  => Write(new OMFSegDesc(chunk),                                  viewWriter),
+                ViewKind.OMFSymHash                                  => Write(new OMFSymHash(chunk),                                  viewWriter),
+                ViewKind.OMFSourceFile                               => GetOMFSourceFile(chunk, viewWriter),
+                ViewKind.OMFSourceLine                               => Write(new OMFSourceLine(chunk),                               viewWriter),
+                ViewKind.OMFSourceModule                             => Write(new OMFSourceModule(chunk),                             viewWriter),
+                ViewKind.OMFTypeFlags                                => WriteUnmanaged<OMFTypeFlags>(chunk, viewWriter, kind),
+                ViewKind.SymHash32Long                               => Write((IViewable) OMFDirEntry.SymHash32Long(chunk, 10), viewWriter),
+                ViewKind.AddrHash32v4                                => Write((IViewable) OMFDirEntry.AddrHash32(chunk, 4), viewWriter),
+                ViewKind.AddrHash32v5                                => Write((IViewable) OMFDirEntry.AddrHash32(chunk, 5), viewWriter),
+                ViewKind.AddrHash32v8                                => Write((IViewable) OMFDirEntry.AddrHash32(chunk, 8), viewWriter),
+                ViewKind.AddrHash32v12                               => Write((IViewable) OMFDirEntry.AddrHash32(chunk, 12), viewWriter),
+                ViewKind.UnknownSymHash                              => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.UnknownAddrHash                             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.LibraryName                                 => WriteSymString(chunk, viewWriter, length, kind),
+                ViewKind.SegmentName                                 => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.LfoDir                                      => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.LfoBase                                     => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.cDir                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
 
                 _ => throw new InvalidOperationException($"Don't know how to handle kind '{kind}'")
             };
@@ -741,6 +765,24 @@ namespace PESpy
         {
             var str = chunk.PeekUtf8FixedLength(0, length);
             return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length, kind);
+        }
+
+        private static IView WriteSymString(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)
+        {
+            bool isLengthPrefixed;
+
+            switch (kind)
+            {
+                case ViewKind.LibraryName: //LibraryName is from NB02/NB05 era data; always length prefixed
+                    isLengthPrefixed = true;
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            var str = chunk.PeekSymString(0, isLengthPrefixed);
+            return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length + 1, kind);
         }
 
         private static IView WriteGlobalField<T>(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind, T value, FixedUtf8String name)
@@ -984,12 +1026,112 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
+        private static IStructView GetOMFDirEntry(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var nb05Data = GetNB05Data(chunk);
+
+            var entries = nb05Data.DirEntries;
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                ref var entry = ref entries[i];
+
+                if (entry.Offset == chunk.AbsoluteOffset)
+                    return Write(entry, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
         private static IStructView GetOMFFileIndex(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var file = chunk.File();
 
-            if (file is PDBFile p)
-                return Write(p.DBI.FileInfo, viewWriter);
+            switch (file.Kind)
+            {
+                case FileKind.PE:
+                    return WriteNB05Data(SST.sstFileIndex, chunk, viewWriter);
+
+                case FileKind.PDB:
+                    return Write(((PDBFile) file).DBI.FileInfo, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetOMFGlobalTypes(in MemoryChunk chunk, ViewWriter viewWriter) =>
+            WriteNB05Data(SST.sstGlobalTypes, chunk, viewWriter);
+
+        private static IStructView GetOMFSourceFile(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var nb05Data = GetNB05Data(chunk);
+
+            var entries = nb05Data.DirEntries;
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                ref var entry = ref entries[i];
+
+                if (entry.SubSection == SST.sstSrcModule)
+                {
+                    var data = (OMFSourceModule) entry.Data;
+
+                    var sourceFiles = data.baseSrcFile;
+
+                    for (var j = 0; j < sourceFiles.Length; j++)
+                    {
+                        ref var sourceFile = ref sourceFiles[j];
+
+                        if (sourceFile.Offset == chunk.AbsoluteOffset)
+                            return Write(sourceFile, viewWriter);
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IStructView WriteNB05Data(SST sst, in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var nb05Data = GetNB05Data(chunk);
+
+            var entries = nb05Data.DirEntries;
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                ref var entry = ref entries[i];
+
+                if (entry.SubSection == sst)
+                {
+                    var data = entry.Data;
+
+                    if (data.Offset == chunk.AbsoluteOffset)
+                        return Write((IViewable) data, viewWriter);
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static NB05Data GetNB05Data(in MemoryChunk chunk)
+        {
+            var file = chunk.File();
+
+            switch (file.Kind)
+            {
+                case FileKind.PE:
+                    var debugTable = ((PEFile) file).DebugTable;
+
+                    for (var i = 0; i < debugTable.Length; i++)
+                    {
+                        ref var entry = ref debugTable[i];
+
+                        if (entry.Type == IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_CODEVIEW)
+                            return (NB05Data) entry.Data;
+                    }
+
+                    break;
+            }
 
             throw new NotImplementedException();
         }

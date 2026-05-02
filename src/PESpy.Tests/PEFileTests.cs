@@ -12,6 +12,8 @@ using static PESpy.IMAGE_DLLCHARACTERISTICS;
 using static PESpy.IMAGE_DLLCHARACTERISTICS_EX;
 using static PESpy.IMAGE_DYNAMIC_RELOCATION_KIND;
 using static PESpy.IMAGE_SYM_TYPE;
+using ClrDebug.OMF;
+using ClrDebug.PDB;
 
 namespace PESpy.Tests
 {
@@ -204,8 +206,8 @@ namespace PESpy.Tests
                 v => v.VerifyStruct(
                     name: "IMAGE_NT_HEADERS", offset: 224, size: 264,
                     c => c.VerifyField(name: "Signature", value: 17744),
-                    c => c.VerifyStructIgnoreChildren(name: "IMAGE_FILE_HEADER", offset: 228, size: 20),
-                    c => c.VerifyStructIgnoreChildren(name: "IMAGE_OPTIONAL_HEADER", offset: 248, size: 240)
+                    c => c.VerifyStructFieldIgnoreChildren(name: "FileHeader", type: "IMAGE_FILE_HEADER", offset: 228, size: 20),
+                    c => c.VerifyStructFieldIgnoreChildren(name: "OptionalHeader", type: "IMAGE_OPTIONAL_HEADER", offset: 248, size: 240)
                 )
             );
         }
@@ -214,25 +216,25 @@ namespace PESpy.Tests
         public void ImageFileHeader_Test()
         {
             TestStruct<ImageFileHeader>(
-                v => v.Machine == IMAGE_FILE_MACHINE.AMD64,
+                v => v.Machine == IMAGE_FILE_MACHINE_AMD64,
                 v => v.NumberOfSections == (ushort) 11,
                 v => v.TimeDateStamp == 3169667970,
                 v => v.PointerToSymbolTable.ListedAddress == 0,
                 v => v.NumberOfSymbols == 0,
                 v => v.SizeOfOptionalHeader == 240,
-                v => v.Characteristics == (ImageFile.ExecutableImage | ImageFile.LargeAddressAware | ImageFile.Dll)
+                v => v.Characteristics == (IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE | IMAGE_FILE_DLL)
             );
 
             TestView<ImageFileHeader>(
                 v => v.VerifyStruct(
                     name: "IMAGE_FILE_HEADER", offset: 228, size: 20,
-                    c => c.VerifyField(name: "Machine", value: IMAGE_FILE_MACHINE.AMD64),
+                    c => c.VerifyField(name: "Machine", value: IMAGE_FILE_MACHINE_AMD64),
                     c => c.VerifyField(name: "NumberOfSections", value: (ushort) 11),
                     c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
                     c => c.VerifyField(name: "PointerToSymbolTable", value: 0),
                     c => c.VerifyField(name: "NumberOfSymbols", value: 0),
                     c => c.VerifyField(name: "SizeOfOptionalHeader", value: (short) 240),
-                    c => c.VerifyField(name: "Characteristics", value: ImageFile.ExecutableImage | ImageFile.LargeAddressAware | ImageFile.Dll)
+                    c => c.VerifyField(name: "Characteristics", value: IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE | IMAGE_FILE_DLL)
                 )
             );
 
@@ -245,7 +247,7 @@ namespace PESpy.Tests
         public void ImageOptionalHeader_Test()
         {
             TestStruct<ImageOptionalHeader>(
-                v => v.Magic == PEMagic.PE32Plus,
+                v => v.Magic == PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC,
                 v => v.MajorLinkerVersion == 14,
                 v => v.MinorLinkerVersion == 30,
                 v => v.SizeOfCode == 1249280,
@@ -267,13 +269,13 @@ namespace PESpy.Tests
                 v => v.SizeOfImage == 2191360,
                 v => v.SizeOfHeaders == 4096,
                 v => v.CheckSum == 2219814,
-                v => v.Subsystem == ImageSubsystem.WindowsCui,
-                v => v.DllCharacteristics == (ImageDllCharacteristics.HighEntropyVirtualAddressSpace | ImageDllCharacteristics.DynamicBase | ImageDllCharacteristics.NxCompatible | ImageDllCharacteristics.GuardCF),
+                v => v.Subsystem == IMAGE_SUBSYSTEM.IMAGE_SUBSYSTEM_WINDOWS_CUI,
+                v => v.DllCharacteristics == (IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE | IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_GUARD_CF),
                 v => v.SizeOfStackReserve == 262144,
                 v => v.SizeOfStackCommit == 4096,
                 v => v.SizeOfHeapReserve == 1048576,
                 v => v.SizeOfHeapCommit == 4096,
-                v => v.LoaderFlags == (ImageLoaderFlags) 0,
+                v => v.LoaderFlags == (IMAGE_LOADER_FLAGS) 0,
                 v => v.NumberOfRvaAndSizes == 16,
                 v => (object) v.ExportTableDirectory             == IgnoreValue,
                 v => (object) v.ImportTableDirectory             == IgnoreValue,
@@ -296,7 +298,7 @@ namespace PESpy.Tests
             TestView<ImageOptionalHeader>(
                 v => v.VerifyStruct(
                     name: "IMAGE_OPTIONAL_HEADER", offset: 248, size: 240,
-                    c => c.VerifyField(name: "Magic", value: PEMagic.PE32Plus),
+                    c => c.VerifyField(name: "Magic", value: PEMagic.IMAGE_NT_OPTIONAL_HDR64_MAGIC),
                     c => c.VerifyField(name: "MajorLinkerVersion", value: (byte) 14),
                     c => c.VerifyField(name: "MinorLinkerVersion", value: (byte) 30),
                     c => c.VerifyField(name: "SizeOfCode", value: 1249280),
@@ -318,29 +320,29 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "SizeOfImage", value: 2191360),
                     c => c.VerifyField(name: "SizeOfHeaders", value: 4096),
                     c => c.VerifyField(name: "CheckSum", value: (uint) 2219814),
-                    c => c.VerifyField(name: "Subsystem", value: ImageSubsystem.WindowsCui),
-                    c => c.VerifyField(name: "DllCharacteristics", value: (ImageDllCharacteristics.HighEntropyVirtualAddressSpace | ImageDllCharacteristics.DynamicBase | ImageDllCharacteristics.NxCompatible | ImageDllCharacteristics.GuardCF)),
+                    c => c.VerifyField(name: "Subsystem", value: IMAGE_SUBSYSTEM.IMAGE_SUBSYSTEM_WINDOWS_CUI),
+                    c => c.VerifyField(name: "DllCharacteristics", value: (IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE | IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_GUARD_CF)),
                     c => c.VerifyField(name: "SizeOfStackReserve", value: (ulong) 262144),
                     c => c.VerifyField(name: "SizeOfStackCommit", value: (ulong) 4096),
                     c => c.VerifyField(name: "SizeOfHeapReserve", value: (ulong) 1048576),
                     c => c.VerifyField(name: "SizeOfHeapCommit", value: (ulong) 4096),
-                    c => c.VerifyField(name: "LoaderFlags", value: (ImageLoaderFlags) 0),
+                    c => c.VerifyField(name: "LoaderFlags", value: (IMAGE_LOADER_FLAGS) 0),
                     c => c.VerifyField(name: "NumberOfRvaAndSizes", value: 16),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT (0)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT (1)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE (2)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY (4)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC (5)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG (6)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_COPYRIGHT / IMAGE_DIRECTORY_ENTRY_ARCHITECTURE (7)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS (9)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT (12)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)]"),
-                    c => c.VerifyFieldIgnoreValue(name: "DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)]"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_EXPORT (0)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_IMPORT (1)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_RESOURCE (2)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_EXCEPTION (3)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_SECURITY (4)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_BASERELOC (5)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_DEBUG (6)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_COPYRIGHT (7)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_GLOBALPTR (8)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_TLS (9)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG (10)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (11)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_IAT (12)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT (13)"),
+                    c => c.VerifyFieldIgnoreValue(name: "IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR (14)"),
                     c => c.VerifyFieldIgnoreValue(name: "NullDirectory")
                 )
             );
@@ -418,10 +420,10 @@ namespace PESpy.Tests
 
             //I can't find any files (in my samples or otherwise) that have either of these, so for now I can't test them
 
-            //TestXRefs<ImageSectionHeader>(
-            //    v => v.Verify(propertyName: "PointerToRelocations", index: -1, fieldOffset: ImageSectionHeader.PointerToRelocationsOffset, targetOffset: 0),
-            //    v => v.Verify(propertyName: "PointerToLineNumbers", index: -1, fieldOffset: ImageSectionHeader.PointerToLineNumbersOffset, targetOffset: 0)
-            //);
+            TestXRefs<ImageSectionHeader>(
+                v => v.Verify(propertyName: "PointerToRelocations", index: -1, fieldOffset: ImageSectionHeader.PointerToRelocationsOffset, targetOffset: 0),
+                v => v.Verify(propertyName: "PointerToLineNumbers", index: -1, fieldOffset: ImageSectionHeader.PointerToLineNumbersOffset, targetOffset: 0)
+            );
         }
 
         #endregion
@@ -471,45 +473,6 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: "AddressOfFunctions",    index: 1, fieldOffset: ImageExportDirectory.AddressOfFunctionsOffset,    targetOffset: 1489768),
                 v => v.Verify(propertyName: "AddressOfNames",        index: 2, fieldOffset: ImageExportDirectory.AddressOfNamesOffset,        targetOffset: 1499712),
                 v => v.Verify(propertyName: "AddressOfNameOrdinals", index: 3, fieldOffset: ImageExportDirectory.AddressOfNameOrdinalsOffset, targetOffset: 1509652)
-            );
-        }
-
-        [TestMethod]
-        public void ImageExportDirectory_NormalAndForwardedExports()
-        {
-            TestStruct<ImageExportDirectory>(
-                v => v.Characteristics == 0,
-                v => v.TimeDateStamp == 3169667970,
-                v => v.MajorVersion == 0,
-                v => v.MinorVersion == 0,
-                v => v.Name.ListedOffset == 1514622,
-                v => v.Base == 8,
-                v => v.NumberOfFunctions == 2486,
-                v => v.NumberOfNames == 2485,
-                v => v.AddressOfFunctions.ListedOffset == 1489768,
-                v => v.AddressOfNames.ListedOffset == 1499712,
-                v => v.AddressOfNameOrdinals.ListedOffset == 1509652,
-                v => v.Exports == IgnoreValue
-            );
-
-            TestView<ImageExportDirectory>(
-                WithIgnores(
-                    v => v.VerifyStruct(
-                        name: "IMAGE_EXPORT_DIRECTORY", offset: 1489728, size: 40,
-                        c => c.VerifyField(name: "Characteristics", value: 0),
-                        c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
-                        c => c.VerifyField(name: "MajorVersion", value: (ushort) 0),
-                        c => c.VerifyField(name: "MinorVersion", value: (ushort) 0),
-                        c => c.VerifyField(name: "Name", value: 1514622),
-                        c => c.VerifyField(name: "Base", value: 8),
-                        c => c.VerifyField(name: "NumberOfFunctions", value: 2486),
-                        c => c.VerifyField(name: "NumberOfNames", value: 2485),
-                        c => c.VerifyField(name: "AddressOfFunctions", value: 1489768),
-                        c => c.VerifyField(name: "AddressOfNames", value: 1499712),
-                        c => c.VerifyField(name: "AddressOfNameOrdinals", value: 1509652)
-                    ),
-                    after: 2489
-                )
             );
         }
 
@@ -655,8 +618,8 @@ namespace PESpy.Tests
             );
 
             TestXRefs<ImageResourceDirectoryEntry>(
-                v => v.Verify(propertyName: "OffsetToData", index: -1, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0),
-                v => v.Verify(propertyName: "OffsetToDirectory", index: -1, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0)
+                v => v.Verify(propertyName: "OffsetToData", index: 0, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0x1980d8),
+                v => v.Verify(propertyName: "OffsetToDirectory", index: 0, fieldOffset: ImageResourceDirectoryEntry.DataAndDirectoryOffset, targetOffset: 0x1980a0)
             );
         }
 
@@ -668,7 +631,7 @@ namespace PESpy.Tests
                 v => v.Size == 896,
                 v => v.CodePage == 0,
                 v => v.Reserved == 0,
-                v => (ResourceType) v.Type == ResourceType.Version //Note: this comes from the parent
+                v => (RT) v.Type == RT.RT_VERSION //Note: this comes from the parent
             );
 
             TestView<ImageResourceDataEntry>(
@@ -685,7 +648,7 @@ namespace PESpy.Tests
             );
 
             TestXRefs<ImageResourceDataEntry>(
-                v => v.Verify(propertyName: "OffsetToData", index: -1, fieldOffset: 0, targetOffset: 0)
+                v => v.Verify(propertyName: "OffsetToData", index: 0, fieldOffset: 0, targetOffset: 0x1980f0)
             );
         }
 
@@ -930,10 +893,76 @@ namespace PESpy.Tests
                     name: "CLR_DEBUG_RESOURCE", offset: 5004280, size: 36,
                     c => c.VerifyField(name: "dwVersion", value: 0),
                     c => c.VerifyField(name: "signature", value: new Guid("b1ee760d-6c4a-4533-ba41-6f4f661fabaf")),
-                    c => c.VerifyField(name: "dwDacTimeStamp", value: 1733245982),
+                    c => c.VerifyField(name: "dwDacTimeStamp", value: (uint) 1733245982),
                     c => c.VerifyField(name: "dwDacSizeOfImage", value: 1347584),
-                    c => c.VerifyField(name: "dwDbiTimeStamp", value: 1733245977),
+                    c => c.VerifyField(name: "dwDbiTimeStamp", value: (uint) 1733245977),
                     c => c.VerifyField(name: "dwDbiSizeOfImage", value: 1249280)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void MessageResourceData_Test()
+        {
+            TestStruct<MessageResourceData>(
+                v => v.NumberOfBlocks == 3
+            );
+
+            TestView<MessageResourceData>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "MESSAGE_RESOURCE_DATA", offset: 6095192, size: 40,
+                        c => c.VerifyField(name: "NumberOfBlocks", value: 3),
+                        c => c.VerifyStructIgnoreChildren("MESSAGE_RESOURCE_BLOCK", offset: 0x5d015c, size: 12),
+                        c => c.VerifyStructIgnoreChildren("MESSAGE_RESOURCE_BLOCK", offset: 0x5d0168, size: 12),
+                        c => c.VerifyStructIgnoreChildren("MESSAGE_RESOURCE_BLOCK", offset: 0x5d0174, size: 12)
+                    ),
+                    after: 5
+                )
+            );
+        }
+
+        [TestMethod]
+        public void MessageResourceBlock_Test()
+        {
+            TestStruct<MessageResourceBlock>(
+                v => v.LowId == 805306369,
+                v => v.HighId == 805306370,
+                v => v.OffsetToEntries.ListedOffset == 40
+            );
+
+            TestView<MessageResourceBlock>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "MESSAGE_RESOURCE_BLOCK", offset: 6095196, size: 12,
+                        c => c.VerifyField(name: "LowId", value: (uint) 805306369),
+                        c => c.VerifyField(name: "HighId", value: (uint) 805306370),
+                        c => c.VerifyField(name: "OffsetToEntries", value: 40)
+                    ),
+                    after: 2
+                )
+            );
+
+            TestXRefs<MessageResourceBlock>(
+                v => v.Verify(propertyName: "OffsetToEntries", index: 0, fieldOffset: MessageResourceBlock.OffsetToEntriesOffset, targetOffset: 0x5d0180)
+            );
+        }
+
+        [TestMethod]
+        public void MessageResourceEntry_Test()
+        {
+            TestStruct<MessageResourceEntry>(
+                v => v.Length == 20,
+                v => v.Flags == MessageResourceFlags.Unicode,
+                v => v.Text == "Start\r\n"
+            );
+
+            TestView<MessageResourceEntry>(
+                v => v.VerifyStruct(
+                    name: "MESSAGE_RESOURCE_ENTRY", offset: 6095232, size: 20,
+                    c => c.VerifyField(name: "Length", value: (short) 20),
+                    c => c.VerifyField(name: "Flags", value: MessageResourceFlags.Unicode),
+                    c => c.VerifyField(name: "Text", value: "Start\r\n")
                 )
             );
         }
@@ -963,7 +992,7 @@ namespace PESpy.Tests
             );
 
             TestXRefs<RuntimeFunction>(
-                v => v.Verify(propertyName: "UnwindData", index: 0, fieldOffset: RuntimeFunction.UnwindDataOffset, targetOffset: 1424960)
+                v => v.Verify(propertyName: "UnwindData", index: 2, fieldOffset: RuntimeFunction.UnwindDataOffset, targetOffset: 1424960)
             );
         }
 
@@ -977,26 +1006,36 @@ namespace PESpy.Tests
                 v => v.CountOfCodes == 11,
                 v => v.FrameRegister == 0,
                 v => v.FrameOffset == 0,
-                v => v.UnwindCode == IgnoreValue,
                 v => v.ExceptionHandler == 650796
             );
 
             TestView<UnwindInfo>(
                 v => v.VerifyStruct(
-                    name: "UNWIND_INFO", offset: 1425908, size: 68,
-                    WithIgnores(
-                        new Action<IView>[]
-                        {
-                            c => c.VerifyBitField(name: "Version", value: (byte) 1, bits: 3),
-                            c => c.VerifyBitField(name: "Flags", value: UNW_FLAG.FHANDLER, bits: 5),
-                            c => c.VerifyField(name: "SizeOfProlog", value: (byte) 44),
-                            c => c.VerifyField(name: "CountOfCodes", value: (byte) 11),
-                            c => c.VerifyBitField(name: "FrameRegister", value: (byte) 0, 4),
-                            c => c.VerifyBitField(name: "FrameOffset", value: (byte) 0, 4),
-                        },
-                        after: 11
-                    )
+                    name: "UNWIND_INFO", offset: 1425908, size: 72,
+                    c => c.VerifyBitField(name: "Version", value: (byte) 1, bits: 3),
+                    c => c.VerifyBitField(name: "Flags", value: UNW_FLAG.FHANDLER, bits: 5),
+                    c => c.VerifyField(name: "SizeOfProlog", value: (byte) 44),
+                    c => c.VerifyField(name: "CountOfCodes", value: (byte) 11),
+                    c => c.VerifyBitField(name: "FrameRegister", value: UnwindInfo.Register.RAX, 4),
+                    c => c.VerifyBitField(name: "FrameOffset", value: (byte) 0, 4),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c1f8, size: 4),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c1fc, size: 4),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c200, size: 4),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c204, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c206, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c208, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c20a, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c20c, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "UNWIND_CODE", offset: 0x15c20e, size: 2),
+                    c => c.VerifyField(name: "ExceptionHandler", value: 0x9EE2C),
+                    c => c.VerifyStructIgnoreChildren(name: "SCOPE_TABLE", offset: 0x15c214, size: 36),
+                    c => c.VerifyStructIgnoreChildren(name: "_GS_HANDLER_DATA", offset: 0x15c238, size: 4)
                 )
+            );
+
+            //We have tests for RVA<FuncInfo> and RVA<FuncInfo4> in the tests specific to them
+            TestXRefs<UnwindInfo>(
+                v => v.Verify(propertyName: nameof(UnwindInfo.ExceptionHandler), index: 0, fieldOffset: 28, targetOffset: 0x9ee2c)
             );
         }
 
@@ -1006,19 +1045,19 @@ namespace PESpy.Tests
         public void UnwindCode_PushNonVolatile_Test()
         {
             TestStruct<UnwindCode.PushNonVolatile>(
-                v => v.Register == UnwindInfo.X64Register.R15,
-                v => v.OpInfo == 15,
-                v => v.CodeOffset == 11,
-                v => v.UnwindOp == UWOP.PUSH_NONVOL,
-                v => v.StructSize == 2
+                v => v.OpInfo == UnwindInfo.Register.R14,
+                v => v.CodeOffset == 9,
+                v => v.UnwindOp == UWOP.UWOP_PUSH_NONVOL
             );
+
+            Assert.AreEqual(2, UnwindCode.PushNonVolatile.StructSize);
 
             TestView<UnwindCode.PushNonVolatile>(
                 v => v.VerifyStruct(
-                    name: "UNWIND_CODE", offset: 1424968, size: 2,
-                    c => c.VerifyField(name: "CodeOffset", value: (byte) 11),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.PUSH_NONVOL, bits: 4),
-                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 15, bits: 4)
+                    name: "UNWIND_CODE", offset: 1424970, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 9),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_PUSH_NONVOL, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: UnwindInfo.Register.R14, bits: 4)
                 )
             );
         }
@@ -1027,10 +1066,10 @@ namespace PESpy.Tests
         public void UnwindCode_AllocLarge_Test()
         {
             TestStruct<UnwindCode.AllocLarge>(
-                v => v.Size == 57353,
+                v => v.Size == 624,
                 v => v.StructSize == 4,
                 v => v.CodeOffset == 26,
-                v => v.UnwindOp == UWOP.ALLOC_LARGE,
+                v => v.UnwindOp == UWOP.UWOP_ALLOC_LARGE,
                 v => v.OpInfo == 0
             );
 
@@ -1038,9 +1077,9 @@ namespace PESpy.Tests
                 v => v.VerifyStruct(
                     name: "UNWIND_CODE", offset: 1424964, size: 4,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 26),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.ALLOC_LARGE, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_ALLOC_LARGE, bits: 4),
                     c => c.VerifyBitField(name: "OpInfo", value: (byte) 0, bits: 4),
-                    c => c.VerifyField(name: "Size", value: (ushort) 57353)
+                    c => c.VerifyField(name: "Size", value: (ushort) 624 / 8) //The serialized size has not been multiplied by 8
                 )
             );
         }
@@ -1052,15 +1091,16 @@ namespace PESpy.Tests
                 v => v.Size == 48,
                 v => v.OpInfo == 5,
                 v => v.CodeOffset == 6,
-                v => v.UnwindOp == UWOP.ALLOC_SMALL,
-                v => v.StructSize == 2
+                v => v.UnwindOp == UWOP.UWOP_ALLOC_SMALL
             );
+
+            Assert.AreEqual(2, UnwindCode.AllocSmall.StructSize);
 
             TestView<UnwindCode.AllocSmall>(
                 v => v.VerifyStruct(
                     name: "UNWIND_CODE", offset: 1425036, size: 2,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 6),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.ALLOC_SMALL, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_ALLOC_SMALL, bits: 4),
                     c => c.VerifyBitField(name: "OpInfo", value: (byte) 5, bits: 4)
                 )
             );
@@ -1070,19 +1110,20 @@ namespace PESpy.Tests
         public void UnwindCode_SetFpReg_Test()
         {
             TestStruct<UnwindCode.SetFpReg>(
-                v => v.FrameRegister == UnwindInfo.X64Register.RBP,
+                v => v.FrameRegister == UnwindInfo.Register.RBP,
                 v => v.FrameOffset == 96,
                 v => v.CodeOffset == 22,
-                v => v.UnwindOp == UWOP.SET_FPREG,
-                v => v.OpInfo == 6,
-                v => v.StructSize == 2
+                v => v.UnwindOp == UWOP.UWOP_SET_FPREG,
+                v => v.OpInfo == 6
             );
+
+            Assert.AreEqual(2, UnwindCode.SetFpReg.StructSize);
 
             TestView<UnwindCode.SetFpReg>(
                 v => v.VerifyStruct(
                     name: "UNWIND_CODE", offset: 1433948, size: 2,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 22),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SET_FPREG, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_SET_FPREG, bits: 4),
                     c => c.VerifyBitField(name: "OpInfo", value: (byte) 6, bits: 4)
                 )
             );
@@ -1092,20 +1133,20 @@ namespace PESpy.Tests
         public void UnwindCode_SaveNonVolatile_Test()
         {
             TestStruct<UnwindCode.SaveNonVolatile>(
-                v => v.Register == UnwindInfo.X64Register.RBP,
-                v => v.OpInfo == 5,
+                v => v.OpInfo == UnwindInfo.Register.RBP,
                 v => v.StackOffset == 59,
-                v => v.StructSize == 4,
                 v => v.CodeOffset == 21,
-                v => v.UnwindOp == UWOP.SAVE_NONVOL
+                v => v.UnwindOp == UWOP.UWOP_SAVE_NONVOL
             );
+
+            Assert.AreEqual(4, UnwindCode.SaveNonVolatile.StructSize);
 
             TestView<UnwindCode.SaveNonVolatile>(
                 v => v.VerifyStruct(
                     name: "UNWIND_CODE", offset: 1425012, size: 4,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 21),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SAVE_NONVOL, bits: 4),
-                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 5, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_SAVE_NONVOL, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: UnwindInfo.Register.RBP, bits: 4),
                     c => c.VerifyField(name: "StackOffset", value: (ushort) 59)
                 )
             );
@@ -1117,9 +1158,10 @@ namespace PESpy.Tests
             TestStruct<UnwindCode.Epilog>(
                 v => v.CodeOffset == 12,
                 v => v.UnwindOp == UWOP.UWOP_EPILOG,
-                v => v.OpInfo == 1,
-                v => v.StructSize == 2
+                v => v.OpInfo == 1
             );
+
+            Assert.AreEqual(2, UnwindCode.Epilog.StructSize);
 
             TestView<UnwindCode.Epilog>(
                 v => v.VerifyStruct(
@@ -1135,20 +1177,20 @@ namespace PESpy.Tests
         public void UnwindCode_SaveXmm128_Test()
         {
             TestStruct<UnwindCode.SaveXmm128>(
-                v => v.Register == UnwindInfo.X64Register.RSI,
-                v => v.OpInfo == 6,
+                v => v.OpInfo == UnwindInfo.Register.RSI,
                 v => v.StackOffset == 2,
-                v => v.StructSize == 4,
                 v => v.CodeOffset == 36,
-                v => v.UnwindOp == UWOP.SAVE_XMM128
+                v => v.UnwindOp == UWOP.UWOP_SAVE_XMM128
             );
+
+            Assert.AreEqual(4, UnwindCode.SaveXmm128.StructSize);
 
             TestView<UnwindCode.SaveXmm128>(
                 v => v.VerifyStruct(
                     name: "UNWIND_CODE", offset: 1453140, size: 4,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 36),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.SAVE_XMM128, bits: 4),
-                    c => c.VerifyBitField(name: "OpInfo", value: (byte) 6, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_SAVE_XMM128, bits: 4),
+                    c => c.VerifyBitField(name: "OpInfo", value: UnwindInfo.Register.RSI, bits: 4),
                     c => c.VerifyField(name: "StackOffset", value: (ushort) 2)
                 )
             );
@@ -1159,16 +1201,17 @@ namespace PESpy.Tests
         {
             TestStruct<UnwindCode.PushMachFrame>(
                 v => v.CodeOffset == 0,
-                v => v.UnwindOp == UWOP.PUSH_MACHFRAME,
-                v => v.OpInfo == 0,
-                v => v.StructSize == 2
+                v => v.UnwindOp == UWOP.UWOP_PUSH_MACHFRAME,
+                v => v.OpInfo == 0
             );
+
+            Assert.AreEqual(2, UnwindCode.PushMachFrame.StructSize);
 
             TestView<UnwindCode.PushMachFrame>(
                 v => v.VerifyStruct(
-                    name: "UNWIND_CODE", offset: 1473504, size: 2,
+                    name: "UNWIND_CODE", offset: 1473530, size: 2,
                     c => c.VerifyField(name: "CodeOffset", value: (byte) 0),
-                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.PUSH_MACHFRAME, bits: 4),
+                    c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_PUSH_MACHFRAME, bits: 4),
                     c => c.VerifyBitField(name: "OpInfo", value: (byte) 0, bits: 4)
                 )
             );
@@ -1185,8 +1228,7 @@ namespace PESpy.Tests
         public void ScopeTable_Test()
         {
             TestStruct<ScopeTable>(
-                v => v.Count == 2,
-                v => v.Records == IgnoreValue
+                v => v.Count == 2
             );
 
             TestView<ScopeTable>(
@@ -1219,26 +1261,32 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "JumpTarget", value: 12744)
                 )
             );
+
+            TestXRefs<ScopeTable.ScopeRecord>(
+                v => v.Verify(propertyName: nameof(ScopeTable.ScopeRecord.BeginAddress), index: 0, fieldOffset: 0, targetOffset: 0x12d2),
+                v => v.Verify(propertyName: nameof(ScopeTable.ScopeRecord.EndAddress), index: 1, fieldOffset: 4, targetOffset: 0x12df),
+                v => v.Verify(propertyName: nameof(ScopeTable.ScopeRecord.HandlerAddress), index: 2, fieldOffset: 8, targetOffset: 0xa6d40),
+                v => v.Verify(propertyName: nameof(ScopeTable.ScopeRecord.JumpTarget), index: 3, fieldOffset: 12, targetOffset: 0x12df)
+            );
         }
+
+        #region FuncInfo
 
         [TestMethod]
         public void FuncInfo_Test()
         {
-            //The headers for FuncInfo can be conditionally compiled with pointers,
-            //so ideally we want to check if we can parse both x86 and x64, however
-            //the x86 AuthExt doesn't have an ExceptionTable! Perhaps that's expected
-
             TestStruct<FuncInfo>(
-                v => v.MagicNumber == 429065506,
-                v => v.BBTFlags == 0,
-                v => v.MaxState == 2,
-                v => v.UnwindMap.ListedOffset == 67060,
+                nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3),
+                v => v.magicNumber == EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3,
+                v => v.bbtFlags == 0,
+                v => v.maxState == 2,
+                v => v.dispUnwindMap.ListedOffset == 67060,
                 v => v.nTryBlocks == 1,
-                v => v.TryBlockMap.ListedOffset == 67076,
+                v => v.dispTryBlockMap.ListedOffset == 67076,
                 v => v.nIPMapEntries == 1,
-                v => v.IPToStateMap.ListedOffset == 67120,
-                v => v.DispUnwindHelp == 32,
-                v => v.DispESTypeList == 0,
+                v => v.dispIPtoStateMap.ListedOffset == 67120,
+                v => v.dispUnwindHelp == 32,
+                v => v.dispESTypeList == 0,
                 v => v.EHFlags == 5
             );
 
@@ -1246,8 +1294,8 @@ namespace PESpy.Tests
                 WithIgnores(
                     v => v.VerifyStruct(
                         name: "FuncInfo", offset: 60816, size: 40,
-                        c => c.VerifyBitField(name: "magicNumber", value: 429065506, bits: 29),
-                        c => c.VerifyBitField(name: "bbtFlags", value: 0, bits: 3),
+                        c => c.VerifyBitField(name: "magicNumber", value: EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3, bits: 29),
+                        c => c.VerifyBitField(name: "bbtFlags", value: (BBT) 0, bits: 3),
                         c => c.VerifyField(name: "maxState", value: 2),
                         c => c.VerifyField(name: "dispUnwindMap", value: 67060),
                         c => c.VerifyField(name: "nTryBlocks", value: 1),
@@ -1259,14 +1307,16 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "EHFlags", value: 5)
                     ),
                     after: 5
-                )
+                ),
+                scenario: nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3)
             );
 
             //There's 4 xrefs: the third one is the TryBlockMap.HandlerArray
             TestXRefs<FuncInfo>(
-                v => v.Verify(propertyName: "UnwindMap",    index: 0, fieldOffset: FuncInfo.UnwindMapOffset, targetOffset: 67060),
-                v => v.Verify(propertyName: "TryBlockMap",  index: 1, fieldOffset: FuncInfo.TryBlockMapOffset, targetOffset: 67076),
-                v => v.Verify(propertyName: "IPToStateMap", index: 3, fieldOffset: FuncInfo.IPToStateMapOffset, targetOffset: 67120)
+                nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispUnwindMap),    index: 0, fieldOffset: FuncInfo.UnwindMapOffset, targetOffset: 67060),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispTryBlockMap),  index: 3, fieldOffset: FuncInfo.TryBlockMapOffset, targetOffset: 67076),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispIPtoStateMap), index: 6, fieldOffset: FuncInfo.IPToStateMapOffset, targetOffset: 67120)
             );
         }
 
@@ -1274,11 +1324,11 @@ namespace PESpy.Tests
         public void TryBlockMapEntry_Test()
         {
             TestStruct<TryBlockMapEntry>(
-                v => v.TryLow == 0,
-                v => v.TryHigh == 0,
-                v => v.CatchHigh == 1,
+                v => v.tryLow == 0,
+                v => v.tryHigh == 0,
+                v => v.catchHigh == 1,
                 v => v.nCatches == 1,
-                v => v.HandlerArray.ListedOffset == 67096
+                v => v.dispHandlerArray.ListedOffset == 67096
             );
 
             TestView<TryBlockMapEntry>(
@@ -1296,7 +1346,7 @@ namespace PESpy.Tests
             );
 
             TestXRefs<TryBlockMapEntry>(
-                v => v.Verify(propertyName: "HandlerArray", index: 0, fieldOffset: TryBlockMapEntry.HandlerArrayOffset, targetOffset: 1)
+                v => v.Verify(propertyName: nameof(TryBlockMapEntry.dispHandlerArray), index: 0, fieldOffset: TryBlockMapEntry.dispHandlerArrayOffset, targetOffset: 67096)
             );
         }
 
@@ -1304,17 +1354,17 @@ namespace PESpy.Tests
         public void HandlerType_Test()
         {
             TestStruct<HandlerType>(
-                v => v.Adjectives == 64,
-                v => v.Type.ListedOffset == 0,
-                v => v.CatchObj == 0,
-                v => v.Handler == 39879,
-                v => v.Frame == 56
+                v => v.adjectives == HT.HT_IsStdDotDot,
+                v => v.dispType.ListedOffset == 0,
+                v => v.dispCatchObj == 0,
+                v => v.dispOfHandler == 39879,
+                v => v.dispFrame == 56
             );
 
             TestView<HandlerType>(
                 v => v.VerifyStruct(
                     name: "HandlerType", offset: 67096, size: 20,
-                    c => c.VerifyField(name: "adjectives", value: 64),
+                    c => c.VerifyField(name: "adjectives", value: HT.HT_IsStdDotDot),
                     c => c.VerifyField(name: "dispType", value: 0),
                     c => c.VerifyField(name: "dispCatchObj", value: 0),
                     c => c.VerifyField(name: "dispOfHandler", value: 39879),
@@ -1323,7 +1373,7 @@ namespace PESpy.Tests
             );
 
             TestXRefs<HandlerType>(
-                v => v.Verify(propertyName: "Type", index: 0, fieldOffset: HandlerType.TypeOffset, targetOffset: 1527960)
+                v => v.Verify(propertyName: nameof(HandlerType.dispType), index: 0, fieldOffset: HandlerType.dispTypeOffset, targetOffset: 1527960)
             );
         }
 
@@ -1332,8 +1382,8 @@ namespace PESpy.Tests
         {
             TestStruct<TypeDescriptor>(
                 v => v.pVFTable == 269732080,
-                v => v.Spare == 0,
-                v => v.Name == ".?AUCInBufferException@@"
+                v => v.spare == 0,
+                v => v.name == ".?AUCInBufferException@@"
             );
 
             TestView<TypeDescriptor>(
@@ -1356,10 +1406,14 @@ namespace PESpy.Tests
 
             TestView<IptoStateMapEntry>(
                 v => v.VerifyStruct(
-                    name: "IptoStateMapEntry", offset: 133657, size: 8,
+                    name: "IptoStateMapEntry", offset: 67120, size: 8,
                     c => c.VerifyField(name: "Ip", value: 15737),
                     c => c.VerifyField(name: "State", value: 0)
                 )
+            );
+
+            TestXRefs<IptoStateMapEntry>(
+                v => v.Verify(propertyName: nameof(IptoStateMapEntry.Ip), index: 0, fieldOffset: 0, targetOffset: 0x3d79)
             );
         }
 
@@ -1367,8 +1421,8 @@ namespace PESpy.Tests
         public void UnwindMapEntry_Test()
         {
             TestStruct<UnwindMapEntry>(
-                v => v.ToState == -1,
-                v => v.Action == 0
+                v => v.toState == -1,
+                v => v.action == 0
             );
 
             TestView<UnwindMapEntry>(
@@ -1378,29 +1432,33 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "action", value: 0)
                 )
             );
+
+            TestXRefs<UnwindMapEntry>(
+                v => v.Verify(propertyName: nameof(UnwindMapEntry.action), index: 0, fieldOffset: 4, targetOffset: 0x3580e8)
+            );
         }
 
         [TestMethod]
         public void FuncInfoV1_Test()
         {
-            TestStruct<FuncInfoV1>(
-                v => v.MagicNumber == 429065504,
-                v => v.BBTFlags == 0,
-                v => v.MaxState == 2,
-                v => v.UnwindMap.ListedOffset == 1297860,
+            TestStruct<FuncInfo>(
+                scenario: nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1),
+                v => v.magicNumber == EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1,
+                v => v.bbtFlags == 0,
+                v => v.maxState == 2,
+                v => v.dispUnwindMap.ListedOffset == 1297860,
                 v => v.nTryBlocks == 0,
-                v => v.TryBlockMap.ListedOffset == 0,
+                v => v.dispTryBlockMap.ListedOffset == 0,
                 v => v.nIPMapEntries == 5,
-                v => v.IPToStateMap.ListedOffset == 1297784
+                v => v.dispIPtoStateMap.ListedOffset == 1297784
             );
 
-            TestView<FuncInfoV1>(
+            TestView<FuncInfo>(
                 WithIgnores(
-                    before: 5,
                     v => v.VerifyStruct(
-                        name: "FuncInfoV1", offset: 1198144, size: 28,
-                        c => c.VerifyBitField(name: "magicNumber", value: 429065504, bits: 29),
-                        c => c.VerifyBitField(name: "bbtFlags", value: 0, bits: 3),
+                        name: "FuncInfo", offset: 1198144, size: 28,
+                        c => c.VerifyBitField(name: "magicNumber", value: EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1, bits: 29),
+                        c => c.VerifyBitField(name: "bbtFlags", value: (BBT) 0, bits: 3),
                         c => c.VerifyField(name: "maxState", value: 2),
                         c => c.VerifyField(name: "dispUnwindMap", value: 1297860),
                         c => c.VerifyField(name: "nTryBlocks", value: 0),
@@ -1408,20 +1466,313 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "nIPMapEntries", value: 5),
                         c => c.VerifyField(name: "dispIPtoStateMap", value: 1297784)
                     ),
+                    after: 7
+                ),
+                scenario: nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1)
+            );
+
+            //There's xrefs; the first, second and last xrefs are ours
+            TestXRefs<FuncInfo>(
+                nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispUnwindMap), index: 0, fieldOffset: FuncInfo.UnwindMapOffset, targetOffset: 1305096),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispTryBlockMap), index: 4, fieldOffset: FuncInfo.TryBlockMapOffset, targetOffset: 1305016),
+                v => v.Verify(propertyName: nameof(FuncInfo.dispIPtoStateMap), index: 11, fieldOffset: FuncInfo.IPToStateMapOffset, targetOffset: 1304840)
+            );
+        }
+
+        #endregion
+        #region FuncInfo4
+
+        [TestMethod]
+        public void FuncInfo4_Test()
+        {
+            TestStruct<FuncInfo4>(
+                //v => v.header == PESpy.FuncInfoHeader,
+                v => v.bbtFlags == 0,
+                v => v.dispUnwindMap.ListedOffset == 225013,
+                v => v.dispTryBlockMap.ListedOffset == 0,
+                v => v.dispIPtoStateMap.ListedOffset == 226945,
+                v => v.dispToSegMap.ListedOffset == 0,
+                v => v.dispFrame == 0
+            );
+
+            TestView<FuncInfo4>(
+                WithIgnores(
+                    before: 1,
+                    v => v.VerifyStruct(
+                        name: "FuncInfo4", offset: 226936, size: 9,
+                        c => c.VerifyStructFieldIgnoreChildren(name: "header", type: "FuncInfoHeader", offset: 226936, size: 1),
+                        c => c.VerifyField(name: "dispUnwindMap", value: 225013),
+                        c => c.VerifyField(name: "dispIPtoStateMap", value: 226945)
+                    ),
+                    after: 1
+                )
+            );
+
+            //FuncInfo4 is variable length hence many fields can report to exist at the same fieldOffset
+            TestXRefs<FuncInfo4>(
+                v => v.Verify(propertyName: nameof(FuncInfo4.dispUnwindMap), index: 0, fieldOffset: 1, targetOffset: 0x36ef5),
+                v => v.Verify(propertyName: nameof(FuncInfo4.dispTryBlockMap), index: 1, fieldOffset: 5, targetOffset: 0x36ce4),
+                v => v.Verify(propertyName: nameof(FuncInfo4.dispIPtoStateMap), index: 2, fieldOffset: 5, targetOffset: 0x37681),
+                v => v.Verify(propertyName: nameof(FuncInfo4.dispToSegMap), index: 10, fieldOffset: 5, targetOffset: 0x413b13)
+            );
+        }
+
+        [TestMethod]
+        public void FuncInfoHeader_Test()
+        {
+            TestStruct<FuncInfoHeader>(
+                v => v.isCatch == false,
+                v => v.isSeparated == false,
+                v => v.BBT == false,
+                v => v.UnwindMap == true,
+                v => v.TryBlockMap == false,
+                v => v.EHs == true,
+                v => v.NoExcept == false,
+                v => v.reserved == 0,
+                v => v.Value == 40
+            );
+
+            TestView<FuncInfoHeader>(
+                v => v.VerifyStruct(
+                    name: "FuncInfoHeader", offset: 226936, size: 1,
+                    c => c.VerifyBitField(name: "isCatch", value: (byte) 0, bits: 1),
+                    c => c.VerifyBitField(name: "isSeparated", value: (byte) 0, bits: 1),
+                    c => c.VerifyBitField(name: "BBT", value: (byte) 0, bits: 1),
+                    c => c.VerifyBitField(name: "UnwindMap", value: (byte) 1, bits: 1),
+                    c => c.VerifyBitField(name: "TryBlockMap", value: (byte) 0, bits: 1),
+                    c => c.VerifyBitField(name: "EHs", value: (byte) 1, bits: 1),
+                    c => c.VerifyBitField(name: "NoExcept", value: (byte) 0, bits: 1),
+                    c => c.VerifyBitField(name: "reserved", value: (byte) 0, bits: 1)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void HandlerMap4_Test()
+        {
+            TestStruct<HandlerMap4>(
+                v => v.NumEntries == 2
+            );
+
+            TestView<HandlerMap4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "HandlerMap4", offset: 224492, size: 0,
+                        c => c.VerifyField(name: "NumEntries", value: 2),
+                        c => c.VerifyStructIgnoreChildren(name: "HandlerType4", offset: 0x36CED, size: 12),
+                        c => c.VerifyStructIgnoreChildren(name: "HandlerType4", offset: 0x36CF9, size: 7)
+                    ),
+                    after: 1
+                )
+            );
+        }
+
+        [TestMethod]
+        public void HandlerType4_Test()
+        {
+            TestStruct<HandlerType4>(
+                //v => v.header == PESpy.HandlerTypeHeader,
+                v => v.adjectives == HT.HT_IsReference,
+                v => v.dispType.ListedOffset == 242472,
+                v => v.dispCatchObj == 32,
+                v => v.dispOfHandler == 143084,
+                v => GetSpan(v, "continuationAddresses") == new[] { 0x84c0 }
+            );
+
+            TestView<HandlerType4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "HandlerType4", offset: 224493, size: 12,
+                        c => c.VerifyStructFieldIgnoreChildren(name: "header", type: "HandlerTypeHeader", offset: 224493, size: 1),
+                        c => c.VerifyField(name: "adjectives", value: HT.HT_IsReference),
+                        c => c.VerifyField(name: "dispType", value: 242472),
+                        c => c.VerifyField(name: "dispCatchObj", value: 32),
+                        c => c.VerifyField(name: "dispOfHandler", value: 143084),
+                        c => c.VerifyField(name: "continuationAddresses", value: new[] { 56 })
+                    ),
+                    after: 1
+                )
+            );
+
+            TestXRefs<HandlerType4>(
+                v => v.Verify(propertyName: nameof(HandlerType4.dispType), index: 0, fieldOffset: 2, targetOffset: 0x3b328),
+
+                //Don't know how to convert this to an RVA yet
+                //v => v.Verify(propertyName: nameof(HandlerType4.dispCatchObj), index: -1, fieldOffset: -1, targetOffset: -1),
+
+                v => v.Verify(propertyName: nameof(HandlerType4.dispOfHandler), index: 1, fieldOffset: 7, targetOffset: 0x22eec),
+                v => v.Verify(propertyName: nameof(HandlerType4.continuationAddresses), index: 2, fieldOffset: 11, targetOffset: 0x84c0)
+            );
+        }
+
+        [TestMethod]
+        public void HandlerTypeHeader_Test()
+        {
+            TestStruct<HandlerTypeHeader>(
+                v => v.adjectives == true,
+                v => v.dispType == true,
+                v => v.dispCatchObj == true,
+                v => v.contIsRVA == false,
+                v => v.contAddr == HandlerTypeHeader.contType.ONE,
+                v => v.unused == 0,
+                v => v.Value == 23
+            );
+
+            TestView<HandlerTypeHeader>(
+                v => v.VerifyStruct(
+                    name: "HandlerTypeHeader", offset: 224493, size: 1,
+                    c => c.VerifyField(name: "adjectives", value: (byte) 1),
+                    c => c.VerifyField(name: "dispType", value: (byte) 1),
+                    c => c.VerifyField(name: "dispCatchObj", value: (byte) 1),
+                    c => c.VerifyField(name: "contIsRVA", value: (byte) 0),
+                    c => c.VerifyField(name: "contAddr", value: HandlerTypeHeader.contType.ONE),
+                    c => c.VerifyField(name: "unused", value: (byte) 0)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void IPtoStateMap4_Test()
+        {
+            TestStruct<IPtoStateMap4>(
+                v => v.NumEntries == 2
+            );
+
+            TestView<IPtoStateMap4>(
+                v => v.VerifyStruct(
+                    name: "IPtoStateMap4", offset: 226945, size: 0,
+                    c => c.VerifyField(name: "NumEntries", value: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "IPtoStateMapEntry4", offset: 0x37682, size: 2),
+                    c => c.VerifyStructIgnoreChildren(name: "IPtoStateMapEntry4", offset: 0x37684, size: 2)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void IPtoStateMapEntry4_Test()
+        {
+            TestStruct<HandlerType4>(
+                //v => v.header == PESpy.HandlerTypeHeader,
+                v => v.adjectives == HT.HT_IsReference,
+                v => v.dispType.ListedOffset == 242472,
+                v => v.dispCatchObj == 32,
+                v => v.dispOfHandler == 143084,
+                v => GetSpan(v, "continuationAddresses") == new[] { 0x84C0 }
+            );
+
+            TestView<HandlerType4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "HandlerType4", offset: 224493, size: 12,
+                        c => c.VerifyStructFieldIgnoreChildren(name: "header", type: "HandlerTypeHeader", offset: 224493, size: 1),
+                        c => c.VerifyField(name: "adjectives", value: HT.HT_IsReference),
+                        c => c.VerifyField(name: "dispType", value: 242472),
+                        c => c.VerifyField(name: "dispCatchObj", value: 32),
+                        c => c.VerifyField(name: "dispOfHandler", value: 143084),
+                        c => c.VerifyField(name: "continuationAddresses", value: new[] { 56 })
+                    ),
+                    after: 1
+                )
+            );
+
+            TestXRefs<IPtoStateMapEntry4>(
+                v => v.Verify(propertyName: nameof(IPtoStateMapEntry4.Ip), index: 0, fieldOffset: 0, targetOffset: 0x4b99)
+            );
+        }
+
+        [TestMethod]
+        public void SepIPtoStateMap4_Test()
+        {
+            TestStruct<SepIPtoStateMap4>(
+                v => v.NumEntries == 2
+            );
+
+            TestView<SepIPtoStateMap4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "SepIPtoStateMap4", offset: 4274963, size: 17,
+                        c => c.VerifyField(name: "NumEntries", value: 2),
+                        c => c.VerifyStructIgnoreChildren(name: "SepIPtoStateMapEntry4", offset: 0x413B14, size: 8),
+                        c => c.VerifyStructIgnoreChildren(name: "SepIPtoStateMapEntry4", offset: 0x413B1C, size: 8)
+                    ),
+                    after: 2 //Ignore the global IPtoStateMap4 entries referenced from the SepIPtoStateMapEntry4 entries
+                )
+            );
+        }
+
+        [TestMethod]
+        public void SepIPtoStateMapEntry4_Test()
+        {
+            TestStruct<SepIPtoStateMapEntry4>(
+                v => v.addrStartRVA == 5008,
+                v => v.dispOfIPMap.ListedOffset == 4284196
+            );
+
+            TestView<SepIPtoStateMapEntry4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "SepIPtoStateMapEntry4", offset: 4274964, size: 8,
+                        c => c.VerifyField(name: "addrStartRVA", value: 5008),
+                        c => c.VerifyField(name: "dispOfIPMap", value: 4284196)
+                    ),
+                    after: 1
+                )
+            );
+
+            TestXRefs<SepIPtoStateMapEntry4>(
+                v => v.Verify(propertyName: nameof(SepIPtoStateMapEntry4.addrStartRVA), index: 0, fieldOffset: 0, targetOffset: 0x1390),
+                v => v.Verify(propertyName: nameof(SepIPtoStateMapEntry4.dispOfIPMap), index: 1, fieldOffset: 4, targetOffset: 0x413b24)
+            );
+        }
+
+        [TestMethod]
+        public void TryBlockMap4_Test()
+        {
+            TestStruct<TryBlockMap4>(
+                v => v.NumEntries == 1
+            );
+
+            TestView<TryBlockMap4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "TryBlockMap4", offset: 224484, size: 8,
+                        c => c.VerifyField(name: "NumEntries", value: 1),
+                        c => c.VerifyStructIgnoreChildren(name: "TryBlockMapEntry4", offset: 0x36CE5, size: 7)
+                    ),
+                    after: 2
+                )
+            );
+        }
+
+        [TestMethod]
+        public void TryBlockMapEntry4_Test()
+        {
+            TestStruct<TryBlockMapEntry4>(
+                v => v.tryLow == 0,
+                v => v.tryHigh == 0,
+                v => v.catchHigh == 1,
+                v => v.dispHandlerArray.ListedOffset == 224492
+            );
+
+            TestView<TryBlockMapEntry4>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "TryBlockMapEntry4", offset: 224485, size: 7,
+                        c => c.VerifyField(name: "tryLow", value: 0),
+                        c => c.VerifyField(name: "tryHigh", value: 0),
+                        c => c.VerifyField(name: "catchHigh", value: 1),
+                        c => c.VerifyField(name: "dispHandlerArray", value: 224492)
+                    ),
                     after: 2
                 )
             );
 
-            //There's xrefs; the first, second and last xrefs are ours
-            TestXRefs<FuncInfoV1>(
-                v => v.Verify(propertyName: "UnwindMap",    index: 0, fieldOffset: FuncInfoV1.UnwindMapOffset, targetOffset: 1305096),
-                v => v.Verify(propertyName: "TryBlockMap",  index: 1, fieldOffset: FuncInfoV1.TryBlockMapOffset, targetOffset: 1305016),
-                v => v.Verify(propertyName: "IPToStateMap", index: 5, fieldOffset: FuncInfoV1.IPToStateMapOffset, targetOffset: 1304840)
+            TestXRefs<TryBlockMapEntry4>(
+                v => v.Verify(propertyName: nameof(TryBlockMapEntry4.dispHandlerArray), index: 0, fieldOffset: 16, targetOffset: 67096)
             );
         }
-
-        //Parsing FuncInfo4 is not implemented
-
+        #endregion
         #endregion
         #region Security Table (4)
 
@@ -1430,8 +1781,8 @@ namespace PESpy.Tests
         {
             TestStruct<WinCertificate>(
                 v => v.Length == 28680,
-                v => v.Revision == WinCertRevision.WIN_CERT_REVISION_2_0,
-                v => v.CertificateType == WinCertType.SignedData,
+                v => v.Revision == WIN_CERT_REVISION.WIN_CERT_REVISION_2_0,
+                v => v.CertificateType == WIN_CERT_TYPE.WIN_CERT_TYPE_PKCS_SIGNED_DATA,
                 v => v.Certificate.ToString() == @"[Subject]
   CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
 
@@ -1455,8 +1806,8 @@ namespace PESpy.Tests
                 v => v.VerifyStruct(
                     name: "WIN_CERTIFICATE", offset: 2158592, size: 28680,
                     c => c.VerifyField(name: "dwLength", value: 28680),
-                    c => c.VerifyField(name: "wRevision", value: WinCertRevision.WIN_CERT_REVISION_2_0),
-                    c => c.VerifyField(name: "wCertificateType", value: WinCertType.SignedData),
+                    c => c.VerifyField(name: "wRevision", value: WIN_CERT_REVISION.WIN_CERT_REVISION_2_0),
+                    c => c.VerifyField(name: "wCertificateType", value: WIN_CERT_TYPE.WIN_CERT_TYPE_PKCS_SIGNED_DATA),
                     c => c.VerifyStruct(
                         name: "SignedData", offset: 2158600, size: 28672,
                         v => v.VerifyFieldIgnoreValue(
@@ -1515,26 +1866,17 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "VirtualAddress", value: 1699840),
                     c => c.VerifyField(name: "SizeOfBlock", value: 16),
 
-                    c => c.VerifyStruct(
-                        name: "Entry", offset: 2155860, size: 2,
-                        b => b.VerifyBitField(name: "Type", value: ImageRelBased.Dir64, bits: 4),
-                        b => b.VerifyBitField(name: "Offset", value: (short) 0, bits: 12)
-                    ),
-                    c => c.VerifyStruct(
-                        name: "Entry", offset: 2155862, size: 2,
-                        b => b.VerifyBitField(name: "Type", value: ImageRelBased.Dir64, bits: 4),
-                        b => b.VerifyBitField(name: "Offset", value: (short) 8, bits: 12)
-                    ),
-                    c => c.VerifyStruct(
-                        name: "Entry", offset: 2155864, size: 2,
-                        b => b.VerifyBitField(name: "Type", value: ImageRelBased.Dir64, bits: 4),
-                        b => b.VerifyBitField(name: "Offset", value: (short) 16, bits: 12)
-                    ),
-                    c => c.VerifyStruct(
-                        name: "Entry", offset: 2155866, size: 2,
-                        b => b.VerifyBitField(name: "Type", value: ImageRelBased.Dir64, bits: 4),
-                        b => b.VerifyBitField(name: "Offset", value: (short) 24, bits: 12)
-                    )
+                    c => c.VerifyBitField(name: "Type", value: IMAGE_REL_BASED.IMAGE_REL_BASED_DIR64, bits: 4),
+                    c => c.VerifyBitField(name: "Offset", value: (short) 0, bits: 12),
+
+                    c => c.VerifyBitField(name: "Type", value: IMAGE_REL_BASED.IMAGE_REL_BASED_DIR64, bits: 4),
+                    c => c.VerifyBitField(name: "Offset", value: (short) 8, bits: 12),
+
+                    c => c.VerifyBitField(name: "Type", value: IMAGE_REL_BASED.IMAGE_REL_BASED_DIR64, bits: 4),
+                    c => c.VerifyBitField(name: "Offset", value: (short) 16, bits: 12),
+
+                    c => c.VerifyBitField(name: "Type", value: IMAGE_REL_BASED.IMAGE_REL_BASED_DIR64, bits: 4),
+                    c => c.VerifyBitField(name: "Offset", value: (short) 24, bits: 12)
                 )
             );
         }
@@ -1552,7 +1894,7 @@ namespace PESpy.Tests
                 v => v.TimeDateStamp == 3169667970,
                 v => v.MajorVersion == 0,
                 v => v.MinorVersion == 0,
-                v => v.Type == ImageDebugType.CodeView,
+                v => v.Type == IMAGE_DEBUG_TYPE_CODEVIEW,
                 v => v.SizeOfData == 34,
                 v => v.AddressOfRawData == 1423344,
                 v => v.PointerToRawData == 1423344
@@ -1565,7 +1907,7 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
                     c => c.VerifyField(name: "MajorVersion", value: (ushort) 0),
                     c => c.VerifyField(name: "MinorVersion", value: (ushort) 0),
-                    c => c.VerifyField(name: "Type", value: ImageDebugType.CodeView),
+                    c => c.VerifyField(name: "Type", value: IMAGE_DEBUG_TYPE_CODEVIEW),
                     c => c.VerifyField(name: "SizeOfData", value: 34),
                     c => c.VerifyField(name: "AddressOfRawData", value: 1423344),
                     c => c.VerifyField(name: "PointerToRawData", value: 1423344)
@@ -1629,7 +1971,7 @@ namespace PESpy.Tests
             TestView<RSDSI>(
                 v => v.VerifyStruct(
                     name: "RSDSI", offset: 1423344, size: 34,
-                    c => c.VerifyField(name: "dwSig", value: CodeViewSig.RSDS),
+                    c => c.VerifyField(name: "dwSig", value: (int) CodeViewSig.RSDS), //It's rendered as a HexString, so it's typed as an int
                     c => c.VerifyField(name: "guidSig", value: new Guid("58a282c2-4aee-7e03-a8cf-8cb0a782ce0c")),
                     c => c.VerifyField(name: "age", value: 1),
                     c => c.VerifyField(name: "szPdb", value: "ntdll.pdb")
@@ -1660,6 +2002,191 @@ namespace PESpy.Tests
             );
         }
 
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFDirHeader()
+        {
+            TestStruct<OMFDirHeader>(
+                v => v.cbDirHeader == 16,
+                v => v.cbDirEntry == 12,
+                v => v.cDir == 293,
+                v => v.lfoNextDir == 0,
+                v => v.flags == 0
+            );
+
+            TestView<OMFDirHeader>(
+                v => v.VerifyStruct(
+                    name: "OMFDirHeader", offset: 186496, size: 16,
+                    c => c.VerifyField(name: "cbDirHeader", value: (ushort) 16),
+                    c => c.VerifyField(name: "cbDirEntry", value: (ushort) 12),
+                    c => c.VerifyField(name: "cDir", value: 293),
+                    c => c.VerifyField(name: "lfoNextDir", value: 0),
+                    c => c.VerifyField(name: "flags", value: 0)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFDirEntry()
+        {
+            TestStruct<OMFDirEntry>(
+                v => v.SubSection == SST.sstModule,
+                v => v.iMod == 1,
+                v => v.lfo == 8,
+                v => v.cb == 49,
+                v => v.Data == IgnoreValue
+            );
+
+            TestView<OMFDirEntry>(
+                v => v.VerifyStruct(
+                    name: "OMFDirEntry", offset: 186512, size: 12,
+                    c => c.VerifyField(name: "SubSection", value: SST.sstModule),
+                    c => c.VerifyField(name: "iMod", value: (ushort) 1),
+                    c => c.VerifyField(name: "lfo", value: 8),
+                    c => c.VerifyField(name: "cb", value: 49)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFModule()
+        {
+            TestStruct<OMFModule>(
+                v => v.ovlNumber == 0,
+                v => v.iLib == 0,
+                v => v.cSeg == 2,
+                v => v.Style == "CV",
+                v => v.SegInfo == IgnoreValue,
+                v => v.Name == ".\\Debug\\main.obj"
+            );
+
+            TestView<OMFModule>(
+                v => v.VerifyStruct(
+                    name: "OMFModule", offset: 56664, size: 49,
+                    c => c.VerifyField(name: "ovlNumber", value: (ushort) 0),
+                    c => c.VerifyField(name: "iLib", value: (ushort) 0),
+                    c => c.VerifyField(name: "cSeg", value: (ushort) 2),
+                    c => c.VerifyField(name: "Style", value: "CV"),
+                    c => c.VerifyStructFieldArrayIgnoreChildren(name: "SegInfo"),
+                    c => c.VerifyField(name: "Name", value: ".\\Debug\\main.obj")
+                )
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFSegDesc()
+        {
+            TestStruct<OMFSegDesc>(
+                v => v.Seg == 1,
+                v => v.pad == 0,
+                v => v.Off == 0,
+                v => v.cbSeg == 32
+            );
+
+            TestView<OMFSegDesc>(
+                v => v.VerifyStruct(
+                    name: "OMFSegDesc", offset: 56672, size: 12,
+                    c => c.VerifyField(name: "Seg", value: (ushort) 1),
+                    c => c.VerifyField(name: "pad", value: (ushort) 0),
+                    c => c.VerifyField(name: "Off", value: 0),
+                    c => c.VerifyField(name: "cbSeg", value: 32)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFModuleSymbols()
+        {
+            TestStruct<OMFModuleSymbols>(
+                v => v.Signature == CV_SIGNATURE.C11
+                //v => v.List == PESpy.PDB.SymTypeList
+            );
+
+            //OMFModuleSymbols is just a wrapper for some global values
+            TestView<OMFModuleSymbols>(
+                v => v.VerifyValue(offset: 0x1007C, CV_SIGNATURE.C11),
+                v => v.VerifyStructIgnoreChildren(name: "SEARCHSYM", offset: 0x10080, size: 12),
+                v => v.VerifyStructIgnoreChildren(name: "OBJNAMESYM", offset: 0x1008C, size: 24),
+                v => v.VerifyStructIgnoreChildren(name: "CFLAGSYM", offset: 0x100A4, size: 72),
+                v => v.VerifyStructIgnoreChildren(name: "PROCSYM32", offset: 0x100EC, size: 44),
+                v => v.VerifyStructIgnoreChildren(name: "BPRELSYM32", offset: 0x10118, size: 20),
+                v => v.VerifyStructIgnoreChildren(name: "BPRELSYM32", offset: 0x1012C, size: 20),
+                v => v.VerifyStructIgnoreChildren(name: "SYMTYPE", offset: 0x10140, size: 4)
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFSourceModule()
+        {
+            TestStruct<OMFSourceModule>(
+                v => v.cFile == 1,
+                v => v.cSeg == 1,
+                v => v.baseSrcFile == IgnoreValue
+            );
+
+            TestView<OMFSourceModule>(
+                v => v.VerifyStruct(
+                    name: "OMFSourceModule", offset: 65860, size: 8,
+                    c => c.VerifyField(name: "cFile", value: (ushort) 1),
+                    c => c.VerifyField(name: "cSeg", value: (ushort) 1),
+                    c => c.VerifyField(name: "baseSrcFile", new[] {20})
+                )
+            );
+
+            TestXRefs<OMFSourceModule>(
+                v => v.Verify(propertyName: "baseSrcFile", index: 0, fieldOffset: 4, targetOffset: 0x10158)
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFSourceFile()
+        {
+            TestStruct<OMFSourceFile>(
+                v => v.cSeg == 1,
+                v => v.reserved == 0,
+                v => v.baseSrcLn == IgnoreValue,
+                //v => v.ranges == NativeSpan<RANGE>[1],
+                v => v.cFName == 60,
+                v => v.Name == "C:\\Program Files (x86)\\DevStudio\\MyProjects\\TestApp\\main.cpp"
+            );
+
+            TestView<OMFSourceFile>(
+                v => v.VerifyStruct(
+                    name: "OMFSourceFile", offset: 65880, size: 77,
+                    c => c.VerifyField(name: "cSeg", value: (ushort) 1),
+                    c => c.VerifyField(name: "reserved", value: (ushort) 0),
+                    c => c.VerifyField(name: "baseSrcLn", new[] {100}),
+                    c => c.VerifyFieldIgnoreValue(name: "ranges"),
+                    c => c.VerifyField(name: "cFName", value: (byte) 60),
+                    c => c.VerifyField(name: "Name", value: "C:\\Program Files (x86)\\DevStudio\\MyProjects\\TestApp\\main.cpp")
+                )
+            );
+
+            TestXRefs<OMFSourceFile>(
+                v => v.Verify(propertyName: "baseSrcLn", index: 0, fieldOffset: 4, targetOffset: 0x101A8)
+            );
+        }
+
+        [TestMethod]
+        public void ImageDebugDirectory_CodeView_NB05_OMFSourceLine()
+        {
+            TestStruct<OMFSourceLine>(
+                v => v.Seg == 1,
+                v => v.cLnOff == 4
+                //v => v.offset == NativeSpan<Int32>[4],
+                //v => v.lineNbr == NativeSpan<UInt16>[4]
+            );
+
+            TestView<OMFSourceLine>(
+                v => v.VerifyStruct(
+                    name: "OMFSourceLine", offset: 65960, size: 28,
+                    c => c.VerifyField(name: "Seg", value: (ushort) 1),
+                    c => c.VerifyField(name: "cLnOff", value: (ushort) 4),
+                    c => c.VerifyField(name: "offset", value: new[] {0, 3, 16, 18}),
+                    c => c.VerifyField(name: "lineNbr", value: new ushort[] {4, 5, 6, 7})
+                )
+            );
+        }
+        #endregion
         #endregion
         #region FPO (3)
 
@@ -1703,7 +2230,7 @@ namespace PESpy.Tests
         public void ImageDebugDirectory_Misc_Test()
         {
             TestStruct<ImageDebugMisc>(
-                v => v.DataType == ImageDebugMiscType.ExeName,
+                v => v.DataType == IMAGE_DEBUG_MISC_TYPE.IMAGE_DEBUG_MISC_EXENAME,
                 v => v.Length == 272,
                 v => v.Unicode == false,
                 v => v.Reserved == new byte[] { 0, 0, 0 },
@@ -1713,7 +2240,7 @@ namespace PESpy.Tests
             TestView<ImageDebugMisc>(
                 v => v.VerifyStruct(
                     name: "IMAGE_DEBUG_MISC", offset: 924672, size: 26,
-                    c => c.VerifyField(name: "DataType", value: ImageDebugMiscType.ExeName),
+                    c => c.VerifyField(name: "DataType", value: IMAGE_DEBUG_MISC_TYPE.IMAGE_DEBUG_MISC_EXENAME),
                     c => c.VerifyField(name: "Length", value: 272),
                     c => c.VerifyField(name: "Unicode", value: (byte)0),
                     c => c.VerifyField(name: "Reserved", value: new byte[] { 0, 0, 0 }),
@@ -1871,23 +2398,23 @@ namespace PESpy.Tests
         [TestMethod]
         public void ImageDebugDirectory_ExDllCharacteristics_Test()
         {
-            TestStruct<ImageDllCharacteristicsEx, ImageDebugDirectory>(
-                v => ((RawValue<ImageDllCharacteristicsEx>) v.Data).Value == ImageDllCharacteristicsEx.CET_COMPAT
+            TestStruct<IMAGE_DLLCHARACTERISTICS_EX, ImageDebugDirectory>(
+                v => ((RawValue<IMAGE_DLLCHARACTERISTICS_EX>) v.Data).Value == IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT
             );
 
-            TestView<ImageDllCharacteristicsEx, ImageDebugDirectory>(
+            TestView<IMAGE_DLLCHARACTERISTICS_EX, ImageDebugDirectory>(
                 v => v.VerifyStruct(
                     name: "IMAGE_DEBUG_DIRECTORY", offset: 1296396, size: 28,
                     c => c.VerifyField(name: "Characteristics", value: 0),
                     c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
                     c => c.VerifyField(name: "MajorVersion", value: (ushort) 0),
                     c => c.VerifyField(name: "MinorVersion", value: (ushort) 0),
-                    c => c.VerifyField(name: "Type", value: ImageDebugType.ExDllCharacteristics),
+                    c => c.VerifyField(name: "Type", value: IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS),
                     c => c.VerifyField(name: "SizeOfData", value: 4),
                     c => c.VerifyField(name: "AddressOfRawData", value: 1424956),
                     c => c.VerifyField(name: "PointerToRawData", value: 1424956)
                 ),
-                v => v.VerifyValue(1424956, ImageDllCharacteristicsEx.CET_COMPAT)
+                v => v.VerifyValue(1424956, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
             );
         }
 
@@ -1914,7 +2441,7 @@ namespace PESpy.Tests
                 v => v.AddressOfIndex == 6442697760,
                 v => v.AddressOfCallBacks == 6442651784,
                 v => v.SizeOfZeroFill == 0,
-                v => v.Characteristics == IMAGE_SCN_ALIGN.ALIGN_4BYTES
+                v => v.Characteristics == IMAGE_SCN_ALIGN.IMAGE_SCN_ALIGN_4BYTES
             );
 
             TestView<ImageTlsDirectory>(
@@ -1925,7 +2452,7 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "AddressOfIndex", value: (ulong) 6442697760),
                     c => c.VerifyField(name: "AddressOfCallBacks", value: (ulong) 6442651784),
                     c => c.VerifyField(name: "SizeOfZeroFill", value: 0),
-                    c => c.VerifyField(name: "Characteristics", value: IMAGE_SCN_ALIGN.ALIGN_4BYTES)
+                    c => c.VerifyField(name: "Characteristics", value: IMAGE_SCN_ALIGN.IMAGE_SCN_ALIGN_4BYTES)
                 )
             );
         }
@@ -1984,7 +2511,7 @@ namespace PESpy.Tests
                 v => v.GuardXFGCheckFunctionPointer.ListedAddress == (long) 6444150792,
                 v => v.GuardXFGDispatchFunctionPointer.ListedAddress == (long) 6444150800,
                 v => v.GuardXFGTableDispatchFunctionPointer.ListedAddress == (long) 6444150808,
-                v => v.CastGuardOsDeterminedFailureMode == 6444150816,
+                v => v.CastGuardOsDeterminedFailureMode.ListedAddress == 6444150816,
                 v => v.GuardMemcpyFunctionPointer.ListedAddress == (long) 0
             );
 
@@ -2073,7 +2600,9 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: "GuardXFGCheckFunctionPointer",             index: 6, fieldOffset: cfg64.GuardXFGCheckFunctionPointerOffset,             targetOffset: 1667080), //ntdll
                 v => v.Verify(propertyName: "GuardXFGDispatchFunctionPointer",          index: 7, fieldOffset: cfg64.GuardXFGDispatchFunctionPointerOffset,          targetOffset: 1667088), //ntdll
                 v => v.Verify(propertyName: "GuardXFGTableDispatchFunctionPointer",     index: 8, fieldOffset: cfg64.GuardXFGTableDispatchFunctionPointerOffset,     targetOffset: 1667096), //ntdll
-                v => v.Verify(propertyName: "GuardMemcpyFunctionPointer",               index: 9, fieldOffset: cfg64.GuardMemcpyFunctionPointerOffset,               targetOffset: 3917864) //coreclr
+                v => v.Verify(propertyName: "CastGuardOsDeterminedFailureMode",         index: -2, fieldOffset: cfg64.CastGuardOsDeterminedFailureModeOffset,        targetOffset: -1), //ntdll
+                v => v.Verify(propertyName: "GuardMemcpyFunctionPointer",               index: 9, fieldOffset: cfg64.GuardMemcpyFunctionPointerOffset,               targetOffset: 3917864), //coreclr
+                v => v.Verify(propertyName: "UmaFunctionPointers",                      index: -1, fieldOffset: -1, targetOffset: -1)
             );
         }
 
@@ -2305,7 +2834,7 @@ namespace PESpy.Tests
         public void ImageDynamicRelocation_Test()
         {
             TestStruct<ImageDynamicRelocation>(
-                v => v.Symbol == ImageDynamicRelocationKind.FUNCTION_OVERRIDE,
+                v => v.Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE,
                 v => v.BaseRelocSize == 180,
                 v => v.Data == IgnoreValue
             );
@@ -2313,7 +2842,7 @@ namespace PESpy.Tests
             TestView<ImageDynamicRelocation>(
                 v => v.VerifyStruct(
                     name: "IMAGE_DYNAMIC_RELOCATION", offset: 2155876, size: 192,
-                    c => c.VerifyField(name: "Symbol", value: ImageDynamicRelocationKind.FUNCTION_OVERRIDE),
+                    c => c.VerifyField(name: "Symbol", value: IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE),
                     c => c.VerifyField(name: "BaseRelocSize", value: 180),
                     c => c.VerifyStructIgnoreChildren(name: "IMAGE_FUNCTION_OVERRIDE_HEADER", offset: 2155888, size: 180)
                 )
@@ -2330,9 +2859,9 @@ namespace PESpy.Tests
             var dynamicRelocations = peFile.LoadConfigTable.DynamicValueRelocTableOffset.Value.DynamicRelocations;
 
             dynamicRelocations.Verify(
-               "GUARD_IMPORT_CONTROL_TRANSFER",
-                "GUARD_INDIR_CONTROL_TRANSFER",
-                "GUARD_SWITCHTABLE_BRANCH",
+               "IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER",
+                "IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER",
+                "IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH",
                 "FFFFDE0000000000",
                 "PTE_BASE",
                 "PDE_BASE",
@@ -2615,7 +3144,7 @@ namespace PESpy.Tests
 
             var importAddressTable = peFile.ImportAddressTable;
 
-            Assert.AreEqual(383, importAddressTable.Length);
+            Assert.AreEqual(383, importAddressTable.Count);
         }
 
         #endregion
@@ -2671,7 +3200,7 @@ namespace PESpy.Tests
 
             var delayLoad = peFile.DelayImportTable[0];
 
-            Assert.AreEqual(4, delayLoad.ImportNameTableRVA.Value.Length);
+            Assert.AreEqual(4, delayLoad.ImportNameTableRVA.Value.Count);
             Assert.AreEqual("VerQueryValueW", delayLoad.ImportNameTableRVA.Value[0].ToString());
         }
 
@@ -2701,7 +3230,7 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "cb", value: 72),
                     c => c.VerifyField(name: "MajorRuntimeVersion", value: (ushort) 2),
                     c => c.VerifyField(name: "MinorRuntimeVersion", value: (ushort) 5),
-                    c => c.VerifyFieldIgnoreValue(name: "MetaData"),
+                    c => c.VerifyStructFieldIgnoreChildren(name: "MetaData", type: "IMAGE_DATA_DIRECTORY", offset: 528, size: 8),
                     c => c.VerifyField(name: "Flags", value: (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED)),
                     c => c.VerifyField(name: "EntryPointTokenOrRVA", value: 0),
                     c => c.VerifyFieldIgnoreValue(name: "Resources"),
@@ -2734,8 +3263,7 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "iMinorVer", value: (short) 1),
                     c => c.VerifyField(name: "iExtraData", value: 0),
                     c => c.VerifyField(name: "iVersionString", value: 12),
-                    c => c.VerifyField(name: "pVersion", value: "v4.0.30319"),
-                    c => c.VerifyByteBlob(offset: 1604610, value: new byte[] {0, 0})
+                    c => c.VerifyField(name: "pVersion", value: "v4.0.30319")
                 )
             );
         }
@@ -2894,11 +3422,11 @@ namespace PESpy.Tests
 
             TestView<ImageCorILMethod>(
                 v => v.VerifyStruct(
-                    name: "IMAGE_COR_ILMETHOD_TINY", offset: 592, size: 8,
+                    name: "IMAGE_COR_ILMETHOD_TINY", offset: 592, size: 1,
                     c => c.VerifyBitField(name: "Flags", value: (CorILMethodFlags.TinyFormat1 | CorILMethodFlags.MoreSects | CorILMethodFlags.InitLocals), bits: 2),
-                    c => c.VerifyBitField(name: "CodeSize", value: 7, bits: 6),
-                    c => c.VerifyField(name: "ILBytes", value: new byte[] { 2, 123, 63, 0, 0, 10, 42 })
-                )
+                    c => c.VerifyBitField(name: "CodeSize", value: 7, bits: 6)
+                ),
+                v => v.VerifyByteBlob(offset: 0x251, new byte[] { 2, 123, 63, 0, 0, 10, 42 })
             );
         }
 
@@ -2969,18 +3497,594 @@ namespace PESpy.Tests
         }
 
         #endregion
+        #region RTTI
+
+        [TestMethod]
+        public void RTTIBaseClassArray_Test()
+        {
+            TestStruct<RTTIBaseClassArray>(
+                v => v.arrayOfBaseClassDescriptors.ListedOffset == 4120056
+            );
+
+            //Note we do get a duplicate RTTIBaseClassArray in the values we write,
+            //because our initial WriteGlobal does not write uniquely, and so
+            //a child TTIClassHierarchyDescriptor will try and write the RTTIBaseClassArray
+            //again
+            TestView<RTTIBaseClassArray>(
+                WithIgnores(
+                    before: 1,
+                    v => v.VerifyStruct(
+                        name: "_RTTIBaseClassArray", offset: 4110824, size: 4,
+                        c => c.VerifyField(name: "arrayOfBaseClassDescriptors", value: 4120056)
+                    ),
+                    after: 3
+                )
+            );
+
+            TestXRefs<RTTIBaseClassArray>(
+                v => v.Verify(propertyName: "arrayOfBaseClassDescriptors", index: 0, fieldOffset: 0, targetOffset: 0x3eb9f8)
+            );
+        }
+
+        [TestMethod]
+        public void RTTIBaseClassDescriptor_Test()
+        {
+            TestStruct<RTTIBaseClassDescriptor>(
+                v => v.pTypeDescriptor.ListedOffset == 4743008,
+                v => v.numContainedBases == 0,
+                //v => v.where == IgnoreValue,
+                v => v.attributes == BCD.BCD_HASPCHD,
+                v => v.pClassDescriptor.ListedOffset == 4120136
+            );
+
+            TestView<RTTIBaseClassDescriptor>(
+                WithIgnores(
+                    before: 2,
+                    v => v.VerifyStruct(
+                        name: "_RTTIBaseClassDescriptor", offset: 4110960, size: 28,
+                        c => c.VerifyField(name: "pTypeDescriptor", value: 4743008),
+                        c => c.VerifyField(name: "numContainedBases", value: 0),
+                        c => c.VerifyFieldIgnoreValue(name: "where"),
+                        c => c.VerifyField(name: "attributes", value: BCD.BCD_HASPCHD),
+                        c => c.VerifyField(name: "pClassDescriptor", value: 4120136)
+                    ),
+                    after: 3
+                )
+            );
+
+            TestXRefs<RTTIBaseClassDescriptor>(
+                v => v.Verify(propertyName: "pTypeDescriptor", index: 0, fieldOffset: 0, targetOffset: 0x483a60),
+                v => v.Verify(propertyName: "pClassDescriptor", index: 1, fieldOffset: 24, targetOffset: 0x3eb9d0)
+            );
+        }
+
+        [TestMethod]
+        public void RTTIClassHierarchyDescriptor_Test()
+        {
+            TestStruct<RTTIClassHierarchyDescriptor>(
+                v => v.signature == 0,
+                v => v.attributes == (CHD) 0,
+                v => v.numBaseClasses == 1,
+                v => v.pBaseClassArray.ListedOffset == 4120040
+            );
+
+            TestView<RTTIClassHierarchyDescriptor>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "_RTTIClassHierarchyDescriptor", offset: 4110800, size: 16,
+                        c => c.VerifyField(name: "signature", value: 0),
+                        c => c.VerifyField(name: "attributes", value: (CHD) 0),
+                        c => c.VerifyField(name: "numBaseClasses", value: 1),
+                        c => c.VerifyField(name: "pBaseClassArray", value: 4120040)
+                    ),
+                    after: 7
+                )
+            );
+
+            TestXRefs<RTTIClassHierarchyDescriptor>(
+                v => v.Verify(propertyName: "pBaseClassArray", index: 0, fieldOffset: 12, targetOffset: 0x3eb9e8)
+            );
+        }
+
+        [TestMethod]
+        public void RTTICompleteObjectLocator_Test()
+        {
+            TestStruct<RTTICompleteObjectLocator>(
+                v => v.signature == COL_SIG.COL_SIG_REV1,
+                v => v.offset == 0,
+                v => v.cdOffset == 0,
+                v => v.pTypeDescriptor.ListedOffset == 4743776,
+                v => v.pClassDescriptor.ListedOffset == 4120016,
+                v => v.pSelf == 4119976
+            );
+
+            TestView<RTTICompleteObjectLocator>(
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "_RTTICompleteObjectLocator", offset: 4110760, size: 24,
+                        c => c.VerifyField(name: "signature", value: COL_SIG.COL_SIG_REV1),
+                        c => c.VerifyField(name: "offset", value: 0),
+                        c => c.VerifyField(name: "cdOffset", value: 0),
+                        c => c.VerifyField(name: "pTypeDescriptor", value: 4743776),
+                        c => c.VerifyField(name: "pClassDescriptor", value: 4120016),
+                        c => c.VerifyField(name: "pSelf", value: 4119976)
+                    ),
+                    after: 5
+                )
+            );
+
+            TestXRefs<RTTICompleteObjectLocator>(
+                v => v.Verify(propertyName: "pTypeDescriptor", index: 0, fieldOffset: 12, targetOffset: 0x483a60),
+                v => v.Verify(propertyName: "pClassDescriptor", index: 1, fieldOffset: 16, targetOffset: 0x3eb9d0),
+                v => v.Verify(propertyName: "pSelf", index: 6, fieldOffset: 20, targetOffset: 0x3edda8)
+            );
+        }
+
+        #endregion
+        #region NGEN
+        #region BBT
+
+        [TestMethod]
+        public void CorBBTProfBlobMethodDefEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlobMethodDefEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlobPoolEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlobPoolEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlobSignatureDefEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlobSignatureDefEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlockData_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlockData>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlockEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlockEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlockEntryV1_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlockEntryV1>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlockNamespaceDefEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlockNamespaceDefEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfBlockTypeDefEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfBlockTypeDefEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfFileHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfFileHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfFileOptionalHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfFileOptionalHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodBlockCountsSectionHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodBlockCountsSectionHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodBlockCountsSectionHeaderV1_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodBlockCountsSectionHeaderV1>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodDetailHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodDetailHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodHeaderV1_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodHeaderV1>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfMethodInfo_Test()
+        {
+            var str = GenerateTest<CorBBTProfMethodInfo>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfParamSigEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfParamSigEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfScenarioHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfScenarioHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfScenarioInfo_Test()
+        {
+            var str = GenerateTest<CorBBTProfScenarioInfo>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfScenarioInfoSectionHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfScenarioInfoSectionHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfScenarioRun_Test()
+        {
+            var str = GenerateTest<CorBBTProfScenarioRun>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfSectionTableEntry_Test()
+        {
+            var str = GenerateTest<CorBBTProfSectionTableEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfSectionTableHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfSectionTableHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfTokenInfo_Test()
+        {
+            var str = GenerateTest<CorBBTProfTokenInfo>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfTokenListEntryV1_Test()
+        {
+            var str = GenerateTest<CorBBTProfTokenListEntryV1>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorBBTProfTokenListSectionHeader_Test()
+        {
+            var str = GenerateTest<CorBBTProfTokenListSectionHeader>();
+            throw new NotImplementedException();
+        }
+
+        #endregion
+        #region Directories
+
+        //The tests after this region test individual structs,
+        //but we also need to test each of the specific directories
+
+        [TestMethod]
+        public void Ngen_HelperTable()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var helperTable = peFile.NgenHelperTable;
+
+            //The CLR has various "zap-specific" representations of various data structures
+            //These appear to be the in-memory representation. The helper table appears
+            //to be represented as ZapHelperThunk
+
+            Assert.AreEqual(4, helperTable.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_ImportSections()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var importSections = peFile.NgenImportSections;
+
+            Assert.AreEqual(3, importSections.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_ImportTable()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var importTable = peFile.NgenImportTable;
+
+            Assert.AreEqual(1, importTable.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_StubsData()
+        {
+            using var peFile = PEFile.FromFile("C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\NativeImages\\mscorlib.ni.dll");
+
+            //Don't currently know how to handle stubs data
+
+            Assert.ThrowsException<NotImplementedException>(() => peFile.NgenStubsData);
+        }
+
+        [TestMethod]
+        public void Ngen_VersionInfo()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var versionInfo = peFile.NgenVersionInfo;
+
+            Assert.AreEqual(IMAGE_FILE_MACHINE_AMD64, versionInfo.wMachine);
+            Assert.AreEqual(2, versionInfo.runtimeDllInfo.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_Dependencies()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var dependencies = peFile.NgenDependencies;
+
+            Assert.AreEqual(2, dependencies.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_DebugMap()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var debugMap = peFile.NgenDebugMap;
+
+            Assert.AreEqual(1, debugMap.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_ModuleImage()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var moduleImage = peFile.NgenModuleImage;
+
+            //I don't know if the serialization of the "Module" data structure is different based on
+            //the .NET version that the file was NGEN'd under, so for now this is not implemented
+            Assert.IsInstanceOfType(moduleImage, typeof(ByteBlob));
+        }
+
+        [TestMethod]
+        public void Ngen_CodeManagerTable()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var codeManagerTable = peFile.NgenCodeManagerTable;
+
+            Assert.AreEqual(11744, codeManagerTable.Code.VirtualAddress);
+            Assert.AreEqual(50, codeManagerTable.Code.Size);
+
+            //The rest was all 0
+        }
+
+        [TestMethod]
+        public void Ngen_ProfileDataList()
+        {
+            //Haven't found a file that has this yet
+            Assert.Inconclusive();
+        }
+
+        [TestMethod]
+        public void Ngen_ManifestMetaData()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var manifestMetadata = peFile.NgenManifestMetaData;
+
+            var compressedModelHeap = manifestMetadata.CompressedModelHeap;
+
+            Assert.AreEqual("Class1", compressedModelHeap.TypeDefTable.Single().ToString());
+        }
+
+        [TestMethod]
+        public void Ngen_VirtualSectionsTable()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            var virtualSectionsTable = peFile.NgenVirtualSectionsTable;
+
+            Assert.AreEqual(40, virtualSectionsTable.Length);
+        }
+
+        [TestMethod]
+        public void Ngen_EEInfoTable()
+        {
+            using var peFile = PEFile.FromFile(Sample.NGEN_NI_DLL);
+
+            //In both our sample file and mscorlib.ni.dll this is all 0, so this isn't implemented yet
+
+            Assert.ThrowsException<NotImplementedException>(() => peFile.NgenEEInfoTable);
+        }
+
+        #endregion
+
+        [TestMethod]
+        public void CorCompileAssemblySignature_Test()
+        {
+            var str = GenerateTest<CorCompileAssemblySignature>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileCodeManagerEntry_Test()
+        {
+            var str = GenerateTest<CorCompileCodeManagerEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileColdMethodEntry_Test()
+        {
+            var str = GenerateTest<CorCompileColdMethodEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileDebugLabelledEntry_Test()
+        {
+            var str = GenerateTest<CorCompileDebugLabelledEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileDepepdency_Test()
+        {
+            var str = GenerateTest<CorCompileDepepdency>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileEEInfoTable_Test()
+        {
+            var str = GenerateTest<CorCompileEEInfoTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileExceptionClause_Test()
+        {
+            var str = GenerateTest<CorCompileExceptionClause>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileExceptionLookupTable_Test()
+        {
+            var str = GenerateTest<CorCompileExceptionLookupTable>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileExceptionLookupTableEntry_Test()
+        {
+            var str = GenerateTest<CorCompileExceptionLookupTableEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileExternalMethodThunk_Test()
+        {
+            var str = GenerateTest<CorCompileExternalMethodThunk>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileHeader_Test()
+        {
+            var str = GenerateTest<CorCompileHeader>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileImportTableEntry_Test()
+        {
+            var str = GenerateTest<CorCompileImportTableEntry>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileMethodProfileList_Test()
+        {
+            var str = GenerateTest<CorCompileMethodProfileList>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileRuntimeDllInfo_Test()
+        {
+            var str = GenerateTest<CorCompileRuntimeDllInfo>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileVersionInfo_Test()
+        {
+            var str = GenerateTest<CorCompileVersionInfo>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileVirtualImportThunk_Test()
+        {
+            var str = GenerateTest<CorCompileVirtualImportThunk>();
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        public void CorCompileVirtualSectionInfo_Test()
+        {
+            var str = GenerateTest<CorCompileVirtualSectionInfo>();
+            throw new NotImplementedException();
+        }
+
+        #endregion
         #region R2R
 
         [TestMethod]
         public void ReadyToRunCoreHeader_Test()
         {
-            TestStruct<ReadyToRunCoreHeader>(
+            TestStruct<R2R.ReadyToRunCoreHeader>(
                 v => v.Flags == (ReadyToRunFlag.READYTORUN_FLAG_SKIP_TYPE_VALIDATION | ReadyToRunFlag.READYTORUN_FLAG_NONSHARED_PINVOKE_STUBS | ReadyToRunFlag.READYTORUN_FLAG_MULTIMODULE_VERSION_BUBBLE),
                 v => v.NumberOfSections == 11,
                 v => v.Sections == IgnoreValue
             );
 
-            TestView<ReadyToRunCoreHeader>(
+            TestView<R2R.ReadyToRunCoreHeader>(
                 v => v.VerifyStruct(
                     name: "READYTORUN_CORE_HEADER", offset: 5512, size: 140,
                     c => c.VerifyField(name: "Flags", value: (ReadyToRunFlag.READYTORUN_FLAG_SKIP_TYPE_VALIDATION | ReadyToRunFlag.READYTORUN_FLAG_NONSHARED_PINVOKE_STUBS | ReadyToRunFlag.READYTORUN_FLAG_MULTIMODULE_VERSION_BUBBLE)),
@@ -2993,13 +4097,13 @@ namespace PESpy.Tests
         [TestMethod]
         public void ReadyToRunHeader_Test()
         {
-            TestStruct<ReadyToRunHeader>(
+            TestStruct<R2R.ReadyToRunHeader>(
                 v => v.Signature == 5395538,
                 v => v.MajorVersion == 10,
                 v => v.MinorVersion == 1
             );
 
-            TestView<ReadyToRunHeader>(
+            TestView<R2R.ReadyToRunHeader>(
                 v => v.VerifyStruct(
                     name: "READYTORUN_HEADER", offset: 5504, size: 148,
                     c => c.VerifyField(name: "Signature", value: 5395538),
@@ -3013,7 +4117,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ReadyToRunImportSection_Test()
         {
-            TestStruct<ReadyToRunImportSection>(
+            TestStruct<R2R.ReadyToRunImportSection>(
                 v => v.Flags == ReadyToRunImportSectionFlags.PCode,
                 v => v.Type == ReadyToRunImportSectionType.StubDispatch,
                 v => v.EntrySize == 8,
@@ -3021,7 +4125,7 @@ namespace PESpy.Tests
                 v => v.AuxiliaryData == 6088
             );
 
-            TestView<ReadyToRunImportSection>(
+            TestView<R2R.ReadyToRunImportSection>(
                 v => v.VerifyStruct(
                     name: "READYTORUN_IMPORT_SECTION", offset: 8212, size: 20,
                     c => c.VerifyStructField(name: "Section", type: "IMAGE_DATA_DIRECTORY", offset: 8212, size: 8,
@@ -3040,12 +4144,12 @@ namespace PESpy.Tests
         [TestMethod]
         public void ReadyToRunSection_Test()
         {
-            TestStruct<ReadyToRunSection>(
+            TestStruct<R2R.ReadyToRunSection>(
                 v => v.Type == ReadyToRunSectionType.CompilerIdentifier,
                 v => v.Data.ToString() == "Crossgen2 9.0.425.16305"
             );
 
-            TestView<ReadyToRunSection>(
+            TestView<R2R.ReadyToRunSection>(
                 v => v.VerifyStruct(
                     name: "READYTORUN_SECTION", offset: 5520, size: 12,
                     c => c.VerifyField(name: "Type", value: ReadyToRunSectionType.CompilerIdentifier),
@@ -3073,7 +4177,7 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "BundleHeaderOffset", value: (long) 12699859),
                         c => c.VerifyFieldIgnoreValue(name: "BundleSignature")
                     ),
-                    after: 15623
+                    after: 64 //All of the nested files and the ECMA 335 metadata regions are written as "globals" and contribute to this count
                 )
             );
 
@@ -3208,7 +4312,7 @@ namespace PESpy.Tests
         {
             TestStruct<ClrEngineMetrics>(
                 v => v.Size == 16,
-                v => v.DbiVersion == 4,
+                v => v.DbiVersion == CorDebugInterfaceVersion.CorDebugVersion_4_0,
                 v => v.ContinueStartupEvent == 5376933008
             );
 
@@ -3216,7 +4320,7 @@ namespace PESpy.Tests
                 v => v.VerifyStruct(
                     name: "CLR_ENGINE_METRICS", offset: 8213632, size: 16,
                     c => c.VerifyField(name: "Size", value: 16),
-                    c => c.VerifyField(name: "DbiVersion", value: 4),
+                    c => c.VerifyField(name: "DbiVersion", value: CorDebugInterfaceVersion.CorDebugVersion_4_0),
                     c => c.VerifyField(name: "ContinueStartupEvent", value: (ulong) 5376933008)
                 )
             );
@@ -3225,7 +4329,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void DotNetRuntimeDebugHeader_Test()
         {
-            TestStruct<DotNetRuntimeDebugHeader>(
+            TestStruct<NativeAOT.DotNetRuntimeDebugHeader>(
                 v => v.Cookie == 0x48444E44,
                 v => v.MajorVersion == 4,
                 v => v.MinorVersion == 0,
@@ -3233,7 +4337,7 @@ namespace PESpy.Tests
                 v => v.ReservedPadding1 == 0
             );
 
-            TestView<DotNetRuntimeDebugHeader>(
+            TestView<NativeAOT.DotNetRuntimeDebugHeader>(
                 WithIgnores(
                     before: 190,
                     v => v.VerifyStruct(
@@ -3251,7 +4355,7 @@ namespace PESpy.Tests
             );
 
             //All of the child entities have their own xrefs; these two are the first and 186th records
-            TestXRefs<DotNetRuntimeDebugHeader>(
+            TestXRefs<NativeAOT.DotNetRuntimeDebugHeader>(
                 v => v.Verify(propertyName: "DebugTypeEntries", index: 0, fieldOffset: 16, targetOffset: 1466672),
                 v => v.Verify(propertyName: "GlobalValueEntries", index: 185, fieldOffset: 24, targetOffset: 1469072)
             );
@@ -3260,14 +4364,14 @@ namespace PESpy.Tests
         [TestMethod]
         public void DebugTypeEntry_Test()
         {
-            TestStruct<DebugTypeEntry>(
+            TestStruct<NativeAOT.DebugTypeEntry>(
                 v => v.TypeName.Value == "GcDacVars",
                 v => v.FieldName.Value == "SIZEOF",
                 v => v.FieldOffset == 320,
                 v => v.ReservedPadding == 0
             );
 
-            TestView<DebugTypeEntry>(
+            TestView<NativeAOT.DebugTypeEntry>(
                 v => v.VerifyValue(0x13ECB0, "GcDacVars"),
                 v => v.VerifyValue(0x13ECBC, "SIZEOF"),
                 v => v.VerifyStruct(
@@ -3279,7 +4383,7 @@ namespace PESpy.Tests
                 )
             );
 
-            TestXRefs<DebugTypeEntry>(
+            TestXRefs<NativeAOT.DebugTypeEntry>(
                 v => v.Verify(propertyName: "TypeName",  index: 0, fieldOffset: 0, targetOffset: 1305776),
                 v => v.Verify(propertyName: "FieldName", index: 1, fieldOffset: 8, targetOffset: 1305788)
             );
@@ -3288,11 +4392,11 @@ namespace PESpy.Tests
         [TestMethod]
         public void GlobalValueEntry_Test()
         {
-            TestStruct<GlobalValueEntry>(
+            TestStruct<NativeAOT.GlobalValueEntry>(
                 v => v.Name.Value == "g_CrashInfoBuffer"
             );
 
-            TestView<GlobalValueEntry>(
+            TestView<NativeAOT.GlobalValueEntry>(
                 v => v.VerifyValue(0x13F210, "g_CrashInfoBuffer"),
                 v => v.VerifyStruct(
                     name: "GlobalValueEntry", offset: 1469072, size: 16,
@@ -3301,8 +4405,8 @@ namespace PESpy.Tests
                 )
             );
 
-            TestXRefs<GlobalValueEntry>(
-                v => v.Verify(propertyName: "Name", index: 0, fieldOffset: GlobalValueEntry.NameOffset, targetOffset: 1307152)
+            TestXRefs<NativeAOT.GlobalValueEntry>(
+                v => v.Verify(propertyName: "Name", index: 0, fieldOffset: NativeAOT.GlobalValueEntry.NameOffset, targetOffset: 1307152)
             );
         }
 
@@ -3391,10 +4495,10 @@ namespace PESpy.Tests
                 v => v.Name.ToString() == "@comp.id",
                 v => v.Value == 0,
                 v => v.SectionNumber == 65535,
-                v => v.Type == ImageSymType.Null,
-                v => v.BasicType == ImageSymType.Null,
-                v => v.DerivedType == ImageSymDType.Null,
-                v => v.StorageClass == ImageSymClass.Static,
+                v => v.Type == IMAGE_SYM_TYPE_NULL,
+                v => v.BasicType == IMAGE_SYM_TYPE_NULL,
+                v => v.DerivedType == IMAGE_SYM_DTYPE.IMAGE_SYM_DTYPE_NULL,
+                v => v.StorageClass == IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC,
                 v => v.NumberOfAuxSymbols == 0,
                 v => v.AuxSymbols == IgnoreValue
             );
@@ -3406,8 +4510,8 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "Name.Long", value: 0),
                     c => c.VerifyField(name: "Value", value: (uint) 0),
                     c => c.VerifyField(name: "SectionNumber", value: (ushort) 65535),
-                    c => c.VerifyField(name: "Type", value: ImageSymType.Null),
-                    c => c.VerifyField(name: "StorageClass", value: ImageSymClass.Static),
+                    c => c.VerifyField(name: "Type", value: IMAGE_SYM_TYPE_NULL),
+                    c => c.VerifyField(name: "StorageClass", value: IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                     c => c.VerifyField(name: "NumberOfAuxSymbols", value: (byte) 0)
                 )
             );

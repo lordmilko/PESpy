@@ -159,7 +159,7 @@ namespace PESpy.View
 
                 FindStartRegion(state.Regions, targetStart, ref state.NextRegionIndex, ref state.NextRegionOffset);
 
-                if (kind == GlobalViewProviderKind.Region)
+                if (kind == GlobalViewProviderKind.Region && state.NextRegionIndex < state.Regions.Count)
                     DrillIntoRegion(ref state.Regions, depthAtStartOffset, ref state.NextRegionIndex, ref state.NextRegionOffset);
             }
 
@@ -238,7 +238,7 @@ namespace PESpy.View
                             Debug.Assert(entity.TargetAddress < state.NextRegionOffset);
 #endif
 #if DEBUG_VIEWENTITY
-                        entities.Add(entity);
+                        _debugEntities.Add(entity);
 #endif
                     }
 

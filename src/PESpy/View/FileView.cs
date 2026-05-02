@@ -68,7 +68,7 @@ namespace PESpy.View
 
                 using var list = new PooledList<IView>(sectionHeaders.Length + 1);
 
-                var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
+                var sizeOfHeaders = peFile.GetSizeOfHeaders(ViewMode);
                 var startOffset = peFile.blockProvider.StartOffset;
 
                 list.Add(new HeaderView(startOffset, sizeOfHeaders, fileAccessor, iterator.SliceFromCurrent(sizeOfHeaders), range.NestedWriter));

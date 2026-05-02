@@ -116,7 +116,7 @@ namespace PESpy
                 if (*(uint*) mmf.Address == StorageSignature.STORAGE_MAGIC_SIG)
                     throw new InvalidOperationException("Portable PDB files cannot be opened using this method. Use PortablePDBFile.FromFile() instead");
 
-                if (Detector.TryDetectFile(fileStream.Name, mmf, mmf.Length, out var kind, out _))
+                if (Detector.TryDetectFile(fileStream.Name, mmf, mmf.Length, out var kind, out _, out _))
                     throw new InvalidOperationException($"Expected a PDB file however a {kind} was provided");
 
                 throw new BadImageFormatException("File did not contain a PDB magic signature");
@@ -606,14 +606,14 @@ namespace PESpy
         internal readonly PDBFileSymCache _symCache;
 
         //Open an existing file
-        internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind)
+        internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind, string name)
         {
             this.mmf = mmf;
             PDBKind = pdbKind;
             StreamTable = null!;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, 0, this);
             _symCache = new PDBFileSymCache(this);

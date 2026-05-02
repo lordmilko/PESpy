@@ -121,8 +121,8 @@ namespace PESpy
 
             using (var b = s.WriteBitFields(2, nextOffsetAndTypeLength))
             {
-                b.WriteField(nameof(type), type, 2);
                 b.WriteField(nameof(nextOffset), nextOffset, (nextOffsetAndTypeLength * 8) - 2);
+                b.WriteField(nameof(type), type, 2);
             }
 
             switch (type)

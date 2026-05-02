@@ -161,12 +161,12 @@ namespace PESpy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetStringLengthScalar<T>(T* ptr) where T : unmanaged, IEquatable<T>
         {
-            var limit = GetPageEnd((byte*) ptr);
+            var limit = (T*) GetPageEnd((byte*) ptr);
 
-            var start = (byte*) ptr;
-            var page1Length = (int) (limit - start);
+            var start = ptr;
+            var page1Length = (int) (limit - start); //Pointer subtraction gives the number of T's
 
-            var index = new Span<T>(start, page1Length / sizeof(T)).IndexOf((T) default);
+            var index = new Span<T>(start, page1Length).IndexOf((T) default);
 
             if (index != -1)
                 return index;
@@ -179,9 +179,9 @@ namespace PESpy
                 index = new Span<T>(start, numPageElements).IndexOf((T) default);
 
                 if (index != -1)
-                    return (int) (start - (byte*) ptr + (index * sizeof(T)));
+                    return (int) (start - ptr + index);
 
-                start += pageSize;
+                start += numPageElements;
             }
         }
 

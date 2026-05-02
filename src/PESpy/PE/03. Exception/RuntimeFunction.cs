@@ -1,16 +1,52 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using PESpy.View;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
+    /* winnt.h defines several types of runtime functions
+     * 
+     * IMAGE_CE_RUNTIME_FUNCTION_ENTRY
+     * IMAGE_ARM_RUNTIME_FUNCTION_ENTRY
+     * IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY
+     * IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA
+     * IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EXTENDED
+     * IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EPILOG_SCOPE
+     * IMAGE_ALPHA64_RUNTIME_FUNCTION_ENTRY
+     * IMAGE_ALPHA_RUNTIME_FUNCTION_ENTRY
+     * _IMAGE_RUNTIME_FUNCTION_ENTRY (x64 and IA64)
+     * 
+     * The RUNTIME_FUNCTION typedef is then aliased to one of these based on the architecture that is being
+     * targeted
+     */
+
     /// <summary>
     /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure that provides information on how an 64-bit stack frame should be unwound.
     /// </summary>
-    [DebuggerDisplay("BeginAddress = 0x{BeginAddress.ToString(\"X\"),nq}, EndAddress = 0x{EndAddress.ToString(\"X\"),nq}")] //I had issues with my ReadyToRunHeader_Test wherein when an exception occurs trying to resolve the UnwindData, I start getting NullReferenceException errors in the Visual Studio debugger trying to inspect a RuntimeFunction object. So I'm not including the UnwindData in the DebuggerDisplay
+    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public struct RuntimeFunction : IViewableValue
     {
+        private string DebuggerDisplay()
+        {
+            var builder = new StringBuilder();
+
+            var unwindData = UnwindData;
+
+            if (unwindData.IsValid)
+            {
+                builder.Append("[");
+                builder.Append(unwindData.Value.ExceptionHandlerKind);
+
+                builder.Append("] ");
+            }
+
+            builder.Append($"BeginAddress = 0x{BeginAddress:X}, EndAddress = 0x{EndAddress:X}");
+
+            return builder.ToString();
+        }
+
         internal const int BeginAddressOffset = 0;
         internal const int EndAddressOffset = 4;
         internal const int UnwindDataOffset = 8;

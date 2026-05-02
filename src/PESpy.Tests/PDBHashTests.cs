@@ -132,15 +132,6 @@ namespace PESpy.Tests
                 var ourType = tpiHash.GetTypTypeFromIndex(i);
 
                 var typType = tpi1.QueryPbCVRecordForTi(i);
-        private unsafe void TestAddressMap(
-            ImageSectionHeader[] sectionHeaders,
-            MsfStream.PSGSI psgsi,
-            GSI1 gsi,
-            PDBFile pdbFile)
-        {
-            for (var i = 0; i < sectionHeaders.Length; i++)
-            {
-                var sectionHeader = sectionHeaders[i];
 
                 for (var j = 0; j < sectionHeader.VirtualSize; j++)
                 {

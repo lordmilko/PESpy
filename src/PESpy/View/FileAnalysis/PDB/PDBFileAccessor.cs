@@ -183,7 +183,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override MemoryChunk GetMemoryChunkFromAddress(int address)
+        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
             //We need to figure out which page the address belongs to, which stream _that_ belongs to,
             //and then slice the appropriate amount into the target stream
@@ -192,7 +192,11 @@ namespace PESpy.View
             var pageNum = address / pageSize;
 
             if (pageNum == 0)
-                return new MemoryChunk(PDBFile.globalBlock, address);
+            {
+                chunk = new MemoryChunk(PDBFile.globalBlock, address);
+                viewWriter = GetViewWriter();
+                return;
+            }
 
             var siIndex = _pageNumberToSIIndex[pageNum];
 
@@ -237,9 +241,8 @@ namespace PESpy.View
             Debug.Assert(currentIndex != -1);
 
             var offsetInPage = address & (pageSize - 1); //Faster modulo
-            var chunk = PDBFile.globalBlock.SlicePaged(pageList, byteCount).Slice((currentIndex * pageSize) + offsetInPage);
-
-            return chunk;
+            chunk = PDBFile.globalBlock.SlicePaged(pageList, byteCount).Slice((currentIndex * pageSize) + offsetInPage);
+            viewWriter = GetViewWriter();
         }
 
         protected override ViewWriter GetViewWriter()
@@ -254,16 +257,6 @@ namespace PESpy.View
             }
 
             return _viewWriter;
-        }
-
-        protected override ViewWriter GetViewWriterForAddress(int targetOffset)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override bool TryGetDataSymbol(ulong address, int rva, out FixedUtf8String name, out int displacement)
-        {
-            throw new NotImplementedException();
         }
 
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)

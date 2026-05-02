@@ -134,7 +134,7 @@ namespace PESpy.Tests
         public void Symbols_NB02_SSTLIBRARIES()
         {
             //16-bit
-            WithNB02<RawValue<FixedAnsiString[]>>(
+            WithNB02<RawValue<SymString[]>>(
                 SST.SSTLIBRARIES,
                 _16: v => Assert.AreEqual(2, v.Value.Length),
                 _32: v => throw new NotImplementedException()
@@ -385,12 +385,12 @@ namespace PESpy.Tests
         [TestMethod]
         public void Symbols_NB05_sstLibraries()
         {
-            WithNB05<FixedAnsiString[]>(SST.sstLibraries, v =>
+            WithNB05<RawValue<SymString[]>>(SST.sstLibraries, v =>
             {
-                Assert.AreEqual(15, v.Length);
-                Assert.AreEqual(string.Empty, v[0].ToString());
-                Assert.AreEqual("C:\\Program Files (x86)\\DevStudio\\VC\\LIB\\kernel32.lib", v[1].ToString());
-                Assert.AreEqual("C:\\Program Files (x86)\\DevStudio\\VC\\LIB\\OLDNAMES.lib", v[14].ToString());
+                Assert.AreEqual(15, v.Value.Length);
+                Assert.AreEqual(string.Empty, v.Value[0].ToString());
+                Assert.AreEqual("C:\\Program Files (x86)\\DevStudio\\VC\\LIB\\kernel32.lib", v.Value[1].ToString());
+                Assert.AreEqual("C:\\Program Files (x86)\\DevStudio\\VC\\LIB\\OLDNAMES.lib", v.Value[14].ToString());
             });
         }
 
@@ -399,7 +399,7 @@ namespace PESpy.Tests
         {
             WithNB05<OMFHashedSymbols>(SST.sstGlobalSym, v =>
             {
-                Assert.AreEqual(449, v.Symbols.Count);
+                Assert.AreEqual(448, v.Symbols.Count);
 
                 var refSym = (RefSym) v.Symbols[5];
                 Assert.AreEqual("__crtMessageBoxA", refSym.ToString());
@@ -415,7 +415,7 @@ namespace PESpy.Tests
         {
             WithNB05<OMFHashedSymbols>(SST.sstGlobalPub, v =>
             {
-                Assert.AreEqual(458, v.Symbols.Count);
+                Assert.AreEqual(457, v.Symbols.Count);
 
                 var pubSym = (PubSym32) v.Symbols[5];
 
@@ -462,10 +462,10 @@ namespace PESpy.Tests
         [TestMethod]
         public void Symbols_NB05_sstSegName()
         {
-            WithNB05<AnsiString[]>(SST.sstSegName, v =>
+            WithNB05<RawValue<AnsiString[]>>(SST.sstSegName, v =>
             {
-                Assert.AreEqual(87, v.Length);
-                Assert.AreEqual("_TEXT", v[0].ToString());
+                Assert.AreEqual(87, v.Value.Length);
+                Assert.AreEqual("_TEXT", v.Value[0].ToString());
             });
         }
 
@@ -624,7 +624,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 22),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_ANNOTATION),
                 c => c.VerifyField(name: "off", value: 569379),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "csz", value: (short) 1)
             );
         }
@@ -702,7 +702,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "pEnd", value: 188),
                 c => c.VerifyField(name: "len", value: 2),
                 c => c.VerifyField(name: "off", value: 0),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "name", value: ""),
                 c => c.VerifyByteBlob(offset: 4119, value: new byte[] { 0 })
             );
@@ -784,7 +784,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 14),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_CALLSITEINFO),
                 c => c.VerifyField(name: "off", value: 565254),
-                c => c.VerifyField(name: "sect", value: (short) 1),
+                c => c.VerifyField(name: "sect", value: (ISECT) 1),
                 c => c.VerifyField(name: "__reserved_0", value: (short) 0),
                 c => c.VerifyField(name: "typind", value: 0x1F79)
             );
@@ -849,7 +849,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "cb", value: 3),
                 c => c.VerifyField(name: "characteristics", value: (IMAGE_SCN.CNT_CODE | IMAGE_SCN.MEM_EXECUTE | IMAGE_SCN.MEM_READ)),
                 c => c.VerifyField(name: "off", value: 0x0),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "name", value: ".text$mn"),
                 c => c.VerifyByteBlob(offset: 4123, value: new byte[] { 0 })
             );
@@ -949,7 +949,10 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 42),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_CONSTANT),
                 c => c.VerifyField(name: "typind", value: 0x1435),
-                c => c.VerifyField(name: "value", value: (ushort) 0),
+                c => c.VerifyStructField(name: "value", type: "Numeric Data", offset: 0x1008, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1008, value: (ushort) 0)
+                }),
                 c => c.VerifyField(name: "name", value: "std::_Invoker_functor::_Strategy"),
                 c => c.VerifyByteBlob(offset: 4139, value: new byte[] { 0 })
             );
@@ -984,7 +987,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_GDATA32),
                 c => c.VerifyField(name: "typind", value: 0x1125),
                 c => c.VerifyField(name: "off", value: 1616),
-                c => c.VerifyField(name: "seg", value: (ushort) 2),
+                c => c.VerifyField(name: "seg", value: (ISECT) 2),
                 c => c.VerifyField(name: "name", value: "__modules_a"),
                 c => c.VerifyByteBlob(offset: 4122, value: new byte[] { 0, 0 })
             );
@@ -1004,7 +1007,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 18),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_PUB32_16t),
                 c => c.VerifyField(name: "off", value: 16),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "typind", value: (short) 0x0),
                 c => c.VerifyField(name: "name", value: "_main"),
                 c => c.VerifyByteBlob(offset: 4114, value: new byte[] { 0, 0 })
@@ -1274,7 +1277,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "offPad", value: 0),
                 c => c.VerifyField(name: "cbSaveRegs", value: 0),
                 c => c.VerifyField(name: "offExHdlr", value: 0),
-                c => c.VerifyField(name: "sectExHdlr", value: (short) 0),
+                c => c.VerifyField(name: "sectExHdlr", value: (ISECT) 0),
                 c => c.VerifyBitField(name: "fHasAlloca", value: (byte) 0, bits: 1),
                 c => c.VerifyBitField(name: "fHasSetJmp", value: (byte) 0, bits: 1),
                 c => c.VerifyBitField(name: "fHasLongJmp", value: (byte) 0, bits: 1),
@@ -1339,7 +1342,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 14),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_HEAPALLOCSITE),
                 c => c.VerifyField(name: "off", value: 572585),
-                c => c.VerifyField(name: "sect", value: (short) 1),
+                c => c.VerifyField(name: "sect", value: (ISECT) 1),
                 c => c.VerifyField(name: "cbInstr", value: (short) 5),
                 c => c.VerifyField(name: "typind", value: 0x15E0)
             );
@@ -1406,7 +1409,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 14),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_LABEL32),
                 c => c.VerifyField(name: "off", value: 571678),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "flags", value: (byte) 16),
                 c => c.VerifyField(name: "name", value: "$LN3")
             );
@@ -1459,7 +1462,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "DbgEnd", value: 0),
                 c => c.VerifyField(name: "token", value: 100663297),
                 c => c.VerifyField(name: "off", value: 0),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "flags", value: (byte) 0),
                 c => c.VerifyField(name: "retReg", value: (short) 0),
                 c => c.VerifyField(name: "name", value: "Main"),
@@ -1536,7 +1539,13 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "reclen", value: (ushort) 50),
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_OEM),
                 c => c.VerifyField(name: "idOem", value: new Guid("c6ea3fc9-59b3-49d6-bc25-0902bbabb460")),
-                c => c.VerifyField(name: "typind", value: 0x0)
+                c => c.VerifyField(name: "typind", value: 0x0),
+                c => c.VerifyField("rgl", value: new byte[]
+                {
+                    //This starts with "MD2" but I don't know what it means
+                    0x4D, 0x00, 0x44, 0x00, 0x32, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
+                    0x10, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00
+                })
             );
         }
 
@@ -1596,7 +1605,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "DbgEnd", value: 2),
                 c => c.VerifyField(name: "typind", value: 0x1001),
                 c => c.VerifyField(name: "off", value: 0x0),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "flags", value: (byte) 128),
                 c => c.VerifyField(name: "name", value: "main")
             );
@@ -1624,7 +1633,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "DbgStart", value: 6),
                 c => c.VerifyField(name: "DbgEnd", value: 26),
                 c => c.VerifyField(name: "off", value: 16),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "typind", value: (short) 0x1002),
                 c => c.VerifyField(name: "flags", value: (byte) 1),
                 c => c.VerifyField(name: "name", value: "main"),
@@ -1667,7 +1676,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "rectyp", value: SYM_ENUM_e.S_PUB32),
                 c => c.VerifyField(name: "pubsymflags", value: 2),
                 c => c.VerifyField(name: "off", value: 0x0),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "name", value: "_main")
             );
         }
@@ -1869,7 +1878,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "pEnd", value: 116),
                 c => c.VerifyField(name: "pNext", value: 0),
                 c => c.VerifyField(name: "off", value: 958015),
-                c => c.VerifyField(name: "seg", value: (ushort) 1),
+                c => c.VerifyField(name: "seg", value: (ISECT) 1),
                 c => c.VerifyField(name: "len", value: (short) 6),
                 c => c.VerifyField(name: "ord", value: THUNK_ORDINAL.THUNK_ORDINAL_NOTYPE),
                 c => c.VerifyField(name: "name", value: "ReportEventW"),
@@ -2143,7 +2152,7 @@ namespace PESpy.Tests
             builder.AppendLine($"TestStruct<{type.Name}>(");
             builder.AppendLine("    bytes,");
 
-            var byteViewProvider = (LocalByteViewProvider) pdbFile.CreateByteViewProvider();
+            var byteViewProvider = (LocalByteViewProvider) pdbFile.CreateByteViewProvider(null);
 
             var writer = new MockViewWriter(pdbFile, byteViewProvider);
             writer.UnmanagedOffset = (int) (ptr - byteViewProvider.mmf);
@@ -2283,8 +2292,12 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_ARRAY),
                 c => c.VerifyField(name: "elemtype", value: 0x70),
                 c => c.VerifyField(name: "idxtype", value: 0x23),
-                c => c.VerifyField(name: "length", value: (ushort) 128),
-                c => c.VerifyField(name: "name", value: "")
+                c => c.VerifyStructField(name: "length", type: "Numeric Data", offset: 0x100C, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x100C, value: (ushort) 128)
+                }),
+                c => c.VerifyField(name: "name", value: ""),
+                c => c.VerifyByteBlob(offset: 0x100E, value: new byte[] { 0x00, 0xf1 })
             );
         }
 
@@ -2303,8 +2316,12 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_ARRAY_16t),
                 c => c.VerifyField(name: "elemtype", value: (short) 0x101F),
                 c => c.VerifyField(name: "idxtype", value: (short) 0x11),
-                c => c.VerifyField(name: "length", value: (ushort) 0),
-                c => c.VerifyField(name: "name", value: "")
+                c => c.VerifyStructField(name: "length", type: "Numeric Data", offset:  0x1008, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1008, value: (ushort) 0)
+                }),
+                c => c.VerifyField(name: "name", value: ""),
+                c => c.VerifyByteBlob(offset: 0x100A, value: new byte[] { 0x00, 0xf1 })
             );
         }
 
@@ -2337,7 +2354,10 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_BCLASS),
                 c => c.VerifyField(name: "attr", value: (short) 3),
                 c => c.VerifyField(name: "index", value: 4470),
-                c => c.VerifyField(name: "offset", value: (ushort) 0)
+                c => c.VerifyStructField(name: "offset", type: "Numeric Data", offset: 0x1008, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1008, value: (ushort) 0)
+                })
             );
         }
 
@@ -2356,7 +2376,10 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_BCLASS_16t),
                 c => c.VerifyField(name: "index", value: (short) 4280),
                 c => c.VerifyField(name: "attr", value: (short) 3),
-                c => c.VerifyField(name: "offset", value: (ushort) 0)
+                c => c.VerifyStructField(name: "offset", type: "Numeric Data", offset: 0x1006, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1006, value: (ushort) 0)
+                })
             );
         }
 
@@ -2400,7 +2423,8 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "typlen", value: (ushort) 26),
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_BUILDINFO),
                 c => c.VerifyField(name: "count", value: (short) 5),
-                c => c.VerifyFieldIgnoreValue(name: "arg")
+                c => c.VerifyFieldIgnoreValue(name: "arg"),
+                c => c.VerifyByteBlob(offset: 0x101A, value: new byte[] { 0xf2, 0xf1 })
             );
         }
 
@@ -2431,7 +2455,10 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "field", value: 0x100F),
                 c => c.VerifyField(name: "derived", value: 0x0),
                 c => c.VerifyField(name: "vshape", value: 0x0),
-                c => c.VerifyField(name: "length", value: (ushort) 156),
+                c => c.VerifyStructField(name: "length", type: "Numeric Data", offset: 0x1014, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1014, value: (ushort) 156)
+                }),
                 c => c.VerifyField(name: "name", value: "_OSVERSIONINFOEXA"),
                 c => c.VerifyField(name: "uniquename", value: ".?AU_OSVERSIONINFOEXA@@")
             );
@@ -2456,8 +2483,12 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "property", value: (short) 0),
                 c => c.VerifyField(name: "derived", value: (short) 0x0),
                 c => c.VerifyField(name: "vshape", value: (short) 0x0),
-                c => c.VerifyField(name: "length", value: (ushort) 32),
-                c => c.VerifyField(name: "name", value: "_iobuf")
+                c => c.VerifyStructField(name: "length", type: "Numeric Data", offset: 0x100E, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x100E, value: (ushort) 32)
+                }),
+                c => c.VerifyField(name: "name", value: "_iobuf"),
+                c => c.VerifyByteBlob(offset: 0x1017, value: new byte[] { 0xf1 })
             );
         }
 
@@ -2614,7 +2645,9 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "property", value: (short) 512),
                 c => c.VerifyField(name: "utype", value: 0x74),
                 c => c.VerifyField(name: "field", value: 0x1002),
-                c => c.VerifyField(name: "Name", value: "ReplacesCorHdrNumericDefines")
+                c => c.VerifyField(name: "Name", value: "ReplacesCorHdrNumericDefines"),
+                c => c.VerifyField(name: "uniquename", value: ".?AW4ReplacesCorHdrNumericDefines@@"),
+                c => c.VerifyByteBlob(offset: 0x1051, value: new byte[] { 0xf3, 0xf2, 0xf1 })
             );
         }
 
@@ -2640,7 +2673,10 @@ namespace PESpy.Tests
                 isFieldListMember: true,
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_ENUMERATE),
                 c => c.VerifyField(name: "attr", value: (short) 3),
-                c => c.VerifyField(name: "value", value: (ushort) 1),
+                c => c.VerifyStructField(name: "value", type: "Numeric Data", offset: 0x1004, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1004, value: (ushort) 1)
+                }),
                 c => c.VerifyField(name: "name", value: "COMIMAGE_FLAGS_ILONLY")
             );
         }
@@ -2842,7 +2878,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "scopeId", value: (CV_ItemId) 0),
                 c => c.VerifyField(name: "type", value: 0x1065),
                 c => c.VerifyField(name: "name", value: "operator new[]"),
-                c => c.VerifyByteBlob(offset: 4121, value: new byte[] { 93, 0, 162 })
+                c => c.VerifyByteBlob(offset: 0x101B, value: new byte[] { 0xA2, 0x0F, 0xEA, 0x80, 0x4D, 0x1B, 0x86, 0xD1, 0xF1 })
             );
         }
 
@@ -2929,7 +2965,10 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_MEMBER),
                 c => c.VerifyField(name: "attr", value: (short) 3),
                 c => c.VerifyField(name: "index", value: 34),
-                c => c.VerifyField(name: "offset", value: (ushort) 0),
+                c => c.VerifyStructField(name: "offset", type: "Numeric Data", offset: 0x1008, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1008, value: (ushort) 0)
+                }),
                 c => c.VerifyField(name: "name", value: "dwOSVersionInfoSize")
             );
         }
@@ -3102,7 +3141,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "parentType", value: 0x1106),
                 c => c.VerifyField(name: "type", value: 0x1107),
                 c => c.VerifyField(name: "name", value: "configure_argv"),
-                c => c.VerifyByteBlob(offset: 4121, value: new byte[] { 118, 0, 120 })
+                c => c.VerifyByteBlob(offset: 0x101B, value: new byte[] { 0x78, 0x92, 0xA0, 0xA6, 0x8D, 0xE0, 0x1E, 0xA9, 0xF1 })
             );
         }
 
@@ -3474,7 +3513,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_STRING_ID),
                 c => c.VerifyField(name: "id", value: (CV_ItemId) 0),
                 c => c.VerifyField(name: "name", value: ""),
-                c => c.VerifyByteBlob(offset: 4103, value: new byte[] { 0 })
+                c => c.VerifyByteBlob(offset: 0x1009, value: new byte[] { 0xf3, 0xf2, 0xf1 })
             );
         }
 
@@ -3548,7 +3587,7 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "length", value: 0),
                 c => c.VerifyField(name: "name", value: "_TP_CALLBACK_ENVIRON_V3::<unnamed-type-u>"),
                 c => c.VerifyField(name: "uniquename", value: ".?AT<unnamed-type-u>@_TP_CALLBACK_ENVIRON_V3@@"),
-                c => c.VerifyByteBlob(offset: 4197, value: new byte[] { 64, 0, 241 })
+                c => c.VerifyByteBlob(offset: 4199, value: new byte[] { 0xf1 })
             );
         }
 
@@ -3570,7 +3609,8 @@ namespace PESpy.Tests
                 c => c.VerifyField(name: "field", value: (short) 0x1187),
                 c => c.VerifyField(name: "property", value: (short) 8),
                 c => c.VerifyField(name: "length", value: 4),
-                c => c.VerifyField(name: "name", value: "__unnamed")
+                c => c.VerifyField(name: "name", value: "__unnamed"),
+                c => c.VerifyByteBlob(offset: 0x1016, value: new byte[] { 0xf2, 0xf1 })
             );
         }
 
@@ -3815,6 +3855,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void Symbols_C13_CrossScopeExports()
         {
+            //Note that this crosses a page's worth of data, so we can't verify view alignment
             TestC13<PDB.LocalIdAndGlobalIdPair[]>(
                 DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS,
                 v =>
@@ -3939,18 +3980,23 @@ namespace PESpy.Tests
 
                 verify((T) value);
 
-                //There's also value in us asserting that we can construct a view of the section containing the specific type of data
-
-                ViewWriter writer = file.Kind switch
+                //We can't verify alignment in PDBs, because simply calling WriteStruct isn't going to cause its children to be properly split across pages
+                //e.g. C13 CrossScopeExports
+                if (file.Kind != FileKind.PDB)
                 {
-                    FileKind.PDB => new PDBViewWriter((PDBFile) file),
-                    FileKind.OBJ => new OBJViewWriter((OBJFile) file)
-                };
+                    //There's also value in us asserting that we can construct a view of the section containing the specific type of data
 
-                var view = (IStructView) ((IViewable) sectionHeader).WriteStruct(writer);
+                    ViewWriter writer = file.Kind switch
+                    {
+                        FileKind.PDB => new PDBViewWriter((PDBFile) file),
+                        FileKind.OBJ => new OBJViewWriter((OBJFile) file)
+                    };
 
-                var verifier = new ViewAlignmentVerifier();
-                view.Accept(verifier);
+                    var view = (IStructView) ((IViewable) sectionHeader).WriteStruct(writer);
+
+                    var verifier = new ViewAlignmentVerifier();
+                    view.Accept(verifier);
+                }
             }
             finally
             {

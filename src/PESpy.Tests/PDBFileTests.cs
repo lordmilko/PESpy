@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Threading;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -46,8 +47,8 @@ namespace PESpy.Tests
                     {
                         Assert.IsTrue(ourPublic.TryGetNearestSymbol(off, seg, out var ourSym, out var ourDisp));
 
-                        theirSym.TryGetOffSeg(out var theirOff, out var theirSeg);
-                        ourSym.TryGetOffSeg(out var ourOff, out var ourSeg);
+                        theirSym.TryGetRawOffSeg(out var theirOff, out var theirSeg);
+                        ourSym.TryGetRawOffSeg(out var ourOff, out var ourSeg);
 
                         var theirName = CleanName(theirSym.ToString());
 
@@ -293,9 +294,9 @@ namespace PESpy.Tests
 
             //Don't dispose the symbol module; there seems to be some sort of bug with DIA wherein its crashing
             //cleaning up a ModCache likely as a result of us touching every single address in the executable
-            var diaModule = (MicrosoftPdbSymbolModule) SymbolProvider.LoadModule(peFile.FileName, preferDIA: true);
+            using var diaModule = (MicrosoftPdbSymbolModule) SymbolProvider.LoadModule(peFile.FileName, preferDIA: true);
 
-            using var pdb1 = new PDB1(diaModule.DiaDataSource.RawPDBPtr);
+            var pdb1 = new PDB1(diaModule.DiaDataSource.RawPDBPtr); //Do _not_ dispose this! We don't own it!
             using var dbi = pdb1.OpenDBI(null, PdbOpenMode.pdbRead);
             using var psgsi = dbi.OpenPublics();
             using var gsi = dbi.OpenGlobals();
@@ -611,7 +612,7 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void bad_CvDebugSSubsectionHeader_Test()
+        public void CvDebugSSubsectionHeader_Test()
         {
             TestStruct<CvDebugSSubsectionHeader>(
                 v => v.Type == DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES,
@@ -700,8 +701,8 @@ namespace PESpy.Tests
             var omapFromSrc = pdbFile.DBI.OmapFromSrc;
             var omapToSrc = pdbFile.DBI.OmapToSrc;
 
-            Assert.AreEqual(67620, omapFromSrc.Length);
-            Assert.AreEqual(67096, omapToSrc.Length);
+            Assert.AreEqual(67620, omapFromSrc.Value.Length);
+            Assert.AreEqual(67096, omapToSrc.Value.Length);
         }
 
         #endregion

@@ -6145,6 +6145,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// OMFGlobalTypes
+        /// </summary>
+        internal static FixedUtf8String OMFGlobalTypes
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x47, 0x6C, 0x6F, 0x62, 0x61, 0x6C, 0x54, 0x79, 0x70, 0x65, 0x73 })
+                    return new FixedUtf8String(p, 14);
+            }
+        }
+
+        /// <summary>
         /// OMFModule
         /// </summary>
         internal static FixedUtf8String OMFModule
@@ -6180,6 +6193,136 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x53, 0x79, 0x6D, 0x48, 0x61, 0x73, 0x68 })
                     return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// OMFSourceFile
+        /// </summary>
+        internal static FixedUtf8String OMFSourceFile
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x46, 0x69, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 13);
+            }
+        }
+
+        /// <summary>
+        /// OMFSourceLine
+        /// </summary>
+        internal static FixedUtf8String OMFSourceLine
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x4C, 0x69, 0x6E, 0x65 })
+                    return new FixedUtf8String(p, 13);
+            }
+        }
+
+        /// <summary>
+        /// OMFSourceModule
+        /// </summary>
+        internal static FixedUtf8String OMFSourceModule
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x4D, 0x6F, 0x64, 0x75, 0x6C, 0x65 })
+                    return new FixedUtf8String(p, 15);
+            }
+        }
+
+        /// <summary>
+        /// OMFTypeFlags
+        /// </summary>
+        internal static FixedUtf8String OMFTypeFlags
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x54, 0x79, 0x70, 0x65, 0x46, 0x6C, 0x61, 0x67, 0x73 })
+                    return new FixedUtf8String(p, 12);
+            }
+        }
+
+        /// <summary>
+        /// SymHash32
+        /// </summary>
+        internal static FixedUtf8String SymHash32
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x79, 0x6D, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32 })
+                    return new FixedUtf8String(p, 9);
+            }
+        }
+
+        /// <summary>
+        /// SymHash32Long
+        /// </summary>
+        internal static FixedUtf8String SymHash32Long
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x79, 0x6D, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32, 0x4C, 0x6F, 0x6E, 0x67 })
+                    return new FixedUtf8String(p, 13);
+            }
+        }
+
+        /// <summary>
+        /// AddrHash32 (v4)
+        /// </summary>
+        internal static FixedUtf8String AddrHash32v4
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x41, 0x64, 0x64, 0x72, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32, 0x20, 0x28, 0x76, 0x34, 0x29 })
+                    return new FixedUtf8String(p, 15);
+            }
+        }
+
+        /// <summary>
+        /// AddrHash32 (v5)
+        /// </summary>
+        internal static FixedUtf8String AddrHash32v5
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x41, 0x64, 0x64, 0x72, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32, 0x20, 0x28, 0x76, 0x35, 0x29 })
+                    return new FixedUtf8String(p, 15);
+            }
+        }
+
+        /// <summary>
+        /// AddrHash32 (v8)
+        /// </summary>
+        internal static FixedUtf8String AddrHash32v8
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x41, 0x64, 0x64, 0x72, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32, 0x20, 0x28, 0x76, 0x38, 0x29 })
+                    return new FixedUtf8String(p, 15);
+            }
+        }
+
+        /// <summary>
+        /// AddrHash32 (v12)
+        /// </summary>
+        internal static FixedUtf8String AddrHash32v12
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x41, 0x64, 0x64, 0x72, 0x48, 0x61, 0x73, 0x68, 0x33, 0x32, 0x20, 0x28, 0x76, 0x31, 0x32, 0x29 })
+                    return new FixedUtf8String(p, 16);
             }
         }
 
@@ -6322,6 +6465,19 @@ namespace PESpy
             get
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x69, 0x62, 0x72, 0x61, 0x72, 0x79, 0x20, 0x4E, 0x61, 0x6D, 0x65 })
+                    return new FixedUtf8String(p, 12);
+            }
+        }
+
+        /// <summary>
+        /// Segment Name
+        /// </summary>
+        internal static FixedUtf8String SegmentName
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x65, 0x67, 0x6D, 0x65, 0x6E, 0x74, 0x20, 0x4E, 0x61, 0x6D, 0x65 })
                     return new FixedUtf8String(p, 12);
             }
         }

@@ -172,7 +172,10 @@ namespace PESpy
             //This name may also be written by ImageEnclaveImport
             writer.WriteUniqueRVAAnsiNullTerminatedField(Name, ViewKind.ImageImportDescriptor_Name, structOffset, fieldOffset: NameOffset);
 
-            if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0)
+            //You can have a FirstThunk and an OriginalFirstThunk that both point to the same area,
+            //in which case all of the IAT entries we try and write here will be duplicates of the ones we wrote above,
+            //which will give us an empty region and we'll hit an assert that we shouldn't be writing empty regionss
+            if (FirstThunk.IsValid && FirstThunk.ListedOffset != 0 && FirstThunk.ListedOffset != OriginalFirstThunk.ListedOffset)
             {
                 using var r = writer.CreateScopedRegion(
                     FirstThunk.ActualOffset,

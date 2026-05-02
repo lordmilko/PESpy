@@ -6,9 +6,12 @@ namespace PESpy
     //ANON_OBJECT_HEADER_BIGOBJ
     public class AnonObjectHeaderBigObj : AnonObjectHeaderV2
     {
-        public int NumberOfSections => chunk.PeekInt32(AnonObjectHeaderV2.StructSize);
+        internal const int NumberOfSectionsOffset = AnonObjectHeaderV2.StructSize;
+        internal const int PointerToSymbolTableOffset = AnonObjectHeaderV2.StructSize + 4;
 
-        public int PointerToSymbolTable => chunk.PeekInt32(AnonObjectHeaderV2.StructSize + 4);
+        public int NumberOfSections => chunk.PeekInt32(NumberOfSectionsOffset);
+
+        public int PointerToSymbolTable => chunk.PeekInt32(PointerToSymbolTableOffset);
 
         public int NumberOfSymbols => chunk.PeekInt32(AnonObjectHeaderV2.StructSize + 8);
 

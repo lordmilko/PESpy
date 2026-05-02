@@ -93,8 +93,6 @@ namespace PESpy.View
             var importMap = _fileDisassembler == null ? null : GetImportMap();
             WorkDisasmQueue(importMap);
 
-            DiscoverDirectories();
-
             Finalize(expandUnknownData: true);
         }
 
@@ -302,7 +300,10 @@ namespace PESpy.View
                                 var pViewByte = AddCode(targetAddress, address, sectionIndex);
 
                                 if (export.Name.Length > 0)
+                                {
+                                    _fileAccessor.CheckName(targetAddress);
                                     pViewByte->HasName = true;
+                                }
                             }
                             else
                             {
@@ -310,7 +311,10 @@ namespace PESpy.View
                                 if (_fileAccessor.TryAddData(targetAddress, sectionIndex, ViewByteDataKind.Unknown, length: 1, out var pViewByte))
                                 {
                                     if (export.Name.Length > 0)
+                                    {
+                                        _fileAccessor.CheckName(targetAddress);
                                         pViewByte->HasName = true;
+                                    }
                                 }
                             }
                         }
@@ -616,9 +620,15 @@ namespace PESpy.View
                 {
                     ref var lookupCache = ref _lookupCache;
 
+                    var peFileAccessor = (PEFileAccessor) _fileAccessor;
+
+                    var i = -1; //The elementIndex we use to index into the MethodTable needs to be 0-based
+
                     //For each method, lookup the ByteInfo of its IL Bytes and give them a name
                     foreach (var methodDef in methodDefTable)
                     {
+                        i++;
+
                         //You can have P/Invokes that say they have RVAs but these don't point to valid data.
                         //Conversely, if a given method's implementation is native, there won't be an associated Cor IL Method for it
 
@@ -641,6 +651,7 @@ namespace PESpy.View
                                 //The IL starts on the next byte
                                 pILViewByte = pILMethodViewByte + ImageCorILMethod.TinyStructSize;
                                 targetAddress += ImageCorILMethod.TinyStructSize;
+                                rva += ImageCorILMethod.TinyStructSize;
                             }
                             else
                             {
@@ -649,13 +660,16 @@ namespace PESpy.View
                                 //The IL starts 12 bytes away
                                 pILViewByte = pILMethodViewByte + ImageCorILMethod.FatStructSize;
                                 targetAddress += ImageCorILMethod.FatStructSize;
+                                rva += ImageCorILMethod.FatStructSize;
                             }
 
                             var name = stringHeap.GetString(methodDef.Name);
 
                             Debug.Assert(pILViewByte->Kind == ViewByteKind.Code);
 
-                            AddName(targetAddress, pILViewByte, (FixedUtf8String) name.Value);
+                            _fileAccessor.CheckName(targetAddress);
+                            pILViewByte->HasName = true;
+                            peFileAccessor._rvaToMethodDefMap[rva] = i;
                         }
                     }
                 }
@@ -714,6 +728,7 @@ namespace PESpy.View
 
             //PDB files can tell us that a given area of the PE file is dedicated to storing thunks
             MarkThunksRegion();
+            MarkOMFRegion();
 
             //Mark regions containing repeated or related sequences of data
 
@@ -734,6 +749,8 @@ namespace PESpy.View
 
                 int length;
 
+                ViewKind kind;
+
                 while (pViewByte < pEnd)
                 {
                     switch (pViewByte->Kind)
@@ -742,7 +759,7 @@ namespace PESpy.View
                             switch (pViewByte->DataKind)
                             {
                                 case ViewByteDataKind.Struct:
-                                    var kind = _fileAccessor.GetStructKind(targetAddress);
+                                    kind = _fileAccessor.GetStructKind(targetAddress);
 
                                     switch (kind)
                                     {
@@ -776,6 +793,18 @@ namespace PESpy.View
                                     //we won't create a region
                                     MarkFunctionRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                                     continue;
+
+                                case ViewByteDataKind.Integer:
+                                    if (_fileAccessor.TryGetStructKind(targetAddress, out kind))
+                                    {
+                                        switch (kind)
+                                        {
+                                            case ViewKind.XFG:
+                                                MarkFunctionRegions(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
+                                                continue;
+                                        }
+                                    }
+                                    break;
                             }
 
                             if (!largeAddresses.TryGetValue(targetAddress, out length))
@@ -787,7 +816,7 @@ namespace PESpy.View
 
                         case ViewByteKind.Unknown:
                             if (!largeAddresses.TryGetValue(targetAddress, out length))
-                                length = pViewByte->GetUnknownLength(pEnd);
+                                length = pViewByte->GetLength(pEnd); //We should already have unknown bodies at this point
 
                             pViewByte += length;
                             targetAddress += length;
@@ -805,7 +834,7 @@ namespace PESpy.View
             }
 
             var writer = ((PEViewByteViewWriter) _viewWriter);
-            _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress);
+            _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress, _extraRegions);
         }
 
         private void MarkThunksRegion()
@@ -849,11 +878,38 @@ namespace PESpy.View
 
                         var writer = (PEViewByteViewWriter) _viewWriter;
 
-                        writer._firstRegionByAddress.Add(builder);
-                        writer._topLevelRegions.Add(builder);
+                        _extraRegions.Add(builder);
                     }
                 }
             }
+        }
+
+        private void MarkOMFRegion()
+        {
+            var debugTable = _peFile.DebugTable;
+
+            if (debugTable == null)
+                return;
+
+            NB05Data? data = null;
+
+            for (var i = 0; i < debugTable.Length; i++)
+            {
+                ref var debugDir = ref debugTable[i];
+
+                if (debugDir.Data is NB05Data d)
+                {
+                    data = d;
+                    break;
+                }
+            }
+
+            if (data == null)
+                return;
+
+            var writer = (PEViewByteViewWriter) _viewWriter;
+
+            CreateOMFRegion(data.Offset, data.LfoBase, data.Signature);
         }
 
         private void MarkUnwindInfoRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
@@ -873,6 +929,8 @@ namespace PESpy.View
 
             var fileAccessor = _fileAccessor;
 
+            Debug.Assert(_hasUnknownBodies);
+
             var @continue = true;
 
             while (pViewByte < pEnd && @continue)
@@ -885,16 +943,14 @@ namespace PESpy.View
                             case ViewByteDataKind.Struct:
                                 var kind = fileAccessor.GetStructKind(targetAddress);
 
-                                switch (kind)
+                                if (kind >= ViewKind.UnwindInfo && kind < ViewKind.WinCertificate)
+                                    length = pViewByte->GetLength(pEnd);
+                                else
                                 {
-                                    case ViewKind.UnwindInfo:
-                                        length = pViewByte->GetLength(pEnd);
-                                        break;
-
-                                    default:
-                                        @continue = false;
-                                        continue;
+                                    @continue = false;
+                                    continue;
                                 }
+
                                 break;
 
                             case ViewByteDataKind.String:
@@ -915,7 +971,7 @@ namespace PESpy.View
 
                     case ViewByteKind.Unknown:
                         if (!largeAddresses.TryGetValue(targetAddress, out length))
-                            length = pViewByte->GetUnknownLength(pEnd);
+                            length = pViewByte->GetLength(pEnd); //We should already have unknown bodies at this point
 
                         break;
 
@@ -930,8 +986,8 @@ namespace PESpy.View
 
             var writer = (PEViewByteViewWriter) _viewWriter;
 
-            writer._firstRegionByAddress.Add(builder);
-            writer._topLevelRegions.Add(builder);
+            _extraRegions.Add(builder);
+
         }
 
         private void MarkILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
@@ -1014,7 +1070,7 @@ namespace PESpy.View
                     case ViewByteKind.Unknown:
                         //IL Methods often have random bytes between them; I haven't figured out if this is just junk or may mean anything,
                         //but for now to keep things tidy let's just bundle it up along with the IL Methods
-                        length = pViewByte->GetUnknownLength(pEnd);
+                        length = pViewByte->GetLength(pEnd); //We should already have unknown bodies at this point
                         pViewByte += length;
                         targetAddress += length;
                         continue;
@@ -1033,8 +1089,7 @@ namespace PESpy.View
 
             var writer = (PEViewByteViewWriter) _viewWriter;
 
-            writer._firstRegionByAddress.Add(builder);
-            writer._topLevelRegions.Add(builder);
+            _extraRegions.Add(builder);
         }
 
         private int ClearString(ViewByte* pViewByte, ViewByte* pEnd)
@@ -1089,6 +1144,7 @@ namespace PESpy.View
                     case ViewByteKind.Data:
                         switch (pViewByte->DataKind)
                         {
+                            //Don't include Data Unknown here; the implication is it's known to be data
                             case ViewByteDataKind.Padding:
                                 if (!largeAddresses.TryGetValue(targetAddress, out length))
                                     length = pViewByte->GetLength(pEnd);
@@ -1097,10 +1153,41 @@ namespace PESpy.View
                                 targetAddress += length;
                                 break;
 
+                            case ViewByteDataKind.Integer:
+                                if (_fileAccessor.TryGetStructKind(targetAddress, out var kind))
+                                {
+                                    switch (kind)
+                                    {
+                                        case ViewKind.XFG:
+                                            if (!largeAddresses.TryGetValue(targetAddress, out length))
+                                                length = pViewByte->GetLength(pEnd);
+
+                                            pViewByte += length;
+                                            targetAddress += length;
+                                            break;
+
+                                        default:
+                                            @continue = false;
+                                            break;
+                                    }
+                                }
+                                else
+                                    @continue = false;
+
+                                break;
+
                             default:
                                 @continue = false;
                                 break;
                         }
+                        break;
+
+                    case ViewByteKind.Unknown:
+                        if (!largeAddresses.TryGetValue(targetAddress, out length))
+                            length = pViewByte->GetLength(pEnd);
+
+                        pViewByte += length;
+                        targetAddress += length;
                         break;
 
                     default:
@@ -1115,8 +1202,7 @@ namespace PESpy.View
 
                 var writer = (PEViewByteViewWriter) _viewWriter;
 
-                writer._firstRegionByAddress.Add(builder);
-                writer._topLevelRegions.Add(builder);
+                _extraRegions.Add(builder);
             }
         }
 
@@ -1186,8 +1272,7 @@ namespace PESpy.View
 
                 var writer = (PEViewByteViewWriter) _viewWriter;
 
-                writer._firstRegionByAddress.Add(builder);
-                writer._topLevelRegions.Add(builder);
+                _extraRegions.Add(builder);
             }
         }
 
@@ -1249,8 +1334,7 @@ namespace PESpy.View
 
                 var writer = (PEViewByteViewWriter) _viewWriter;
 
-                writer._firstRegionByAddress.Add(builder);
-                writer._topLevelRegions.Add(builder);
+                _extraRegions.Add(builder);
             }
         }
 

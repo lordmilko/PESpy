@@ -497,6 +497,11 @@ namespace PESpy
                     break;
             }
 
+            var exceptionHandler = ExceptionHandler;
+
+            if (exceptionHandler != 0)
+                writer.WriteUniqueRVAXRef(Offset, ExtraDataStart, exceptionHandler);
+
             writer.ExitUniqueXRef();
         }
 

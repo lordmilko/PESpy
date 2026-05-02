@@ -312,7 +312,7 @@ namespace PESpy
                         if (i == sortedUnwindInfoRVAs.Length - 1)
                         {
                             var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
-                            exceptionDataLength = (uint) (pViewByte->Kind == ViewByteKind.Unknown ? pViewByte->GetUnknownLength(limit) : pViewByte->GetLength(limit));
+                            exceptionDataLength = (uint) (pViewByte->Kind == ViewByteKind.Unknown ? pViewByte->GetUnknownLength(limit, hasUnknownBody: false) : pViewByte->GetLength(limit));
                         }
                         else
                         {

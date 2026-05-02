@@ -51,6 +51,7 @@ namespace PESpy.View
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
+            _fileAccessor.CheckName(offset);
             pViewByte->HasName = true;
             _fileAccessor.AddStructKind(offset, kind);
 

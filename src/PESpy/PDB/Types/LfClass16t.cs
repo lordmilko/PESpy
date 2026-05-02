@@ -127,7 +127,7 @@ namespace PESpy.PDB
             {
                 var uniqueName = TypType.ReadString(value->data + numericData.Length + name.Length + 1);
 
-                length += uniquename.Length + 1;
+                length += uniqueName.Length + 1;
             }
 
             return FixedStructSize + length;
@@ -148,7 +148,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(this, ViewKind.LfClass16t, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(9, BytesUsed()) + (property.hasuniquename ? 1 : 0);
+        int IViewable.NumChildren() => StructWriter.GetNumPaddedChildren(9, typlen, BytesUsed()) + (property.hasuniquename ? 1 : 0);
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -194,14 +194,14 @@ namespace PESpy.PDB
                     if (property.hasuniquename)
                         structWriter.WriteSymStringField(nameof(uniquename), uniquenameOffset, GetUniqueName(structWriter.GetSymbolAccessor()));
                     else
-                        structWriter.AlignOrThrow(BytesUsed());
+                        structWriter.PadTypOrThrow(typlen, BytesUsed());
                     break;
 
                 case 10:
                     if (property.hasuniquename)
                     {
-                        //Possible alignment
-                        structWriter.AlignOrThrow(BytesUsed());
+                        //Possible padding
+                        structWriter.PadTypOrThrow(typlen, BytesUsed());
                     }
                     else
                         throw new NotImplementedException(); //We already aligned above

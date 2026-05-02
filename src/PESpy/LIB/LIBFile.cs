@@ -57,13 +57,13 @@ namespace PESpy
 
         public IImportLibraryMember[] ImportLibrary { get; private set; }
 
-        internal unsafe LIBFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal unsafe LIBFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
         {
             this.mmf = mmf;
             ImportLibrary = null!;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 

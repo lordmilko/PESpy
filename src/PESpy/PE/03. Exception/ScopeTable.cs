@@ -25,6 +25,7 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="SCOPE_TABLE"/> structure.
     /// </summary>
+    [Source(SourceKind.winnt_h)] //Also called SCOPE_TABLE_ARM64, SCOPE_TABLE_AMD64 and then typedef'd as SCOPE_TABLE. But the layout of both is the same
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(ScopeRecordDebugView))]
     public struct ScopeTable : IViewableValue, IEnumerable<ScopeTable.ScopeRecord>

@@ -54,7 +54,7 @@ namespace PESpy
                         for (var i = 0; i < nCatches; i++)
                             handlers[i] = new HandlerType(valueChunk.Slice(i * HandlerType.StructSize));
 
-                        _dispHandlerArray = new RVA<HandlerType[]>(dispHandlerArray, nCatches, handlers);
+                        _dispHandlerArray = new RVA<HandlerType[]>(dispHandlerArray, valueChunk.AbsoluteOffset, handlers);
                     }
                     else
                         _dispHandlerArray = new RVA<HandlerType[]>(dispHandlerArray);

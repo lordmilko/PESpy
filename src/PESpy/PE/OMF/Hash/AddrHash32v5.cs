@@ -1,5 +1,6 @@
 ﻿using System;
 using PESpy.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -23,6 +24,27 @@ namespace PESpy
         public NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[] OffsetTable { get; }
 
         public int Offset { get; }
+
+        private int StructSize
+        {
+            get
+            {
+                var size =
+                    sizeof(short) + //cSeg
+                    sizeof(short); //pad
+
+                size += (cSeg * (sizeof(int) + sizeof(short))); //SegmentTable, OffsetCounts
+
+                if ((cSeg & 1) != 0)
+                    size += sizeof(short); //Padding
+
+                //OffsetTable
+                foreach (var count in OffsetCounts)
+                    size += (count * (sizeof(short) + sizeof(short)));
+
+                return size;
+            }
+        }
 
         internal AddrHash32v5(
             int offset,
@@ -78,6 +100,72 @@ namespace PESpy
 
             if (!AddrHashHelpers.TryLinearSearchOffsetTable16(OffsetTable, sectionNumber, out _, out resultSeg, out resultOffsetIndex))
                 throw new NotImplementedException("Don't know how to handle a linear search failing");
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(this, ViewKind.AddrHash32v5, StructSize);
+
+        int IViewable.NumChildren() => (cSeg & 1) != 0 ? 6 : 5;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(cSeg), 0, cSeg);
+                    break;
+
+                case 1:
+                    //Name is made up
+                    structWriter.WriteField("pad", 2, Alignment);
+                    break;
+
+                case 2:
+                    structWriter.WriteField("rgulSeg", 4, SegmentTable);
+                    break;
+
+                case 3:
+                    structWriter.WriteField("rglCSeg", 4 + (SegmentTable.Length * sizeof(int)), OffsetCounts);
+                    break;
+
+                case 4:
+                case 5:
+                    //If we need padding, this will in fact be the offset of the padding
+                    var offsetTableOffset = 4 + (SegmentTable.Length * (sizeof(int) + sizeof(short)));
+
+                    if ((cSeg & 1) != 0)
+                    {
+                        if (index == 4)
+                        {
+                            structWriter.WriteField(nameof(Padding), offsetTableOffset, Padding);
+                            return;
+                        }
+
+                        offsetTableOffset += sizeof(short);
+                    }
+                    else
+                    {
+                        if (index == 5)
+                            throw new IndexOutOfRangeException();
+                    }
+
+                    //This isn't the right thing to do, but it'll do for now
+                    var offsetTableSize = 0;
+
+                    foreach (var count in OffsetCounts)
+                        offsetTableSize += (count * (sizeof(short) + sizeof(short)));
+
+                    structWriter.WriteField(nameof(OffsetTable), offsetTableOffset, OffsetTable, offsetTableSize);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
     }
 }

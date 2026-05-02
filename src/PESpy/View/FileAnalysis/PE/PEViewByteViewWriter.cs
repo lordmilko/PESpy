@@ -45,7 +45,10 @@ namespace PESpy.View
 
         protected internal override IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize)
         {
-            throw new NotImplementedException();
+            //ViewWriter translates UnmanagedOffset to physical/virtual space for us, so we don't need to worry
+            //about adjusting it
+            NewStruct(UnmanagedOffset, structSize, kind);
+            return null;
         }
 
         protected internal override unsafe IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
@@ -277,6 +280,7 @@ namespace PESpy.View
         {
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
+            _fileAccessor.CheckName(offset);
             pViewByte->HasName = true;
             _fileAccessor.AddStructKind(offset, kind);
         }
@@ -307,9 +311,21 @@ namespace PESpy.View
             return RegisterValue(offset, size, kind, fromRegion);
         }
 
-        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind)
+        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind) =>
+            RegisterGlobalField(offset, size, kind);
+
+        private void RegisterGlobalField(int offset, int size, ViewKind kind)
         {
-            throw new NotImplementedException();
+            if (!TryGetViewOffset(offset, out offset))
+                return;
+
+            //While it's not really a struct, we treat it like one since it has a ViewKind and then special
+            //case it accordingly
+            var pViewByte = _fileAccessor.GetViewByte(offset, out _);
+            RegisterStruct(pViewByte, offset, kind);
+
+            for (var i = pViewByte + 1; i < pViewByte + size; i++)
+                i->Kind = ViewByteKind.Body;
         }
 
         private IView? RegisterValue(
@@ -347,17 +363,24 @@ namespace PESpy.View
 
             switch (kind)
             {
-                case ViewKind.ImageExportDirectory_Name:
-                case ViewKind.ImageExportDirectory_AddressOfNames_Name:
-                case ViewKind.Metadata_String:
-                case ViewKind.ImageImportDescriptor_Name:
-                case ViewKind.ImageEnclaveImport_ImportName:
-                case ViewKind.Manifest:
-                case ViewKind.ImageDelayLoadDescriptor_DllNameRVA:
-                case ViewKind.ImageExportDirectory_ForwarderName:
+                //AnsiString
                 case ViewKind.ImageBoundImportName:
+                case ViewKind.ImageDelayLoadDescriptor_DllNameRVA:
+                case ViewKind.ImageEnclaveImport_ImportName:
+                case ViewKind.ImageExportDirectory_AddressOfNames_Name:
+                case ViewKind.ImageExportDirectory_ForwarderName:
+                case ViewKind.ImageExportDirectory_Name:
+                case ViewKind.ImageImportDescriptor_Name:
+                case ViewKind.SegmentName:
+
+                //FixedUtf8String
                 case ViewKind.DepsJson:
+                case ViewKind.Manifest:
+                case ViewKind.Metadata_String:
                 case ViewKind.RuntimeConfigJson:
+
+                //SymString
+                case ViewKind.LibraryName:
                     pViewByte->DataKind = ViewByteDataKind.String;
                     break;
 
@@ -385,6 +408,7 @@ namespace PESpy.View
                 case ViewKind.NativeAOTModulesA:
                 case ViewKind.NativeAOTModuleAddress:
                 case ViewKind.NativeAOTModulesZ:
+                case ViewKind.CodeViewSig:
                     pViewByte->DataKind = ViewByteDataKind.Integer;
                     break;
 

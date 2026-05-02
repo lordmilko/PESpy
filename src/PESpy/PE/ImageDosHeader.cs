@@ -31,7 +31,7 @@ namespace PESpy
         private const int OEMIdentifierOffset = 36;
         private const int OEMInformationOffset = 38;
         private const int ReservedWords2Offset = 40;
-        private const int FileAddressOfNewExeHeaderOffset = 60;
+        internal const int FileAddressOfNewExeHeaderOffset = 60;
 
         /// <summary>
         /// Magic number<para/>

@@ -62,12 +62,12 @@ namespace PESpy
 
         public ImageResourceDirectoryEntry Parent { get; }
 
-        private RVA<IValue> offsetToData;
+        private RVA<object> offsetToData;
 
         /// <summary>
         /// The address of a unit of resource data in the Resource Data area.
         /// </summary>
-        public unsafe RVA<IValue> OffsetToData
+        public unsafe RVA<object> OffsetToData
         {
             get
             {
@@ -78,7 +78,10 @@ namespace PESpy
                     if (chunk.PEFile().TryGetValueChunkFromSection(rva, out var valueChunk))
                     {
                         var type = Type;
-                        IValue? value;
+                        
+                        //While we would like to say that we encapsulate an IValue, in the case of a FixedUtf8String
+                        //that would result in an RVA<RawValue<FixedUtf8String>> which is no good
+                        object? value;
 
                         if (type is RT t)
                         {
@@ -123,7 +126,7 @@ namespace PESpy
 
                                 case RT_MANIFEST:
                                     //Note that the manifest may start with a UTF-8 BOM
-                                    value = new RawValue<FixedUtf8String>(valueChunk.AbsoluteOffset, new FixedUtf8String(valueChunk.Pointer, Size));
+                                    value = new FixedUtf8String(valueChunk.Pointer, Size);
                                     break;
 
                                 default:
@@ -151,10 +154,10 @@ namespace PESpy
                             value = new ByteBlob(valueChunk, Size, ViewKind.UnknownResource);
                         }
 
-                        offsetToData = new RVA<IValue>(rva, valueChunk.AbsoluteOffset, value!);
+                        offsetToData = new RVA<object>(rva, valueChunk.AbsoluteOffset, value!);
                     }
                     else
-                        offsetToData = new RVA<IValue>(rva);
+                        offsetToData = new RVA<object>(rva);
                 }
 
                 return offsetToData;
@@ -216,7 +219,7 @@ namespace PESpy
             Parent = parent;
         }
 
-        private bool TryParseRCData(in MemoryChunk valueChunk, out IValue? value)
+        private bool TryParseRCData(in MemoryChunk valueChunk, out object? value)
         {
             value = null;
 
@@ -252,15 +255,82 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            if (OffsetToData.IsValid)
+            var offsetToData = OffsetToData;
+
+            if (offsetToData.IsValid)
             {
-                if (OffsetToData.Value is IViewable v)
-                    writer.WriteGlobal(v);
-                else if (OffsetToData.Value is RawValue<FixedUtf8String> r)
-                    writer.WriteGlobal(r.Offset, r.Value, r.Value.Length, ViewKind.Manifest);
+                if (Type is RT rt)
+                {
+                    switch (rt)
+                    {
+                        case RT_CURSOR:
+                        case RT_BITMAP:
+                        case RT_ICON:
+                        case RT_MENU:
+                        case RT_DIALOG:
+                        case RT_STRING:
+                        case RT_FONTDIR:
+                        case RT_FONT:
+                        case RT_ACCELERATOR:
+                            goto default;
+
+                        case RT_RCDATA:
+                            if (offsetToData.Value is ClrDebugResource)
+                                WriteOffsetToData<ClrDebugResource>(writer, offsetToData);
+                            else
+                                goto default;
+                            break;
+
+                        case RT_MESSAGETABLE:
+                            WriteOffsetToData<MessageResourceData>(writer, offsetToData);
+                            break;
+
+                        case RT_GROUP_CURSOR:
+                        case RT_GROUP_ICON:
+                            goto default;
+
+                        case RT_VERSION:
+                            WriteOffsetToData<VsVersionInfo>(writer, offsetToData);
+                            break;
+
+                        case RT_DLGINCLUDE:
+                        case RT_PLUGPLAY:
+                        case RT_VXD:
+                        case RT_ANICURSOR:
+                        case RT_ANIICON:
+                        case RT_HTML:
+                            goto default;
+
+                        case RT_MANIFEST:
+                            writer.WriteRVAUtf8FixedLengthField(
+                                new RVA<FixedUtf8String>(
+                                    offsetToData.ListedOffset,
+                                    offsetToData.ActualOffset,
+                                    (FixedUtf8String) offsetToData.Value
+                                ),
+                                ViewKind.Manifest,
+                                Offset,
+                                OffsetToDataOffset
+                            );
+                            break;
+
+                        default:
+                            //We don't support these yet and they should implicitly be a ByteBlob
+                            WriteOffsetToData<ByteBlob>(writer, offsetToData);
+                            break;
+                    }
+                }
                 else
-                    throw new NotImplementedException($"Don't know how to write a resource of type {OffsetToData.Value.GetType().Name}");
+                {
+                    //We don't support any string types yet
+                    WriteOffsetToData<ByteBlob>(writer, offsetToData);
+                }
             }
+        }
+
+        private void WriteOffsetToData<T>(ViewWriter writer, RVA<object> offsetToData) where T : IViewable, IValue
+        {
+            writer.WriteRVAField(new RVA<T>(offsetToData.ListedOffset, offsetToData.ActualOffset, (T) offsetToData.Value), Offset, OffsetToDataOffset);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

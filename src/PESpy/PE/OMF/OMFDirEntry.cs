@@ -42,7 +42,7 @@ namespace PESpy
 
         public int cb => chunk.PeekInt32(cbOffset);
 
-        public object Data { get; }
+        public IValue Data { get; }
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -65,7 +65,7 @@ namespace PESpy
             Data = GetData(SubSection, iMod, outerChunk.Slice(lfo), cb, codeViewAccessor, ref lastSignature);
         }
 
-        private static unsafe object GetData(
+        private static unsafe IValue GetData(
             SST subSection,
             ushort imod,
             in MemoryChunk valueChunk,
@@ -187,19 +187,16 @@ namespace PESpy
                     //The first entry is an empty string, because library indices are 1-based
                     var read = 0;
 
-                    using var libraries = new PooledList<FixedAnsiString>();
+                    using var libraries = new PooledList<SymString>();
 
                     while (read < length)
                     {
-                        var strLen = valueChunk.PeekByte(read);
-                        read++;
-
-                        var str = valueChunk.PeekAnsiFixedLength(read, strLen);
-                        read += strLen;
+                        var str = valueChunk.PeekSymString(read, isLengthPrefixed: true);
+                        read += str.Length + 1;
                         libraries.Add(str);
                     }
 
-                    return libraries.ToArray();
+                    return new RawValue<SymString[]>(valueChunk.AbsoluteOffset, libraries.ToArray());
                 }
 
                 case SST.sstGlobalSym:
@@ -222,25 +219,36 @@ namespace PESpy
 
                     switch (hash.symhash)
                     {
+                        case 0:
+                            Debug.Assert(hash.cbHSym == 0);
+                            symbolHashTable = null;
+                            break;
+
                         case 2:
                         case 6:
-                            symbolHashTable = SymHash32(symbolHashTableChunk, hash.symhash, hash.cbSymbol);
+                            symbolHashTable = SymHash32(symbolHashTableChunk, hash.symhash, hash.cbHSym);
                             break;
 
                         case 10:
-                            symbolHashTable = SymHash32Long(symbolHashTableChunk, hash.symhash, hash.cbSymbol);
+                            symbolHashTable = SymHash32Long(symbolHashTableChunk, hash.symhash);
                             break;
 
-                            default:
-                                symbolHashTable = new ByteBlob(symbolHashTableChunk, hash.cbHSym, ViewKind.UnknownSymHash);
-                                break;
-                        }
+                        default:
+                            Debug.Assert(false);
+                            symbolHashTable = new ByteBlob(symbolHashTableChunk, hash.cbHSym, ViewKind.UnknownSymHash);
+                            break;
+                    }
 
                     IValue addressHashTable;
 
                     //Unlike dumpsym7.cpp, we have a unified algorithm for processing all hash table types
                     switch (hash.addrhash)
                     {
+                        case 0:
+                            Debug.Assert(hash.cbHAddr == 0);
+                            addressHashTable = null;
+                            break;
+
                         case 4:
                         case 5:
                         case 8:
@@ -249,6 +257,7 @@ namespace PESpy
                             break;
 
                         default:
+                            Debug.Assert(false);
                             addressHashTable = new ByteBlob(addressHashTableChunk, hash.cbHAddr, ViewKind.UnknownAddrHash);
                             break;
                     }
@@ -279,7 +288,7 @@ namespace PESpy
                         names.Add(str);
                     }
 
-                    return names.ToArray();
+                    return new RawValue<AnsiString[]>(valueChunk.AbsoluteOffset, names.ToArray());
                 }
 
                 case SST.sstPreComp:
@@ -299,21 +308,76 @@ namespace PESpy
 
         private static IValue SymHash32(in MemoryChunk chunk, int symhash, int cbHSym)
         {
-            //Not implemented
+            Debug.Assert(symhash == 2); //Have only seen version 2
 
-            //Note: we should remove the cbHSym parameter once we implement this
-            return new ByteBlob(chunk, cbHSym, ViewKind.UnknownSymHash);
+            var cBuckets = chunk.PeekUInt16(0);
+            var pad = chunk.PeekUInt16(2);
+
+            //Buckets
+            var buckets = chunk.PeekNativeSpan<int>(4, cBuckets);
+
+            var read = 4 + (sizeof(int) * cBuckets);
+
+            //rgCounts
+            var counts = chunk.PeekNativeSpan<ushort>(read, cBuckets);
+
+            read += (sizeof(short) * cBuckets);
+
+            //Chains
+
+            //Each entry is the offset of a symbol. Unlike with SymHash32Long, there is no checksum
+            var chains = new NativeSpan<int>[cBuckets];
+
+            for (var i = 0; i < counts.Length; i++)
+            {
+                var count = counts[i];
+
+                chains[i] = chunk.PeekNativeSpan<int>(read, count);
+
+                read += (count * sizeof(int));
+            }
+
+            return new SymHash32(chunk.AbsoluteOffset, symhash, cBuckets, pad, buckets, counts, chains);
         }
 
-        private static IValue SymHash32Long(in MemoryChunk chunk, int symhash, int cbHSym)
+        internal static IValue SymHash32Long(in MemoryChunk chunk, int symhash)
         {
-            //Not implemented
+            Debug.Assert(symhash == 10); //ViewProvider hardcodes it being 10, so if that's not the case we need to change that
 
-            //Note: we should remove the cbHSym parameter once we implement this
-            return new ByteBlob(chunk, cbHSym, ViewKind.UnknownSymHash);
+            //dumpsym7.cpp!SymHash32Long and PDF page 85 of
+            //https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
+
+            var cBuckets = chunk.PeekUInt16(0);
+            var pad = chunk.PeekUInt16(2);
+
+            //Buckets
+            var buckets = chunk.PeekNativeSpan<int>(4, cBuckets);
+
+            var read = 4 + (sizeof(int) * cBuckets);
+
+            //rgCounts
+            var counts = chunk.PeekNativeSpan<int>(read, cBuckets);
+
+            read += (sizeof(int) * cBuckets);
+
+            //Chains
+
+            //Each entry is a pair of dwords: the file offset and the checksum of the referenced symbol
+            var chains = new NativeSpan<(int symbolOffset, uint checksum)>[cBuckets];
+
+            for (var i = 0; i < counts.Length; i++)
+            {
+                var count = counts[i];
+
+                chains[i] = chunk.PeekNativeSpan<(int symbolOffset, uint checksum)>(read, count);
+
+                read += (count * (sizeof(int) + sizeof(int)));
+            }
+
+            return new SymHash32Long(chunk.AbsoluteOffset, symhash, cBuckets, pad, buckets, counts, chains);
         }
 
-        private static IValue AddrHash32(in MemoryChunk chunk, int addrhash)
+        internal static IValue AddrHash32(in MemoryChunk chunk, int addrhash)
         {
             /* https://web.archive.org/web/20160909082838/http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
              * PDF page 86, and also dumpsym7.cpp!AddrHash32

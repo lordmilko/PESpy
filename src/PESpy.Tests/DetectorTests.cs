@@ -38,29 +38,28 @@ namespace PESpy.Tests
         [TestMethod]
         public void Detector_VXD() => Test(Sample.MASM5_NB00_VXD, FileKind.LE);
 
+        [TestMethod]
+        public void Detector_OMF() => Test(Sample.C700_Packed_OBJ, FileKind.OMF);
+
+        //I don't have an OMBLIB sample file
+
+        [TestMethod]
+        public void Detector_OMFDBG() => Test(Sample.C600_Tiny_DBG, FileKind.OMFDBG);
+
         private void Test(string path, FileKind expectedKind) =>
             Test<IFile>(path, expectedKind, null);
 
         private void Test<T>(string path, FileKind expectedKind, Func<T, bool> verify) where T : IFile
         {
-            if (Detector.TryOpenFile(path, out var file))
-            {
-                try
-                {
-                    Assert.AreEqual(expectedKind, file!.Kind);
+            using var file = Detector.TryOpenFile(path);
 
-                    if (verify != null)
-                        Assert.IsTrue(verify.Invoke((T) file));
-                }
-                finally
-                {
-                    file.Dispose();
-                }
-            }
-            else
-            {
+            if (file == null)
                 Assert.Fail("Failed to open file");
-            }
+
+            Assert.AreEqual(expectedKind, file!.Kind);
+
+            if (verify != null)
+                Assert.IsTrue(verify.Invoke((T) file));
         }
     }
 }

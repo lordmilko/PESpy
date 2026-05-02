@@ -11,13 +11,13 @@ namespace PESpy
 
         private const int SignatureOffset = 0;
         private const int FlagsOffset = 2;
-        private const int MachineOffset = 4;
+        internal const int MachineOffset = 4;
         private const int CharacteristicsOffset = 6;
         private const int TimeDateStampOffset = 8;
         private const int CheckSumOffset = 12;
         private const int ImageBaseOffset = 16;
         private const int SizeOfImageOffset = 20;
-        private const int NumberOfSectionsOffset = 24;
+        internal const int NumberOfSectionsOffset = 24;
         private const int ExportedNamesSizeOffset = 28;
         private const int DebugDirectorySizeOffset = 32;
         private const int SectionAlignmentOffset = 36;

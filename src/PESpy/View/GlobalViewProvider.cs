@@ -56,7 +56,7 @@ namespace PESpy.View
             var sw = Stopwatch.StartNew();
 
             if (_numChildren == 0)
-                _numChildren = _entities.GetCount(_fileAccessor, _kind, _depthAtStartOffset);
+                _numChildren = _entities.GetCount(_kind, _depthAtStartOffset);
 
             return _numChildren;
         }
@@ -182,96 +182,8 @@ namespace PESpy.View
                 structWriter.Field = ViewProvider.CreateStructView(entity.Kind, entity.Length, _fileAccessor.GetMemoryChunkFromAddress(entity.TargetAddress), structWriter.ViewWriter, entity.IsSplit);
             }
             else
-            {
-                switch (entity.ViewByte->Kind)
-                {
-                    case ViewByteKind.Data:
-                        switch (entity.ViewByte->DataKind)
-                        {
-                            case ViewByteDataKind.Padding:
-                                if (entity.IsSplit)
-                                    throw new NotImplementedException(); //Just get the bytes before the split?
 
-                                structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null);
-                                break;
-
-                            case ViewByteDataKind.String:
-                                if (entity.IsSplit)
-                                    throw new NotImplementedException(); //Just get the bytes before the split?
-
-                                //Note that even if it _is_ null terminated, we _do_ still want to include the null terminator
-                                //in the name so we can print it properly
-                                if (entity.ViewByte->IsWide)
-                                {
-                                    var str = new FixedUtf16String((char*) (byte*) entity.Bytes, entity.Length / 2);
-                                    structWriter.Field = new ValueView<FixedUtf16String>(entity.TargetAddress, str, entity.Length, ViewKind.String, entity.Name);
-                                }
-                                else
-                                {
-                                    var str = new FixedUtf8String((byte*) entity.Bytes, entity.Length);
-                                    structWriter.Field = new ValueView<FixedUtf8String>(entity.TargetAddress, str, entity.Length, ViewKind.String, entity.Name);
-                                }
-                                break;
-
-                            case ViewByteDataKind.Unknown:
-                                if (entity.IsSplit)
-                                    throw new NotImplementedException(); //Just get the bytes before the split?
-
-                                structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null, entity.Name);
-                                break;
-
-                            case ViewByteDataKind.Decimal:
-                                if (entity.IsSplit)
-                                if (entity.Length == 4)
-                                    structWriter.Field = new ValueView<float>(entity.TargetAddress, *(float*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, entity.Name);
-                                else
-                                    structWriter.Field = new ValueView<double>(entity.TargetAddress, *(double*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, entity.Name);
-
-                                break;
-
-                            default:
-                                throw new NotImplementedException();
-                        }
-                        break;
-
-                    case ViewByteKind.Code:
-                        if (entity.IsSplit)
-                        var range = new AsmRange<object>(startOffset: entity.TargetAddress, startRVA: entity.TargetAddress, functionRVA: (int) (entity.TargetAddress - entity.Displacement), entity.Name);
-                        range.EndOffset = entity.TargetAddress + entity.Length;
-
-                        structWriter.Field = new AsmView<object>(entity.TargetAddress, (byte) _fileAccessor.Bitness, range, entity.ViewByte->IsIL ? ViewKind.IL : ViewKind.Assembly);
-                        break;
-
-                    case ViewByteKind.Unknown:
-                        if (entity.IsSplit)
-                            throw new NotImplementedException(); //Just get the bytes before the split?
-
-                        structWriter.Field = new ByteBlobView(entity.TargetAddress, entity.Bytes, null);
-                        break;
-
-                    case ViewByteKind.Body:
-                        Debug.Assert(entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
-
-                        //We want to create a view that just encapsulates the portion that this body encapsulates.
-                        //First, we need to rewind to get the head
-
-                        var origin = entity.GetSplitHeadOrigin(_fileAccessor, out var bytesRewound);
-
-                        if (origin.Kind != 0)
-                        {
-                            //We use origin.TargetAddress to get the head; we're then going to split it at the point we're actually after
-                            var baseView = ViewProvider.CreateStructView(origin.Kind, entity.Length, _fileAccessor.GetMemoryChunkFromAddress(origin.TargetAddress), structWriter.ViewWriter, entity.IsSplit);
-                            if (baseView is ISplittableView sv)
-                            {
-                                var (first, second) = sv.Split(entity.TargetAddress, baseView.Offset + bytesRewound);
-                                structWriter.Field = second;
-                            }
-                        break;
-
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
+            structWriter.Field = _fileAccessor.GetViewFromEntity(entity);
 
 #if DEBUG_VIEWENTITY
             _debugEntities.Add(structWriter.Field);

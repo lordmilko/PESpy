@@ -577,9 +577,20 @@ var strings = new[]{
 
     "OMFDirHeader",
     "OMFDirEntry",
+    "OMFGlobalTypes",
     "OMFModule",
     "OMFSegDesc",
     "OMFSymHash",
+    "OMFSourceFile",
+    "OMFSourceLine",
+    "OMFSourceModule",
+    "OMFTypeFlags",
+    "SymHash32",
+    "SymHash32Long",
+    "AddrHash32 (v4)",
+    "AddrHash32 (v5)",
+    "AddrHash32 (v8)",
+    "AddrHash32 (v12)",
 
     "dnt",
     "nsg",
@@ -592,6 +603,7 @@ var strings = new[]{
     "loe32",
     "LineNumber Offset",
     "Library Name",
+    "Segment Name",
     "Old SymType",
     "Old TypType",
 

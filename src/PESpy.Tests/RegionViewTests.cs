@@ -17,11 +17,15 @@ namespace PESpy.Tests
         {
             WithRegions(WellKnownTestModule.AzureAttest, r =>
             {
-                /* We receive a list of 14 regions, as follows
+                /* We receive a list of several regions, as follows
+                 * 
+                 * Many "Functions" regions
                  * 
                  * ImportAddressTable bcrypt.dll
                  * ImportAddressTable ucrtbase_enclave.dll
                  * ImportAddressTable vertdll.dll
+                 * 
+                 * Strings + Unwind Infos regions
                  * 
                  * Export Address Table
                  * Export Names Table
@@ -36,21 +40,21 @@ namespace PESpy.Tests
                  * 4x regions containing Import Strings
                  */
 
-                Assert.AreEqual("[ImportAddressTable] bcrypt.dll", r[0].Name);
-                Assert.AreEqual("[ImportAddressTable] ucrtbase_enclave.dll", r[1].Name);
-                Assert.AreEqual("[ImportAddressTable] vertdll.dll", r[2].Name);
+                Assert.AreEqual("[ImportAddressTable] bcrypt.dll", r[4].Name);
+                Assert.AreEqual("[ImportAddressTable] ucrtbase_enclave.dll", r[5].Name);
+                Assert.AreEqual("[ImportAddressTable] vertdll.dll", r[6].Name);
 
-                Assert.AreEqual("[ImportLookupTable] bcrypt.dll", r[7].Name);
-                Assert.AreEqual("[ImportLookupTable] ucrtbase_enclave.dll", r[8].Name);
-                Assert.AreEqual("[ImportLookupTable] vertdll.dll", r[9].Name);
+                Assert.AreEqual("[ImportLookupTable] bcrypt.dll", r[15].Name);
+                Assert.AreEqual("[ImportLookupTable] ucrtbase_enclave.dll", r[16].Name);
+                Assert.AreEqual("[ImportLookupTable] vertdll.dll", r[17].Name);
 
-                Assert.AreEqual(14, r[0].Children.Count);
-                Assert.AreEqual(38, r[1].Children.Count);
-                Assert.AreEqual(22, r[2].Children.Count);
+                Assert.AreEqual(14, r[4].Children.Count);
+                Assert.AreEqual(38, r[5].Children.Count);
+                Assert.AreEqual(22, r[6].Children.Count);
 
-                Assert.AreEqual(14, r[7].Children.Count);
-                Assert.AreEqual(38, r[8].Children.Count);
-                Assert.AreEqual(22, r[9].Children.Count);
+                Assert.AreEqual(14, r[15].Children.Count);
+                Assert.AreEqual(38, r[16].Children.Count);
+                Assert.AreEqual(22, r[17].Children.Count);
             });
         }
 
@@ -85,17 +89,17 @@ namespace PESpy.Tests
                  * - DelayImportAddressTable api-ms-win-core-winrt-l1-1-0.dll
                  */
 
-                Assert.AreEqual("[DelayImportLookupTable] VERSION.dll", r[15].Name);
-                Assert.AreEqual("[DelayImportLookupTable] api-ms-win-core-winrt-l1-1-0.dll", r[16].Name);
+                Assert.AreEqual("[DelayImportLookupTable] VERSION.dll", r[89].Name);
+                Assert.AreEqual("[DelayImportLookupTable] api-ms-win-core-winrt-l1-1-0.dll", r[90].Name);
 
-                Assert.AreEqual("[DelayImportAddressTable] VERSION.dll", r[34].Name);
-                Assert.AreEqual("[DelayImportAddressTable] api-ms-win-core-winrt-l1-1-0.dll", r[35].Name);
+                Assert.AreEqual("[DelayImportAddressTable] VERSION.dll", r[117].Name);
+                Assert.AreEqual("[DelayImportAddressTable] api-ms-win-core-winrt-l1-1-0.dll", r[118].Name);
 
-                Assert.AreEqual(4, r[15].Children.Count);
-                Assert.AreEqual(3, r[16].Children.Count);
+                Assert.AreEqual(4, r[89].Children.Count);
+                Assert.AreEqual(3, r[90].Children.Count);
 
-                Assert.AreEqual(4, r[34].Children.Count);
-                Assert.AreEqual(3, r[35].Children.Count);
+                Assert.AreEqual(4, r[117].Children.Count);
+                Assert.AreEqual(3, r[118].Children.Count);
             });
         }
 
@@ -114,18 +118,16 @@ namespace PESpy.Tests
         {
             WithRegions(WellKnownTestModule.ntdll, r =>
             {
-                Assert.AreEqual(4, r.Length);
-                Assert.AreEqual("Unwind Infos", r[0].Name);
-                Assert.AreEqual("Export Address Table", r[1].Name);
-                Assert.AreEqual("Export Names Table", r[2].Name);
-                Assert.AreEqual("Export Ordinals Table", r[3].Name);
+                Assert.AreEqual(139, r.Length);
+                Assert.AreEqual("Export Address Table", r[135].Name);
+                Assert.AreEqual("Export Names Table", r[136].Name);
+                Assert.AreEqual("Export Ordinals Table", r[137].Name);
 
                 //Given an ordinal export ordinals gets the name of that ordinal. The first item at ordinal 8 does not have a name,
                 //and therefore does not have an item in either names or ordinal names
-                Assert.AreEqual(4114, r[0].Children.Count);
-                Assert.AreEqual(2486, r[1].Children.Count);
-                Assert.AreEqual(2485, r[2].Children.Count);
-                Assert.AreEqual(2485, r[3].Children.Count);
+                Assert.AreEqual(2486, r[135].Children.Count);
+                Assert.AreEqual(2485, r[136].Children.Count);
+                Assert.AreEqual(2485, r[137].Children.Count);
             });
         }
 
@@ -151,15 +153,59 @@ namespace PESpy.Tests
         //GlobalValueEntries
 
         #endregion
+        #region OMF
+
+        [TestMethod]
+        public void RegionView_OMF_Test()
+        {
+            WithRegions(Sample.VC50_EXE, r =>
+            {
+                //todo: i was randomly getting different lenght here
+                //and i think its got something to do with markpadding;
+                //0x3afa is sometimes unknown sometimes data -> unknown
+                //and that throws our logic off cos we only look for
+                //unknown
+
+                Assert.AreEqual(12, r.Length);
+
+                var region = r[10];
+                Assert.AreEqual("NB11 OMF Data", region.Name);
+                Assert.AreEqual(3518, region.Children.Count);
+            });
+        }
+
+        #endregion
+        #region Data Directories
+
+        [TestMethod]
+        public void RegionView_DataDirectory_SplitEnd()
+        {
+            using var peFile = PEFile.FromKey(WellKnownTestModule.coreclr);
+
+            var view = peFile.GetView();
+
+            //The ResourceTableDirectory ends with 4 bytes of padding, and then there's padding after it
+            //for the rest of the .rsrc section, and these two sequences of bytes should be split
+            var sectionView = (SectionView) view[9];
+            Assert.AreEqual(".rsrc", sectionView.Name);
+
+            var lastDirectoryEntry = (ByteBlobView) sectionView[0].Children.Last();
+            var lastSectionEntry = (ByteBlobView) sectionView[1];
+
+            Assert.AreEqual(4, lastDirectoryEntry.Bytes.Length);
+            Assert.AreEqual(480, lastSectionEntry.Bytes.Length);
+        }
+
+        #endregion
 
         [TestMethod]
         public void RegionView_BundleManifest()
         {
             WithRegions(Sample.SingleFileApp_EXE, r =>
             {
-                Assert.AreEqual(337, r.Length);
+                Assert.AreEqual(1029, r.Length);
 
-                var region = r[336];
+                var region = r[1028];
                 Assert.AreEqual("Bundle Manifest", region.Name);
                 Assert.AreEqual(15, region.Children.Count);
             });

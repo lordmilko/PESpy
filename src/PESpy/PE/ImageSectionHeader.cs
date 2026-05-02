@@ -125,13 +125,30 @@ namespace PESpy
                     }
                     else
                     {
-                        //This can point beyond the end of the file, or the section can claim to have more line numbers than would fit in the file
+                        //It's very common for PointerToLineNumbers to be garbage
+                        //First of all, this can point beyond the end of the file, or the section can claim to have more line numbers than would fit in the file
                         if (TryGetHeaderChunk(chunk, offset, out var valueChunk) && valueChunk.Remaining >= (NumberOfLineNumbers * ImageLineNumber.StructSize))
                         {
+                            //And even if the above check passes, you can still have a PointerToLineNumbers that points to bogus memory.
+                            //We should never have a negative member in our ImageLineNumber. Obviously, when treated as an unsigned value,
+                            //these values would be positive, but ImageLineNumber basically seems to be a very legacy thing, and so on that basis
+                            //I don't think you would ever have so much data that we could have possibly extended into the unsigned value range
+
                             var lineNumbers = new ImageLineNumber[NumberOfLineNumbers];
 
                             for (var i = 0; i < NumberOfLineNumbers; i++)
-                                lineNumbers[i] = new ImageLineNumber(valueChunk.Slice(i * ImageLineNumber.StructSize));
+                            {
+                                var item = new ImageLineNumber(valueChunk.Slice(i * ImageLineNumber.StructSize));
+
+                                if (item.Linenumber < 0 || item.SymbolTableIndex < 0 || item.VirtualAddress < 0)
+                                {
+                                    //Assume PointerToLineNumbers is bogus
+                                    pointerToLineNumbers = new VA<ImageLineNumber[]>(offset);
+                                    return pointerToLineNumbers;
+                                }
+
+                                lineNumbers[i] = item;
+                            }
 
                             pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
                         }

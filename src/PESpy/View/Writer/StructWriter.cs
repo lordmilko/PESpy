@@ -134,10 +134,31 @@ namespace PESpy.View
                 throw new IndexOutOfRangeException();
         }
 
+        internal void PadTypOrThrow(int expectedLength, int actualLength)
+        {
+            //Sometimes you've got LF_PAD (f2, f1), etc. Other times you've got
+            //0x00 and then 0xf1
+
+            var paddingSize = expectedLength - actualLength;
+
+            if (paddingSize > 0)
+                WriteByteBlob(actualLength + sizeof(short), paddingSize); //The actual length doesn't include the typlen in the length
+            else
+                throw new IndexOutOfRangeException();
+        }
+
         internal static int GetNumChildrenAlign4(int numChildren, int bytesUsed)
         {
             if (bytesUsed != ((bytesUsed + 3) & ~3))
                 return numChildren + 1; //Used bytes are not 32-bit aligned; we'll need to add padding
+
+            return numChildren;
+        }
+
+        internal static int GetNumPaddedChildren(int numChildren, int expectedLength, int actualLength)
+        {
+            if (expectedLength - actualLength > 0)
+                return numChildren + 1;
 
             return numChildren;
         }
@@ -755,6 +776,17 @@ namespace PESpy.View
             }
 
             RelayField(name, relativeOffset, value, value.Length * sizeof(short));
+        }
+
+        public unsafe void WriteField(string name, int relativeOffset, NativeSpan<OMFSourceFile.RANGE> value)
+        {
+            if (value.Length == 0)
+            {
+                //The caller should not be asking us to write this if it's empty, because this will mess up their child count
+                throw new IndexOutOfRangeException();
+            }
+
+            RelayField(name, relativeOffset, value, value.Length * sizeof(OMFSourceFile.RANGE));
         }
 
         #endregion

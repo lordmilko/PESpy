@@ -88,6 +88,8 @@ namespace PESpy.PDB
                 //DataSym3216t
                 case S_LDATA32_16t:
                 case S_GDATA32_16t:
+                case S_LTHREAD32_16t: //Not sure if DIA supports thread symbols, but we certainly want to
+                case S_GTHREAD32_16t:
                     var dataSym3216t = (DataSym3216t) symType;
                     seg = dataSym3216t.seg;
                     off = dataSym3216t.off;
@@ -96,6 +98,12 @@ namespace PESpy.PDB
                 //DataSym32
                 case S_LDATA32:
                 case S_GDATA32:
+                case S_LDATA32_ST:
+                case S_GDATA32_ST:
+                case S_LTHREAD32:  //Not sure if DIA supports thread symbols, but we certainly want to
+                case S_LTHREAD32_ST:
+                case S_GTHREAD32:
+                case S_GTHREAD32_ST:
                     var dataSym32 = (DataSym32) symType;
                     seg = dataSym32.seg;
                     off = dataSym32.off;

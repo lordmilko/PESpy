@@ -55,7 +55,7 @@ namespace PESpy
             }
         }
 
-        internal PDB2File(string fileName, in MemoryMappedFileHolder mmf) : base(fileName, mmf, PDBFileKind.V2)
+        internal PDB2File(string fileName, in MemoryMappedFileHolder mmf, string name = null) : base(fileName, mmf, PDBFileKind.V2, name)
         {
 #if STRESS_TEST
             _ = PreviousStreamTable;

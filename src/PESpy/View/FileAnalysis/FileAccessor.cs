@@ -67,7 +67,7 @@ namespace PESpy.View
         internal RegionBuilder[] TopLevelDirectories => _topLevelDirectories;
 
         private RegionBuilder[] _topLevelRegions; //Contains the hierarchy of regions
-        private RegionBuilder[] _firstRegionByAddress; //Contains the highest region at each address. If two regions share an address, you only get the first one
+        private RegionBuilder[] _firstRegionByAddress; //Contains the highest region at each address. If two regions share an address, you only get the first one. Not sorted
         private Dictionary<int, int> _regionByAddressLookup;
 
         internal RegionBuilder[] TopLevelRegions => _topLevelRegions;
@@ -121,6 +121,7 @@ namespace PESpy.View
             switch (machine)
             {
                 case IMAGE_FILE_MACHINE_I386:
+                case IMAGE_FILE_MACHINE_UNKNOWN: //Assume 32-bit
                     return 32;
 
                 case IMAGE_FILE_MACHINE_AMD64:
@@ -178,6 +179,7 @@ namespace PESpy.View
                 this,
                 sectionAccessorIndex,
                 GetSymbolAccessor(),
+                accessor,
                 address,
                 pViewByte,
                 accessor.pViewBytes,
@@ -200,6 +202,7 @@ namespace PESpy.View
                 this,
                 sectionAccessorIndex,
                 GetSymbolAccessor(),
+                sectionAccessor,
                 targetAddress,
                 pViewByte,
                 sectionAccessor.pViewBytes,
@@ -226,6 +229,7 @@ namespace PESpy.View
                 this,
                 sectionIndex + 1,
                 GetSymbolAccessor(),
+                accessor,
                 address,
                 pViewByte,
                 accessor.pViewBytes,
@@ -282,8 +286,13 @@ namespace PESpy.View
             if (nextIndex != sectionViews.Length)
                 Array.Resize(ref sectionViews, nextIndex);
 
-            if (viewMode == ViewMode.Default && FileViewKind == ViewKind.PEFile)
-                viewMode = ((PEFileAccessor) this).IsLoaded ? ViewMode.Virtual : ViewMode.Physical;
+            if (viewMode == ViewMode.Default)
+            {
+                if (FileViewKind == ViewKind.PEFile)
+                    viewMode = ((PEFileAccessor) this).IsLoaded ? ViewMode.Virtual : ViewMode.Physical;
+                else
+                    viewMode = ViewMode.Physical;
+            }
 
             return new FileView(viewMode, File, sectionViews, GetViewWriter(), FileViewKind);
         }
@@ -467,16 +476,11 @@ namespace PESpy.View
         internal abstract MemoryChunk GetMemoryChunkFromRVA(int rva);
 
         //Could either be an RVA or an offset (depends if we're a loaded image or not)
-        internal abstract MemoryChunk GetMemoryChunkFromAddress(int address);
+        internal abstract void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter);
 
         #region GetStructView
 
         protected abstract ViewWriter GetViewWriter();
-
-        protected abstract ViewWriter GetViewWriterForAddress(int targetOffset);
-
-        public IStructView GetStructView<T>(T viewable) where T : IValue, IViewable =>
-            (IStructView) viewable.WriteStruct(GetViewWriterForAddress(viewable.Offset));
 
         //For when the type of view you're after may not be top level. When it's top level
         //it is possible to ask the info map what the ViewKind is
@@ -493,9 +497,9 @@ namespace PESpy.View
             }
             else
             {
-                var chunk = GetMemoryChunkFromAddress(targetAddress);
+                GetMemoryChunkFromAddress(targetAddress, out var chunk, out var viewWriter);
 
-                var structView = ViewProvider.CreateStructView(viewKind, pViewByte->GetLength(limit), chunk, GetViewWriterForAddress(targetAddress));
+                var structView = ViewProvider.CreateStructView(viewKind, pViewByte->GetLength(limit), chunk, viewWriter);
 
                 return structView;
             }
@@ -559,8 +563,8 @@ namespace PESpy.View
             var headOffset = (int) (offset - (pViewByte - pStartViewByte));
 
             var structKind = GetStructKind(headOffset);
-            var chunk = GetMemoryChunkFromAddress(headOffset);
-            var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, pStartViewByte->GetLength(limit), chunk, GetViewWriterForAddress(offset));
+            GetMemoryChunkFromAddress(headOffset, out var chunk, out var viewWriter);
+            var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, pStartViewByte->GetLength(limit), chunk, viewWriter);
 
             //Traverse the struct until we find the struct we were looking for
 
@@ -747,6 +751,7 @@ namespace PESpy.View
             var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
+            CheckName(targetAddress);
             pViewByte->HasName = true;
             AddStructKind(targetAddress, kind);
 
@@ -827,8 +832,6 @@ namespace PESpy.View
         #endregion
         #endregion
 
-        internal abstract bool TryGetDataSymbol(ulong address, int rva, out FixedUtf8String name, out int displacement);
-
         public abstract bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva);
 
         internal abstract ISectionDataAccessor CreateThreadLocalSectionDataAccessor();
@@ -878,10 +881,55 @@ namespace PESpy.View
         internal bool TryGetDirectory(int targetAddress, int depth, out RegionBuilder directory) =>
             TryGetRegionInternal(targetAddress, depth, _directoryByAddressLookup, _firstDirectoryByAddress, out directory);
 
-        internal void InstallRegions(List<RegionBuilder> topLevelRegions, List<RegionBuilder> firstRegionByAddress)
-        {
-            topLevelRegions.Sort((a, b) => a.Start.CompareTo(b.Start));
-            firstRegionByAddress.Sort((a, b) => a.Start.CompareTo(b.Start));
+        internal void InstallRegions(
+            List<RegionBuilder> topLevelRegions,
+            List<RegionBuilder> firstRegionByAddress,
+            List<RegionBuilder> extraRegions)
+        {            
+            if (extraRegions.Count > 0)
+            {
+                //Add extraRegions into the master list so we can go about building up the final hierarchy. If there's
+                //no extra regions, we're all good because we already handle the hierarchy properly during ViewWriter
+                //processing
+                topLevelRegions.AddRange(extraRegions);
+
+                topLevelRegions.Sort((a, b) =>
+                {
+                    var diff = a.Start.CompareTo(b.Start);
+
+                    if (diff != 0)
+                        return diff;
+
+                    return b.End.CompareTo(a.End); //Larger items should be listed first
+                });
+
+                var parentStack = new Stack<RegionBuilder>();
+
+                var toRemove = new HashSet<RegionBuilder>();
+
+                foreach (var region in topLevelRegions)
+                {
+                    while (parentStack.Count > 0 && parentStack.Peek().End <= region.End)
+                        parentStack.Pop();
+
+                    if (parentStack.Count > 0)
+                    {
+                        var parent = parentStack.Peek();
+
+                        if (parent.Children == null)
+                            parent.Children = new List<RegionBuilder>();
+
+                        region.Depth = parent.Depth + 1;
+
+                        parent.Children.Add(region);
+                        toRemove.Add(region);
+                    }
+
+                    parentStack.Push(region);
+                }
+
+                topLevelRegions.RemoveAll(v => toRemove.Contains(v));
+            }
 
             //Enable fast lookup of directories based on offset
             var regionLookup = new Dictionary<int, int>(firstRegionByAddress.Count);
@@ -895,9 +943,26 @@ namespace PESpy.View
                 regionLookup[item.Start] = i;
             }
 
+            //Now merge the extra regions in
+            foreach (var region in extraRegions)
+            {
+                if (regionLookup.TryGetValue(region.Start, out var index))
+                {
+                    var existingRegion = firstRegionByAddress[index];
+
+                    if (region.Depth < existingRegion.Depth)
+                        firstRegionByAddress[index] = region;
+                }
+                else
+                {
+                    regionLookup[region.Start] = firstRegionByAddress.Count;
+                    firstRegionByAddress.Add(region);
+                }
+            }
+
             _regionByAddressLookup = regionLookup;
             _topLevelRegions = topLevelRegions.ToArray();
-            _firstRegionByAddress = firstRegionByAddress.ToArray();
+            _firstRegionByAddress = firstRegionByAddress.ToArray(); //Doesn't need to be sorted
         }
 
         internal void InstallNestedFileRanges(PEViewByteViewWriter viewWriter)
@@ -1064,6 +1129,12 @@ namespace PESpy.View
             }
 
             _stringAddresses = stringAddresses;
+        }
+
+        [Conditional("DEBUG")]
+        internal void CheckName(int targetAddress)
+        {
+            //Set a breakpoint here to debug an issue with a given target address
         }
 
         public virtual void Dispose()

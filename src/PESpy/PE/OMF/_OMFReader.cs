@@ -26,6 +26,57 @@ namespace PESpy
 
     public static unsafe class OMFReader
     {
+        internal static bool ContainsTrailingOMF(byte* startAddress, int length)
+        {
+            if (length < 8)
+                return false;
+
+            var endOfFile = startAddress + length;
+
+            var endSig = (OMFSignature*) (endOfFile - 8);
+
+            var sig = (CodeViewSig) endSig->Signature;
+
+            switch (sig)
+            {
+                case CodeViewSig.DNRB:
+                    return true;
+
+                case CodeViewSig.NB00:
+                case CodeViewSig.NB01:
+                case CodeViewSig.NB02:
+                //case CodeViewSig.NB03: //Unknown IBM(?) format. Not currently supported
+                //case CodeViewSig.NB04: //Unknown IBM(?) format. Not currently supported
+
+                case CodeViewSig.NB05:
+                case CodeViewSig.NB06:
+                case CodeViewSig.NB07:
+                case CodeViewSig.NB08:
+                case CodeViewSig.NB09:
+                //case CodeViewSig.NB10: //NB10 is used for PDBs, and should not be found in an OMFSignature
+                case CodeViewSig.NB11:
+                    break;
+
+                default:
+                    return false;
+            }
+
+            var lfoBase = endSig->filepos;
+
+            var startPos = (endOfFile - lfoBase);
+
+            if (startPos < startAddress)
+                return false;
+
+            var startSig = (OMFSignature*) startPos;
+
+            //We would expect to have the same signature
+            if (startSig->Signature != endSig->Signature)
+                return false;
+
+            return true;
+        }
+
         //startAddress should be the start address of the file
         //length should be the total length of the file
         //globalBlock should be a block that is capable of accessing the entire file

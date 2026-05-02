@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using PESpy.View;
 
 namespace PESpy
@@ -30,6 +31,8 @@ namespace PESpy
             /* DataDirectory                                             */ default,
             /* ILMethods                                                 */ default,
             /* UnwindInfos                                               */ default,
+            /* Symbols                                                   */ default,
+            /* Types                                                     */ default,
             /* Thunks                                                    */ default,
             /* Functions                                                 */ default,
             /* ImageDosHeader                                            */ Strings.IMAGE_DOS_HEADER,
@@ -84,7 +87,6 @@ namespace PESpy
             /* UnknownResource                                           */ default,
             /* RuntimeFunction                                           */ Strings.RUNTIME_FUNCTION,
             /* UnwindInfo                                                */ Strings.UNWIND_INFO,
-            /* UnwindInfo_ExceptionData                                  */ default,
             /* UnwindCode                                                */ Strings.UNWIND_CODE,
             /* GsHandlerData                                             */ Strings._GS_HANDLER_DATA,
             /* ScopeTable                                                */ Strings.SCOPE_TABLE,
@@ -727,9 +729,19 @@ namespace PESpy
             /* OMFDirHeader                                              */ Strings.OMFDirHeader,
             /* OMFDirEntry                                               */ Strings.OMFDirEntry,
             /* CodeViewSig                                               */ default,
+            /* OMFGlobalTypes                                            */ Strings.OMFGlobalTypes,
             /* OMFModule                                                 */ Strings.OMFModule,
             /* OMFSegDesc                                                */ Strings.OMFSegDesc,
             /* OMFSymHash                                                */ Strings.OMFSymHash,
+            /* OMFSourceFile                                             */ Strings.OMFSourceFile,
+            /* OMFSourceLine                                             */ Strings.OMFSourceLine,
+            /* OMFSourceModule                                           */ Strings.OMFSourceModule,
+            /* OMFTypeFlags                                              */ Strings.OMFTypeFlags,
+            /* SymHash32Long                                             */ Strings.SymHash32Long,
+            /* AddrHash32v4                                              */ Strings.AddrHash32v4,
+            /* AddrHash32v5                                              */ Strings.AddrHash32v5,
+            /* AddrHash32v8                                              */ Strings.AddrHash32v8,
+            /* AddrHash32v12                                             */ Strings.AddrHash32v12,
             /* UnknownSymHash                                            */ default,
             /* UnknownAddrHash                                           */ default,
             /* dnt                                                       */ Strings.dnt,
@@ -744,6 +756,7 @@ namespace PESpy
             /* LineNumberOffset                                          */ Strings.LineNumberOffset,
             /* LineNumberOffset32                                        */ Strings.LineNumberOffset,
             /* LibraryName                                               */ Strings.LibraryName,
+            /* SegmentName                                               */ Strings.SegmentName,
             /* OldSymType                                                */ default,
             /* OldTypType                                                */ default,
             /* DNRBModule                                                */ Strings.DNRBModule,
@@ -762,7 +775,17 @@ namespace PESpy
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static FixedUtf8String GetName(ViewKind kind) => _structNames[(int) kind];
+        internal static FixedUtf8String GetName(ViewKind kind)
+        {
+            //You should not be asking for the name of a kind that does not have a name
+#if DEBUG
+            var result = _structNames[(int) kind - 1];
+            Debug.Assert(result.Length > 0, $"Kind '{kind}' does not have a name");
+            return result;
+#else
+            return _structNames[(int) kind - 1];
+#endif
+        }
 
         internal static string GetFieldName(ViewKind kind)
         {

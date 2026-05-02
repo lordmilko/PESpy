@@ -820,8 +820,15 @@ namespace PESpy
         {
             Debug.Assert(ctx.DBGFilePath != null);
 
-            if (Detector.TryOpenFile(ctx.DBGFilePath, out var dbgFile) && dbgFile is DBGFile d)
+            if (Detector.TryOpenFile(ctx.DBGFilePath, out var dbgFile))
             {
+                if (dbgFile is not DBGFile d)
+                {
+                    dbgFile.Dispose();
+                    run = false;
+                    return false;
+                }
+
                 if (!ownsPEFile)
                 {
                     //We're replacing the file with the DBGFile, so we _will_ need to dispose that when we're done

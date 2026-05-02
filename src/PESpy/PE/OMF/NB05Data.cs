@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using ClrDebug.OMF;
 using PESpy.View;
 
 namespace PESpy
@@ -63,8 +65,6 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //Merger.TryCreateOMFRegion will wrap this all up in a region
-
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, LfoDir, sizeof(int), ViewKind.LfoDir);
 
@@ -76,25 +76,82 @@ namespace PESpy
 
                 var data = entry.Data;
 
-                if (data is IValue v)
-                    writer.WriteGlobal((IViewable) v);
-                else if (data is OMFHashedSymbols s)
+                switch (entry.SubSection)
                 {
-                    writer.WriteGlobal(s.Hash);
-                    writer.WriteGlobal(s.Hash.Offset + OMFSymHash.StructSize, s.Symbols);
-                }
-                else
-                {
-                    if (data != null)
-                        throw new NotImplementedException($"Don't know how to write a global of type '{data.GetType().Name}'");
+                    case SST.sstModule:
+                        writer.WriteGlobal((OMFModule) data);
+                        break;
+
+                    case SST.sstTypes:
+                        writer.WriteGlobal((OMFModuleTypes) data);
+                        break;
+
+                    case SST.sstPublic:
+                        Debug.Assert(false);
+                        break;
+
+                    case SST.sstSymbols:
+                    case SST.sstPublicSym:
+                    case SST.sstAlignSym:
+                        writer.WriteGlobal((OMFModuleSymbols) data);
+                        break;
+
+                    case SST.sstSrcLnSeg:
+                        Debug.Assert(false);
+                        break;
+
+                    case SST.sstSrcModule:
+                        writer.WriteGlobal((OMFSourceModule) data);
+                        break;
+
+                    case SST.sstLibraries:
+                        var libraries = (RawValue<SymString[]>) data;
+                        writer.WriteGlobal(libraries.Offset, libraries.Value, ViewKind.LibraryName);
+                        break;
+
+                    case SST.sstGlobalSym:
+                    case SST.sstGlobalPub:
+                    case SST.sstStaticSym:
+                        writer.WriteGlobal((OMFHashedSymbols) data);
+                        break;
+
+                    case SST.sstGlobalTypes:
+                        writer.WriteGlobal((OMFGlobalTypes) data);
+                        break;
+
+                    case SST.sstMPC:
+                        throw new NotImplementedException();
+
+                    case SST.sstSegMap:
+                        writer.WriteGlobal((OMFSegMap) data);
+                        break;
+
+                    case SST.sstSegName:
+                        var segmentNames = (RawValue<AnsiString[]>) data;
+                        writer.WriteGlobal(segmentNames.Offset, segmentNames.Value, ViewKind.SegmentName);
+                        break;
+
+                    case SST.sstPreComp:
+                    case SST.sstPreCompMap:
+                    case SST.sstOffsetMap16:
+                    case SST.sstOffsetMap32:
+                        Debug.Assert(false);
+                        break;
+
+                    case SST.sstFileIndex:
+                        writer.WriteGlobal((OMFFileIndex) data);
+                        break;
+
+                    default:
+                        throw new NotImplementedException($"Don't know how to handle {nameof(SST)} '{entry.SubSection}'");
                 }
             }
 
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);
 
-            writer.WriteGlobalField(Offset + LfoBase - 8, LfoBase, sizeof(int), ViewKind.LfoBase);
-            writer.WriteGlobal(Offset + LfoBase - 4, Signature, sizeof(int), ViewKind.CodeViewSig);
+            writer.WriteGlobal(Offset + LfoBase - 8, Signature, sizeof(int), ViewKind.CodeViewSig);
+            writer.WriteGlobalField(Offset + LfoBase - 4, LfoBase, sizeof(int), ViewKind.LfoBase);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

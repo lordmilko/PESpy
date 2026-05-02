@@ -116,6 +116,15 @@ namespace PESpy.Tests
                 verifyStructs[i](structs[i]);
         }
 
+        public static void VerifyStructFieldArrayIgnoreChildren(this IView view, string name)
+        {
+            Assert.IsInstanceOfType(view, typeof(IStructArrayFieldView), $"{name} should not be a field");
+
+            var structFieldView = (IStructArrayFieldView) view;
+
+            VerifyFieldIgnoreValue(view, name);
+        }
+
         public static void VerifyField(this IView view, string name, object value)
         {
             Assert.IsInstanceOfType(view, typeof(IFieldView), $"{name} should not be a field");
@@ -137,10 +146,12 @@ namespace PESpy.Tests
                     fieldValue = b1.ToArray();
                 else if (fieldValue is NativeSpan<short> b2)
                     fieldValue = b2.ToArray();
-                else if (fieldValue is NativeSpan<byte> b3)
+                else if (fieldValue is NativeSpan<ushort> b3)
                     fieldValue = b3.ToArray();
-                else if (fieldValue is NativeSpan<PN> b4)
+                else if (fieldValue is NativeSpan<byte> b4)
                     fieldValue = b4.ToArray();
+                else if (fieldValue is NativeSpan<PN> b5)
+                    fieldValue = b5.ToArray();
                 else
                     throw new NotImplementedException();
 
@@ -178,7 +189,10 @@ namespace PESpy.Tests
                 if (fieldValue is PDB.SN sn && value is not PDB.SN)
                     fieldValue = (ushort) sn;
 
-                Assert.AreEqual(value, fieldValue, $"Value of field {name} was incorrect");
+                if (fieldValue is Timestamp ts)
+                    fieldValue = (uint) ts;
+
+                Assert.AreEqual(value, fieldValue, $"Value of field '{name}' was incorrect");
             }
         }
 

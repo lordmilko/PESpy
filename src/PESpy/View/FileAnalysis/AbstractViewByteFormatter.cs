@@ -348,13 +348,13 @@ namespace PESpy.View
                         else if (view is IStructArrayFieldView)
                             throw new NotImplementedException();
 
-                        if (view is IContainerView c)
+                        if (view.IsContainer())
                         {
                             ViewChildList children;
 
                             if (current.Children == null)
                             {
-                                children = c.Children;
+                                children = view.Children;
                                 current.LastChildIndex = 0;
                                 current.Children = children;
                             }
@@ -519,14 +519,14 @@ namespace PESpy.View
 
                                 //todo: do we care if the child is an istructfieldview or istructfieldarrayview?
 
-                                if (nextChild is IContainerView c)
+                                if (nextChild.IsContainer())
                                 {
-                                    var children = c.Children;
+                                    var children = nextChild.Children;
 
                                     current = new EntityState(nextChild, true)
                                     {
                                         LastChildIndex = 0,
-                                        Children = c.Children,
+                                        Children = nextChild.Children,
                                     };
                                 }
                                 else
@@ -585,11 +585,11 @@ namespace PESpy.View
                                         else if (view is IStructArrayFieldView)
                                             throw new NotImplementedException();
 
-                                        if (view is IContainerView c)
+                                        if (view.IsContainer())
                                         {
                                             if (current.Children == null)
                                             {
-                                                children = c.Children;
+                                                children = view.Children;
                                                 current.LastChildIndex = children.Count - 1;
                                                 current.Children = children;
                                             }
@@ -603,7 +603,7 @@ namespace PESpy.View
                                                 if (child.Contains(firstVisibleLine.StartAddress))
                                                 {
                                                     current.LastChildIndex = j;
-                                                    current = new EntityState(child, child is IContainerView);
+                                                    current = new EntityState(child, child.IsContainer());
                                                     _path.Push(current);
                                                     break;
                                                 }
@@ -681,7 +681,7 @@ namespace PESpy.View
                     if (current.LastChildIndex == -1)
                     {
                         if (current.HasChildren)
-                            current.Children = ((IContainerView) current.View!).Children;
+                            current.Children = current.View!.Children;
                         else
                         {
                             //It was a field (which we pushed on just so it could record its depth properly)
@@ -848,7 +848,7 @@ namespace PESpy.View
                     {
                         if (current.HasChildren)
                         {
-                            current.Children = ((IContainerView) current.View!).Children;
+                            current.Children = current.View!.Children;
                             current.LastChildIndex = current.Children.Value.Count; //We go +1 past the end because we're about to do -1
                         }
                         else
@@ -885,10 +885,10 @@ namespace PESpy.View
                             throw new NotImplementedException();
 
                         //todo: do we care if the child is an istructfieldview or istructfieldarrayview?
-                        while (child is IContainerView c)
+                        while (child.IsContainer())
                         {
                             //We need to dig into the children at the end of it
-                            var children = c.Children;
+                            var children = child.Children;
 
                             var entity = new EntityState(child)
                             {
@@ -992,7 +992,9 @@ namespace PESpy.View
                     state = new EntityState(EntityKind.Data, pViewByte, ownerAddress)
                     {
                         DataName = "Unknown",
-                        DataLength = pViewByte->GetUnknownLength(_sectionViewByteEnd), //todo: counting the length of a large number of unknown bytes is very slow, and thats bad if we're on the ui thread
+
+                        //We should already have unknown bodies at this point
+                        DataLength = pViewByte->GetLength(_sectionViewByteEnd),
                         IsStreamer = true
                     };
                     _path.Push(state);
@@ -1575,9 +1577,9 @@ namespace PESpy.View
                 if (targetAddress == view.Offset)
                     return view;
 
-                if (view is IContainerView c)
+                if (view.IsContainer())
                 {
-                    var children = c.Children;
+                    var children = view.Children;
 
                     var entity = new EntityState(view)
                     {
@@ -1588,7 +1590,7 @@ namespace PESpy.View
 
                     var found = false;
 
-                    foreach (var child in c.Children)
+                    foreach (var child in view.Children)
                     {
                         entity.LastChildIndex++;
 

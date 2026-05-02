@@ -12,7 +12,7 @@ namespace PESpy
     public struct ImageFileHeader : IViewableValue
     {
         private const int MachineOffset = 0;
-        private const int NumberOfSectionsOffset = 2;
+        internal const int NumberOfSectionsOffset = 2;
         private const int TimeDateStampOffset = 4;
         internal const int PointerToSymbolTableOffset = 8;
         private const int NumberOfSymbolsOffset = 12;
@@ -46,6 +46,7 @@ namespace PESpy
             {
                 if (pointerToSymbolTable.ListedAddress == 0)
                 {
+                    //If this extends beyond the length of the chunk, I feel like maybe we should throw? (which is what this does) Not sure
                     var offset = chunk.PeekInt32(PointerToSymbolTableOffset);
 
                     if (offset != 0)

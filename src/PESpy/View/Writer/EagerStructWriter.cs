@@ -483,6 +483,7 @@ namespace PESpy.View
                 {
                     items.Add(result);
                     currentFieldOffset += result.Size;
+                    viewWriter.UnmanagedOffset += result.Size;
                 }
             }
 

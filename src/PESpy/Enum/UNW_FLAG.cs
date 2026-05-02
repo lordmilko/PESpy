@@ -26,6 +26,9 @@ namespace PESpy
         /// RUNTIME_FUNCTION entry. For information, see Chained unwind info structures. If this flag is set, then the UNW_FLAG_EHANDLER and UNW_FLAG_UHANDLER
         /// flags must be cleared. Also, the frame register and fixed-stack allocation fields must have the same values as in the primary unwind info.
         /// </summary>
-        CHAININFO = 4
+        CHAININFO = 4,
+
+        //winnt.h also mentions UNW_FLAG_NO_EPILOGUE = 0x80000000
+        //but says it's a "software only flag". Don't know what this means
     }
 }

@@ -67,9 +67,9 @@ namespace PESpy
                         writer.WriteGlobal(oldSymType.Offset, oldSymType.Value, entry.cb, ViewKind.OldSymType);
                         break;
 
-                    case SST.SSTLIBRARIES: //RawValue<FixedAnsiString[]>
-                        var libraries = (RawValue<FixedAnsiString[]>) data;
-                        writer.WriteGlobal(libraries.Offset, libraries.Value, entry.cb, ViewKind.LibraryName);
+                    case SST.SSTLIBRARIES: //RawValue<SymString[]>
+                        var libraries = (RawValue<SymString[]>) data;
+                        writer.WriteGlobal(libraries.Offset, libraries.Value, ViewKind.LibraryName);
                         break;
 
                     case SST.SSTIMPORTS:

@@ -172,7 +172,13 @@ namespace PESpy.Tests
 
             var str = string.Join(Environment.NewLine, allXRefProperties.Select(v => $"{v.DeclaringType.Name}.{v.Name}"));
 
-            var missing = withoutXRefs.Except(withXRefs).OrderBy(v => v).ToArray();
+            var ignore = new[]
+            {
+                //Haven't found any test modules that use the xrefs from these
+                nameof(ImageSectionHeader)
+            };
+
+            var missing = withoutXRefs.Except(withXRefs).Except(ignore).OrderBy(v => v).ToArray();
 
             if (missing.Length > 0)
             {
@@ -219,6 +225,7 @@ namespace PESpy.Tests
 
             var ignore = new[]
             {
+                "PESpy.ImageOptionalHeader.GlobalPointerTableDirectory", //Not a region; the VirtualAddress is the value itself
                 "PESpy.ImageOptionalHeader.NullDirectory"
             };
 
@@ -231,7 +238,7 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void bad_AssertRefPropertiesHaveDebugProxies()
+        public void AssertRefPropertiesHaveDebugProxies()
         {
             //Ref properties don't display properly in the Visual Studio debugger,
             //so we need to implement a custom debug type proxy that returns
@@ -343,6 +350,13 @@ namespace PESpy.Tests
 
                             //And the next line is the enum field
                             var enumValue = lines[j + 1].Trim(' ', ',');
+
+                            if (enumValue.StartsWith("[Description"))
+                            {
+                                j++;
+                                enumValue = lines[j + 1].Trim(' ', ',');
+                            }
+
                             Debug.Assert(!enumValue.Contains("///"));
 
                             if (enumValue.StartsWith("//"))
@@ -582,10 +596,35 @@ namespace PESpy.Tests
                             case nameof(ViewKind.BundleFileEntry):
                             case nameof(ViewKind.BundleFileEntryFixed):
                             case nameof(ViewKind.DotNetRuntimeDebugHeader):
+                            case nameof(ViewKind.OMFDirEntry):
+                            case nameof(ViewKind.OMFGlobalTypes):
+                            case nameof(ViewKind.OMFSourceFile):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
                                 break;
 
+                            case nameof(ViewKind.SymHash32Long):
+                                //As of writing only v10 is used with SymHash32Long
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.SymHash32Long(chunk, 10), viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.AddrHash32v4):
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.AddrHash32(chunk, 4), viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.AddrHash32v5):
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.AddrHash32(chunk, 5), viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.AddrHash32v8):
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.AddrHash32(chunk, 8), viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.AddrHash32v12):
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.AddrHash32(chunk, 12), viewWriter),");
+                                break;
+
                             case nameof(ViewKind.HRFile):
+                            case nameof(ViewKind.OMFTypeFlags):
                                 builder.AppendLine($"WriteUnmanaged<{enumValue}>(chunk, viewWriter, kind),");
                                 break;
 
@@ -662,6 +701,11 @@ namespace PESpy.Tests
                                         default:
                                             switch (structKind)
                                             {
+                                                case "int":
+                                                    peekKind = "Int32";
+                                                    size = "int";
+                                                    break;
+
                                                 case "long":
                                                     peekKind = "Int64";
                                                     size = "long";
@@ -682,6 +726,10 @@ namespace PESpy.Tests
 
                                                 case "FixedUtf8String":
                                                     builder.AppendLine("WriteFixedUtf8String(chunk, viewWriter, length, kind),");
+                                                    continue;
+
+                                                case "SymString":
+                                                    builder.AppendLine("WriteSymString(chunk, viewWriter, length, kind),");
                                                     continue;
 
                                                 case "IntPtr":
@@ -814,6 +862,7 @@ namespace PESpy.Tests
         {
             var builder = new StringBuilder();
 
+            builder.AppendLine("using System.Diagnostics;");
             builder.AppendLine("using System.Runtime.CompilerServices;");
             builder.AppendLine("using PESpy.View;");
             builder.AppendLine();
@@ -858,7 +907,17 @@ namespace PESpy.Tests
 
             //Also gets field names for ViewEntity items
             builder.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-            builder.AppendLine("        internal static FixedUtf8String GetName(ViewKind kind) => _structNames[(int) kind - 1];");
+            builder.AppendLine("        internal static FixedUtf8String GetName(ViewKind kind)");
+            builder.AppendLine("        {");
+            builder.AppendLine("            //You should not be asking for the name of a kind that does not have a name");
+            builder.AppendLine("#if DEBUG");
+            builder.AppendLine("            var result = _structNames[(int) kind - 1];");
+            builder.AppendLine("            Debug.Assert(result.Length > 0, $\"Kind '{kind}' does not have a name\");");
+            builder.AppendLine("            return result;");
+            builder.AppendLine("#else");
+            builder.AppendLine("            return _structNames[(int) kind - 1];");
+            builder.AppendLine("#endif");
+            builder.AppendLine("        }");
 
             builder.AppendLine();
 

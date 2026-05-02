@@ -1,22 +1,27 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
     [Source(SourceKind.cvexefmt_h)]
     [DebuggerDisplay("{flags.sig} Global Types ({cType.ToString(),nq})")]
-    public class OMFGlobalTypes : IEnumerable<TypType>
+    public class OMFGlobalTypes : IEnumerable<TypType>, IValue, IViewable
     {
-        public OMFTypeFlags flags => chunk.PeekUnmanaged<OMFTypeFlags>(0);
+        private const int flagsOffset = 0;
+        private const int cTypeOffset = 4;
+        private const int typeOffsetOffset = 8;
 
-        public int cType => chunk.PeekInt32(4);
+        public OMFTypeFlags flags => chunk.PeekUnmanaged<OMFTypeFlags>(flagsOffset);
 
-        public NativeSpan<int> typeOffset => chunk.PeekNativeSpan<int>(8, cType);
+        public int cType => chunk.PeekInt32(cTypeOffset);
+
+        public NativeSpan<int> typeOffset => chunk.PeekNativeSpan<int>(typeOffsetOffset, cType);
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         private TypType[] Items => this.ToArray();
@@ -28,12 +33,16 @@ namespace PESpy
         //must start on a word boundary, and we don't enforce such alignment in TypTypeList
         public unsafe TypType this[int index] => (TYPTYPE*) (chunk.Pointer + typeInfoStart + typeOffset[index]);
 
+        public int Offset => chunk.AbsoluteOffset;
+
         private readonly MemoryChunk chunk;
+        private readonly int length;
         private readonly int typeInfoStart;
 
         internal unsafe OMFGlobalTypes(in MemoryChunk chunk, int length, NB05SymbolAccessor codeViewAccessor)
         {
             this.chunk = chunk;
+            this.length = length;
 
             //In NB07/NB08, each type offset is relative to the beginning of OMFGlobalTypes. In NB09 each type offset is relative to
             //the beginning of the area where the type names are listed. Despite what the PDF says, these do not appear to be type "names",
@@ -49,11 +58,13 @@ namespace PESpy
 
                 case CodeViewSig.NB07:
                 case CodeViewSig.NB08:
+                    //Offsets are relative to the start of the OMFGlobalTypes record
                     typeInfoStart = 0;
                     break;
 
                 default:
-                    typeInfoStart = sizeof(int) + sizeof(int) + (cType * sizeof(int));
+                    //Offsets are relative to the area after the end of the OMFGlobalTypes record
+                    typeInfoStart = typeOffsetOffset + (cType * sizeof(int));
                     break;
             }
 
@@ -103,6 +114,48 @@ namespace PESpy
 
             public void Dispose()
             {
+            }
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //OMFGlobalTypes contains an array of offsets to types, which means every offset is technically an xref
+
+            var structOffset = Offset;
+
+            var baseTypTypeOffset = structOffset + typeOffsetOffset + typeInfoStart;
+
+            var fieldOffset = typeOffsetOffset;
+
+            foreach (var offset in typeOffset)
+            {
+                writer.WriteOffsetXRef(structOffset, fieldOffset, baseTypTypeOffset + offset);
+            }
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(this, ViewKind.OMFGlobalTypes, length);
+
+        int IViewable.NumChildren() => 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteStructField(nameof(flags), flagsOffset, flags);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(cType), cTypeOffset, cType);
+                    break;
+
+                case 2:
+                    structWriter.WriteField(nameof(typeOffset), typeOffsetOffset, typeOffset);
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
             }
         }
     }

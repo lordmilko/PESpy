@@ -83,13 +83,13 @@ namespace PESpy
 
         private bool disposed;
 
-        internal unsafe ResourceFile(string fileName, in MemoryMappedFileHolder mmf, UnmanagedMemoryStream? stream = null)
+        internal unsafe ResourceFile(string fileName, in MemoryMappedFileHolder mmf, UnmanagedMemoryStream? stream = null, string name = null)
         {
             this.mmf = mmf;
             this.stream = stream;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 

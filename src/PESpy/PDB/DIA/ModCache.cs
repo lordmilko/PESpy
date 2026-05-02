@@ -17,15 +17,19 @@ namespace PESpy.PDB
 
         public bool blockByAddr(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
-            if (!fInitFuncPositionCache())
-                return blockByAddrManual(targetSeg, targetOff, out offSegSym);
+            fInitFuncPositionCache();
 
             return TryBinarySearchSymbols(_functionSymbols, targetSeg, targetOff, out offSegSym);
         }
 
+#if FALSE
         //Not part of DIA; abstracts the manual lookup logic out of blockByAddr
         private bool blockByAddrManual(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
+            //We will never actually use this implementation however because
+            //unlike DIA, we always go for the binary search regardless of the number of entries we have. This is just recorded here
+            //for posterity
+
             var symbols = Symbols;
 
             SymType bestSymbol = default;
@@ -106,20 +110,21 @@ namespace PESpy.PDB
             offSegSym = default;
             return false;
         }
+#endif
 
-        private bool fInitFuncPositionCache()
+        private void fInitFuncPositionCache()
         {
             //DIA disallows using a cache if the entire module's symbols are less than 1024 bytes, if it's a minimal PDB or it's ENC
 
             if (_functionSymbols != null)
-                return true;
+                return;
 
             var symbols = Symbols;
 
             if (symbols == null)
             {
                 _functionSymbols = Array.Empty<OffSegSym>();
-                return true;
+                return;
             }
 
             var dict = new Dictionary<ulong, OffSegSym>();
@@ -149,23 +154,26 @@ namespace PESpy.PDB
             }
 
             _functionSymbols = FinalizeArray(dict);
-            return true;
+            return;
         }
 
-        #endregion
+#endregion
         #region data
 
         public bool dataByAddr(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
-            if (!fInitDataPositionCache())
-                return dataByAddrManual(targetSeg, targetOff, out offSegSym);
+            fInitDataPositionCache();
 
             return TryBinarySearchSymbols(_dataSymbols, targetSeg, targetOff, out offSegSym);
         }
 
+#if FALSE
         private bool dataByAddrManual(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
-            //DIA only cares about S_LDATA32 and S_GDATA32. It only cares about S_STATICLOCAL in the event we're a minimal PDB
+            //DIA only cares about S_LDATA32 and S_GDATA32. It only cares about S_STATICLOCAL in the event we're a minimal PDB.
+            //We want to consider labels and thread data as well; we will never actually use this implementation however because
+            //unlike DIA, we always go for the binary search regardless of the number of entries we have. This is just recorded here
+            //for posterity
 
             var symbols = Symbols;
 
@@ -249,21 +257,22 @@ namespace PESpy.PDB
             offSegSym = default;
             return false;
         }
+#endif
 
         //Name is made up; actual implementation is inline in dataByAddr
-        private bool fInitDataPositionCache()
+        private void fInitDataPositionCache()
         {
             //DIA disallows using a cache if the entire module's symbols are less than 1024 bytes, if it's a minimal PDB or it's ENC
 
             if (_dataSymbols != null)
-                return true;
+                return;
 
             var symbols = Symbols;
 
             if (symbols == null)
             {
                 _dataSymbols = Array.Empty<OffSegSym>();
-                return true;
+                return;
             }
 
             var dict = new Dictionary<ulong, OffSegSym>();
@@ -275,6 +284,35 @@ namespace PESpy.PDB
 
                 switch (symType.rectyp)
                 {
+                    //DIA doesn't actually seem to support labels at all; even though you can search for SymTagLabel, you don't
+                    //seem to get any results, and when you specify an RVA to search for, the best you'll get is a public symbol.
+                    //I think this is no good, so we've shoved label support in here
+
+                    //Note that GTHREAD support doesn't go here, it goes in SymCache; you don't find GTHREAD inside a module
+
+                    //LabelSym16
+                    case S_LABEL16:
+                        var labelSym16 = (LabelSym16) symType;
+
+                        if (labelSym16.name.Length == 0)
+                            continue;
+
+                        candidateSeg = labelSym16.seg;
+                        candidateOff = labelSym16.off;
+                        break;
+
+                    //LabelSym32
+                    case S_LABEL32_ST:
+                    case S_LABEL32:
+                        var labelSym32 = (LabelSym32) symType;
+
+                        if (labelSym32.name.Length == 0)
+                            continue;
+
+                        candidateSeg = labelSym32.seg;
+                        candidateOff = labelSym32.off;
+                        break;
+
                     //DataSym16
                     case S_LDATA16:
                     case S_GDATA16:
@@ -301,7 +339,11 @@ namespace PESpy.PDB
 
                     //DataSym32
                     case S_LDATA32:
+                    case S_LDATA32_ST:
                     case S_GDATA32:
+                    case S_GDATA32_ST:
+                    case S_GTHREAD32:
+                    case S_GTHREAD32_ST: //DIA doesn't seem to support global thread data either, but we do
                         var dataSym32 = (DataSym32) symType;
 
                         if (dataSym32.name.Length == 0)
@@ -329,10 +371,10 @@ namespace PESpy.PDB
             }
 
             _dataSymbols = FinalizeArray(dict);
-            return true;
+            return;
         }
 
-        #endregion
+#endregion
 
         private bool TryBinarySearchSymbols(
             OffSegSym[] symbols,

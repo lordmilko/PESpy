@@ -41,6 +41,7 @@ namespace PESpy.View
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => (ViewByteKind) (_value & KindMask);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
 #if DEBUG
@@ -48,11 +49,11 @@ namespace PESpy.View
                 //this indicates we're likely erroneously overwriting something we're not supposed to be
                 //touching. The exception to this is when we're setting Unknown to Code, because we set
                 //Unknown to IsFunction prior to disassembly, and convert Unknown to Code as each byte is processed
-                if (value != Kind && value != ViewByteKind.Code)
+                if (value != Kind && value != ViewByteKind.Code && (_value & BodyKindMask) != 0)
                 {
                     //All byte kinds share the same "kind specific bits", so we're just using
-                    //BodyKindMask here
-                    Debug.Assert((_value & BodyKindMask) == 0, $"Attempted to convert {Kind} -> {value} on a byte that has kind-specific properties. This indicates a write spiralled out of control and is overwriting the wrong bytes");
+                    //BodyKindMask here. See below for why we assert on false rather than the condition we're interested in
+                    Debug.Assert(false, $"Attempted to convert {Kind} -> {value} on a byte that has kind-specific properties. This indicates a write spiralled out of control and is overwriting the wrong bytes");
                 }
 #endif
 
@@ -61,9 +62,10 @@ namespace PESpy.View
 #if DEBUG
                 //If the BodyKind is already SplitHead at the point where you set the kind,
                 //that means we've just erroneously converted one type to another
-                if (Kind == ViewByteKind.Body)
+                if (Kind == ViewByteKind.Body && BodyKind != ViewByteBodyKind.None)
                 {
-                    Debug.Assert(BodyKind == ViewByteBodyKind.None, $"Attempted to set the kind to Body on a byte that is already known to have BodyKind '{BodyKind}'. This indicates this '{BodyKind}' is being clobbered over by the entity that comes before it");
+                    //There is apparently a lot of overhead in calling Debug.Assert; we're a lot faster if we check our condition prior to calling the method
+                    Debug.Assert(false, $"Attempted to set the kind to Body on a byte that is already known to have BodyKind '{BodyKind}'. This indicates this '{BodyKind}' is being clobbered over by the entity that comes before it");
                 }
 #endif
             }
@@ -305,21 +307,29 @@ namespace PESpy.View
 
             fixed (ViewByte* me = &this)
             {
-                var i = me + 1;
+                var i = (byte*) me + 1;
 
                 //You could have a SplitHead -> SplitEnd, immediately followed by another SplitHead if
                 //the first SplitHead spans an entire page
-                while (i < limit && i->Kind == ViewByteKind.Body && i->BodyKind != ViewByteBodyKind.SplitHead)
-                    i++;
 
-                return (int) (i - me);
+                for (; i < limit; i++)
+                {
+                    var v = *i;
+
+                    if ((v & KindMask) != (byte) ViewByteKind.Body || (v & BodyKindMask) == (byte) ViewByteBodyKind.SplitHead)
+                        break;
+                }
+
+                return (int) (i - (byte*) me);
             }
         }
 
-        public unsafe int GetUnknownLength(ViewByte* limit)
+        public unsafe int GetUnknownLength(ViewByte* limit, bool hasUnknownBody)
         {
             Debug.Assert(Kind == ViewByteKind.Unknown);
 
+            if (hasUnknownBody)
+                return GetLength(limit);
             fixed (ViewByte* me = &this)
             {
                 var i = me + 1;

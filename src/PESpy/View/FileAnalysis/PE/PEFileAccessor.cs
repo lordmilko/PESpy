@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Threading;
@@ -26,6 +27,7 @@ namespace PESpy.View
         internal PESectionLookupCache _lookupCache;
         private ISymbolAccessor _symbolAccessor;
         private readonly bool _wantVirtual;
+        internal Dictionary<int, int> _rvaToMethodDefMap = new();
 
         internal bool OwnsPEFile = true;
 
@@ -56,7 +58,7 @@ namespace PESpy.View
 
             var numSections = sectionHeaders.Length + 1; //The header is also a section
 
-            var sizeOfHeaders = peFile.OptionalHeader.SizeOfHeaders;
+            var sizeOfHeaders = peFile.GetSizeOfHeaders(viewMode);
 
             int overlayStart = 0;
             int overlayLength = 0;
@@ -115,10 +117,15 @@ namespace PESpy.View
                     size = section.SizeOfRawData;
                 }
 
+                //We can also have sections like .bss that say they start at 0 and then extend all the way over multiple sections. So
+                //if the start address is before the end of the previous entry, set the size to 0
+                ref var previous = ref sectionAccessors[i];
+
+                if (start < previous.EndAddress)
+                    size = 0;
+
                 if (size == 0)
                 {
-                    ref var previous = ref sectionAccessors[i];
-
                     sectionAccessors[i + 1] = new SectionAccessor(SectionAccessorKind.Section, i, previous.EndAddress, section.Name.ToString());
                 }
                 else
@@ -203,7 +210,7 @@ namespace PESpy.View
             return chunk;
         }
 
-        internal override MemoryChunk GetMemoryChunkFromAddress(int address)
+        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
             PEFile peFile;
 
@@ -211,11 +218,13 @@ namespace PESpy.View
             {
                 peFile = (PEFile) range.File;
                 address -= range.StartOffset;
+                viewWriter = range.NestedWriter;
             }
             else
+            {
                 peFile = PEFile;
-
-            MemoryChunk chunk;
+                viewWriter = GetViewWriter();
+            }
 
             if (_lookupCache._wantVirtual)
             {
@@ -227,8 +236,6 @@ namespace PESpy.View
                 if (!peFile.TryGetValueChunkFromPhysicalOffset(address, out chunk))
                     throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
             }
-
-            return chunk;
         }
 
         protected override ViewWriter GetViewWriter()
@@ -243,11 +250,6 @@ namespace PESpy.View
             }
 
             return _viewWriter;
-        }
-
-        protected override ViewWriter GetViewWriterForAddress(int targetOffset)
-        {
-            throw new NotImplementedException();
         }
 
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) =>
@@ -277,43 +279,6 @@ namespace PESpy.View
 
         void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength) =>
             _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, sectionIndex, out pByte, out remainingLength);
-
-        internal override bool TryGetDataSymbol(ulong address, int rva, out FixedUtf8String name, out int displacement)
-        {
-            //Stuff like fs:[0] will take us below 0
-            if (rva > 0 && _lookupCache.TryGetSectionInfo((int) rva, out var targetAddress, out _, out _))
-            {
-                if (_infoMap.TryGetValue((int) targetAddress, out var data) && data.NameIndex != 0)
-                {
-                    //Certain symbols have enhanced names, whereas others
-                    //like ImageThunkData exist in pairs: the IAT one might not
-                    //have a name, but we do want to show the name from the ILT one!
-                    //We don't currently do that
-
-                    name = _names[data.NameIndex - 1];
-
-                    Debug.Assert(name.Length > 0);
-                    displacement = 0;
-                    return true;
-                }
-                else
-                {
-                    //Maybe it's a displacement (e.g. a jump within a function). We prefer to ask the infoMap directly where possible
-                    //as this would presumably be faster than having to do a whole lookup
-
-                    //Symbols should have already been discovered prior to us trying to get symbols
-                    if (_symbolAccessor.TryGetNameFromAddress(rva, out var symName, out displacement))
-                    {
-                        name = symName;
-                        return true;
-                    }
-                }
-            }
-
-            name = default;
-            displacement = default;
-            return false;
-        }
 
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
         {

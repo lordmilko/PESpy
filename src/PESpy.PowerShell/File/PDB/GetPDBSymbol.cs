@@ -2,6 +2,8 @@
 using System.Management.Automation;
 using SymHelp.Symbols;
 using PESpy.PDB;
+using System.Collections.Generic;
+using ClrDebug.PDB;
 
 namespace PESpy.PowerShell.PDB
 {
@@ -17,6 +19,9 @@ namespace PESpy.PowerShell.PDB
 
         [Parameter]
         public SwitchParameter TopLevel { get; set; }
+
+        [Parameter]
+        public SYM_ENUM_e Type { get; set; }
 
         //Whether to undecorate/demangle symbols when searching by name
         [Parameter]
@@ -47,50 +52,21 @@ namespace PESpy.PowerShell.PDB
                 throw new NotImplementedException();
             }
 
-            //Don't use WildcardPattern; this will result in a lot of allocations (and arguably
-            //also inefficient regex overhead) that together will really hurt performance on large PDBs.
-            //Most wildcard patterns are fairly straightforward, so use a specialized NameMatcher instead
+            var symbols = EnumerateSymbolsMaybeByName();
 
+            if (HasParameter(nameof(Type)))
+                symbols = FilterSymbolsByType(symbols);
+
+            foreach (var symbol in symbols)
+                WriteObject(symbol);
+        }
+
+        private IEnumerable<SymType> EnumerateSymbolsMaybeByName()
+        {
             if (Name != null)
             {
-                //Special case having a single matcher for a faster inner loop
-                if (Name.Length == 1)
-                {
-                    var nameMatcher = NameMatcher.Create(Name[0]);
-
-                    foreach (var symType in File.EnumerateSymbols(TopLevel))
-                    {
-                        if (!symType.TryGetName(out var name, File))
-                            continue;
-
-                        if (nameMatcher.IsMatch(name))
-                            WriteObject(symType);
-                    }
-                }
-                else
-                {
-                    var nameMatchers = new NameMatcher[Name.Length];
-
-                    for (var i = 0; i < Name.Length; i++)
-                        nameMatchers[i] = NameMatcher.Create(Name[i]);
-
-                    foreach (var symType in File.EnumerateSymbols(TopLevel))
-                    {
-                        if (!symType.TryGetName(out var name, File))
-                            continue;
-
-                        for (var i =0; i < nameMatchers.Length; i++)
-                        {
-                            var nameMatcher = nameMatchers[i];
-
-                            if (nameMatcher.IsMatch(name))
-                            {
-                                WriteObject(symType);
-                                break;
-                            }
-                        }
-                    }
-                }
+                foreach (var symType in EnumerateSymbolsByName())
+                    yield return symType;
             }
             else
             {
@@ -98,8 +74,65 @@ namespace PESpy.PowerShell.PDB
 
                 foreach (var symType in File.EnumerateSymbols(TopLevel))
                 {
-                    WriteObject(symType);
+                    yield return symType;
                 }
+            }
+        }
+
+        private IEnumerable<SymType> EnumerateSymbolsByName()
+        {
+            //Don't use WildcardPattern; this will result in a lot of allocations (and arguably
+            //also inefficient regex overhead) that together will really hurt performance on large PDBs.
+            //Most wildcard patterns are fairly straightforward, so use a specialized NameMatcher instead
+
+            //Special case having a single matcher for a faster inner loop
+            if (Name.Length == 1)
+            {
+                var nameMatcher = NameMatcher.Create(Name[0]);
+
+                foreach (var symType in File.EnumerateSymbols(TopLevel))
+                {
+                    if (!symType.TryGetName(out var name, File))
+                        continue;
+
+                    if (nameMatcher.IsMatch(name))
+                        yield return symType;
+                }
+            }
+            else
+            {
+                var nameMatchers = new NameMatcher[Name.Length];
+
+                for (var i = 0; i < Name.Length; i++)
+                    nameMatchers[i] = NameMatcher.Create(Name[i]);
+
+                foreach (var symType in File.EnumerateSymbols(TopLevel))
+                {
+                    if (!symType.TryGetName(out var name, File))
+                        continue;
+
+                    for (var i = 0; i < nameMatchers.Length; i++)
+                    {
+                        var nameMatcher = nameMatchers[i];
+
+                        if (nameMatcher.IsMatch(name))
+                        {
+                            yield return symType;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<SymType> FilterSymbolsByType(IEnumerable<SymType> symbols)
+        {
+            var type = Type;
+
+            foreach (var symbol in symbols)
+            {
+                if (symbol.rectyp == type)
+                    yield return symbol;
             }
         }
     }

@@ -11,7 +11,7 @@ namespace PESpy
     {
         private const int LowIdOffset = 0;
         private const int HighIdOffset = 4;
-        private const int OffsetToEntriesOffset = 8;
+        internal const int OffsetToEntriesOffset = 8;
 
         //Values are regularly uints
         public uint LowId => chunk.PeekUInt32(LowIdOffset);

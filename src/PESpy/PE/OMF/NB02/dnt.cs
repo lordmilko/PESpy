@@ -98,19 +98,16 @@ namespace PESpy
                     //The first entry is an empty string, because library indices are 1-based
                     var read = 0;
 
-                    using var libraries = new PooledList<FixedAnsiString>();
+                    using var libraries = new PooledList<SymString>();
 
                     while (read < length)
                     {
-                        var strLen = valueChunk.PeekByte(read);
-                        read++;
+                            var str = valueChunk.PeekSymString(read, isLengthPrefixed: true);
+                            read += str.Length + 1;
+                            libraries.Add(str);
+                        }
 
-                        var str = valueChunk.PeekAnsiFixedLength(read, strLen);
-                        read += strLen;
-                        libraries.Add(str);
-                    }
-
-                    return new RawValue<FixedAnsiString[]>(valueChunk.AbsoluteOffset, libraries.ToArray());
+                    return new RawValue<SymString[]>(valueChunk.AbsoluteOffset, libraries.ToArray());
                 }
 
                 case SST.SSTIMPORTS: //Not listed in the spec, not present in my samples and I can't find any examples of its use

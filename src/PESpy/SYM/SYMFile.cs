@@ -41,7 +41,7 @@ namespace PESpy
         public string? FileName { get; private set; }
 
         /// <inheritdoc/>
-        public FileKind Kind => FileKind.LE;
+        public FileKind Kind => FileKind.SYM;
 
         public int Length => globalBlock.Length;
 
@@ -52,12 +52,12 @@ namespace PESpy
 
         private bool disposed;
 
-        internal unsafe SYMFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal unsafe SYMFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
         {
             this.mmf = mmf;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 

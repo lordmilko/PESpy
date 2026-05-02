@@ -561,7 +561,7 @@ namespace PESpy.View
             if (fields.TryGetValue("Name", out var nameField) || fields.TryGetValue("name", out nameField))
             {
                 builder.Append(' ');
-                builder.Append(nameField.ToString());
+                builder.Append(nameField.Value.ToString());
                 return;
             }
 
@@ -849,6 +849,7 @@ namespace PESpy.View
             switch (kind)
             {
                 case ViewKind.ExDllCharacteristics:
+                    builder.Append(' ');
                     builder.Append(kind.ToString());
                     break;
 
@@ -859,7 +860,7 @@ namespace PESpy.View
                     break;
 
                 default:
-                    builder.Append('[');
+                    builder.Append(" [");
                     builder.Append(kind.ToString());
                     builder.Append("] ");
                     break;
@@ -947,7 +948,7 @@ namespace PESpy.View
                 if (str.Kind == StringKind.UTF16)
                     builder.Append("L\"");
                 else
-                    builder.Append("L\"");
+                    builder.Append("\"");
 
                 builder.Append(str);
                 builder.Append("\"");
@@ -956,7 +957,7 @@ namespace PESpy.View
             {
                 var str = Unsafe.As<T, SymString>(ref value);
 
-                builder.Append("L\"");
+                builder.Append("\"");
                 builder.Append(str);
                 builder.Append("\"");
             }

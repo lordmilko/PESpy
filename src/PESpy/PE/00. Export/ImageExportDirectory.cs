@@ -439,7 +439,7 @@ namespace PESpy
 
             writer.WriteRVAAnsiNullTerminatedField(Name, ViewKind.ImageExportDirectory_Name, structOffset, fieldOffset: NameOffset);
 
-            if (AddressOfFunctions.IsValid)
+            if (AddressOfFunctions.IsValid && AddressOfFunctions.Value.Length > 0)
             {
                 using var r = writer.CreateRegion(
                     AddressOfFunctions.ActualOffset,
@@ -473,7 +473,7 @@ namespace PESpy
                 }
             }
 
-            if (AddressOfNames.IsValid)
+            if (AddressOfNames.IsValid && AddressOfNames.Value.Length > 0)
             {
                 using var r = writer.CreateRegion(
                     AddressOfNames.ActualOffset,
@@ -498,7 +498,7 @@ namespace PESpy
                 }
             }
 
-            if (AddressOfNameOrdinals.IsValid)
+            if (AddressOfNameOrdinals.IsValid && AddressOfNameOrdinals.Value.Length > 0)
             {
                 using var r = writer.CreateRegion(
                     AddressOfNameOrdinals.ActualOffset,

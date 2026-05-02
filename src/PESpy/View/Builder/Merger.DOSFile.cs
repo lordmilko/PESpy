@@ -39,10 +39,18 @@
                                 CreateOMFRegion(dnrb.Offset, dnrb.Length, dnrb.Signature);
                                 break;
 
-                            default:
+                            case CodeViewSig.NB00:
+                            case CodeViewSig.NB01:
+                            case CodeViewSig.NB02:
                                 var nb02 = (NB02Data) codeViewData;
 
                                 CreateOMFRegion(nb02.Offset, nb02.LfoBase, nb02.Signature);
+                                break;
+
+                            default:
+                                var nb05 = (NB05Data) codeViewData;
+
+                                CreateOMFRegion(nb05.Offset, nb05.LfoBase, nb05.Signature);
                                 break;
                         }
                     }

@@ -33,6 +33,8 @@ namespace PESpy.View
 
                     if (heap != null)
                         metadataSizes = heap.Sizes;
+                    else
+                        throw new NotImplementedException();
 
                     hasMetadataSizes = true;
                 }
@@ -74,6 +76,8 @@ namespace PESpy.View
                 case ViewMode.Virtual:
                     if (!peFile.IsLoadedImage) //If we're already virtual, nothing to do
                     {
+                        var sizeOfHeaders = peFile.GetSizeOfHeaders(mode);
+
                         return (int offset, out int viewOffset) =>
                         {
                             //Physical and need to convert to virtual
@@ -82,7 +86,7 @@ namespace PESpy.View
                             {
                                 //We're a physical file, trying to pretend that we're virtual. If an RVA can't be resolved to a particular section, this means that the RVA either exists in the file headers,
                                 //or in the overlay. Overlay data is not loaded into virtual memory. As such, if we're overlay, we don't want to write the value
-                                if (offset < peFile.OptionalHeader.SizeOfHeaders)
+                                if (offset < sizeOfHeaders)
                                 {
                                     viewOffset = offset;
                                     return true;

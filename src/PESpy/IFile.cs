@@ -64,6 +64,11 @@ namespace PESpy
         OMFLIB,
 
         /// <summary>
+        /// An <see cref="OMFDBGFile"/> describing an object library stored using Object Module Format.
+        /// </summary>
+        OMFDBG,
+
+        /// <summary>
         /// A <see cref="SYMFile"/> describing debugging symbols from a MAP file that has been converted by mapsym.exe
         /// </summary>
         SYM,

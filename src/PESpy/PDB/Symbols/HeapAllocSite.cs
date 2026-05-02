@@ -32,7 +32,7 @@ namespace PESpy.PDB
         public CV_off32_t off => value->off;
 
         /// <inheritdoc cref="HEAPALLOCSITE.sect"/>
-        public short sect => value->sect;
+        public ISECT sect => value->sect;
 
         /// <inheritdoc cref="HEAPALLOCSITE.cbInstr"/>
         public short cbInstr => value->cbInstr;
@@ -41,6 +41,12 @@ namespace PESpy.PDB
         public TypOrEnumType typind => new TypOrEnumType((byte*) value, value->typind);
 
         #region PESpy
+
+        /// <inheritdoc cref="AnnotationSym.RelativeVirtualAddress"/>
+        public int? RelativeVirtualAddress => SymType.GetOmapRelativeVirtualAddress(value, sect, off);
+
+        /// <inheritdoc cref="AnnotationSym.RawRelativeVirtualAddress"/>
+        public int? RawRelativeVirtualAddress => SymType.GetRawRelativeVirtualAddress(value, sect, off);
 
         public SymType Parent => GetParent(null);
 

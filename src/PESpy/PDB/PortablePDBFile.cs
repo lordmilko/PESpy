@@ -106,12 +106,12 @@ namespace PESpy
 
         private bool disposed;
 
-        internal unsafe PortablePDBFile(string fileName, in MemoryMappedFileHolder mmf)
+        internal unsafe PortablePDBFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
         {
             this.mmf = mmf;
 
             FileName = fileName;
-            Name = Path.GetFileName(fileName);
+            Name = name ?? Path.GetFileName(fileName);
 
             globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -22,16 +23,23 @@ namespace PESpy.Tests
         #region TestStruct
 
         protected void TestStruct<T>(params Expression<Func<T, bool>>[] asserts) =>
-            TestStruct<T, T>(asserts);
+            TestStruct<T, T>(null, asserts);
 
-        protected void TestStruct<TSelector, TVerifier>(params Expression<Func<TVerifier, bool>>[] asserts)
+        protected void TestStruct<T>(string scenario, params Expression<Func<T, bool>>[] asserts) =>
+            TestStruct<T, T>(scenario, asserts);
+
+        protected void TestStruct<TSelector, TVerifier>(params Expression<Func<TVerifier, bool>>[] asserts) =>
+            TestStruct<TSelector, TVerifier>(null, asserts);
+
+        protected void TestStruct<TSelector, TVerifier>(string scenario, params Expression<Func<TVerifier, bool>>[] asserts)
         {
             Stream fs = null;
             object rawValue;
 
-            rawValue = GetStruct<TSelector, TVerifier>(out fs);
+            rawValue = GetStruct<TSelector, TVerifier>(scenario, out fs, out var file);
 
             using var fs1 = fs;
+            using var file1 = file;
 
             var results = new List<string>();
 
@@ -172,7 +180,18 @@ namespace PESpy.Tests
                         return e;
                     }
 
-                    results.Add($"[{Unwrap(body.Left).ToString().Substring(2)}] Expected: {expectedValue} ({expectedValue?.GetType().Name ?? "null"}), Actual: {actual} ({actual?.GetType().Name ?? "null"})");
+                    static string Stringify(object value)
+                    {
+                        if (value == null)
+                            return null;
+
+                        if (value.GetType().IsArray)
+                            return string.Join(", ", ((IEnumerable) value).Cast<object>());
+
+                        return value.ToString();
+                    }
+
+                    results.Add($"[{Unwrap(body.Left).ToString().Substring(2)}] Expected: {Stringify(expectedValue)} ({expectedValue?.GetType().Name ?? "null"}), Actual: {Stringify(actual)} ({actual?.GetType().Name ?? "null"})");
                 }
 
                 propertiesAndFieldsTouched.Add(memberInfo);
@@ -187,18 +206,32 @@ namespace PESpy.Tests
             //todo: assert that we tested all properties
         }
 
+        protected static object GetSpan(object parent, string propertyName)
+        {
+            if (parent is HandlerType4 v1)
+            {
+                Debug.Assert(propertyName == nameof(HandlerType4.continuationAddresses));
+                return v1.continuationAddresses.ToArray();
+            }
+
+            throw new NotImplementedException();
+        }
+
         #endregion
         #region TestView
 
-        protected void TestView<T>(params Action<IView>[] verify) => TestView<T>(verify, true);
+        protected void TestView<T>(params Action<IView>[] verify) => TestView<T>(verify, true, null);
 
         protected void TestView<TSelector, TVerifier>(params Action<IView>[] verify) =>
-            TestView<TSelector, TVerifier>(verify, true);
+            TestView<TSelector, TVerifier>(verify, true, null);
 
-        protected void TestView<T>(Action<IView>[] verify, bool assertChildCount) =>
-            TestView<T, T>(verify, assertChildCount);
+        protected void TestView<T>(Action<IView>[] verify, bool assertChildCount = true, string scenario = null) =>
+            TestView<T, T>(verify, assertChildCount, scenario);
 
-        protected unsafe void TestView<TSelector, TVerifier>(Action<IView>[] verify, bool assertChildCount)
+        protected unsafe void TestView<TSelector, TVerifier>(
+            Action<IView>[] verify,
+            bool assertChildCount = true,
+            string scenario = null)
         {
             if (verify == null)
                 throw new ArgumentNullException(nameof(verify));
@@ -207,26 +240,25 @@ namespace PESpy.Tests
 
             try
             {
-                var rawValue = GetStruct<TSelector, TVerifier>(out stream);
+                var rawValue = GetStruct<TSelector, TVerifier>(scenario, out stream, out var file);
 
-                stream.Seek(0, SeekOrigin.Begin);
-                var peFile = PEFile.FromStream(stream, false);
+                ViewWriter viewWriter;
 
-                var viewWriter = new PEViewWriter(peFile);
+                switch (file.Kind)
+                {
+                    case FileKind.LIB:
+                        viewWriter = new LIBViewWriter((LIBFile) file);
+                        break;
 
                 ((IViewable) rawValue).WriteGlobals(viewWriter);
 
                 var result = ((IViewable) rawValue).WriteStruct(viewWriter);
 
-                Assert.IsNotNull(result, "A StructView must be written");
-
-                if (result is IContainerView c)
+                if (result != null && result.IsContainer())
                 {
                     //All globals should be written in WriteGlobals. If the ViewWriter current count was modified after a call
                     //to Children, this means a global was erroneously written in Children instead of WriteGlobals
                     var preWriteCount = viewWriter.Current.Count;
-
-                    _ = c.Children;
 
                     var postWriteCount = viewWriter.Current.Count;
 
@@ -234,7 +266,7 @@ namespace PESpy.Tests
                 }
 
                 //Combine the struct + any globals into one big list
-                var current = viewWriter.Current.Concat(new[] { result }).OrderBy(v => v.Offset).ToArray();
+                var current = viewWriter.Current.Concat(result == null ? Array.Empty<IView>() : new[] { result }).OrderBy(v => v.Offset).ToArray();
 
                 if (assertChildCount)
                     Assert.AreEqual(verify.Length, current.Length, "Number of views was different from expected");
@@ -257,6 +289,34 @@ namespace PESpy.Tests
             }
         }
 
+        private unsafe void TrySetUnmanagedOffset<TVerifier>(object rawValue, ViewWriter viewWriter, IFile file)
+        {
+            var unmanagedPtr = typeof(TVerifier).Name switch
+            {
+                nameof(UnwindCode.AllocLarge)         => (byte*) (UnwindCode.AllocLarge) rawValue,
+                nameof(UnwindCode.AllocSmall)         => (byte*) (UnwindCode.AllocSmall) rawValue,
+                nameof(UnwindCode.Epilog)             => (byte*) (UnwindCode.Epilog) rawValue,
+                nameof(UnwindCode.NullUnwindCode)     => (byte*) (UnwindCode.NullUnwindCode) rawValue,
+                nameof(UnwindCode.PushMachFrame)      => (byte*) (UnwindCode.PushMachFrame) rawValue,
+                nameof(UnwindCode.PushNonVolatile)    => (byte*) (UnwindCode.PushNonVolatile) rawValue,
+                nameof(UnwindCode.SaveNonVolatile)    => (byte*) (UnwindCode.SaveNonVolatile) rawValue,
+                nameof(UnwindCode.SaveNonVolatileFar) => (byte*) (UnwindCode.SaveNonVolatileFar) rawValue,
+                nameof(UnwindCode.SaveXmm128)         => (byte*) (UnwindCode.SaveXmm128) rawValue,
+                nameof(UnwindCode.SaveXmm128Far)      => (byte*) (UnwindCode.SaveXmm128Far) rawValue,
+                nameof(UnwindCode.SetFpReg)           => (byte*) (UnwindCode.SetFpReg) rawValue,
+                _ => default
+            };
+
+            if (unmanagedPtr != default)
+            {
+                //We need an unmanaged offset
+                ((PEFile) file).GetRawHeaderData(out var pHeader, out _);
+                var off = (int) (unmanagedPtr - pHeader);
+
+                viewWriter.UnmanagedOffset = off;
+            }
+        }
+
         #endregion
         #region TestBytes
 
@@ -268,7 +328,7 @@ namespace PESpy.Tests
             ByteBlob rawValue = fieldName switch
 #pragma warning restore CS8509
             {
-                nameof(PEFile.DosStub) => GetFile(WellKnownTestModule.ntdll, out fs).DosStub
+                nameof(PEFile.DosStub) => GetFile(WellKnownTestModule.ntdll, out fs, out var file).DosStub
             };
 
             try
@@ -292,9 +352,21 @@ namespace PESpy.Tests
         //assert that the values of each XRef matches the expected source and destination passed in from the caller
 
         internal void TestXRefs<T>(
+            params Action<XRefVerifier>[] actions) =>
+            TestXRefs<T>(null, actions);
+
+        internal void TestXRefs<T>(
+            string scenario,
             params Action<XRefVerifier>[] actions)
         {
-            var verifier = new XRefVerifier(typeof(T).Name);
+            var typeName = typeof(T).Name;
+
+            var parentType = typeof(T).DeclaringType;
+
+            if (parentType != null)
+                typeName = $"{parentType.Name}.{typeName}";
+
+            var verifier = new XRefVerifier(typeName, scenario);
 
             bool ShouldExclude(PropertyInfo propertyInfo)
             {
@@ -307,29 +379,31 @@ namespace PESpy.Tests
                 return false;
             }
 
-            ((IViewable) rawValue).WriteGlobals(viewWriter);
-
-            Debug.Assert(xrefProperties.Length > 0);
-
-                    if (value is IRVA r)
-                        return r.IsValid;
-
-                    return ((IVA) value).IsValid;
-                })
+            var xrefProperties = typeof(T).GetProperties()
+                .Where(p => (typeof(IRVA).IsAssignableFrom(p.PropertyType) || typeof(IVA).IsAssignableFrom(p.PropertyType)) && p.GetCustomAttribute<EditorBrowsableAttribute>() == null && !ShouldExclude(p))
                 .ToArray();
 
-            var xrefs = viewWriter.XRefs;
+            //We should have _at least_ xrefProperties.Length; there could be additional non RVA<T> properties that actually point to code
+            Assert.IsTrue(actions.Length >= xrefProperties.Length, "Expected properties: " + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, xrefProperties.Select(v => v.Name)));
 
-            Assert.AreEqual(xrefs.Count, xrefProperties.Length);
-            Assert.AreEqual(verifiers.Length, xrefProperties.Length);
+            foreach (var action in actions)
+                action(verifier);
         }
 
         #endregion
         #region Setup
 
+        protected TVerifier GetStruct<TSelector, TVerifier>(
+            out Stream fs,
+            out IFile file) =>
+            GetStruct<TSelector, TVerifier>(null, out fs, out file);
+
         //TSelector is almost always the same as TVerifier; an example of where it's not is ImageDllCharacteristicsEx,
         //which returns its whole entire ImageDebugDirectory to be verified
-        protected TVerifier GetStruct<TSelector, TVerifier>(out Stream fs)
+        protected TVerifier GetStruct<TSelector, TVerifier>(
+            string scenario,
+            out Stream fs,
+            out IFile file)
         {
             var t = typeof(TSelector);
 
@@ -349,7 +423,7 @@ namespace PESpy.Tests
             {
                 #region DOS Header
 
-                nameof(ImageDosHeader) => (object) GetFile(WellKnownTestModule.ntdll, out fs).DosHeader,
+                nameof(ImageDosHeader) => (object) GetFile(WellKnownTestModule.ntdll, out fs, out file).DosHeader,
 
                 #endregion
                 #region Rich Header
@@ -407,17 +481,41 @@ namespace PESpy.Tests
 
                 nameof(RuntimeFunction)              => GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[0],
                 nameof(UnwindInfo)                   => GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[28].UnwindData.Value,
-                nameof(ScopeTable)                   => GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[28].UnwindData.Value.ExceptionData,
-                "ScopeTable.ScopeRecord"             => ((ScopeTable) GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[28].UnwindData.Value.ExceptionData).Records[0],
+                nameof(ScopeTable)                   => ((ScopeTableAndGsHandlerData) GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[28].UnwindData.Value.ExceptionData).ScopeTable,
+                "ScopeTable.ScopeRecord"             => ((ScopeTableAndGsHandlerData) GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[28].UnwindData.Value.ExceptionData).ScopeTable[0],
 
-                nameof(FuncInfo)                     => ((RVA<FuncInfo>)  GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value,
-                nameof(TryBlockMapEntry)             => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).TryBlockMap.Value[0],
-                nameof(HandlerType)                  => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).TryBlockMap.Value[0].HandlerArray.Value[0],
-                nameof(TypeDescriptor)               => ((RVA<FuncInfo>) GetFile(WellKnownTestModule._7z, out fs, out file).ExceptionTable[500].UnwindData.Value.ExceptionData).Value.TryBlockMap.Value[0].HandlerArray.Value[0].Type.Value,
-                nameof(UnwindMapEntry)               => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).UnwindMap.Value[0],
-                nameof(IptoStateMapEntry)            => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).IPToStateMap.Value[0],
+                #region FuncInfo
 
-                nameof(FuncInfoV1)                   => ((RVA<FuncInfoV1>) GetFile(WellKnownTestModule._7z, out fs).ExceptionTable[96].UnwindData.Value.ExceptionData).Value,
+                nameof(FuncInfo)                     => scenario switch
+                {
+                    nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER1) => ((RVA<FuncInfo>) GetFile(WellKnownTestModule._7z, out fs, out file).ExceptionTable[96].UnwindData.Value.ExceptionData).Value,
+                    nameof(EH_MAGIC_NUMBER.EH_MAGIC_NUMBER3) => ((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value,
+                },
+
+                nameof(TryBlockMapEntry)             => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispTryBlockMap.Value[0],
+                nameof(HandlerType)                  => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                nameof(TypeDescriptor)               => ((RVA<FuncInfo>) GetFile(WellKnownTestModule._7z, out fs, out file).ExceptionTable[500].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0].dispType.Value,
+                nameof(UnwindMapEntry)               => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispUnwindMap.Value[0],
+                nameof(IptoStateMapEntry)            => (((RVA<FuncInfo>) GetFile(WellKnownTestModule.AuthExt, out fs, out file).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispIPtoStateMap.Value[0],
+
+                #endregion
+                #region FuncInfo4
+
+                nameof(FuncInfo4)                    => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value,
+                nameof(FuncInfoHeader)               => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.header,
+                nameof(HandlerMap4)                  => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value,
+                nameof(HandlerType4)                 => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                nameof(HandlerTypeHeader)            => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0].header,
+                nameof(IPtoStateMap4)                => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispIPtoStateMap.Value,
+                nameof(IPtoStateMapEntry4)           => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispIPtoStateMap.Value[0],
+                nameof(SepIPtoStateMap4)             => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.coreclr, out fs, out file).ExceptionTable[5].UnwindData.Value.ExceptionData).Value.dispToSegMap.Value,
+                nameof(SepIPtoStateMapEntry4)        => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.coreclr, out fs, out file).ExceptionTable[5].UnwindData.Value.ExceptionData).Value.dispToSegMap.Value[0],
+                nameof(TryBlockMap4)                 => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value,
+                nameof(TryBlockMapEntry4)            => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0],
+                nameof(UnwindMapEntry4)              => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispUnwindMap.Value[0],
+                nameof(UWMap4)                       => ((RVA<FuncInfo4>) GetFile(WellKnownTestModule.AzureAttest, out fs, out file).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispUnwindMap.Value,
+
+                #endregion
 
                 "UnwindCode.PushNonVolatile"         => (UnwindCode.PushNonVolatile)    GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[0].UnwindData.Value.UnwindCode[1],
                 "UnwindCode.AllocLarge"              => (UnwindCode.AllocLarge)         GetFile(WellKnownTestModule.ntdll, out fs, out file).ExceptionTable[0].UnwindData.Value.UnwindCode[0],
@@ -716,6 +814,42 @@ namespace PESpy.Tests
             return peFile;
         }
 
+        private static T GetSymbol<T>(
+            SymStoreKey symStoreKey,
+            string prefix,
+            Func<MemoryChunk, T> create,
+            out Stream fs,
+            out IFile file)
+        {
+            var path = Locator.Locate(symStoreKey);
+
+            fs = File.OpenRead(path);
+            var peFile = PEFile.FromStream(fs, false); //Don't dispose
+
+            var pdbFile = PDBFile.FromKey(symStoreKey);
+
+            foreach (var symType in pdbFile.PSGSI.Symbols)
+            {
+                if (symType.TryGetName(out var name, pdbFile))
+                {
+                    if (name.StartsWith(prefix))
+                    {
+                        var rva = symType.GetRVA();
+
+                        if (peFile.TryGetValueChunkFromSection(rva, out var memoryChunk))
+                        {
+                            file = peFile;
+                            return create(memoryChunk);
+                        }
+
+                        throw new NotImplementedException();
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
         #endregion
         #region Expression Helpers
 
@@ -947,7 +1081,16 @@ namespace PESpy.Tests
 
         internal static string GetAssertValue(object rawValue, PropertyInfo propertyInfo, bool cast)
         {
-            var value = propertyInfo.GetValue(rawValue);
+            object value;
+
+            if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Span<>))
+            {
+                value = GetSpan(rawValue, propertyInfo.Name);
+            }
+            else
+            {
+                value = propertyInfo.GetValue(rawValue);
+            }
 
             if (value == null)
                 return "null";
@@ -1059,6 +1202,47 @@ namespace PESpy.Tests
 
                 return arrayBuilder.ToString();
             }
+
+            return value.ToString();
+        }
+
+        protected void EnumeratePEFiles(ViewKind kind, string path)
+        {
+            foreach (var file in FindPEFile(kind, path))
+                Debug.WriteLine(file);
+        }
+
+        protected IEnumerable<string> FindPEFile(ViewKind kind, string path = "C:\\Windows") =>
+            FindFile<PEFile>("dll", kind, path);
+
+        protected IEnumerable<string> FindFile<T>(string ext, ViewKind kind, string path) where T : IFile
+        {
+            var files = Directory.EnumerateFiles(path, $"*.{ext}", new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                RecurseSubdirectories = true
+            });
+
+            foreach (var fileName in files)
+            {
+                if (Detector.TryDetectFile(fileName, out var fileKind, out _) && fileKind == FileKind.PE)
+                {
+                    using var file = PEFile.FromFile(fileName);
+
+                    try
+                    {
+                        if (file is T t)
+                        {
+                            PEFindKindViewWriter viewWriter;
+
+                            if (typeof(T) == typeof(PEFile))
+                            {
+                                viewWriter = PEFindKindViewWriter.New((PEFile) file, kind);
+                            }
+                            else
+                                throw new NotImplementedException();
+
+                            var dd = ((PEFile) file).LoadConfigTable?.DynamicValueRelocTableOffset.ValueOrDefault.DynamicRelocations;
         #endregion
     }
 }

@@ -71,6 +71,8 @@ namespace PESpy
             //RTTIClassHierarchyDescriptor -> RTTIBaseClassArray -> RTTIBaseClassDescriptor -> RTTIClassHierarchyDescriptor again.
             //This will cause us to get into an infinite loop; as such we need to make sure we only write hierarchy descriptor once
             writer.WriteUniqueRVAField(pClassDescriptor, Offset, fieldOffset: pClassDescriptorOffset);
+
+            writer.WriteRVAXRef(Offset, pSelfOffset, pSelf);
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

@@ -93,7 +93,7 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewUnmanagedStruct(this, ViewKind.LfArray, typlen + sizeof(short));
 
-        int IViewable.NumChildren() => StructWriter.GetNumChildrenAlign4(6, BytesUsed());
+        int IViewable.NumChildren() => StructWriter.GetNumPaddedChildren(6, typlen, BytesUsed());
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
@@ -124,8 +124,8 @@ namespace PESpy.PDB
                     break;
 
                 case 6:
-                    //Possible alignment
-                    structWriter.AlignOrThrow(BytesUsed());
+                    //Possible padding
+                    structWriter.PadTypOrThrow(typlen, BytesUsed());
                     break;
 
                 default:

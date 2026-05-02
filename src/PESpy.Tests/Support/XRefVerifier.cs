@@ -27,9 +27,12 @@ namespace PESpy.Tests
                 return peFile;
             }
 
-            PEFile GetStoreFile(SymStoreKey key)
+            PEFile GetStoreFile(SymStoreKey key, bool forceSymbols = false)
             {
                 peFile = PEFile.FromKey(key);
+
+                if (forceSymbols)
+                    _ = Locator.LocatePDB(key);
 
                 return peFile;
             }
@@ -65,6 +68,11 @@ namespace PESpy.Tests
                         nameof(NativeAOT.DotNetRuntimeDebugHeader.GlobalValueEntries) => GetAOTFile().DotNetRuntimeDebugHeader
                     },
 
+                    nameof(UnwindInfo) => propertyName switch
+                    {
+                        nameof(UnwindInfo.ExceptionHandler) => GetStoreFile(WellKnownTestModule.ntdll).ExceptionTable[28].UnwindData.Value,
+                    },
+
                     "ScopeTable.ScopeRecord" => propertyName switch
                     {
                         nameof(ScopeTable.ScopeRecord.BeginAddress)   => ((ScopeTable) GetStoreFile(WellKnownTestModule.ntdll).ExceptionTable[3].UnwindData.Value.ExceptionData)[0],
@@ -72,6 +80,8 @@ namespace PESpy.Tests
                         nameof(ScopeTable.ScopeRecord.HandlerAddress) => ((ScopeTable) GetStoreFile(WellKnownTestModule.ntdll).ExceptionTable[3].UnwindData.Value.ExceptionData)[0],
                         nameof(ScopeTable.ScopeRecord.JumpTarget)     => ((ScopeTable) GetStoreFile(WellKnownTestModule.ntdll).ExceptionTable[3].UnwindData.Value.ExceptionData)[0],
                     },
+
+                    #region FuncInfo
 
                     nameof(FuncInfo) => scenario switch
                     {
@@ -90,20 +100,65 @@ namespace PESpy.Tests
                         }
                     },
 
+                    nameof(HandlerType) => propertyName switch
+                    {
+                        nameof(HandlerType.dispType) => ((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule._7z).ExceptionTable[500].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                    },
+
+                    nameof(IptoStateMapEntry) => propertyName switch
+                    {
+                        nameof(IptoStateMapEntry.Ip) => (((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.AuthExt).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispIPtoStateMap.Value[0],
+                    },
+
+                    nameof(TryBlockMapEntry) => propertyName switch
+                    {
+                        nameof(TryBlockMapEntry.dispHandlerArray) => ((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.AuthExt).ExceptionTable[74].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0],
+                    },
+
+                    nameof(UnwindMapEntry) => propertyName switch
+                    {
+                        nameof(UnwindMapEntry.action) => (((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.DbgEng).ExceptionTable[2].UnwindData.Value.ExceptionData).Value).dispUnwindMap.Value[0],
+                    },
+
+                    #endregion
+                    #region FuncInfo4
+
+                    nameof(FuncInfo4) => propertyName switch
+                    {
+                        nameof(FuncInfo4.dispUnwindMap) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[316].UnwindData.Value.ExceptionData).Value,
+                        nameof(FuncInfo4.dispTryBlockMap) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[527].UnwindData.Value.ExceptionData).Value,
+                        nameof(FuncInfo4.dispIPtoStateMap) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[316].UnwindData.Value.ExceptionData).Value,
+                        nameof(FuncInfo4.dispToSegMap) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.coreclr).ExceptionTable[5].UnwindData.Value.ExceptionData).Value,
+                    },
+
+                    nameof(HandlerType4) => propertyName switch
+                    {
+                        nameof(HandlerType4.dispType) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                        nameof(HandlerType4.dispOfHandler) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                        nameof(HandlerType4.continuationAddresses) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[527].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0].dispHandlerArray.Value[0],
+                    },
+
+                    nameof(IPtoStateMapEntry4) => propertyName switch
+                    {
+                        nameof(IPtoStateMapEntry4.Ip) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispIPtoStateMap.Value[0],
+                    },
+
                     nameof(SepIPtoStateMapEntry4) => propertyName switch
                     {
                         nameof(SepIPtoStateMapEntry4.addrStartRVA) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.coreclr).ExceptionTable[5].UnwindData.Value.ExceptionData).Value.dispToSegMap.Value[0],
                         nameof(SepIPtoStateMapEntry4.dispOfIPMap) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.coreclr).ExceptionTable[5].UnwindData.Value.ExceptionData).Value.dispToSegMap.Value[0]
                     },
 
+                    nameof(TryBlockMapEntry4) => propertyName switch
+                    {
+                        nameof(TryBlockMapEntry4.dispHandlerArray) => (((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.AuthExt).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispTryBlockMap.Value[0],
+                    },
+
+                    #endregion
+
                     nameof(NativeAOT.GlobalValueEntry) => propertyName switch
                     {
                         nameof(NativeAOT.GlobalValueEntry.Name) => GetAOTFile().DotNetRuntimeDebugHeader.GlobalValueEntries.Value[0]
-                    },
-
-                    nameof(HandlerType) => propertyName switch
-                    {
-                        nameof(HandlerType.Type) => ((RVA<FuncInfoV1>) GetStoreFile(WellKnownTestModule._7z).ExceptionTable[500].UnwindData.Value.ExceptionData).Value.TryBlockMap.Value[0].HandlerArray.Value[0],
                     },
 
                     nameof(ImageBoundForwarderRef) => propertyName switch
@@ -187,13 +242,18 @@ namespace PESpy.Tests
 
                     nameof(ImageResourceDataEntry) => propertyName switch
                     {
-                        nameof(ImageResourceDataEntry.OffsetToData) => throw new System.NotImplementedException()
+                        nameof(ImageResourceDataEntry.OffsetToData) => GetStoreFile(WellKnownTestModule.ntdll).ResourceDirectory!.Entries[2].OffsetToDirectory.Value.Entries[0].OffsetToDirectory.Value.Entries[0].OffsetToData.Value
                     },
 
                     nameof(ImageResourceDirectoryEntry) => propertyName switch
                     {
-                        nameof(ImageResourceDirectoryEntry.OffsetToData) => throw new System.NotImplementedException(),
-                        nameof(ImageResourceDirectoryEntry.OffsetToDirectory) => throw new System.NotImplementedException()
+                        nameof(ImageResourceDirectoryEntry.OffsetToData) => GetStoreFile(WellKnownTestModule.ntdll).ResourceDirectory!.Entries[2].OffsetToDirectory.Value.Entries[0].OffsetToDirectory.Value.Entries[0],
+                        nameof(ImageResourceDirectoryEntry.OffsetToDirectory) => GetStoreFile(WellKnownTestModule.ntdll).ResourceDirectory!.Entries[2].OffsetToDirectory.Value.Entries[0]
+                    },
+
+                    nameof(MessageResourceBlock) => propertyName switch
+                    {
+                        nameof(MessageResourceBlock.OffsetToEntries) => GetStoreFile(WellKnownTestModule.DbgEng).ResourceDirectory!.EnumerateResources<MessageResourceData>().First().Blocks[0]
                     },
 
                     nameof(ImageSectionHeader) => propertyName switch
@@ -207,10 +267,42 @@ namespace PESpy.Tests
                         nameof(RuntimeFunction.UnwindData) => GetStoreFile(WellKnownTestModule.ntdll).ExceptionTable[0]
                     },
 
-                    nameof(TryBlockMapEntry) => propertyName switch
+                    nameof(OMFSourceFile) => propertyName switch
                     {
-                        nameof(TryBlockMapEntry.HandlerArray) => ((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.AuthExt).ExceptionTable[74].UnwindData.Value.ExceptionData).Value.dispTryBlockMap.Value[0],
+                        nameof(OMFSourceFile.baseSrcLn) => ((OMFSourceModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE).DebugTable[2].Data).DirEntries[116].Data).baseSrcFile[0],
+                    },
+
+                    nameof(OMFSourceModule) => propertyName switch
+                    {
+                        nameof(OMFSourceModule.baseSrcFile) => (OMFSourceModule) ((NB05Data) GetSampleFile(Sample.VC50_EXE).DebugTable[2].Data).DirEntries[116].Data,
+                    },
+
+                    #region RTTI
+
+                    nameof(RTTICompleteObjectLocator) => propertyName switch
+                    {
+                        nameof(RTTICompleteObjectLocator.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0],
+                        nameof(RTTICompleteObjectLocator.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0],
+                        nameof(RTTICompleteObjectLocator.pSelf) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0]
+                    },
+
+                    nameof(RTTIBaseClassArray) => propertyName switch
+                    {
+                        nameof(RTTIBaseClassArray.arrayOfBaseClassDescriptors) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value
+                    },
+
+                    nameof(RTTIClassHierarchyDescriptor) => propertyName switch
+                    {
+                        nameof(RTTIClassHierarchyDescriptor.pBaseClassArray) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value
+                    },
+
+                    nameof (RTTIBaseClassDescriptor) => propertyName switch
+                    {
+                        nameof(RTTIBaseClassDescriptor.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors.Value[0],
+                        nameof(RTTIBaseClassDescriptor.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors.Value[0],
                     }
+
+                    #endregion
                 };
 
                 Assert.IsNotNull(instance);
@@ -223,8 +315,8 @@ namespace PESpy.Tests
 
                 var xref = xrefs[index];
 
-                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"Xref fieldOffset was not correct. Also TargetOffset is {xref.TargetValue}");
-                Assert.AreEqual(targetOffset, xref.TargetValue);
+                Assert.AreEqual(fieldOffset, xref.FieldOffset, $"Xref fieldOffset was not correct. Also TargetOffset is 0x{xref.TargetValue:X}");
+                Assert.AreEqual("0x" + targetOffset.ToString("X"), "0x" + xref.TargetValue.ToString("X"));
             }
             finally
             {

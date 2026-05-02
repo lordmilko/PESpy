@@ -36,7 +36,7 @@ namespace PESpy.PDB
         /// <summary>
         /// user data
         /// </summary>
-        public NativeSpan<byte> rgl => new NativeSpan<byte>(value->rgl, (reclen - 24)); //Note that while this is supposedly supposed to be a 4 byte aligned list of UInt32's, however I got a list of 22 bytes which means this is wrong
+        public NativeSpan<byte> rgl => new NativeSpan<byte>(value->rgl, (reclen - (FixedStructSize - sizeof(short)))); //Note that while this is supposedly supposed to be a 4 byte aligned list of UInt32's, however I got a list of 22 bytes which means this is wrong
 
         #region PESpy
 

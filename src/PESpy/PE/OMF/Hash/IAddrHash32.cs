@@ -1,4 +1,5 @@
 ﻿using PESpy.PDB;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -11,7 +12,7 @@ namespace PESpy
             out int resultOffsetIndex);
     }
 
-    public interface IAddrHash32 : IValue
+    public interface IAddrHash32 : IViewable, IValue
     {
         public int Kind { get; }
 
