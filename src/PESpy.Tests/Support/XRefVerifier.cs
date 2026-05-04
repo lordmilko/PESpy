@@ -307,7 +307,7 @@ namespace PESpy.Tests
 
                 Assert.IsNotNull(instance);
 
-                var viewWriter = new PEXRefViewWriter(peFile);
+                var viewWriter = new XRefViewWriter(peFile);
 
                 ((IViewable) instance).WriteGlobals(viewWriter);
 

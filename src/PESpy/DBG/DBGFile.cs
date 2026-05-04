@@ -80,7 +80,7 @@ namespace PESpy
 
         private ImageSeparateDebugHeader debugHeader;
 
-        public ref readonly ImageSeparateDebugHeader DebugHeader => ref debugHeader;
+        public ImageSeparateDebugHeader DebugHeader => debugHeader;
 
         #region SectionHeaders
 
@@ -192,12 +192,26 @@ namespace PESpy
             Dispose(false);
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            var writer = new DBGViewWriter(this);
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -218,6 +232,24 @@ namespace PESpy
         }
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
+        {
+            ptr = globalBlock.LocalPointer;
+            remainingLength = globalBlock.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -258,6 +290,9 @@ namespace PESpy
             if (disposing)
                 GC.SuppressFinalize(this);
 
+            _viewAccessor?.Dispose();
+
+            globalBlock.Dispose();
             mmf.Dispose();
 
             disposed = true;

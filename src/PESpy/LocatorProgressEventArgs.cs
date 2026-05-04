@@ -60,7 +60,7 @@ namespace PESpy
             new LocatorProgressEventArgs(LocatorProgressEventKind.CopyCascadeFile) { _key = key, _string1 = destinationStore, _string2 = sourceStore, _long1 = length };
 
         public static LocatorProgressEventArgs CreateCopyCascadeProgress(double percent, int totalRead, int length) =>
-            new LocatorProgressEventArgs(LocatorProgressEventKind.CopyCascadeProgress) { _long1 = BitConverter.DoubleToInt64Bits(percent), _long2 = (((long) totalRead )<< 32) | (long) length };
+            new LocatorProgressEventArgs(LocatorProgressEventKind.CopyCascadeProgress) { _long1 = BitConverter.DoubleToInt64Bits(percent), _long2 = (((long) totalRead) << 32) | (long) length };
 
         public static LocatorProgressEventArgs CreateEndCascadeStore(SymStoreKey key, string destinationStore, string sourceStore) =>
             new LocatorProgressEventArgs(LocatorProgressEventKind.EndCascadeStore) { _key = key, _string1 = destinationStore, _string2 = sourceStore };
@@ -145,6 +145,7 @@ namespace PESpy
 
             public string SourceStore { get; }
 
+            //-1 is length is not available
             public int Length { get; }
 
             internal CopyCascadeFileEventArgs(SymStoreKey key, string destinationStore, string sourceStore, int length)
@@ -160,15 +161,16 @@ namespace PESpy
         {
             public LocatorProgressEventKind Kind => LocatorProgressEventKind.CopyCascadeProgress;
 
-            public double Percent { get; }
+            public double? Percent { get; }
 
             public int TotalRead { get; }
 
-            public int Length { get; }
+            //-1 if length is not available
+            public int? Length { get; }
 
-            internal CopyCascadeProgressEventArgs(double percent, int totalRead, int length)
+            internal CopyCascadeProgressEventArgs(double percent, int totalRead, int? length)
             {
-                Percent = percent;
+                Percent = length == -1 ? null : percent;
                 TotalRead = totalRead;
                 Length = length;
             }

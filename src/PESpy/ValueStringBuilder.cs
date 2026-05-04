@@ -709,7 +709,7 @@ namespace PESpy
 
                 for (var i = indices.Count - 1; i >= 0; i--)
                 {
-                    var valueToReplaceStartIndex = indices[i];
+                    var valueToReplaceStartIndex = indices[i] + startIndex;
                     var valueToReplaceLength = oldValue.Length;
 
                     var valueToReplace = chars.Slice(valueToReplaceStartIndex, valueToReplaceLength);

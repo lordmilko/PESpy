@@ -226,7 +226,7 @@ namespace PESpy
 
                         case 2:
                         case 6:
-                            symbolHashTable = SymHash32(symbolHashTableChunk, hash.symhash, hash.cbHSym);
+                            symbolHashTable = SymHash32(symbolHashTableChunk, hash.symhash);
                             break;
 
                         case 10:
@@ -306,9 +306,9 @@ namespace PESpy
             }
         }
 
-        private static IValue SymHash32(in MemoryChunk chunk, int symhash, int cbHSym)
+        internal static IValue SymHash32(in MemoryChunk chunk, int symhash)
         {
-            Debug.Assert(symhash == 2); //Have only seen version 2
+            Debug.Assert(symhash == 2); //Have only seen version 2. GenerateCreateStructView hardcodes to pass in 2 as well
 
             var cBuckets = chunk.PeekUInt16(0);
             var pad = chunk.PeekUInt16(2);

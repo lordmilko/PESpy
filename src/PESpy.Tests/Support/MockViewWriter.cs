@@ -1,5 +1,4 @@
-﻿using System;
-using PESpy.View;
+﻿using PESpy.View;
 using PESpy.View.Builder;
 
 namespace PESpy.Tests
@@ -10,25 +9,14 @@ namespace PESpy.Tests
 
         internal override ICodeViewAccessor GetSymbolAccessor() => codeViewAccessor;
 
-        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, byte* mmf, int length) : base(new MockByteViewProvider(mmf, length), ViewMode.Default, TryGetViewOffset, null)
+        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, byte* mmf, int length) : base(new MockViewWriterHelper(), new MockByteViewProvider(mmf, length), ViewMode.Default)
         {
             this.codeViewAccessor = codeViewAccessor;
         }
 
-        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, ByteViewProvider byteViewProvider) : base(byteViewProvider, ViewMode.Default, TryGetViewOffset, null)
+        public unsafe MockViewWriter(ICodeViewAccessor codeViewAccessor, ByteViewProvider byteViewProvider) : base(new MockViewWriterHelper(), byteViewProvider, ViewMode.Default)
         {
             this.codeViewAccessor = codeViewAccessor;
-        }
-
-        private static bool TryGetViewOffset(int offset, out int viewOffset)
-        {
-            viewOffset = offset;
-            return true;
-        }
-
-        public override IView Finalize()
-        {
-            throw new NotImplementedException();
         }
     }
 }

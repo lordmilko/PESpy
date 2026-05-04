@@ -41,7 +41,7 @@ namespace PESpy.NativeAOT
         void IViewable.WriteGlobals(ViewWriter writer) => ModuleInfoRowV1.WriteGlobals(writer, this);
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(this, ViewKind.ModuleInfoRowV1, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.ModuleInfoRowV1, StructSize(writer.Is32Bit));
 
         int IViewable.NumChildren() => 3;
 

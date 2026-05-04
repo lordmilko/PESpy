@@ -760,12 +760,12 @@ namespace PESpy
             if (StreamTable == null)
                 return false;
 
-            var pdb = PDB;
+            var streamNameTable = PDB?.StreamNameTable;
 
-            if (pdb == null)
+            if (streamNameTable == null)
                 return false;
 
-            if (pdb.StreamNameTable.NameToStreamNumberMap.TryGetValue(name, out var sn))
+            if (streamNameTable.NameToStreamNumberMap.TryGetValue(name, out var sn))
                 return TryGetStreamChunk(sn, out chunk);
 
             return false;
@@ -797,12 +797,12 @@ namespace PESpy
             if (StreamTable == null)
                 return false;
 
-            var pdb = PDB;
+            var streamNameTable = PDB?.StreamNameTable;
 
-            if (pdb == null)
+            if (streamNameTable == null)
                 return false;
 
-            if (pdb.StreamNameTable.NameToStreamNumberMap.TryGetValue(name, out sn))
+            if (streamNameTable.NameToStreamNumberMap.TryGetValue(name, out sn))
             {
                 if (sn != SN.Nil && sn < StreamTable.StreamInfos.Length)
                 {
@@ -1259,7 +1259,7 @@ namespace PESpy
         //Caller must have asked if we have OmapFromSrc data before calling this method
         NativeSpan<OMAP_DATA> ICodeViewAccessor.GetOmapFromSrc() => omapFromSrc;
 
-        ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr;
+        ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr ?? fallbackSectionHeaders;
 
         SymType ICodeViewAccessor.GetModuleSymbol(ushort imod, int ibSym)
         {
@@ -1381,7 +1381,7 @@ namespace PESpy
 
         public FileView GetViewOld()
         {
-            var writer = new PDBViewWriter(this);
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();

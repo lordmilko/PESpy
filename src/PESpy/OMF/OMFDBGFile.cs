@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using ClrDebug;
 using PESpy.View;
+using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -87,18 +88,37 @@ namespace PESpy
             Dispose(false);
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
+            ((IViewable) this).WriteGlobals(writer);
+
+            return (FileView) writer.Finalize();
         }
 
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new NB02SymbolAccessor(data);
+
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
 
         public void Dispose()
         {
@@ -112,6 +132,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

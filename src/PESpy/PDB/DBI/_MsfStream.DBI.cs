@@ -122,26 +122,37 @@ namespace PESpy.PDB
                     {
                         var dataChunk = chunk.Slice(DbiHdr.StructSize + DbiHdr.cbGpModi);
 
-                        var version = (DBISCImpv) dataChunk.PeekUInt32(0);
+                        var pdbFile = chunk.PDBFile();
 
-                        if (version == DBISCImpv.DBISCImpvV60)
+                        if (pdbFile.PDB!.PDBHeader.ImplementationVersion == PDBIMPV.PDBImpvVC2)
                         {
-                            var size = DbiHdr.cbSC - 4; //Skip over the version field
-
-                            sectionContribs = new SectionContribsV60(dataChunk, size);
-                        }
-                        else if (version == DBISCImpv.DBISCImpv2)
-                        {
-                            var size = DbiHdr.cbSC - 4; //Skip over the version field
-
-                            sectionContribs = new SectionContribs2(dataChunk, size);
+                            sectionContribs = new SectionContribsV20(dataChunk, DbiHdr.cbSC);
                         }
                         else
                         {
-                            //Visual C++ 4 does not have a version; we seem to just start reading straight into the Section Contribution data.
-                            //This is confirmed by DBI1::getSecContribs
+                            var version = (DBISCImpv) dataChunk.PeekUInt32(0);
 
-                            sectionContribs = new SectionContribsV40(dataChunk, DbiHdr.cbSC);
+                            if (version == DBISCImpv.DBISCImpvV60)
+                            {
+                                var size = DbiHdr.cbSC - 4; //Skip over the version field
+
+                                sectionContribs = new SectionContribsV60(dataChunk, size);
+                            }
+                            else if (version == DBISCImpv.DBISCImpv2)
+                            {
+                                var size = DbiHdr.cbSC - 4; //Skip over the version field
+
+                                sectionContribs = new SectionContribs2(dataChunk, size);
+                            }
+                            else
+                            {
+                                /* Visual C++ 4 does not have a version; we seem to just start reading straight into the Section Contribution data.
+                                 * microsoft-pdb assumes we must be VC40 in DBI1::getSecContribs if we're not DBISCImpv or DBISCImpv2,
+                                 * however NT 4 shows that we need to check beforehand whether the PDB stream is impvVC2, in which case
+                                 * we don't have a version here but are SC20 instead */
+
+                                sectionContribs = new SectionContribsV40(dataChunk, DbiHdr.cbSC);
+                            }
                         }
                     }
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using ClrDebug;
+using PESpy.PDB;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy.View
@@ -19,18 +20,37 @@ namespace PESpy.View
             return file.Kind switch
             {
                 FileKind.PE          => new PEFileAccessor((PEFile) file, ViewMode.Default),
-                //FileKind.NE          => new NEFileAccessor((NEFile) file),
-                //FileKind.LE          => new LEFileAccessor((LEFile) file),
-                //FileKind.DOS         => new DOSFileAccessor((DOSFile) file),
-                //FileKind.DBG         => new DBGFileAccessor((DBGFile) file),
-                FileKind.PDB         => new PDBFileAccessor((PDBFile) file),
-                //FileKind.PortablePDB => new PortablePDBFileAccessor((PortablePDBFile) file),
-                //FileKind.OBJ         => new OBJFileAccessor((OBJFile) file),
-                //FileKind.LIB         => new LIBFileAccessor((LIBFile) file),
-                //FileKind.OMF         => new OMFFileAccessor((OMFFile) file),
-                //FileKind.OMFLIB      => new OMFLIBFileAccessor((OMFLIBFile) file)),
+                FileKind.NE          => new NEFileAccessor((NEFile) file),
+                FileKind.LE          => new LEFileAccessor((LEFile) file),
+                FileKind.DOS         => new DOSFileAccessor((DOSFile) file),
+                FileKind.DBG         => new DBGFileAccessor((DBGFile) file),
+                FileKind.PDB           => CreatePDBFileAccessor((PDBFile) file),
+                FileKind.PortablePDB => new PortablePDBFileAccessor((PortablePDBFile) file),
+                FileKind.OBJ         => new OBJFileAccessor((OBJFile) file),
+                FileKind.LIB         => new LIBFileAccessor((LIBFile) file),
+                FileKind.OMF         => new OMFFileAccessor((OMFFile) file),
+                FileKind.OMFLIB      => new OMFLIBFileAccessor((OMFLIBFile) file),
+                FileKind.OMFDBG      => new OMFDBGFileAccessor((OMFDBGFile) file),
+                FileKind.SYM         => new SYMFileAccessor((SYMFile) file),
                 _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
             };
+
+            static FileAccessor CreatePDBFileAccessor(PDBFile pdbFile)
+            {
+                switch (pdbFile.PDBKind)
+                {
+                    case PDBFileKind.V1:
+                        return new PDB1FileAccessor((PDB1File) pdbFile);
+
+                    case PDBFileKind.V2:
+                    case PDBFileKind.V7:
+                        return new PDBFileAccessor(pdbFile);
+
+                    default:
+                        Debug.Assert(false);
+                        return null;
+                }
+            }
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -183,7 +203,7 @@ namespace PESpy.View
                 address,
                 pViewByte,
                 accessor.pViewBytes,
-                accessor.pViewBytes + accessor.Length,
+                accessor.pViewBytesEnd,
                 pBytes,
                 _infoMap,
                 LargeAddresses
@@ -206,7 +226,7 @@ namespace PESpy.View
                 targetAddress,
                 pViewByte,
                 sectionAccessor.pViewBytes,
-                sectionAccessor.pViewBytes + sectionAccessor.Length,
+                sectionAccessor.pViewBytesEnd,
                 pBytes,
                 _infoMap,
                 LargeAddresses
@@ -233,7 +253,7 @@ namespace PESpy.View
                 address,
                 pViewByte,
                 accessor.pViewBytes,
-                accessor.pViewBytes + accessor.Length,
+                accessor.pViewBytesEnd,
                 pBytes,
                 _infoMap,
                 LargeAddresses
@@ -246,6 +266,19 @@ namespace PESpy.View
         internal FileView GetFileView(ViewMode viewMode)
         {
             var sectionAccessors = SectionAccessors;
+
+            if (sectionAccessors.Length == 1)
+            {
+                ref var sectionAccessor = ref sectionAccessors[0];
+
+                if (sectionAccessor.Kind == SectionAccessorKind.Header)
+                {
+                    //Flatten the hierarchy
+                    var childProvider = new GlobalViewProvider(0, this);
+
+                    return new FileView(ViewMode.Physical, File, childProvider, GetViewWriter(), sectionAccessor.Length, FileViewKind);
+                }
+            }
 
             var sectionViews = new IView[sectionAccessors.Length];
 
@@ -489,7 +522,7 @@ namespace PESpy.View
             var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
 
             ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
-            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+            var limit = sectionAccessor.pViewBytesEnd;
 
             if (pViewByte->Kind == ViewByteKind.Body)
             {
@@ -842,6 +875,57 @@ namespace PESpy.View
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default);
 
+        internal FixedUtf8String GetNameFromViewByte(int targetAddress, int sectionAccessorIndex, ViewByte* pViewByte)
+        {
+            Debug.Assert(pViewByte->HasName);
+
+            if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.Struct)
+            {
+                return ViewProvider.GetName(GetStructKind(targetAddress));
+            }
+
+            ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
+
+            if (TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva))
+            {
+                //If displacement is not 0, this can't be where the name came from
+                if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out var displacement) && displacement == 0)
+                {
+                    return symName;
+                }
+
+                //Must be an export
+                if (File.Kind == FileKind.PE)
+                {
+                    var peFile = (PEFile) File;
+
+                    var exportTable = peFile.ExportTable;
+
+                    if (exportTable != null)
+                    {
+                        foreach (var export in exportTable.Exports)
+                        {
+                            if (!export.ForwardOrAddress.IsForward && export.ForwardOrAddress.Address == rva)
+                            {
+                                return (FixedUtf8String) export.Name;
+                            }
+                        }
+                    }
+
+                    var peFileAccessor = (PEFileAccessor) this;
+
+                    if (peFileAccessor._rvaToMethodDefMap.TryGetValue(rva, out var methodDef))
+                    {
+                        var row = peFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
+
+                        return (FixedUtf8String) row.Name.GetString();
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
         internal bool TryGetNameFromAddress(int targetAddress, out FixedUtf8String name)
         {
             var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
@@ -909,7 +993,7 @@ namespace PESpy.View
 
                 foreach (var region in topLevelRegions)
                 {
-                    while (parentStack.Count > 0 && parentStack.Peek().End <= region.End)
+                    while (parentStack.Count > 0 && parentStack.Peek().End < region.End)
                         parentStack.Pop();
 
                     if (parentStack.Count > 0)
@@ -965,7 +1049,7 @@ namespace PESpy.View
             _firstRegionByAddress = firstRegionByAddress.ToArray(); //Doesn't need to be sorted
         }
 
-        internal void InstallNestedFileRanges(PEViewByteViewWriter viewWriter)
+        internal void InstallNestedFileRanges(ViewByteViewWriter viewWriter)
         {
             var rawRanges = viewWriter._nestedFileRanges;
 

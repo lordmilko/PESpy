@@ -39,6 +39,7 @@ namespace PESpy.Tests
         public static readonly string C400_EXE;
 
         public static readonly string C400_MAP;
+        public static readonly string C400_SYM;
         public static readonly string C400_OBJ;
 
         #endregion
@@ -245,6 +246,7 @@ namespace PESpy.Tests
 
             C400_EXE = MakePath("1. C400\\TESTAPP.EXE");
             C400_MAP = MakePath("1. C400\\TESTAPP.MAP");
+            C400_SYM = MakePath("1. C400\\LineNumbers\\TESTAPP.SYM");
             C400_OBJ = MakePath("1. C400\\TESTAPP.OBJ");
 
             #endregion

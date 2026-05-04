@@ -3988,8 +3988,8 @@ namespace PESpy.Tests
 
                     ViewWriter writer = file.Kind switch
                     {
-                        FileKind.PDB => new PDBViewWriter((PDBFile) file),
-                        FileKind.OBJ => new OBJViewWriter((OBJFile) file)
+                        FileKind.PDB => new ViewWriter((PDBFile) file),
+                        FileKind.OBJ => new ViewWriter((OBJFile) file)
                     };
 
                     var view = (IStructView) ((IViewable) sectionHeader).WriteStruct(writer);

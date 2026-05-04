@@ -25,6 +25,7 @@ namespace PESpy
         private int totalRead;
         private ILocatorProgress? _progress;
 
+        //Length should be -1 if not available
         internal WinHttpResponseStream(SafeWinHttpHandle hRequest, int length, ILocatorProgress? progress)
         {
             _hRequest = hRequest;

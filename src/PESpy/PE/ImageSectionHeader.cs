@@ -91,7 +91,7 @@ namespace PESpy
                             for (var i = 0; i < NumberOfRelocations; i++)
                                 relocations[i] = new ImageRelocation(valueChunk.Slice(i * ImageRelocation.StructSize));
 
-                            pointerToRelocations = new VA<ImageRelocation[]>(offset, offset, relocations);
+                            pointerToRelocations = new VA<ImageRelocation[]>(offset, valueChunk.AbsoluteOffset, relocations);
                         }
                         else
                         {
@@ -150,7 +150,7 @@ namespace PESpy
                                 lineNumbers[i] = item;
                             }
 
-                            pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, offset, lineNumbers);
+                            pointerToLineNumbers = new VA<ImageLineNumber[]>(offset, valueChunk.AbsoluteOffset, lineNumbers);
                         }
                         else
                         {

@@ -6,6 +6,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //DBISCImpv2 seems to be used when we have a Mini PDB (/DEBUG:FASTLINK)
+    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, dwCharacteristics = {dwCharacteristics}, imod = {imod}")]
     public struct SC2 : ISC40, IViewable
     {
         private const int isectOffset = 0;

@@ -49,6 +49,14 @@ namespace PESpy
         public int PeekInt32(int offset) => *(int*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int PeekInt24(int offset)
+        {
+            var p = Pointer + offset;
+
+            return (p[0] << 16) | (p[1] << 8) | p[2];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint PeekUInt32(int offset) => *(uint*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

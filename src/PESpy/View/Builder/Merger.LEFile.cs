@@ -25,21 +25,21 @@ namespace PESpy.View.Builder
                 //Some offsets are relative to the beginning of the file, while others are relative to the beginning of the LE header
                 var offsets = new[]
                 {
-                    vxdHeader.OffsetOfObjectTable,
-                    vxdHeader.OffsetOfObjectPageMap,
-                    vxdHeader.OffsetOfResourceTable,
-                    vxdHeader.OffsetOfResidentNameTable,
-                    vxdHeader.OffsetOfEntryTable,
-                    vxdHeader.OffsetOfModuleDirectiveTable,
+                    vxdHeader.e32_objtab,
+                    vxdHeader.e32_objmap,
+                    vxdHeader.e32_rsrctab,
+                    vxdHeader.e32_restab,
+                    vxdHeader.e32_enttab,
+                    vxdHeader.e32_dirtab,
                     //Resident Directives Data?
-                    vxdHeader.OffsetOfPerPageChecksumTable,
-                    vxdHeader.OffsetOfFixupPageTable,
-                    vxdHeader.OffsetOfFixupRecordTable,
-                    vxdHeader.OffsetOfImportModuleNameTable,
-                    vxdHeader.OffsetOfEnumeratedDataPages   != 0 ? vxdHeader.OffsetOfEnumeratedDataPages   - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
-                    vxdHeader.OffsetOfIteratedDataMap       != 0 ? vxdHeader.OffsetOfIteratedDataMap       - vxdHeader.Offset : 0,
-                    vxdHeader.OffsetOfNonResidentNamesTable != 0 ? vxdHeader.OffsetOfNonResidentNamesTable - vxdHeader.Offset : 0,
-                    vxdHeader.OffsetOfDebugInfo != 0 ? vxdHeader.OffsetOfDebugInfo - vxdHeader.Offset : 0
+                    vxdHeader.e32_pagesum,
+                    vxdHeader.e32_fpagetab,
+                    vxdHeader.e32_frectab,
+                    vxdHeader.e32_impmod,
+                    vxdHeader.e32_datapage  != 0 ? vxdHeader.e32_datapage  - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
+                    vxdHeader.e32_itermap   != 0 ? vxdHeader.e32_itermap   - vxdHeader.Offset : 0,
+                    vxdHeader.e32_nrestab   != 0 ? vxdHeader.e32_nrestab   - vxdHeader.Offset : 0,
+                    vxdHeader.e32_debuginfo != 0 ? vxdHeader.e32_debuginfo - vxdHeader.Offset : 0
                 };
 
     #if DEBUG
@@ -65,7 +65,7 @@ namespace PESpy.View.Builder
                 ReadTable("Enumerated Data Pages",    offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_EnumeratedDataPages);
                 ReadTable("Iterated Data Map",        offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_IteratedDataMap);
                 ReadTable("Non-Resident Names Table", offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, ViewKind.LE_NonResidentNamesTable);
-                ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, vxdHeader.DebugInfoLength, ViewKind.LE_DebugInfo);
+                ReadLastTable("Debug Info",           offsets, vxdHeader, ref index, ref lastSectionEnd, ref results, vxdHeader.e32_debuglen, ViewKind.LE_DebugInfo);
                 Debug.Assert(index == offsets.Length);
 
                 return results.ToArray();

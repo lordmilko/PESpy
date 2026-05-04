@@ -35,7 +35,7 @@ namespace PESpy
 
             //Data comes before the headers
 
-            var isLEFile = writer is LEViewWriter;
+            var isLEFile = writer.helper.FileKind == FileKind.LE;
 
             for (var i = 0; i < DirEntries.Length; i++)
             {

@@ -385,7 +385,7 @@ namespace PESpy
 
         //We don't care about representing that there's a 32 and 64-bit versions of the structure
         IView? IViewable.WriteStruct(ViewWriter writer) =>
-            writer.NewStruct(this, ViewKind.ImageOptionalHeader, StructSize(((PEViewWriter) writer).Is32Bit));
+            writer.NewStruct(this, ViewKind.ImageOptionalHeader, StructSize(writer.Is32Bit));
 
         int IViewable.NumChildren() => 29 + (chunk.Is32Bit ? 1 : 0) + NumberOfRvaAndSizes;
 

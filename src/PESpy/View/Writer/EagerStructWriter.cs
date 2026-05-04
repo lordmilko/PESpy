@@ -18,7 +18,7 @@ namespace PESpy.View
 
         private PooledList<IView> items;
 
-        public bool Is32Bit() => ((PEViewWriter) structWriter.ViewWriter).Is32Bit;
+        public bool Is32Bit() => structWriter.ViewWriter.Is32Bit;
 
         internal EagerStructWriter(StructWriter structWriter)
         {
@@ -122,7 +122,7 @@ namespace PESpy.View
 
         public void WritePointerField(string name, long value, FieldViewFlags flags = default)
         {
-            if (((PEViewWriter) structWriter.ViewWriter).Is32Bit)
+            if (structWriter.ViewWriter.Is32Bit)
             {
                 structWriter.WriteField(name, currentFieldOffset, (int) value, flags);
 
@@ -140,7 +140,7 @@ namespace PESpy.View
 
         public void WritePointerField(string name, ulong value)
         {
-            if (((PEViewWriter) structWriter.ViewWriter).Is32Bit)
+            if (structWriter.ViewWriter.Is32Bit)
             {
                 structWriter.WriteField(name, currentFieldOffset, (uint) value);
                 currentFieldOffset += sizeof(uint);
@@ -424,7 +424,7 @@ namespace PESpy.View
 #if DEBUG
             //If we're a PDBViewWriter, a child struct may have computed its own chunk.AbsoluteOffset as being in a different chunk than the previous field
             //in the parent struct. As such, we can't assert that the field is sequential
-            if (structWriter.ViewWriter is not PDBViewWriter)
+            if (structWriter.ViewWriter.helper.FileKind != FileKind.PDB)
             {
                 var expectedOffset = structWriter.ParentOffset + currentFieldOffset;
                 structWriter.ViewWriter.TryGetViewOffset(value.Offset, out var offset);

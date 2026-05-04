@@ -12,12 +12,19 @@ using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
+    internal interface IOBJFile
+    {
+        ImageFileHeader FileHeader { get; }
+
+        ImageSectionHeader[] SectionHeaders { get; }
+    }
+
     /// <summary>
     /// Represents a file in the Common Object File Format that is not better described
     /// by a more specific type (such as <see cref="PEFile"/>).<para/>
     /// File types commonly used with this type include *.exp and non-OMF *.obj files.
     /// </summary>
-    public class OBJFile : IFile, IViewable, IDisposable
+    public class OBJFile : IFile, IOBJFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)
         {
@@ -298,12 +305,26 @@ namespace PESpy
             return new RawValue<NativeSpan<byte>>(sectionChunk.AbsoluteOffset, sectionChunk.PeekNativeSpan<byte>(0, sizeOfRawData));
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            var writer = new OBJViewWriter(this);
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -317,11 +338,22 @@ namespace PESpy
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
 
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public unsafe void GetRawPointer(out byte* pointer, out int length)
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
-            pointer = mmf.Address;
-            length = (int) mmf.Length;
+            ptr = globalBlock.LocalPointer;
+            remainingLength = globalBlock.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)
@@ -376,26 +408,28 @@ namespace PESpy
 
                     ViewKind kind;
 
-                    if (sectionName == ".text")
+                    if (sectionName == ".text"u8)
                         kind = ViewKind.text;
-                    else if (sectionName == ".text$mn")
+                    else if (sectionName == ".text$mn"u8)
                         kind = ViewKind.text_mn;
-                    else if (sectionName == ".data")
+                    else if (sectionName == ".data"u8)
                         kind = ViewKind.data;
                     else if (sectionName.StartsWith(".idata"))
                         kind = ViewKind.idata;
-                    else if (sectionName == ".edata")
+                    else if (sectionName == ".edata"u8)
                         kind = ViewKind.edata;
-                    else if (sectionName == ".rdata")
+                    else if (sectionName == ".rdata"u8)
                         kind = ViewKind.rdata;
-                    else if (sectionName == ".debug$f") //FPO
+                    else if (sectionName == ".debug$f"u8) //FPO
                         kind = ViewKind.debug_f;
-                    else if (sectionName == ".bss")
+                    else if (sectionName == ".bss"u8)
                         kind = ViewKind.bss; //Don't know what the actual data format is
                     else if (sectionName.StartsWith(".rsrc"))
                         kind = ViewKind.rsrc;
-                    else if (sectionName == ".sxdata")
+                    else if (sectionName == ".sxdata"u8)
                         kind = ViewKind.sxdata;
+                    else if (sectionName == ".chks64"u8)
+                        kind = ViewKind.chks64;
                     else
                     {
 #if DEBUG
@@ -450,6 +484,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

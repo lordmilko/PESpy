@@ -585,7 +585,7 @@ namespace PESpy.PDB
                 case S_PUB32_16t: //Not supported by DIA
                 case S_LTHREAD32_16t: //Not supported by DIA
                 case S_GTHREAD32_16t: //Not supported by DIA
-                    {
+                {
                     var sym = ((DataSym3216t) symType);
                     off = sym.off;
                     seg = sym.seg;

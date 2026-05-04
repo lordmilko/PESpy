@@ -73,6 +73,12 @@ namespace PESpy.View
                 case FileKind.PE:
                     return ((PEFile) file).FileHeader.Machine;
 
+                case FileKind.OBJ:
+                    return ((OBJFile) file).FileHeader.Machine;
+
+                case FileKind.DBG:
+                    return ((DBGFile) file).DebugHeader.Machine;
+
                 default:
                     throw new NotImplementedException();
             }
@@ -308,7 +314,7 @@ namespace PESpy.View
 
         public void WritePointerField(string name, int relativeOffset, long value, FieldViewFlags flags = default)
         {
-            if (((PEViewWriter) _viewWriter).Is32Bit)
+            if (_viewWriter.Is32Bit)
                 RelayField(name, relativeOffset, (int) value, sizeof(int), flags);
             else
                 RelayField(name, relativeOffset, value, sizeof(long), flags);
@@ -316,7 +322,7 @@ namespace PESpy.View
 
         public void WritePointerField(string name, int relativeOffset, ulong value, FieldViewFlags flags = default)
         {
-            if (((PEViewWriter) _viewWriter).Is32Bit)
+            if (_viewWriter.Is32Bit)
                 RelayField(name, relativeOffset, (uint) value, sizeof(int), flags);
             else
                 RelayField(name, relativeOffset, value, sizeof(long), flags);
@@ -810,7 +816,7 @@ namespace PESpy.View
 
         internal void WriteStringHeapIndex(string name, int relativeOffset, StringIndex index)
         {
-            if (((PEViewWriter) _viewWriter).MetadataReader.StringIndexSize == 4)
+            if (((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.StringIndexSize == 4)
                 WriteField(name, relativeOffset, (int) index);
             else
                 WriteField(name, relativeOffset, (ushort) index);
@@ -818,7 +824,7 @@ namespace PESpy.View
 
         internal void WriteBlobHeapIndex(string name, int relativeOffset, BlobIndex index)
         {
-            if (((PEViewWriter) _viewWriter).MetadataReader.BlobIndexSize == 4)
+            if (((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.BlobIndexSize == 4)
                 WriteField(name, relativeOffset, (int) index);
             else
                 WriteField(name, relativeOffset, (ushort) index);
@@ -826,7 +832,7 @@ namespace PESpy.View
 
         internal void WriteBlobHeapIndex(string name, int relativeOffset, DocumentNameBlobIndex index)
         {
-            if (((PEViewWriter) _viewWriter).MetadataReader.BlobIndexSize == 4)
+            if (((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.BlobIndexSize == 4)
                 WriteField(name, relativeOffset, (int) index);
             else
                 WriteField(name, relativeOffset, (ushort) index);
@@ -834,7 +840,7 @@ namespace PESpy.View
 
         internal void WriteGuidHeapIndex(string name, int relativeOffset, GuidIndex index)
         {
-            if (((PEViewWriter) _viewWriter).MetadataReader.GuidIndexSize == 4)
+            if (((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.GuidIndexSize == 4)
                 WriteField(name, relativeOffset, (int) index);
             else
                 WriteField(name, relativeOffset, (ushort) index);
@@ -844,48 +850,48 @@ namespace PESpy.View
         #region Coded
 
         internal void WriteTypeDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.TypeDefOrRefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.TypeDefOrRefSize);
 
         internal void WriteHasConstantIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasConstantSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.HasConstantSize);
 
         internal void WriteHasCustomAttributeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomAttributeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.HasCustomAttributeSize);
 
         internal void WriteHasFieldMarshalIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasFieldMarshalSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.HasFieldMarshalSize);
 
         internal void WriteHasDeclSecurityIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasDeclSecuritySize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.HasDeclSecuritySize);
 
         internal void WriteMemberRefParentIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MemberRefParentSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.MemberRefParentSize);
 
         internal void WriteHasSemanticsIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasSemanticsSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.HasSemanticsSize);
 
         internal void WriteMethodDefOrRefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MethodDefOrRefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.MethodDefOrRefSize);
 
         internal void WriteMemberForwardedIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.MemberForwardedSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.MemberForwardedSize);
 
         internal void WriteImplementationIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.ImplementationSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.ImplementationSize);
 
         internal void WriteCustomAttributeTypeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.CustomAttributeTypeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.CustomAttributeTypeSize);
 
         internal void WriteResolutionScopeIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.ResolutionScopeSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.ResolutionScopeSize);
 
         internal void WriteTypeOrMethodDefIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.TypeOrMethodDefSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.TypeOrMethodDefSize);
 
         //Portable PDB
 
         internal void WriteHasCustomDebugInformationIndex(string name, int relativeOffset, CodedIndex value) =>
-            WriteIndex(name, relativeOffset, (int) value, ((PEViewWriter) _viewWriter).MetadataReader.HasCustomDebugInformationSize);
+            WriteIndex(name, relativeOffset, (int) value, ((PEFileViewWriterHelper)_viewWriter.helper).MetadataReader.HasCustomDebugInformationSize);
 
         private void WriteIndex(string name, int relativeOffset, int index, int indexSize)
         {
@@ -897,7 +903,7 @@ namespace PESpy.View
 
         internal void WriteSimpleIndex(string name, int relativeOffset, int value, TableKind kind)
         {
-            var size = ((PEViewWriter) _viewWriter).MetadataReader.GetSimpleIndexSize(kind);
+            var size = ((PEFileViewWriterHelper) _viewWriter.helper).MetadataReader.GetSimpleIndexSize(kind);
 
             WriteIndex(name, relativeOffset, value, size);
         }

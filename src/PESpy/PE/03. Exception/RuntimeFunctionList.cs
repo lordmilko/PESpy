@@ -97,7 +97,7 @@ namespace PESpy
         {
             //Writing items normally is super slow in msedge.dll, so we want to try and optimize for RUNTIME_FUNCTION
             //which can have a huge number of elements
-            if (writer is PEViewByteViewWriter w)
+            if (writer is ViewByteViewWriter w)
             {
                 var pRuntimeFunction = (RUNTIME_FUNCTION*) chunk.Pointer;
 

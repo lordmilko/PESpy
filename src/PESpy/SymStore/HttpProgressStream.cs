@@ -16,11 +16,11 @@ namespace PESpy
         private readonly long length;
         private readonly ILocatorProgress? progress;
 
-        public HttpProgressStream(HttpResponseMessage response, Stream stream, long length, ILocatorProgress? progress)
+        public HttpProgressStream(HttpResponseMessage response, Stream stream, long? length, ILocatorProgress? progress)
         {
             this.response = response;
             this.stream = stream;
-            this.length = length;
+            this.length = length == null ? -1 : length.Value;
             this.progress = progress;
         }
 

@@ -247,12 +247,26 @@ namespace PESpy
             ImportLibrary = imports.ToArray();
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            var writer = new LIBViewWriter(this);
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -266,6 +280,94 @@ namespace PESpy
             CancellationToken cancellationToken = default) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor, isLibFile: true);
+
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
+        {
+            ptr = globalBlock.LocalPointer;
+            remainingLength = globalBlock.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                //If the offset is within the initial header, or it's not within a known import long library
+                //entry, use the global block. Otherwise, use the block that belongs to the library member
+
+                var importLibrary = ImportLibrary;
+
+                for (var i = 0; i < importLibrary.Length; i++)
+                {
+                    ref var entry = ref importLibrary[i];
+
+                    if (entry.IsLong)
+                    {
+                        var l = (LongImportLibraryMember) entry;
+
+                        if (LongImportContainsOffset(l, offset))
+                        {
+                            var block = l.chunk.block;
+
+                            var diff = offset - block.RemoteStartOffset;
+
+                            chunk = new MemoryChunk(block, diff);
+                            return true;
+                        }
+                    }
+                }
+
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        private bool LongImportContainsOffset(in LongImportLibraryMember entry, int offset)
+        {
+            var endAddress = entry.Offset + entry.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
+
+            if (offset >= entry.Offset && offset < endAddress)
+                return true;
+
+            //Check for RVAs
+
+            if (entry.FileHeader.PointerToSymbolTable.IsValid)
+            {
+                var symbolTable = entry.FileHeader.PointerToSymbolTable.Value;
+
+                if (offset >= symbolTable.Offset && offset < (symbolTable.Offset + symbolTable.StructSize))
+                    return true;
+            }
+
+            var sectionHeaders = entry.SectionHeaders;
+
+            for (var j = 0; j < sectionHeaders.Length; j++)
+            {
+                ref var sectionHeader = ref sectionHeaders[j];
+
+                if (sectionHeader.PointerToLineNumbers.IsValid)
+                {
+                    var start = sectionHeader.PointerToLineNumbers.ActualOffset;
+                    var end = start + (sectionHeader.NumberOfLineNumbers * ImageLineNumber.StructSize);
+
+                    if (offset >= start && offset < end)
+                        return true;
+                }
+
+                if (sectionHeader.PointerToRelocations.IsValid)
+                {
+                    var start = sectionHeader.PointerToRelocations.ActualOffset;
+                    var end = start + (sectionHeader.NumberOfRelocations * ImageRelocation.StructSize);
+
+                    if (offset >= start && offset < end)
+                        return true;
+                }
+            }
+
+            return false;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -295,6 +397,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

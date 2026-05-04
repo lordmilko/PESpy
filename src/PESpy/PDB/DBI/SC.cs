@@ -5,7 +5,7 @@ using PESpy.View;
 
 namespace PESpy.PDB
 {
-    [DebuggerDisplay("isect = {isect}, off = {off}, cb = {cb}, dwCharacteristics = {dwCharacteristics}, imod = {imod}, dwDataCrc = {dwDataCrc}, dwRelocCrc = {dwRelocCrc}")]
+    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, dwCharacteristics = {dwCharacteristics}, imod = {imod}, dwDataCrc = {dwDataCrc}, dwRelocCrc = {dwRelocCrc}")]
     public struct SC : ISC40, IViewable
     {
         private const int isectOffset = 0;

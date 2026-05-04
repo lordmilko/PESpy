@@ -242,7 +242,7 @@ namespace PESpy.View
         {
             if (_viewWriter == null)
             {
-                _viewWriter = new PEViewWriter(PEFile, PEFile.CreateByteViewProvider(null), ViewMode, this);
+                _viewWriter = new ViewWriter(new PEFileViewWriterHelper(PEFile, ViewMode), PEFile.CreateByteViewProvider(null), ViewMode, this);
 
 #if DEBUG
                 _viewWriter.ShouldVerifyXRefs = false;

@@ -44,6 +44,19 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        internal HeaderView(
+            RegionBuilder region,
+            FileAccessor fileAccessor,
+            ViewWriter viewWriter,
+            in ViewEntityIterator iterator,
+            int depthAtStartOffset)
+        {
+            Offset = region.Start;
+            Size = region.Length;
+            childProvider = new GlobalViewProvider(iterator, fileAccessor, region.Kind == ViewKind.DataDirectory ? GlobalViewProviderKind.Directory : GlobalViewProviderKind.Region, depthAtStartOffset);
+            this.viewWriter = viewWriter;
+        }
+
         //For nested files
         internal HeaderView(int offset, int size, FileAccessor fileAccessor, in ViewEntityIterator iterator, ViewWriter viewWriter)
         {

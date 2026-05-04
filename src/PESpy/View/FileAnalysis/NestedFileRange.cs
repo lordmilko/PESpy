@@ -4,11 +4,11 @@
     {
         public readonly int StartOffset;
         public readonly int EndOffset;
-        public readonly IFile File;
+        public readonly PEFile File;
         public ViewWriter NestedWriter;
         public int Length => EndOffset - StartOffset;
 
-        public NestedFileRange(int startOffset, int endOffset, IFile file)
+        public NestedFileRange(int startOffset, int endOffset, PEFile file)
         {
             StartOffset = startOffset;
             EndOffset = endOffset;

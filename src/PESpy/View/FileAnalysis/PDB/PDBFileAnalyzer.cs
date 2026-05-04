@@ -7,7 +7,11 @@ namespace PESpy.View
     {
         private readonly PDBFile _pdbFile;
 
-        internal PDBFileAnalyzer(PDBFileAccessor fileAccessor, IFileAnalyzerProgress? progress, bool trackXRefs, CancellationToken cancellationToken) : base(fileAccessor, null, LocatorHttpPolicy.All, progress, trackXRefs, cancellationToken)
+        internal PDBFileAnalyzer(
+            PDBFileAccessor fileAccessor,
+            IFileAnalyzerProgress? progress,
+            bool trackXRefs,
+            CancellationToken cancellationToken) : base(fileAccessor, progress, trackXRefs, cancellationToken, null, LocatorHttpPolicy.None)
         {
             _pdbFile = fileAccessor.PDBFile;
         }

@@ -53,6 +53,8 @@ namespace PESpy.View
             in ViewEntityIterator iterator,
             int depthAtStartOffset)
         {
+            Debug.Assert(region.Kind != ViewKind.Header, "A HeaderView should have been created instead");
+            Debug.Assert(region.Kind != ViewKind.Section, "A SectionView should have been created instead");
             Kind = region.Kind;
             Offset = region.Start;
             Name = region.Name;

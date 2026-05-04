@@ -233,7 +233,7 @@ namespace PESpy.Tests
 
             if (missingProperties.Length > 0)
             {
-                Assert.Fail($"The following {nameof(ImageDataDirectory)} properties are not being written in {nameof(PEViewWriter)}.{nameof(PEViewWriter.Finalize)}" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
+                Assert.Fail($"The following {nameof(ImageDataDirectory)} properties are not being written in {nameof(ViewWriter)}.{nameof(ViewWriter.Finalize)}" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
             }
         }
 
@@ -451,6 +451,18 @@ namespace PESpy.Tests
                             region.children.Add((enumValue, "IStructView", ViewType.Struct));
                         }
                     }
+                    else if (region.regionName == "Sections")
+                    {
+                        if (line.EndsWith(","))
+                        {
+                            var enumValue = line.Trim(' ', ',');
+
+                            if (enumValue.StartsWith("//"))
+                                continue; //Commented out; ignore
+
+                            region.children.Add((enumValue, (string) null, ViewType.ByteBlob));
+                        }
+                    }
                     else
                     {
                         if (line.EndsWith(','))
@@ -599,7 +611,13 @@ namespace PESpy.Tests
                             case nameof(ViewKind.OMFDirEntry):
                             case nameof(ViewKind.OMFGlobalTypes):
                             case nameof(ViewKind.OMFSourceFile):
+                            case nameof(ViewKind.ShortImportLibraryMember):
+                            case nameof(ViewKind.LongImportLibraryMember):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.SymHash32):
+                                builder.AppendLine("Write((IViewable) OMFDirEntry.SymHash32(chunk, 2), viewWriter),");
                                 break;
 
                             case nameof(ViewKind.SymHash32Long):
@@ -636,8 +654,10 @@ namespace PESpy.Tests
                                 builder.AppendLine("Write(chunk.PEFile().AppHostSignature, viewWriter),");
                                 break;
 
+                            case nameof(ViewKind.SectionContribsV20):
                             case nameof(ViewKind.SectionContribsV40):
                             case nameof(ViewKind.SectionContribsV60):
+                            case nameof(ViewKind.SectionContribs2):
                                 builder.AppendLine($"Write(({structKind}) chunk.PDBFile().DBI.SectionContribs, viewWriter),");
                                 break;
 
@@ -722,6 +742,10 @@ namespace PESpy.Tests
 
                                                 case "AnsiString":
                                                     builder.AppendLine("WriteAnsiNullTerminated(chunk, viewWriter, kind),");
+                                                    continue;
+
+                                                case "FixedAnsiString":
+                                                    builder.AppendLine("WriteFixedAnsiString(chunk, viewWriter, length, kind),");
                                                     continue;
 
                                                 case "FixedUtf8String":

@@ -6,54 +6,49 @@ using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    internal unsafe class PDBViewByteViewWriter : PDBViewWriter
+    internal unsafe class PDBViewByteViewWriter : ViewByteViewWriter
     {
         private readonly int _pageSize;
-        private readonly FileAnalyzer _fileAnalyzer;
         private readonly Dictionary<PN, int> _pageNumberToSIIndex;
+        private readonly PDBFile _pdbFile;
 
         internal PDBViewByteViewWriter(
             PDBFile pdbFile,
             FileAccessor fileAccessor,
             FileAnalyzer fileAnalyzer,
-            Dictionary<PN, int> pageNumberToSIIndex) : base(pdbFile, fileAccessor)
+            Dictionary<PN, int> pageNumberToSIIndex) : base(
+                new PDBFileViewWriterHelper(pdbFile),
+                pdbFile.CreateByteViewProvider(fileAccessor),
+                ViewMode.Default,
+                fileAccessor,
+                null,
+                fileAnalyzer,
+                LocatorHttpPolicy.None,
+                null
+            )
         {
+            _pdbFile = pdbFile;
             _pageSize = pdbFile.PageSize;
-            _fileAnalyzer = fileAnalyzer;
             _pageNumberToSIIndex = pageNumberToSIIndex;
         }
 
         protected internal override IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize)
         {
-            return RegisterStruct(UnmanagedOffset, kind, structSize);
+            return NewStruct(UnmanagedOffset, kind, structSize);
         }
 
         protected internal override IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
         {
             //Every struct will call NewStruct(), so we want to take steps to minimize its size in NativeAOT
-            return RegisterStruct(value.Offset, kind, structSize);
+            return NewStruct(value.Offset, kind, structSize);
         }
 
-        protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
-        {
-            return RegisterValue(offset, size, kind, fromRegion);
-        }
-
-        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind)
-        {
-            RegisterStruct(offset, kind, size);
-        }
-
-        private IView? RegisterStruct(int offset, ViewKind kind, int structSize)
+        private IView? NewStruct(int offset, ViewKind kind, int structSize)
         {
             var name = ViewProvider.GetName(kind);
 
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
-            pViewByte->Kind = ViewByteKind.Data;
-            pViewByte->DataKind = ViewByteDataKind.Struct;
-            _fileAccessor.CheckName(offset);
-            pViewByte->HasName = true;
-            _fileAccessor.AddStructKind(offset, kind);
+            RegisterStruct(pViewByte, offset, kind);
 
             SetPagedBody(offset, structSize, pViewByte, sectionAccessorIndex);
 
@@ -61,12 +56,56 @@ namespace PESpy.View
             return null;
         }
 
-        private IView? RegisterValue(int offset, int size, ViewKind kind, bool fromRegion)
+        protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
-            var pViewByte = PEViewByteViewWriter.RegisterValueInternal(_fileAccessor, _fileAnalyzer, offset, size, kind, out var sectionAccessorIndex);
+            return RegisterValue(offset, size, kind, fromRegion);
+        }
+
+        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind) =>
+            RegisterGlobalField(offset, size, kind);
+
+        private void RegisterGlobalField(int offset, int size, ViewKind kind)
+        {
+            //While it's not really a struct, we treat it like one since it has a ViewKind and then special
+            //case it accordingly
+            var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
+            RegisterStruct(pViewByte, offset, kind);
 
             SetPagedBody(offset, size, pViewByte, sectionAccessorIndex);
+        }
 
+        private IView? RegisterValue(
+            int offset,
+            int size,
+            ViewKind kind,
+            bool fromRegion)
+        {
+            var pViewByte = RegisterValueInternal(offset, size, kind, out var sectionAccessorIndex);
+
+            SetPagedBody(offset, size, pViewByte, sectionAccessorIndex);
+            return null;
+        }
+
+        public override ByteBlobView? WriteByteBlob(ByteBlob byteBlob)
+        {
+            var pViewByte = _fileAccessor.GetViewByte(byteBlob.Offset, out var sectionAccessorIndex);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Integer; //Bytes
+            _fileAccessor.AddStructKind(byteBlob.Offset, byteBlob.viewKind);
+
+            SetPagedBody(byteBlob.Offset, byteBlob.Bytes.Length, pViewByte, sectionAccessorIndex);
+
+            return null;
+        }
+
+        public override ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
+        {
+            var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
+            Debug.Assert(pViewByte->Kind != ViewByteKind.Body);
+            pViewByte->Kind = ViewByteKind.Data;
+            pViewByte->DataKind = ViewByteDataKind.Padding;
+
+            SetPagedBody(offset, bytes.Length, pViewByte, sectionAccessorIndex);
             return null;
         }
 
@@ -122,7 +161,7 @@ namespace PESpy.View
                 if (sectionAccessor.Bytes[sectionAccessor.Length - 2].Kind == ViewByteKind.Body)
                     Debug.Assert(sectionAccessor.Bytes[sectionAccessor.Length - 1].Kind == ViewByteKind.Body);
 
-                var writtenLength = pViewByte->GetLength(sectionAccessor.pViewBytes + sectionAccessor.Length);
+                var writtenLength = pViewByte->GetLength(sectionAccessor.pViewBytesEnd);
                 Debug.Assert(writtenLength == size);
 #endif
             }
@@ -205,7 +244,7 @@ namespace PESpy.View
                     //Whatever we just wrote ends in a split tail then
                     (pViewByte + numBytesToWrite - 1)->BodyKind = ViewByteBodyKind.SplitTail;
 
-                    currentSegmentStart = Merger.GetNextPageOffset(pdbFile, currentSegmentStart, _pageNumberToSIIndex);
+                    currentSegmentStart = Merger.GetNextPageOffset(_pdbFile, currentSegmentStart, _pageNumberToSIIndex);
                     relativeOffset = 0;
 
                     //Note that there is not a 1:1 correspondence between page index and section accessor index,

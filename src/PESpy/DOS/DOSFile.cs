@@ -53,7 +53,7 @@ namespace PESpy
         /// <summary>
         /// Gets the MS-DOS 2.0 compatible <see cref="IMAGE_DOS_HEADER"/>.
         /// </summary>
-        public ref readonly ImageDosHeader DosHeader => ref dosHeader;
+        public ImageDosHeader DosHeader => dosHeader;
 
         public int SizeOfHeaders { get; private set; }
 
@@ -130,12 +130,26 @@ namespace PESpy
             Dispose(false);
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            var writer = new DOSViewWriter(this, CreateByteViewProvider(null));
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -198,6 +212,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

@@ -223,7 +223,7 @@ namespace PESpy
 
         internal static unsafe void WriteUnwindInfos(
             PEFile peFile,
-            PEViewByteViewWriter viewWriter,
+            ViewByteViewWriter viewWriter,
             ISymbolAccessor symbolAccessor)
         {
             var hashSet = viewWriter._unwindInfos;
@@ -311,7 +311,7 @@ namespace PESpy
 
                         if (i == sortedUnwindInfoRVAs.Length - 1)
                         {
-                            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                            var limit = sectionAccessor.pViewBytesEnd;
                             exceptionDataLength = (uint) (pViewByte->Kind == ViewByteKind.Unknown ? pViewByte->GetUnknownLength(limit, hasUnknownBody: false) : pViewByte->GetLength(limit));
                         }
                         else
@@ -384,7 +384,7 @@ namespace PESpy
 
         private static unsafe void WriteUnwindInfosFromSymbols(
             PEFile peFile,
-            PEViewByteViewWriter viewWriter,
+            ViewByteViewWriter viewWriter,
             ISymbolAccessor symbolAccessor,
             Span<int> entries)
         {
@@ -518,7 +518,7 @@ namespace PESpy
         }
 
         private static unsafe void WriteSimpleUnwindInfo(
-            PEViewByteViewWriter viewWriter,
+            ViewByteViewWriter viewWriter,
             ViewByte* pViewByte,
             in SectionAccessor sectionAccessor,
             int unwindInfoRelativeOffset,

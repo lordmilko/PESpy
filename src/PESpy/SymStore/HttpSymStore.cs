@@ -80,17 +80,15 @@ namespace PESpy
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                     return default;
 
+                //ContentLength may not be available, but that's OK
                 var length = response.Content.Headers.ContentLength;
-
-                if (length == null)
-                    return default;
 
                 var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                 //Transfer ownership of the response to the progress stream
                 dispose = false;
 
-                return new(new SymStoreFile(requestUri), new HttpProgressStream(response, stream, length.Value, progress));
+                return new(new SymStoreFile(requestUri), new HttpProgressStream(response, stream, length, progress));
             }
             finally
             {
@@ -308,8 +306,10 @@ namespace PESpy
                         if (statusCode != 200)
                             return WinHttpResult.BadStatusCode;
 
+                        //Certain symbol servers don't return a content length, so if we fail to get one
+                        //we shouldn't consider this fatal
                         if (!TryGetNumericHeader(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, out var contentLength))
-                            return WinHttpResult.ContentLengthHeaderMissing;
+                            contentLength = -1;
 
                         stream = new WinHttpResponseStream(hRequest, contentLength, progress);
                         hRequest = null; //Ownership transferred to the response

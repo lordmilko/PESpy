@@ -384,7 +384,6 @@ namespace PESpy
             /* RTTICompleteObjectLocator                                 */ Strings._RTTICompleteObjectLocator,
             /* PMD                                                       */ Strings.PMD,
             /* NEFile                                                    */ default,
-            /* NE_ImportedName_Length                                    */ default,
             /* NE_ImportedName_String                                    */ default,
             /* NE_ModuleReference                                        */ default,
             /* ImageOS2Header                                            */ default,
@@ -440,8 +439,10 @@ namespace PESpy
             /* SC40                                                      */ Strings.SC40,
             /* SC                                                        */ Strings.SC,
             /* SC2                                                       */ Strings.SC2,
+            /* SectionContribsV20                                        */ Strings.SectionContribs,
             /* SectionContribsV40                                        */ Strings.SectionContribs,
             /* SectionContribsV60                                        */ Strings.SectionContribs,
+            /* SectionContribs2                                          */ Strings.SectionContribs,
             /* OMFSegMap                                                 */ Strings.OMFSegMap,
             /* OMFSegMapDesc                                             */ Strings.OMFSegMapDesc,
             /* OMFFileIndex                                              */ Strings.OMFFileIndex,
@@ -713,6 +714,7 @@ namespace PESpy
             /* bss                                                       */ default,
             /* rsrc                                                      */ default,
             /* sxdata                                                    */ default,
+            /* chks64                                                    */ default,
             /* UnknownSection                                            */ default,
             /* LIBFile                                                   */ default,
             /* LIBFile_Signature                                         */ default,
@@ -737,6 +739,7 @@ namespace PESpy
             /* OMFSourceLine                                             */ Strings.OMFSourceLine,
             /* OMFSourceModule                                           */ Strings.OMFSourceModule,
             /* OMFTypeFlags                                              */ Strings.OMFTypeFlags,
+            /* SymHash32                                                 */ Strings.SymHash32,
             /* SymHash32Long                                             */ Strings.SymHash32Long,
             /* AddrHash32v4                                              */ Strings.AddrHash32v4,
             /* AddrHash32v5                                              */ Strings.AddrHash32v5,
@@ -771,7 +774,12 @@ namespace PESpy
             /* LfoDir                                                    */ Strings.lfoDir,
             /* LfoBase                                                   */ Strings.lfoBase,
             /* cDir                                                      */ Strings.cDir,
-            /* DOSFile                                                   */ default
+            /* PortablePDBFile                                           */ default,
+            /* DOSFile                                                   */ default,
+            /* OMFFile                                                   */ default,
+            /* OMFLIBFile                                                */ default,
+            /* OMFDBGFile                                                */ default,
+            /* SYMFile                                                   */ default
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

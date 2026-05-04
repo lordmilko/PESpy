@@ -209,102 +209,29 @@ namespace PESpy.PDB
                 //case S_LPROC32EX_ID:
 
                 case S_PUB16:
+                {
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+                    var dataSym16 = (DataSym16) symType;
+                    var name = dataSym16.GetName(codeViewAccessor);
+                    return TryGetPublicLength(symType, name, codeViewAccessor, dataSym16.off, dataSym16.seg, out length);
+                }
+
                 case S_PUB32_16t:
-                    throw new NotImplementedException();
+                {
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+                    var dataSym3216t = (DataSym3216t) symType;
+                    var name = dataSym3216t.GetName(codeViewAccessor);
+                    return TryGetPublicLength(symType, name, codeViewAccessor, dataSym3216t.off, dataSym3216t.seg, out length);
+                }
 
                 case S_PUB32_ST:
                 case S_PUB32:
-                    //I believe you can just look at the length of the associated section contrib
-
-                    var pubSym = (PubSym32) symType;
-
-                    //For @ILT symbols, DIA reports the length as 0.
-                    //I can see DIA looking for @ILT in SymbolDataSimpleImpl<4366,10>::getData
-                    //so I'm guessing the name is set somewhere in there. However, I would present that
-                    //in fact the actual length you should use is 5 (or whatever the listed thunk size is)
-
-                    if (pubSym.GetName(codeViewAccessor).StartsWith("@ILT"))
-                    {
-                        codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
-
-                        if (codeViewAccessor is PDBFile pdbFile)
-                        {
-                            var psgsi = pdbFile.PSGSI;
-
-                            if (psgsi != null)
-                            {
-                                length = psgsi.PSGsiHdr.cbSizeOfThunk;
-                                return true;
-                            }
-                        }
-
-                        //Returning a length of 0 and true is troublesome; don't do what DIA does
-                        length = default;
-                        return false;
-                    }
-                    else
-                        codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
-
-                    if (codeViewAccessor != null)
-                    {
-                        /* I know that DIA does something to do with looking up the section contrib associated with the public
-                         * for reporting the public's length, but I'm not sure if it just blindly reports "the entire SC length
-                         * is the length" or if it computes the length _remaining_ in the SC after where the current symbol starts.
-                         * I feel like the logical thing to do is to compute the appropriate offset, so we'll do that */
-                        if (codeViewAccessor.TryGetSectionContrib(symType, pubSym.seg, pubSym.off, out var sc))
-                            length = sc.cb - (pubSym.off - sc.off);
-                        else
-                            length = default;
-
-                        if (codeViewAccessor is PDBFile f)
-                        {
-                            /* An additional check we can potentially do is to lookup what the address of the next item in the address map is. The distance
-                             * between the current symbol and that also gives us a length; whichever length is shorter (the section contrib or the address map)
-                             * length should be our reported length */
-
-                            var addressMap = f.PSGSI?.AddressMapSymbols;
-
-                            if (addressMap != null)
-                            {
-                                addressMap.BinarySearchAddressMap(pubSym.off, pubSym.seg, out _, out var virtualLow, out _);
-
-                                //Watch out, because the next symbol might be at the same address as well!
-                                while (virtualLow < addressMap.VirtualCount - 1)
-                                {
-                                    var nextSym = addressMap.GetVirtualSymbol(virtualLow + 1);
-
-                                    if (!nextSym.TryGetRawOffSeg(out var nextOff, out var nextSeg))
-                                        break;
-
-                                    if (nextSeg == pubSym.seg)
-                                    {
-                                        if (nextOff == pubSym.off)
-                                        {
-                                            //Woops, this symbol is at the exact same address!
-                                            virtualLow++;
-                                            continue;
-                                        }
-
-                                        //OK, we've got a different address, now check whether our SC or address map
-                                        //info is better
-
-                                        var lengthToNext = nextOff - pubSym.off;
-
-                                        //I've confirmed this does indeed help with vftables in big section contribs
-                                        length = length == 0 ? lengthToNext : Math.Min(lengthToNext, length);
-                                        return true;
-                                    }
-                                    else
-                                        break;
-                                }
-                            }
-                        }
-
-                        return length != 0;
-                    }
-
-                    
-                    break;
+                {
+                    codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) (SYMTYPE*) symType);
+                    var pubSym32 = (PubSym32) symType;
+                    var name = pubSym32.GetName(codeViewAccessor);
+                    return TryGetPublicLength(symType, name, codeViewAccessor, pubSym32.off, pubSym32.seg, out length);
+                }
 
                 case S_TRAMPOLINE:
                     length = ((TrampolineSym) symType).cbThunk;
@@ -327,6 +254,102 @@ namespace PESpy.PDB
             }
 
             length = default;
+            return false;
+        }
+
+        private static bool TryGetPublicLength(
+            SymType symType,
+            FixedUtf8String name,
+            ICodeViewAccessor codeViewAccessor,
+            int off,
+            ISECT seg,
+            out int length)
+        {
+            //I believe you can just look at the length of the associated section contrib
+
+            //For @ILT symbols, DIA reports the length as 0.
+            //I can see DIA looking for @ILT in SymbolDataSimpleImpl<4366,10>::getData
+            //so I'm guessing the name is set somewhere in there. However, I would present that
+            //in fact the actual length you should use is 5 (or whatever the listed thunk size is)
+
+            length = default;
+
+            if (name.StartsWith("@ILT"))
+            {
+                if (codeViewAccessor is PDBFile pdbFile)
+                {
+                    var psgsi = pdbFile.PSGSI;
+
+                    if (psgsi != null)
+                    {
+                        length = psgsi.PSGsiHdr.cbSizeOfThunk;
+                        return true;
+                    }
+                }
+
+                //Returning a length of 0 and true is troublesome; don't do what DIA does
+                length = default;
+                return false;
+            }
+
+            if (codeViewAccessor != null)
+            {
+                /* I know that DIA does something to do with looking up the section contrib associated with the public
+                 * for reporting the public's length, but I'm not sure if it just blindly reports "the entire SC length
+                 * is the length" or if it computes the length _remaining_ in the SC after where the current symbol starts.
+                 * I feel like the logical thing to do is to compute the appropriate offset, so we'll do that */
+                if (codeViewAccessor.TryGetSectionContrib(symType, seg, off, out var sc))
+                    length = sc.cb - (off - off);
+                else
+                    length = default;
+
+                if (codeViewAccessor is PDBFile f)
+                {
+                    /* An additional check we can potentially do is to lookup what the address of the next item in the address map is. The distance
+                     * between the current symbol and that also gives us a length; whichever length is shorter (the section contrib or the address map)
+                     * length should be our reported length */
+
+                    var addressMap = f.PSGSI?.AddressMapSymbols;
+
+                    if (addressMap != null)
+                    {
+                        addressMap.BinarySearchAddressMap(off, seg, out _, out var virtualLow, out _);
+
+                        //Watch out, because the next symbol might be at the same address as well!
+                        while (virtualLow < addressMap.VirtualCount - 1)
+                        {
+                            var nextSym = addressMap.GetVirtualSymbol(virtualLow + 1);
+
+                            if (!nextSym.TryGetRawOffSeg(out var nextOff, out var nextSeg))
+                                break;
+
+                            if (nextSeg == seg)
+                            {
+                                if (nextOff == off)
+                                {
+                                    //Woops, this symbol is at the exact same address!
+                                    virtualLow++;
+                                    continue;
+                                }
+
+                                //OK, we've got a different address, now check whether our SC or address map
+                                //info is better
+
+                                var lengthToNext = nextOff - off;
+
+                                //I've confirmed this does indeed help with vftables in big section contribs
+                                length = length == 0 ? lengthToNext : Math.Min(lengthToNext, length);
+                                return true;
+                            }
+                            else
+                                break;
+                        }
+                    }
+                }
+
+                return length != 0;
+            }
+
             return false;
         }
     }

@@ -42,6 +42,9 @@ namespace PESpy.View
         }
 
         public ViewByte* pViewBytes;
+
+        public ViewByte* pViewBytesEnd => pViewBytes + Length;
+
         private MemoryMappedFile _mmf;
         private MemoryMappedViewAccessor _mma;
 

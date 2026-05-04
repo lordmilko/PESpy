@@ -68,6 +68,10 @@ namespace PESpy.View
 
         MultiByteNOP,
 
+        /// <summary>
+        /// A <see cref="ByteBlobView"/> whose bytes are all <see langword="0x0a" />, indicating
+        /// that the bytes are merely used for padding within a <see cref="PESpy.LIBFile"/>.
+        /// </summary>
         ImageArchivePad,
 
         /// <summary>
@@ -99,6 +103,8 @@ namespace PESpy.View
         DataDirectory,
         ILMethods,
         UnwindInfos,
+        Symbols,
+        Types,
         Thunks,
         Functions,
 
@@ -1548,7 +1554,6 @@ namespace PESpy.View
 
         //NE
         NEFile,
-        NE_ImportedName_Length,
         NE_ImportedName_String,
         NE_ModuleReference,
         ImageOS2Header,
@@ -1564,6 +1569,9 @@ namespace PESpy.View
         //LE
         LEFile,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageVXDHeader"/>.
+        /// </summary>
         [Description(nameof(Str.IMAGE_VXD_HEADER))]
         ImageVXDHeader,
 
@@ -1720,6 +1728,12 @@ namespace PESpy.View
         SC2,
 
         /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.SectionContribsV20"/>.
+        /// </summary>
+        [Description(nameof(Str.SectionContribs))]
+        SectionContribsV20,
+
+        /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.SectionContribsV40"/>.
         /// </summary>
         [Description(nameof(Str.SectionContribs))]
@@ -1730,6 +1744,12 @@ namespace PESpy.View
         /// </summary>
         [Description(nameof(Str.SectionContribs))]
         SectionContribsV60,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.SectionContribs2"/>.
+        /// </summary>
+        [Description(nameof(Str.SectionContribs))]
+        SectionContribs2,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMFSegMap"/>.
@@ -1796,15 +1816,24 @@ namespace PESpy.View
         /// </summary>
         HashBuckets,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.CvDebugSSubsectionHeader"/>.
+        /// </summary>
         [Description(nameof(Str.CV_DebugSSubsectionHeader_t))]
         CvDebugSSubsectionHeader,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.CvFileCheckSum"/>.
+        /// </summary>
         [Description(nameof(Str.CV_FileCheckSum))]
         CvFileCheckSum,
 
         [Description(nameof(Str.RVAAndFrameData))]
         RvaAndFrameData,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.FrameData"/>.
+        /// </summary>
         [Description(nameof(Str.FRAMEDATA))]
         FrameData,
 
@@ -1814,15 +1843,24 @@ namespace PESpy.View
         [Description(nameof(Str.CV_DebugSLinesFileBlockHeader_t))]
         CvDebugSLinesFileBlockHeader,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.CvLine"/>.
+        /// </summary>
         [Description(nameof(Str.CV_Line_t))]
         CvLine,
 
         [Description(nameof(Str.InlineeSigAndLines))]
         InlineeSigAndLines,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.InlineeSourceLine"/>.
+        /// </summary>
         [Description(nameof(Str.InlineeSourceLine))]
         InlineeSourceLine,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.InlineeSourceLineEx"/>.
+        /// </summary>
         [Description(nameof(Str.InlineeSourceLineEx))]
         InlineeSourceLineEx,
 
@@ -2133,8 +2171,10 @@ namespace PESpy.View
         UNameSpace,
 
         #endregion
-        #region Types
 
+        //Do not add any additional items here; MarkSymbols relies on LfAlias being after the last symbol
+
+        #region Types
 
         [Description(nameof(Str.lfAlias))]
         LfAlias,
@@ -2498,8 +2538,13 @@ namespace PESpy.View
 
         #endregion
 
+        //Do not add any additional items here; MarkTypes GSIHashHdr being after the last type
+
         //Globals
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.GSIHashHdr"/>.
+        /// </summary>
         [Description(nameof(Str.GSIHashHdr))]
         GSIHashHdr,
 
@@ -2533,6 +2578,9 @@ namespace PESpy.View
 
         DBGFile,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageSeparateDebugHeader"/>.
+        /// </summary>
         [Description(nameof(Str.IMAGE_SEPARATE_DEBUG_HEADER))]
         ImageSeparateDebugHeader,
 
@@ -2545,6 +2593,10 @@ namespace PESpy.View
         InterSectionData,
         Relocations,
 
+        //Do not insert any sections above drectve; ViewByteViewWriter relies on it being the first
+
+        #region Sections
+
         drectve,
         text,
         text_mn,
@@ -2556,32 +2608,67 @@ namespace PESpy.View
         bss,
         rsrc,
         sxdata,
+        chks64,
         UnknownSection,
+
+        #endregion
 
         //LIB
 
         LIBFile,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="FixedAnsiString"/>.
+        /// </summary>
         LIBFile_Signature,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImageArchiveMemberHeader"/>.
+        /// </summary>
         [Description(nameof(Str.IMAGE_ARCHIVE_MEMBER_HEADER))]
         ImageArchiveMemberHeader,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.FirstLinkerMember"/>.
+        /// </summary>
         [Description(nameof(Str.FirstLinkerMember))]
         FirstLinkerMember,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.SecondLinkerMember"/>.
+        /// </summary>
         [Description(nameof(Str.SecondLinkerMember))]
         SecondLinkerMember,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.LongNamesMember"/>.
+        /// </summary>
         [Description(nameof(Str.LongNamesMember))]
         LongNamesMember,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.LongImportLibraryMember"/>.
+        /// </summary>
         LongImportLibraryMember,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.ShortImportLibraryMember"/>.
+        /// </summary>
         ShortImportLibraryMember,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="AnsiString"/>.
+        /// </summary>
         ShortImportLibrary_DllName,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="AnsiString"/>.
+        /// </summary>
         ShortImportLibrary_ImportName,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.ImportObjectHeader"/>.
+        /// </summary>
         [Description(nameof(Str.IMPORT_OBJECT_HEADER))]
         ImportObjectHeader,
 
@@ -2652,6 +2739,12 @@ namespace PESpy.View
         /// </summary>
         [Description(nameof(Str.OMFTypeFlags))]
         OMFTypeFlags,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SymHash32"/>.
+        /// </summary>
+        [Description(nameof(Str.SymHash32))]
+        SymHash32,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SymHash32Long"/>.
@@ -2783,7 +2876,15 @@ namespace PESpy.View
         [Description(nameof(Str.cDir))]
         cDir,
 
+        PortablePDBFile,
+
         //DOS
-        DOSFile
+        DOSFile,
+
+        OMFFile,
+        OMFLIBFile,
+        OMFDBGFile,
+
+        SYMFile
     }
 }

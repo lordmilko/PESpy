@@ -47,188 +47,159 @@ namespace PESpy.NE
         private const int ExpectedWindowsVersionNumberOffset = 62;
 
         /// <summary>
-        /// Magic number<para/>
-        /// ne_magic
+        /// Magic number
         /// </summary>
-        public ushort Magic => chunk.PeekUInt16(MagicOffset);
+        public ushort ne_magic => chunk.PeekUInt16(MagicOffset);
 
         /// <summary>
-        /// Version number (major version number of LINK.EXE)<para/>
-        /// ne_ver
+        /// Version number (major version number of LINK.EXE)
         /// </summary>
-        public byte VersionNumber => chunk.PeekByte(VersionNumberOffset);
+        public byte ne_ver => chunk.PeekByte(VersionNumberOffset);
 
         /// <summary>
-        /// Revision number (minor version number of LINK.EXE)<para/>
-        /// ne_rev
+        /// Revision number (minor version number of LINK.EXE)
         /// </summary>
-        public byte RevisionNumber => chunk.PeekByte(RevisionNumberOffset);
+        public byte ne_rev => chunk.PeekByte(RevisionNumberOffset);
 
         /// <summary>
-        /// Offset of Entry Table<para/>
-        /// ne_enttab
+        /// Offset of Entry Table
         /// </summary>
-        public ushort OffsetOfEntryTable => chunk.PeekUInt16(OffsetOfEntryTableOffset);
+        public ushort ne_enttab => chunk.PeekUInt16(OffsetOfEntryTableOffset);
 
         /// <summary>
-        /// Number of bytes in Entry Table<para/>
-        /// ne_cbenttab
+        /// Number of bytes in Entry Table
         /// </summary>
-        public ushort NumberOfBytesInEntryTable => chunk.PeekUInt16(NumberOfBytesInEntryTableOffset);
+        public ushort ne_cbenttab => chunk.PeekUInt16(NumberOfBytesInEntryTableOffset);
 
         /// <summary>
-        /// Checksum of whole file<para/>
-        /// ne_crc
+        /// Checksum of whole file
         /// </summary>
-        public int ChecksumOfWholeFile => chunk.PeekInt32(ChecksumOfWholeFileOffset);
+        public int ne_crc => chunk.PeekInt32(ChecksumOfWholeFileOffset);
 
         /// <summary>
-        /// Flag word<para/>
-        /// ne_flags
+        /// Flag word
         /// </summary>
-        public NewExeFlags Flags => (NewExeFlags) chunk.PeekUInt16(FlagsOffset);
+        public NewExeFlags ne_flags => (NewExeFlags) chunk.PeekUInt16(FlagsOffset);
 
         /// <summary>
-        /// Automatic data segment number<para/>
-        /// ne_autodata
+        /// Automatic data segment number
         /// </summary>
-        public ushort AutomaticDataSegmentNumber => chunk.PeekUInt16(AutomaticDataSegmentNumberOffset);
+        public ushort ne_autodata => chunk.PeekUInt16(AutomaticDataSegmentNumberOffset);
 
         /// <summary>
-        /// Initial heap allocation<para/>
-        /// ne_heap
+        /// Initial heap allocation
         /// </summary>
-        public ushort InitialHeapAllocation => chunk.PeekUInt16(InitialHeapAllocationOffset);
+        public ushort ne_heap => chunk.PeekUInt16(InitialHeapAllocationOffset);
 
         /// <summary>
-        /// Initial stack allocation<para/>
-        /// ne_stack
+        /// Initial stack allocation
         /// </summary>
-        public ushort InitialStackAllocation => chunk.PeekUInt16(InitialStackAllocationOffset);
+        public ushort ne_stack => chunk.PeekUInt16(InitialStackAllocationOffset);
 
         /// <summary>
-        /// Initial CS:IP setting<para/>
-        /// ne_csip
+        /// Initial CS:IP setting
         /// </summary>
-        public int InitialCSIPSetting => chunk.PeekInt32(InitialCSIPSettingOffset);
+        public int ne_csip => chunk.PeekInt32(InitialCSIPSettingOffset);
 
         /// <summary>
-        /// Initial SS:SP setting<para/>
-        /// ne_sssp
+        /// Initial SS:SP setting
         /// </summary>
-        public int InitialSSSPSetting => chunk.PeekInt32(InitialSSSPSettingOffset);
+        public int ne_sssp => chunk.PeekInt32(InitialSSSPSettingOffset);
 
         /// <summary>
-        /// Count of file segments<para/>
-        /// ne_cseg
+        /// Count of file segments
         /// </summary>
-        public ushort CountOfFileSegments => chunk.PeekUInt16(CountOfFileSegmentsOffset);
+        public ushort ne_cseg => chunk.PeekUInt16(CountOfFileSegmentsOffset);
 
         /// <summary>
-        /// Entries in Module Reference Table<para/>
-        /// ne_cmod
+        /// Entries in Module Reference Table
         /// </summary>
-        public ushort EntriesInModuleReferenceTable => chunk.PeekUInt16(EntriesInModuleReferenceTableOffset);
+        public ushort ne_cmod => chunk.PeekUInt16(EntriesInModuleReferenceTableOffset);
 
         /// <summary>
-        /// Size of non-resident name table<para/>
-        /// ne_cbnrestab
+        /// Size of non-resident name table
         /// </summary>
-        public ushort SizeOfNonResidentNameTable => chunk.PeekUInt16(SizeOfNonResidentNameTableOffset);
+        public ushort ne_cbnrestab => chunk.PeekUInt16(SizeOfNonResidentNameTableOffset);
 
         //I think a common pattern that is used is to say that, if the offset of a given table entry is equal to the offset
         //of the entry after it, that entry does not exist
 
         /// <summary>
-        /// Offset of Segment Table<para/>
-        /// ne_segtab
+        /// Offset of Segment Table
         /// </summary>
-        public ushort OffsetOfSegmentTable => chunk.PeekUInt16(OffsetOfSegmentTableOffset);
+        public ushort ne_segtab => chunk.PeekUInt16(OffsetOfSegmentTableOffset);
 
         /// <summary>
         /// Offset of Resource Table<para/>
-        /// If this value is equal to <see cref="OffsetOfResidentNameTable"/> (ne_rsrctab == ne_restab) there are no resources.
+        /// If this value is equal to <see cref="ne_restab"/> there are no resources.
         /// ne_rsrctab
         /// </summary>
-        public ushort OffsetOfResourceTable => chunk.PeekUInt16(OffsetOfResourceTableOffset);
+        public ushort ne_rsrctab => chunk.PeekUInt16(OffsetOfResourceTableOffset);
 
         /// <summary>
-        /// Offset of resident name table<para/>
-        /// ne_restab
+        /// Offset of resident name table
         /// </summary>
-        public ushort OffsetOfResidentNameTable => chunk.PeekUInt16(OffsetOfResidentNameTableOffset);
+        public ushort ne_restab => chunk.PeekUInt16(OffsetOfResidentNameTableOffset);
 
         /// <summary>
-        /// Offset of Module Reference Table<para/>
-        /// ne_modtab
+        /// Offset of Module Reference Table
         /// </summary>
-        public ushort OffsetOfModuleReferenceTable => chunk.PeekUInt16(OffsetOfModuleReferenceTableOffset);
+        public ushort ne_modtab => chunk.PeekUInt16(OffsetOfModuleReferenceTableOffset);
 
         /// <summary>
-        /// Offset of Imported Names Table<para/>
-        /// ne_imptab
+        /// Offset of Imported Names Table
         /// </summary>
-        public ushort OffsetOfImportedNamesTable => chunk.PeekUInt16(OffsetOfImportedNamesTableOffset);
+        public ushort ne_imptab => chunk.PeekUInt16(OffsetOfImportedNamesTableOffset);
 
         /// <summary>
-        /// Offset of Non-resident Names Table<para/>
-        /// ne_nrestab
+        /// Offset of Non-resident Names Table
         /// </summary>
-        public int OffsetOfNonResidentNamesTable => chunk.PeekInt32(OffsetOfNonResidentNamesTableOffset);
+        public int ne_nrestab => chunk.PeekInt32(OffsetOfNonResidentNamesTableOffset);
 
         /// <summary>
-        /// Count of movable entries<para/>
-        /// ne_cmovent
+        /// Count of movable entries
         /// </summary>
-        public ushort CountOfMovableEntries => chunk.PeekUInt16(CountOfMovableEntriesOffset);
+        public ushort ne_cmovent => chunk.PeekUInt16(CountOfMovableEntriesOffset);
 
         /// <summary>
-        /// Segment alignment shift count<para/>
-        /// ne_align
+        /// Segment alignment shift count
         /// </summary>
-        public ushort SegmentAlignmentShiftCount => chunk.PeekUInt16(SegmentAlignmentShiftCountOffset);
+        public ushort ne_align => chunk.PeekUInt16(SegmentAlignmentShiftCountOffset);
 
         /// <summary>
-        /// Count of resource segments<para/>
-        /// ne_cres
+        /// Count of resource segments
         /// </summary>
-        public ushort CountOfResourceSegments => chunk.PeekUInt16(CountOfResourceSegmentsOffset);
+        public ushort ne_cres => chunk.PeekUInt16(CountOfResourceSegmentsOffset);
 
         /// <summary>
-        /// Target Operating system<para/>
-        /// ne_exetyp
+        /// Target Operating system
         /// </summary>
-        public NewOperatingSystem TargetOperatingSystem => (NewOperatingSystem) chunk.PeekByte(TargetOperatingSystemOffset);
+        public NewOperatingSystem ne_exetyp => (NewOperatingSystem) chunk.PeekByte(TargetOperatingSystemOffset);
 
         /// <summary>
-        /// Other .EXE flags<para/>
-        /// ne_flagsothers
+        /// Other .EXE flags
         /// </summary>
-        public NewOtherExeFlags OtherExeFlags => (NewOtherExeFlags) chunk.PeekByte(OtherExeFlagsOffset);
+        public NewOtherExeFlags ne_flagsothers => (NewOtherExeFlags) chunk.PeekByte(OtherExeFlagsOffset);
 
         /// <summary>
-        /// offset to return thunks<para/>
-        /// ne_pretthunks
+        /// offset to return thunks
         /// </summary>
-        public ushort OffsetToReturnThunks => chunk.PeekUInt16(OffsetToReturnThunksOffset);
+        public ushort ne_pretthunks => chunk.PeekUInt16(OffsetToReturnThunksOffset);
 
         /// <summary>
-        /// offset to segment ref. bytes<para/>
-        /// ne_psegrefbytes
+        /// offset to segment ref. bytes
         /// </summary>
-        public ushort OffsetToSegmentRefBytes => chunk.PeekUInt16(OffsetToSegmentRefBytesOffset);
+        public ushort ne_psegrefbytes => chunk.PeekUInt16(OffsetToSegmentRefBytesOffset);
 
         /// <summary>
-        /// Minimum code swap area size<para/>
-        /// ne_swaparea
+        /// Minimum code swap area size
         /// </summary>
-        public ushort MinimumCodeSwapAreaSize => chunk.PeekUInt16(MinimumCodeSwapAreaSizeOffset);
+        public ushort ne_swaparea => chunk.PeekUInt16(MinimumCodeSwapAreaSizeOffset);
 
         /// <summary>
-        /// Expected Windows version number<para/>
-        /// ne_expver
+        /// Expected Windows version number
         /// </summary>
-        public ushort ExpectedWindowsVersionNumber => chunk.PeekUInt16(ExpectedWindowsVersionNumberOffset);
+        public ushort ne_expver => chunk.PeekUInt16(ExpectedWindowsVersionNumberOffset);
 
         public int Offset => chunk.AbsoluteOffset;
 
@@ -287,123 +258,123 @@ namespace PESpy.NE
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField("ne_magic", MagicOffset, Magic);
+                    structWriter.WriteField(nameof(ne_magic), MagicOffset, ne_magic);
                     break;
 
                 case 1:
-                    structWriter.WriteField("ne_ver", VersionNumberOffset, VersionNumber);
+                    structWriter.WriteField(nameof(ne_ver), VersionNumberOffset, ne_ver);
                     break;
 
                 case 2:
-                    structWriter.WriteField("ne_rev", RevisionNumberOffset, RevisionNumber);
+                    structWriter.WriteField(nameof(ne_rev), RevisionNumberOffset, ne_rev);
                     break;
 
                 case 3:
-                    structWriter.WriteField("ne_enttab", OffsetOfEntryTableOffset, OffsetOfEntryTable);
+                    structWriter.WriteField(nameof(ne_enttab), OffsetOfEntryTableOffset, ne_enttab);
                     break;
 
                 case 4:
-                    structWriter.WriteField("ne_cbenttab", NumberOfBytesInEntryTableOffset, NumberOfBytesInEntryTable);
+                    structWriter.WriteField(nameof(ne_cbenttab), NumberOfBytesInEntryTableOffset, ne_cbenttab);
                     break;
 
                 case 5:
-                    structWriter.WriteField("ne_crc", ChecksumOfWholeFileOffset, ChecksumOfWholeFile);
+                    structWriter.WriteField(nameof(ne_crc), ChecksumOfWholeFileOffset, ne_crc);
                     break;
 
                 case 6:
-                    structWriter.WriteField("ne_flags", FlagsOffset, Flags, sizeof(short));
+                    structWriter.WriteField(nameof(ne_flags), FlagsOffset, ne_flags, sizeof(short));
                     break;
 
                 case 7:
-                    structWriter.WriteField("ne_autodata", AutomaticDataSegmentNumberOffset, AutomaticDataSegmentNumber);
+                    structWriter.WriteField(nameof(ne_autodata), AutomaticDataSegmentNumberOffset, ne_autodata);
                     break;
 
                 case 8:
-                    structWriter.WriteField("ne_heap", InitialHeapAllocationOffset, InitialHeapAllocation);
+                    structWriter.WriteField(nameof(ne_heap), InitialHeapAllocationOffset, ne_heap);
                     break;
 
                 case 9:
-                    structWriter.WriteField("ne_stack", InitialStackAllocationOffset, InitialStackAllocation);
+                    structWriter.WriteField(nameof(ne_stack), InitialStackAllocationOffset, ne_stack);
                     break;
 
                 case 10:
-                    structWriter.WriteField("ne_csip", InitialCSIPSettingOffset, InitialCSIPSetting);
+                    structWriter.WriteField(nameof(ne_csip), InitialCSIPSettingOffset, ne_csip);
                     break;
 
                 case 11:
-                    structWriter.WriteField("ne_sssp", InitialSSSPSettingOffset, InitialSSSPSetting);
+                    structWriter.WriteField(nameof(ne_sssp), InitialSSSPSettingOffset, ne_sssp);
                     break;
 
                 case 12:
-                    structWriter.WriteField("ne_cseg", CountOfFileSegmentsOffset, CountOfFileSegments);
+                    structWriter.WriteField(nameof(ne_cseg), CountOfFileSegmentsOffset, ne_cseg);
                     break;
 
                 case 13:
-                    structWriter.WriteField("ne_cmod", EntriesInModuleReferenceTableOffset, EntriesInModuleReferenceTable);
+                    structWriter.WriteField(nameof(ne_cmod), EntriesInModuleReferenceTableOffset, ne_cmod);
                     break;
 
                 case 14:
-                    structWriter.WriteField("ne_cbnrestab", SizeOfNonResidentNameTableOffset, SizeOfNonResidentNameTable);
+                    structWriter.WriteField(nameof(ne_cbnrestab), SizeOfNonResidentNameTableOffset, ne_cbnrestab);
                     break;
 
                 case 15:
-                    structWriter.WriteField("ne_segtab", OffsetOfSegmentTableOffset, OffsetOfSegmentTable);
+                    structWriter.WriteField(nameof(ne_segtab), OffsetOfSegmentTableOffset, ne_segtab);
                     break;
 
                 case 16:
-                    structWriter.WriteField("ne_rsrctab", OffsetOfResourceTableOffset, OffsetOfResourceTable);
+                    structWriter.WriteField(nameof(ne_rsrctab), OffsetOfResourceTableOffset, ne_rsrctab);
                     break;
 
                 case 17:
-                    structWriter.WriteField("ne_restab", OffsetOfResidentNameTableOffset, OffsetOfResidentNameTable);
+                    structWriter.WriteField(nameof(ne_restab), OffsetOfResidentNameTableOffset, ne_restab);
                     break;
 
                 case 18:
-                    structWriter.WriteField("ne_modtab", OffsetOfModuleReferenceTableOffset, OffsetOfModuleReferenceTable);
+                    structWriter.WriteField(nameof(ne_modtab), OffsetOfModuleReferenceTableOffset, ne_modtab);
                     break;
 
                 case 19:
-                    structWriter.WriteField("ne_imptab", OffsetOfImportedNamesTableOffset, OffsetOfImportedNamesTable);
+                    structWriter.WriteField(nameof(ne_imptab), OffsetOfImportedNamesTableOffset, ne_imptab);
                     break;
 
                 case 20:
-                    structWriter.WriteField("ne_nrestab", OffsetOfNonResidentNamesTableOffset, OffsetOfNonResidentNamesTable);
+                    structWriter.WriteField(nameof(ne_nrestab), OffsetOfNonResidentNamesTableOffset, ne_nrestab);
                     break;
 
                 case 21:
-                    structWriter.WriteField("ne_cmovent", CountOfMovableEntriesOffset, CountOfMovableEntries);
+                    structWriter.WriteField(nameof(ne_cmovent), CountOfMovableEntriesOffset, ne_cmovent);
                     break;
 
                 case 22:
-                    structWriter.WriteField("ne_align", SegmentAlignmentShiftCountOffset, SegmentAlignmentShiftCount);
+                    structWriter.WriteField(nameof(ne_align), SegmentAlignmentShiftCountOffset, ne_align);
                     break;
 
                 case 23:
-                    structWriter.WriteField("ne_cres", CountOfResourceSegmentsOffset, CountOfResourceSegments);
+                    structWriter.WriteField(nameof(ne_cres), CountOfResourceSegmentsOffset, ne_cres);
                     break;
 
                 case 24:
-                    structWriter.WriteField("ne_exetyp", TargetOperatingSystemOffset, TargetOperatingSystem, sizeof(byte));
+                    structWriter.WriteField(nameof(ne_exetyp), TargetOperatingSystemOffset, ne_exetyp, sizeof(byte));
                     break;
 
                 case 25:
-                    structWriter.WriteField("ne_flagsothers", OtherExeFlagsOffset, OtherExeFlags, sizeof(byte));
+                    structWriter.WriteField(nameof(ne_flagsothers), OtherExeFlagsOffset, ne_flagsothers, sizeof(byte));
                     break;
 
                 case 26:
-                    structWriter.WriteField("ne_pretthunks", OffsetToReturnThunksOffset, OffsetToReturnThunks);
+                    structWriter.WriteField(nameof(ne_pretthunks), OffsetToReturnThunksOffset, ne_pretthunks);
                     break;
 
                 case 27:
-                    structWriter.WriteField("ne_psegrefbytes", OffsetToSegmentRefBytesOffset, OffsetToSegmentRefBytes);
+                    structWriter.WriteField(nameof(ne_psegrefbytes), OffsetToSegmentRefBytesOffset, ne_psegrefbytes);
                     break;
 
                 case 28:
-                    structWriter.WriteField("ne_swaparea", MinimumCodeSwapAreaSizeOffset, MinimumCodeSwapAreaSize);
+                    structWriter.WriteField(nameof(ne_swaparea), MinimumCodeSwapAreaSizeOffset, ne_swaparea);
                     break;
 
                 case 29:
-                    structWriter.WriteField("ne_expver", ExpectedWindowsVersionNumberOffset, ExpectedWindowsVersionNumber);
+                    structWriter.WriteField(nameof(ne_expver), ExpectedWindowsVersionNumberOffset, ne_expver);
                     break;
 
                 default:

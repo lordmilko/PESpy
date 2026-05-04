@@ -92,7 +92,7 @@ namespace PESpy.View
                         //An entity that represents the first child of a directory or region could appear at any time,
                         //so we need to check after each child to see if it's directory time
 
-                        if (_fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+                        if (_fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedViewWriter)
                             _entities.MoveTo(nestedFileRange.EndOffset);
                         if (_fileAccessor.TryGetDirectory(entity.TargetAddress, _depthAtStartOffset, out directory))
                             _entities.MoveTo(directory.End);
@@ -101,7 +101,7 @@ namespace PESpy.View
                     }
                     else
                     {
-                        if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+                        if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedViewWriter)
                             _entities.MoveTo(nestedFileRange.EndOffset);
                         else if (_fileAccessor.TryGetRegion(entity.TargetAddress, _depthAtStartOffset, out var region))
                             _entities.MoveTo(region.End);
@@ -114,7 +114,7 @@ namespace PESpy.View
             int childOffset;
 
             //Watch our for a struct inside of a region inside of a nested file
-            if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedPEViewWriter)
+            if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedViewWriter)
             {
                 structWriter.Field = new FileView(
                     nestedFileRange,
@@ -154,13 +154,26 @@ namespace PESpy.View
             }
             else if (_fileAccessor.TryGetRegion(entity.TargetAddress, (childOffset = (entity.TargetAddress == _entities.StartTargetAddress && _kind == GlobalViewProviderKind.Region ? _depthAtStartOffset + 1 : 0)), out var region))
             {
-                structWriter.Field = new LogicalRegionView(
-                    region,
-                    _fileAccessor,
-                    structWriter.ViewWriter,
-                    _entities.SliceFromCurrent(region.Length),
-                    childOffset
-                );
+                if (region.Kind == ViewKind.Section)
+                {
+                    structWriter.Field = new SectionView(
+                        region,
+                        _fileAccessor,
+                        structWriter.ViewWriter,
+                        _entities.SliceFromCurrent(region.Length),
+                        childOffset
+                    );
+                }
+                else
+                {
+                    structWriter.Field = new LogicalRegionView(
+                        region,
+                        _fileAccessor,
+                        structWriter.ViewWriter,
+                        _entities.SliceFromCurrent(region.Length),
+                        childOffset
+                    );
+                }                    
 
                 Debug.Assert(region.Length > 0);
 

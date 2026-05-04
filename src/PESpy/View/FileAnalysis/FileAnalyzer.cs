@@ -70,19 +70,37 @@ namespace PESpy.View
         {
             FileAnalyzer fileAnalyzer = fileAccessor.File.Kind switch
             {
-                FileKind.PE => new PEFileAnalyzer((PEFileAccessor) fileAccessor, disassembler, httpPolicy, progress, trackXRefs, cancellationToken),
-                //FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, disassembler, progress),
-                FileKind.PDB => new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
-                //FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, disassembler, progress),
-                //FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, disassembler, progress),
+                FileKind.PE          => new PEFileAnalyzer((PEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler, httpPolicy),
+                FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.PDB         => CreatePDBFileAnalyzer(fileAccessor, progress, trackXRefs, cancellationToken),
+                FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
+                FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
+                FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
+                FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
+                FileKind.SYM         => new SYMFileAnalyzer((SYMFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
                 _ => throw new NotImplementedException($"Don't know how to analyze a file of type '{fileAccessor.File.Kind}'")
             };
+
+            static FileAnalyzer CreatePDBFileAnalyzer(FileAccessor fileAccessor, IFileAnalyzerProgress? progress, bool trackXRefs, CancellationToken cancellationToken)
+            {
+                switch (((PDBFile) fileAccessor.File).PDBKind)
+                {
+                    case PDBFileKind.V1:
+                        return new PDB1FileAnalyzer((PDB1FileAccessor) fileAccessor, progress, trackXRefs, cancellationToken);
+
+                    case PDBFileKind.V2:
+                    case PDBFileKind.V7:
+                        return new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken);
+
+                    default:
+                        Debug.Assert(false);
+                        return null;
+                }
+            }
 
             fileAnalyzer.Execute();
         }
@@ -174,11 +192,11 @@ namespace PESpy.View
 
         protected FileAnalyzer(
             FileAccessor fileAccessor,
-            IFileDisassembler? fileDisassembler,
-            LocatorHttpPolicy httpPolicy,
             IFileAnalyzerProgress? progress,
             bool trackXRefs,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IFileDisassembler? fileDisassembler,
+            LocatorHttpPolicy httpPolicy)
         {
             _fileAccessor = fileAccessor;
             _fileDisassembler = fileDisassembler;
@@ -195,6 +213,53 @@ namespace PESpy.View
         protected abstract ViewWriter CreateViewWriter();
 
         public abstract void Execute();
+
+        protected void ExecuteCode()
+        {
+            DiscoverGlobals();
+
+            //We may or may not have symbols. Collect any code locations pointed to by the PEFile
+            //so we can at least disassemble something
+            DiscoverCodeRoots();
+
+            //Now try and discover symbols. Symbols can come in many forms: we can have a PDB (old, MSF or portable),
+            //OMF CodeView symbols, or even COFF symbols in a CoffSymbolTable. We'll use any symbols we discover to expand
+            //upon the code addresses we found in our roots, to ensure we disassemble as much as possible in the PEFile
+            DiscoverSymbols((PEFileAccessor) _fileAccessor);
+
+            //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
+            var importMap = _fileDisassembler == null ? null : GetImportMap();
+            WorkDisasmQueue(importMap);
+
+            Finalize(expandUnknownData: true);
+        }
+
+        protected void ExecuteData()
+        {
+            Log(FileAnalyzerProgressPhase.DiscoverGlobals);
+
+            _cancellationToken.ThrowIfCancellationRequested();
+
+            ((IViewable) _fileAccessor.File).WriteGlobals(_viewWriter);
+
+            //In data files, there shouldn't be random entities (e.g. publics, code) we discovered
+            //whose length is unknown; we should already know how big everything is that we've discovered
+            Finalize(expandUnknownData: false);
+        }
+
+        protected virtual void DiscoverGlobals()
+        {
+            Log(FileAnalyzerProgressPhase.DiscoverCodeRoots);
+
+            _cancellationToken.ThrowIfCancellationRequested();
+
+            ((IViewable) _fileAccessor.File).WriteGlobals(_viewWriter);
+            var symbolAccessor = LocateSymbols();
+        }
+
+        protected virtual void DiscoverCodeRoots() => throw new NotSupportedException();
+
+        protected virtual Dictionary<long, int> GetImportMap() => null;
 
         //AddCode can't be on the FileAccessor because it needs to interact with members specific to performing analysis
 
@@ -311,7 +376,13 @@ namespace PESpy.View
                     switch (thunkEntry.Thunk.rectyp)
                     {
                         case S_PUB32:
+                        case S_PUB32_ST:
                             ProcessPubSym32(thunkEntry.Thunk, pdbFile, sectionDataAccessor);
+                            break;
+
+                        case S_PUB32_16t:
+                        case S_PUB16:
+                            ProcessPubSym16(true, thunkEntry.Thunk, pdbFile, sectionDataAccessor);
                             break;
 
                         default:
@@ -537,7 +608,8 @@ namespace PESpy.View
 
                 case S_PUB16:
                 case S_PUB32_16t:
-                    throw new NotImplementedException();
+                    ProcessPubSym16(false, symType, codeViewAccessor, sectionDataAccessor);
+                    break;
 
                 default:
                     //Some symbols point to sections that don't exist, so their RVAs are 0
@@ -669,22 +741,12 @@ namespace PESpy.View
             ICodeViewAccessor codeViewAccessor,
             ISectionDataAccessor sectionDataAccessor)
         {
-            //Some symbols point to sections that don't exist, so their RVAs are 0
-            if (!symType.TryGetRVA(codeViewAccessor, out var rva) || rva == 0)
-                return;
-
-            if (!_fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
+            if (!TryGetPubSymInfo(symType, codeViewAccessor, sectionDataAccessor, out var rva, out var name))
                 return;
 
             var pubSym32 = (PubSym32) symType;
 
             var name = (FixedUtf8String) symType.GetName(codeViewAccessor);
-
-            //Things without names might still be code, so we can't just bail out, as we want
-            //to collect all code addresses
-
-            if (TryHandleSpecialPublic(name, rva, targetAddress, sectionIndex))
-                return;
 
             if (pubSym32.pubsymflags.fFunction)
             {
@@ -698,6 +760,74 @@ namespace PESpy.View
             {
                 ProcessDataSymbol(rva, name, sectionDataAccessor);
             }
+        }
+
+        private void ProcessPubSym16(
+            bool isKnownCode,
+            SymType symType,
+            ICodeViewAccessor codeViewAccessor,
+            ISectionDataAccessor sectionDataAccessor)
+        {
+            if (!TryGetPubSymInfo(symType, codeViewAccessor, sectionDataAccessor, out var rva, out var name))
+                return;
+
+            Debug.Assert(symType.rectyp == S_PUB16 || symType.rectyp == S_PUB32_16t);
+
+            int off;
+            ISECT seg;
+
+            if (symType.rectyp == S_PUB16)
+            {
+                var dataSym16 = (DataSym16) symType;
+                off = dataSym16.off;
+                seg= dataSym16.seg;
+            }
+            else
+            {
+                var dataSym3216t = (DataSym3216t) symType;
+                off = dataSym3216t.off;
+                seg = dataSym3216t.seg;
+            }
+
+            //It seems like not all addresses are in section contribs. .data doesn't seem to be, nor are thunks;
+            //but that's OK, we now prefer to get characteristic information from the associated IMAGE_SECTION_HEADER
+            //where available
+            if (isKnownCode || SymType.TryGetSectionCharacteristics(symType, seg, off, codeViewAccessor, out var characteristics) && (characteristics & ClrDebug.IMAGE_SCN.CNT_CODE) != 0)
+            {
+                ProcessCodeSymbol(symType, rva, name, codeViewAccessor, sectionDataAccessor);
+            }
+            else
+            {
+                ProcessDataSymbol(rva, name, sectionDataAccessor);
+            }
+        }
+
+        private bool TryGetPubSymInfo(
+            SymType symType,
+            ICodeViewAccessor codeViewAccessor,
+            ISectionDataAccessor sectionDataAccessor,
+            out int rva,
+            out FixedUtf8String name)
+        {
+            Unsafe.SkipInit(out rva);
+            Unsafe.SkipInit(out name);
+
+            //Some symbols point to sections that don't exist, so their RVAs are 0
+            if (!symType.TryGetRVA(codeViewAccessor, out rva) || rva == 0)
+                return false;
+
+            if (!_fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
+                return false;
+
+            name = (FixedUtf8String) symType.GetName(codeViewAccessor);
+
+            //Things without names might still be code, so we can't just bail out, as we want
+            //to collect all code addresses
+
+            if (TryHandleSpecialPublic(name, rva, targetAddress, sectionIndex))
+                return false;
+
+            return true;
         }
 
         private bool TryHandleSpecialPublic(
@@ -1174,6 +1304,10 @@ namespace PESpy.View
 
             //Virtual so we can use our precomputed large areas
             MarkRegions();
+
+            var writer = ((ViewByteViewWriter) _viewWriter);
+            _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress, _extraRegions);
+
             MarkNestedFiles();
 
             //Must do this before attempting to validate names below
@@ -1184,6 +1318,55 @@ namespace PESpy.View
 
             _progress?.PhaseComplete(_lastPhase, GetPhaseTime());
             _progress?.PhaseComplete(FileAnalyzerProgressPhase.Max, _stopwatch.ElapsedMilliseconds);
+        }
+
+        internal void CreateOMFRegion(ImageDebugDirectory[] debugTable)
+        {
+            if (debugTable == null)
+                return;
+
+            for (var i = 0; i < debugTable.Length; i++)
+            {
+                ref var debugDir = ref debugTable[i];
+
+                if (debugDir.Type == IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_CODEVIEW)
+                {
+                    //While NGEN files can contain multiple CodeView sections, for anything with OMF
+                    //you would expect it to only have a single CodeView entry
+                    CreateOMFRegion((ICodeViewData) debugDir.Data);
+                    break;
+                }
+            }
+        }
+
+        internal void CreateOMFRegion(ICodeViewData codeViewData)
+        {
+            switch (codeViewData.Signature)
+            {
+                case CodeViewSig.DNRB:
+                    var dnrb = (DNRBData) codeViewData;
+
+                    CreateOMFRegion(dnrb.Offset, dnrb.Length, dnrb.Signature);
+                    break;
+
+                case CodeViewSig.NB00:
+                case CodeViewSig.NB01:
+                case CodeViewSig.NB02:
+                    var nb02 = (NB02Data) codeViewData;
+
+                    CreateOMFRegion(nb02.Offset, nb02.LfoBase, nb02.Signature);
+                    break;
+
+                case CodeViewSig.NB05:
+                case CodeViewSig.NB06:
+                case CodeViewSig.NB07:
+                case CodeViewSig.NB08:
+                case CodeViewSig.NB09:
+                    var nb05 = (NB05Data) codeViewData;
+
+                    CreateOMFRegion(nb05.Offset, nb05.LfoBase, nb05.Signature);
+                    break;
+            }
         }
 
         internal void CreateOMFRegion(int start, int sizeOfData, CodeViewSig sig)
@@ -1589,7 +1772,7 @@ namespace PESpy.View
 
         #region MarkPadding
 
-        protected void MarkPadding()
+        protected virtual void MarkPadding()
         {
             Log(FileAnalyzerProgressPhase.MarkPadding);
 

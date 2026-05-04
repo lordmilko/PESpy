@@ -40,7 +40,7 @@ namespace PESpy.View
 
             try
             {
-                PDBViewWriter.GetContiguousSectionInfos(pdbFile, ref contiguousSections, pages);
+                PDBFileViewWriterHelper.GetContiguousSectionInfos(pdbFile, ref contiguousSections, pages);
 
                 /* Pages contains a list of every single page and the name of that page. We now need
                  * to convert this list of pages into a collection of segments. MergePDB works by first
@@ -249,7 +249,11 @@ namespace PESpy.View
         {
             if (_viewWriter == null)
             {
-                _viewWriter = new PDBViewWriter(PDBFile, this);
+                _viewWriter = new ViewWriter(
+                    new PDBFileViewWriterHelper(PDBFile),
+                    PDBFile.CreateByteViewProvider(this),
+                    fileAccessor: this
+                );
 
 #if DEBUG
                 _viewWriter.ShouldVerifyXRefs = false;

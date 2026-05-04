@@ -17,7 +17,7 @@ namespace PESpy
     /// </summary>
     public class NEFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
     {
-        public static NEFile FromFile(string path)
+        public static unsafe NEFile FromFile(string path)
         {
             using var fs = File.OpenRead(path);
 
@@ -25,6 +25,21 @@ namespace PESpy
 
             try
             {
+                if (mmf.Length >= 2 && *(ushort*) mmf.Address != ImageDosHeader.IMAGE_DOS_SIGNATURE)
+                {
+                    if (Detector.TryExtract(mmf, out var decompressionInfo))
+                    {
+                        mmf.Dispose(); //Don't need this anymore!
+
+                        //Replace with our own one
+                        mmf = new MemoryMappedFileHolder(decompressionInfo.Bytes);
+
+                        Detector.TryGetUncompressedFileName(path, decompressionInfo.ExtensionChar, out var name);
+
+                        return new NEFile(path, mmf, name: name);
+                    }
+                }
+
                 return new NEFile(fs.Name, mmf);
             }
             catch
@@ -40,7 +55,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImageDosHeader dosHeader;
 
-        public ref readonly ImageDosHeader DosHeader => ref dosHeader;
+        public ImageDosHeader DosHeader => dosHeader;
 
         #endregion
         #region DosStub
@@ -48,7 +63,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ByteBlob dosStub;
 
-        public ref readonly ByteBlob DosStub
+        public ByteBlob DosStub
         {
             get
             {
@@ -62,7 +77,7 @@ namespace PESpy
                     dosStub = new ByteBlob(new MemoryChunk(globalBlock, start), length, ViewKind.DosStub);
                 }
 
-                return ref dosStub;
+                return dosStub;
             }
         }
 
@@ -71,27 +86,27 @@ namespace PESpy
 
         private ImageOS2Header os2Header;
 
-        public ref readonly ImageOS2Header OS2Header => ref os2Header;
+        public ImageOS2Header OS2Header => os2Header;
 
         #endregion
         #region SegmentTable
 
-        private NewSeg[]? segmentTable;
+        private new_seg[]? segmentTable;
 
-        public NewSeg[] SegmentTable
+        public new_seg[] SegmentTable
         {
             get
             {
                 if (segmentTable == null)
                 {
-                    var segments = new NewSeg[os2Header.CountOfFileSegments];
+                    var segments = new new_seg[os2Header.ne_cseg];
 
-                    var segmentsChunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.OffsetOfSegmentTable);
+                    var segmentsChunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.ne_segtab);
 
                     //The location of the segment table is relative to the start of the IMAGE_OS2_HEADER. So if
                     //the location is 0x40 (64) it immediately follows the IMAGE_OS2_HEADER
                     for (var i = 0; i < segments.Length; i++)
-                        segments[i] = new NewSeg(segmentsChunk.Slice(i * NewSeg.StructSize));
+                        segments[i] = new new_seg(segmentsChunk.Slice(i * new_seg.StructSize));
 
                     segmentTable = segments;
                 }
@@ -103,9 +118,9 @@ namespace PESpy
         #endregion
         #region ResourceTable
 
-        private NewRsrc? resourceTable;
+        private new_rsrc? resourceTable;
 
-        public NewRsrc? ResourceTable
+        public new_rsrc? ResourceTable
         {
             get
             {
@@ -115,10 +130,10 @@ namespace PESpy
                     //looking at the different between that entry and the one next to it. This is a technique that Windows
                     //does use in some scenarios (e.g. definitely in the case of resources)
 
-                    if (os2Header.OffsetOfResourceTable == os2Header.OffsetOfResidentNameTable)
+                    if (os2Header.ne_rsrctab == os2Header.ne_restab)
                         return null; //Size of resource table is therefore 0
 
-                    var resourcesChunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.OffsetOfResourceTable);
+                    var resourcesChunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.ne_rsrctab);
 
                     resourceTable = default;
                     throw new NotImplementedException();
@@ -142,11 +157,11 @@ namespace PESpy
             {
                 if (moduleReferenceTable == null)
                 {
-                    if (os2Header.OffsetOfModuleReferenceTable != os2Header.OffsetOfImportedNamesTable)
+                    if (os2Header.ne_modtab != os2Header.ne_imptab)
                     {
-                        var chunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.OffsetOfModuleReferenceTable);
+                        var chunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.ne_modtab);
 
-                        moduleReferenceTable = chunk.PeekSpan<ushort>(0, os2Header.EntriesInModuleReferenceTable).ToArray();
+                        moduleReferenceTable = chunk.PeekSpan<ushort>(0, os2Header.ne_cmod).ToArray();
                     }
                 }
 
@@ -157,31 +172,31 @@ namespace PESpy
         #endregion
         #region Imported Names Table
 
-        private FixedAnsiString[]? importedNamesTable;
+        private SymString[]? importedNamesTable;
 
-        public unsafe FixedAnsiString[]? ImportedNamesTable
+        public unsafe SymString[]? ImportedNamesTable
         {
             get
             {
                 if (importedNamesTable == null)
                 {
-                    if (os2Header.OffsetOfImportedNamesTable != os2Header.OffsetOfEntryTable)
+                    if (os2Header.ne_imptab != os2Header.ne_enttab)
                     {
-                        var chunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.OffsetOfImportedNamesTable);
+                        var chunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.ne_imptab);
 
-                        var length = os2Header.OffsetOfEntryTable - os2Header.OffsetOfImportedNamesTable;
+                        var length = os2Header.ne_enttab - os2Header.ne_imptab;
 
                         var read = 0;
 
-                        using var results = new PooledList<FixedAnsiString>();
+                        using var results = new PooledList<SymString>();
 
                         while (read < length)
                         {
-                            var strLen = chunk.PeekByte(read);
+                            var str = chunk.PeekSymString(read, isLengthPrefixed: true);
 
-                            results.Add(new FixedAnsiString(chunk.Pointer + read + 1, strLen));
+                            results.Add(str);
 
-                            read += strLen + 1;
+                            read += str.Length + 1;
                         }
 
                         importedNamesTable = results.ToArray();
@@ -193,7 +208,85 @@ namespace PESpy
         }
 
         #endregion
-        #region Entry Table
+        #region Entry TableE
+
+        private NEBundle[]? entryTable;
+
+        public NEBundle[]? EntryTable
+        {
+            get
+            {
+                if (entryTable == null)
+                {
+                    if (os2Header.ne_enttab != os2Header.ne_nrestab - os2Header.Offset)
+                    {
+                        var chunk = new MemoryChunk(globalBlock, os2Header.Offset + os2Header.ne_enttab);
+
+                        var length = os2Header.ne_nrestab - os2Header.Offset - os2Header.ne_enttab;
+                        Debug.Assert(length == OS2Header.ne_cbenttab);
+
+                        using var results = new PooledList<NEBundle>();
+
+                        var read = 0;
+
+                        while (read < length)
+                        {
+                            var numEntries = chunk.PeekByte(read);
+
+                            if (numEntries == 0)
+                                break; //Sometimes there's 1 byte remaining (e.g. when there were no records), sometimes there's 2 bytes remaining. People say when the countis 0, it's time to give up
+
+                            read++;
+
+                            var segmentIndicator = chunk.PeekByte(read);
+                            read++;
+
+                            var entries = new NEBundle.Entry[numEntries];
+
+                            if (segmentIndicator == NEBundle.ENT_MOVEABLE)
+                            {
+                                for (var i = 0; i < numEntries; i++)
+                                {
+                                    //Movable segment entry
+                                    var flags = (EntryFlags) chunk.PeekByte(read);
+                                    read++;
+
+                                    var int3f = chunk.PeekNativeSpan<byte>(read, 2); //0xCD, 0x3F
+                                    read += 2;
+
+                                    var segmentNumber = chunk.PeekByte(read);
+                                    read++;
+
+                                    var relativeOffset = chunk.PeekInt16(read);
+                                    read += 2;
+
+                                    entries[i] = new NEBundle.MoveableEntry(flags, int3f, segmentNumber, relativeOffset);
+                                }
+                            }
+                            else
+                            {
+                                for (var i = 0; i < numEntries; i++)
+                                {
+                                    var flags = (EntryFlags) chunk.PeekByte(read);
+                                    read++;
+
+                                    var relativeOffset = chunk.PeekInt16(read);
+                                    read += 2;
+
+                                    entries[i] = new NEBundle.Entry(flags, relativeOffset);
+                                }
+                            }
+
+                            results.Add(new NEBundle(numEntries, segmentIndicator, entries));
+                        }
+
+                        entryTable = results.ToArray();
+                    }
+                }
+
+                return entryTable;
+            }
+        }
 
         #endregion
         #region Non-Resident Name Table
@@ -234,6 +327,7 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
+        private TableBounds[] tableBounds;
 
         private bool disposed;
 
@@ -257,6 +351,56 @@ namespace PESpy
             }
         }
 
+        public int EntryPoint
+        {
+            get
+            {
+                var csip = OS2Header.ne_csip;
+
+                var seg = csip >> 16;
+                var ip = csip & 0xFFFF;
+
+                return GetPhysicalOffset(seg, ip);
+            }
+        }
+
+        public int GetPhysicalOffset(int segmentNo, int relativeOffset)
+        {
+            var seg = SegmentTable[segmentNo - 1];
+
+            var segmentStart = seg.ns_sector << OS2Header.ne_align;
+
+            if (relativeOffset > seg.ns_cbseg)
+                throw new InvalidOperationException("Relative offset is not within the bounds of the specified segment");
+
+            return segmentStart + relativeOffset;
+        }
+
+        //segmentNo is 1-based
+        public bool TryGetSegment(int physicalOffset, out int segmentNo, out int relativeOffset)
+        {
+            var segmentTable = SegmentTable;
+
+            for (var i = 0; i < segmentTable.Length; i++)
+            {
+                ref var seg = ref segmentTable[i];
+
+                var segmentStart = seg.ns_sector << OS2Header.ne_align;
+                var segmentEnd = segmentStart + seg.ns_cbseg;
+
+                if (physicalOffset >= segmentStart && physicalOffset < segmentEnd)
+                {
+                    segmentNo = i + 1;
+                    relativeOffset = physicalOffset - segmentStart;
+                    return true;
+                }
+            }
+
+            segmentNo = default;
+            relativeOffset = default;
+            return false;
+        }
+
         ~NEFile()
         {
             Dispose(false);
@@ -267,14 +411,104 @@ namespace PESpy
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
 
             os2Header = new ImageOS2Header(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
+
+            tableBounds = ComputeTableBounds();
         }
+
+        private TableBounds[] ComputeTableBounds()
+        {
+            var sizeOfHeaders = DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
+
+            var tableBounds = new TableBounds[7];
+
+            var lastSectionEnd = sizeOfHeaders;
+
+            var index = 0;
+
+            ReadTable("Segment Table",          tableOffset: os2Header.ne_segtab,  os2Header.ne_rsrctab, os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_SegmentTable);
+            ReadTable("Resource Table",         tableOffset: os2Header.ne_rsrctab, os2Header.ne_restab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ResourceTable);
+            ReadTable("Resident Name Table",    tableOffset: os2Header.ne_restab,  os2Header.ne_modtab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ResidentNameTable);
+            ReadTable("Module Reference Table", tableOffset: os2Header.ne_modtab,  os2Header.ne_imptab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ModuleReferenceTable);
+            ReadTable("Imported Names Table",   tableOffset: os2Header.ne_imptab,  os2Header.ne_enttab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ImportedNamesTable);
+            ReadTable("Entry Table",            tableOffset: os2Header.ne_enttab,  os2Header.ne_nrestab - os2Header.Offset, os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
+
+            //Non-Resident Name Table is last, so its length must be computed using a count, rather than
+            //the position of the table after it
+            ReadNonResidentNameTable("Non-Resident Name Table", os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_NonResidentNameTable);
+
+            return tableBounds;
+        }
+
+        private void ReadTable(
+            string name,
+            int tableOffset,
+            int nextTableOffset,
+            in ImageOS2Header os2Header,
+            ref int index,
+            ref int lastSectionEnd,
+            TableBounds[] tableBounds,
+            ViewKind kind)
+        {
+            if (tableOffset == nextTableOffset)
+            {
+                //Size is 0
+                tableBounds[index++] = new TableBounds(name);
+                return;
+            }
+
+            var start = os2Header.Offset + tableOffset;
+            var length = nextTableOffset - tableOffset;
+            var end = start + length;
+
+            tableBounds[index++] = new TableBounds(name, start, end, kind);
+
+            lastSectionEnd = end;
+        }
+
+        private void ReadNonResidentNameTable(
+            string name,
+            in ImageOS2Header os2Header,
+            ref int index,
+            ref int lastSectionEnd,
+            TableBounds[] tableBounds,
+            ViewKind kind)
+        {
+            if (os2Header.ne_cbnrestab == 0)
+            {
+                //There's no table after it, hence why there's an explicit size listed for it
+                tableBounds[index++] = new TableBounds(name);
+                return;
+            }
+
+            var start = os2Header.ne_nrestab;
+            var length = os2Header.ne_cbnrestab;
+            var end = start + length;
+
+            tableBounds[index++] = new TableBounds(name, start, end, kind);
+
+            lastSectionEnd = end;
+        }
+
+        private FileAccessor? _viewAccessor;
 
         public FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
             bool trackXRefs = false,
             CancellationToken cancellationToken = default)
         {
-            var writer = new NEViewWriter(this, CreateByteViewProvider(null));
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
+        }
+
+        public FileView GetViewOld()
+        {
+            var writer = new ViewWriter(this);
             ((IViewable) this).WriteGlobals(writer);
 
             return (FileView) writer.Finalize();
@@ -311,10 +545,10 @@ namespace PESpy
             //Resident Name Table
 
             //Module Reference Table
-            if (os2Header.OffsetOfModuleReferenceTable != os2Header.OffsetOfImportedNamesTable)
+            if (os2Header.ne_modtab != os2Header.ne_imptab)
             {
                 var moduleReferences = ModuleReferenceTable;
-                var offset = os2Header.Offset + os2Header.OffsetOfModuleReferenceTable;
+                var offset = os2Header.Offset + os2Header.ne_modtab;
 
                 for (var i = 0; i < moduleReferences!.Length; i++)
                 {
@@ -323,17 +557,14 @@ namespace PESpy
             }
 
             //Imported Names Table
-            if (os2Header.OffsetOfImportedNamesTable != os2Header.OffsetOfEntryTable)
+            if (os2Header.ne_imptab != os2Header.ne_enttab)
             {
                 var importedNames = ImportedNamesTable;
-                var offset = os2Header.Offset + os2Header.OffsetOfImportedNamesTable;
+                var offset = os2Header.Offset + os2Header.ne_imptab;
 
                 foreach (var name in importedNames!)
                 {
-                    writer.WriteGlobal(offset, (byte) name.Length, sizeof(byte), ViewKind.NE_ImportedName_Length);
-
-                    if (name.Length > 0)
-                        writer.WriteGlobal(offset + 1, name, name.Length, ViewKind.NE_ImportedName_String);
+                    writer.WriteGlobal(offset, name, name.Length + 1, ViewKind.NE_ImportedName_String);
 
                     offset += name.Length + 1;
                 }
@@ -363,6 +594,8 @@ namespace PESpy
 
             if (disposing)
                 GC.SuppressFinalize(this);
+
+            _viewAccessor?.Dispose();
 
             globalBlock.Dispose();
             mmf.Dispose();

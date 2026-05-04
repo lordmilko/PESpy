@@ -61,7 +61,7 @@ namespace PESpy
                 if (index == searchPath.Length - 1) //It's the last character
                     throw new NotImplementedException();
 
-                if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("https://".AsSpan(), StringComparison.OrdinalIgnoreCase))
                 {
                     store = new HttpSymStore(currentPath.ToString(), file, httpPolicy, store);
                 }
@@ -111,7 +111,7 @@ namespace PESpy
                 if (index == searchPath.Length - 1) //It's the last character
                     throw new NotImplementedException();
 
-                if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                if (currentPath.StartsWith("http://".AsSpan(), StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("https://".AsSpan(), StringComparison.OrdinalIgnoreCase))
                 {
                     store = new HttpSymStore(currentPath.ToString(), file, httpPolicy, store);
                 }

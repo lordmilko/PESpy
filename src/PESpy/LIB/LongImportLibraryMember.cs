@@ -7,7 +7,7 @@ using PESpy.View;
 namespace PESpy.LIB
 {
     //Name is made up
-    public class LongImportLibraryMember : IImportLibraryMember, IValue, IViewable //Essentially, it's an obj file, and follows the same format
+    public class LongImportLibraryMember : IImportLibraryMember, IOBJFile, IValue, IViewable //Essentially, it's an obj file, and follows the same format
     {
         public AnsiString FileName { get; }
 
@@ -89,7 +89,7 @@ namespace PESpy.LIB
         private readonly object c13SymbolMemoryLock = new object();
         private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
 
-        private readonly MemoryChunk chunk;
+        internal readonly MemoryChunk chunk;
 
         internal unsafe LongImportLibraryMember(in MemoryChunk chunk, AnsiString fileName, Dictionary<int, AnsiString> symbolNameMap)
         {

@@ -3139,9 +3139,9 @@ namespace PESpy
             return writer.Current[0];
         }
 
-        private unsafe PEViewWriter GetViewWriter(ViewMode mode)
+        private unsafe ViewWriter GetViewWriter(ViewMode mode)
         {
-            var writer = new PEViewWriter(this, CreateByteViewProvider(null), mode);
+            var writer = new ViewWriter(new PEFileViewWriterHelper(this, mode), CreateByteViewProvider(null), mode);
 
             return writer;
         }

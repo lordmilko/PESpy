@@ -7,7 +7,7 @@ using PESpy.View;
 namespace PESpy.PDB
 {
     //There's quite a lot of section contribs in each PDB, so this is a raw struct so that we can just peek it with NativeSpan
-    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, imod = {imod}")]
+    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, dwCharacteristics = {dwCharacteristics}, imod = {imod}")]
     public struct SC40 : ISC40, IViewable
     {
         private const int isectOffset = 0;

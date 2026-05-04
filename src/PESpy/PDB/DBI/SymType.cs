@@ -396,7 +396,24 @@ namespace PESpy.PDB
 
         internal static bool TryGetSectionCharacteristics(SYMTYPE* symType, ushort seg, int off, ICodeViewAccessor? codeViewAccessor, out IMAGE_SCN characteristics)
         {
+            /* If all they want is the section characteristics, ostensibly we should be able to answer this from
+             * the IMAGE_SECTION_HEADER. I would assume that the section contribs should have the same characteristics
+             * as the IMAGE_SECTION_HEADER. In the event section header info is not available, we can try and fallback to
+             * trying section contribs. */
+
             codeViewAccessor ??= SymbolMemoryTracker.GetAccessor((long) symType);
+
+            var sectionHeaders = codeViewAccessor?.GetSectionHeaders();
+
+            if (sectionHeaders != null)
+            {
+                if (seg <= sectionHeaders.Length)
+                {
+                    ref var sectionHeader = ref sectionHeaders[seg - 1];
+                    characteristics = sectionHeader.Characteristics;
+                    return true;
+                }
+            }
 
             if (codeViewAccessor is PDBFile pdbFile)
             {
@@ -409,20 +426,6 @@ namespace PESpy.PDB
             else if (codeViewAccessor is DOSNB09SymbolAccessor d)
             {
                 return d.TryGetSectionCharacteristics(seg, off, out characteristics);
-            }
-            else
-            {
-                var sectionHeaders = codeViewAccessor?.GetSectionHeaders();
-
-                if (sectionHeaders != null)
-                {
-                    if (seg <= sectionHeaders.Length)
-                    {
-                        ref var sectionHeader = ref sectionHeaders[seg - 1];
-                        characteristics = sectionHeader.Characteristics;
-                        return true;
-                    }
-                }
             }
 
             characteristics = default;

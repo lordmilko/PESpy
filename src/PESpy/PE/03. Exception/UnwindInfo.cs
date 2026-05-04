@@ -282,7 +282,7 @@ namespace PESpy
         }
 
         internal static unsafe void WriteUnwindInfo(
-            PEViewByteViewWriter viewWriter,
+            ViewByteViewWriter viewWriter,
             in MemoryChunk dataChunk,
             ViewByte* pViewByte,
             int structOffset,
@@ -427,7 +427,7 @@ namespace PESpy
         }
 
         private static void WriteFuncInfo(
-            PEViewByteViewWriter viewWriter,
+            ViewByteViewWriter viewWriter,
             in MemoryChunk dataChunk,
             int structOffset,
             int fieldOffset)

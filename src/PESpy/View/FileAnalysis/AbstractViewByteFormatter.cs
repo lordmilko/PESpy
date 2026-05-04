@@ -368,7 +368,7 @@ namespace PESpy.View
                                 if (child.Contains(lastVisibleLine.StartAddress))
                                 {
                                     current.LastChildIndex = i;
-                                    current = new EntityState(child, child is IContainerView);
+                                    current = new EntityState(child, child.IsContainer());
                                     _path.Push(current);
                                     break;
                                 }

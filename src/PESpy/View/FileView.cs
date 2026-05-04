@@ -33,7 +33,12 @@ namespace PESpy.View
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        internal FileView(ViewMode viewMode, IFile file, IView[] children, ViewWriter viewWriter, ViewKind kind)
+        internal FileView(
+            ViewMode viewMode,
+            IFile file,
+            IView[] children,
+            ViewWriter viewWriter,
+            ViewKind kind)
         {
             if (viewMode == ViewMode.Default)
                 throw new ArgumentException($"ViewMode {viewMode} should have been transformed into a more specific type");
@@ -43,6 +48,22 @@ namespace PESpy.View
             Offset = children.Length > 0 ? children[0].Offset : 0;
             Size = children.Sum(r => r.Size);
             childProvider = new ViewChildProvider<IView>(children);
+            this.viewWriter = viewWriter;
+            Kind = kind;
+        }
+
+        internal FileView(
+            ViewMode viewMode,
+            IFile file,
+            GlobalViewProvider childProvider,
+            ViewWriter viewWriter,
+            int length,
+            ViewKind kind)
+        {
+            ViewMode = viewMode;
+            File = file;
+            Offset = 0;
+            this.childProvider = childProvider;
             this.viewWriter = viewWriter;
             Kind = kind;
         }

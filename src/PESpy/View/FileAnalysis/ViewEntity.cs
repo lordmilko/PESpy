@@ -60,7 +60,7 @@ namespace PESpy.View
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
                   pStart: sectionAccessor.pViewBytes,
-                  pEnd: sectionAccessor.pViewBytes + sectionAccessorLength,
+                  pEnd: sectionAccessor.pViewBytesEnd,
                   pBytes,
                   infoMap,
                   largeAddresses,
@@ -199,7 +199,7 @@ namespace PESpy.View
                 {
                     var kind = body->Kind;
 
-                    if (kind == ViewByteKind.Unknown || kind == ViewByteKind.Body)
+                    if (kind == ViewByteKind.Body) //In Release, we should only be accessing entities after we've set unknown bodies
                         body++;
                     else
                         break;

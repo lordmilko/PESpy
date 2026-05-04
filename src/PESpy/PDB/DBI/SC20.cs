@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.View;
 
 namespace PESpy.PDB
 {
     //Seems to be used with NT 4 MODI
+    [DebuggerDisplay("isect = {isect}, off = 0x{off.ToString(\"X\"),nq}, cb = {cb}, imod = {imod}")]
     public struct SC20 : ISC20, IViewable
     {
         private const int isectOffset = 0;
@@ -25,6 +27,15 @@ namespace PESpy.PDB
             sizeof(int) + //cb
             sizeof(ushort) + //imod
             sizeof(ushort); //Padding
+
+        public static implicit operator SC40(SC20 value) => new SC40
+        {
+            isect = value.isect,
+            padding1 = value.isect,
+            off = value.off,
+            cb = value.cb,
+            imod = value.imod
+        };
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

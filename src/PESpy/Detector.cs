@@ -605,6 +605,9 @@ namespace PESpy
 
         private static ReadOnlySpan<byte> COMP_SIG => new byte[] { 0x53, 0x5A, 0x44, 0x44, 0x88, 0xF0, 0x27, 0x33 }; //"SZDD\x88\xf0\x27\x33"
 
+        //Not described in NT 4, but is used in my WFH 3.11 install
+        private static ReadOnlySpan<byte> KWAJ => new byte[] { 0x4B, 0x57, 0x41, 0x4A, 0x88, 0xF0, 0x27, 0xD1 }; //"KWAJ\x88\xf0\x27\xd1"
+
         public enum ALG : byte
         {
             ALG_FIRST = (byte) 'A',
@@ -652,11 +655,11 @@ namespace PESpy
             return false;
         }
 
+        const int HEADER_LEN = 14; //cbulCompSize isn't counted in this
+        const int COMP_SIG_LEN = 8;
+
         internal static unsafe bool TryExtract(MemoryMappedFileHolder mmf, out DecompressionInfo decompressionInfo)
         {
-            const int HEADER_LEN = 14; //cbulCompSize isn't counted in this
-            const int COMP_SIG_LEN = 8;
-
             decompressionInfo = default;
 
             if (mmf.Length < HEADER_LEN)
@@ -664,9 +667,17 @@ namespace PESpy
 
             var sig = new Span<byte>(mmf.Address, COMP_SIG_LEN);
 
-            if (!sig.SequenceEqual(COMP_SIG))
-                return false;
+            if (sig.SequenceEqual(COMP_SIG))
+                return TryExtractWinLZ(mmf, out decompressionInfo);
 
+            if (sig.SequenceEqual(KWAJ))
+                return TryExtractKWAJ(mmf, out decompressionInfo);
+
+            return false;
+        }
+
+        private static unsafe bool TryExtractWinLZ(MemoryMappedFileHolder mmf, out DecompressionInfo decompressionInfo)
+        {
             var byteAlgorithm = *(ALG*) (mmf.Address + COMP_SIG_LEN);
             var extChar = (char) *(mmf.Address + COMP_SIG_LEN + 1);
             var cbulUncompSize = *(uint*) (mmf.Address + COMP_SIG_LEN + 2);
@@ -742,6 +753,8 @@ namespace PESpy
             }
 
             if (outputPos != cbulUncompSize)
+            {
+                decompressionInfo = default;
                 return false;
 
             decompressionInfo = new DecompressionInfo
@@ -752,5 +765,76 @@ namespace PESpy
 
             return true;
         }
+
+        [Flags]
+        enum KWAJHeaderFlags : short
+        {
+            HasLength = 1 << 0,
+            Unknown1 = 1 << 1,
+            Unknown2 = 1 << 2,
+            HasFileName = 1 << 3,
+            HasFileExtension = 1 << 4,
+            HasText = 1 << 5
+        }
+
+        //https://www.cabextract.org.uk/libmspack/doc/szdd_kwaj_format.html
+        enum KWAJCompressionMethod : short
+        {
+            None,
+            NoneXorFF,
+            QBasicSZDD,
+            JeffJohnson,
+            MSZIP
+        }
+
+        private static unsafe bool TryExtractKWAJ(MemoryMappedFileHolder mmf, out DecompressionInfo decompressionInfo)
+        {
+            var ptr = mmf.Address + COMP_SIG_LEN; //KWAJ has an 8 byte signature too;
+
+            var compressionMethod = *(KWAJCompressionMethod*) ptr;
+            ptr += 2;
+
+            var compressedDataOffset = *(ushort*) ptr;
+            ptr += 2;
+
+            var headerFlags = *(KWAJHeaderFlags*) ptr;
+            ptr += 2;
+
+            int length;
+            AnsiString fileName;
+            AnsiString fileExtension;
+
+            if ((headerFlags & KWAJHeaderFlags.HasLength) != 0)
+            {
+                length = *(int*) ptr;
+                ptr += 4;
+            }
+
+            if ((headerFlags & KWAJHeaderFlags.Unknown1) != 0)
+                ptr += 2;
+
+            if ((headerFlags & KWAJHeaderFlags.Unknown2) != 0)
+                ptr += 2;
+
+            if ((headerFlags & KWAJHeaderFlags.HasFileName) != 0)
+            {
+                fileName = new AnsiString(ptr);
+                ptr += fileName.Length + 1;
+            }
+
+            if ((headerFlags & KWAJHeaderFlags.HasFileExtension) != 0)
+            {
+                fileExtension = new AnsiString(ptr);
+                ptr += fileExtension.Length + 1;
+            }
+
+            if ((headerFlags & KWAJHeaderFlags.HasText) != 0)
+            {
+                var size = *(ushort*) ptr;
+                ptr += 2 + size;
+            }
+
+            //We should now be at the compressed data offset, but let's reset just in case
+            ptr = mmf.Address + compressedDataOffset;
     }
 }

@@ -17,11 +17,11 @@ namespace PESpy.View
 
         internal PEFileAnalyzer(
             PEFileAccessor fileAccessor,
-            IFileDisassembler? disassembler,
-            LocatorHttpPolicy httpPolicy,
             IFileAnalyzerProgress? progress,
             bool trackXRefs,
-            CancellationToken cancellationToken) : base(fileAccessor, disassembler, httpPolicy, progress, trackXRefs, cancellationToken)
+            CancellationToken cancellationToken,
+            IFileDisassembler? disassembler,
+            LocatorHttpPolicy httpPolicy) : base(fileAccessor, progress, trackXRefs, cancellationToken, disassembler, httpPolicy)
         {
             _peFile = fileAccessor.PEFile;
             _lookupCache = fileAccessor._lookupCache;
@@ -31,10 +31,19 @@ namespace PESpy.View
         {
             var peFileAccessor = (PEFileAccessor) _fileAccessor;
 
-            return new PEViewByteViewWriter(peFileAccessor.PEFile, peFileAccessor.ViewMode, _fileAccessor, _fileDisassembler, this, _httpPolicy, _progress);
+            return new ViewByteViewWriter(
+                new PEFileViewWriterHelper(peFileAccessor.PEFile, peFileAccessor.ViewMode),
+                peFileAccessor.PEFile.CreateByteViewProvider(_fileAccessor),
+                peFileAccessor.ViewMode,
+                _fileAccessor,
+                _fileDisassembler,
+                this,
+                _httpPolicy,
+                _progress
+            );
         }
 
-        public override void Execute()
+        protected override void DiscoverGlobals()
         {
             Log(FileAnalyzerProgressPhase.DiscoverGlobals);
 
@@ -42,11 +51,11 @@ namespace PESpy.View
 
             var exceptionTable = _peFile.ExceptionTable;
 
-            PEViewByteViewWriter viewWriter = null;
+            ViewByteViewWriter viewWriter = null;
 
             if (exceptionTable != null)
             {
-                viewWriter = (PEViewByteViewWriter) _viewWriter;
+                viewWriter = (ViewByteViewWriter) _viewWriter;
                 viewWriter._unwindInfos = new UnwindInfoHashSet(exceptionTable.Count); //Worst case scenario
             }
 
@@ -79,27 +88,14 @@ namespace PESpy.View
                     viewWriter._unwindInfos.Dispose();
                 }
             }
-
-            //We may or may not have symbols. Collect any code locations pointed to by the PEFile
-            //so we can at least disassemble something
-            DiscoverCodeRoots();
-
-            //Now try and discover symbols. Symbols can come in many forms: we can have a PDB (old, MSF or portable),
-            //OMF CodeView symbols, or even COFF symbols in a CoffSymbolTable. We'll use any symbols we discover to expand
-            //upon the code addresses we found in our roots, to ensure we disassemble as much as possible in the PEFile
-            DiscoverSymbols((PEFileAccessor) _fileAccessor);
-
-            //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
-            var importMap = _fileDisassembler == null ? null : GetImportMap();
-            WorkDisasmQueue(importMap);
-
-            Finalize(expandUnknownData: true);
         }
+
+        public override void Execute() => ExecuteCode();
 
         //Maps the ImageBase + RVA of each import to the target address of that
         //import. Used by the disassembler for the purpose of collecting xrefs that reference
         //the import address table
-        private Dictionary<long, int> GetImportMap()
+        protected override Dictionary<long, int> GetImportMap()
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
@@ -136,7 +132,7 @@ namespace PESpy.View
             return importMap;
         }
 
-        private void ProcessSpecialUnwindInfos(PEViewByteViewWriter viewWriter, RuntimeFunctionList exceptionTable)
+        private void ProcessSpecialUnwindInfos(ViewByteViewWriter viewWriter, RuntimeFunctionList exceptionTable)
         {
             var specialUnwindInfos = viewWriter._specialUnwindInfos;
 
@@ -248,7 +244,7 @@ namespace PESpy.View
 
         #region DiscoverCodeRoots
 
-        private void DiscoverCodeRoots()
+        protected override void DiscoverCodeRoots()
         {
             Log(FileAnalyzerProgressPhase.DiscoverCodeRoots);
 
@@ -728,7 +724,7 @@ namespace PESpy.View
 
             //PDB files can tell us that a given area of the PE file is dedicated to storing thunks
             MarkThunksRegion();
-            MarkOMFRegion();
+            CreateOMFRegion(_peFile.DebugTable);
 
             //Mark regions containing repeated or related sequences of data
 
@@ -780,6 +776,19 @@ namespace PESpy.View
                                         case ViewKind.ImageImportByName:
                                             MarkImportByNameRegion(ref pViewByte, ref targetAddress, pEnd, largeAddresses);
                                             continue;
+
+                                        default:
+                                            if (kind >= ViewKind.SymType && kind < ViewKind.LfAlias)
+                                            {
+                                                MarkSymbols(ref pViewByte, ref targetAddress, pEnd);
+                                                continue;
+                                            }
+                                            else if (kind >= ViewKind.LfAlias && kind < ViewKind.GSIHashHdr)
+                                            {
+                                                MarkTypes(ref pViewByte, ref targetAddress, pEnd);
+                                                continue;
+                                            }
+                                            break;
                                     }
 
                                     break;
@@ -832,9 +841,6 @@ namespace PESpy.View
                     }
                 }
             }
-
-            var writer = ((PEViewByteViewWriter) _viewWriter);
-            _fileAccessor.InstallRegions(writer._topLevelRegions, writer._firstRegionByAddress, _extraRegions);
         }
 
         private void MarkThunksRegion()
@@ -876,40 +882,10 @@ namespace PESpy.View
                             End = thunkRegionEnd
                         };
 
-                        var writer = (PEViewByteViewWriter) _viewWriter;
-
                         _extraRegions.Add(builder);
                     }
                 }
             }
-        }
-
-        private void MarkOMFRegion()
-        {
-            var debugTable = _peFile.DebugTable;
-
-            if (debugTable == null)
-                return;
-
-            NB05Data? data = null;
-
-            for (var i = 0; i < debugTable.Length; i++)
-            {
-                ref var debugDir = ref debugTable[i];
-
-                if (debugDir.Data is NB05Data d)
-                {
-                    data = d;
-                    break;
-                }
-            }
-
-            if (data == null)
-                return;
-
-            var writer = (PEViewByteViewWriter) _viewWriter;
-
-            CreateOMFRegion(data.Offset, data.LfoBase, data.Signature);
         }
 
         private void MarkUnwindInfoRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
@@ -984,10 +960,7 @@ namespace PESpy.View
                 builder.End += length;
             }
 
-            var writer = (PEViewByteViewWriter) _viewWriter;
-
             _extraRegions.Add(builder);
-
         }
 
         private void MarkILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
@@ -1087,29 +1060,7 @@ namespace PESpy.View
 
             builder.End = targetAddress;
 
-            var writer = (PEViewByteViewWriter) _viewWriter;
-
             _extraRegions.Add(builder);
-        }
-
-        private int ClearString(ViewByte* pViewByte, ViewByte* pEnd)
-        {
-            pViewByte->DataKind = default;
-            pViewByte->Kind = ViewByteKind.Unknown;
-
-            var start = pViewByte;
-
-            pViewByte++;
-
-            while (pViewByte < pEnd && pViewByte->Kind == ViewByteKind.Body)
-            {
-                pViewByte->Kind = ViewByteKind.Unknown;
-                pViewByte++;
-            }
-
-            var length = (int) (pViewByte - start);
-
-            return length;
         }
 
         private void MarkFunctionRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
@@ -1200,7 +1151,7 @@ namespace PESpy.View
             {
                 builder.End = targetAddress;
 
-                var writer = (PEViewByteViewWriter) _viewWriter;
+                var writer = (ViewByteViewWriter) _viewWriter;
 
                 _extraRegions.Add(builder);
             }
@@ -1270,8 +1221,6 @@ namespace PESpy.View
             {
                 builder.End = targetAddress;
 
-                var writer = (PEViewByteViewWriter) _viewWriter;
-
                 _extraRegions.Add(builder);
             }
         }
@@ -1332,8 +1281,6 @@ namespace PESpy.View
             {
                 builder.End = targetAddress;
 
-                var writer = (PEViewByteViewWriter) _viewWriter;
-
                 _extraRegions.Add(builder);
             }
         }
@@ -1342,7 +1289,7 @@ namespace PESpy.View
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            var rawRanges = ((PEViewByteViewWriter) _viewWriter)._nestedFileRanges;
+            var rawRanges = ((ViewByteViewWriter) _viewWriter)._nestedFileRanges;
 
             for (var i = 0; i < rawRanges.Count; i++)
             {
@@ -1351,24 +1298,7 @@ namespace PESpy.View
                 SplitRegionBounds(range.start, range.end);
             }
 
-            ((PEFileAccessor) _fileAccessor).InstallNestedFileRanges((PEViewByteViewWriter) _viewWriter);
-        }
-
-        //Split any values that overlap the start and end positions of a region we're trying to create
-        private void SplitRegionBounds(int start, int end)
-        {
-            var pStartByte = _fileAccessor.GetViewByte(start, out var sectionAccessorIndex);
-            SplitDirectoryStart(pStartByte, sectionAccessorIndex);
-
-            var pEndByte = pStartByte + (end - start) - 1;
-
-            ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-
-            var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
-
-            var originalEnd = end;
-            SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref end);
-            Debug.Assert(originalEnd == end); //I wouldn't expect that they would be modifying this
+            ((PEFileAccessor) _fileAccessor).InstallNestedFileRanges((ViewByteViewWriter) _viewWriter);
         }
     }
 }

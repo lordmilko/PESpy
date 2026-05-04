@@ -45,6 +45,20 @@ namespace PESpy.View
             this.viewWriter = viewWriter;
         }
 
+        internal SectionView(
+            RegionBuilder region,
+            FileAccessor fileAccessor,
+            ViewWriter viewWriter,
+            in ViewEntityIterator iterator,
+            int depthAtStartOffset)
+        {
+            Offset = region.Start;
+            Name = region.Name;
+            Size = region.Length;
+            childProvider = new GlobalViewProvider(iterator, fileAccessor, region.Kind == ViewKind.DataDirectory ? GlobalViewProviderKind.Directory : GlobalViewProviderKind.Region, depthAtStartOffset);
+            this.viewWriter = viewWriter;
+        }
+
         public IView this[int index] => Children[index];
 
         //For nested files

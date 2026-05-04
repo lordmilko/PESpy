@@ -24,17 +24,20 @@ namespace PESpy.View
         TEnumerator GetEnumerator();
     }
 
-    public abstract partial class ViewWriter
+    public partial class ViewWriter
     {
         //When a struct wants to write another struct inside it, it will push its list of fields to the viewStack,
         //which will cause the inner struct to write itself to this list instead of the main global list
-        protected Stack<List<IView>> viewStack;
-        protected List<IView> globalList;
+        protected internal Stack<List<IView>> viewStack;
+        protected internal List<IView> globalList;
 
         public IReadOnlyList<IView> Current => new ReadOnlyCollection<IView>(globalList);
 
         internal virtual ICodeViewAccessor GetSymbolAccessor()
         {
+            if (helper.FileKind == FileKind.PDB)
+                return ((PDBFileViewWriterHelper) helper).PDBFile;
+
             //We've got a bit of an issue with OBJ files; we can set the accessor when we construct the symbol,
             //but we then clear it afterwards, so symbols are going to be forced to lookup their appropriate symbol accessor manually
             return ManualSymbolAccessor;
@@ -70,6 +73,8 @@ namespace PESpy.View
 
         internal ViewTag CurrentTag => currentTag;
 
+        public bool Is32Bit => helper.Is32Bit;
+
         private ViewSymTypeDispatcher? _symTypeDispatcher;
 
         internal ViewSymTypeDispatcher SymTypeDispatcher => _symTypeDispatcher ??= new ViewSymTypeDispatcher(this);
@@ -78,19 +83,68 @@ namespace PESpy.View
         internal LocatorHttpPolicy _httpPolicy;
         internal ILocatorProgress _progress;
         internal readonly FileAccessor? _fileAccessor;
+        internal IViewWriterHelper helper;
 
         internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
 
+        internal ViewWriter(DBGFile dbgFile) : this(new SimpleViewWriterHelper(dbgFile), dbgFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(DOSFile dosFile) : this(new SimpleViewWriterHelper(dosFile), dosFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(LEFile leFile) : this(new SimpleViewWriterHelper(leFile), leFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(LIBFile libFile) : this(new LIBFileViewWriterHelper(libFile), libFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(NEFile neFile) : this(new SimpleViewWriterHelper(neFile), neFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(OBJFile objFile) : this(new SimpleViewWriterHelper(objFile), objFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(OMFFile omfFile) : this(new SimpleViewWriterHelper(omfFile), omfFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(OMFLIBFile omfLibFile) : this(new SimpleViewWriterHelper(omfLibFile), omfLibFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(OMFDBGFile omfDbgFile) : this(new SimpleViewWriterHelper(omfDbgFile), omfDbgFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(PDBFile pdbFile) : this(new PDBFileViewWriterHelper(pdbFile), pdbFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(PEFile peFile) : this(new PEFileViewWriterHelper(peFile, ViewMode.Default), peFile.CreateByteViewProvider(null))
+        {
+        }
+
+        internal ViewWriter(SYMFile symFile) : this(new SimpleViewWriterHelper(symFile), symFile.CreateByteViewProvider(null))
+        {
+        }
+
         internal unsafe ViewWriter(
+            IViewWriterHelper helper,
             ByteViewProvider byteViewProvider,
-            ViewMode mode,
-            TryGetOffsetDelegate tryGetViewOffset,
-            Func<int, int>? getRealOffset,
+            ViewMode mode = ViewMode.Default,
             FileAccessor fileAccessor = null)
         {
+            this.helper = helper;
             this.mode = mode;
-            _tryGetViewOffset = tryGetViewOffset;
-            this.getRealOffset = getRealOffset;
+            _tryGetViewOffset = helper.TryGetOffsetDelegate;
+            this.getRealOffset = helper.GetRealOffsetDelegate;
             this.byteViewProvider = byteViewProvider;
             _fileAccessor = fileAccessor;
             globalList = new List<IView>();
@@ -107,13 +161,12 @@ namespace PESpy.View
 
         internal ViewWriter(
             ViewWriter parentWriter,
-            ByteViewProvider byteViewProvider,
-            TryGetOffsetDelegate tryGetViewOffset,
-            Func<int, int>? getRealOffset)
+            IViewWriterHelper helper,
+            ByteViewProvider byteViewProvider)
         {
             this.mode = parentWriter.mode;
-            _tryGetViewOffset = tryGetViewOffset;
-            this.getRealOffset = getRealOffset;
+            _tryGetViewOffset = helper.TryGetOffsetDelegate;
+            this.getRealOffset = helper.GetRealOffsetDelegate;
             this.byteViewProvider = byteViewProvider;
             globalList = new List<IView>(); ;
             listPool = parentWriter.listPool;
@@ -277,7 +330,11 @@ namespace PESpy.View
 
             EnterNestedFile(provider.StartOffset, length, peFile);
 
-            var nestedWriter = new NestedPEViewWriter((PEViewWriter) this, byteViewProvider, peFile);
+            var nestedWriter = new NestedViewWriter(
+                this,
+                new PEFileViewWriterHelper(peFile, mode),
+                byteViewProvider
+            );
 
             nestedWriter.WriteGlobal(peFile);
 
@@ -761,7 +818,7 @@ namespace PESpy.View
                 globalFields.Add(value.ListedAddress);
 #endif
 
-                if (((PEViewWriter) this).Is32Bit)
+                if (helper.Is32Bit)
                     WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), valueKind);
                 else
                     WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
@@ -778,7 +835,7 @@ namespace PESpy.View
                 globalFields.Add(value.ListedAddress);
 #endif
 
-                if (((PEViewWriter) this).Is32Bit)
+                if (helper.Is32Bit)
                     WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), valueKind);
                 else
                     WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
@@ -794,7 +851,7 @@ namespace PESpy.View
 #if DEBUG
                 globalFields.Add(value.ListedAddress);
 #endif
-                if (((PEViewWriter) this).Is32Bit)
+                if (helper.Is32Bit)
                     WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(int), valueKind);
                 else
                     WriteGlobal(value.ActualOffset, value.Value, value.Value.Length * sizeof(long), valueKind);
@@ -828,7 +885,7 @@ namespace PESpy.View
                 globalFields.Add(value.ListedOffset);
 #endif
 
-                if (((PEViewWriter) this).Is32Bit)
+                if (helper.Is32Bit)
                     WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), kind);
                 else
                     WriteGlobal(value.ActualOffset, value.Value, sizeof(long), kind);
@@ -1203,7 +1260,7 @@ namespace PESpy.View
         {
         }
 
-        internal virtual void EnterNestedFile(int startOffset, int length, IFile file)
+        internal virtual void EnterNestedFile(int startOffset, int length, PEFile file)
         {
         }
 
@@ -1372,7 +1429,7 @@ namespace PESpy.View
             T value,
             ref StructWriter structWriter) where T : IViewable
         {
-            if (!TryGetViewOffset(parentOffset, out parentOffset))
+            if (!_tryGetViewOffset(parentOffset, out parentOffset))
                 return;
 
             var oldOffset = UnmanagedOffset;
@@ -1390,7 +1447,7 @@ namespace PESpy.View
             T[] value,
             ref StructWriter structWriter) where T : unmanaged, IViewable
         {
-            if (!TryGetViewOffset(parentOffset, out parentOffset))
+            if (!_tryGetViewOffset(parentOffset, out parentOffset))
                 return;
 
             var oldOffset = UnmanagedOffset;
@@ -1445,11 +1502,10 @@ namespace PESpy.View
             );
         }
 
-        internal virtual void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
-        {
-        }
+        internal void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories) =>
+            helper.CollectDataDirectories(ref dataDirectories);
 
-        internal virtual ViewWriter CreateNestedWriter(IFile file) => throw new NotSupportedException();
+        internal ViewWriter CreateNestedWriter(PEFile file) => new NestedViewWriter(this, new PEFileViewWriterHelper(file, mode), byteViewProvider);
 
         internal List<IView> RentList()
         {
@@ -1465,6 +1521,6 @@ namespace PESpy.View
             listPool.Push(list);
         }
 
-        public abstract IView Finalize();
+        public IView Finalize() => helper.Finalize(this);
     }
 }
