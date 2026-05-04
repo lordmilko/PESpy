@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -16,7 +14,7 @@ namespace PESpy.PDB
             public NativeSpan<HRFile> HashRecords { get; }
 
             //Only present in V7
-            public NativeSpan<int> BucketsBitmap { get; }
+            public NativeSpan<uint> BucketsBitmap { get; }
 
             public NativeSpan<int> BucketOffsets { get; }
 
@@ -25,7 +23,7 @@ namespace PESpy.PDB
 
             public GlobalSymTypeList Symbols { get; }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             private int iphrHash;
 
@@ -88,7 +86,7 @@ namespace PESpy.PDB
                             var read = GSIHashHdr.StructSize + gsiHdr.cbHr;
 
                             //This gives us a bitmap that describes the status of all of the buckets in the hashmap.
-                            var bitmap = chunk.PeekNativeSpan<int>(read, numBitMapInts); //Read as int so that we can easily count its bits
+                            var bitmap = chunk.PeekNativeSpan<uint>(read, numBitMapInts); //Read as int so that we can easily count its bits
 
                             BucketsBitmap = bitmap;
 

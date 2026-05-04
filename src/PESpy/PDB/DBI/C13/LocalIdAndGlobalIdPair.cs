@@ -19,7 +19,7 @@ namespace PESpy.PDB
         /// </summary>
         public TypOrEnumType globalId => new TypOrEnumType(chunk.Pointer, (CV_ItemId) chunk.PeekInt32(globalIdOffset));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //localId

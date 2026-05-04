@@ -22,7 +22,7 @@ namespace PESpy.Ecma335
 
         public bool IsForwarder => (Flags & CorTypeAttr.tdForwarder) != 0 && Implementation.TableKind == TableKind.AssemblyRef;
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object ImplementationRow => Implementation.GetRow(table.CompressedModelHeap);

@@ -130,7 +130,7 @@ namespace PESpy
             return nb05.TryGetSegName(offset, out str);
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //flags

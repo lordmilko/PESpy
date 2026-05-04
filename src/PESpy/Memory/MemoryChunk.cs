@@ -10,7 +10,7 @@ namespace PESpy
         //The offset from the block's pointer that this chunk encapsulates.
         public readonly int RelativeOffset;
 
-        public int AbsoluteOffset
+        public long AbsoluteOffset
         {
             get
             {
@@ -26,7 +26,7 @@ namespace PESpy
         /// <summary>
         /// Gets the number of bytes remaining in this chunk's underlying block relative to the <see cref="RelativeOffset"/> of this chunk.
         /// </summary>
-        public int Remaining => block.Length - RelativeOffset;
+        public long Remaining => block.Length - RelativeOffset;
 
         //length is the length remaining in the MemoryBlock after subtracting our offset
         internal readonly MemoryBlock block;
@@ -469,10 +469,18 @@ namespace PESpy
 
         internal MemoryChunk Slice(int offset)
         {
-            if ((uint) offset > (uint) Remaining)
+            if ((uint) offset > Remaining)
                 throw new InvalidOperationException("Attempted to slice beyond the end of a block");
 
             return new MemoryChunk(block, this.RelativeOffset + offset);
+        }
+
+        //The only file that can be bigger than 4gb is a PDB,
+        //and that is split into smaller sub-blocks per stream; so we'll
+        //just just try and downcast to int and throw in the event we're somehow
+        //passed an offset we can't deal with
+        public MemoryChunk(MemoryBlock block, long offset) : this(block, (checked((int) offset)))
+        {
         }
 
         public MemoryChunk(MemoryBlock block, int offset)

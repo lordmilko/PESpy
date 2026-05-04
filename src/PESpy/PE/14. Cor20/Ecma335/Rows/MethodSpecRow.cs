@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex Instantiation => table.GetInstantiation(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object MethodRow => Method.GetRow(table.CompressedModelHeap);

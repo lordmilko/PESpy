@@ -29,7 +29,7 @@ namespace PESpy
         /// </summary>
         public ushort cbSeg => chunk.PeekUInt16(cbSegOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //Seg

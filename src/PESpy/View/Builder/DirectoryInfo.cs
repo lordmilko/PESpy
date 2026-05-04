@@ -9,19 +9,19 @@ namespace PESpy.View.Builder
 
         public string Name => name ?? NameInfo.ToString();
         public FullNameInfo NameInfo { get; }
-        public int Start { get; }
-        public int End;
+        public long Start { get; }
+        public long End;
 
-        public int Length => End - Start;
+        public int Length => (int) (End - Start);
 
-        public DirectoryInfo(string name, int start, int size)
+        public DirectoryInfo(string name, long start, int size)
         {
             this.name = name;
             Start = start;
             End = start + size;
         }
 
-        public DirectoryInfo(FullNameInfo nameInfo, int start, int size)
+        public DirectoryInfo(FullNameInfo nameInfo, long start, int size)
         {
             NameInfo = nameInfo;
             Start = start;

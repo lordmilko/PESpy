@@ -25,7 +25,7 @@ namespace PESpy.NativeAOT
 
         public VA<IValue> Data => GetData(SectionId, ref data, chunk, Start, (int) (End - Start));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
             sizeof(int) + //SectionId

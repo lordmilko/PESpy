@@ -53,7 +53,7 @@
             return (TypeDefIndex) tableChunk.PeekEcmaIndex(rowNumber * RowSize + EnclosingClassOffset, isBigTypeDefIndex);
         }
 
-        public int GetRowOffset(NestedClassIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(NestedClassIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public NestedClassRow this[NestedClassIndex index] => GetRowSafe((int) index);
 

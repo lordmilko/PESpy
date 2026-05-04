@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
 
         public TypeDefIndex Parent => table.GetParent(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public TypeDefRow ParentRow => table.CompressedModelHeap.TypeDefTable[Parent];

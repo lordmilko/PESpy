@@ -77,7 +77,7 @@ namespace PESpy.PDB
             set => chunk.PokeUnmanaged<OffCb>(offcbHashAdjOffset, value);
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //sn

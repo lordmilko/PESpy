@@ -23,7 +23,7 @@ namespace PESpy.SYM
         /// </summary>
         public byte em_ver => chunk.PeekByte(3);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //em_spmap

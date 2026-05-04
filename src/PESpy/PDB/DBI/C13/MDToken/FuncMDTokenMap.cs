@@ -16,11 +16,11 @@ namespace PESpy.PDB
         //that pertains to it
         public NativeSpan<byte> MethodData { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize => sizeof(int) + (Entries.Length * Entry.StructSize) + MethodData.Length;
 
-        internal FuncMDTokenMap(int offset, int numEntries, Entry[] entries, NativeSpan<byte> methodData)
+        internal FuncMDTokenMap(long offset, int numEntries, Entry[] entries, NativeSpan<byte> methodData)
         {
             Offset = offset;
             NumEntries = numEntries;
@@ -49,15 +49,15 @@ namespace PESpy.PDB
             //In this instance, you get 2x 0x10014C1 [mdtTypeRef] entries
             public NativeSpan<byte> TypeSpecBlobs { get; }
 
-            private readonly int structOffset;
-            int IValue.Offset => structOffset;
+            private readonly long structOffset;
+            long IValue.Offset => structOffset;
 
             internal const int StructSize =
                 sizeof(int) +
                 sizeof(int);
 
             //The "offset" here is really just the RID with the high bit set
-            internal Entry(int structOffset, int rva, uint offset, mdMemberRef token)
+            internal Entry(long structOffset, int rva, uint offset, mdMemberRef token)
             {
                 this.structOffset = structOffset;
                 RVA = rva;
@@ -65,7 +65,7 @@ namespace PESpy.PDB
                 Token = token;
             }
 
-            internal Entry(int structOffset, int rva, uint offset, mdMemberRef token, int numGenericParameters, NativeSpan<byte> typeSpecBlobs)
+            internal Entry(long structOffset, int rva, uint offset, mdMemberRef token, int numGenericParameters, NativeSpan<byte> typeSpecBlobs)
             {
                 this.structOffset = structOffset;
                 RVA = rva;

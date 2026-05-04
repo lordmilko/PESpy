@@ -344,7 +344,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.LE;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private ICodeViewData? codeViewData;
         private bool hasTriedCodeViewData;
@@ -358,7 +358,7 @@ namespace PESpy
                 if (codeViewData == null && !hasTriedCodeViewData)
                 {
                     //We don't seem to have an IMAGE_FILE_MACHINE anywhere, so assume x86
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, (int) globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
                     hasTriedCodeViewData = true;
                 }
 
@@ -380,7 +380,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -545,10 +545,10 @@ namespace PESpy
                 vxdHeader.e32_fpagetab,
                 vxdHeader.e32_frectab,
                 vxdHeader.e32_impmod,
-                vxdHeader.e32_datapage  != 0 ? vxdHeader.e32_datapage  - vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
-                vxdHeader.e32_itermap   != 0 ? vxdHeader.e32_itermap   - vxdHeader.Offset : 0,
-                vxdHeader.e32_nrestab   != 0 ? vxdHeader.e32_nrestab   - vxdHeader.Offset : 0,
-                vxdHeader.e32_debuginfo != 0 ? vxdHeader.e32_debuginfo - vxdHeader.Offset : 0
+                vxdHeader.e32_datapage  != 0 ? vxdHeader.e32_datapage  - (int) vxdHeader.Offset : 0, //Preload pages? Demand load pages too?
+                vxdHeader.e32_itermap   != 0 ? vxdHeader.e32_itermap   - (int) vxdHeader.Offset : 0,
+                vxdHeader.e32_nrestab   != 0 ? vxdHeader.e32_nrestab   - (int) vxdHeader.Offset : 0,
+                vxdHeader.e32_debuginfo != 0 ? vxdHeader.e32_debuginfo - (int) vxdHeader.Offset : 0
             };
 
 #if DEBUG
@@ -563,7 +563,7 @@ namespace PESpy
 
             int index = 0;
 
-            var fileLength = Length;
+            var fileLength = (int) Length;
 
             var tableBounds = new TableBounds[14];
 
@@ -629,11 +629,11 @@ namespace PESpy
                 }
             }
             else
-                next = fileLength - vxdHeader.Offset;
+                next = fileLength - (int) vxdHeader.Offset;
 
             //Some offsets are relative to the start of the EXE file, others are relative to the beginning of the LE header.
             //We account for this by subtracting the vxd header offset from our offsets list, so that the common case of having to add the offset here cancels out
-            var start = vxdHeader.Offset + current;
+            var start = (int) vxdHeader.Offset + current;
             var length = next - current;
             var end = start + length;
 
@@ -660,7 +660,7 @@ namespace PESpy
                 return;
             }
 
-            var start = vxdHeader.Offset + current;
+            var start = (int) vxdHeader.Offset + current;
             var end = start + length;
 
             tableBounds[index++] = new TableBounds(name, start, end, kind);
@@ -715,12 +715,12 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= NullSymbolAccessor.Instance;
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
-            remainingLength = globalBlock.Length;
+            remainingLength = (int) globalBlock.Length;
         }
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)

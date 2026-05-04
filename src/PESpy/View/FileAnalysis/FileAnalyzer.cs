@@ -179,7 +179,7 @@ namespace PESpy.View
             }
         }
 
-        private int[] _stringAddresses;
+        private long[] _stringAddresses;
 
         //The limiting factor on performance now seems to be lock contention. I tried to do away with the lock and use
         //concurrent queue instead (forgetting about checking whether an address has already been processed or not) but that
@@ -225,7 +225,7 @@ namespace PESpy.View
             //Now try and discover symbols. Symbols can come in many forms: we can have a PDB (old, MSF or portable),
             //OMF CodeView symbols, or even COFF symbols in a CoffSymbolTable. We'll use any symbols we discover to expand
             //upon the code addresses we found in our roots, to ensure we disassemble as much as possible in the PEFile
-            DiscoverSymbols((PEFileAccessor) _fileAccessor);
+            DiscoverSymbols((ISectionDataAccessor) _fileAccessor);
 
             //We've done all the preparations we can; work the disasm queue, discovering xrefs and tagging bytes as being code
             var importMap = _fileDisassembler == null ? null : GetImportMap();
@@ -1369,7 +1369,7 @@ namespace PESpy.View
             }
         }
 
-        internal void CreateOMFRegion(int start, int sizeOfData, CodeViewSig sig)
+        internal void CreateOMFRegion(long start, int sizeOfData, CodeViewSig sig)
         {
             if (!_viewWriter.TryGetViewOffset(start, out var targetAddress))
                 return;
@@ -1393,7 +1393,7 @@ namespace PESpy.View
 
             var sectionAccessors = _fileAccessor.SectionAccessors;
 
-            var strings = new List<int>();
+            var strings = new List<long>();
 
             var ranges = new List<StringRange>();
 
@@ -1456,7 +1456,7 @@ namespace PESpy.View
             ViewByte* pEnd,
             byte* pBytes,
             ViewByte* pSectionStart,
-            int sectionAddress,
+            long sectionAddress,
             List<StringRange> ranges)
         {
             var pStart = pViewByte;
@@ -1483,12 +1483,12 @@ namespace PESpy.View
             public ViewByte* pStart;
             public byte* pBytes;
             public int Length;
-            public int SectionAddress;
+            public long SectionAddress;
             public ViewByte* SectionStart;
 
-            public int StartAddress => SectionAddress + (int) (pStart - SectionStart);
+            public long StartAddress => SectionAddress + (int) (pStart - SectionStart);
 
-            internal StringRange(ViewByte* pStart, byte* pBytes, int length, int sectionAddress, ViewByte* pSectionStart)
+            internal StringRange(ViewByte* pStart, byte* pBytes, int length, long sectionAddress, ViewByte* pSectionStart)
             {
                 this.pStart = pStart;
                 this.pBytes = pBytes;
@@ -1523,7 +1523,7 @@ namespace PESpy.View
                     var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
 
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-                    var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                    var limit = sectionAccessor.pViewBytesEnd;
 
                     while (pViewByte < limit)
                     {
@@ -1555,7 +1555,7 @@ namespace PESpy.View
                     var start = pViewByte;
 
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-                    var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                    var limit = sectionAccessor.pViewBytesEnd;
 
                     if (symbolAccessor.TryGetLengthFromAddress(item.RVA, _fileAccessor as ISectionDataAccessor, out var length))
                     {
@@ -1978,7 +1978,7 @@ namespace PESpy.View
             var sectionAccessors = _fileAccessor.SectionAccessors;
 
             var objLock = new object();
-            var largeAddresses = new Dictionary<int, int>();
+            var largeAddresses = new Dictionary<long, int>();
 
             Debug.Assert(_hasUnknownBodies);
 
@@ -2032,15 +2032,15 @@ namespace PESpy.View
         {
         }
 
-        protected void MarkSymbols(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd) =>
+        protected void MarkSymbols(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd) =>
             MarkStructRange(ref pViewByte, ref targetAddress, pEnd, "Symbols", ViewKind.Symbols, ViewKind.SymType, ViewKind.LfAlias);
 
-        protected void MarkTypes(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd) =>
+        protected void MarkTypes(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd) =>
             MarkStructRange(ref pViewByte, ref targetAddress, pEnd, "Types", ViewKind.Types, ViewKind.LfAlias, ViewKind.GSIHashHdr);
 
         protected void MarkStructRange(
             ref ViewByte* pViewByte,
-            ref int targetAddress,
+            ref long targetAddress,
             ViewByte* pEnd,
             string name,
             ViewKind regionKind,

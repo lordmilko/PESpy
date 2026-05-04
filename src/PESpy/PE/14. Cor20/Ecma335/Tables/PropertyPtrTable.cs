@@ -28,7 +28,7 @@
             return (PropertyIndex) tableChunk.PeekEcmaIndex(rowOffset + PropertyOffset, isBigPropertyIndex);
         }
 
-        public int GetRowOffset(PropertyPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(PropertyPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public PropertyPtrRow this[PropertyPtrIndex index] => GetRowSafe((int) index);
 

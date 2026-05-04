@@ -16,7 +16,7 @@ namespace PESpy.PDB
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public SymTypeList List { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         SymTypeList ICodeViewModuleAccessor.Symbols => List;
 

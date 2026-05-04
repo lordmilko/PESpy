@@ -36,7 +36,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.OMFLIB;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         public LIBHDR LibHdr { get; }
 
@@ -59,7 +59,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -198,7 +198,7 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         public void Dispose()
         {

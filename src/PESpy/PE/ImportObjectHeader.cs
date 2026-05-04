@@ -39,7 +39,7 @@ namespace PESpy
         public IMPORT_OBJECT_NAME_TYPE NameType => (IMPORT_OBJECT_NAME_TYPE) ((data >> 2) & 0x7);
         public int Reserved => (data >> 5) & 0x07FF;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //Sig1

@@ -17,7 +17,7 @@ namespace PESpy
 
         public IValue? AddressHashTable { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         public SymType GetSymbolFromOffset(int offset) => Symbols.GetSymbolFromOffset(offset);
 

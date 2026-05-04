@@ -23,7 +23,7 @@ namespace PESpy.View
     [DebuggerTypeProxy(typeof(ViewChildListDebugView))]
     public readonly struct ViewChildList : IEnumerable<IView>
     {
-        private readonly int parentOffset;
+        private readonly long parentOffset;
         private readonly IViewable parent;
         private readonly ViewWriter viewWriter;
         private readonly int numChildren;
@@ -31,7 +31,7 @@ namespace PESpy.View
 
         public int Count => numChildren;
 
-        internal ViewChildList(int parentOffset, IViewable parent, ViewWriter viewWriter, IView parentView)
+        internal ViewChildList(long parentOffset, IViewable parent, ViewWriter viewWriter, IView parentView)
         {
             this.parentOffset = parentOffset;
             this.parent = parent;
@@ -54,14 +54,14 @@ namespace PESpy.View
 
         public struct Enumerator : IEnumerator<IView>
         {
-            private readonly int parentOffset;
+            private readonly long parentOffset;
             private readonly IViewable parent;
             private readonly ViewWriter viewWriter;
             private readonly int numChildren;
             private readonly IView _parentView;
             private int index;
 
-            internal Enumerator(int parentOffset, in IViewable parent, ViewWriter viewWriter, int numChildren, IView parentView)
+            internal Enumerator(long parentOffset, in IViewable parent, ViewWriter viewWriter, int numChildren, IView parentView)
             {
                 this.parentOffset = parentOffset;
                 this.parent = parent;

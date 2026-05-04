@@ -28,7 +28,7 @@ namespace PESpy
 
         internal bool HasData => VirtualAddress != 0 && Size != 0;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //RelativeVirtualAddress

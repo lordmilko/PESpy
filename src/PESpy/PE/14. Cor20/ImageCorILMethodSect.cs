@@ -10,7 +10,7 @@ namespace PESpy
 
         public int DataSize { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize => (Kind & CorILMethodSect.FatFormat) != 0 ? FatSize : TinySize;
 

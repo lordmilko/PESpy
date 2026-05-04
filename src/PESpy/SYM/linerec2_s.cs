@@ -19,7 +19,7 @@
         /// </summary>
         public ushort lr2_linenumber => chunk.PeekUInt16(4);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

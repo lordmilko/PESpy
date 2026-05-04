@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex Signature => table.GetSignature(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public ConstantRow? DefaultValueRow

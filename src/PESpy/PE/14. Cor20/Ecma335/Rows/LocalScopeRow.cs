@@ -21,7 +21,7 @@ namespace PESpy.Ecma335
 
         public int Length => table.GetLength(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public LocalVariableList Variables => new LocalVariableList(RowIndex, table.CompressedModelHeap);

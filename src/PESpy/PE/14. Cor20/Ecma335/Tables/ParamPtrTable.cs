@@ -28,7 +28,7 @@
             return (ParamIndex) tableChunk.PeekEcmaIndex(rowOffset + ParamOffset, isBigParamIndex);
         }
 
-        public int GetRowOffset(ParamPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(ParamPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public ParamPtrRow this[ParamPtrIndex index] => GetRowSafe((int) index);
 

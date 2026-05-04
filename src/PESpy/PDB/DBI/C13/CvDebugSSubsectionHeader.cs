@@ -26,7 +26,7 @@ namespace PESpy.PDB
 
         public unsafe object Data => GetData<object>();
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(int) + //Type

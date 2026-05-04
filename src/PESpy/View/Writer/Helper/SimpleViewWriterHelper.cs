@@ -22,7 +22,7 @@ namespace PESpy.View
             GetRealOffsetDelegate = null;
         }
 
-        public static bool TryGetViewOffset(int offset, out int viewoffset)
+        public static bool TryGetViewOffset(long offset, out long viewoffset)
         {
             viewoffset = offset;
             return true;

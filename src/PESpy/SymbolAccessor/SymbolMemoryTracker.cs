@@ -135,7 +135,7 @@ namespace PESpy
         }
 
         private static unsafe void InsertEntry(MemoryBlock block, ICodeViewAccessor value, ICodeViewModuleAccessor codeViewModuleAccessor) =>
-            InsertEntry(block.LocalPointer, block.Length, value, codeViewModuleAccessor);
+            InsertEntry(block.LocalPointer, checked((int) block.Length), value, codeViewModuleAccessor);
 
         private static unsafe void InsertEntry(
             byte* memory,

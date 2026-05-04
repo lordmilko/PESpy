@@ -100,7 +100,7 @@ namespace PESpy.View
                 items.Add(result);
 
                 //Don't calculate the length again
-                currentFieldOffset += result.Size;
+                currentFieldOffset += (int) result.Size;
             }
             else
                 currentFieldOffset += (value.Length + 1) * 2;
@@ -439,7 +439,7 @@ namespace PESpy.View
             if (result != null)
             {
                 items.Add(result);
-                currentFieldOffset += result.Size;
+                currentFieldOffset += (int) result.Size;
             }
         }
 
@@ -455,7 +455,7 @@ namespace PESpy.View
             if (result != null)
             {
                 items.Add(result);
-                currentFieldOffset += result.Size;
+                currentFieldOffset += (int) result.Size;
             }
 
             viewWriter.UnmanagedOffset = oldOffset;
@@ -482,7 +482,7 @@ namespace PESpy.View
                 if (result != null)
                 {
                     items.Add(result);
-                    currentFieldOffset += result.Size;
+                    currentFieldOffset += (int) result.Size;
                     viewWriter.UnmanagedOffset += result.Size;
                 }
             }
@@ -501,7 +501,7 @@ namespace PESpy.View
                 if (result != null)
                 {
                     items.Add(result);
-                    currentFieldOffset += result.Size;
+                    currentFieldOffset += (int) result.Size;
                 }
             }
         }
@@ -527,7 +527,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += value.Value.Length + 1;
@@ -542,7 +542,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += value.Value.Length + 1;
@@ -561,7 +561,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += value.Length;
@@ -580,7 +580,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += value.Value.Length + 1;
@@ -602,7 +602,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += value.Value.Length + 1;
@@ -618,7 +618,7 @@ namespace PESpy.View
             if (structWriter.Field != null)
             {
                 items.Add(structWriter.Field);
-                currentFieldOffset += structWriter.Field.Size;
+                currentFieldOffset += (int) structWriter.Field.Size;
             }
             else
                 currentFieldOffset += size;
@@ -663,7 +663,7 @@ namespace PESpy.View
         }
 
         //Should only be used for OBJ files
-        public unsafe void WriteValue(int offset, SymTypeList value)
+        public unsafe void WriteValue(long offset, SymTypeList value)
         {
             var viewWriter = structWriter.ViewWriter;
 
@@ -684,7 +684,7 @@ namespace PESpy.View
                 viewWriter.UnmanagedOffset = offset;
             }
 
-            currentFieldOffset += viewWriter.UnmanagedOffset - startOffset;
+            currentFieldOffset += (int) (viewWriter.UnmanagedOffset - startOffset);
 
             viewWriter.UnmanagedOffset = oldOffset;
         }
@@ -704,7 +704,7 @@ namespace PESpy.View
             {
                 var globalOffset = structWriter.ParentOffset + currentFieldOffset;
                 var views = structWriter.ViewWriter.CreateByteBlob(ref globalOffset, required);
-                currentFieldOffset = globalOffset - structWriter.ParentOffset;
+                currentFieldOffset = (int) (globalOffset - structWriter.ParentOffset);
                 items.AddRange(views);
             }
         }
@@ -719,7 +719,7 @@ namespace PESpy.View
             {
                 var globalOffset = structWriter.ParentOffset + currentFieldOffset;
                 var views = structWriter.ViewWriter.CreateByteBlob(ref globalOffset, required);
-                currentFieldOffset = globalOffset - structWriter.ParentOffset;
+                currentFieldOffset = (int) (globalOffset - structWriter.ParentOffset);
                 items.AddRange(views);
             }
         }
@@ -728,7 +728,7 @@ namespace PESpy.View
         {
             var globalOffset = structWriter.ParentOffset + currentFieldOffset;
             var views = structWriter.ViewWriter.CreateByteBlob(ref globalOffset, length);
-            currentFieldOffset = globalOffset - structWriter.ParentOffset;
+            currentFieldOffset = (int) (globalOffset - structWriter.ParentOffset);
             items.AddRange(views);
         }
 

@@ -33,7 +33,7 @@ namespace PESpy.PDB
             VersionLength +
             Name.Length + 1 + 3) & ~3;
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         //VsVersionInfo allocates, so just eagerly read everything
 

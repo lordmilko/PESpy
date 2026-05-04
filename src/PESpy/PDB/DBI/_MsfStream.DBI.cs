@@ -282,7 +282,7 @@ namespace PESpy.PDB
 
                             if (pdbFile.TryGetStreamChunk(dbgHdr.OmapToSrc, out var valueChunk))
                             {
-                                var numItems = valueChunk.Remaining / 8;
+                                var numItems = ((int) valueChunk.Remaining) / 8;
 
                                 omapToSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems);
                             }
@@ -312,7 +312,7 @@ namespace PESpy.PDB
 
                             if (pdbFile.TryGetStreamChunk(dbgHdr.OmapFromSrc, out var valueChunk))
                             {
-                                var numItems = valueChunk.Remaining / 8;
+                                var numItems = ((int) valueChunk.Remaining) / 8;
 
                                 omapFromSrc = valueChunk.PeekNativeSpan<OMAP_DATA>(0, numItems);
                             }
@@ -422,7 +422,7 @@ namespace PESpy.PDB
                         {
                             SymbolMemoryTracker.RegisterPDBSymbolMemory(symRecChunk, null);
                             Debug.Assert(symRecChunk.RelativeOffset == 0);
-                            symbols = new SymTypeList(symRecChunk.Pointer, 0, symRecChunk.Remaining, pdbFile);
+                            symbols = new SymTypeList(symRecChunk.Pointer, 0, checked((int) symRecChunk.Remaining), pdbFile);
                         }
                     }
 
@@ -434,7 +434,7 @@ namespace PESpy.PDB
 
             private readonly MemoryChunk chunk;
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             internal DBI(in MemoryChunk chunk)
             {

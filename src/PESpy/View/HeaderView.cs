@@ -8,9 +8,9 @@ namespace PESpy.View
     /// </summary>
     public class HeaderView : IViewInternal
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
-        public int Size { get; }
+        public long Size { get; }
 
         public ViewKind Kind => ViewKind.Header;
 

@@ -22,7 +22,7 @@ namespace PESpy
             _ => StringKind.ANSI
         });
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

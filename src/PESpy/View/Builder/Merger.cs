@@ -79,12 +79,12 @@ namespace PESpy.View.Builder
             currentList.Clear();
             repeatingTypeList.Clear();
 
-            var currentEnd = endRva;
+            long currentEnd = endRva;
             repeatingGroupMode = 0;
 
             directory = null;
 
-            for (var rva = startRva; rva < endRva; rva++)
+            for (long rva = startRva; rva < endRva; rva++)
             {
                 if (directory != null)
                 {
@@ -94,7 +94,7 @@ namespace PESpy.View.Builder
                 }
 
                 if (directory == null)
-                    TryGetNextDirectory(rva, endRva, ref currentEnd);
+                    TryGetNextDirectory((int) rva, endRva, ref currentEnd);
 
                 nextValue = null;
 
@@ -109,7 +109,7 @@ namespace PESpy.View.Builder
             return masterList.ToArray();
         }
 
-        private void TryGetNextDirectory(int rva, int endRva, ref int currentEnd)
+        private void TryGetNextDirectory(int rva, int endRva, ref long currentEnd)
         {
             //If we skipped over the directory because we don't know it (meaning we read it as a byte blob), we need to skip to the next valid directory
             while (nextDataDirectoryIndex < discoveredDataDirectories.Length && discoveredDataDirectories[nextDataDirectoryIndex].Start < rva)
@@ -147,7 +147,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void GetValueOrBytes(ref int rva, int currentEnd, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        private void GetValueOrBytes(ref long rva, long currentEnd, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             if (nextStructIndex < sortedStructs.Count && (nextValue = sortedStructs[nextStructIndex]).Offset < currentEnd)
             {
@@ -249,7 +249,7 @@ namespace PESpy.View.Builder
                              * within the .rsrc section to fit the under reported data */
                             Debug.Assert(currentDirectory.Name == "LoadConfigTableDirectory" || currentDirectory.Name == "ResourceTableDirectory");
 
-                            currentDirectory.End = nextValueEnd;
+                            currentDirectory.End = checked((int) nextValueEnd);
                             Debug.Assert(directory.Value.Start == currentDirectory.Start);
                             directory = currentDirectory;
 
@@ -312,9 +312,9 @@ end:
 
         //Given an offset in the current page, gets the offset of the start of the page after it.
         //If previous is true, returns the offset of the start of the page before it
-        internal static int GetNextPageOffset(
+        internal static long GetNextPageOffset(
             PDBFile pdbFile,
-            int offsetInCurrentPage,
+            long offsetInCurrentPage,
             Dictionary<PN, int> pageNumberToSIIndex,
             bool previous = false)
         {
@@ -529,7 +529,7 @@ end:
             throw new NotImplementedException();
         }
 
-        void FinalizeDirectoryRegion(int endRva, ref int currentEnd)
+        void FinalizeDirectoryRegion(int endRva, ref long currentEnd)
         {
             if (directory == null)
                 return;
@@ -596,14 +596,14 @@ end:
             var size = 0;
 
             for (var i = 0; i < repeatingTypeList.Count; i++)
-                size += repeatingTypeList[i].Size;
+                size += (int) repeatingTypeList[i].Size;
 
             currentList.Add(new LogicalRegionView(repeatingTypeList[0].Offset, regionKind.GetDescription(), repeatingTypeList.ToArray(), viewWriter, regionKind, size));
             repeatingTypeList.Clear();
             repeatingGroupMode = 0;
         }
 
-        void ReadByteBlob(ref int rva, int end, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        void ReadByteBlob(ref long rva, long end, int endRva, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var dirIndex = directory == null ? nextDataDirectoryIndex : nextDataDirectoryIndex + 1;
 

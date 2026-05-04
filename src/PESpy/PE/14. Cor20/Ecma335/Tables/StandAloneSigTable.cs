@@ -36,7 +36,7 @@ namespace PESpy.Ecma335
         public CustomAttributeList GetCustomAttributes(StandAloneSigIndex index) =>
             new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.StandAloneSig));
 
-        public int GetRowOffset(StandAloneSigIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(StandAloneSigIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public StandAloneSigRow this[StandAloneSigIndex index] => GetRowSafe((int) index);
 

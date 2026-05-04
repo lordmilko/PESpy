@@ -123,7 +123,7 @@ namespace PESpy
         #endregion
         #endregion
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
         private bool initialized;
 
         private readonly MemoryChunk chunk;
@@ -133,7 +133,7 @@ namespace PESpy
             this.chunk = chunk;
 
             Signature = new StorageSignature(chunk);
-            Header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), Offset); //Align to next 4 byte boundary
+            Header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), (int) Offset); //Align to next 4 byte boundary
         }
 
         private void EnsureHeaps()

@@ -17,7 +17,7 @@ namespace PESpy
 
         public ImageDynamicRelocation[] DynamicRelocations { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize =>
             sizeof(int) + //Version

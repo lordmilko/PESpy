@@ -11,11 +11,11 @@ namespace PESpy.View
 
     public class StructFieldView : IStructFieldView, IViewInternal, ISplittableView
     {
-        public int Offset => Value.Offset;
+        public long Offset => Value.Offset;
 
         public FixedUtf8String StructName => Value.Name;
 
-        public int Size => Value.Size;
+        public long Size => Value.Size;
 
         public ViewKind Kind => Value.Kind;
 
@@ -57,10 +57,10 @@ namespace PESpy.View
             _fileAccessor = fileAccessor;
         }
 
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             SplitStructFieldView first;
@@ -87,7 +87,7 @@ namespace PESpy.View
             return (first, second);
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             if (Offset == newOffset)
                 return this;

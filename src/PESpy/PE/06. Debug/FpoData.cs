@@ -68,7 +68,7 @@ namespace PESpy
 
         private ushort flags => chunk.PeekUInt16(flagsOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //OffStart

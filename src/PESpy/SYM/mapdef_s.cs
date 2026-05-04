@@ -60,7 +60,7 @@
         /// </summary>
         public FixedAnsiString md_achname => chunk.PeekAnsiFixedLength(16, md_cbname);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(short) + //md_spmap

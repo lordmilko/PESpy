@@ -19,7 +19,7 @@ namespace PESpy.Ecma335
 
         public GuidIndex EncBaseId => table.GetEncBaseId(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly ModuleTable table;
 

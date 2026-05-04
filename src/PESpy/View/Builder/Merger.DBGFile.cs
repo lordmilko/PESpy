@@ -16,7 +16,7 @@
              *
              * and a bit of padding in-between. */
 
-            var length = byteViewProvider.FileOrSectionLength;
+            var length = (int) byteViewProvider.FileOrSectionLength;
 
             //We don't wrap this up in a HeaderView or anything; the file format is too simple, just return as is
             var result = BuildSection(0, length, v => v, v => v);

@@ -61,8 +61,8 @@ namespace PESpy.PDB
         /// </summary>
         public PN FpmPageNo
         {
-            get => chunk.PeekInt32(FpmPageNoOffset);
-            set => chunk.PokeInt32(FpmPageNoOffset, value);
+            get => chunk.PeekUInt32(FpmPageNoOffset);
+            set => chunk.PokeUInt32(FpmPageNoOffset, value);
         } //pnFpm
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace PESpy.PDB
 #endif
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             32 +          //32

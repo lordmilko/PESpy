@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public int Processor => table.GetProcessor(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly AssemblyProcessorTable table;
 

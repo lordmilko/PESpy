@@ -19,7 +19,7 @@ namespace PESpy
 
         public AnsiString Name => chunk.PeekAnsiNullTerminatedString(NameOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(short) +

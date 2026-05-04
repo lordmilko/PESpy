@@ -8,7 +8,7 @@ namespace PESpy
     {
         public RVA<RTTIBaseClassDescriptor[]> arrayOfBaseClassDescriptors { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int StructSize = sizeof(int);
 

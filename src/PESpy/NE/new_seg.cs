@@ -61,7 +61,7 @@ namespace PESpy.NE
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //ns_sector

@@ -33,7 +33,7 @@ namespace PESpy.PDB
 
         private int data => chunk.PeekInt32(dataOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //ulRvaStart

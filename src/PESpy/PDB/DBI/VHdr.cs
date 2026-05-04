@@ -27,7 +27,7 @@ namespace PESpy.PDB
 
         public Ver ulVer => (Ver) chunk.PeekUInt32(ulVerOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //ulHdr

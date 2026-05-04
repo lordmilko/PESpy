@@ -46,7 +46,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.DOS;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private ImageDosHeader dosHeader;
 
@@ -70,7 +70,7 @@ namespace PESpy
             {
                 if (codeViewData == null && !hasTriedCodeViewData)
                 {
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, (int) globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
                     hasTriedCodeViewData = true;
                 }
 
@@ -90,7 +90,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
             chunk = new MemoryChunk(globalBlock, 0);
 
             try
@@ -178,7 +178,7 @@ namespace PESpy
             return NullSymbolAccessor.Instance;
         }
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawPointer(out byte* pointer, out int length)

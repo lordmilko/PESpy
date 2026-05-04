@@ -4,7 +4,7 @@ namespace PESpy.PDB
 {
     internal sealed class FuncMDTokenMapParser : MDTokenMapParser<FuncMDTokenMap, FuncMDTokenMap.Entry>
     {
-        protected override unsafe FuncMDTokenMap.Entry CreateSmallEntry(int offset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
+        protected override unsafe FuncMDTokenMap.Entry CreateSmallEntry(long offset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
         {
             //corert has an assert that EmitMetadataHandleForTypeSystemEntity returns a handle of type MemberReference for the method it passes in
             var token = (mdMemberRef) Extensions.TokenFromRid((int) ridOrTypeSig, CorTokenType.mdtMemberRef);
@@ -13,7 +13,7 @@ namespace PESpy.PDB
         }
 
         protected override FuncMDTokenMap.Entry CreateLargeEntry(
-            int structOffset,
+            long structOffset,
             in MemoryChunk blobChunk,
             RawMDTokenMapEntry rawEntry,
             int blobLength)
@@ -50,7 +50,7 @@ namespace PESpy.PDB
             return entry;
         }
 
-        protected override FuncMDTokenMap CreateMap(int structOffset, int numEntries, FuncMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
+        protected override FuncMDTokenMap CreateMap(long structOffset, int numEntries, FuncMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
         {
             return new FuncMDTokenMap(structOffset, numEntries, entries, dataBlob);
         }

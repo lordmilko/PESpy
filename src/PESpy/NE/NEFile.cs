@@ -304,7 +304,7 @@ namespace PESpy
                 if (codeViewData == null && !hasTriedCodeViewData)
                 {
                     //We don't seem to have an IMAGE_FILE_MACHINE anywhere, so assume x86
-                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
+                    OMFReader.TryReadTrailingOMF(globalBlock.LocalPointer, (int) globalBlock.Length, IMAGE_FILE_MACHINE_I386, globalBlock, out codeViewData);
                     hasTriedCodeViewData = true;
                 }
 
@@ -323,7 +323,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.NE;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
@@ -338,7 +338,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -430,7 +430,7 @@ namespace PESpy
             ReadTable("Resident Name Table",    tableOffset: os2Header.ne_restab,  os2Header.ne_modtab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ResidentNameTable);
             ReadTable("Module Reference Table", tableOffset: os2Header.ne_modtab,  os2Header.ne_imptab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ModuleReferenceTable);
             ReadTable("Imported Names Table",   tableOffset: os2Header.ne_imptab,  os2Header.ne_enttab,  os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_ImportedNamesTable);
-            ReadTable("Entry Table",            tableOffset: os2Header.ne_enttab,  os2Header.ne_nrestab - os2Header.Offset, os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
+            ReadTable("Entry Table",            tableOffset: os2Header.ne_enttab,  os2Header.ne_nrestab - (int) os2Header.Offset, os2Header, ref index, ref lastSectionEnd, tableBounds, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
 
             //Non-Resident Name Table is last, so its length must be computed using a count, rather than
             //the position of the table after it
@@ -456,7 +456,7 @@ namespace PESpy
                 return;
             }
 
-            var start = os2Header.Offset + tableOffset;
+            var start = (int) os2Header.Offset + tableOffset;
             var length = nextTableOffset - tableOffset;
             var end = start + length;
 
@@ -525,13 +525,13 @@ namespace PESpy
             return NullSymbolAccessor.Instance;
         }
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public unsafe void GetRawPointer(out byte* pointer, out int length)
+        public unsafe void GetRawPointer(out byte* pointer, out long length)
         {
             pointer = mmf.Address;
-            length = (int) mmf.Length;
+            length = mmf.Length;
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

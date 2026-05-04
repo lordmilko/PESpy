@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex Imports => table.GetImports(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public ImportScopeRow? ParentRow

@@ -21,7 +21,7 @@ namespace PESpy
 
         public T[] Entries { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         public ImageBaseRelocation(int offset, int virtualAddress, int sizeOfBlock, T[] entries)
         {

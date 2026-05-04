@@ -150,7 +150,7 @@ namespace PESpy.View.Builder
                     //when loaded into memory, which is not the same as the size on disk. Overlay data does not get loaded into memory, which also means
                     //this data might not exist when reading a loaded image
                     var overlayStart = lastSectionEnd;
-                    var fileEnd = byteViewProvider.FileOrSectionLength;
+                    var fileEnd = (int) byteViewProvider.FileOrSectionLength;
 
                     TryCreateOMFRegion(peFile, ref results);
 
@@ -202,7 +202,7 @@ namespace PESpy.View.Builder
             if (data == null)
                 return;
 
-            CreateOMFRegion(data.Offset, data.LfoBase, data.Signature);
+            CreateOMFRegion((int) data.Offset, data.LfoBase, data.Signature);
         }
 
         private void CreateOMFRegion(int start, int sizeOfData, CodeViewSig sig)

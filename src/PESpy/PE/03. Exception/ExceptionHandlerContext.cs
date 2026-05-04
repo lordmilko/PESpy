@@ -346,14 +346,14 @@ namespace PESpy
                     {
                         var dataChunk = new MemoryChunk(block, unwindInfoRelativeOffset + bytesUsed);
 
-                        var physicalOffset = unwindInfoRelativeOffset + block.RemoteStartOffset;
+                        var physicalOffset = unwindInfoRelativeOffset + (int) block.RemoteStartOffset;
 
                         UnwindInfo.WriteUnwindInfo(
                             viewWriter,
                             dataChunk,
                             pViewByte,
                             physicalOffset,
-                            targetAddress,
+                            (int) targetAddress,
                             unwindInfoRVA,
                             fieldOffset: bytesUsed,
                             exceptionHandler,
@@ -491,8 +491,8 @@ namespace PESpy
                             viewWriter,
                             dataChunk,
                             pViewByte,
-                            unwindInfoRelativeOffset + block.RemoteStartOffset,
-                            targetAddress,
+                            unwindInfoRelativeOffset + (int) block.RemoteStartOffset,
+                            (int) targetAddress,
                             unwindInfoRVA,
                             fieldOffset: bytesUsed,
                             exceptionHandler,
@@ -750,7 +750,7 @@ namespace PESpy
             if (exceptionDataLength == 8)
                 return true; //Not enough room for random entities pointed to by the FuncInfo
 
-            var rvaToFuncInfoOffset = (int) (pExceptionData - block.LocalPointer) + block.RemoteStartOffset;
+            var rvaToFuncInfoOffset = (int) (pExceptionData - block.LocalPointer) + (int) block.RemoteStartOffset;
             var dataAfterRvaOffset = rvaToFuncInfoOffset + sizeof(int);
 
             var funcInfo = new FuncInfo(valueChunk);

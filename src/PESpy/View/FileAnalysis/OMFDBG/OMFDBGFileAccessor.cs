@@ -36,7 +36,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
+        internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
             throw new NotImplementedException();
         }
@@ -46,7 +46,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
+        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
             throw new NotImplementedException();
         }

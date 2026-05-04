@@ -317,7 +317,7 @@ namespace PESpy
         public ImageDataDirectory NullDirectory => NumberOfRvaAndSizes >= 16 ? new ImageDataDirectory(chunk.Slice(NullDirectoryOffset)) : default;
         #endregion
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int OffsetOfChecksum =
             sizeof(short) + // Magic

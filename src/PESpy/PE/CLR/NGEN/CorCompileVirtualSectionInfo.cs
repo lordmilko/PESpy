@@ -20,7 +20,7 @@
 
         public VirtualSectionData SectionType => chunk.PeekUInt32(SectionTypeOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //VirtualAddress

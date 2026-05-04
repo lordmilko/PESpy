@@ -32,12 +32,12 @@
         /// The meaning of this value depends on the <see cref="ViewMode"/> that was specified when the view was created.
         /// If this is a loaded image, this will be the RVA. Otherwise, this will be the physical offset.
         /// </summary>
-        int Offset { get; }
+        long Offset { get; }
 
         /// <summary>
         /// Gets the number of bytes that this value consumes.
         /// </summary>
-        int Size { get; }
+        long Size { get; }
 
         /// <summary>
         /// Gets the kind of value, structure or region from the <see cref="IFile"/> that this view represents.
@@ -66,9 +66,9 @@
     {
         //Split all elements of this value whose end address is greater than "cutoff".
         //newBaseOffset may be the same as cutoff, or if the second half is in a completely different page, newBaseOffset may be something wildly different
-        (IView first, IView second) Split(int newBaseOffset, int cutoff);
+        (IView first, IView second) Split(long newBaseOffset, long cutoff);
 
-        IView WithOffset(int newOffset);
+        IView WithOffset(long newOffset);
     }
 
     public interface ISplitView

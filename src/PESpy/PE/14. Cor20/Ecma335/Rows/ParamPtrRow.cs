@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public ParamIndex Param => table.GetParam(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public ParamRow ParamRow => table.CompressedModelHeap.ParamTable[Param];

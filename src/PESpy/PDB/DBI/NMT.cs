@@ -50,7 +50,7 @@ namespace PESpy.PDB
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             VHdr.StructSize + //vhdr
@@ -159,7 +159,7 @@ namespace PESpy.PDB
 
             //The same string could be pointed to by multiple offset items
 
-            var seenAddresses = new HashSet<int>();
+            var seenAddresses = new HashSet<long>();
 
             foreach (var str in Strings.OrderBy(v => v.Offset))
             {

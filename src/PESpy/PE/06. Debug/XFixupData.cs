@@ -22,7 +22,7 @@ namespace PESpy
 
         public int RvaTarget => chunk.PeekInt32(RvaTargetOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) +

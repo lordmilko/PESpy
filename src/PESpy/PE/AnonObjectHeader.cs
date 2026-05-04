@@ -58,7 +58,7 @@ namespace PESpy
         /// </summary>
         public int SizeOfData => chunk.PeekInt32(SizeOfDataOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //Sig1

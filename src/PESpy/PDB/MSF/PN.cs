@@ -20,9 +20,11 @@ namespace PESpy.PDB
             this.value = value;
         }
 
-        public static implicit operator int(PN value) => (int) value.value;
+        public static implicit operator uint(PN value) => value.value;
 
-        public static implicit operator PN(int value) => new PN((uint) value);
+        public static explicit operator int(PN value) => (int) value.value; //We need uint to be implicit to that math operations convert to long and don't overflow in large PDBs
+
+        public static implicit operator PN(uint value) => new PN(value);
 
         public override bool Equals(object obj)
         {

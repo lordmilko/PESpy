@@ -36,7 +36,7 @@
             return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + KickoffMethodOffset, isBigMethodIndex);
         }
 
-        public int GetRowOffset(StateMachineMethodIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(StateMachineMethodIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public StateMachineMethodRow this[StateMachineMethodIndex index] => GetRowSafe((int) index);
 

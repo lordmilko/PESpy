@@ -32,7 +32,7 @@
             return tableChunk.PeekInt32(rowOffset + OSMinorVersionOffset);
         }
 
-        public int GetRowOffset(AssemblyOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(AssemblyOSIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public AssemblyOSRow this[AssemblyOSIndex index] => GetRowSafe((int) index);
 

@@ -55,15 +55,15 @@ namespace PESpy
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
+        long IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
 
-        public VA(long listedAddress, int actualOffset, T value)
+        public VA(long listedAddress, long actualOffset, T value)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
             ListedAddress = listedAddress;
-            ActualOffset = actualOffset;
+            ActualOffset = (int) actualOffset;
             this.value = value;
             IsValid = true;
         }

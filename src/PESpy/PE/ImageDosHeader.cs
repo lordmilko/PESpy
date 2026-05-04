@@ -149,7 +149,7 @@ namespace PESpy
         /// </summary>
         public int FileAddressOfNewExeHeader => chunk.PeekInt32(FileAddressOfNewExeHeaderOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) +     //Magic

@@ -75,7 +75,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.LE;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
@@ -91,7 +91,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {

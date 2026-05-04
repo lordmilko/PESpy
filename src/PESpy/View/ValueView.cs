@@ -17,7 +17,7 @@ namespace PESpy.View
     public class ValueView<TValue> : IValueView, IViewInternal, ISplittableView
     {
         /// <inheritdoc />
-        public int Offset { get; }
+        public long Offset { get; }
 
         public FixedUtf8String Name { get; }
 
@@ -29,7 +29,7 @@ namespace PESpy.View
         object IValueView.Value => Value!;
 
         /// <inheritdoc />
-        public int Size { get; private set; }
+        public long Size { get; private set; }
 
         public ViewKind Kind => (ViewKind) (_kind & 0x7FFF);
 
@@ -49,7 +49,7 @@ namespace PESpy.View
         private ushort _kind;
         private FileAccessor _fileAccessor;
 
-        public ValueView(int offset, TValue value, int size, ViewKind kind, FileAccessor fileAccessor, FixedUtf8String name = default)
+        public ValueView(long offset, TValue value, long size, ViewKind kind, FileAccessor fileAccessor, FixedUtf8String name = default)
         {
             Debug.Assert(size >= 0);
             Debug.Assert(kind != 0);
@@ -70,10 +70,10 @@ namespace PESpy.View
 
         public void Accept(ViewVisitor visitor) => visitor.VisitValue(this);
 
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             SplitValueView<TValue> first;
@@ -97,7 +97,7 @@ namespace PESpy.View
             return (first, second);
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             if (Offset == newOffset)
                 return this;
@@ -135,7 +135,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitValueView(int offset, TValue value, int size, ViewKind viewKind, FileAccessor fileAccessor, FixedUtf8String name) : base(offset, value, size, viewKind, fileAccessor, name)
+        public SplitValueView(long offset, TValue value, long size, ViewKind viewKind, FileAccessor fileAccessor, FixedUtf8String name) : base(offset, value, size, viewKind, fileAccessor, name)
         {
         }
     }

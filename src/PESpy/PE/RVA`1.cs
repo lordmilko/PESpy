@@ -72,9 +72,9 @@ namespace PESpy
         public T? ValueOrDefault => value;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
+        long IValue.Offset => ActualOffset; //This is the position in the FileReader that the value came from
 
-        public RVA(int listedOffset, int actualOffset, T value)
+        public RVA(int listedOffset, long actualOffset, T value)
         {
             //Note: in unoptimized code it may show that a boxing occurs here for value types. I have tried different variations of "is object", "is null",
             //"is not", etc. They all box. But in optimized code this check will be removed
@@ -82,7 +82,7 @@ namespace PESpy
                 throw new ArgumentNullException(nameof(value));
 
             ListedOffset = listedOffset;
-            ActualOffset = actualOffset;
+            ActualOffset = (int) actualOffset; //We don't have RVAs in files over 4gb
             this.value = value;
             IsValid = true;
         }

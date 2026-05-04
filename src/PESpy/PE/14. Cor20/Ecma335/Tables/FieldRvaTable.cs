@@ -50,7 +50,7 @@
             return (FieldRvaIndex) (foundRowNumber + 1);
         }
 
-        public int GetRowOffset(FieldRvaIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(FieldRvaIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public FieldRvaRow this[FieldRvaIndex index] => GetRowSafe((int) index);
 

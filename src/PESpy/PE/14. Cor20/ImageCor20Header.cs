@@ -39,7 +39,7 @@ namespace PESpy
         public ImageDataDirectory ExportAddressTableJumps => new ImageDataDirectory(chunk.Slice(ExportAddressTableJumpsOffset));
         public ImageDataDirectory ManagedNativeHeader => new ImageDataDirectory(chunk.Slice(64));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) +   //ByteCount

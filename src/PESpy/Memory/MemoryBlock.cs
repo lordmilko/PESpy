@@ -14,13 +14,13 @@ namespace PESpy
 
         //The offset from the base address in the remote target that this block encapsulates
         //In a section, is either the VirtualAddress or PointerToRawData of the offset
-        internal int RemoteStartOffset { get; set; }
+        internal long RemoteStartOffset { get; set; }
 
         internal int RemoteEndOffset { get; set; }
 
         //RemoteStartOffset and RemoteEndOffset are often needed in Demand(),
         //but we don't currently use Length anywhere performance critical, so we make this a computed property
-        public virtual int Length => RemoteEndOffset - RemoteStartOffset;
+        public virtual long Length => RemoteEndOffset - RemoteStartOffset;
 
         internal bool Is32Bit { get; set; }
 
@@ -73,7 +73,7 @@ namespace PESpy
             hasChanges = true;
         }
 
-        public virtual int GetAbsoluteOffset(int blockOffset) => RemoteStartOffset + blockOffset;
+        public virtual long GetAbsoluteOffset(long blockOffset) => RemoteStartOffset + blockOffset;
 
         public void Dispose() => Dispose(true);
 

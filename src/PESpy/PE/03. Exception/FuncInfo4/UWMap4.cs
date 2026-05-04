@@ -27,7 +27,7 @@ namespace PESpy
 
         private readonly byte* _pData; //Enumerator needs to know how many bytes it took to store NumEntries
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -122,11 +122,11 @@ namespace PESpy
         {
             private readonly int _numEntries;
             private readonly byte* _pStartData;
-            private readonly int _parentOffset;
+            private readonly long _parentOffset;
             private byte* _pEntries;
             private int _index;
 
-            internal Enumerator(int numEntries, int offset, byte* pData)
+            internal Enumerator(int numEntries, long offset, byte* pData)
             {
                 _numEntries = numEntries;
                 _pStartData = pData;

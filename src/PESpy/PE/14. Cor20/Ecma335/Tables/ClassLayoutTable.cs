@@ -56,7 +56,7 @@
             ));
         }
 
-        public int GetRowOffset(ClassLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(ClassLayoutIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public ClassLayoutRow this[ClassLayoutIndex index] => GetRowSafe((int) index);
 

@@ -14,7 +14,7 @@ namespace PESpy.View.Builder
 
             try
             {
-                var length = byteViewProvider.FileOrSectionLength;
+                var length = (int) byteViewProvider.FileOrSectionLength;
 
                 //Temporarily pretend we're past all directories while trying to construct section regions
                 nextDataDirectoryIndex = discoveredDataDirectories.Length;
@@ -39,7 +39,7 @@ namespace PESpy.View.Builder
 
                             var size = section.SizeOfRawData;
 
-                            start += l.FileHeader.Offset;
+                            start += (int) l.FileHeader.Offset;
 
                             if (i == 0)
                             {
@@ -86,7 +86,7 @@ namespace PESpy.View.Builder
                             lastSectionEnd = start + size;
                         }
 
-                        var objEnd = l.FileHeader.Offset + l.ArchiveHeader.Size;
+                        var objEnd = (int) l.FileHeader.Offset + l.ArchiveHeader.Size;
 
                         if (objEnd > lastSectionEnd && lastSectionEnd != -1)
                         {

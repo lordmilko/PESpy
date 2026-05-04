@@ -252,7 +252,7 @@ namespace PESpy
             }
         }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int StructSize =
             sizeof(short) + //ProdId

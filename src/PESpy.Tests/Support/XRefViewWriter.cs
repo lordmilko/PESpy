@@ -10,7 +10,7 @@ namespace PESpy.Tests
         public struct XRef
         {
             public int FieldOffset;
-            public int TargetValue;
+            public long TargetValue;
         }
 
         public List<XRef> XRefs { get; } = new List<XRef>();
@@ -19,17 +19,17 @@ namespace PESpy.Tests
         {
         }
 
-        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
+        public override void WriteOffsetXRef(long structOffset, int fieldOffset, long targetOffset)
         {
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetOffset });
         }
 
-        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        public override void WriteRVAXRef(long structOffset, int fieldOffset, int targetRVA)
         {
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }
 
-        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetRVA)
         {
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }

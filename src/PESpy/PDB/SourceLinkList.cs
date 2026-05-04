@@ -63,7 +63,7 @@ namespace PESpy
 
                         var r = pdbFile.TryGetStreamChunk("sourcelink", out var chunk);
                         Debug.Assert(r);
-                        return chunk.PeekUtf8FixedLength(0, chunk.Remaining);
+                        return chunk.PeekUtf8FixedLength(0, (int) chunk.Remaining);
                     }
 
                     default:
@@ -80,7 +80,7 @@ namespace PESpy
 
                         var r = pdbFile.TryGetStreamChunk(name, out var chunk);
                         Debug.Assert(false);
-                        return chunk.PeekUtf8FixedLength(0, chunk.Remaining);
+                        return chunk.PeekUtf8FixedLength(0, (int) chunk.Remaining);
                     }
                 }
             }
@@ -124,7 +124,7 @@ namespace PESpy
 
                         var r = pdbFile.TryGetStreamChunk("sourcelink", out var chunk);
                         Debug.Assert(r);
-                        Current = chunk.PeekUtf8FixedLength(0, chunk.Remaining);
+                        Current = chunk.PeekUtf8FixedLength(0, (int) chunk.Remaining);
                         index++;
                         return true;
                     }
@@ -146,7 +146,7 @@ namespace PESpy
 
                         var r = pdbFile.TryGetStreamChunk(name, out var chunk);
                         Debug.Assert(r);
-                        Current = chunk.PeekUtf8FixedLength(0, chunk.Remaining);
+                        Current = chunk.PeekUtf8FixedLength(0, (int) chunk.Remaining);
                         index++;
                         return true;
                     }

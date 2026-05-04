@@ -21,7 +21,7 @@ namespace PESpy
 
         public uint dispFrame { get; } //Not an RVA to anything
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private readonly byte* _pBytes;
 

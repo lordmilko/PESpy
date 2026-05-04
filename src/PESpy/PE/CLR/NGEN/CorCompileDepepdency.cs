@@ -33,7 +33,7 @@ namespace PESpy
 
         public bool IsHardBound => signNativeImage != INVALID_NGEN_SIGNATURE;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //dwAssemblyRef

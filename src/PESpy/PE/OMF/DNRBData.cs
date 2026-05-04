@@ -30,10 +30,10 @@ namespace PESpy
         //Section 4
         public RawValue<loe[]> SourceLines { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal DNRBData(
-            int offset,
+            long offset,
             CodeViewSig sig,
             int length,
             ushort version,
@@ -67,7 +67,7 @@ namespace PESpy
             writer.WriteGlobal(Symbols.Offset, Symbols.Value, SecOffset[4] - SecOffset[3], ViewKind.DNRB_Symbols);
 
             var sourceLinesLength = Length - (SecOffset[4] - Offset) - 8; //There's an 8 byte CVINFO at the end
-            writer.WriteGlobal(SourceLines.Offset, SourceLines.Value, sourceLinesLength, ViewKind.DNRB_SourceLines);
+            writer.WriteGlobal(SourceLines.Offset, SourceLines.Value, (int) sourceLinesLength, ViewKind.DNRB_SourceLines);
 
             var cvInfoOffset = (Offset + Length) - 8;
             writer.WriteGlobalField(cvInfoOffset, Signature, sizeof(int), ViewKind.DNRBSignature);

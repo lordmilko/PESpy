@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
 
         public CodedIndex Constraint => table.GetConstraint(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public GenericParamRow OwnerRow => table.CompressedModelHeap.GenericParamTable[Owner];

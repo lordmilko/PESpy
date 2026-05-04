@@ -84,7 +84,7 @@ namespace PESpy.LIB
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly object c13SymbolMemoryLock = new object();
         private readonly HashSet<int> c13RegisteredSymbolMemory = new HashSet<int>();
@@ -103,11 +103,11 @@ namespace PESpy.LIB
             FileName = fileName;
 
             //May not be present, e.g. you can have *.res files that don't have any symbol
-            if (symbolNameMap.TryGetValue(Offset, out var symbolName))
+            if (symbolNameMap.TryGetValue((int) Offset, out var symbolName))
                 SymbolName = symbolName;
         }
 
-        public unsafe void CopyTo(Span<byte> span) => new Span<byte>(chunk.Pointer, chunk.Remaining).CopyTo(span);
+        public unsafe void CopyTo(Span<byte> span) => new Span<byte>(chunk.Pointer, (int) chunk.Remaining).CopyTo(span);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
@@ -134,7 +134,7 @@ namespace PESpy.LIB
         {
             lock (c13SymbolMemoryLock)
             {
-                if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
+                if (c13RegisteredSymbolMemory.Add((int) dataChunk.AbsoluteOffset))
                 {
                     var codeViewAccessor = new LongImportLibraryMemberSymbolAccessor(this, false);
 
@@ -150,7 +150,7 @@ namespace PESpy.LIB
 
         public void SaveAs(string path)
         {
-            File.WriteAllBytes(path, chunk.PeekNativeSpan<byte>(ImageArchiveMemberHeader.StructSize, chunk.Remaining - ImageArchiveMemberHeader.StructSize).ToArray());
+            File.WriteAllBytes(path, chunk.PeekNativeSpan<byte>(ImageArchiveMemberHeader.StructSize, (int) chunk.Remaining - ImageArchiveMemberHeader.StructSize).ToArray());
         }
 
         public override string ToString()

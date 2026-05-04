@@ -85,7 +85,7 @@ namespace PESpy
 
         public byte[] BundleSignature => bundleHeaderPlaceholder;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public const int StructSize =
             32 + //BundleHeaderPlaceholder

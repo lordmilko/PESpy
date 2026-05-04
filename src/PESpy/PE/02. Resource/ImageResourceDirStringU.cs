@@ -16,7 +16,7 @@ namespace PESpy
 
         public FixedUtf16String NameString => chunk.PeekUtf16FixedLength(NameStringOffset, Length);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(short) + //Length

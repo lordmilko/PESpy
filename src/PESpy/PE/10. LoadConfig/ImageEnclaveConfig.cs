@@ -67,7 +67,7 @@ namespace PESpy
         public int NumberOfThreads => chunk.PeekInt32(NumberOfThreadsOffset);
         public int EnclaveFlags => chunk.PeekInt32(EnclaveFlagsOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
             sizeof(int) + //Size

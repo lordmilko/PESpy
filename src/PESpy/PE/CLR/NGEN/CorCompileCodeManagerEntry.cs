@@ -36,7 +36,7 @@
 
         public int ColdUntrainedMethodOffset => chunk.PeekInt32(ColdUntrainedMethodOffsetOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

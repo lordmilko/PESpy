@@ -48,19 +48,19 @@ namespace PESpy.View
         private MemoryMappedFile _mmf;
         private MemoryMappedViewAccessor _mma;
 
-        public readonly int StartAddress;
-        public readonly int EndAddress;
+        public readonly long StartAddress;
+        public readonly long EndAddress;
         public readonly SectionAccessorKind Kind;
         public readonly int SectionIndex;
         public readonly string Name;
 
-        public int Length => EndAddress - StartAddress;
+        public int Length => (int) (EndAddress - StartAddress);
 
         public Span<ViewByte> Bytes => new Span<ViewByte>(pViewBytes, Length);
 
         public SectionAccessor(
-            int startAddress,
-            int endAddress,
+            long startAddress,
+            long endAddress,
             SectionAccessorKind kind,
             int sectionIndex,
             string name,
@@ -94,7 +94,7 @@ namespace PESpy.View
         }
 
         //Special ctor in the case a section is empty
-        public SectionAccessor(SectionAccessorKind kind, int sectionIndex, int startAddress, string name)
+        public SectionAccessor(SectionAccessorKind kind, int sectionIndex, long startAddress, string name)
         {
             Kind = kind;
             SectionIndex = sectionIndex;

@@ -36,7 +36,7 @@ namespace PESpy.PDB
 
         public int cbFileInfo => chunk.PeekInt32(cbFileInfoOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         int IDBIHdr.StructSize => StructSize;
 

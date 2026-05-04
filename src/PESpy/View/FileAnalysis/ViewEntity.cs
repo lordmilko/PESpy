@@ -13,7 +13,7 @@ namespace PESpy.View
     {
         public ViewByte* ViewByte;
         public int SectionAccessorIndex;
-        public int TargetAddress;
+        public long TargetAddress;
         public FixedUtf8String Name
         {
             get
@@ -49,8 +49,8 @@ namespace PESpy.View
             int sectionAccessorOffset,
             int sectionAccessorLength,
             IntPtr pBytes,
-            Dictionary<int, ViewInfo> infoMap,
-            Dictionary<int, int> largeAddresses,
+            Dictionary<long, ViewInfo> infoMap,
+            Dictionary<long, int> largeAddresses,
             bool measureOnly = false)
             : this(
                   fileAccessor,
@@ -73,13 +73,13 @@ namespace PESpy.View
             int sectionAccessorIndex,
             ISymbolAccessor symbolAccessor,
             in SectionAccessor sectionAccessor,
-            int targetAddress,
+            long targetAddress,
             ViewByte* pViewByte,
             ViewByte* pStart,
             ViewByte* pEnd,
             IntPtr pBytes,
-            Dictionary<int, ViewInfo> infoMap,
-            Dictionary<int, int> largeAddresses,
+            Dictionary<long, ViewInfo> infoMap,
+            Dictionary<long, int> largeAddresses,
             bool measureOnly = false)
         {
             _fileAccessor = fileAccessor;

@@ -106,7 +106,7 @@ namespace PESpy.View
             throw new InvalidOperationException($"Failed to find a child of kind '{kind}'");
         }
 
-        public static bool Contains(this IView view, int offset) =>
+        public static bool Contains(this IView view, long offset) =>
             offset >= view.Offset && offset < view.Offset + view.Size;
     }
 }

@@ -39,7 +39,7 @@ namespace PESpy.Ecma335
         /// </summary>
         public int[] RowCounts { get; init; } //This is the _compressed_ row counts!
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //Reserved1

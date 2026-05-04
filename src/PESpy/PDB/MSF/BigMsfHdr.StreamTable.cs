@@ -38,7 +38,7 @@ namespace PESpy.PDB
             //This is not part of the on-disk data. Do not add/remove items to this list directly, use the appropriate APIs on StreamTable
             public SI[] StreamInfos { get; }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             public int StructSize
             {

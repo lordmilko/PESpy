@@ -10,7 +10,7 @@ namespace PESpy
         public int age => chunk.PeekInt32(16);
         public NativeSpan<byte> rgbPad => chunk.PeekNativeSpan<byte>(20, 44);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //ver

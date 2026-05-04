@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
         /// </summary>
         private int Size { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

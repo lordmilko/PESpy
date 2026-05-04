@@ -27,7 +27,7 @@ namespace PESpy
             FixedStructSize +
             Name.Length + 1; //Name
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

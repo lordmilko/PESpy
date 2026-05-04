@@ -28,7 +28,7 @@
             return (MethodDefIndex) tableChunk.PeekEcmaIndex(rowOffset + MethodOffset, isBigMethodIndex);
         }
 
-        public int GetRowOffset(MethodPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(MethodPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public MethodPtrRow this[MethodPtrIndex index] => GetRowSafe((int) index);
 

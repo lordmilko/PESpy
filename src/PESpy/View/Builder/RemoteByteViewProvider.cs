@@ -8,18 +8,18 @@ namespace PESpy.View.Builder
         private PEFile peFile;
 
         //This property should not be accessed when we're in virtual mode
-        public override int FileOrSectionLength => throw new NotSupportedException();
+        public override long FileOrSectionLength => throw new NotSupportedException();
 
         public RemoteByteViewProvider(PEFile peFile, FileAccessor fileAccessor) : base(fileAccessor, isLibFile: false)
         {
             this.peFile = peFile;
         }
 
-        protected override unsafe (IntPtr pBytes, int memoryLength, int relativeOffset) AcquireMemory(int targetAddress)
+        protected override unsafe (IntPtr pBytes, long memoryLength, int relativeOffset) AcquireMemory(long targetAddress)
         {
             //Lookup the section associated with this RVA
 
-            if (!peFile.TryGetValueChunkFromSectionOrHeader(targetAddress, out var chunk))
+            if (!peFile.TryGetValueChunkFromSectionOrHeader((int) targetAddress, out var chunk))
                 throw new NotImplementedException();
 
             return ((IntPtr) chunk.block.LocalPointer, chunk.block.Length, chunk.RelativeOffset);

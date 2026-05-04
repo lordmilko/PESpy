@@ -22,7 +22,7 @@ namespace PESpy
 
         public int GetOffsetCount(ISECT seg) => OffsetCounts[seg - 1];
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private int StructSize
         {
@@ -43,7 +43,7 @@ namespace PESpy
         }
 
         internal AddrHash32v8(
-            int offset,
+            long offset,
             ushort cSeg,
             ushort alignment,
             NativeSpan<int> segmentTable,

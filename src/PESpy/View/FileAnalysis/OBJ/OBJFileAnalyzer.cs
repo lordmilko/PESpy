@@ -43,7 +43,7 @@ namespace PESpy.View
                 throw new NotImplementedException(); //Don't call MarkOBJRegions; layout is different
             else
             {
-                MarkOBJRegions(0, _objFile.Length, _objFile, _fileAccessor, _extraRegions);
+                MarkOBJRegions(0, (int) _objFile.Length, _objFile, _fileAccessor, _extraRegions);
             }
         }
 
@@ -84,7 +84,7 @@ namespace PESpy.View
 
                 var size = section.SizeOfRawData;
 
-                start += objFile.FileHeader.Offset;
+                start += (int) objFile.FileHeader.Offset;
 
                 //You can have data in between sections
                 MarkInterSectionData(lastSectionEnd, start, canHaveRelocations: false, fileAccessor, extraRegions);

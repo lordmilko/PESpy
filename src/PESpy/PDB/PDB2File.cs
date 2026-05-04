@@ -28,7 +28,7 @@ namespace PESpy
 
         protected internal override int PageSize => msfHeader.PageSize;
 
-        protected internal override int ActiveFpmPageNo => msfHeader.FpmPageNo;
+        protected internal override int ActiveFpmPageNo => (int) msfHeader.FpmPageNo;
 
         protected internal override int NumPages => msfHeader.NumPages;
 

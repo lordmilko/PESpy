@@ -196,7 +196,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize(bool is32Bit) =>
             (is32Bit ? 4 : 8) + //Symbol

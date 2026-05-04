@@ -26,7 +26,7 @@ namespace PESpy.PDB
 
         public CV_Column_t[] columns { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int FixedStructSize =
             sizeof(int) + //offFile

@@ -30,7 +30,7 @@ namespace PESpy
 
         public IMAGE_SCN_ALIGN Characteristics => (IMAGE_SCN_ALIGN) chunk.PeekUInt32(CharacteristicsOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
             (is32Bit

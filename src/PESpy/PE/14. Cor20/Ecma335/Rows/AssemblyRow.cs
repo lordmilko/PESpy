@@ -29,7 +29,7 @@ namespace PESpy.Ecma335
 
         public AssemblyName AssemblyName => CompressedModelHeap.GetAssemblyName(Name, Version, Culture, PublicKey, HashAlgId, Flags);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly AssemblyTable table;
 

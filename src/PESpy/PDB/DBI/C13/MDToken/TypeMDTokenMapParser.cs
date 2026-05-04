@@ -4,7 +4,7 @@ namespace PESpy.PDB
 {
     internal sealed class TypeMDTokenMapParser : MDTokenMapParser<TypeMDTokenMap, TypeMDTokenMap.Entry>
     {
-        protected override unsafe TypeMDTokenMap.Entry CreateSmallEntry(int structOffset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
+        protected override unsafe TypeMDTokenMap.Entry CreateSmallEntry(long structOffset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig)
         {
             return new TypeMDTokenMap.Entry(
                 structOffset,
@@ -13,7 +13,7 @@ namespace PESpy.PDB
             );
         }
 
-        protected override unsafe TypeMDTokenMap.Entry CreateLargeEntry(int structOffset, in MemoryChunk blobChunk, RawMDTokenMapEntry rawEntry, int blobLength)
+        protected override unsafe TypeMDTokenMap.Entry CreateLargeEntry(long structOffset, in MemoryChunk blobChunk, RawMDTokenMapEntry rawEntry, int blobLength)
         {
             return new TypeMDTokenMap.Entry(
                 structOffset,
@@ -23,7 +23,7 @@ namespace PESpy.PDB
             );
         }
 
-        protected override TypeMDTokenMap CreateMap(int structOffset, int numEntries, TypeMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
+        protected override TypeMDTokenMap CreateMap(long structOffset, int numEntries, TypeMDTokenMap.Entry[] entries, NativeSpan<byte> dataBlob)
         {
             return new TypeMDTokenMap(structOffset, numEntries, entries, dataBlob);
         }

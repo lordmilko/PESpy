@@ -59,7 +59,7 @@ namespace PESpy.PDB
         CV_typ_t IHDR.tiMac => tiMac;
         int IHDR.StructSize => StructSize;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //vers

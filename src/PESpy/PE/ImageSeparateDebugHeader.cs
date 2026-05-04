@@ -49,7 +49,7 @@ namespace PESpy
 
         public NativeSpan<int> Reserved => chunk.PeekNativeSpan<int>(ReservedOffset, 2);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(short) + //Signature

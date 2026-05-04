@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
 
         public CodedIndex EventType => table.GetEventType(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object EventTypeRow => EventType.GetRow(table.CompressedModelHeap);

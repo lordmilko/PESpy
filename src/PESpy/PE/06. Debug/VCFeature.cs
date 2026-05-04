@@ -28,7 +28,7 @@ namespace PESpy
 
         public int GuardN => chunk.PeekInt32(GuardNOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //PreVC11

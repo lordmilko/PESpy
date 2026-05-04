@@ -16,7 +16,7 @@ namespace PESpy
 
         public NativeSpan<Entry> Entries => chunk.PeekNativeSpan<Entry>(EntriesOffset, (SizeOfBlock - 8) / 2);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

@@ -33,7 +33,7 @@ namespace PESpy.PDB
 
         public SI_PERSIST StreamTableSizeInfo { get; } //siSt
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         //Unlike BIGMSF_HDR where mpspnpnSt lists the location of the stream table pages, in MSF_HDR mpspnpnSt lists
         //the stream table pages immediately; there is no indirection
@@ -81,7 +81,7 @@ namespace PESpy.PDB
                     break;
 
                 case 2:
-                    structWriter.WriteField("pnFpm", FpmPageNoOffset, (ushort) FpmPageNo);
+                    structWriter.WriteField("pnFpm", FpmPageNoOffset, (ushort) (uint) FpmPageNo);
                     break;
 
                 case 3:

@@ -13,6 +13,7 @@
 		<DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);MONITOR_NODE_CACHE</DefineConstants>
 		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
 		<AnalysisLevel>none</AnalysisLevel>
+    <CheckForOverflowUnderflow Condition="'$(Configuration)' == 'Debug'">true</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <ItemGroup>

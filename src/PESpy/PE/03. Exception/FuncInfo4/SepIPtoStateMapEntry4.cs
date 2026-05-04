@@ -19,14 +19,14 @@ namespace PESpy
         /// </summary>
         public RVA<IPtoStateMap4> dispOfIPMap { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         //Even though the values are contained in a compressed stream, Int32's are not compressed
         internal const int StructSize =
             sizeof(int) +
             sizeof(int);
 
-        internal unsafe SepIPtoStateMapEntry4(int offset, PEFile peFile, ref byte* pData, int functionAddress)
+        internal unsafe SepIPtoStateMapEntry4(long offset, PEFile peFile, ref byte* pData, int functionAddress)
         {
             Offset = offset;
             addrStartRVA = FuncInfo4.ReadInt(ref pData);

@@ -20,7 +20,7 @@ namespace PESpy
 
         public NativeSpan<ushort> lineNbr => chunk.PeekNativeSpan<ushort>(lineNbrOffset, cLnOff);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private int StructSize =>
             sizeof(short) + //Seg

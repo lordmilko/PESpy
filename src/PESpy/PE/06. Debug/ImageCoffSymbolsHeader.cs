@@ -49,7 +49,7 @@ namespace PESpy
         public int RvaToFirstByteOfData => chunk.PeekInt32(RvaToFirstByteOfDataOffset);
         public int RvaToLastByteOfData => chunk.PeekInt32(RvaToLastByteOfDataOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(int) + //NumberOfSymbols

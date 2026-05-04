@@ -180,7 +180,7 @@ namespace PESpy.PDB
 
         #endregion
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //pmod

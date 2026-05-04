@@ -75,7 +75,7 @@ namespace PESpy.Ecma335
             return (ImplMapIndex) (foundRowNumber + 1);
         }
 
-        public int GetRowOffset(ImplMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(ImplMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public ImplMapRow this[ImplMapIndex index] => GetRowSafe((int) index);
 

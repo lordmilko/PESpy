@@ -25,7 +25,7 @@ namespace PESpy.PDB
         /// </summary>
         public TypOrEnumTypeList<CV_ItemId> referenceIds => new TypOrEnumTypeList<CV_ItemId>(chunk.PeekNativeSpan<CV_ItemId>(referenceIdsOffset, countOfCrossReferences));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //externalScope

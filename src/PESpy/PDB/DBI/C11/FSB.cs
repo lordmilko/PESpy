@@ -10,7 +10,7 @@
 
         public NativeSpan<int> baseSrcFile => chunk.PeekNativeSpan<int>(4, cFile);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(short) + //cFile

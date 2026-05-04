@@ -12,7 +12,7 @@ namespace PESpy
 
         public GsHandlerData GsHandlerData { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal unsafe ScopeTableAndGsHandlerData(in MemoryChunk chunk)
         {

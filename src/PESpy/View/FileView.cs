@@ -14,8 +14,8 @@ namespace PESpy.View
 
         public IFile File { get; }
 
-        public int Offset { get; }
-        public int Size { get; }
+        public long Offset { get; }
+        public long Size { get; }
 
         public ViewKind Kind { get; }
 
@@ -46,7 +46,21 @@ namespace PESpy.View
             ViewMode = viewMode;
             File = file;
             Offset = children.Length > 0 ? children[0].Offset : 0;
-            Size = children.Sum(r => r.Size);
+
+            if (file.Kind == FileKind.PE)
+            {
+                var peFile = (PEFile) file;
+
+                //If we're a loaded image, regardless of whether we're pretending to be physical or not,
+                //the loaded size of the image is all we have
+                if (peFile.IsLoadedImage)
+                    Size = peFile.OptionalHeader.SizeOfImage;
+                else
+                    Size = file.Length;
+            }
+            else
+                Size = file.Length;
+
             childProvider = new ViewChildProvider<IView>(children);
             this.viewWriter = viewWriter;
             Kind = kind;

@@ -38,9 +38,9 @@ namespace PESpy
                     //When reading the IAT, we know how many instances we need to read. It's only when reading FirstThunk/OriginalFirstThunk
                     //on import descriptors that we need to compute our bounds, which is until we hit a "null" thunk entry
                     if (chunk.Is32Bit)
-                        _count = new Span<int>(chunk.Pointer, chunk.Remaining / 4).IndexOf(0) + 1;
+                        _count = new Span<int>(chunk.Pointer, ((int) chunk.Remaining) / 4).IndexOf(0) + 1;
                     else
-                        _count = new Span<long>(chunk.Pointer, chunk.Remaining / 8).IndexOf(0) + 1;
+                        _count = new Span<long>(chunk.Pointer, ((int) chunk.Remaining) / 8).IndexOf(0) + 1;
                 }
 
                 return _count.Value;

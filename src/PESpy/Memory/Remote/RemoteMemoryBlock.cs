@@ -60,7 +60,7 @@ namespace PESpy
             Is32Bit = is32Bit;
 
             //RVA is either VirtualAddress or PointerToRawData
-            memoryAccessor.ReadVirtual(baseAddress + rva, (IntPtr) LocalPointer, Length);
+            memoryAccessor.ReadVirtual(baseAddress + rva, (IntPtr) LocalPointer, (int) Length);
         }
 
         public override void Dispose(bool disposing)

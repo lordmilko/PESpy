@@ -46,7 +46,7 @@ namespace PESpy.PDB
             }
         }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal unsafe NMTNI(in MemoryChunk chunk)
         {
@@ -125,7 +125,7 @@ namespace PESpy.PDB
             {
                 if (lastEnd != name.Offset)
                 {
-                    var gap = name.Offset - lastEnd;
+                    var gap = (int) (name.Offset - lastEnd);
 
                     s.WriteByteBlob(gap);
 

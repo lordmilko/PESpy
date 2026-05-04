@@ -48,7 +48,7 @@ namespace PESpy
         public Timestamp DbiTimeStamp => chunk.PeekUInt32(DbiTimeStampOffset);
         public int DbiSizeOfImage => chunk.PeekInt32(DbiSizeOfImageOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public const int StructSize =
             sizeof(int) + //Version

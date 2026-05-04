@@ -23,7 +23,7 @@ namespace PESpy
         public CorDebugInterfaceVersion DbiVersion => (CorDebugInterfaceVersion) chunk.PeekUInt32(DbiVersionOffset);
         public ulong ContinueStartupEvent => chunk.PeekPointer(ContinueStartupEventOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
             sizeof(int) + //Size

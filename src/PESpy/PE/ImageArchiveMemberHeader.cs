@@ -31,7 +31,7 @@ namespace PESpy
 
         public FixedAnsiString EndHeader => chunk.PeekAnsiFixedLength(EndHeaderOffset, 2);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             16 + //Name

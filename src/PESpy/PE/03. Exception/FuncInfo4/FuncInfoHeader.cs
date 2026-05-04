@@ -45,11 +45,11 @@ namespace PESpy
 
         public byte Value { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int StructSize = sizeof(byte);
 
-        public FuncInfoHeader(int offset, byte value)
+        public FuncInfoHeader(long offset, byte value)
         {
             Offset = offset;
             Value = value;

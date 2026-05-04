@@ -11,7 +11,7 @@ namespace PESpy.View
     /// </summary>
     public class LogicalRegionView : IViewInternal
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
         public string Name { get; }
 
@@ -28,12 +28,12 @@ namespace PESpy.View
         public IView? Parent { get; private set; }
         void IViewInternal.SetParent(IView parent) => Parent = parent;
 
-        public int Size { get; }
+        public long Size { get; }
 
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        internal LogicalRegionView(int offset, string name, IView[] children, ViewWriter viewWriter, ViewKind kind, int size)
+        internal LogicalRegionView(long offset, string name, IView[] children, ViewWriter viewWriter, ViewKind kind, long size)
         {
             Debug.Assert(size != 0);
             Debug.Assert(kind != 0);

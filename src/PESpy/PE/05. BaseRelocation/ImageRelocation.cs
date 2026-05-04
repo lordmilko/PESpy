@@ -33,7 +33,7 @@ namespace PESpy
             sizeof(int) + //SymbolTableIndex
             sizeof(short); //Type
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

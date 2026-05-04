@@ -6,15 +6,15 @@ namespace PESpy.View
     {
         public string Name;
         public ViewKind Kind;
-        public int Start;
-        public int End;
+        public long Start;
+        public long End;
         public int Depth;
         public bool IsGlobal;
         public int NestedFileDepth;
 
         public List<RegionBuilder> Children;
 
-        public int Length => End - Start;
+        public int Length => (int) (End - Start);
 
         public override string ToString()
         {

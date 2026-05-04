@@ -36,7 +36,7 @@
             return (AssemblyRefIndex) tableChunk.PeekEcmaIndex(rowOffset + AssemblyRefOffset, isBigAssemblyRefIndex);
         }
 
-        public int GetRowOffset(AssemblyRefProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(AssemblyRefProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public AssemblyRefProcessorRow this[AssemblyRefProcessorIndex index] => GetRowSafe((int) index);
 

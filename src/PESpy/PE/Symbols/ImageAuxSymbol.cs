@@ -269,7 +269,7 @@ namespace PESpy
         //IMAGE_AUX_SYMBOL has a number of unioned fields. The data that is in effect depends on the data in the parent IMAGE_SYMBOL
         public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(BytesOffset, StructSize);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize = 18;
 

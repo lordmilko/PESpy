@@ -12,19 +12,19 @@ namespace PESpy.View
 
     public class StructArrayFieldView : IViewInternal, IStructArrayFieldView, ISplittableView
     {
-        public int Offset => Value[0].Offset;
+        public long Offset => Value[0].Offset;
 
         public FixedUtf8String StructName => Value[0].Name;
 
-        private int size;
+        private long size;
 
-        public int Size
+        public long Size
         {
             get
             {
                 if (size == 0)
                 {
-                    var result = 0;
+                    long result = 0;
 
                     foreach (var value in Value)
                         result += value.Size;
@@ -75,10 +75,10 @@ namespace PESpy.View
 
         public IView this[int index] => Value[index];
 
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             var children = Value;
@@ -200,7 +200,7 @@ namespace PESpy.View
             throw new InvalidOperationException("Failed to find the child to split at. This can indicate that the children have the wrong offsets (e.g. multiple children erroneously share the same offset because their offset wasn't incremented as they were being built)");
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             throw new NotImplementedException();
         }

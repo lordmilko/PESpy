@@ -19,7 +19,7 @@ namespace PESpy
         // BYTE    FixupInfo[FixupInfoSize]
         public NativeSpan<byte> FixupInfo => chunk.PeekNativeSpan<byte>(16 + chunk.PointerSize, FixupInfoSize);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

@@ -74,7 +74,7 @@ namespace PESpy.Ecma335
         public CustomAttributeList GetCustomAttributes(ModuleIndex index) =>
             new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Module));
 
-        public int GetRowOffset(ModuleIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(ModuleIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public ModuleRow this[ModuleIndex index] => GetRowSafe((int) index);
 

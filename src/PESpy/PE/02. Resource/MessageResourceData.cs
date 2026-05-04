@@ -24,7 +24,7 @@ namespace PESpy
                     var rootRVA = chunk.AbsoluteOffset;
 
                     for (var i = 0; i < results.Length; i++)
-                        results[i] = new MessageResourceBlock(chunk.Slice(4 + (i * MessageResourceBlock.StructSize)), rootRVA);
+                        results[i] = new MessageResourceBlock(chunk.Slice(4 + (i * MessageResourceBlock.StructSize)), (int) rootRVA);
 
                     blocks = results;
                 }
@@ -33,7 +33,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

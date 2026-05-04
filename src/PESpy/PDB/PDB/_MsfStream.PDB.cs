@@ -22,7 +22,7 @@ namespace PESpy.PDB
             //The first entry can be 0 and that's normal
             public NativeSpan<PdbFeature> Features { get; }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             private readonly MemoryChunk chunk;
 
@@ -73,7 +73,7 @@ namespace PESpy.PDB
                  */
 
                 if (remainingChunk.Remaining >= 4)
-                    Features = remainingChunk.PeekNativeSpan<PdbFeature>(0, remainingChunk.Remaining / 4);
+                    Features = remainingChunk.PeekNativeSpan<PdbFeature>(0, ((int) remainingChunk.Remaining) / 4);
                 else
                     Features = default;
             }

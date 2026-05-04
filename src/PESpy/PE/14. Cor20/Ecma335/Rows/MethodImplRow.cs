@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
 
         public CodedIndex MethodDeclaration => table.GetMethodDeclaration(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public TypeDefRow ClassRow => table.CompressedModelHeap.TypeDefTable[Class];

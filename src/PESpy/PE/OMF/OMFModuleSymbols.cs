@@ -17,7 +17,7 @@ namespace PESpy
 
         SymTypeList ICodeViewModuleAccessor.Symbols => List;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private readonly IMOD imod; //0 based

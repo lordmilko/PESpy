@@ -110,7 +110,7 @@
             }
         }
 
-        public int GetRowOffset(LocalScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(LocalScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public LocalScopeRow this[LocalScopeIndex index] => GetRowSafe((int) index);
 

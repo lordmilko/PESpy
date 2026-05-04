@@ -74,7 +74,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
         internal int StructSize => 16 + RvaSize + BaseRelocSize;
 
         private readonly MemoryChunk chunk;

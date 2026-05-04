@@ -29,7 +29,7 @@ namespace PESpy
         /// </summary>
         public COR_VTABLE Type => (COR_VTABLE) chunk.PeekUInt16(TypeOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //RVA

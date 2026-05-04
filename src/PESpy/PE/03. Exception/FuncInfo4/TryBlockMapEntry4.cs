@@ -25,7 +25,7 @@ namespace PESpy
         /// </summary>
         public RVA<HandlerMap4> dispHandlerArray { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize =>
             FuncInfo4.GetLength((uint) tryLow) +
@@ -33,7 +33,7 @@ namespace PESpy
             FuncInfo4.GetLength((uint) catchHigh) +
             sizeof(int); //dispHandlerArray
 
-        internal unsafe TryBlockMapEntry4(int offset, PEFile peFile, ref byte* pData, int functionAddress)
+        internal unsafe TryBlockMapEntry4(long offset, PEFile peFile, ref byte* pData, int functionAddress)
         {
             Offset = offset;
             tryLow = (int) FuncInfo4.ReadUnsigned(ref pData);

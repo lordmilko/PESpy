@@ -25,7 +25,7 @@ namespace PESpy.Ecma335
             return tableChunk.PeekInt32(rowOffset + TokenOffset);
         }
 
-        public int GetRowOffset(EncMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(EncMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public EncMapRow this[EncMapIndex index] => GetRowSafe((int) index);
 

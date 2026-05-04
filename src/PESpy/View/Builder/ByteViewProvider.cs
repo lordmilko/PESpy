@@ -19,11 +19,11 @@ namespace PESpy.View.Builder
 
         //Used to get the overlay. Do not use in virtual mode
         //public int FileOrSectionLength => length;
-        public abstract int FileOrSectionLength { get; }
+        public abstract long FileOrSectionLength { get; }
 
-        internal IView ReadBlob(int rva, Func<int, int>? getRealOffset, int length)
+        internal IView ReadBlob(long rva, Func<int, int>? getRealOffset, int length)
         {
-            var realRVA = getRealOffset == null ? rva : getRealOffset(rva);
+            var realRVA = getRealOffset == null ? rva : getRealOffset((int) rva);
 
             var (pBytes, memoryLength, relativeOffset) = AcquireMemory(realRVA);
 
@@ -32,25 +32,25 @@ namespace PESpy.View.Builder
             return new ByteBlobView(rva, bytes, null, _fileAccessor); //Auto-detect the kind
         }
 
-        internal IView[]? ReadBytes(ref int currentRVA, int endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
+        internal IView[]? ReadBytes(ref long currentRVA, long endRVA, ViewKind? kind, Func<int, int>? getRealOffset, Func<int, int>? getRVA, bool isOverlay)
         {
             var offset = currentRVA;
 
             //We're going to read some data from the target. We need to use the "real" offset, not whatever we're pretending it is
             if (getRealOffset != null)
-                offset = getRealOffset(offset);
+                offset = getRealOffset((int) offset);
 
             var (pBytes, memoryLength, relativeOffset) = AcquireMemory(offset);
 
             Debug.Assert(memoryLength != 0);
-            var span = new NativeSpan<byte>((byte*) pBytes, memoryLength);
+            var span = new NativeSpan<byte>((byte*) pBytes, (int) memoryLength);
 
             Debug.Assert(endRVA > currentRVA);
 
             if (endRVA <= currentRVA)
                 throw new InvalidOperationException("Expected endRVA to be after currentRVA");
 
-            var bytesToRead = endRVA - currentRVA;
+            var bytesToRead = (int) (endRVA - currentRVA);
 
             NativeSpan<byte> bytes;
 
@@ -62,9 +62,9 @@ namespace PESpy.View.Builder
                 if (relativeOffset >= memoryLength)
                     return null;
 
-                bytesToRead = Math.Min(bytesToRead, memoryLength - relativeOffset);
+                bytesToRead = Math.Min(bytesToRead, (int) (memoryLength - relativeOffset));
 
-                bytes = span.Slice(relativeOffset, bytesToRead);
+                bytes = span.Slice((int) relativeOffset, (int) bytesToRead);
             }
             else
             {
@@ -87,7 +87,7 @@ namespace PESpy.View.Builder
             return views;
         }
 
-        internal bool TryParseRawBytes(int offset, ViewKind? kind, NativeSpan<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
+        internal bool TryParseRawBytes(long offset, ViewKind? kind, NativeSpan<byte> bytes, Func<int, int>? getRVA, out IView[]? views)
         {
             //Try get code first, then strings
 
@@ -113,7 +113,7 @@ namespace PESpy.View.Builder
             return false;
         }
 
-        private void SplitBytes(int offset, NativeSpan<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
+        private void SplitBytes(long offset, NativeSpan<byte> bytes, ExtractedString[] strs, List<IView> results, ViewKind? kind)
         {
             var strIndex = 0;
 
@@ -147,7 +147,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        ByteBlobView CreateByteBlob(int offset, ref int i, ViewKind? localKind, int end, NativeSpan<byte> bytes)
+        ByteBlobView CreateByteBlob(long offset, ref int i, ViewKind? localKind, int end, NativeSpan<byte> bytes)
         {
             var arr = bytes.Slice(i, end - i);
 
@@ -160,6 +160,6 @@ namespace PESpy.View.Builder
             return blob;
         }
 
-        protected abstract unsafe (IntPtr pBytes, int memoryLength, int relativeOffset) AcquireMemory(int targetAddress);
+        protected abstract unsafe (IntPtr pBytes, long memoryLength, int relativeOffset) AcquireMemory(long targetAddress);
     }
 }

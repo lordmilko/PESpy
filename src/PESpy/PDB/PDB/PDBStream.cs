@@ -33,7 +33,7 @@ namespace PESpy.PDB
             set => chunk.PokeInt32(AgeOffset, value);
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //ImplementationVersion

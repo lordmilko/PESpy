@@ -62,7 +62,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly MethodDefTable table;
 

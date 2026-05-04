@@ -38,7 +38,7 @@ namespace PESpy.PDB
         //The virtual entries that exist in memory. Entries are spread out according to whether each slot has a value or not
         private readonly int[] virtualEntries;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public unsafe int StructSize
         {
@@ -239,7 +239,7 @@ namespace PESpy.PDB
 
             public unsafe R Value => getValue(chunk.Slice(sizeof(D)));
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             internal int StructSize =>
                 sizeof(D) +

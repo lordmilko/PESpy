@@ -9,7 +9,7 @@ namespace PESpy
         public byte BranchDescriptorElementSize => chunk.PeekByte(5);
         public short BranchDescriptorCount => chunk.PeekInt16(6);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

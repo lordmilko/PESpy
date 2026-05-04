@@ -25,7 +25,7 @@ namespace PESpy
         /// </summary>
         public int @object { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -51,7 +51,7 @@ namespace PESpy
             }
         }
 
-        internal unsafe UnwindMapEntry4(int offset, ref byte* pData)
+        internal unsafe UnwindMapEntry4(long offset, ref byte* pData)
         {
             Offset = offset;
             var nextOffsetAndType = FuncInfo4.ReadUnsigned(ref pData);

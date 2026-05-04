@@ -19,7 +19,7 @@
         /// </summary>
         public int lr0_fileoffset => chunk.PeekInt32(2);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

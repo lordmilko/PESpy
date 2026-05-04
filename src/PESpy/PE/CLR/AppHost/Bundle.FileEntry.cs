@@ -35,7 +35,7 @@ namespace PESpy
                             case file_type_t.native_binary:
                             case file_type_t.assembly:
                                 Debug.Assert(header.CompressedSize == 0);
-                                data = new RawValue<object>((int) header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), valueChunk.AbsoluteOffset));
+                                data = new RawValue<object>((int) header.Offset, new PEFile(RelativePath.ToString(), new MemoryMappedFileHolder(valueChunk.Pointer, header.Size), (int) valueChunk.AbsoluteOffset));
                                 break;
 
                             case file_type_t.deps_json:
@@ -57,7 +57,7 @@ namespace PESpy
                 }
             }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             internal const int FixedStructSize =
                 FileEntryFixed.FixedStructSize; //Header

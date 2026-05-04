@@ -44,7 +44,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.SYM;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
@@ -60,7 +60,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -78,7 +78,7 @@ namespace PESpy
             var chunk = new MemoryChunk(globalBlock, 0);
             Header = new mapdef_s(chunk);
 
-            Footer = new endmap_s(chunk.Slice(chunk.Remaining - endmap_s.StructSize));
+            Footer = new endmap_s(chunk.Slice((int) chunk.Remaining - endmap_s.StructSize));
 
             //Apparently there's two versions of sym files: one stores offsets in bytes (MapSym 2.08 - 3.00)
             //and one that stores offsets in paragraphs (3.10). https://win-archaeology.fandom.com/wiki/.SYM_Format
@@ -138,7 +138,7 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new SYMFileSymbolAccessor(this);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         public void Dispose()
         {

@@ -68,7 +68,7 @@ namespace PESpy.PDB
                 fpmPages[i] = currentFpmPage;
 
                 //If there's another FPM page, if we have 1024 byte pages, it's 1024 pages away from the last one
-                currentFpmPage += pageSize;
+                currentFpmPage += (uint) pageSize;
             }
 
             FpmPages = fpmPages;
@@ -98,7 +98,7 @@ namespace PESpy.PDB
             var fpmPages = new PN[numFpmPages];
 
             for (var i = 0; i < numFpmPages; i++)
-                fpmPages[i] = fpmPageNo + i;
+                fpmPages[i] = (uint) (fpmPageNo + i);
 
             FpmPages = fpmPages;
 

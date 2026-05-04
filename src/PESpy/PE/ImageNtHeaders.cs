@@ -29,7 +29,7 @@ namespace PESpy
         /// </summary>
         public ImageOptionalHeader OptionalHeader { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize(bool is32Bit) =>
             sizeof(int) + //Signature

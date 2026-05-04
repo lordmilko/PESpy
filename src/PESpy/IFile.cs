@@ -96,7 +96,7 @@ namespace PESpy
 
         FileKind Kind { get; }
 
-        int Length { get; }
+        long Length { get; }
 
         FileView GetView(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,

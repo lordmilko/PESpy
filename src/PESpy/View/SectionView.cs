@@ -9,8 +9,8 @@ namespace PESpy.View
     {
         public string Name { get; }
 
-        public int Offset { get; }
-        public int Size { get; }
+        public long Offset { get; }
+        public long Size { get; }
         public ViewKind Kind => ViewKind.Section;
 
         public IView? Parent { get; private set; }
@@ -62,7 +62,7 @@ namespace PESpy.View
         public IView this[int index] => Children[index];
 
         //For nested files
-        internal SectionView(int offset, int size, string name, FileAccessor fileAccessor, in ViewEntityIterator iterator, ViewWriter viewWriter)
+        internal SectionView(int offset, long size, string name, FileAccessor fileAccessor, in ViewEntityIterator iterator, ViewWriter viewWriter)
         {
             Offset = offset;
             Size = size;

@@ -282,7 +282,7 @@ namespace PESpy.View
             var fpmStatus = pdbFile.ActiveFpmPageNo == 1 ? "Active" : "Inactive";
 
             for (var i = 0; i < fpm0.FpmPages.Length; i++)
-                specialPageMap.Add(fpm0.FpmPages[i], new SpecialPageInfo("FPM 0", Merger.SPECIAL_STREAM_FPM_0, i, fpm0.FpmPages.Length, fpmStatus));
+                specialPageMap.Add((int) fpm0.FpmPages[i], new SpecialPageInfo("FPM 0", Merger.SPECIAL_STREAM_FPM_0, i, fpm0.FpmPages.Length, fpmStatus));
 
             //Scope v7 variable
             {
@@ -298,7 +298,7 @@ namespace PESpy.View
                 var fpm1 = pdbFile.FPM1;
 
                 for (var i = 0; i < fpm1.FpmPages.Length; i++)
-                    specialPageMap.Add(fpm1.FpmPages[i], new SpecialPageInfo("FPM 1", Merger.SPECIAL_STREAM_FPM_1, i, fpm1.FpmPages.Length, fpmStatus));
+                    specialPageMap.Add((int) fpm1.FpmPages[i], new SpecialPageInfo("FPM 1", Merger.SPECIAL_STREAM_FPM_1, i, fpm1.FpmPages.Length, fpmStatus));
             }
 
             //Scope v7 variable
@@ -309,7 +309,7 @@ namespace PESpy.View
                     var pagesOfStreamTablePageList = v7.MsfHeader.PagesOfStreamTablePageList;
 
                     for (var i = 0; i < pagesOfStreamTablePageList.Length; i++)
-                        specialPageMap.Add(pagesOfStreamTablePageList[i], new SpecialPageInfo("Stream Table Page List", Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION, i, pagesOfStreamTablePageList.Length));
+                        specialPageMap.Add((int) pagesOfStreamTablePageList[i], new SpecialPageInfo("Stream Table Page List", Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION, i, pagesOfStreamTablePageList.Length));
                 }
                 else
                 {
@@ -361,7 +361,7 @@ namespace PESpy.View
                 {
                     for (var i = 0; i < v7.StreamTableLocation.PageList.Length; i++)
                     {
-                        specialPageMap.Add(v7.StreamTableLocation.PageList[i], new SpecialPageInfo($"Stream Table", Merger.SPECIAL_STREAM_STREAMTABLE, i, v7.StreamTableLocation.PageList.Length));
+                        specialPageMap.Add((int) v7.StreamTableLocation.PageList[i], new SpecialPageInfo($"Stream Table", Merger.SPECIAL_STREAM_STREAMTABLE, i, v7.StreamTableLocation.PageList.Length));
                     }
                 }
             }
@@ -397,7 +397,7 @@ namespace PESpy.View
 
                     fullNameBuilder.Append(i);
 
-                    if (pageToSIMap.TryGetValue(i, out var match))
+                    if (pageToSIMap.TryGetValue((uint) i, out var match))
                     {
                         //string name;
 
@@ -502,7 +502,7 @@ namespace PESpy.View
 
                     //Try and include some details about which streams reside in this page
 
-                    pages[i] = new DirectoryInfo(fullNameInfo, i * pdbFile.PageSize, pdbFile.PageSize);
+                    pages[i] = new DirectoryInfo(fullNameInfo, (uint) i * pdbFile.PageSize, pdbFile.PageSize);
                 }
             }
             finally

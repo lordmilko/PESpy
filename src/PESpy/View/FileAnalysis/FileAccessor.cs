@@ -76,35 +76,35 @@ namespace PESpy.View
         /// <summary>
         /// Gets the total length of the file.
         /// </summary>
-        public int Length { get; protected set; }
+        public long Length { get; protected set; }
 
         public abstract IFile File { get; }
 
         private RegionBuilder[] _topLevelDirectories;
         private RegionBuilder[] _firstDirectoryByAddress;
-        private Dictionary<int, int> _directoryByAddressLookup;
+        private Dictionary<long, int> _directoryByAddressLookup;
 
         internal RegionBuilder[] TopLevelDirectories => _topLevelDirectories;
 
         private RegionBuilder[] _topLevelRegions; //Contains the hierarchy of regions
         private RegionBuilder[] _firstRegionByAddress; //Contains the highest region at each address. If two regions share an address, you only get the first one. Not sorted
-        private Dictionary<int, int> _regionByAddressLookup;
+        private Dictionary<long, int> _regionByAddressLookup;
 
         internal RegionBuilder[] TopLevelRegions => _topLevelRegions;
 
         internal NestedFileRange[] NestedFileRanges;
 
-        internal Dictionary<int, int> LargeAddresses;
+        internal Dictionary<long, int> LargeAddresses;
 
         protected object _overview;
         private SpanAllocator<XRef> _xrefs;
 
-        private int[] _stringAddresses;
+        private long[] _stringAddresses;
 
         public object Overview => _overview ??= CreateOverview();
 
         //I tried SegmentedDictionary but the performance was _way_ worse
-        internal Dictionary<int, ViewInfo> _infoMap = new Dictionary<int, ViewInfo>();
+        internal Dictionary<long, ViewInfo> _infoMap = new Dictionary<long, ViewInfo>();
         private bool _disposed;
 
         protected abstract ViewKind FileViewKind { get; }
@@ -154,7 +154,7 @@ namespace PESpy.View
 
         public abstract bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex);
 
-        public ViewEntity GetEntity(int address)
+        public ViewEntity GetEntity(long address)
         {
             var pViewByte = GetViewByte(address, out var sectionIndex);
 
@@ -189,7 +189,7 @@ namespace PESpy.View
             return GetEntity(sectionAccessorIndex, targetAddress, pViewByte, accessor, pBytes);
         }
 
-        public ViewEntity GetEntity(int address, ViewByte* pViewByte, int sectionAccessorIndex)
+        public ViewEntity GetEntity(long address, ViewByte* pViewByte, int sectionAccessorIndex)
         {
             ref var accessor = ref SectionAccessors[sectionAccessorIndex];
 
@@ -213,7 +213,7 @@ namespace PESpy.View
         //For when you already have all the various pieces
         internal unsafe ViewEntity GetEntity(
             int sectionAccessorIndex,
-            int targetAddress,
+            long targetAddress,
             ViewByte* pViewByte,
             in SectionAccessor sectionAccessor,
             IntPtr pBytes)
@@ -509,7 +509,7 @@ namespace PESpy.View
         internal abstract MemoryChunk GetMemoryChunkFromRVA(int rva);
 
         //Could either be an RVA or an offset (depends if we're a loaded image or not)
-        internal abstract void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter);
+        internal abstract void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter);
 
         #region GetStructView
 
@@ -517,7 +517,7 @@ namespace PESpy.View
 
         //For when the type of view you're after may not be top level. When it's top level
         //it is possible to ask the info map what the ViewKind is
-        public unsafe IView GetStructView(int targetAddress, ViewKind viewKind)
+        public unsafe IView GetStructView(long targetAddress, ViewKind viewKind)
         {
             var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
 
@@ -593,7 +593,7 @@ namespace PESpy.View
             } while (pStartViewByte->Kind == ViewByteKind.Body);
 
             //Get the struct at the head
-            var headOffset = (int) (offset - (pViewByte - pStartViewByte));
+            var headOffset = (offset - (pViewByte - pStartViewByte));
 
             var structKind = GetStructKind(headOffset);
             GetMemoryChunkFromAddress(headOffset, out var chunk, out var viewWriter);
@@ -654,7 +654,7 @@ namespace PESpy.View
 
             return &accessor.pViewBytes[relativeOffset];
         }
-        public ViewByte* GetViewByte(int targetAddress, out int sectionAccessorIndex)
+        public ViewByte* GetViewByte(long targetAddress, out int sectionAccessorIndex)
         {
             if (!TryGetViewByte(targetAddress, out var pViewByte, out sectionAccessorIndex))
                 throw new InvalidOperationException($"Failed to locate the {nameof(ViewByte)} associated with address 0x{targetAddress:X}");
@@ -662,7 +662,7 @@ namespace PESpy.View
             return pViewByte;
         }
 
-        public bool TryGetViewByte(int targetAddress, out ViewByte* pViewByte, out int sectionAccessorIndex)
+        public bool TryGetViewByte(long targetAddress, out ViewByte* pViewByte, out int sectionAccessorIndex)
         {
             var low = 0;
             var high = SectionAccessors.Length - 1;
@@ -797,7 +797,7 @@ namespace PESpy.View
             }
         }
 
-        internal void AddStructKind(int targetAddress, ViewKind kind)
+        internal void AddStructKind(long targetAddress, ViewKind kind)
         {
 #if NET9_0_OR_GREATER
             ref var data = ref CollectionsMarshal.GetValueRefOrAddDefault(_infoMap, targetAddress, out _);
@@ -814,9 +814,9 @@ namespace PESpy.View
 #endif
         }
 
-        public ViewKind GetStructKind(int targetAddress) => _infoMap[targetAddress].ViewKind;
+        public ViewKind GetStructKind(long targetAddress) => _infoMap[targetAddress].ViewKind;
 
-        public bool TryGetStructKind(int targetAddress, out ViewKind kind)
+        public bool TryGetStructKind(long targetAddress, out ViewKind kind)
         {
             if (_infoMap.TryGetValue(targetAddress, out var value))
             {
@@ -831,7 +831,7 @@ namespace PESpy.View
         #endregion
         #region XRef
 
-        public Span<XRef> GetXRefs(int targetAddress)
+        public Span<XRef> GetXRefs(long targetAddress)
         {
             if (_xrefs == null)
                 return default;
@@ -849,7 +849,7 @@ namespace PESpy.View
 
         internal XRef[] GetXRefBuffer() => _xrefs._buffer;
 
-        internal SpanAllocatorHandle GetXRefsHandle(int targetAddress)
+        internal SpanAllocatorHandle GetXRefsHandle(long targetAddress)
         {
             if (_xrefs == null)
                 throw new InvalidOperationException("XRefs were not tracked by this analysis. Ensure that trackXRefs: true is specified");
@@ -865,7 +865,7 @@ namespace PESpy.View
         #endregion
         #endregion
 
-        public abstract bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva);
+        public abstract bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva);
 
         internal abstract ISectionDataAccessor CreateThreadLocalSectionDataAccessor();
 
@@ -875,7 +875,7 @@ namespace PESpy.View
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default);
 
-        internal FixedUtf8String GetNameFromViewByte(int targetAddress, int sectionAccessorIndex, ViewByte* pViewByte)
+        internal FixedUtf8String GetNameFromViewByte(long targetAddress, int sectionAccessorIndex, ViewByte* pViewByte)
         {
             Debug.Assert(pViewByte->HasName);
 
@@ -946,7 +946,7 @@ namespace PESpy.View
         internal void InstallDataDirectories(RegionBuilder[] topLevelDirectories, RegionBuilder[] firstDirectoryByAddress)
         {
             //Enable fast lookup of directories based on offset
-            var directoryLookup = new Dictionary<int, int>(firstDirectoryByAddress.Length);
+            var directoryLookup = new Dictionary<long, int>(firstDirectoryByAddress.Length);
 
             for (var i = 0; i < firstDirectoryByAddress.Length; i++)
             {
@@ -962,7 +962,7 @@ namespace PESpy.View
             _firstDirectoryByAddress = firstDirectoryByAddress;
         }
 
-        internal bool TryGetDirectory(int targetAddress, int depth, out RegionBuilder directory) =>
+        internal bool TryGetDirectory(long targetAddress, int depth, out RegionBuilder directory) =>
             TryGetRegionInternal(targetAddress, depth, _directoryByAddressLookup, _firstDirectoryByAddress, out directory);
 
         internal void InstallRegions(
@@ -1016,7 +1016,7 @@ namespace PESpy.View
             }
 
             //Enable fast lookup of directories based on offset
-            var regionLookup = new Dictionary<int, int>(firstRegionByAddress.Count);
+            var regionLookup = new Dictionary<long, int>(firstRegionByAddress.Count);
 
             for (var i = 0; i < firstRegionByAddress.Count; i++)
             {
@@ -1072,7 +1072,7 @@ namespace PESpy.View
             NestedFileRanges = results;
         }
 
-        internal bool TryGetNestedFileRange(int targetAddress, out NestedFileRange range)
+        internal bool TryGetNestedFileRange(long targetAddress, out NestedFileRange range)
         {
             var nestedFileRanges = NestedFileRanges;
 
@@ -1109,13 +1109,13 @@ namespace PESpy.View
             return false;
         }
 
-        internal bool TryGetRegion(int targetAddress, int depth, out RegionBuilder region) =>
+        internal bool TryGetRegion(long targetAddress, int depth, out RegionBuilder region) =>
             TryGetRegionInternal(targetAddress, depth, _regionByAddressLookup, _firstRegionByAddress, out region);
 
         private bool TryGetRegionInternal(
-            int targetAddress,
+            long targetAddress,
             int depth,
-            Dictionary<int, int> dict,
+            Dictionary<long, int> dict,
             RegionBuilder[] list,
             out RegionBuilder region)
         {
@@ -1153,7 +1153,7 @@ namespace PESpy.View
 
         internal void Finalize(
             List<XRef>? xrefs,
-            int[] stringAddresses)
+            long[] stringAddresses)
         {
             var infoMap = _infoMap;
 
@@ -1216,7 +1216,7 @@ namespace PESpy.View
         }
 
         [Conditional("DEBUG")]
-        internal void CheckName(int targetAddress)
+        internal void CheckName(long targetAddress)
         {
             //Set a breakpoint here to debug an issue with a given target address
         }

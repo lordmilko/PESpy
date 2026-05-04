@@ -8,9 +8,9 @@ namespace PESpy
     {
         public T Value { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
-        public RawValue(int offset, T value)
+        public RawValue(long offset, T value)
         {
             Offset = offset;
             Value = value;

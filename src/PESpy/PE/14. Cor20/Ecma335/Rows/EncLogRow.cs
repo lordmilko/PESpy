@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public EditAndContinueOperation FuncCode => table.GetFuncCode(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object TokenRow => table.CompressedModelHeap.GetRow(Token);

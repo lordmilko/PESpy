@@ -71,7 +71,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         //The number of refs is variable
         internal const int FixedStructSize =

@@ -63,7 +63,7 @@ namespace PESpy
         /// </summary>
         public FileNameNamesList FileNames { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public static unsafe OMFFileIndex FromMemory(IntPtr pFileInfo, int length, bool isLengthPrefixedString)
         {
@@ -155,7 +155,7 @@ namespace PESpy
             //FileNameOffsets contains a list of relative offsets to each name. However, there could be multiple entries
             //pointing to the same name
 
-            var seenAddress = new HashSet<int>();
+            var seenAddress = new HashSet<long>();
 
             if (FileNames.isLengthPrefixedString)
             {

@@ -72,7 +72,7 @@ namespace PESpy.Ecma335
 
         internal T FromOffset(int offset)
         {
-            var diff = offset - tableChunk.AbsoluteOffset;
+            var diff = (int) (offset - tableChunk.AbsoluteOffset);
 
             var index = diff / RowSize;
 

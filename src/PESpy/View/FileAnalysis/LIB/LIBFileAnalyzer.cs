@@ -50,7 +50,7 @@ namespace PESpy.View
                 if (item.IsLong)
                 {
                     OBJFileAnalyzer.MarkOBJRegions(
-                        item.Offset,
+                        (int) item.Offset,
                         item.ArchiveHeader.Size,
                         (LongImportLibraryMember) item,
                         _fileAccessor,

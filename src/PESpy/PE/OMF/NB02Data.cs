@@ -16,9 +16,9 @@ namespace PESpy
 
         public dnt[] DirEntries { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
-        internal NB02Data(int offset, CodeViewSig sig, int lfoBase, int lfoDir, ushort cDir, dnt[] dirEntries)
+        internal NB02Data(long offset, CodeViewSig sig, int lfoBase, int lfoDir, ushort cDir, dnt[] dirEntries)
         {
             Offset = offset;
             LfoDir = lfoDir;

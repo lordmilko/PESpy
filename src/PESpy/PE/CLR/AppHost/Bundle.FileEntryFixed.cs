@@ -22,7 +22,7 @@ namespace PESpy
 
             public file_type_t Type => (file_type_t) chunk.PeekByte(hasCompressedSize ? TypeOffsetWithCompressedSize : TypeOffsetWithoutCompressedSize);
 
-            int IValue.Offset => chunk.AbsoluteOffset;
+            long IValue.Offset => chunk.AbsoluteOffset;
 
             internal const int FixedStructSize =
                 sizeof(long) + //Offset

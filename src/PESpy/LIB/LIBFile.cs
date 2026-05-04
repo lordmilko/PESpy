@@ -39,7 +39,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.LIB;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
@@ -65,7 +65,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -279,12 +279,12 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor, isLibFile: true);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor, isLibFile: true);
 
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
-            remainingLength = globalBlock.Length;
+            remainingLength = (int) globalBlock.Length;
         }
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)

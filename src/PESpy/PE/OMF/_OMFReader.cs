@@ -197,17 +197,17 @@ namespace PESpy
 
             //Section 1: Publics. Matches NB00
             //Some of these offsets and segments seem a bit crazy, but offset is definitely offset, and I've also observed that segment seems to match what we see in the relocations
-            var publics = ReadNB02Publics16(chunk.Slice(secOffset[1] - chunk.AbsoluteOffset), secOffset[2] - secOffset[1]);
+            var publics = ReadNB02Publics16(chunk.Slice(secOffset[1] - (int) chunk.AbsoluteOffset), secOffset[2] - secOffset[1]);
 
             //Section 2: Types. Matches NB00
-            var types = ReadNB02Types(chunk.Slice(secOffset[2] - chunk.AbsoluteOffset), secOffset[3] - secOffset[2]);
+            var types = ReadNB02Types(chunk.Slice(secOffset[2] - (int) chunk.AbsoluteOffset), secOffset[3] - secOffset[2]);
 
             //Section 3: Symbols. Matches NB00
-            var symbols = ReadNB02Symbols(chunk.Slice(secOffset[3] - chunk.AbsoluteOffset), secOffset[4] - secOffset[3]);
+            var symbols = ReadNB02Symbols(chunk.Slice(secOffset[3] - (int) chunk.AbsoluteOffset), secOffset[4] - secOffset[3]);
 
             //Section 4: Source Lines. Matches NB00
-            var sourceLinesChunk = chunk.Slice(secOffset[4] - chunk.AbsoluteOffset);
-            var sourceLines = ReadNB02SourceLines16(chunk.Slice(secOffset[4] - chunk.AbsoluteOffset), sourceLinesChunk.Remaining - 8, false); //Read up to the CVINFO at the end of the file
+            var sourceLinesChunk = chunk.Slice(secOffset[4] - (int) chunk.AbsoluteOffset);
+            var sourceLines = ReadNB02SourceLines16(chunk.Slice(secOffset[4] - (int) chunk.AbsoluteOffset), (int) sourceLinesChunk.Remaining - 8, false); //Read up to the CVINFO at the end of the file
 
             return new DNRBData(
                 chunk.AbsoluteOffset,
@@ -230,7 +230,7 @@ namespace PESpy
 
             var read = 0;
             var toRead = secOffset[1] - secOffset[0];
-            var moduleReader = chunk.Slice(secOffset[0] - chunk.AbsoluteOffset);
+            var moduleReader = chunk.Slice(secOffset[0] - (int) chunk.AbsoluteOffset);
 
             var modules = new List<DNRBModule>();
 

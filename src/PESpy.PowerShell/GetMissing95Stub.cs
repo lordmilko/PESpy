@@ -116,7 +116,7 @@ namespace PESpy.PowerShell
             {
                 if (xref.Kind == XRefKind.To && accessor.TryGetFunctionForAddress(xref.Other, out var exportEntity))
                 {
-                    stubAddrs.Add(exportEntity.TargetAddress);
+                    stubAddrs.Add((int) exportEntity.TargetAddress);
                     stubEntities.Add(exportEntity);
                 }
             }

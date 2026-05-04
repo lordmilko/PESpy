@@ -28,7 +28,7 @@ namespace PESpy.View.Builder
                 ReadTable("Resident Name Table",    tableOffset: os2Header.ne_restab,  os2Header.ne_modtab,  os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ResidentNameTable);
                 ReadTable("Module Reference Table", tableOffset: os2Header.ne_modtab,  os2Header.ne_imptab,  os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ModuleReferenceTable);
                 ReadTable("Imported Names Table",   tableOffset: os2Header.ne_imptab,  os2Header.ne_enttab,  os2Header, ref lastSectionEnd, ref results, ViewKind.NE_ImportedNamesTable);
-                ReadTable("Entry Table",            tableOffset: os2Header.ne_enttab, os2Header.ne_nrestab - os2Header.Offset, os2Header, ref lastSectionEnd, ref results, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
+                ReadTable("Entry Table",            tableOffset: os2Header.ne_enttab, os2Header.ne_nrestab - (int) os2Header.Offset, os2Header, ref lastSectionEnd, ref results, ViewKind.NE_EntryTable); //OffsetOfNonResidentNamesTable is relative to the beginning of the file
 
                 //Non-Resident Name Table is last, so its length must be computed using a count, rather than
                 //the position of the table after it
@@ -58,7 +58,7 @@ namespace PESpy.View.Builder
             if (tableOffset == nextTableOffset)
                 return; //Size is 0
 
-            var start = os2Header.Offset + tableOffset;
+            var start = (int) os2Header.Offset + tableOffset;
             var length = nextTableOffset - tableOffset;
             var end = start + length;
 
@@ -117,12 +117,12 @@ namespace PESpy.View.Builder
                     //There's some extra data prior to the beginning of the OMF data that we have to read.
                     //We don't read this as inter-section data
 
-                    results.AddRange(BuildSection(lastSectionEnd, omfData.Offset));
+                    results.AddRange(BuildSection(lastSectionEnd, (int) omfData.Offset));
                 }
 
                 //The rest of the file is OMF data
-                var fileLength = byteViewProvider.FileOrSectionLength;
-                var omfLength = fileLength - omfData.Offset;
+                var fileLength = (int) byteViewProvider.FileOrSectionLength;
+                var omfLength = fileLength - (int) omfData.Offset;
 
                 string name;
                 ViewKind kind;
@@ -137,7 +137,7 @@ namespace PESpy.View.Builder
                     throw new NotImplementedException();
                 }
 
-                results.Add(new LogicalRegionView(omfData.Offset, name, BuildSection(omfData.Offset, fileLength, v => v, v => v, isOverlay: true), viewWriter, kind, omfLength));
+                results.Add(new LogicalRegionView(omfData.Offset, name, BuildSection((int) omfData.Offset, fileLength, v => v, v => v, isOverlay: true), viewWriter, kind, omfLength));
             }
         }
 

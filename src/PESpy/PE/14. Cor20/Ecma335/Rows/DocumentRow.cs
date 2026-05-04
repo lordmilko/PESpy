@@ -17,7 +17,7 @@ namespace PESpy.Ecma335
 
         public GuidIndex Language => table.GetLanguage(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly DocumentTable table;
 

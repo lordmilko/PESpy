@@ -28,7 +28,7 @@
             return (EventIndex) tableChunk.PeekEcmaIndex(rowOffset + EventOffset, isBigEventIndex);
         }
 
-        public int GetRowOffset(EventPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(EventPtrIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public EventPtrRow this[EventPtrIndex index] => GetRowSafe((int) index);
 

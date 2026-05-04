@@ -49,7 +49,7 @@ namespace PESpy.PDB
 
         // rest of file is "REC gprec[];"
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //vers

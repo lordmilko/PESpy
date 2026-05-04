@@ -312,7 +312,7 @@ namespace PESpy
         /// </summary>
         public ushort e32_ddkver => chunk.PeekUInt16(DDKVersionOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //e32_magic

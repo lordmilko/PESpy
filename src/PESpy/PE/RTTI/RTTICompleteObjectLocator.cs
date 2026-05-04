@@ -47,7 +47,7 @@ namespace PESpy
 
         public int pSelf => chunk.PeekInt32(pSelfOffset); //This RTTICompleteObjectLocator
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //signature

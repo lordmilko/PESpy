@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
         /// </summary>
         public int Size { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             20 + //Id

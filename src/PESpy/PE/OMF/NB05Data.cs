@@ -19,7 +19,7 @@ namespace PESpy
 
         public OMFDirEntry[] DirEntries { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private ICodeViewAccessor codeViewAccessor;
 

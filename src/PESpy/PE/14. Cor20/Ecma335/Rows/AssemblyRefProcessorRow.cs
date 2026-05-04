@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public AssemblyRefIndex AssemblyRef => table.GetAssemblyRef(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public AssemblyRefRow AssemblyRefRow => table.CompressedModelHeap.AssemblyRefTable[AssemblyRef];

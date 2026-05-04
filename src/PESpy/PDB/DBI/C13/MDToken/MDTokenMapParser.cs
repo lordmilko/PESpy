@@ -116,14 +116,14 @@
         }
 
         //Value is the "cleaned" value with the top bit cleared
-        protected abstract unsafe TEntry CreateSmallEntry(int structOffset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig);
+        protected abstract unsafe TEntry CreateSmallEntry(long structOffset, byte* chunkPointer, RawMDTokenMapEntry rawEntry, int ridOrTypeSig);
 
         protected abstract TEntry CreateLargeEntry(
-            int structOffset,
+            long structOffset,
             in MemoryChunk blobChunk,
             RawMDTokenMapEntry rawEntry,
             int blobLength);
 
-        protected abstract TMap CreateMap(int structOffset, int numEntries, TEntry[] entries, NativeSpan<byte> dataBlob);
+        protected abstract TMap CreateMap(long structOffset, int numEntries, TEntry[] entries, NativeSpan<byte> dataBlob);
     }
 }

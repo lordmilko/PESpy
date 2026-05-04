@@ -12,7 +12,7 @@ namespace PESpy
 
         public FixedUtf8String Value { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         public int StructSize { get; }
 

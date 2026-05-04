@@ -17,7 +17,7 @@ namespace PESpy.View
             //is 0x1000 this is a value between 0-0xFFF. When we move into another page,
             //this value is reset to the new offset in the next page (after factoring in overflow)
             private int relativeOffset;
-            private int pageStart; //The absolute position that the current page starts at. The address of the next value is pageStart + relativeOffset
+            private long pageStart; //The absolute position that the current page starts at. The address of the next value is pageStart + relativeOffset
             private int pageIndex;
 
             private readonly int pageSize;
@@ -53,7 +53,7 @@ namespace PESpy.View
                 if (view != null)
                 {
                     items.Add(view);
-                    IncrementOffset(view.Size);
+                    IncrementOffset((int) view.Size);
                 }
                 else
                     IncrementOffset(typType.len + sizeof(short));
@@ -68,7 +68,7 @@ namespace PESpy.View
                 if (view != null)
                 {
                     items.Add(view);
-                    IncrementOffset(view.Size);
+                    IncrementOffset((int) view.Size);
                 }
                 else
                     IncrementOffset(SymType.GetSymbolLength(symType, codeViewAccessor));
@@ -85,7 +85,7 @@ namespace PESpy.View
                 if (view != null)
                 {
                     items.Add(view);
-                    IncrementOffset(view.Size);
+                    IncrementOffset((int) view.Size);
                 }
                 else
                     IncrementOffset(size);

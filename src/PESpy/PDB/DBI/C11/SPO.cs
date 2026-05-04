@@ -12,7 +12,7 @@
 
         public NativeSpan<ushort> linenumbers => chunk.PeekNativeSpan<ushort>(4 + (cPair * sizeof(int)), cPair);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(short) + //Seg

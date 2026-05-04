@@ -36,7 +36,7 @@ namespace PESpy
 
         public int FilterOffset { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int FatSize =
             sizeof(int) + //Flags

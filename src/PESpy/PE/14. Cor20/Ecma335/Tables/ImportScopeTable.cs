@@ -41,7 +41,7 @@ namespace PESpy.Ecma335
             return new BlobIndex(tableChunk.PeekEcmaIndex(rowOffset + ImportsOffset, isBigBlobIndex), blobHeap);
         }
 
-        public int GetRowOffset(ImportScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(ImportScopeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public ImportScopeRow this[ImportScopeIndex index] => GetRowSafe((int) index);
 

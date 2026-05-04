@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public ModuleRefIndex ImportScope => table.GetImportScope(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object MemberForwardedRow => MemberForwarded.GetRow(table.CompressedModelHeap);

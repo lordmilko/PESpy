@@ -46,7 +46,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public int GetRowOffset(CustomAttributeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(CustomAttributeIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public CodedIndex GetParent(CustomAttributeIndex index)
         {

@@ -16,7 +16,7 @@ namespace PESpy
 
         public ImageCorILMethodSectEHClause[] Clauses { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {

@@ -18,7 +18,7 @@
             return tableChunk.PeekInt32(rowOffset + ProcessorOffset);
         }
 
-        public int GetRowOffset(AssemblyProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(AssemblyProcessorIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public AssemblyProcessorRow this[AssemblyProcessorIndex index] => GetRowSafe((int) index);
 

@@ -34,7 +34,7 @@ namespace PESpy
         public short Ordinal { get; }
         public RVA<ImageImportByName> Name { get; } //AddressOfData
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal ImageThunkData(in MemoryChunk chunk, bool isIAT)
         {

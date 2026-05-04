@@ -116,8 +116,8 @@ namespace PESpy.View
 
                     sectionAccessors.Add(
                         new SectionAccessor(
-                            section.GlobalStartIndex * pageSize,
-                            (section.GlobalEndIndex + 1) * pageSize, //The way the NumPages works also shows you need to do +1
+                            (uint) section.GlobalStartIndex * pageSize,
+                            (uint) (section.GlobalEndIndex + 1) * pageSize, //The way the NumPages works also shows you need to do +1
                             SectionAccessorKind.Section,
                             -1,
                             nameBuilder.ToString(),
@@ -174,7 +174,7 @@ namespace PESpy.View
             //Given each section accessor tells us where it is in the file, I feel like we can just return what we're being asked for
 
             pByte = PDBFile.globalBlock.LocalPointer;
-            rva = sectionAccessor.StartAddress;
+            rva = default;
             remainingLength = sectionAccessor.Length;
         }
 
@@ -183,13 +183,13 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
+        internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
             //We need to figure out which page the address belongs to, which stream _that_ belongs to,
             //and then slice the appropriate amount into the target stream
 
             var pageSize = PDBFile.PageSize;
-            var pageNum = address / pageSize;
+            var pageNum = (uint) (address / pageSize);
 
             if (pageNum == 0)
             {
@@ -240,7 +240,7 @@ namespace PESpy.View
             var currentIndex = Array.IndexOf(pageList, (PN) pageNum);
             Debug.Assert(currentIndex != -1);
 
-            var offsetInPage = address & (pageSize - 1); //Faster modulo
+            var offsetInPage = (int) (address & (pageSize - 1)); //Faster modulo
             chunk = PDBFile.globalBlock.SlicePaged(pageList, byteCount).Slice((currentIndex * pageSize) + offsetInPage);
             viewWriter = GetViewWriter();
         }
@@ -263,7 +263,7 @@ namespace PESpy.View
             return _viewWriter;
         }
 
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
+        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
             throw new NotImplementedException();
         }
@@ -281,7 +281,7 @@ namespace PESpy.View
             ILocatorProgress? progress,
             CancellationToken cancellationToken = default) => PDBFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
 
-        internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref int offset, out int sectionIndex, out int bytesRewound)
+        internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref long offset, out int sectionIndex, out int bytesRewound)
         {
             bytesRewound = 0;
 

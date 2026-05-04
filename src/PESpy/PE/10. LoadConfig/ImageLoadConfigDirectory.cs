@@ -683,7 +683,7 @@ namespace PESpy
 
         #endregion
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

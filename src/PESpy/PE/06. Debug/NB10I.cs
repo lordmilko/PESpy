@@ -25,7 +25,7 @@ namespace PESpy
 
         public AnsiString Path => chunk.PeekAnsiNullTerminatedString(PathOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //Signature

@@ -30,7 +30,7 @@ namespace PESpy.PDB
         //There is a new debug type, "11" which appears to be XFG data, consisting of structs of type XFGTYPEHASHINFODATA
         public SN Max            => GetSN((ushort) DBGTYPE.dbgtypeMax); //11 - this is part of it, the total size is 24 bytes
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private int maxIndex;

@@ -8,7 +8,7 @@ namespace PESpy.Tests
         private byte* mmf;
         private int length;
 
-        public override int FileOrSectionLength => length;
+        public override long FileOrSectionLength => length;
 
         public unsafe MockByteViewProvider(byte* mmf, int length) : base(null, isLibFile: false)
         {
@@ -16,6 +16,6 @@ namespace PESpy.Tests
             this.length = length;
         }
 
-        protected override (IntPtr pBytes, int memoryLength, int relativeOffset) AcquireMemory(int targetAddress) => ((IntPtr) mmf, length, targetAddress);
+        protected override (IntPtr pBytes, long memoryLength, int relativeOffset) AcquireMemory(long targetAddress) => ((IntPtr) mmf, length, (int) targetAddress);
     }
 }

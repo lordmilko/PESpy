@@ -11,15 +11,15 @@ namespace PESpy.View
         {
             private string regionName;
             private ViewKind regionKind;
-            private int startOffset;
-            private int currentOffset;
+            private long startOffset;
+            private long currentOffset;
             private ViewWriter viewWriter;
             private List<IView> views;
             private bool global;
             private ViewKind scope;
             private bool shouldAdd;
 
-            internal RegionWriter(int offset, string name, ViewKind kind, ViewWriter viewWriter, bool global, ViewKind scope, bool shouldAdd)
+            internal RegionWriter(long offset, string name, ViewKind kind, ViewWriter viewWriter, bool global, ViewKind scope, bool shouldAdd)
             {
                 regionName = name;
                 regionKind = kind;
@@ -38,7 +38,7 @@ namespace PESpy.View
             public void WriteValue(uint value, ViewKind kind) =>
                 WriteValueInternal(value, sizeof(int), kind);
 
-            public void WriteValue(int offset, Guid value, ViewKind kind)
+            public void WriteValue(long offset, Guid value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 
@@ -156,17 +156,17 @@ namespace PESpy.View
 
             public void WriteInlineAnsiNullTerminatedValue(RawValue<AnsiString> value, ViewKind kind)
             {
-                WriteValueInternal(value.Value, value.Offset, kind);
+                WriteValueInternal(value.Value, value.Value.Length + 1, kind);
             }
 
-            public void WriteUTF8NullTerminatedValue(int offset, string value, ViewKind kind)
+            public void WriteUTF8NullTerminatedValue(long offset, string value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 
                 WriteValueInternal(value, value.Length + 1, kind);
             }
 
-            public void WriteUTF8NullTerminatedValue(int offset, Utf8String value, ViewKind kind)
+            public void WriteUTF8NullTerminatedValue(long offset, Utf8String value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);
 

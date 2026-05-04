@@ -50,7 +50,7 @@ namespace PESpy.OBJ
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private int[] indexToOffsetMap;

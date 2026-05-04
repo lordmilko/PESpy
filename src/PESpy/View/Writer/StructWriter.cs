@@ -15,7 +15,7 @@ namespace PESpy.View
     public ref struct StructWriter
     {
         private readonly ViewWriter _viewWriter;
-        private readonly int _parentOffset;
+        private readonly long _parentOffset;
         internal readonly IView? _parentView;
 
         private IView? _field;
@@ -38,9 +38,9 @@ namespace PESpy.View
         internal IView[]? EagerFields;
 
         internal ViewWriter ViewWriter => _viewWriter;
-        internal int ParentOffset => _parentOffset;
+        internal long ParentOffset => _parentOffset;
 
-        internal StructWriter(ViewWriter viewWriter, int parentOffset, IView? parentView)
+        internal StructWriter(ViewWriter viewWriter, long parentOffset, IView? parentView)
         {
             _viewWriter = viewWriter;
             _parentOffset = parentOffset;
@@ -972,10 +972,10 @@ namespace PESpy.View
         public void WriteInlineFixedAnsiString(FixedAnsiString value) =>
             throw new NotImplementedException();
 
-        public void WriteInlineFixedUtf8String(int offset, FixedUtf8String value) =>
+        public void WriteInlineFixedUtf8String(long offset, FixedUtf8String value) =>
             RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
 
-        public void WriteInlineUtf16NullTerminated(int offset, FixedUtf16String value) =>
+        public void WriteInlineUtf16NullTerminated(long offset, FixedUtf16String value) =>
             RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
 
         public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value) =>
@@ -1081,8 +1081,8 @@ namespace PESpy.View
             _viewWriter.WriteBitField(name, _parentOffset, relativeOffset, value, size, bits, ref this);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RelayInlineAbsoluteOffset<T>(int valueOffset, T value, int size, ViewKind kind) =>
-            _viewWriter.WriteValue(_parentOffset, valueOffset - _parentOffset, value, size, kind, ref this);
+        private void RelayInlineAbsoluteOffset<T>(long valueOffset, T value, int size, ViewKind kind) =>
+            _viewWriter.WriteValue(_parentOffset, (int) (valueOffset - _parentOffset), value, size, kind, ref this);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RelayInlineRelativeOffset<T>(int relativeOffset, T value, int size, ViewKind kind) =>

@@ -11,7 +11,7 @@ namespace PESpy
 
         public NativeSpan<byte> Bytes => chunk.PeekNativeSpan<byte>(4, Size);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

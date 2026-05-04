@@ -14,6 +14,6 @@ namespace PESpy
         /// file size of a PE is 4gb (otherwise you could have an RVA trying to reference an address
         /// above 4gb).
         /// </remarks>
-        int Offset { get; }
+        long Offset { get; }
     }
 }

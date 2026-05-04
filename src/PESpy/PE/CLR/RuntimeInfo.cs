@@ -50,7 +50,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             20 + //Signature + padding

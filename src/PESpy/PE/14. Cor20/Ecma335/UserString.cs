@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
 
         public byte UnicodeByte => unicodeByte;
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private readonly byte* start;
         private readonly byte unicodeByte;
@@ -29,7 +29,7 @@ namespace PESpy.Ecma335
                 sizeof(byte) : //The UnicodeByte is part of the length that is read in the compressed length. The length of the string is _always_ odd, but that doesn't mean that the total length of the UserString struct is always odd
             0);
 
-        public UserString(int offset, byte* start, byte lengthSize, FixedUtf16String value, byte unicodeByte)
+        public UserString(long offset, byte* start, byte lengthSize, FixedUtf16String value, byte unicodeByte)
         {
             Offset = offset;
             this.start = start;

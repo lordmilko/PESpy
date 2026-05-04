@@ -2646,14 +2646,7 @@ namespace PESpy.View
         [Description(nameof(Str.LongNamesMember))]
         LongNamesMember,
 
-        /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.LongImportLibraryMember"/>.
-        /// </summary>
         LongImportLibraryMember,
-
-        /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.LIB.ShortImportLibraryMember"/>.
-        /// </summary>
         ShortImportLibraryMember,
 
         /// <summary>

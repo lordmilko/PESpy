@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public TypeDefIndex EnclosingClass => table.GetEnclosingClass(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public TypeDefRow _NestedClassRow => table.CompressedModelHeap.TypeDefTable[NestedClass];

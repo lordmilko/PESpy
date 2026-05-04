@@ -18,7 +18,7 @@ namespace PESpy.PDB
 
         public int ulReserved2 => chunk.PeekInt32(28);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //ver

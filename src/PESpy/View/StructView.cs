@@ -20,7 +20,7 @@ namespace PESpy.View
         /// <summary>
         /// Gets the relative virtual address at which this structure resides.
         /// </summary>
-        public int Offset { get; }
+        public long Offset { get; }
 
         /// <summary>
         /// Gets the native name of the type that this structure represents.
@@ -52,7 +52,7 @@ namespace PESpy.View
         /// <summary>
         /// Gets the total number of bytes that this struct occupies.
         /// </summary>
-        public int Size { get; private set; }
+        public long Size { get; private set; }
 
         public ViewKind Kind { get; }
 
@@ -79,7 +79,7 @@ namespace PESpy.View
         private IViewable value;
         private readonly ViewWriter viewWriter;
 
-        public StructView(int offset, in IViewable value, int size, ViewKind kind, ViewWriter viewWriter)
+        public StructView(long offset, in IViewable value, long size, ViewKind kind, ViewWriter viewWriter)
         {
             Offset = offset;
             this.value = value;
@@ -92,10 +92,10 @@ namespace PESpy.View
 
         //newBaseOffset is the start address of the next page.
         //cutoff is the end of the current page
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             var children = Children;
@@ -217,7 +217,7 @@ namespace PESpy.View
             throw new InvalidOperationException("Failed to find the child to split at. This can indicate that the children have the wrong offsets (e.g. multiple children erroneously share the same offset because their offset wasn't incremented as they were being built)");
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             if (Offset == newOffset)
                 return this;
@@ -320,7 +320,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitStructView(int offset, IView[] children, int size, ViewKind kind, ViewWriter viewWriter) : base(offset, new ViewChildProvider<IView>(children), size, kind, viewWriter)
+        public SplitStructView(long offset, IView[] children, long size, ViewKind kind, ViewWriter viewWriter) : base(offset, new ViewChildProvider<IView>(children), size, kind, viewWriter)
         {
         }
     }

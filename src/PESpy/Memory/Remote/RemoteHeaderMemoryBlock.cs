@@ -17,10 +17,10 @@ namespace PESpy
 
             //Some applications are only 1024, but some are 4096
             RemoteEndOffset = 0x1000;
-            LocalPointer = (byte*) Marshal.AllocHGlobal(Length);
+            LocalPointer = (byte*) Marshal.AllocHGlobal((int) Length);
             this.address = address;
 
-            memoryAccessor.ReadVirtual(address, (IntPtr) LocalPointer, Length);
+            memoryAccessor.ReadVirtual(address, (IntPtr) LocalPointer, (int) Length);
         }
 
         internal override void Resize(int newSize)

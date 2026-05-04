@@ -167,14 +167,14 @@ namespace PESpy.View
             {
                 case SectionAccessorKind.Header:
                     PEFile.GetRawHeaderData(out pByte, out remainingLength);
-                    rva = sectionAccessor.StartAddress; //No RVA yet
+                    rva = (int) sectionAccessor.StartAddress; //No RVA yet
                     break;
 
                 case SectionAccessorKind.Section:
                     if (_wantVirtual)
                     {
-                        PEFile.GetRawSectionDataFromRVA(sectionAccessor.StartAddress, sectionAccessor.SectionIndex, out pByte, out remainingLength);
-                        rva = sectionAccessor.StartAddress; //StartAddress is an RVA
+                        PEFile.GetRawSectionDataFromRVA((int) sectionAccessor.StartAddress, sectionAccessor.SectionIndex, out pByte, out remainingLength);
+                        rva = (int) sectionAccessor.StartAddress; //StartAddress is an RVA
                     }
                     else
                     {
@@ -210,7 +210,7 @@ namespace PESpy.View
             return chunk;
         }
 
-        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
+        internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
             PEFile peFile;
 
@@ -228,12 +228,12 @@ namespace PESpy.View
 
             if (_lookupCache._wantVirtual)
             {
-                if (!peFile.TryGetValueChunkFromSectionOrHeader(address, out chunk))
+                if (!peFile.TryGetValueChunkFromSectionOrHeader((int) address, out chunk))
                     throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
             }
             else
             {
-                if (!peFile.TryGetValueChunkFromPhysicalOffset(address, out chunk))
+                if (!peFile.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
                     throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
             }
         }
@@ -280,11 +280,11 @@ namespace PESpy.View
         void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength) =>
             _lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, sectionIndex, out pByte, out remainingLength);
 
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
+        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
             if (_wantVirtual)
             {
-                rva = targetAddress; //SectionAccessor.StartAddress is an RVA, which means address (which is an offset against StartAddress)
+                rva = (int) targetAddress; //SectionAccessor.StartAddress is an RVA, which means address (which is an offset against StartAddress)
             }
             else
             {
@@ -295,7 +295,7 @@ namespace PESpy.View
                 }
 
                 ref var section = ref PEFile.SectionHeaders[sectionAccessor.SectionIndex];
-                rva = section.VirtualAddress + (targetAddress - sectionAccessor.StartAddress);
+                rva = section.VirtualAddress + (int) (targetAddress - sectionAccessor.StartAddress);
             }
 
             return true;

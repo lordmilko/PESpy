@@ -62,7 +62,7 @@
         public CustomAttributeList GetCustomAttributes(GenericParamConstraintIndex index) =>
             new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParamConstraint));
 
-        public int GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public GenericParamConstraintRow this[GenericParamConstraintIndex index] => GetRowSafe((int) index);
 

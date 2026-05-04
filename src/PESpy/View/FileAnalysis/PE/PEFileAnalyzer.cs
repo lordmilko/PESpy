@@ -121,10 +121,10 @@ namespace PESpy.View
                     foreach (var thunk in thunks)
                     {
                         //The last null function
-                        if (thunk.Value == 0 || !_peFile.TryGetRVA(thunk.Offset, out var rva))
+                        if (thunk.Value == 0 || !_peFile.TryGetRVA((int) thunk.Offset, out var rva))
                             continue;
 
-                        importMap[imageBase + rva] = wantVirtual ? rva : thunk.Offset;
+                        importMap[imageBase + rva] = wantVirtual ? rva : (int) thunk.Offset;
                     }
                 }
             }
@@ -888,7 +888,7 @@ namespace PESpy.View
             }
         }
 
-        private void MarkUnwindInfoRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkUnwindInfoRegions(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd, Dictionary<long, int> largeAddresses)
         {
             var length = pViewByte->GetLength(pEnd);
 
@@ -963,7 +963,7 @@ namespace PESpy.View
             _extraRegions.Add(builder);
         }
 
-        private void MarkILMethodRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd)
+        private void MarkILMethodRegion(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd)
         {
             var length = pViewByte->GetLength(pEnd);
 
@@ -1063,7 +1063,7 @@ namespace PESpy.View
             _extraRegions.Add(builder);
         }
 
-        private void MarkFunctionRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkFunctionRegions(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd, Dictionary<long, int> largeAddresses)
         {
             var builder = new RegionBuilder
             {
@@ -1157,7 +1157,7 @@ namespace PESpy.View
             }
         }
 
-        private void MarkImportByNameRegion(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkImportByNameRegion(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd, Dictionary<long, int> largeAddresses)
         {
             var builder = new RegionBuilder
             {
@@ -1225,7 +1225,7 @@ namespace PESpy.View
             }
         }
 
-        private void MarkStringRegions(ref ViewByte* pViewByte, ref int targetAddress, ViewByte* pEnd, Dictionary<int, int> largeAddresses)
+        private void MarkStringRegions(ref ViewByte* pViewByte, ref long targetAddress, ViewByte* pEnd, Dictionary<long, int> largeAddresses)
         {
             var builder = new RegionBuilder
             {

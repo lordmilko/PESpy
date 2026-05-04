@@ -280,7 +280,7 @@ namespace PESpy.Ecma335
         public DeclSecurityAttributeList GetDeclSecurityAttributes(TypeDefIndex index) =>
             new DeclSecurityAttributeList(CompressedModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.TypeDef));
 
-        public int GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public TypeDefRow this[TypeDefIndex index] => GetRowSafe((int) index);
 

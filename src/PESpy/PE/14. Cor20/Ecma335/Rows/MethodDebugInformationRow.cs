@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex SequencePoints => table.GetSequencePoints(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public DocumentRow? DocumentRow

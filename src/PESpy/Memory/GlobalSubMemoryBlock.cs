@@ -5,7 +5,7 @@ namespace PESpy
 {
     internal class GlobalSubMemoryBlock : MemoryBlock, ISymbolMemoryBlock
     {
-        public override int Length { get; }
+        public override long Length { get; }
 
         HashSet<long> ISymbolMemoryBlock.SymbolMemory => ((ISymbolMemoryBlock) parent).SymbolMemory;
 
@@ -13,13 +13,13 @@ namespace PESpy
 
         private GlobalMemoryBlock parent;
 
-        public unsafe GlobalSubMemoryBlock(byte* mmf, int length, int offset, object owner, GlobalMemoryBlock parent) : base(null)
+        public unsafe GlobalSubMemoryBlock(byte* mmf, long length, int offset, object owner, GlobalMemoryBlock parent) : base(null)
         {
             LocalPointer = mmf;
             Length = length;
             Owner = owner;
             RemoteStartOffset = offset;
-            RemoteEndOffset = offset + Length;
+            RemoteEndOffset = offset + (int) Length;
             this.parent = parent;
         }
 

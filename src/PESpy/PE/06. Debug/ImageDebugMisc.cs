@@ -26,7 +26,7 @@ namespace PESpy
 
         public NullTerminatedString Data => chunk.PeekNullTerminatedString(DataOffset, Unicode ? StringKind.UTF16 : StringKind.ANSI);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) +  //DataType

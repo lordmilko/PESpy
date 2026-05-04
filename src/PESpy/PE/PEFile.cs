@@ -33,7 +33,7 @@ namespace PESpy
         public string? Name => peFile.Name;
         public string? FileName => peFile.FileName;
         public FileKind Kind => peFile.Kind;
-        public int Length => peFile.Length;
+        public long Length => peFile.Length;
         public bool Is32Bit => peFile.Is32Bit;
 
         public ImageDosHeader DosHeader => peFile.DosHeader;
@@ -792,10 +792,10 @@ namespace PESpy
 
         //In a single file app, the nested PEFile instances use NestedMemoryBlockProvider which is
         //a type of LocalMemoryBlockProvider
-        public int Length => blockProvider is LocalMemoryBlockProvider l ? (int) l.Length : (int) OptionalHeader.SizeOfImage;
+        public long Length => blockProvider is LocalMemoryBlockProvider l ? (int) l.Length : (int) OptionalHeader.SizeOfImage;
 
         /// <summary>
-        /// Gets whether this <see cref="PEFile"/> represents a 32-bit file; that is, whether <see cref="ImageOptionalHeader.Magic"/> is <see cref="PEMagic.PE32"/>.
+        /// Gets whether this <see cref="PEFile"/> represents a 32-bit file; that is, whether <see cref="ImageOptionalHeader.Magic"/> is <see cref="PEMagic.IMAGE_NT_OPTIONAL_HDR32_MAGIC"/>.
         /// </summary>
         public bool Is32Bit => headerBlock.Is32Bit;
 
@@ -844,7 +844,7 @@ namespace PESpy
                     int end;
 
                     if (RichHeader != null)
-                        end = RichHeader.Offset;
+                        end = (int) RichHeader.Offset;
                     else
                     {
                         //We know there isn't a RichHeader. Read up until the start of the new PE Header
@@ -1328,7 +1328,7 @@ namespace PESpy
             {
                 var copyrightTable = OptionalHeader.CopyrightTableDirectory;
 
-                if (copyrightTable.HasData && TryGetValueChunkFromPhysicalOffset(copyrightTable.Offset, out var chunk) && copyrightTable.Size < chunk.Remaining)
+                if (copyrightTable.HasData && TryGetValueChunkFromPhysicalOffset((int) copyrightTable.Offset, out var chunk) && copyrightTable.Size < chunk.Remaining)
                     return new RawValue<FixedAnsiString>(chunk.AbsoluteOffset, chunk.PeekAnsiFixedLength(0, copyrightTable.Size));
 
                 return default;
@@ -3775,7 +3775,7 @@ namespace PESpy
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = headerBlock.LocalPointer;
-            remainingLength = headerBlock.Length;
+            remainingLength = (int) headerBlock.Length;
         }
 
         public unsafe bool TryGetRawOverlayData(out byte* ptr, out int remainingLength)
@@ -3840,7 +3840,7 @@ namespace PESpy
             if (TryGetSectionBlockFromRVA(rva, out var block, out var relativeOffset))
             {
                 ptr = block.LocalPointer + relativeOffset;
-                remainingLength = block.Length - relativeOffset;
+                remainingLength = (int) block.Length - relativeOffset;
                 return;
             }
 
@@ -3855,7 +3855,7 @@ namespace PESpy
 
             var relativeOffset = rva - section.VirtualAddress;
             ptr = block.LocalPointer + relativeOffset;
-            remainingLength = block.Length - relativeOffset;
+            remainingLength = (int) block.Length - relativeOffset;
         }
 
         public unsafe void GetRawSectionDataFromOffset(int offset, out byte* ptr, out int remainingLength)
@@ -3863,7 +3863,7 @@ namespace PESpy
             if (TryGetSectionBlockFromOffset(offset, out var block, out var relativeOffset))
             {
                 ptr = block.LocalPointer + relativeOffset;
-                remainingLength = block.Length - relativeOffset;
+                remainingLength = (int) block.Length - relativeOffset;
                 return;
             }
 
@@ -3879,7 +3879,7 @@ namespace PESpy
             var block = GetSectionBlock(sectionIndex, section);
 
             ptr = block.LocalPointer + relativeOffset;
-            remainingLength = block.Length - relativeOffset;
+            remainingLength = (int) block.Length - relativeOffset;
         }
 
         public unsafe void GetRawSectionDataFromRelativeOffset(int relativeOffset, int sectionIndex, out byte* ptr, out int remainingLength)
@@ -3891,7 +3891,7 @@ namespace PESpy
             var block = GetSectionBlock(sectionIndex, section);
 
             ptr = block.LocalPointer + relativeOffset;
-            remainingLength = block.Length - relativeOffset;
+            remainingLength = (int) block.Length - relativeOffset;
         }
 
         public bool TryGetSectionContainingRVA(int rva, out int index, out ImageSectionHeader header)

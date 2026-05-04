@@ -43,7 +43,7 @@ namespace PESpy.View
             return NewStruct(value.Offset, kind, structSize);
         }
 
-        private IView? NewStruct(int offset, ViewKind kind, int structSize)
+        private IView? NewStruct(long offset, ViewKind kind, int structSize)
         {
             var name = ViewProvider.GetName(kind);
 
@@ -56,15 +56,15 @@ namespace PESpy.View
             return null;
         }
 
-        protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
+        protected internal override IView? NewValue<T>(long offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
             return RegisterValue(offset, size, kind, fromRegion);
         }
 
-        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind) =>
+        public override void WriteGlobalField<T>(long offset, in T value, int size, ViewKind kind) =>
             RegisterGlobalField(offset, size, kind);
 
-        private void RegisterGlobalField(int offset, int size, ViewKind kind)
+        private void RegisterGlobalField(long offset, int size, ViewKind kind)
         {
             //While it's not really a struct, we treat it like one since it has a ViewKind and then special
             //case it accordingly
@@ -75,7 +75,7 @@ namespace PESpy.View
         }
 
         private IView? RegisterValue(
-            int offset,
+            long offset,
             int size,
             ViewKind kind,
             bool fromRegion)
@@ -98,7 +98,7 @@ namespace PESpy.View
             return null;
         }
 
-        public override ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
+        public override ByteBlobView? WritePadding(long offset, NativeSpan<byte> bytes)
         {
             var pViewByte = _fileAccessor.GetViewByte(offset, out var sectionAccessorIndex);
             Debug.Assert(pViewByte->Kind != ViewByteKind.Body);
@@ -109,11 +109,11 @@ namespace PESpy.View
             return null;
         }
 
-        private void SetPagedBody(int offset, int size, ViewByte* pViewByte, int sectionAccessorIndex)
+        private void SetPagedBody(long offset, int size, ViewByte* pViewByte, int sectionAccessorIndex)
         {
             var pageSize = _pageSize;
 
-            var relativeOffset = offset & (pageSize - 1); //Faster modulo
+            var relativeOffset = (int) (offset & (pageSize - 1)); //Faster modulo
 
             var dataEndOffset = relativeOffset + size;
 
@@ -188,7 +188,7 @@ namespace PESpy.View
                     else
                     {
                         //We can write multiple page's worth in one go
-                        numBytesToWrite = Math.Min(remaining, (sectionAccessor.EndAddress - currentSegmentStart));
+                        numBytesToWrite = Math.Min(remaining, (int) (sectionAccessor.EndAddress - currentSegmentStart));
                     }
 
                     /* We want to execute

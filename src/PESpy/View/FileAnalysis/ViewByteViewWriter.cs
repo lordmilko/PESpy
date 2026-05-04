@@ -58,7 +58,7 @@ namespace PESpy.View
             return null;
         }
 
-        internal void NewStruct(int offset, int structSize, ViewKind kind)
+        internal void NewStruct(long offset, int structSize, ViewKind kind)
         {
             //Don't use FileAccessor.AddStruct here because we need to special case the body of IL methods
 
@@ -80,14 +80,14 @@ namespace PESpy.View
                 i->Kind = ViewByteKind.Body;
         }
 
-        internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
+        internal override RegionWriter CreateRegion(long offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
         {
             EnterRegion(offset, name, global, kind);
 
             return base.CreateRegion(offset, name, kind, global, nestedViewWriter);
         }
 
-        internal override RegionWriter CreateRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, bool global
+        internal override RegionWriter CreateRegion(long offset, long structOffset, int fieldOffset, string name, ViewKind kind, bool global
 #if DEBUG
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
             , long listedAddress
@@ -112,7 +112,7 @@ namespace PESpy.View
             );
         }
 
-        internal override RegionWriter CreateScopedRegion(int offset, int structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
+        internal override RegionWriter CreateScopedRegion(long offset, long structOffset, int fieldOffset, string name, ViewKind kind, ViewKind scopeKind
 #if DEBUG
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
             , int listedOffset
@@ -137,7 +137,7 @@ namespace PESpy.View
             );
         }
 
-        private void EnterRegion(int offset, string name, bool global, ViewKind kind)
+        private void EnterRegion(long offset, string name, bool global, ViewKind kind)
         {
             var shouldAdd = TryGetViewOffset(offset, out offset);
 
@@ -218,7 +218,7 @@ namespace PESpy.View
             _nestedFileDepth--;
         }
 
-        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
+        public override void WriteOffsetXRef(long structOffset, int fieldOffset, long targetOffset)
         {
 #if DEBUG
             VerifyWritingUniqueXRef();
@@ -234,10 +234,10 @@ namespace PESpy.View
 
             //Don't use TryGetTargetAddress because targetOffset is not an RVA
             if (TryGetViewOffset(targetOffset, out var targetAddress))
-                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
+                _fileAnalyzer.AddXRef((int) structOffset + fieldOffset, (int) targetAddress);
         }
 
-        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        public override void WriteRVAXRef(long structOffset, int fieldOffset, int targetRVA)
         {
 #if DEBUG
             VerifyWritingUniqueXRef();
@@ -250,10 +250,10 @@ namespace PESpy.View
                 return;
 
             if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
-                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
+                _fileAnalyzer.AddXRef((int) structOffset + fieldOffset, targetAddress);
         }
 
-        public void WriteTargetAddressXRef(int structOffset, int fieldOffset, int targetRVA)
+        public void WriteTargetAddressXRef(long structOffset, int fieldOffset, int targetRVA)
         {
 #if DEBUG
             VerifyWritingUniqueXRef();
@@ -265,10 +265,10 @@ namespace PESpy.View
             //structOffset is already in targetAddress space, so we don't need to convert it
 
             if (_fileAccessor.TryGetTargetAddress(targetRVA, out var targetAddress, out _))
-                _fileAnalyzer.AddXRef(structOffset + fieldOffset, targetAddress);
+                _fileAnalyzer.AddXRef((int) structOffset + fieldOffset, targetAddress);
         }
 
-        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetVA)
         {
 #if DEBUG
             VerifyWritingUniqueXRef();
@@ -277,7 +277,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal void RegisterStruct(ViewByte* pViewByte, int offset, ViewKind kind)
+        internal void RegisterStruct(ViewByte* pViewByte, long offset, ViewKind kind)
         {
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
@@ -302,7 +302,7 @@ namespace PESpy.View
                 i->Kind = ViewByteKind.Body;
         }
 
-        protected internal override unsafe IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
+        protected internal override unsafe IView? NewValue<T>(long offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
             //Note that if we're pretending to be virtual when we're physical, we _don't_ need to update
             //the offset here, because the caller should have done that for us and the offset we receive
@@ -312,10 +312,10 @@ namespace PESpy.View
             return RegisterValue(offset, size, kind, fromRegion);
         }
 
-        public override void WriteGlobalField<T>(int offset, in T value, int size, ViewKind kind) =>
+        public override void WriteGlobalField<T>(long offset, in T value, int size, ViewKind kind) =>
             RegisterGlobalField(offset, size, kind);
 
-        private void RegisterGlobalField(int offset, int size, ViewKind kind)
+        private void RegisterGlobalField(long offset, int size, ViewKind kind)
         {
             if (!TryGetViewOffset(offset, out offset))
                 return;
@@ -330,7 +330,7 @@ namespace PESpy.View
         }
 
         private IView? RegisterValue(
-            int offset,
+            long offset,
             int size,
             ViewKind kind,
             bool fromRegion)
@@ -350,7 +350,7 @@ namespace PESpy.View
         }
 
         protected ViewByte* RegisterValueInternal(
-            int offset,
+            long offset,
             int size,
             ViewKind kind,
             out int sectionAccessorIndex)
@@ -555,7 +555,7 @@ namespace PESpy.View
             }
         }
 
-        public override void WriteIL(int offset, NativeSpan<byte> ilBytes)
+        public override void WriteIL(long offset, NativeSpan<byte> ilBytes)
         {
             if (!TryGetViewOffset(offset, out offset))
                 return;
@@ -585,7 +585,7 @@ namespace PESpy.View
             return null;
         }
 
-        public override ByteBlobView? WritePadding(int offset, NativeSpan<byte> bytes)
+        public override ByteBlobView? WritePadding(long offset, NativeSpan<byte> bytes)
         {
             if (!TryGetViewOffset(offset, out offset))
                 return null;

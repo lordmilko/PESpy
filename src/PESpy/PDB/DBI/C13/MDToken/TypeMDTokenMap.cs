@@ -15,11 +15,11 @@ namespace PESpy.PDB
         //that pertains to it
         public NativeSpan<byte> TypeData { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize => sizeof(int) + (Entries.Length * Entry.StructSize) + TypeData.Length;
 
-        internal TypeMDTokenMap(int offset, int numEntries, Entry[] entries, NativeSpan<byte> typeData)
+        internal TypeMDTokenMap(long offset, int numEntries, Entry[] entries, NativeSpan<byte> typeData)
         {
             Offset = offset;
             NumEntries = numEntries;
@@ -44,21 +44,21 @@ namespace PESpy.PDB
 
             public unsafe bool HasSmallTypeSig => (byte*) LargeTypeSig == default;
 
-            private readonly int structOffset;
-            int IValue.Offset => structOffset;
+            private readonly long structOffset;
+            long IValue.Offset => structOffset;
 
             internal const int StructSize =
                 sizeof(int) +
                 sizeof(int);
 
-            internal Entry(int structOffset, TypOrEnumType typeIndex, int smallTypeSig)
+            internal Entry(long structOffset, TypOrEnumType typeIndex, int smallTypeSig)
             {
                 this.structOffset = structOffset;
                 TypeIndex = typeIndex;
                 SmallTypeSig = smallTypeSig;
             }
 
-            internal Entry(int structOffset, TypOrEnumType typeIndex, uint offset, NativeSpan<byte> largeTypeSig)
+            internal Entry(long structOffset, TypOrEnumType typeIndex, uint offset, NativeSpan<byte> largeTypeSig)
             {
                 this.structOffset = structOffset;
                 TypeIndex = typeIndex;

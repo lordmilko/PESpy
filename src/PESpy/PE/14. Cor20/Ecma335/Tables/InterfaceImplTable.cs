@@ -69,7 +69,7 @@
         public CustomAttributeList GetCustomAttributes(InterfaceImplIndex index) =>
             new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.InterfaceImpl));
 
-        public int GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public InterfaceImplRow this[InterfaceImplIndex index] => GetRowSafe((int) index);
 

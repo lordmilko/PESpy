@@ -16,7 +16,7 @@ namespace PESpy.PDB
         /// </summary>
         public Array Lines { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -36,7 +36,7 @@ namespace PESpy.PDB
             }
         }
 
-        internal InlineeSigAndLines(int offset, CV_INLINEELINES_SIGNATURE signature, Array lines)
+        internal InlineeSigAndLines(long offset, CV_INLINEELINES_SIGNATURE signature, Array lines)
         {
             Offset = offset;
             Signature = signature;

@@ -42,7 +42,7 @@ namespace PESpy
 
         public object Data { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //SubSection

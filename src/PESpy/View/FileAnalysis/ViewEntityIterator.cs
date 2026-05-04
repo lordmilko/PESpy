@@ -12,11 +12,11 @@ namespace PESpy.View
         internal readonly SectionAccessor SectionAccessor;
         internal readonly int SectionAccessorIndex;
         private readonly int _startOffset;
-        internal readonly int StartTargetAddress;
+        internal readonly long StartTargetAddress;
         private readonly int _sectionLength;
         private readonly IntPtr _pBytes;
-        private readonly Dictionary<int, FileAccessor.ViewInfo> _infoMap;
-        private readonly Dictionary<int, int> _largeAddresses;
+        private readonly Dictionary<long, FileAccessor.ViewInfo> _infoMap;
+        private readonly Dictionary<long, int> _largeAddresses;
 
         private int _bytesRead;
         private bool _hasMovedNext; //When we SliceFromCurrent, if we haven't called MoveNext after calling MoveTo, bytesRead hasn't been incremented so we don't need to subtract Current.Length
@@ -30,8 +30,8 @@ namespace PESpy.View
             int sectionAccessorIndex,
             int sectionLength,
             IntPtr pBytes,
-            Dictionary<int, FileAccessor.ViewInfo> infoMap,
-            Dictionary<int, int> largeAddresses)
+            Dictionary<long, FileAccessor.ViewInfo> infoMap,
+            Dictionary<long, int> largeAddresses)
         {
             _fileAccessor = fileAccessor;
             _startOffset = startOffset;
@@ -88,9 +88,9 @@ namespace PESpy.View
             return true;
         }
 
-        public bool MoveTo(int offset)
+        public bool MoveTo(long offset)
         {
-            _bytesRead = offset - SectionAccessor.StartAddress;
+            _bytesRead = (int) (offset - SectionAccessor.StartAddress);
             Debug.Assert(_bytesRead >= _startOffset);
 
             if (_bytesRead >= _sectionLength)
@@ -109,7 +109,7 @@ namespace PESpy.View
         {
             public IList<RegionBuilder> Regions;
             public int NextRegionIndex;
-            public int NextRegionOffset;
+            public long NextRegionOffset;
             public bool HasRegions => Regions?.Count > 0;
 
             public NestedFileRange[] NestedFiles;
@@ -119,7 +119,7 @@ namespace PESpy.View
 
             public IList<RegionBuilder> DataDirectories;
             public int NextDataDirectoryIndex;
-            public int NextDataDirectoryOffset;
+            public long NextDataDirectoryOffset;
             public bool HasDataDirectories => DataDirectories?.Count > 0;
         }
 
@@ -300,9 +300,9 @@ namespace PESpy.View
 
         private void FindStartRegion(
             IList<RegionBuilder> list,
-            int targetStart,
+            long targetStart,
             ref int index,
-            ref int offset)
+            ref long offset)
         {
             while (index < list.Count)
             {
@@ -320,7 +320,7 @@ namespace PESpy.View
 
         //Find the nest nested file at or after the current address
         private void FindStartNestedFile(
-            int targetStart,
+            long targetStart,
             ref CountState state)
         {
             while (state.NextNestedFileIndex < state.NestedFiles.Length)
@@ -341,7 +341,7 @@ namespace PESpy.View
             ref IList<RegionBuilder> list,
             int depthAtStartOffset,
             ref int index,
-            ref int offset)
+            ref long offset)
         {
             //Drill in to the current depth
 
@@ -375,7 +375,7 @@ namespace PESpy.View
         {
             var directory = state.DataDirectories[state.NextDataDirectoryIndex];
 
-            var endOffset = directory.End - sectionAccessor.StartAddress;
+            var endOffset = (int) (directory.End - sectionAccessor.StartAddress);
 
             //If the next region we want to read was inside this directory, we need to skip over that too
             while (state.NextRegionOffset != -1 && state.NextRegionOffset < directory.End)
@@ -417,7 +417,7 @@ namespace PESpy.View
         {
             var region = state.Regions[state.NextRegionIndex];
 
-            var endOffset = region.End - sectionAccessor.StartAddress;
+            var endOffset = (int) (region.End - sectionAccessor.StartAddress);
 
             bytesRead = endOffset;
 
@@ -454,7 +454,7 @@ namespace PESpy.View
         {
             var nestedFile = state.NestedFiles[state.NextNestedFileIndex];
 
-            var endOffset = nestedFile.EndOffset - sectionAccessor.StartAddress;
+            var endOffset = (int) (nestedFile.EndOffset - sectionAccessor.StartAddress);
 
             //If the next region we want to read was inside this nested file, we need to skip over that too
             while (state.NextRegionOffset != -1 && state.NextRegionOffset < nestedFile.EndOffset)

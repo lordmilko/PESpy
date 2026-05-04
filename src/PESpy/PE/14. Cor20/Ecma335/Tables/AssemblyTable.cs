@@ -111,7 +111,7 @@ namespace PESpy.Ecma335
         public DeclSecurityAttributeList GetDeclSecurityAttributes(AssemblyIndex index) =>
             new DeclSecurityAttributeList(CompressedModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.Assembly));
 
-        public int GetRowOffset(AssemblyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(AssemblyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public AssemblyRow this[AssemblyIndex index] => GetRowSafe((int) index);
 

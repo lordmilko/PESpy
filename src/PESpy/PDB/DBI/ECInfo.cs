@@ -15,7 +15,7 @@ namespace PESpy.PDB
 
         public int niPdbFile => chunk.PeekInt32(niPdbFileOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //niSrcFile

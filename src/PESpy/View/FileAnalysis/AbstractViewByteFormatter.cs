@@ -52,7 +52,7 @@ namespace PESpy.View
         private ViewByte* _sectionViewByteStart;
         private ViewByte* _sectionViewByteEnd;
         private ViewByte* _currentGlobalViewByte;
-        protected int _rva;
+        protected long _rva;
         protected byte* _pBytes;
         private int _addressWidth;
         protected int _numLinesWritten;
@@ -81,13 +81,13 @@ namespace PESpy.View
             return span;
         }
 
-        public int LastAddress
+        public long LastAddress
         {
             get
             {
                 if (_path.Count > 0)
                 {
-                    var offset = 0;
+                    long offset = 0;
 
                     foreach (var item in _path)
                     {
@@ -147,7 +147,7 @@ namespace PESpy.View
             {
                 var dosStub = p.PEFile.DosStub;
 
-                _dosStubStart = dosStub.Offset;
+                _dosStubStart = (int) dosStub.Offset;
                 _dosStubEnd = _dosStubStart + dosStub.Bytes.Length;
             }
         }
@@ -166,8 +166,8 @@ namespace PESpy.View
         //into a struct, the visitor will automatically initialize the path such that it starts
         //at the value found at the given address.
         public void StartWithOwner(
-            int targetAddress, //The address of the first value to print. This may be the start of an entity, the start of a field, or partway into a field
-            int ownerAddress, //The top level entity that owns the targetAddress
+            long targetAddress, //The address of the first value to print. This may be the start of an entity, the start of a field, or partway into a field
+            long ownerAddress, //The top level entity that owns the targetAddress
             int numLinesNeeded)
         {
             if (_path.Count > 0)
@@ -201,7 +201,7 @@ namespace PESpy.View
         }
 
         //All we know is that we want to start from a given address, but we don't know who owns it
-        public void StartWithoutOwner(int targetAddress, int numLinesNeeded)
+        public void StartWithoutOwner(long targetAddress, int numLinesNeeded)
         {
             var pViewByte = _fileAccessor.GetViewByte(targetAddress, out var sectionAccessorIndex);
 
@@ -210,7 +210,7 @@ namespace PESpy.View
             ref var sectionAccessor = ref sectionAccessors[sectionAccessorIndex];
             _currentSectionName = sectionAccessor.Name;
             _sectionViewByteStart = sectionAccessor.pViewBytes;
-            _sectionViewByteEnd = sectionAccessor.pViewBytes + sectionAccessor.Length;
+            _sectionViewByteEnd = sectionAccessor.pViewBytesEnd;
 
             var ownerAddress = targetAddress;
 
@@ -294,7 +294,7 @@ namespace PESpy.View
             _fileAccessor.GetRawSectionData(sectionAccessor, out var pBytes, out var rva, out _);
 
             _sectionViewByteStart = sectionAccessor.pViewBytes;
-            _sectionViewByteEnd = sectionAccessor.pViewBytes + sectionAccessor.Length;
+            _sectionViewByteEnd = sectionAccessor.pViewBytesEnd;
 
             var relativeOffset = (int) (pViewByte - sectionAccessor.pViewBytes);
 
@@ -667,8 +667,8 @@ namespace PESpy.View
         {
             Debug.Assert(this.Direction == Direction.Down);
 
-            int targetAddress = -1;
-            var lastParentSize = -1;
+            long targetAddress = -1;
+            long lastParentSize = -1;
 
             IncrementResult incrementResult = IncrementResult.End;
 
@@ -967,7 +967,7 @@ namespace PESpy.View
 
         #region ProcessViewByte
 
-        private void ProcessViewByte(ViewByte* pViewByte, int targetAddress, int ownerAddress)
+        private void ProcessViewByte(ViewByte* pViewByte, long targetAddress, long ownerAddress)
         {
             EntityState state;
 
@@ -1008,7 +1008,7 @@ namespace PESpy.View
         }
 
         //We don't need to pass in owner address; we only support imprecise
-        protected abstract void ProcessCode(ViewByte* pViewByte, int targetAddress, EntityState state);
+        protected abstract void ProcessCode(ViewByte* pViewByte, long targetAddress, EntityState state);
 
         protected void ReverseLogicalLines(int startNumLogicalLines)
         {
@@ -1034,7 +1034,7 @@ namespace PESpy.View
             return targetAddress >= _dosStubStart && targetAddress < _dosStubEnd;
         }
 
-        private void ProcessData(ViewByte* pViewByte, int targetAddress, int ownerAddress)
+        private void ProcessData(ViewByte* pViewByte, long targetAddress, long ownerAddress)
         {
             switch (pViewByte->DataKind)
             {
@@ -1072,7 +1072,7 @@ namespace PESpy.View
             }
         }
 
-        private void ProcessStructView(ViewByte* pViewByte, int targetAddress, int ownerAddress)
+        private void ProcessStructView(ViewByte* pViewByte, long targetAddress, long ownerAddress)
         {
             Debug.Assert(_rva != -1);
 
@@ -1102,7 +1102,7 @@ namespace PESpy.View
         }
 
         //It doesn't matter what the target address is, we only write a single line here
-        private void ProcessString(ViewByte* pViewByte, int ownerAddress)
+        private void ProcessString(ViewByte* pViewByte, long ownerAddress)
         {
 #if DEBUG
             var startLinesWritten = _numLinesWritten;
@@ -1149,7 +1149,7 @@ namespace PESpy.View
             });
         }
 
-        private void ProcessNumericData(ViewByte* pViewByte, int targetAddress, int ownerAddress)
+        private void ProcessNumericData(ViewByte* pViewByte, long targetAddress, long ownerAddress)
         {
             Debug.Assert(targetAddress == ownerAddress, "Starting in the middle is not yet implemented");
 
@@ -1271,7 +1271,7 @@ namespace PESpy.View
             AppendLine(targetAddress, length);
         }
 
-        private void ProcessUnknownData(ViewByte* pViewByte, int targetAddress, int ownerAddress)
+        private void ProcessUnknownData(ViewByte* pViewByte, long targetAddress, long ownerAddress)
         {
             Debug.Assert(targetAddress == ownerAddress, "Starting in the middle is not yet implemented");
 
@@ -1298,7 +1298,7 @@ namespace PESpy.View
             WriteBytes_old(new Span<byte>(_pBytes, length), targetAddress, 4);
         }
 
-        private void ProcessRawData(ViewByte* pViewByte, int targetAddress, int ownerAddress, string name, int length, EntityState state)
+        private void ProcessRawData(ViewByte* pViewByte, long targetAddress, long ownerAddress, string name, int length, EntityState state)
         {
             const int bytesPerLine = 100;
 
@@ -1312,7 +1312,7 @@ namespace PESpy.View
             {
                 var lineNumber = (offset + bytesWrittenThisRequest) / bytesPerLine;
                 var lineStart = lineNumber * bytesPerLine;
-                var remaining = length - lineStart;
+                var remaining = (int) (length - lineStart);
                 var lineLength = Math.Min(bytesPerLine, remaining);
 
                 var lineBytes = new Span<byte>(_pBytes + lineStart, lineLength);
@@ -1417,7 +1417,7 @@ namespace PESpy.View
             var kind = *_pBytes; //either 0x00 or 0xCC
 
             int effectiveLength;
-            int startOffset = 0;
+            long startOffset = 0;
             bool isComplete;
 
             if (targetAddress == ownerAddress)
@@ -1438,7 +1438,7 @@ namespace PESpy.View
                 var off = targetAddress - ownerAddress;
                 var lineNum = off / bytesPerLine;
                 startOffset = lineNum * bytesPerLine;
-                effectiveLength = Math.Min(bytesPerLine, length - startOffset);
+                effectiveLength = Math.Min(bytesPerLine, (int) (length - startOffset));
 
                 isComplete = effectiveLength == length;
             }
@@ -1464,7 +1464,7 @@ namespace PESpy.View
             //todo: need to support suspend and resume
         }
 
-        private void WriteBytes(int lineStart, Span<byte> lineBytes)
+        private void WriteBytes(long lineStart, Span<byte> lineBytes)
         {
             WriteLinePrefix(lineStart);
 
@@ -1495,7 +1495,7 @@ namespace PESpy.View
         {
             //We write a line before the start of code, but not before the start of structs.
             //So if the next address is not going to be code, we should add a line
-            var temp = 0;
+            long temp = 0;
             var result = GetIncrementResult(pViewByte, ref temp);
 
             switch (result)
@@ -1533,14 +1533,14 @@ namespace PESpy.View
         //todo: our lines are no good, we're doubling up and also we need our xfg bytes to
         //be included in the function area
 
-        private void WriteDivider(int targetAddress)
+        private void WriteDivider(long targetAddress)
         {
             WriteLinePrefixNoSpace(targetAddress);
             AppendFormat(" ---------------------------------------------------------------------------", ViewByteFormatKind.Line);
             AppendLine(targetAddress, 0);
         }
 
-        private int WriteDividerPrefix(int targetAddress)
+        private int WriteDividerPrefix(long targetAddress)
         {
             WriteLinePrefixNoSpace(targetAddress);
 
@@ -1553,7 +1553,7 @@ namespace PESpy.View
             return startPos;
         }
 
-        private void WriteDividerSuffix(int targetAddress, int startPos)
+        private void WriteDividerSuffix(long targetAddress, int startPos)
         {
             _builder.Append(' ');
 
@@ -1566,7 +1566,7 @@ namespace PESpy.View
 
         #endregion
 
-        private IView BuildPathToAddress(IView view, int targetAddress)
+        private IView BuildPathToAddress(IView view, long targetAddress)
         {
             //For all nodes up to the result, add them to the path. We don't add the result to the path
             //because they'll be added when the caller calls Accept() on the result
@@ -1625,7 +1625,7 @@ namespace PESpy.View
             }
         }
 
-        private void BuildForwardPathToDepth(EntityState current, int targetAddress, int targetDepth)
+        private void BuildForwardPathToDepth(EntityState current, long targetAddress, int targetDepth)
         {
             throw new NotImplementedException();
         }
@@ -1635,7 +1635,7 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        private void WriteBytes_old(Span<byte> data, int targetAddress, int bytesPerLine)
+        private void WriteBytes_old(Span<byte> data, long targetAddress, int bytesPerLine)
         {
             //todo: need to support suspend and resume, we could potentially have a lot
             //of padding!
@@ -1695,7 +1695,7 @@ namespace PESpy.View
             }
         }
 
-        protected IncrementResult IncrementBytes(int increment, ref ViewByte* pViewByte, ref int targetAddress)
+        protected IncrementResult IncrementBytes(long increment, ref ViewByte* pViewByte, ref long targetAddress)
         {
             pViewByte += increment;
             targetAddress += increment;
@@ -1705,7 +1705,7 @@ namespace PESpy.View
             return GetIncrementResult(pViewByte, ref targetAddress);
         }
 
-        protected bool DecrementBytes(ref ViewByte* pViewByte, ref int targetAddress)
+        protected bool DecrementBytes(ref ViewByte* pViewByte, ref long targetAddress)
         {
             if (pViewByte == _sectionViewByteStart)
             {
@@ -1718,7 +1718,7 @@ namespace PESpy.View
 
                 ref var sectionAccessor = ref _fileAccessor.SectionAccessors[_sectionAccessorIndex];
 
-                pViewByte = sectionAccessor.pViewBytes + sectionAccessor.Length - 1;
+                pViewByte = sectionAccessor.pViewBytesEnd - 1;
                 targetAddress = sectionAccessor.EndAddress - 1;
 
                 //We've reached the start of the value in any case
@@ -1757,7 +1757,7 @@ namespace PESpy.View
             return true;
         }
 
-        private IncrementResult GetIncrementResult(ViewByte* pViewByte, ref int targetAddress)
+        private IncrementResult GetIncrementResult(ViewByte* pViewByte, ref long targetAddress)
         {
             if (pViewByte >= _sectionViewByteEnd)
             {
@@ -2568,7 +2568,7 @@ namespace PESpy.View
 
         #endregion
 
-        protected void WriteLinePrefix(int targetAddress, bool isGlobal = false)
+        protected void WriteLinePrefix(long targetAddress, bool isGlobal = false)
         {
             WriteLinePrefixNoSpace(targetAddress);
 
@@ -2585,14 +2585,14 @@ namespace PESpy.View
                 _builder.Append("    ");
         }
 
-        protected void WriteLinePrefixNoSpace(int targetAddress)
+        protected void WriteLinePrefixNoSpace(long targetAddress)
         {
             _builder.Append(_currentSectionName);
             _builder.Append(':');
             _builder.AppendHex((ulong) targetAddress, _addressWidth);
         }
 
-        protected void WriteName(int targetAddress) =>
+        protected void WriteName(long targetAddress) =>
             WriteName(_fileAccessor.GetName(targetAddress));
 
         protected void WriteName(FixedUtf8String name)
@@ -2617,7 +2617,7 @@ namespace PESpy.View
                 AppendFormat(name, ViewByteFormatKind.Symbol);
         }
 
-        protected void AppendLine(int startOffset, int length)
+        protected void AppendLine(long startOffset, int length)
         {
             _builder.Append('\n');
             _numLinesWritten++;

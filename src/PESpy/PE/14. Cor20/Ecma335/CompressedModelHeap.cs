@@ -131,7 +131,7 @@ namespace PESpy.Ecma335
 
         public int Size { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MetadataSizes sizes;
 

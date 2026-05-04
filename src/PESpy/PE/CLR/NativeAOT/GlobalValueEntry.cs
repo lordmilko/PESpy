@@ -38,7 +38,7 @@ namespace PESpy.NativeAOT
 
         public ulong Address => chunk.PeekPointer(AddressOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal static int StructSize(bool is32Bit) =>
             2 * (is32Bit ? 4 : 8); //Name / Address

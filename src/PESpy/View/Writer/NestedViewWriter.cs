@@ -41,29 +41,29 @@ namespace PESpy.View
             throw new System.NotImplementedException();
         }
 
-        protected internal override IView? NewValue<T>(int offset, in T value, int size, ViewKind kind, bool fromRegion)
+        protected internal override IView? NewValue<T>(long offset, in T value, int size, ViewKind kind, bool fromRegion)
         {
             return outerWriter.NewValue(offset, value, size, kind, fromRegion);
         }
 
-        public override void WriteOffsetXRef(int structOffset, int fieldOffset, int targetOffset)
+        public override void WriteOffsetXRef(long structOffset, int fieldOffset, long targetOffset)
         {
             outerWriter.WriteOffsetXRef(structOffset, fieldOffset, targetOffset);
         }
 
-        public override void WriteRVAXRef(int structOffset, int fieldOffset, int targetRVA)
+        public override void WriteRVAXRef(long structOffset, int fieldOffset, int targetRVA)
         {
             outerWriter.WriteRVAXRef(structOffset, fieldOffset, targetRVA);
         }
 
-        public override void WriteVAXRef(int structOffset, int fieldOffset, int targetVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetVA)
         {
             outerWriter.WriteVAXRef(structOffset, fieldOffset, targetVA);
         }
 
         internal override RegionWriter CreateRegion(
-            int offset,
-            int structOffset,
+            long offset,
+            long structOffset,
             int fieldOffset,
             string name,
             ViewKind kind,
@@ -89,14 +89,14 @@ namespace PESpy.View
             );
         }
 
-        internal override RegionWriter CreateRegion(int offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
+        internal override RegionWriter CreateRegion(long offset, string name, ViewKind kind, bool global = false, ViewWriter nestedViewWriter = null)
         {
             return outerWriter.CreateRegion(offset, name, kind, global, this);
         }
 
         internal override RegionWriter CreateScopedRegion(
-            int offset,
-            int structOffset,
+            long offset,
+            long structOffset,
             int fieldOffset,
             string name,
             ViewKind kind,

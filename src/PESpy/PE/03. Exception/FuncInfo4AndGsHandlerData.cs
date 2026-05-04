@@ -12,7 +12,7 @@ namespace PESpy
 
         public GsHandlerData GsHandlerData { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal unsafe FuncInfo4AndGsHandlerData(in MemoryChunk chunk, int functionAddress)
         {

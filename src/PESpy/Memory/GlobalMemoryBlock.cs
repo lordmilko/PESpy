@@ -5,7 +5,7 @@ namespace PESpy
 {
     internal class GlobalMemoryBlock : MemoryBlock, ISymbolMemoryBlock
     {
-        public override int Length { get; }
+        public override long Length { get; }
 
         public IFile File { get; }
 
@@ -13,7 +13,7 @@ namespace PESpy
 
         HashSet<long> ISymbolMemoryBlock.SymbolMemory => symbolMemory ??= new HashSet<long>();
 
-        public unsafe GlobalMemoryBlock(byte* mmf, int length, IFile file) : base(null)
+        public unsafe GlobalMemoryBlock(byte* mmf, long length, IFile file) : base(null)
         {
             LocalPointer = mmf;
             Length = length;

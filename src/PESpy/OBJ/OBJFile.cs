@@ -53,7 +53,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.OBJ;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         /* When a program is compiled with /GL for link time code generation,
          * obj file begins with ANON_OBJECT_HEADER instead of IMAGE_FILE_HEADER.
@@ -227,7 +227,7 @@ namespace PESpy
             FileHeader = default;
             SectionHeaders = null!;
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             try
             {
@@ -336,12 +336,12 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
-            remainingLength = globalBlock.Length;
+            remainingLength = (int) globalBlock.Length;
         }
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
@@ -458,7 +458,7 @@ namespace PESpy
         {
             lock (c13SymbolMemoryLock)
             {
-                if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
+                if (c13RegisteredSymbolMemory.Add((int) dataChunk.AbsoluteOffset))
                 {
                     var codeViewAccessor = new OBJFileCodeViewAccessor(this, false);
 

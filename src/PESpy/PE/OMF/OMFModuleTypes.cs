@@ -15,7 +15,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public TypTypeList List { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal OMFModuleTypes(
             in MemoryChunk valueChunk,

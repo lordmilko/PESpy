@@ -26,7 +26,7 @@ namespace PESpy.Ecma335
         //MethodList
         public MethodDefIndex MethodList => table.GetMethodList(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object ExtendsRow => Extends.GetRow(table.CompressedModelHeap);

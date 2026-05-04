@@ -28,7 +28,7 @@ namespace PESpy
         private readonly int _functionAddress;
         private readonly byte* _pData; //Enumerator needs to know how many bytes it took to store NumEntries
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -123,14 +123,14 @@ namespace PESpy
         public struct Enumerator : IEnumerator<IPtoStateMapEntry4>
         {
             private readonly int _numEntries;
-            private readonly int _parentOffset;
+            private readonly long _parentOffset;
             private readonly byte* _pStartData;
             private readonly int _functionAddress;
             private byte* _pEntries;
             private int _prevAmount;
             private int _index;
 
-            internal Enumerator(int numEntries, int parentOffset, byte* pData, int functionAddress)
+            internal Enumerator(int numEntries, long parentOffset, byte* pData, int functionAddress)
             {
                 _numEntries = numEntries;
                 _parentOffset = parentOffset;

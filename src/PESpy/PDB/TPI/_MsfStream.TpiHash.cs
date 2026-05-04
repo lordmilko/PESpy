@@ -257,7 +257,7 @@ namespace PESpy.PDB
 
                 //There's no adjustor section, so the size of the TI_OFF_16t records is the size remaining between the end of the hash values
                 //and the end of the stream
-                var tiOffSize = chunk.Remaining - hashValsSize;
+                var tiOffSize = (int) (chunk.Remaining - hashValsSize);
 
                 offcbTiOff = new OffCb
                 {

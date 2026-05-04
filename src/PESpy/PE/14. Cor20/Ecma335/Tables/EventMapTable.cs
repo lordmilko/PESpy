@@ -102,7 +102,7 @@
             return rowNumber + 1;
         }
 
-        public int GetRowOffset(EventMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(EventMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public EventMapRow this[EventMapIndex index] => GetRowSafe((int) index);
 

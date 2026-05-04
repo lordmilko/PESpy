@@ -32,11 +32,11 @@ namespace PESpy
 
         public byte Value { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int StructSize = sizeof(byte);
 
-        public HandlerTypeHeader(int offset, byte value)
+        public HandlerTypeHeader(long offset, byte value)
         {
             Offset = offset;
             Value = value;

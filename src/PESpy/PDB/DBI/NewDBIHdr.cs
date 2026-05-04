@@ -193,7 +193,7 @@ namespace PESpy.PDB
 
         int IDBIHdr.StructSize => StructSize;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public const int StructSize =
             sizeof(int) + //verSignature

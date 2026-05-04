@@ -17,7 +17,7 @@ namespace PESpy.Ecma335
 
         public StringIndex Name => table.GetName(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object OwnerRow => Owner.GetRow(table.CompressedModelHeap);

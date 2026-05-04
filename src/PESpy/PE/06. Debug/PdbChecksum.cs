@@ -15,7 +15,7 @@ namespace PESpy
 
         public NativeSpan<byte> Checksum => chunk.PeekNativeSpan<byte>(ChecksumOffset, sizeOfData - (AlgorithmName.Length + 1));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private readonly int sizeOfData;

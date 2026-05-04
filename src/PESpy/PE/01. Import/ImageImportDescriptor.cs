@@ -119,7 +119,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public RVA<ImageThunkDataList> ImportAddressTable => FirstThunk;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //OriginalFirstThunk

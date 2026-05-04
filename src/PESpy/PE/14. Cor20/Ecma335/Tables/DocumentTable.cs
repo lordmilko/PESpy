@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
             return new GuidIndex(tableChunk.PeekEcmaIndex(rowOffset + LanguageOffset, isBigGuidIndex), guidHeap);
         }
 
-        public int GetRowOffset(DocumentIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(DocumentIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public DocumentRow this[DocumentIndex index] => GetRowSafe((int) index);
 

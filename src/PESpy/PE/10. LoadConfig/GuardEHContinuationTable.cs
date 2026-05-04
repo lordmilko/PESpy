@@ -27,7 +27,7 @@ namespace PESpy
     {
         public int Count { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize => Count * (sizeof(int) + metadataSize);
 
@@ -128,7 +128,7 @@ namespace PESpy
 
             public IMAGE_GUARD_FLAG? Flags { get; init; }
 
-            public int Offset { get; init; }
+            public long Offset { get; init; }
 
             private readonly PEFile peFile;
 

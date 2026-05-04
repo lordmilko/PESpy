@@ -10,7 +10,7 @@ namespace PESpy
     {
         internal PDBFile? PDBFile { get; }
 
-        public override int Length { get; }
+        public override long Length { get; }
 
         internal Dictionary<PN[], PagedMemoryBlock> blockCache = new();
 
@@ -23,7 +23,7 @@ namespace PESpy
 
         public unsafe PDBGlobalMemoryBlock(
             byte* mmf,
-            int length,
+            long length,
             bool writable,
             int pageSize,
             PDBFile? pdbFile) : base(null, writable)

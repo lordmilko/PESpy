@@ -11,7 +11,7 @@ namespace PESpy.Ecma335
 
         public NativeSpan<byte> Value => new NativeSpan<byte>(start + lengthSize, length);
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private readonly byte* start;
         private readonly int length;
@@ -19,7 +19,7 @@ namespace PESpy.Ecma335
 
         internal int StructSize => lengthSize + length;
 
-        public BlobEntry(int offset, byte* start, byte lengthSize, int length)
+        public BlobEntry(long offset, byte* start, byte lengthSize, int length)
         {
             Offset = offset;
             this.start = start;

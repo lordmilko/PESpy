@@ -20,7 +20,7 @@ namespace PESpy
 
         public NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[] OffsetTable { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private int StructSize
         {
@@ -41,7 +41,7 @@ namespace PESpy
         }
 
         internal AddrHash32v4(
-            int offset,
+            long offset,
             ushort cSeg,
             ushort alignment,
             NativeSpan<int> segmentTable,

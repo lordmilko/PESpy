@@ -8,7 +8,7 @@
 
         public NativeSpan<int> baseSrcLn => chunk.PeekNativeSpan<int>(4, cSeg);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(short) + //cSeg

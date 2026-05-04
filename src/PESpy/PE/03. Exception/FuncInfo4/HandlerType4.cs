@@ -43,7 +43,7 @@ namespace PESpy
             }
         }
 
-        public int Offset => header.Offset;
+        public long Offset => header.Offset;
 
         internal int StructSize
         {
@@ -108,7 +108,7 @@ namespace PESpy
         //Need this for when we write
         private readonly int functionAddress;
 
-        internal unsafe HandlerType4(int offset, PEFile peFile, ref byte* pData, int functionAddress, bool measureOnly)
+        internal unsafe HandlerType4(long offset, PEFile peFile, ref byte* pData, int functionAddress, bool measureOnly)
         {
             header = new HandlerTypeHeader(offset, *pData);
             pData++;

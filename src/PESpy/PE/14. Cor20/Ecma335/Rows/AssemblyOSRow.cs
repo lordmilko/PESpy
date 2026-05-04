@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
 
         public int OSMinorVersion => table.GetOSMinorVersion(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         private readonly AssemblyOSTable table;
 

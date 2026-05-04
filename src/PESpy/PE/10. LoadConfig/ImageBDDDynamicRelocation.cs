@@ -30,7 +30,7 @@ namespace PESpy
             sizeof(short) + //Right
             sizeof(int);    //Value
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

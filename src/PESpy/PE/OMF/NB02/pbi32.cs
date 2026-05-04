@@ -21,7 +21,7 @@ namespace PESpy
 
         public SymString name => chunk.PeekSymString(nameOffset, isLengthPrefixed: true);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //off

@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
         //System.Reflection.Metadata doesn't seem to parse this? But ILLink does
         public BlobIndex NativeType => table.GetNativeType(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object ParentRow => Parent.GetRow(table.CompressedModelHeap);

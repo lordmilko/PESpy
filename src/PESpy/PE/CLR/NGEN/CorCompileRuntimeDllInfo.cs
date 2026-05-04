@@ -14,7 +14,7 @@ namespace PESpy
 
         public int virtualSize => chunk.PeekInt32(virtualSizeOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //timeStamp

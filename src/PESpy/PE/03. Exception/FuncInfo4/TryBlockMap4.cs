@@ -29,7 +29,7 @@ namespace PESpy
         private readonly PEFile _peFile;
         private readonly int _functionAddress;
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -132,14 +132,14 @@ namespace PESpy
         public struct Enumerator : IEnumerator<TryBlockMapEntry4>
         {
             private readonly int _numEntries;
-            private readonly int _parentOffset;
+            private readonly long _parentOffset;
             private readonly byte* _pStartData;
             private readonly int _functionAddress;
             private readonly PEFile _peFile;
             private byte* _pEntries;
             private int _index;
 
-            internal Enumerator(int numEntries, int parentOffset, byte* pData, int functionAddress, PEFile peFile)
+            internal Enumerator(int numEntries, long parentOffset, byte* pData, int functionAddress, PEFile peFile)
             {
                 _numEntries = numEntries;
                 _parentOffset = parentOffset;

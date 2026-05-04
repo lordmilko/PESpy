@@ -47,9 +47,9 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override void GetMemoryChunkFromAddress(int address, out MemoryChunk chunk, out ViewWriter viewWriter)
+        internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
-            if (!OBJFile.TryGetValueChunkFromPhysicalOffset(address, out chunk))
+            if (!OBJFile.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
                 throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
 
             viewWriter = GetViewWriter();
@@ -73,7 +73,7 @@ namespace PESpy.View
             return _viewWriter;
         }
 
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, int targetAddress, out int rva)
+        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
             throw new NotImplementedException();
         }

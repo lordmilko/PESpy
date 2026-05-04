@@ -22,7 +22,7 @@ namespace PESpy
         //or may not be plain text
         public NativeSpan<byte> source => chunk.PeekNativeSpan<byte>(FixedStructSize + checkSumSize, sourceSize);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             16 + //language

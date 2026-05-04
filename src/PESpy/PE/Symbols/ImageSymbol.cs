@@ -48,7 +48,7 @@ namespace PESpy
 
         public ImageAuxSymbol[] AuxSymbols { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             8 + //Name (both halves)

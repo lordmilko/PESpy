@@ -80,7 +80,7 @@
             return rowNumber + 1;
         }
 
-        public int GetRowOffset(PropertyMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(PropertyMapIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public PropertyMapRow this[PropertyMapIndex index] => GetRowSafe((int) index);
 

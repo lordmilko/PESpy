@@ -33,7 +33,7 @@ namespace PESpy
 
         public int Count { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal RuntimeFunctionList(int count, in MemoryChunk chunk)
         {

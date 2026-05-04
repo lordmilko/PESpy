@@ -161,7 +161,7 @@ namespace PESpy
 
         public int XorKey { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal const int FixedStructSize =
             sizeof(int) + //DanS

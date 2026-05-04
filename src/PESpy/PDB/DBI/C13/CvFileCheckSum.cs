@@ -22,7 +22,7 @@ namespace PESpy.PDB
 
         public NativeSpan<byte> hash => chunk.PeekNativeSpan<byte>(hashOffset, len);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(int) + //name

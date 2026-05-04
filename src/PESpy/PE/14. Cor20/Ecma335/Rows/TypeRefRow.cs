@@ -13,7 +13,7 @@ namespace PESpy.Ecma335
 
         public StringIndex TypeNamespace => table.GetTypeNamespace(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object ResolutionScopeRow => ResolutionScope.GetRow(table.CompressedModelHeap);

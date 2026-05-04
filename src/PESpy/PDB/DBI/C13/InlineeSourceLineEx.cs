@@ -21,7 +21,7 @@ namespace PESpy.PDB
 
         public NativeSpan<CV_off32_t> extraFileId => chunk.PeekNativeSpan<CV_off32_t>(extraFileIdOffset, countOfExtraFiles);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //inlinee

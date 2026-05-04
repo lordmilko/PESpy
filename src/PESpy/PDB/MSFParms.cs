@@ -135,12 +135,12 @@ namespace PESpy
         /// </summary>
         public PN MinNumPages;
 
-        public MSFParms(int pageSize, int log2PageSize, int maxPages, int numPagesToGrowBy, int numPagesPerFPM, bool isHC)
+        public MSFParms(int pageSize, int log2PageSize, uint maxPages, int numPagesToGrowBy, uint numPagesPerFPM, bool isHC)
         {
             PageSize = pageSize;
             Log2PageSize = log2PageSize;
             ModuloPageSizeBitMask = pageSize - 1;
-            MaxFpmBits = isHC ? maxPages : maxPages + 1;
+            MaxFpmBits = (int) (isHC ? maxPages : maxPages + 1);
             NumPagesToGrowBy = numPagesToGrowBy;
             MaxPages = maxPages;
             NumPagesPerFPM = numPagesPerFPM;

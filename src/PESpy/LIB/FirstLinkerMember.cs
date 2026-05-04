@@ -21,7 +21,7 @@ namespace PESpy.LIB
 
         public RawValue<AnsiString>[] StringTable { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         public int StructSize => ImageArchiveMemberHeader.StructSize + ArchiveHeader.Size;
 

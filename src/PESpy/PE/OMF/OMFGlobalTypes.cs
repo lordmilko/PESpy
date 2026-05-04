@@ -33,7 +33,7 @@ namespace PESpy
         //must start on a word boundary, and we don't enforce such alignment in TypTypeList
         public unsafe TypType this[int index] => (TYPTYPE*) (chunk.Pointer + typeInfoStart + typeOffset[index]);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
         private readonly int length;

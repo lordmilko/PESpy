@@ -61,7 +61,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.DBG;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         private ISymbolAccessor symbolAccessor;
 
@@ -72,7 +72,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new GlobalMemoryBlock(mmf.Address, (int) mmf.Length, this);
+            globalBlock = new GlobalMemoryBlock(mmf.Address, mmf.Length, this);
 
             //Read the DBG Headers
             ReadDbgHeaders();
@@ -231,12 +231,12 @@ namespace PESpy
             return symbolAccessor;
         }
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
-            remainingLength = globalBlock.Length;
+            remainingLength = (int) globalBlock.Length;
         }
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)

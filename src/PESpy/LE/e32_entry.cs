@@ -136,12 +136,12 @@ namespace PESpy.LE
 
         public VariantUnion e32_variant { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         private readonly E32BundleType _bundleType;
 
         private e32_entry(
-            int offset,
+            long offset,
             E32BundleEntryFlags flags,
             VariantUnion variant,
             E32BundleType bundleType)

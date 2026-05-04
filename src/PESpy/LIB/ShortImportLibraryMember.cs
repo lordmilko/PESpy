@@ -20,7 +20,7 @@ namespace PESpy.LIB
 
         public AnsiString DllName => chunk.PeekAnsiNullTerminatedString(ImageArchiveMemberHeader.StructSize + ImportObjectHeader.StructSize + ImportName.Length + 1);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 
@@ -30,7 +30,7 @@ namespace PESpy.LIB
             FileName = fileName;
 
             //May not exist
-            if (symbolNameMap.TryGetValue(Offset, out var symbolName))
+            if (symbolNameMap.TryGetValue((int) Offset, out var symbolName))
                 SymbolName = symbolName;
         }
 

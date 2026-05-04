@@ -128,7 +128,7 @@ namespace PESpy
         public ImageDataDirectory Dummy3 => new ImageDataDirectory(chunk.Slice(144 + chunk.PointerSize));
         public ImageDataDirectory Dummy4 => new ImageDataDirectory(chunk.Slice(152 + chunk.PointerSize));
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

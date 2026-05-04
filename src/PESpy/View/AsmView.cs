@@ -12,7 +12,7 @@ namespace PESpy.View
 
     public class AsmView<T> : IAsmView, IViewInternal
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
         private string? name;
 
@@ -36,7 +36,7 @@ namespace PESpy.View
             }
         }
 
-        public int Size => range.Length;
+        public long Size => range.Length;
 
         public ViewKind Kind { get; }
 

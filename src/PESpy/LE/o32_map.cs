@@ -17,7 +17,7 @@ namespace PESpy.LE
         /// </summary>
         public PageMapAttributes o32_pageflags => (PageMapAttributes) chunk.PeekByte(3);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize = sizeof(int);
 

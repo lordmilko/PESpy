@@ -8,8 +8,8 @@ namespace PESpy.View
     /// </summary>
     public class OverlayView : IViewInternal
     {
-        public int Offset { get; }
-        public int Size { get; }
+        public long Offset { get; }
+        public long Size { get; }
         public ViewKind Kind => ViewKind.Overlay;
 
         public IView? Parent { get; private set; }
@@ -26,7 +26,7 @@ namespace PESpy.View
         private ViewWriter viewWriter;
         private IViewable childProvider;
 
-        internal OverlayView(int offset, IView[] children, ViewWriter viewWriter, int size)
+        internal OverlayView(int offset, IView[] children, ViewWriter viewWriter, long size)
         {
             Offset = offset;
             childProvider = new ViewChildProvider<IView>(children);

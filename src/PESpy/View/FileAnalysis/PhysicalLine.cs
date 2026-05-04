@@ -4,9 +4,9 @@ namespace PESpy.View
 {
     public class PhysicalLine
     {
-        public int StartAddress;
+        public long StartAddress;
         public int Length;
-        public int EndAddress => StartAddress + Length;
+        public long EndAddress => StartAddress + Length;
 
         public bool IsVisible;
 

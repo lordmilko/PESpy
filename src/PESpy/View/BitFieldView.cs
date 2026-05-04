@@ -10,7 +10,7 @@ namespace PESpy.View
 
     public class BitFieldView<TValue> : IBitFieldView, IViewInternal, ISplittableView
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
         public string Name { get; }
 
@@ -26,7 +26,7 @@ namespace PESpy.View
         /// Gets the size the region that this bit field and its siblings
         /// are stored in.
         /// </summary>
-        public int Size { get; private set; }
+        public long Size { get; private set; }
 
         public IView? Parent { get; private set; }
         void IViewInternal.SetParent(IView parent) => Parent = parent;
@@ -45,7 +45,7 @@ namespace PESpy.View
 
         private readonly FileAccessor _fileAccessor;
 
-        public BitFieldView(int offset, string name, TValue value, int bits, int size, FileAccessor fileAccessor)
+        public BitFieldView(long offset, string name, TValue value, int bits, long size, FileAccessor fileAccessor)
         {
             Offset = offset;
             Name = name;
@@ -61,10 +61,10 @@ namespace PESpy.View
 
         public void Accept(ViewVisitor visitor) => visitor.VisitBitField(this);
 
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             SplitBitFieldView<TValue> first;
@@ -88,7 +88,7 @@ namespace PESpy.View
             return (first, second);
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             if (Offset == newOffset)
                 return this;
@@ -113,7 +113,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitBitFieldView(int offset, string name, TValue value, int bits, int size, FileAccessor fileAccessor) : base(offset, name, value, bits, size, fileAccessor)
+        public SplitBitFieldView(long offset, string name, TValue value, int bits, long size, FileAccessor fileAccessor) : base(offset, name, value, bits, size, fileAccessor)
         {
         }
     }

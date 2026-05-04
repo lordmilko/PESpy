@@ -98,7 +98,7 @@ namespace PESpy
             return chunk.PeekAnsiNullTerminatedString((numberOfSymbols * ImageSymbol.StructSize) + offset);
         }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             numberOfSymbols * ImageSymbol.StructSize + //Will include regular and aux symbols

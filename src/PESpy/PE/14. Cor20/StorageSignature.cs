@@ -36,7 +36,7 @@ namespace PESpy
         //are allocated for it
         public FixedUtf8String Version => chunk.PeekNullPaddedUtf8(VersionOffset, VersionStringLength);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(uint) + //Signature

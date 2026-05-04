@@ -17,7 +17,7 @@ namespace PESpy.PDB
             //This is not part of the on-disk data
             public SI[] StreamInfos { get; }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             internal int StructSize
             {

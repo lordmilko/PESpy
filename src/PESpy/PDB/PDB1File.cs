@@ -20,7 +20,7 @@ namespace PESpy
 
         public FileKind Kind => pdbFile.Kind;
 
-        public int Length => pdbFile.Length;
+        public long Length => pdbFile.Length;
 
         public OHDR Hdr => pdbFile.Hdr;
 

@@ -23,7 +23,7 @@ namespace PESpy
 
         public StorageStream[] StreamHeaders { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(byte) + //Flags

@@ -95,7 +95,7 @@ namespace PESpy.PDB
 
         CvDebugSSubsectionHeader[]? IModi.C13Lines => null;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) + //pmod

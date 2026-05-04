@@ -102,15 +102,15 @@ namespace PESpy
             {
                 ImportLibraryMemberBuilder builder;
 
-                var firstLinkerIndex = firstLinkerOffsetMap[importLibrary.Offset];
-                var secondLinkerIndex = secondLinkerOffsetMap == null ? uint.MaxValue : secondLinkerOffsetMap[importLibrary.Offset];
+                var firstLinkerIndex = firstLinkerOffsetMap[(int) importLibrary.Offset];
+                var secondLinkerIndex = secondLinkerOffsetMap == null ? uint.MaxValue : secondLinkerOffsetMap[(int) importLibrary.Offset];
 
                 if (importLibrary.IsLong)
                     builder = new LongImportLibraryMemberBuilder((LongImportLibraryMember) importLibrary, this, firstLinkerIndex, secondLinkerIndex);
                 else
                     builder = new ShortImportLibraryMemberBuilder((ShortImportLibraryMember) importLibrary, this, firstLinkerIndex, secondLinkerIndex);
 
-                offsetToBuilderMap[importLibrary.Offset] = builder;
+                offsetToBuilderMap[(int) importLibrary.Offset] = builder;
                 importLibraries.Add(builder);
             }
 

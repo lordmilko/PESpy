@@ -249,9 +249,9 @@ namespace PESpy.View
             ViewByte* pViewByte,
             byte* bytes,
             int bytesLength,
-            int sectionAddress,
+            long sectionAddress,
             ViewByte* pSectionStart,
-            List<int> stringAddresses)
+            List<long> stringAddresses)
         {
             var arr = displayableAscii;
 
@@ -284,9 +284,9 @@ namespace PESpy.View
             byte* bytes,
             int bytesLength,
             ViewByte* pViewByte,
-            int sectionAddress,
+            long sectionAddress,
             ViewByte* pSectionStart,
-            List<int> stringAddresses)
+            List<long> stringAddresses)
         {
             var foundEnd = false;
 
@@ -359,9 +359,9 @@ namespace PESpy.View
             int bytesLength,
             bool nullTerminated,
             ViewByte* pViewByte,
-            int sectionAddress,
+            long sectionAddress,
             ViewByte* pSectionStart,
-            List<int> stringAddresses)
+            List<long> stringAddresses)
         {
             var foundEnd = false;
 

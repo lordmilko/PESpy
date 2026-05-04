@@ -22,7 +22,7 @@ namespace PESpy
         //the value with -1 applied to it
         public int State { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize =>
             FuncInfo4.GetLength((uint) RawIp) +
@@ -30,7 +30,7 @@ namespace PESpy
 
         private readonly int functionAddress;
 
-        internal unsafe IPtoStateMapEntry4(int offset, ref byte* pData, int functionAddress, int prevAmount)
+        internal unsafe IPtoStateMapEntry4(long offset, ref byte* pData, int functionAddress, int prevAmount)
         {
             Offset = offset;
             this.functionAddress = functionAddress;

@@ -353,7 +353,7 @@ namespace PESpy
             ((ISectionContribs) this).TryGetSection(sectionNumber, relativeOffset, out sc);
 
         //ISectionContribs causes us to have this; on balance, we do want ISectionContribs to be an IValue
-        int IValue.Offset => throw new NotSupportedException();
+        long IValue.Offset => throw new NotSupportedException();
 
         void IViewable.WriteGlobals(ViewWriter writer) => throw new NotSupportedException();
 

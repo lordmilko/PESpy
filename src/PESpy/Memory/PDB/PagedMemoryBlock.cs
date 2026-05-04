@@ -16,7 +16,7 @@ namespace PESpy
         private MemoryMappedFile? mmf;
         private MemoryMappedViewAccessor? mma;
 
-        public override int Length => byteCount;
+        public override long Length => byteCount;
 
         public PDBFile? PDBFile { get; }
 
@@ -28,7 +28,7 @@ namespace PESpy
         //the data is split between non-contiguous pages
         internal bool OwnsMemory => mmf != null;
 
-        private readonly int fileLength;
+        private readonly long fileLength;
 
         public PagedMemoryBlock(
             PN[] pageList,
@@ -36,7 +36,7 @@ namespace PESpy
             int pageSize,
             byte* mmfAddress,
             bool writable,
-            int fileLength,
+            long fileLength,
             PDBFile? pdbFile) : base(null, writable)
         {
             if (pageList.Length == 0)
@@ -60,7 +60,7 @@ namespace PESpy
             return offset <= Length;
         }
 
-        public override int GetAbsoluteOffset(int blockOffset)
+        public override long GetAbsoluteOffset(long blockOffset)
         {
             var pageIndex = blockOffset / pageSize;
             var pageStart = pageList[pageIndex] * pageSize;
@@ -71,7 +71,7 @@ namespace PESpy
             return result;
         }
 
-        private void AcquireBuffer(byte* sourceAddress, int offset, int length, bool copyData)
+        private void AcquireBuffer(byte* sourceAddress, long offset, long length, bool copyData)
         {
             Debug.Assert(pageSize != 0);
 
@@ -147,7 +147,7 @@ namespace PESpy
 
                     for (var i = 0; i < pageList.Length; i++)
                     {
-                        var sourceOffset = pageList[i] * pageSize;
+                        var sourceOffset = (uint) pageList[i] * pageSize;
 
                         if (sourceOffset + pageSize > fileLength)
                             throw new BadImageFormatException($"PDB File is corrupt: file is only {fileLength} bytes, however the Stream Table references page {pageList[i]} which requires a length of at least {sourceOffset + pageSize} bytes");

@@ -21,7 +21,7 @@ namespace PESpy.View
     /// <typeparam name="TValue">The type of value contained in the field.</typeparam>
     public class FieldView<TValue> : IFieldView, IViewInternal, ISplittableView
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
         public string Name { get; }
 
@@ -31,7 +31,7 @@ namespace PESpy.View
 
         public string ValueType => typeof(TValue).Name;
 
-        public int Size { get; private set; }
+        public long Size { get; private set; }
 
         public IView? Parent { get; private set; }
         void IViewInternal.SetParent(IView parent) => Parent = parent;
@@ -50,10 +50,10 @@ namespace PESpy.View
         private readonly FileAccessor _fileAccessor;
 
         public FieldView(
-            int offset,
+            long offset,
             string name,
             TValue value,
-            int size,
+            long size,
             FieldViewFlags flags,
             FileAccessor fileAccessor,
             ViewKind kind = ViewKind.Field)
@@ -77,10 +77,10 @@ namespace PESpy.View
         [DebuggerStepThrough]
         public void Accept(ViewVisitor visitor) => visitor.VisitField(this);
 
-        (IView first, IView second) ISplittableView.Split(int newBaseOffset, int cutoff)
+        (IView first, IView second) ISplittableView.Split(long newBaseOffset, long cutoff)
         {
             var currentEnd = Offset + Size;
-            var diff = currentEnd - cutoff;
+            var diff = (int) (currentEnd - cutoff);
             Debug.Assert(diff > 0);
 
             SplitFieldView<TValue> first;
@@ -104,7 +104,7 @@ namespace PESpy.View
             return (first, second);
         }
 
-        IView ISplittableView.WithOffset(int newOffset)
+        IView ISplittableView.WithOffset(long newOffset)
         {
             if (Offset == newOffset)
                 return this;
@@ -129,7 +129,7 @@ namespace PESpy.View
 
         public ISplitView? Next { get; internal set; }
 
-        public SplitFieldView(int offset, string name, TValue value, int size, FieldViewFlags flags, FileAccessor fileAccessor, ViewKind kind) : base(offset, name, value, size, flags, fileAccessor, kind)
+        public SplitFieldView(long offset, string name, TValue value, long size, FieldViewFlags flags, FileAccessor fileAccessor, ViewKind kind) : base(offset, name, value, size, flags, fileAccessor, kind)
         {
         }
     }

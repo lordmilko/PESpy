@@ -31,7 +31,7 @@ namespace PESpy.PDB
         /// </summary>
         public PN[] PageList { get; }
 
-        public int Offset => chunk.AbsoluteOffset; //This is just the location of the page list, but this type doesn't actually fully exist on disk
+        public long Offset => chunk.AbsoluteOffset; //This is just the location of the page list, but this type doesn't actually fully exist on disk
 
         private readonly MemoryChunk chunk;
 

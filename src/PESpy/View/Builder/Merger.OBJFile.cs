@@ -13,7 +13,7 @@ namespace PESpy.View.Builder
             try
             {
                 //ImageFileHeader.Offset will either be 0 (indicating a classic OBJ file) or non-zero (indicating there's an Anon Header in front of it)
-                var sizeOfHeaders = objFile.FileHeader.Offset + ImageFileHeader.StructSize + objFile.SectionHeaders.Length * ImageSectionHeader.StructSize;
+                var sizeOfHeaders = (int) objFile.FileHeader.Offset + ImageFileHeader.StructSize + objFile.SectionHeaders.Length * ImageSectionHeader.StructSize;
 
                 var headerMetadata = new HeaderView(0, sizeOfHeaders, BuildSection(0, sizeOfHeaders, v => v, v => v), viewWriter);
                 results.Add(headerMetadata);
@@ -27,14 +27,14 @@ namespace PESpy.View.Builder
                     var size = section.SizeOfRawData;
 
                     if (objFile.AnonObjectHeader != null)
-                        start += objFile.FileHeader.Offset;
+                        start += (int) objFile.FileHeader.Offset;
 
                     ProcessSectionHeader(section, start, size, lastSectionEnd, ref this, ref results);
 
                     lastSectionEnd = start + size;
                 }
 
-                var length = byteViewProvider.FileOrSectionLength;
+                var length = (int) byteViewProvider.FileOrSectionLength;
 
                 if (length > lastSectionEnd)
                 {

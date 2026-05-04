@@ -28,7 +28,7 @@ namespace PESpy.PDB
         /// </summary>
         public CV_off32_t sourceLineNum => chunk.PeekInt32(sourceLineNumOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(int) + //inlinee

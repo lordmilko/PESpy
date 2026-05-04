@@ -179,7 +179,7 @@ namespace PESpy
         /// </summary>
         public IMAGE_SCN Characteristics => (IMAGE_SCN) chunk.PeekUInt32(CharacteristicsOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int NameSize = 8;
 

@@ -8,7 +8,7 @@ namespace PESpy.View
         internal ref struct BitFieldWriter
         {
             private Span<IView> fields;
-            private int offset;
+            private long offset;
             private int bitsUsed;
             private int maxSize;
             private int fieldIndex;
@@ -16,7 +16,7 @@ namespace PESpy.View
 
             //The caller must ensure that the pooled list is expanded to be able to fit
             //all of the required fields
-            public BitFieldWriter(int offset, Span<IView> fields, int bytes, FileAccessor fileAccessor)
+            public BitFieldWriter(long offset, Span<IView> fields, int bytes, FileAccessor fileAccessor)
             {
                 this.offset = offset;
                 this.fields = fields;

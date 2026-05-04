@@ -27,7 +27,7 @@ namespace PESpy
 
         public FileKind Kind => pdbFile.Kind;
 
-        public int Length => pdbFile.Length;
+        public long Length => pdbFile.Length;
 
         public FPM FPM0 => pdbFile.FPM0;
 
@@ -170,7 +170,7 @@ namespace PESpy
         /// <inheritdoc/>
         public FileKind Kind => FileKind.PDB;
 
-        public int Length => globalBlock.Length;
+        public long Length => globalBlock.Length;
 
         /* Note that we explicitly do not have a SymStoreKey property. You may think that you can take
          * The GUID and Age from the PDBStream70 and synthesize the original path to this file on the symbol
@@ -487,7 +487,7 @@ namespace PESpy
             get
             {
                 if (TryGetStreamChunk("srcsrv", out var chunk))
-                    return chunk.PeekAnsiFixedLength(0, chunk.Remaining);
+                    return chunk.PeekAnsiFixedLength(0, (int) chunk.Remaining);
 
                 return default;
             }
@@ -556,7 +556,7 @@ namespace PESpy
                     if (dbi != null)
                     {
                         if (TryGetStreamChunk(dbi.DbiHdr.snGSSyms, out var chunk))
-                            gsi = new MsfStream.GSI(chunk, chunk.Remaining);
+                            gsi = new MsfStream.GSI(chunk, (int) chunk.Remaining);
                     }
                 }
 
@@ -615,7 +615,7 @@ namespace PESpy
             FileName = fileName;
             Name = name ?? Path.GetFileName(fileName);
 
-            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, (int) mmf.Length, mmf.Writable, 0, this);
+            globalBlock = new PDBGlobalMemoryBlock(mmf.Address, mmf.Length, mmf.Writable, 0, this);
             _symCache = new PDBFileSymCache(this);
 
             try
@@ -664,16 +664,17 @@ namespace PESpy
 
             using var mmf = new MemoryMappedFileHolder(fs, MemoryMappedFileAccess.ReadWrite);
 
-            var dest = new Span<byte>(mmf.Address, (int) mmf.Length);
-
             /* Now we need to copy a bunch of stuff:
              * 1. The first 3 pages of the global block (which may contain more than 3 pages
              *    if we consolidated everything into it for the purposes of showing a view
              * 2. Every page of every block
              */
 
+            var headerLength = pageSize * 3;
+            var dest = new Span<byte>(mmf.Address, headerLength);
+
             //Copy the Master Index, FPM 0 and FPM 1
-            new Span<byte>(globalBlock.LocalPointer, globalBlock.Length).Slice(0, pageSize * 3).CopyTo(dest);
+            new Span<byte>(globalBlock.LocalPointer, headerLength).CopyTo(dest);
 
             foreach (var kv in globalBlock.blockCache)
             {
@@ -722,7 +723,7 @@ namespace PESpy
         {
             if (TryGetStreamChunk(name, out var chunk))
             {
-                span = new NativeSpan<byte>(chunk.Pointer, chunk.Remaining);
+                span = new NativeSpan<byte>(chunk.Pointer, checked((int) chunk.Remaining));
                 return true;
             }
 
@@ -1392,7 +1393,7 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, (int) mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         #endregion
 
@@ -1400,7 +1401,7 @@ namespace PESpy
         {
             lock (c13SymbolMemoryLock)
             {
-                if (c13RegisteredSymbolMemory.Add(dataChunk.AbsoluteOffset))
+                if (c13RegisteredSymbolMemory.Add((int) dataChunk.AbsoluteOffset))
                     SymbolMemoryTracker.RegisterPDBSymbolMemory(dataChunk, codeViewModuleAccessor);
             }
         }

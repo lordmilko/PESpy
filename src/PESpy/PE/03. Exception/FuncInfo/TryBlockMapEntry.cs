@@ -71,7 +71,7 @@ namespace PESpy
             sizeof(int) + //nCatches
             sizeof(int); //HandlerArray
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

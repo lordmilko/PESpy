@@ -32,14 +32,14 @@ namespace PESpy
          * or not HasAlignment is true!
          */
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         //For use by ViewProvider
         internal GsHandlerData(in MemoryChunk chunk) : this(chunk.AbsoluteOffset, chunk.Pointer)
         {
         }
 
-        public GsHandlerData(int offset, byte* value)
+        public GsHandlerData(long offset, byte* value)
         {
             Offset = offset;
             this.value = value;

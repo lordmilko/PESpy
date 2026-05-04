@@ -13,7 +13,7 @@ namespace PESpy.PDB
 
         public int Length => Entries.Length;
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             numElems * SC40.StructSize;

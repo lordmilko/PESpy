@@ -36,7 +36,7 @@ namespace PESpy
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Count => chunk.PeekInt32(CountOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(int) + //Count
@@ -169,7 +169,7 @@ namespace PESpy
             /// </summary>
             public int JumpTarget => chunk.PeekInt32(JumpTargetOffset);
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             internal const int StructSize =
                 sizeof(int) + //BeginAddress

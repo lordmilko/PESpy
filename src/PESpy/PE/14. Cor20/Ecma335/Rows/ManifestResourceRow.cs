@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
 
         public CodedIndex Implementation => table.GetImplementation(RowIndex);
 
-        public int Offset => table.GetRowOffset(RowIndex);
+        public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
         public object ImplementationRow => Implementation.GetRow(table.CompressedModelHeap);

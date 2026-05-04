@@ -23,7 +23,7 @@
                 var data = BuildSection(sizeOfHeaders, startOfOverlay, v => v, v => v);
                 results.Add(new SectionView(sizeOfHeaders, "Code", data, viewWriter, startOfOverlay - sizeOfHeaders));
 
-                var length = byteViewProvider.FileOrSectionLength;
+                var length = (int) byteViewProvider.FileOrSectionLength;
 
                 if (startOfOverlay < length)
                 {
@@ -36,7 +36,7 @@
                             case CodeViewSig.DNRB:
                                 var dnrb = (DNRBData) codeViewData;
 
-                                CreateOMFRegion(dnrb.Offset, dnrb.Length, dnrb.Signature);
+                                CreateOMFRegion((int) dnrb.Offset, dnrb.Length, dnrb.Signature);
                                 break;
 
                             case CodeViewSig.NB00:
@@ -44,13 +44,13 @@
                             case CodeViewSig.NB02:
                                 var nb02 = (NB02Data) codeViewData;
 
-                                CreateOMFRegion(nb02.Offset, nb02.LfoBase, nb02.Signature);
+                                CreateOMFRegion((int) nb02.Offset, nb02.LfoBase, nb02.Signature);
                                 break;
 
                             default:
                                 var nb05 = (NB05Data) codeViewData;
 
-                                CreateOMFRegion(nb05.Offset, nb05.LfoBase, nb05.Signature);
+                                CreateOMFRegion((int) nb05.Offset, nb05.LfoBase, nb05.Signature);
                                 break;
                         }
                     }

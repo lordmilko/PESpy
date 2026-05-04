@@ -17,7 +17,7 @@ namespace PESpy
 
         public NativeSpan<(int symbolOffset, uint checksum)>[] Chains { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize
         {
@@ -37,7 +37,7 @@ namespace PESpy
         }
 
         internal SymHash32Long(
-            int offset,
+            long offset,
             int kind,
             ushort cBuckets,
             ushort alignment,

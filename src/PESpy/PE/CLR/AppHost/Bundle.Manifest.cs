@@ -13,7 +13,7 @@ namespace PESpy
 
             public FileEntry[] Files { get; }
 
-            public int Offset => chunk.AbsoluteOffset;
+            public long Offset => chunk.AbsoluteOffset;
 
             public int StructSize => length;
 

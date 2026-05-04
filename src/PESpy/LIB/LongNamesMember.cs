@@ -11,7 +11,7 @@ namespace PESpy.LIB
 
         public RawValue<AnsiString>[] Names { get; }
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public int StructSize => ImageArchiveMemberHeader.StructSize + ArchiveHeader.Size;
 

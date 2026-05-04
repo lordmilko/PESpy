@@ -64,7 +64,7 @@ namespace PESpy
             sizeof(int) + //ImportName
             sizeof(int); //Reserved
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
 

@@ -40,7 +40,7 @@ namespace PESpy
 
         public long pv64Reserved2 => chunk.PeekInt64(pv64Reserved2Offset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         public AnsiString FileName => chunk.PDBFile().NameMap?.GetStringFromNI(niFile) ?? default;
 

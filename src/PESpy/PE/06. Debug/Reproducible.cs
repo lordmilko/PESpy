@@ -18,7 +18,7 @@ namespace PESpy
 
         public NativeSpan<byte> Hash => chunk.PeekNativeSpan<byte>(HashOffset, Size);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal int StructSize =>
             sizeof(int) + //Size

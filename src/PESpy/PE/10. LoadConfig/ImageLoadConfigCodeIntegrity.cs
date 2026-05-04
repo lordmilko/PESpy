@@ -20,7 +20,7 @@ namespace PESpy
         public int CatalogOffset => chunk.PeekInt32(CatalogOffsetOffset);
         public int Reserved => chunk.PeekInt32(ReservedOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //Flags

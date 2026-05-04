@@ -201,7 +201,7 @@ namespace PESpy.NE
         /// </summary>
         public ushort ne_expver => chunk.PeekUInt16(ExpectedWindowsVersionNumberOffset);
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
             sizeof(ushort) + //Magic

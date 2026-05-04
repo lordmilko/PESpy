@@ -64,11 +64,11 @@ namespace PESpy.View
                     {
                         var sizeOfHeaders = peFile.GetSizeOfHeaders(mode);
 
-                        return (int offset, out int viewOffset) =>
+                        return (long offset, out long viewOffset) =>
                         {
                             //Physical and need to convert to virtual
 
-                            if (!peFile.TryGetRVA(offset, out var rva))
+                            if (!peFile.TryGetRVA((int) offset, out var rva))
                             {
                                 //We're a physical file, trying to pretend that we're virtual. If an RVA can't be resolved to a particular section, this means that the RVA either exists in the file headers,
                                 //or in the overlay. Overlay data is not loaded into virtual memory. As such, if we're overlay, we don't want to write the value
@@ -92,11 +92,11 @@ namespace PESpy.View
                 case ViewMode.Physical:
                     if (peFile.IsLoadedImage) //If we're already physical, nothing to do
                     {
-                        return (int rva, out int viewRVA) =>
+                        return (long rva, out long viewRVA) =>
                         {
                             //Virtual and need to convert to physical
 
-                            if (!peFile.TryGetOffset(rva, out var offset))
+                            if (!peFile.TryGetOffset((int) rva, out var offset))
                                 viewRVA = rva; //Anything that exists virtually also exists physically
 
                             viewRVA = offset;
@@ -109,7 +109,7 @@ namespace PESpy.View
                     throw new NotImplementedException($"Don't know how to handle {nameof(ViewMode)} '{mode}'");
             }
 
-            return (int offset, out int viewOffset) =>
+            return (long offset, out long viewOffset) =>
             {
                 viewOffset = offset;
                 return true;

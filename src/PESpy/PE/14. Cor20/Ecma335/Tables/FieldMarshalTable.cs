@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
             return (FieldMarshalIndex) (foundRowNumber + 1);
         }
 
-        public int GetRowOffset(FieldMarshalIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(FieldMarshalIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public FieldMarshalRow this[FieldMarshalIndex index] => GetRowSafe((int) index);
 

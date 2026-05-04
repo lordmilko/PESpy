@@ -5,7 +5,7 @@ namespace PESpy
     public unsafe class EntityState
     {
         public EntityKind Kind;
-        public int StartOffset;
+        public long StartOffset;
 
         //View specific
         public IView? View;
@@ -27,7 +27,7 @@ namespace PESpy
         public bool IsAtEnd;
         public bool IsStreamer;
 
-        public int ReverseResumeAddress;
+        public long ReverseResumeAddress;
         public ViewByte* ReverseViewByte;
 
         public EntityState(IView view, bool hasChildren = true)
@@ -38,7 +38,7 @@ namespace PESpy
             HasChildren = hasChildren;
         }
 
-        public EntityState(EntityKind kind, ViewByte* pStartViewByte, int startOffset)
+        public EntityState(EntityKind kind, ViewByte* pStartViewByte, long startOffset)
         {
             Kind = kind;
             this.pStartViewByte = pStartViewByte;

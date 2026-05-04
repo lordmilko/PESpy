@@ -48,7 +48,7 @@ namespace PESpy.Ecma335
         public CustomAttributeList GetCustomAttributes(MethodSpecIndex index) =>
             new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.MethodSpec));
 
-        public int GetRowOffset(MethodSpecIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
+        public long GetRowOffset(MethodSpecIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 
         public MethodSpecRow this[MethodSpecIndex index] => GetRowSafe((int) index);
 

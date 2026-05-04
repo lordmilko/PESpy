@@ -42,12 +42,12 @@ namespace PESpy.View
             var firstLinkerMember = libFile.FirstLinkerMember;
 
             if (firstLinkerMember != null)
-                dataDirectories.Add(new DirectoryInfo("First Linker Member", firstLinkerMember.Offset, firstLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                dataDirectories.Add(new DirectoryInfo("First Linker Member", (int) firstLinkerMember.Offset, firstLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
 
             var secondLinkerMember = libFile.SecondLinkerMember;
 
             if (secondLinkerMember != null)
-                dataDirectories.Add(new DirectoryInfo("Second Linker Member", secondLinkerMember.Offset, secondLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                dataDirectories.Add(new DirectoryInfo("Second Linker Member", (int) secondLinkerMember.Offset, secondLinkerMember.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
 
             //LongNamesMember not yet implemented
 
@@ -56,9 +56,9 @@ namespace PESpy.View
             foreach (var item in importLibrary)
             {
                 if (item.IsLong)
-                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Long): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Long): {item}", (int) item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
                 else
-                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
+                    dataDirectories.Add(new DirectoryInfo($"Import Library Member (Short): {item}", (int) item.Offset, item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize));
             }
 
             using var merger = new Merger(libFile, viewWriter, structs, dataDirectories.Span, viewWriter.byteViewProvider);
@@ -76,7 +76,7 @@ namespace PESpy.View
 
                 dataDirectories.Add(new DirectoryInfo(
                     item.IsLong ? $"Import Library Member (Long): {item}" : $"Import Library Member (Short): {item}",
-                    item.Offset,
+                    (int) item.Offset,
                     size
                 ));
             }

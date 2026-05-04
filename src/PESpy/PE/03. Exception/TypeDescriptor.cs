@@ -16,7 +16,7 @@ namespace PESpy
 
         public AnsiString name { get; }
 
-        public int Offset { get; }
+        public long Offset { get; }
 
         internal int StructSize =>
             sizeof(long) + //pVFTable

@@ -32,7 +32,7 @@ namespace PESpy
         /// </summary>
         public AnsiString Path => chunk.PeekAnsiNullTerminatedString(PathOffset); //microsoft-pdb's LOCATOR says to use UTF 8 when it's RSDS, but our ICodeView interface wants an AnsiString
 
-        public int Offset => chunk.AbsoluteOffset;
+        public long Offset => chunk.AbsoluteOffset;
 
         internal const int FixedStructSize =
             sizeof(int) +     //Signature
