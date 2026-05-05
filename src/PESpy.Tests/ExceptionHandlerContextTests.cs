@@ -155,7 +155,7 @@ namespace PESpy.Tests
             var unwindInfoView = view.GetViewFromRVA(0x1544D0);
             Assert.AreEqual(ViewKind.UnwindInfo, unwindInfoView.Kind);
 
-            //This isn't written by UnwindInfo.WriteGlobals; rather it's written by the backdoor PEViewByteViewWriter has
+            //This isn't written by UnwindInfo.WriteGlobals; rather it's written by the backdoor ViewByteViewWriter has
             //into writing info
             var funcInfoView = view.GetViewFromRVA(0x1342F8);
             Assert.AreEqual(ViewKind.FuncInfo, funcInfoView.Kind);

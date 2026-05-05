@@ -1,9 +1,10 @@
 ﻿using System;
+using System.IO.MemoryMappedFiles;
 using System.Threading;
 
 namespace PESpy.View
 {
-    internal class DOSFileAccessor : FileAccessor
+    internal unsafe class DOSFileAccessor : FileAccessor, ISectionDataAccessor
     {
         public DOSFile DOSFile { get; }
 
@@ -12,6 +13,14 @@ namespace PESpy.View
         public DOSFileAccessor(DOSFile dosFile) : base(bitness: 16)
         {
             DOSFile = dosFile;
+
+            SectionAccessors = new[]
+            {
+                //We don't expose this as a SectionView; instead, we unwrap all of the items inside the view
+                new SectionAccessor(0, dosFile.Length, SectionAccessorKind.Header, -1, "HEADER", MemoryMappedFile.CreateNew(null, dosFile.Length * ViewByte.Size))
+            };
+
+            Length = dosFile.Length;
         }
 
         protected override ViewKind FileViewKind => throw new NotImplementedException();
@@ -46,6 +55,21 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
+        bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, out byte* pByte, out int remainingLength)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength)
+        {
+            throw new NotImplementedException();
+        }
+
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
             throw new NotImplementedException();
@@ -56,9 +80,11 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        internal override ISymbolAccessor GetSymbolAccessor(bool load = false, LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All, ILocatorProgress? progress = null, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
+        internal override ISymbolAccessor GetSymbolAccessor(
+            bool load = false,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
+            ILocatorProgress? progress = null,
+            CancellationToken cancellationToken = default) =>
+            DOSFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
     }
 }

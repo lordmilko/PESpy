@@ -6,7 +6,7 @@ using PESpy.NE;
 
 namespace PESpy.View
 {
-    internal class NEFileAccessor : FileAccessor
+    internal unsafe class NEFileAccessor : FileAccessor, ISectionDataAccessor
     {
         public NEFile NEFile { get; }
 
@@ -58,6 +58,21 @@ namespace PESpy.View
         }
 
         protected override ViewWriter GetViewWriter()
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, out byte* pByte, out int remainingLength)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength)
         {
             throw new NotImplementedException();
         }

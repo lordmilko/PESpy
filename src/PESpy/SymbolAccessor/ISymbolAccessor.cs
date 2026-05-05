@@ -12,7 +12,9 @@ namespace PESpy
         Coff,
 
         //CodeView symbols embedded in the file in OMF header format
-        CodeView,
+        DNRB,
+        NB02,
+        NB05,
 
         OBJ,
         LIB,

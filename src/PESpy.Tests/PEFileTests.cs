@@ -123,43 +123,43 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "Padding3", value: 0),
 
                     c => c.VerifyStruct(name: "PRODITEM", offset: 144, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 0),
-                        v => v.VerifyField(name: "BuildId", value: (short) 0),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidUnknown),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 0),
                         v => v.VerifyField(name: "Count", value: 1)
                     ),
                                         c => c.VerifyStruct(name: "PRODITEM", offset: 152, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 256),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidExport1400),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 1)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 160, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 259),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidMasm1400),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 44)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 168, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 260),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidUtc1900_C),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 131)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 176, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 269),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidUtc1900_POGO_O_C),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 304)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 184, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 261),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidUtc1900_CPP),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 27)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 192, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 255),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidCvtres1400),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 1)
                     ),
                     c => c.VerifyStruct(name: "PRODITEM", offset: 200, size: 8,
-                        v => v.VerifyField(name: "ProdId", value: (short) 258),
-                        v => v.VerifyField(name: "BuildId", value: (short) 30795),
+                        v => v.VerifyField(name: "ProdId", value: PRODID.prodidLinker1400),
+                        v => v.VerifyField(name: "BuildId", value: (ushort) 30795),
                         v => v.VerifyField(name: "Count", value: 1)
                     ),
 
@@ -183,8 +183,8 @@ namespace PESpy.Tests
             TestView<ProdItem>(
                 v => v.VerifyStruct(
                     name: "PRODITEM", offset: 152, size: 8,
-                    c => c.VerifyField(name: "ProdId", value: (short) 256),
-                    c => c.VerifyField(name: "BuildId", value: (short) 30795),
+                    c => c.VerifyField(name: "ProdId", value: PRODID.prodidExport1400),
+                    c => c.VerifyField(name: "BuildId", value: (ushort) 30795),
                     c => c.VerifyField(name: "Count", value: 1)
                 )
             );
@@ -434,45 +434,44 @@ namespace PESpy.Tests
         {
             TestStruct<ImageExportDirectory>(
                 v => v.Characteristics == 0,
-                v => v.TimeDateStamp == 3169667970,
+                v => v.TimeDateStamp.ToString() == "29/05/2025 9:20:00 AM",
                 v => v.MajorVersion == 0,
                 v => v.MinorVersion == 0,
-                v => v.Name.ListedOffset == 1514622,
-                v => v.Base == 8,
-                v => v.NumberOfFunctions == 2486,
-                v => v.NumberOfNames == 2485,
-                v => v.AddressOfFunctions.ListedOffset == 1489768,
-                v => v.AddressOfNames.ListedOffset == 1499712,
-                v => v.AddressOfNameOrdinals.ListedOffset == 1509652,
+                v => v.Name.ListedOffset == 665710,
+                v => v.Base == 1,
+                v => v.NumberOfFunctions == 1671,
+                v => v.NumberOfNames == 1671,
+                v => v.AddressOfFunctions.ListedOffset == 649000,
+                v => v.AddressOfNames.ListedOffset == 655684,
+                v => v.AddressOfNameOrdinals.ListedOffset == 662368,
                 v => v.Exports == IgnoreValue
             );
 
             TestView<ImageExportDirectory>(
-                new Action<IView>[]
-                {
+                WithIgnores(
                     v => v.VerifyStruct(
-                        name: "IMAGE_EXPORT_DIRECTORY", offset: 1489728, size: 40,
+                        name: "IMAGE_EXPORT_DIRECTORY", offset: 648960, size: 40,
                         c => c.VerifyField(name: "Characteristics", value: 0),
-                        c => c.VerifyField(name: "TimeDateStamp", value: (uint) 3169667970),
+                        c => c.VerifyField(name: "TimeDateStamp", value: "29/05/2025 9:20:00 AM"),
                         c => c.VerifyField(name: "MajorVersion", value: (ushort) 0),
                         c => c.VerifyField(name: "MinorVersion", value: (ushort) 0),
-                        c => c.VerifyField(name: "Name", value: 1514622),
-                        c => c.VerifyField(name: "Base", value: 8),
-                        c => c.VerifyField(name: "NumberOfFunctions", value: 2486),
-                        c => c.VerifyField(name: "NumberOfNames", value: 2485),
-                        c => c.VerifyField(name: "AddressOfFunctions", value: 1489768),
-                        c => c.VerifyField(name: "AddressOfNames", value: 1499712),
-                        c => c.VerifyField(name: "AddressOfNameOrdinals", value: 1509652)
-                    )
-                },
-                false
+                        c => c.VerifyField(name: "Name", value: 665710),
+                        c => c.VerifyField(name: "Base", value: 1),
+                        c => c.VerifyField(name: "NumberOfFunctions", value: 1671),
+                        c => c.VerifyField(name: "NumberOfNames", value: 1671),
+                        c => c.VerifyField(name: "AddressOfFunctions", value: 649000),
+                        c => c.VerifyField(name: "AddressOfNames", value: 655684),
+                        c => c.VerifyField(name: "AddressOfNameOrdinals", value: 662368)
+                    ),
+                    after: 1881
+                )
             );
 
             TestXRefs<ImageExportDirectory>(
-                v => v.Verify(propertyName: "Name",                  index: 0, fieldOffset: ImageExportDirectory.NameOffset,                  targetOffset: 1514622),
-                v => v.Verify(propertyName: "AddressOfFunctions",    index: 1, fieldOffset: ImageExportDirectory.AddressOfFunctionsOffset,    targetOffset: 1489768),
-                v => v.Verify(propertyName: "AddressOfNames",        index: 2, fieldOffset: ImageExportDirectory.AddressOfNamesOffset,        targetOffset: 1499712),
-                v => v.Verify(propertyName: "AddressOfNameOrdinals", index: 3, fieldOffset: ImageExportDirectory.AddressOfNameOrdinalsOffset, targetOffset: 1509652)
+                v => v.Verify(propertyName: "Name",                  index: 0, fieldOffset: ImageExportDirectory.NameOffset,                  targetOffset: 0xa286e),
+                v => v.Verify(propertyName: "AddressOfFunctions",    index: 1, fieldOffset: ImageExportDirectory.AddressOfFunctionsOffset,    targetOffset: 0x9e728),
+                v => v.Verify(propertyName: "AddressOfNames",        index: 1673, fieldOffset: ImageExportDirectory.AddressOfNamesOffset,        targetOffset: 0xa0144),
+                v => v.Verify(propertyName: "AddressOfNameOrdinals", index: 3345, fieldOffset: ImageExportDirectory.AddressOfNameOrdinalsOffset, targetOffset: 0xa1b60)
             );
         }
 
@@ -1772,6 +1771,22 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: nameof(TryBlockMapEntry4.dispHandlerArray), index: 0, fieldOffset: 16, targetOffset: 67096)
             );
         }
+        [TestMethod]
+        public void UWMap4_Test()
+        {
+            TestStruct<UWMap4>(
+                v => v.NumEntries == 1
+            );
+
+            TestView<UWMap4>(
+                v => v.VerifyStruct(
+                    name: "UWMap4", offset: 225013, size: 6,
+                    c => c.VerifyField(name: "NumEntries", value: 1),
+                    c => c.VerifyStructIgnoreChildren(name: "UnwindMapEntry4", offset: 0x36ef6, size: 5)
+                )
+            );
+        }
+
         #endregion
         #endregion
         #region Security Table (4)
@@ -2124,16 +2139,19 @@ namespace PESpy.Tests
             );
 
             TestView<OMFSourceModule>(
-                v => v.VerifyStruct(
-                    name: "OMFSourceModule", offset: 65860, size: 8,
-                    c => c.VerifyField(name: "cFile", value: (ushort) 1),
-                    c => c.VerifyField(name: "cSeg", value: (ushort) 1),
-                    c => c.VerifyField(name: "baseSrcFile", new[] {20})
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "OMFSourceModule", offset: 65860, size: 8,
+                        c => c.VerifyField(name: "cFile", value: (ushort) 1),
+                        c => c.VerifyField(name: "cSeg", value: (ushort) 1),
+                        c => c.VerifyField(name: "baseSrcFile", new[] { 20 })
+                    ),
+                    after: 2
                 )
             );
 
             TestXRefs<OMFSourceModule>(
-                v => v.Verify(propertyName: "baseSrcFile", index: 0, fieldOffset: 4, targetOffset: 0x10158)
+                v => v.Verify(propertyName: "baseSrcFile", index: 1, fieldOffset: 4, targetOffset: 0x10158)
             );
         }
 
@@ -2150,14 +2168,18 @@ namespace PESpy.Tests
             );
 
             TestView<OMFSourceFile>(
-                v => v.VerifyStruct(
-                    name: "OMFSourceFile", offset: 65880, size: 77,
-                    c => c.VerifyField(name: "cSeg", value: (ushort) 1),
-                    c => c.VerifyField(name: "reserved", value: (ushort) 0),
-                    c => c.VerifyField(name: "baseSrcLn", new[] {100}),
-                    c => c.VerifyFieldIgnoreValue(name: "ranges"),
-                    c => c.VerifyField(name: "cFName", value: (byte) 60),
-                    c => c.VerifyField(name: "Name", value: "C:\\Program Files (x86)\\DevStudio\\MyProjects\\TestApp\\main.cpp")
+                WithIgnores(
+                    v => v.VerifyStruct(
+                        name: "OMFSourceFile", offset: 65880, size: 80,
+                        c => c.VerifyField(name: "cSeg", value: (ushort) 1),
+                        c => c.VerifyField(name: "reserved", value: (ushort) 0),
+                        c => c.VerifyField(name: "baseSrcLn", new[] { 100 }),
+                        c => c.VerifyFieldIgnoreValue(name: "ranges"),
+                        c => c.VerifyField(name: "cFName", value: (byte) 60),
+                        c => c.VerifyField(name: "Name", value: "C:\\Program Files (x86)\\DevStudio\\MyProjects\\TestApp\\main.cpp"),
+                        c => c.VerifyByteBlob(offset: 0x101A5, new byte[] {0, 0, 0})
+                    ),
+                    after: 1
                 )
             );
 
@@ -3577,7 +3599,7 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "numBaseClasses", value: 1),
                         c => c.VerifyField(name: "pBaseClassArray", value: 4120040)
                     ),
-                    after: 7
+                    after: 4
                 )
             );
 
@@ -4517,6 +4539,21 @@ namespace PESpy.Tests
             );
         }
 
+        [TestMethod]
+        public void ImageAuxSymbol_Test()
+        {
+            //We don't currently support writing specific fields
+            TestStruct<ImageAuxSymbol>();
+
+            TestView<ImageAuxSymbol>(
+                c => c.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0xf044, size: 18,
+                    c1 => c1.VerifyField(name: "Bytes", new byte[]
+                    {
+                        33, 0, 0, 0, 0, 0, 3, 0, 177, 65, 55, 6, 0, 0, 1, 0, 0, 0
+                    })
+                )
+            );
+        }
 
         #endregion
     }

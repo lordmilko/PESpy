@@ -1144,7 +1144,7 @@ namespace PESpy.PDB
             {
                 var arr = rgcrc;
 
-                while (cb-- > 0)
+                while (unchecked(cb-- > 0))
                 {
                     sig = (sig >> 8) ^ arr[(int) ((sig & 0xff) ^ *pb++)];
                 }

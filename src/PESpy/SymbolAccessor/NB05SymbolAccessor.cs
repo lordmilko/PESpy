@@ -139,7 +139,7 @@ namespace PESpy
         #endregion
         #region ISymbolAccessor
 
-        public SymbolAccessorKind Kind => SymbolAccessorKind.CodeView;
+        public SymbolAccessorKind Kind => SymbolAccessorKind.NB05;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetSymbolByRVA(int rva, out SymType symType, out int displacement) =>

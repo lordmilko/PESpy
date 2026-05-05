@@ -2,6 +2,7 @@
 
   <Import Project="$(Build)ChaosLib.props" />
   <Import Project="$(Build)ClrDebug.props" />
+  <Import Project="$(Build)GhidraSharp.props" />
   <Import Project="$(Build)ReFlow.props" />
   <Import Project="$(Build)PInvoke.props" />
   <Import Project="$(Build)SymHelp.props" />

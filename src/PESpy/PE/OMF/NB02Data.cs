@@ -4,7 +4,7 @@ using PESpy.View;
 
 namespace PESpy
 {
-    public class NB02Data : ICodeViewData, IViewable
+    public class NB02Data : ICodeViewData, ISymbolAccessor, IViewable
     {
         public int LfoDir { get; }
 
@@ -104,5 +104,26 @@ namespace PESpy
         int IViewable.NumChildren() => throw new NotSupportedException();
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
+
+        SymbolAccessorKind ISymbolAccessor.Kind => throw new NotImplementedException();
+
+        bool ISymbolAccessor.TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ISymbolAccessor.TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ISymbolAccessor.TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
     }
 }

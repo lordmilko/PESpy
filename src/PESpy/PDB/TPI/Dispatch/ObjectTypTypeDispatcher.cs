@@ -113,5 +113,6 @@
         protected override object LfVFuncOff16t(LfVFuncOff16t value) => value;
         protected override object LfVFuncTab(LfVFuncTab value) => value;
         protected override object LfVFuncTab16t(LfVFuncTab16t value) => value;
-        protected override object LfVTShape(LfVTShape value) => value;    }
+        protected override object LfVTShape(LfVTShape value) => value;
+    }
 }

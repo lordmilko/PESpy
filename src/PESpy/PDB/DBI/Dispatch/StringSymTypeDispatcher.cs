@@ -97,5 +97,6 @@ namespace PESpy.PDB
         protected override string TrampolineSym(TrampolineSym value) => value.ToString();
         protected override string UdtSym(UdtSym value) => value.ToString();
         protected override string UdtSym16t(UdtSym16t value) => value.ToString();
-        protected override string UNameSpace(UNameSpace value) => value.ToString();    }
+        protected override string UNameSpace(UNameSpace value) => value.ToString();
+    }
 }

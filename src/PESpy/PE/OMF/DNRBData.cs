@@ -4,7 +4,7 @@ using PESpy.View;
 namespace PESpy
 {
     //The data generally appears to be in the same format as NB02
-    public class DNRBData : ICodeViewData, IViewable //Type is made up
+    public class DNRBData : ICodeViewData, ISymbolAccessor, IViewable //Type is made up
     {
         public CodeViewSig Signature { get; }
 
@@ -79,5 +79,26 @@ namespace PESpy
         int IViewable.NumChildren() => throw new NotSupportedException();
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
+
+        SymbolAccessorKind ISymbolAccessor.Kind => SymbolAccessorKind.DNRB;
+
+        bool ISymbolAccessor.TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ISymbolAccessor.TryGetAddressFromName(FixedUtf8String name, out int targetAddress)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ISymbolAccessor.TryGetLengthFromAddress(int targetAddress, ISectionDataAccessor sectionDataAccessor, out int length)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
     }
 }

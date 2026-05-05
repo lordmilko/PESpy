@@ -659,7 +659,7 @@ namespace PESpy.Tests
         {
             using var pdbFile = PDBFile.FromKey(WellKnownTestModule.ntdll);
 
-            var writer = new PDBViewWriter(pdbFile);
+            var writer = new ViewWriter(pdbFile);
 
             ((IViewable) pdbFile.GSI).WriteGlobals(writer);
         }
@@ -669,7 +669,7 @@ namespace PESpy.Tests
         {
             using var pdbFile = PDBFile.FromFile(Sample.VC40_PDB);
 
-            var writer = new PDBViewWriter(pdbFile);
+            var writer = new ViewWriter(pdbFile);
 
             ((IViewable) pdbFile.GSI).WriteGlobals(writer);
         }
@@ -691,6 +691,7 @@ namespace PESpy.Tests
             Assert.AreEqual("_main", entry.Target.SymType.ToString());
             Assert.AreEqual("@ILT+0(_main)", entry.Thunk.ToString());
         }
+
         [TestMethod]
         public void OMAP_Test()
         {

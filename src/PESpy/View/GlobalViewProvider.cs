@@ -154,26 +154,38 @@ namespace PESpy.View
             }
             else if (_fileAccessor.TryGetRegion(entity.TargetAddress, (childOffset = (entity.TargetAddress == _entities.StartTargetAddress && _kind == GlobalViewProviderKind.Region ? _depthAtStartOffset + 1 : 0)), out var region))
             {
-                if (region.Kind == ViewKind.Section)
+                switch (region.Kind)
                 {
-                    structWriter.Field = new SectionView(
-                        region,
-                        _fileAccessor,
-                        structWriter.ViewWriter,
-                        _entities.SliceFromCurrent(region.Length),
-                        childOffset
-                    );
+                    case ViewKind.Header:
+                        structWriter.Field = new HeaderView(
+                            region,
+                            _fileAccessor,
+                            structWriter.ViewWriter,
+                            _entities.SliceFromCurrent(region.Length),
+                            childOffset
+                        );
+                        break;
+
+                    case ViewKind.Section:
+                        structWriter.Field = new SectionView(
+                            region,
+                            _fileAccessor,
+                            structWriter.ViewWriter,
+                            _entities.SliceFromCurrent(region.Length),
+                            childOffset
+                        );
+                        break;
+
+                    default:
+                        structWriter.Field = new LogicalRegionView(
+                            region,
+                            _fileAccessor,
+                            structWriter.ViewWriter,
+                            _entities.SliceFromCurrent(region.Length),
+                            childOffset
+                        );
+                        break;
                 }
-                else
-                {
-                    structWriter.Field = new LogicalRegionView(
-                        region,
-                        _fileAccessor,
-                        structWriter.ViewWriter,
-                        _entities.SliceFromCurrent(region.Length),
-                        childOffset
-                    );
-                }                    
 
                 Debug.Assert(region.Length > 0);
 

@@ -26,7 +26,7 @@ namespace PESpy.PDB
         public byte Byte => (byte) _value;
         public sbyte SByte => (sbyte) _value;
 
-        public short Int16 => (short) _value;
+        public short Int16 => unchecked((short) _value);
         public ushort UInt16 => (ushort) _value;
 
         public int Int32 => (int) _value;

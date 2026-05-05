@@ -100,5 +100,6 @@ namespace PESpy.PDB
         protected override object TrampolineSym(TrampolineSym value) => value;
         protected override object UdtSym(UdtSym value) => value;
         protected override object UdtSym16t(UdtSym16t value) => value;
-        protected override object UNameSpace(UNameSpace value) => value;    }
+        protected override object UNameSpace(UNameSpace value) => value;
+    }
 }

@@ -428,6 +428,10 @@ namespace PESpy.View
                 case ViewKind.HRFile:
                 case ViewKind.HashBuckets:
                 case ViewKind.HashBucketsBitmap:
+                case ViewKind.DNRB_Publics:
+                case ViewKind.DNRB_SourceLines:
+                case ViewKind.DNRB_Symbols:
+                case ViewKind.DNRB_Types:
                     pViewByte->DataKind = ViewByteDataKind.Struct;
                     break;
 

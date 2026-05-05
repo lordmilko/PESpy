@@ -55,7 +55,6 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
-        private ISymbolAccessor symbolAccessor;
         private bool disposed;
 
         private NB02Data data;
@@ -116,7 +115,7 @@ namespace PESpy
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
-            CancellationToken cancellationToken = default) => symbolAccessor ??= new NB02SymbolAccessor(data);
+            CancellationToken cancellationToken = default) => data;
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 

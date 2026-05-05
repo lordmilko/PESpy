@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace PESpy.View
 {
-    internal class LEFileAccessor : FileAccessor
+    internal unsafe class LEFileAccessor : FileAccessor, ISectionDataAccessor
     {
         public LEFile LEFile { get; }
 
@@ -72,6 +72,21 @@ namespace PESpy.View
             }
 
             return _viewWriter;
+        }
+
+        bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, out byte* pByte, out int remainingLength)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength)
+        {
+            throw new NotImplementedException();
         }
 
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)

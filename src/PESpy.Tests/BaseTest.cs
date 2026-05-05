@@ -247,8 +247,23 @@ namespace PESpy.Tests
                 switch (file.Kind)
                 {
                     case FileKind.LIB:
-                        viewWriter = new LIBViewWriter((LIBFile) file);
+                        viewWriter = new ViewWriter((LIBFile) file);
                         break;
+
+                    case FileKind.PDB:
+                        viewWriter = new ViewWriter((PDBFile) file);
+                        break;
+
+                    default:
+                        viewWriter = new ViewWriter((PEFile) file);
+                        break;
+                }
+
+                using var file1 = file;
+
+                //Some entities don't have a struct, e.g. ShortImportLibraryMember
+
+                TrySetUnmanagedOffset<TVerifier>(rawValue, viewWriter, file);
 
                 ((IViewable) rawValue).WriteGlobals(viewWriter);
 
@@ -1233,11 +1248,11 @@ namespace PESpy.Tests
                     {
                         if (file is T t)
                         {
-                            PEFindKindViewWriter viewWriter;
+                            FindKindViewWriter viewWriter;
 
                             if (typeof(T) == typeof(PEFile))
                             {
-                                viewWriter = PEFindKindViewWriter.New((PEFile) file, kind);
+                                viewWriter = FindKindViewWriter.New((PEFile) file, kind);
                             }
                             else
                                 throw new NotImplementedException();

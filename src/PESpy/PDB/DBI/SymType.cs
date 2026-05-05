@@ -8,7 +8,6 @@ using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.PDB
 {
-
     [DebuggerTypeProxy(typeof(SymTypeProxy))]
     [DebuggerDisplay("{SymTypeProxy.DebuggerDisplay(this),nq}")]
     public readonly unsafe struct SymType : IViewable, IEquatable<SymType>
