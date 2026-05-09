@@ -10,6 +10,8 @@ namespace PESpy.View
 
         public override IFile File => DOSFile;
 
+        private ViewWriter _viewWriter;
+
         public DOSFileAccessor(DOSFile dosFile) : base(bitness: 16)
         {
             DOSFile = dosFile;
@@ -23,7 +25,7 @@ namespace PESpy.View
             Length = dosFile.Length;
         }
 
-        protected override ViewKind FileViewKind => throw new NotImplementedException();
+        protected override ViewKind FileViewKind => ViewKind.DOSFile;
 
         protected override object CreateOverview()
         {
@@ -32,12 +34,16 @@ namespace PESpy.View
 
         public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex)
         {
-            throw new NotImplementedException();
+            //Don't currently know how DOS addresses work
+            targetAddress = default;
+            sectionIndex = default;
+            return false;
         }
 
         public override unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
         {
-            throw new NotImplementedException();
+            DOSFile.GetRawHeaderData(out pByte, out remainingLength);
+            rva = 0; //PEFile sets RVA to 0 for header, -1 for overlay
         }
 
         internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
@@ -47,12 +53,28 @@ namespace PESpy.View
 
         internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
-            throw new NotImplementedException();
+            if (!DOSFile.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
+                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+
+            viewWriter = GetViewWriter();
         }
 
         protected override ViewWriter GetViewWriter()
         {
-            throw new NotImplementedException();
+            if (_viewWriter == null)
+            {
+                _viewWriter = new ViewWriter(
+                    new SimpleViewWriterHelper(DOSFile),
+                    DOSFile.CreateByteViewProvider(this),
+                    fileAccessor: this
+                );
+
+#if DEBUG
+                _viewWriter.ShouldVerifyXRefs = false;
+#endif
+            }
+
+            return _viewWriter;
         }
 
         bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)

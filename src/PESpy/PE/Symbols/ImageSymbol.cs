@@ -180,8 +180,8 @@ namespace PESpy
                 else
                 {
                     Name = chunk.PeekNullPaddedAnsi(0, 8);
-                    Short = 0;
-                    Long = 0;
+                    Short = @short;
+                    Long = @long;
                 }
             }
 

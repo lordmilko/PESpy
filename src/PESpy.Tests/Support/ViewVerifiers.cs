@@ -286,24 +286,24 @@ namespace PESpy.Tests
 
         public static void VerifySymType(this IView view, int offset, int size, SYM_ENUM_e type)
         {
-            Assert.IsInstanceOfType(view, typeof(ValueView<SymType>));
+            Assert.IsInstanceOfType(view, typeof(IStructView));
 
-            var valueView = (ValueView<SymType>) view;
+            var structView = (IStructView) view;
 
-            Assert.AreEqual(offset, valueView.Offset, $"Offset of {valueView.Value} was incorrect. Also size is {view.Size}");
-            Assert.AreEqual(size, valueView.Size, $"Size of {valueView.Value} was incorrect");
-            Assert.AreEqual(type, valueView.Value.rectyp);
+            Assert.AreEqual(offset, structView.Offset, $"Offset of {structView} was incorrect. Also size is {view.Size}");
+            Assert.AreEqual(size, structView.Size, $"Size of {structView} was incorrect");
+            Assert.AreEqual(type, ((FieldView<SYM_ENUM_e>) structView[1]).Value);
         }
 
         public static void VerifyTypType(this IView view, int offset, int size, LEAF_ENUM_e type)
         {
-            Assert.IsInstanceOfType(view, typeof(ValueView<TypType>));
+            Assert.IsInstanceOfType(view, typeof(IStructView));
 
-            var valueView = (ValueView<TypType>) view;
+            var structView = (IStructView) view;
 
-            Assert.AreEqual(offset, valueView.Offset, $"Offset of {valueView.Value} was incorrect. Also size is {view.Size}");
-            Assert.AreEqual(size, valueView.Size, $"Size of {valueView.Value} was incorrect");
-            Assert.AreEqual(type, valueView.Value.leaf);
+            Assert.AreEqual(offset, structView.Offset, $"Offset of {structView} was incorrect. Also size is {view.Size}");
+            Assert.AreEqual(size, structView.Size, $"Size of {structView} was incorrect");
+            Assert.AreEqual(type, ((FieldView<LEAF_ENUM_e>) structView[1]).Value);
         }
     }
 }

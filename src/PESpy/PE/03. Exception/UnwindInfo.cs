@@ -292,7 +292,9 @@ namespace PESpy
             int exceptionHandler,
             WellKnownExceptionHandlerKind kind)
         {
+#if DEBUG
             viewWriter.EnterUniqueXRef();
+#endif
 
             var structSize = fieldOffset + GetExceptionDataSize(kind, dataChunk, out var dataKind);
 
@@ -333,7 +335,9 @@ namespace PESpy
                     throw new NotImplementedException();
             }
 
+#if DEBUG
             viewWriter.ExitUniqueXRef();
+#endif
 
             viewWriter.RegisterStruct(pViewByte, targetAddress, ViewKind.UnwindInfo);
 
@@ -473,7 +477,9 @@ namespace PESpy
         {
             //We need to assert that all xrefs we write descending from the UnwindInfo are written uniquely,
             //as multiple RUNTIME_FUNCTION entries may point to the same UnwindInfo
+#if DEBUG
             writer.EnterUniqueXRef();
+#endif
 
             //If the ExceptionData is an RVA, there's globals
             switch (ExceptionHandlerKind)
@@ -502,7 +508,9 @@ namespace PESpy
             if (exceptionHandler != 0)
                 writer.WriteUniqueRVAXRef(Offset, ExtraDataStart, exceptionHandler);
 
+#if DEBUG
             writer.ExitUniqueXRef();
+#endif
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

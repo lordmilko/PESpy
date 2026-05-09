@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Management.Automation;
+using PESpy.View;
 
 namespace PESpy.PowerShell
 {
-    class PowerShellLocatorProgress : ILocatorProgress
+    class PowerShellLocatorProgress : IFileAnalyzerProgress
     {
         private ProgressRecord _progressRecord;
         private PSCmdlet _cmdlet;
         private Stopwatch _startTime;
+        private FileAnalyzerProgressPhase _lastProgressPhase;
 
         private int _notificationIndex = 0;
 
@@ -50,6 +52,18 @@ namespace PESpy.PowerShell
                     _cmdlet.WriteProgress(_progressRecord);
                     break;
             }
+        }
+
+        public void NotifyPhase(FileAnalyzerProgressPhase phase)
+        {
+            //If this assert fails, we've messed up our ordering in the enum, perhaps as a result of having
+            //shuffled various steps around
+            Debug.Assert(phase >= _lastProgressPhase);
+            _lastProgressPhase = phase;
+        }
+
+        public void PhaseComplete(FileAnalyzerProgressPhase phase, long elapsed)
+        {
         }
     }
 }

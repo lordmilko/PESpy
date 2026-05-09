@@ -13,7 +13,7 @@ namespace PESpy.View
         internal readonly int SectionAccessorIndex;
         private readonly int _startOffset;
         internal readonly long StartTargetAddress;
-        private readonly int _sectionLength;
+        private readonly int _bytesReadLimit;
         private readonly IntPtr _pBytes;
         private readonly Dictionary<long, FileAccessor.ViewInfo> _infoMap;
         private readonly Dictionary<long, int> _largeAddresses;
@@ -40,7 +40,8 @@ namespace PESpy.View
             SectionAccessor = sectionAccessor;
             StartTargetAddress = _startOffset + SectionAccessor.StartAddress;
             SectionAccessorIndex = sectionAccessorIndex;
-            _sectionLength = startOffset + sectionLength;
+            _bytesReadLimit = startOffset + sectionLength;
+
             _pBytes = pBytes;
             _infoMap = infoMap;
             _largeAddresses = largeAddresses;
@@ -65,7 +66,7 @@ namespace PESpy.View
 
         public bool MoveNext()
         {
-            if (_bytesRead < _sectionLength)
+            if (_bytesRead < _bytesReadLimit)
             {
                 _hasMovedNext = true;
                 _current = GetEntity();
@@ -93,7 +94,7 @@ namespace PESpy.View
             _bytesRead = (int) (offset - SectionAccessor.StartAddress);
             Debug.Assert(_bytesRead >= _startOffset);
 
-            if (_bytesRead >= _sectionLength)
+            if (_bytesRead >= _bytesReadLimit)
                 return false;
 
             _current = GetEntity();
@@ -121,6 +122,9 @@ namespace PESpy.View
             public int NextDataDirectoryIndex;
             public long NextDataDirectoryOffset;
             public bool HasDataDirectories => DataDirectories?.Count > 0;
+
+            public RegionBuilder? CurrentRegion => NextRegionOffset == -1 ? null : Regions[NextRegionIndex];
+            public RegionBuilder? CurrentDataDirectory => NextDataDirectoryOffset == -1 ? null : DataDirectories[NextDataDirectoryIndex];
         }
 
         internal unsafe int GetCount(GlobalViewProviderKind kind, int depthAtStartOffset)
@@ -131,7 +135,7 @@ namespace PESpy.View
 
             var symbolAccessor = _symbolAccessor;
             var sectionAccessor = SectionAccessor;
-            var sectionLength = _sectionLength;
+            var bytesReadLimit = _bytesReadLimit;
             var pBytes = _pBytes;
             var infoMap = _infoMap;
             var largeAddresses = _largeAddresses;
@@ -183,7 +187,7 @@ namespace PESpy.View
                         DrillIntoRegion(ref state.DataDirectories, depthAtStartOffset, ref state.NextDataDirectoryIndex, ref state.NextDataDirectoryOffset);
                 }
 
-                while (bytesRead < sectionLength)
+                while (bytesRead < _bytesReadLimit)
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
                     var entity = new ViewEntity(
@@ -192,7 +196,7 @@ namespace PESpy.View
                         symbolAccessor,
                         sectionAccessor,
                         bytesRead,
-                        sectionLength,
+                        bytesReadLimit,
                         pBytes,
                         infoMap,
                         largeAddresses,
@@ -218,6 +222,40 @@ namespace PESpy.View
                         _debugEntities.Add("Region");
 #endif
                         SkipOverRegion(sectionAccessor, ref bytesRead, ref state);
+
+                        if (state.NextDataDirectoryOffset != -1)
+                        {
+                            var current = sectionAccessor.StartAddress + bytesRead;
+
+                            //In NGEN, the NGEN DebugMap directory is actually _inside_ the Unwind Infos region
+                            while (current > state.NextDataDirectoryOffset)
+                            {
+                                var directory = state.DataDirectories[state.NextDataDirectoryIndex];
+
+                                state.NextDataDirectoryIndex++;
+
+                            repeat:
+                                if (state.NextDataDirectoryIndex < state.DataDirectories.Count)
+                                {
+                                    //Watch out for multiple directories sharing the same bounds! e.g. ExeptionTableDirectory
+                                    //can share the same bounds as R2R RuntimeFunctionsDirectory
+                                    var nextDirectory = state.DataDirectories[state.NextDataDirectoryIndex];
+
+                                    if (nextDirectory.Start == directory.Start)
+                                    {
+                                        state.NextDataDirectoryIndex++;
+                                        goto repeat;
+                                    }
+
+                                    state.NextDataDirectoryOffset = nextDirectory.Start;
+                                }
+                                else
+                                {
+                                    state.NextDataDirectoryOffset = -1;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     else if (kind != GlobalViewProviderKind.NestedFile && entity.TargetAddress == state.NextNestedFileOffset)
                     {
@@ -250,7 +288,7 @@ namespace PESpy.View
                 {
                     var dataDirectory = state.DataDirectories[state.NextDataDirectoryIndex];
 
-                    var end = StartTargetAddress + sectionLength;
+                    var end = StartTargetAddress + bytesReadLimit - _startOffset;
 
                     Debug.Assert(dataDirectory.Start >= end, "Failed to process all data directories");
                 }
@@ -258,7 +296,7 @@ namespace PESpy.View
             }
             else
             {
-                while (bytesRead < sectionLength)
+                while (bytesRead < _bytesReadLimit)
                 {
                     //We can't use unsafe in an iterator, so we need to put all the logic in the FileEntity ctor
                     var entity = new ViewEntity(
@@ -267,7 +305,7 @@ namespace PESpy.View
                         symbolAccessor,
                         sectionAccessor,
                         bytesRead,
-                        sectionLength,
+                        _bytesReadLimit,
                         pBytes,
                         infoMap,
                         largeAddresses,
@@ -491,6 +529,6 @@ namespace PESpy.View
             _bytesRead = _startOffset;
         }
 
-        private ViewEntity GetEntity() => new ViewEntity(_fileAccessor, SectionAccessorIndex, _symbolAccessor, SectionAccessor, _bytesRead, _sectionLength, _pBytes, _infoMap, _largeAddresses);
+        private ViewEntity GetEntity() => new ViewEntity(_fileAccessor, SectionAccessorIndex, _symbolAccessor, SectionAccessor, _bytesRead, _bytesReadLimit, _pBytes, _infoMap, _largeAddresses);
     }
 }

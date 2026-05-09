@@ -17,9 +17,12 @@ namespace PESpy.View
 
         protected override ViewWriter CreateViewWriter()
         {
+            //CreateViewWriter is called by the base ctor
+            var pdbFile = (PDB1File) _fileAccessor.File;
+
             return new ViewByteViewWriter(
-                new SimpleViewWriterHelper(_pdbFile),
-                _pdbFile.CreateByteViewProvider(_fileAccessor),
+                new SimpleViewWriterHelper(pdbFile),
+                pdbFile.CreateByteViewProvider(_fileAccessor),
                 ViewMode.Default,
                 _fileAccessor,
                 null,

@@ -315,10 +315,10 @@ namespace PESpy
             uint lengthBits = (uint) (*pbEncoding & 0x0F);
             int negLength = s_negLengthTab[lengthBits];
             int shift = s_shiftTab[lengthBits];
-            uint result = *(uint*) (pbEncoding - negLength - 4);
+            uint result = unchecked(*(uint*) (pbEncoding - negLength - 4));
 
             result >>= shift;
-            pbEncoding -= negLength;
+            pbEncoding = unchecked(pbEncoding - negLength);
 
             return result;
         }

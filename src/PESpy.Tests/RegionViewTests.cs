@@ -196,6 +196,32 @@ namespace PESpy.Tests
             Assert.AreEqual(480, lastSectionEntry.Bytes.Length);
         }
 
+        [TestMethod]
+        public void RegionView_DataDirectory_AfterUnwindInfo()
+        {
+            //As of writing, we don't currently support reading the data in an NGEN
+            //data directory that is right after an Unwind Info area; we don't want
+            //the Unwind Info to expand over the data directories; so we should say that
+            //Unwind Info stops prior to the start of a data directory after it
+
+            WithRegions(Sample.NGEN_NI_DLL, (r, d) =>
+            {
+                var unwindInfos = r[16];
+                Assert.AreEqual("Unwind Infos", unwindInfos.Name);
+                Assert.AreEqual(0x1C20, unwindInfos.Offset);
+
+                //The region currently encompasses the UNWIND_INFO and the unknown bytes after it.
+                //Not sure if it actually _should_ be encompassing the unknown bytes after it
+                Assert.AreEqual(208, unwindInfos.Size);
+
+                var debugMap = d[18];
+                Assert.AreEqual("NGEN DebugMap Directory", debugMap.Name);
+
+                var virtualSectionsTable = d[19];
+                Assert.AreEqual("NGEN VirtualSectionsTable Directory", virtualSectionsTable.Name);
+            });
+        }
+
         #endregion
 
         [TestMethod]
@@ -241,13 +267,30 @@ namespace PESpy.Tests
             validate(regions.ToArray());
         }
 
+        private void WithRegions(string path, Action<LogicalRegionView[], LogicalRegionView[]> validate)
+        {
+            using var peFile = PEFile.FromFile(path);
+
+            var view = peFile.GetView();
+
+            var regionCollector = new RegionCollector();
+
+            view.Accept(regionCollector);
+
+            validate(regionCollector.Regions.ToArray(), regionCollector.DataDirectories.ToArray());
+        }
+
         class RegionCollector : ViewWalker
         {
             public List<LogicalRegionView> Regions { get; } = new List<LogicalRegionView>();
 
+            public List<LogicalRegionView> DataDirectories { get; } = new List<LogicalRegionView>();
+
             protected internal override void VisitLogicalRegion(LogicalRegionView view)
             {
-                if (view.Kind != ViewKind.DataDirectory)
+                if (view.Kind == ViewKind.DataDirectory)
+                    DataDirectories.Add(view);
+                else
                     Regions.Add(view);
 
                 base.VisitLogicalRegion(view);

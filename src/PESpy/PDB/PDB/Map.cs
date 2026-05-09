@@ -191,47 +191,38 @@ namespace PESpy.PDB
         IView? IViewable.WriteStruct(ViewWriter writer) =>
             writer.NewStruct(this, ViewKind.Map, StructSize);
 
-        int IViewable.NumChildren() => 5 + (DeletedWords.Length == 0 ? 0 : 1) + Entries.Length;
+        int IViewable.NumChildren() => throw StructWriter.GetEagerLoadOnlyException(); 
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter)
         {
-            switch (index)
-            {
-                case 0:
-                    structWriter.WriteField("Size", SizeOffset, Size);
-                    break;
+            //Both PresentWords and DeletedWords can be missing, which makes this a bit too complicated
+            //and we should just write it eagerly
 
-                case 1:
-                    structWriter.WriteField("Capacity", CapacityOffset, Capacity);
-                    break;
+            if (index != -1)
+                throw StructWriter.GetEagerLoadOnlyException();
 
-                case 2:
-                    structWriter.WriteField("Present Word Count", PresentWordCountOffset, PresentWordCount);
-                    break;
+            using var s = structWriter.CreateEagerWriter();
 
-                case 3:
-                    structWriter.WriteField("Present Words", PresentWordsOffset, PresentWords);
-                    break;
+            s.WriteField("Size", Size);
+            s.WriteField("Capacity", Capacity);
+            s.WriteField("Present Word Count", PresentWordCount);
 
-                case 4:
-                    structWriter.WriteField("Deleted Word Count", DeletedWordCountOffset, DeletedWordCount);
-                    break;
+            if (PresentWords.Length > 0)
+                s.WriteField("Present Words", PresentWords);
 
-                case 5:
-                    if (DeletedWords.Length == 0)
-                        structWriter.WriteInline(Entries[index - 5]);
-                    else
-                        structWriter.WriteField("Deleted Words", DeletedWordsOffset, DeletedWords);
-                    break;
+            s.WriteField("Deleted Word Count", DeletedWordCount);
 
-                default:
-                    structWriter.WriteInline(Entries[index - (DeletedWords.Length == 0 ? 5 : 6)]);
-                    break;
-            }
+            if (DeletedWords.Length > 0)
+                s.WriteField("Deleted Words", DeletedWords);
+
+            foreach (var entry in Entries)
+                s.WriteInline(entry);
+
+            structWriter.EagerFields = s.ToArray();
         }
 
         [DebuggerDisplay("{Key} -> {Value}")]
-        public readonly unsafe struct Entry : IValue, IViewable
+        public readonly unsafe struct Entry : IViewableValue
         {
             private const int KeyOffset = 0;
 

@@ -129,7 +129,7 @@ namespace PESpy
 
                 if (symbol.StorageClass == IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_EXTERNAL)
                 {
-                    switch ((IMAGE_SYM) symbol.SectionNumber)
+                    switch (unchecked((IMAGE_SYM) symbol.SectionNumber))
                     {
                         case IMAGE_SYM.IMAGE_SYM_UNDEFINED:
                         case IMAGE_SYM.IMAGE_SYM_ABSOLUTE:

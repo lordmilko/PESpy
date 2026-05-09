@@ -108,7 +108,7 @@ namespace PESpy
         void Notify(LocatorProgressEventArgs eventArgs);
     }
 
-    public static class Locator
+    public static partial class Locator
     {
         private static string[] environmentNames =
         {

@@ -14,6 +14,8 @@ namespace PESpy.View
 
         protected override ViewKind FileViewKind => ViewKind.NEFile;
 
+        private ViewWriter _viewWriter;
+
         //osdev.org suggests that when the OS is 4, this means it's for Win32s and contains 32-bit code. But
         //Windows says that 4 is DEV_386 and is still 16-bit code, so we need to test that if we ever encounter
         //a NE_DEV386 file
@@ -44,7 +46,8 @@ namespace PESpy.View
 
         public override unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
         {
-            throw new NotImplementedException();
+            NEFile.GetRawHeaderData(out pByte, out remainingLength);
+            rva = 0; //PEFile sets RVA to 0 for header, -1 for overlay
         }
 
         internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
@@ -54,12 +57,28 @@ namespace PESpy.View
 
         internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
         {
-            throw new NotImplementedException();
+            if (!NEFile.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
+                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+
+            viewWriter = GetViewWriter();
         }
 
         protected override ViewWriter GetViewWriter()
         {
-            throw new NotImplementedException();
+            if (_viewWriter == null)
+            {
+                _viewWriter = new ViewWriter(
+                    new SimpleViewWriterHelper(NEFile),
+                    NEFile.CreateByteViewProvider(this),
+                    fileAccessor: this
+                );
+
+#if DEBUG
+                _viewWriter.ShouldVerifyXRefs = false;
+#endif
+            }
+
+            return _viewWriter;
         }
 
         bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)
@@ -79,7 +98,9 @@ namespace PESpy.View
 
         public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
         {
-            throw new NotImplementedException();
+            //For now, we don't support reporting on the "true" virtual addresses in each segment
+            rva = default;
+            return false;
         }
 
         internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor()

@@ -2,7 +2,7 @@
 {
     public enum FileAnalyzerProgressPhase
     {
-        DiscoverGlobals,
+        DiscoverGlobals = 1,
         LocateSymbols,
         DiscoverExceptionData,
         DiscoverCodeRoots,

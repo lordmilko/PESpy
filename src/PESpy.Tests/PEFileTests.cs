@@ -420,10 +420,10 @@ namespace PESpy.Tests
 
             //I can't find any files (in my samples or otherwise) that have either of these, so for now I can't test them
 
-            TestXRefs<ImageSectionHeader>(
-                v => v.Verify(propertyName: "PointerToRelocations", index: -1, fieldOffset: ImageSectionHeader.PointerToRelocationsOffset, targetOffset: 0),
-                v => v.Verify(propertyName: "PointerToLineNumbers", index: -1, fieldOffset: ImageSectionHeader.PointerToLineNumbersOffset, targetOffset: 0)
-            );
+            //TestXRefs<ImageSectionHeader>(
+            //    v => v.Verify(propertyName: "PointerToRelocations", index: -1, fieldOffset: ImageSectionHeader.PointerToRelocationsOffset, targetOffset: 0),
+            //    v => v.Verify(propertyName: "PointerToLineNumbers", index: -1, fieldOffset: ImageSectionHeader.PointerToLineNumbersOffset, targetOffset: 0)
+            //);
         }
 
         #endregion

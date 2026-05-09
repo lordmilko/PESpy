@@ -404,41 +404,44 @@ namespace PESpy
                 else if (data is RawValue<NativeSpan<byte>> b)
                 {
                     ref var header = ref sectionHeaders[i];
-                    var sectionName = header.Name;
+                    var sectionName = header.Name.ToString();
 
-                    ViewKind kind;
-
-                    if (sectionName == ".text"u8)
-                        kind = ViewKind.text;
-                    else if (sectionName == ".text$mn"u8)
-                        kind = ViewKind.text_mn;
-                    else if (sectionName == ".data"u8)
-                        kind = ViewKind.data;
-                    else if (sectionName.StartsWith(".idata"))
-                        kind = ViewKind.idata;
-                    else if (sectionName == ".edata"u8)
-                        kind = ViewKind.edata;
-                    else if (sectionName == ".rdata"u8)
-                        kind = ViewKind.rdata;
-                    else if (sectionName == ".debug$f"u8) //FPO
-                        kind = ViewKind.debug_f;
-                    else if (sectionName == ".bss"u8)
-                        kind = ViewKind.bss; //Don't know what the actual data format is
-                    else if (sectionName.StartsWith(".rsrc"))
-                        kind = ViewKind.rsrc;
-                    else if (sectionName == ".sxdata"u8)
-                        kind = ViewKind.sxdata;
-                    else if (sectionName == ".chks64"u8)
-                        kind = ViewKind.chks64;
-                    else
+                    var kind = sectionName switch
                     {
+                        ".text" => ViewKind.text,
+                        ".text$mn" => ViewKind.text_mn,
+                        ".data" => ViewKind.data,
+                        ".idata" => ViewKind.idata,
+                        ".edata" => ViewKind.edata,
+                        ".rdata" => ViewKind.rdata,
+                        ".debug$f" => ViewKind.debug_f, //FPO
+                        ".bss" => ViewKind.bss, //Don't know what the actual data format is
+                        ".rsrc" => ViewKind.rsrc,
+                        ".sxdata" => ViewKind.sxdata,
+                        ".chks64" => ViewKind.chks64,
+                        ".cil$db" => ViewKind.cil_db,
+                        ".cil$ex" => ViewKind.cil_ex,
+                        ".cil$fg" => ViewKind.cil_fg,
+                        ".cil$gl" => ViewKind.cil_gl,
+                        ".cil$in" => ViewKind.cil_in,
+                        ".cil$md" => ViewKind.cil_md,
+                        ".cil$sy" => ViewKind.cil_sy,
+                        _ => GetUnknownKind(sectionName)
+                    };
+
+                    static ViewKind GetUnknownKind(string sectionName)
+                    {
+                        //You can have .idata with a number
+                        if (sectionName.StartsWith(".idata$"))
+                            return ViewKind.idata;
+
 #if DEBUG
                         if (sectionName.StartsWith("."))
                             throw new NotImplementedException();
 #endif
 
                         //You can have weird garbage in a lib file in the name
-                        kind = ViewKind.UnknownSection;
+                        return ViewKind.UnknownSection;
                     }
 
                     writer.WriteGlobal(b.Offset, b.Value, b.Value.Length, kind);

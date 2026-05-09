@@ -595,6 +595,10 @@ namespace PESpy
                 //Assuming this is infact a SCOPE_TABLE, based on the stated count
                 //the following would be the size of the record
                 uint requiredSize = (uint) (sizeof(int) + (count * 16));
+
+                if (exceptionDataLength < requiredSize)
+                    return;
+
                 var remainingSize = exceptionDataLength - requiredSize;
 
                 //The first two fields of a ScopeTable record are the BeginAddress
@@ -607,9 +611,7 @@ namespace PESpy
                  * size available, however I've seen a __C_specific_handler that only had a single SCOPE_TABLE
                  * record (meaning it only needed 20 bytes), and yet there were 4 zero bytes after it (padding?)
                  * for a total of 24 bytes */
-                if (exceptionDataLength >= requiredSize
-                    && recordBeginAddress != 0
-                    && recordBeginAddress < recordEndAddress)
+                if (recordBeginAddress != 0 && recordBeginAddress < recordEndAddress)
                 {
                     //Sounds pretty SCOPE_TABLE like to me!
                     analysis.HasScopeTable = true;

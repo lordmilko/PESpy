@@ -39,12 +39,9 @@ namespace PESpy.View
 
         protected override void MarkRegions()
         {
-            if (_objFile.AnonObjectHeader != null)
-                throw new NotImplementedException(); //Don't call MarkOBJRegions; layout is different
-            else
-            {
-                MarkOBJRegions(0, (int) _objFile.Length, _objFile, _fileAccessor, _extraRegions);
-            }
+            //Thanks to the fact we add add FileHeader.Offset to the end anyway, this all automatically just works
+            //for ANON_OBJECT_HEADER as well
+            MarkOBJRegions(0, (int) _objFile.Length, _objFile, _fileAccessor, _extraRegions);
         }
 
         internal static void MarkOBJRegions(
@@ -59,14 +56,14 @@ namespace PESpy.View
 
             var objEnd = objFile.FileHeader.Offset + length;
 
-            var headerLength = objFile.SectionHeaders.Length == 0 ? length : objFile.SectionHeaders[0].PointerToRawData;
+            var headerLength = objFile.SectionHeaders.Length == 0 ? length : (objFile.SectionHeaders[0].PointerToRawData);
 
             extraRegions.Add(new RegionBuilder
             {
                 Name = "HEADER",
                 Kind = ViewKind.Header,
                 Start = startOffset,
-                End = objFile.FileHeader.Offset + headerLength
+                End = objFile.FileHeader.Offset + headerLength //This works for both normal and ANON_OBJECT_HEADER
             });
 
             var sectionHeaders = objFile.SectionHeaders;
@@ -87,7 +84,7 @@ namespace PESpy.View
                 start += (int) objFile.FileHeader.Offset;
 
                 //You can have data in between sections
-                MarkInterSectionData(lastSectionEnd, start, canHaveRelocations: false, fileAccessor, extraRegions);
+                MarkInterSectionData(lastSectionEnd, start, canHaveRelocations: true, fileAccessor, extraRegions);
 
                 extraRegions.Add(new RegionBuilder
                 {

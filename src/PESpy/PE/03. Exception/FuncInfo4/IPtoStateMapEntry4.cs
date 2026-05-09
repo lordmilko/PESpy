@@ -38,7 +38,7 @@ namespace PESpy
             Ip = functionAddress + prevAmount + RawIp;
 
             // States are encoded +1 so as to not encode a negative
-            State = (int) (FuncInfo4.ReadUnsigned(ref pData) - 1);
+            State = unchecked((int) (FuncInfo4.ReadUnsigned(ref pData) - 1));
         }
 
         void IViewable.WriteGlobals(ViewWriter writer)

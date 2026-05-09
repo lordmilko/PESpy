@@ -4,6 +4,7 @@ namespace PESpy
 {
     internal static class MemoryChunkExtensions
     {
+        public static DOSFile DOSFile(this MemoryChunk chunk) => (DOSFile) ((GlobalMemoryBlock) chunk.block).File;
         public static PEFile PEFile(this MemoryChunk chunk) => (PEFile) (chunk.block.Provider as IFileMemoryBlockProvider)?.File!;
         public static PDBFile PDBFile(this MemoryChunk chunk) => ((PagedMemoryBlock) chunk.block).PDBFile;
         public static NEFile NEFile(this MemoryChunk chunk) => (NEFile) ((GlobalMemoryBlock) chunk.block).File;

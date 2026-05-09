@@ -110,6 +110,9 @@ namespace PESpy
                         return 6;
 
                     default:
+                        if (IsNull)
+                            return sizeof(short);
+
                         throw new NotImplementedException($"Don't know how to handle {nameof(UWOP)} '{UnwindOp}'.");
                 }
             }
@@ -143,6 +146,9 @@ namespace PESpy
 
         int IViewable.NumChildren()
         {
+            if (IsNull)
+                return NumChildren<NullUnwindCode>(this);
+
             return UnwindOp switch
             {
                 UWOP.UWOP_PUSH_NONVOL     => NumChildren<PushNonVolatile>(this),

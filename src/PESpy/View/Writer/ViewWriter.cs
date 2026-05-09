@@ -164,6 +164,7 @@ namespace PESpy.View
             IViewWriterHelper helper,
             ByteViewProvider byteViewProvider)
         {
+            this.helper = helper;
             this.mode = parentWriter.mode;
             _tryGetViewOffset = helper.TryGetOffsetDelegate;
             this.getRealOffset = helper.GetRealOffsetDelegate;
@@ -460,6 +461,8 @@ namespace PESpy.View
 
         public void WriteGlobal<T>(long offset, in T value, int size, ViewKind kind)
         {
+            Debug.Assert(size != 0);
+
             var shouldAdd = _tryGetViewOffset(offset, out var viewOffset);
 
             if (shouldAdd)
@@ -836,7 +839,7 @@ namespace PESpy.View
 #endif
 
                 if (helper.Is32Bit)
-                    WriteGlobal(value.ActualOffset, (int) value.Value, sizeof(int), valueKind);
+                    WriteGlobal(value.ActualOffset, (uint) value.Value, sizeof(int), valueKind);
                 else
                     WriteGlobal(value.ActualOffset, value.Value, sizeof(long), valueKind);
             }

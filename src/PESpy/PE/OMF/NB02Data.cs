@@ -105,7 +105,7 @@ namespace PESpy
 
         void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
-        SymbolAccessorKind ISymbolAccessor.Kind => throw new NotImplementedException();
+        SymbolAccessorKind ISymbolAccessor.Kind => SymbolAccessorKind.NB02;
 
         bool ISymbolAccessor.TryGetNameFromAddress(int targetAddress, out SymString name, out int displacement)
         {

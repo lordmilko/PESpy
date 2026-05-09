@@ -142,7 +142,7 @@ namespace PESpy
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 
-        internal static unsafe int KMPSearch(Span<byte> pattern, byte* bytes, long bytesLength)
+        internal static unsafe int KMPSearch(ReadOnlySpan<byte> pattern, byte* bytes, long bytesLength)
         {
             int m = 0;
             int i = 0;
@@ -178,7 +178,7 @@ namespace PESpy
         }
 
         // See: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-        private static void ComputeKMPFailureFunction(Span<byte> pattern, Span<int> table)
+        private static void ComputeKMPFailureFunction(ReadOnlySpan<byte> pattern, Span<int> table)
         {
             if (pattern.Length >= 1)
             {

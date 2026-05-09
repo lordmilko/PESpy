@@ -378,6 +378,9 @@ namespace PESpy.Tests
                                 {
                                     var structKind = crefs[1].Groups[1].Value.Replace("PESpy.", string.Empty);
 
+                                    if (commentLine.Contains("array of <"))
+                                        structKind += "[]";
+
                                     regionStack.Peek().children.Add((enumValue, structKind, viewType));
 
                                     longestEnumName = Math.Max(longestEnumName, enumValue.Length);
@@ -386,6 +389,9 @@ namespace PESpy.Tests
                                 else if (crefs.Count == 3 && crefs[0].Groups[1].Value == name && crefs[1].Groups[1].Value == "NativeSpan{T}")
                                 {
                                     var structKind = "NativeSpan<" + crefs[2].Groups[1].Value.Replace("PESpy.", string.Empty) + ">";
+
+                                    if (commentLine.Contains("array of <"))
+                                        structKind += "[]";
 
                                     regionStack.Peek().children.Add((enumValue, structKind, viewType));
 
@@ -598,7 +604,6 @@ namespace PESpy.Tests
                             case nameof(ViewKind.ImageThunkData):
                             case nameof(ViewKind.StorageHeader):
                             case nameof(ViewKind.StreamTable):
-                            case nameof(ViewKind.Modi60Persist):
                             case nameof(ViewKind.OMFFileIndex):
                             case nameof(ViewKind.PdbChecksum):
                             case nameof(ViewKind.EmbeddedPortablePdb):
@@ -613,7 +618,26 @@ namespace PESpy.Tests
                             case nameof(ViewKind.OMFSourceFile):
                             case nameof(ViewKind.ShortImportLibraryMember):
                             case nameof(ViewKind.LongImportLibraryMember):
+                            case nameof(ViewKind.loe):
+                            case nameof(ViewKind.loe32):
+                            case nameof(ViewKind.dnt):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
+                                break;
+
+                            case nameof(ViewKind.Modiv2):
+                            case nameof(ViewKind.Modiv4):
+                            case nameof(ViewKind.Modi50):
+                            case nameof(ViewKind.Modi60Persist):
+                                builder.AppendLine("GetModi(chunk, viewWriter, kind),");
+                                break;
+
+                            case nameof(ViewKind.DNRB_Publics):
+                            case nameof(ViewKind.DNRB_Types):
+                            case nameof(ViewKind.DNRB_Symbols):
+                            case nameof(ViewKind.DNRB_SourceLines):
+                            case nameof(ViewKind.OldSymType):
+                            case nameof(ViewKind.OldTypType):
+                                builder.AppendLine($"Get{enumValue}(chunk, viewWriter, length),");
                                 break;
 
                             case nameof(ViewKind.SymHash32):
@@ -647,7 +671,7 @@ namespace PESpy.Tests
                                 break;
 
                             case nameof(ViewKind.PN):
-                                builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, (PN) (length == 2 ? chunk.PeekUInt16(0) : chunk.PeekInt32(0)), length, kind),");
+                                builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, (PN) (length == 2 ? chunk.PeekUInt16(0) : chunk.PeekUInt32(0)), length, kind),");
                                 break;
 
                             case nameof(ViewKind.AppHostSignature):
@@ -721,6 +745,11 @@ namespace PESpy.Tests
                                         default:
                                             switch (structKind)
                                             {
+                                                case "ushort":
+                                                    peekKind = "UInt16";
+                                                    size = "short";
+                                                    break;
+
                                                 case "int":
                                                     peekKind = "Int32";
                                                     size = "int";
@@ -735,6 +764,10 @@ namespace PESpy.Tests
                                                     peekKind = "UInt64";
                                                     size = "ulong";
                                                     break;
+
+                                                case "CodeViewSig":
+                                                    builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, (CodeViewSig) chunk.PeekUInt32(0), sizeof(int), kind),");
+                                                    continue;
 
                                                 case "NativeSpan<int>":
                                                     builder.AppendLine("viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),");
@@ -1000,6 +1033,39 @@ namespace PESpy.Tests
             var path = Path.Combine(location, "ViewProvider.Name.cs");
 
             File.WriteAllText(path, result, Encoding.UTF8);
+        }
+
+        [TestMethod]
+        public void SampleStressTest()
+        {
+            foreach (var field in typeof(Sample).GetFields())
+            {
+                var path = (string) field.GetValue(null);
+
+                if (path.EndsWith(".MAP") || path.EndsWith(".COM"))
+                    continue;
+
+                using var file = Detector.OpenFile(path);
+
+                //GetView not yet implemented
+                switch (file.Kind)
+                {
+                    case FileKind.OMF:
+                    case FileKind.OMFLIB:
+                    case FileKind.OMFDBG:
+                    case FileKind.SYM:
+                    case FileKind.PortablePDB:
+                        continue;
+
+                    case FileKind.PDB:
+                        if (((PDBFile) file).PDBKind == PDB.PDBFileKind.V1)
+                            continue;
+                        break;
+                }
+
+                var view = file.GetView();
+                view.Accept(NullViewWalker.Instance);
+            }
         }
 
         private void WithSemanticModels(Action<SemanticModel> action, string projectName = "PESpy")

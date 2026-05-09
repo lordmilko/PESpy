@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 using PESpy.View;
+using static ClrDebug.PDB.LEAF_ENUM_e;
 
 namespace PESpy.PDB
 {
@@ -26,13 +27,15 @@ namespace PESpy.PDB
         public byte Byte => (byte) _value;
         public sbyte SByte => (sbyte) _value;
 
+        public char Char => (char) _value;
+
         public short Int16 => unchecked((short) _value);
         public ushort UInt16 => (ushort) _value;
 
-        public int Int32 => (int) _value;
+        public int Int32 => unchecked((int) _value);
         public uint UInt32 => (uint) _value;
 
-        public long Int64 => (long) _value;
+        public long Int64 => unchecked((long) _value);
         public ulong UInt64 => _value;
 
         public unsafe float Float
@@ -57,7 +60,7 @@ namespace PESpy.PDB
         {
             get
             {
-                if (Kind != LEAF_ENUM_e.LF_VARSTRING)
+                if (Kind != LF_VARSTRING)
                     return default;
 
                 return new FixedUtf8String((byte*) _value, Length - 4);
@@ -93,7 +96,7 @@ namespace PESpy.PDB
             if (Kind == null)
                 return 1;
 
-            if (Kind == LEAF_ENUM_e.LF_VARSTRING)
+            if (Kind == LF_VARSTRING)
                 return 3;
 
             return 2;
@@ -111,7 +114,7 @@ namespace PESpy.PDB
                 return;
             }
 
-            if (Kind == LEAF_ENUM_e.LF_VARSTRING)
+            if (Kind == LF_VARSTRING)
             {
                 //Write the leaf, the string length and the string
                 switch (index)
@@ -146,61 +149,61 @@ namespace PESpy.PDB
                 case 1:
                     switch (Kind) //LF_NUMERIC and LF_CHAR are both defined as 0x8000, but LF_NUMERIC is the semantic item that indicates "this is the beginning of the special kind range"
                     {
-                        case LEAF_ENUM_e.LF_CHAR:
-                            structWriter.WriteValue(2, Byte, sizeof(byte), ViewKind.NumericValue);
+                        case LF_CHAR:
+                            structWriter.WriteValue(2, Char, sizeof(byte), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_SHORT:
+                        case LF_SHORT:
                             structWriter.WriteValue(2, Int16, sizeof(short), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_USHORT:
+                        case LF_USHORT:
                             structWriter.WriteValue(2, UInt16, sizeof(ushort), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_LONG:
+                        case LF_LONG:
                             structWriter.WriteValue(2, Int32, sizeof(int), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_ULONG:
+                        case LF_ULONG:
                             structWriter.WriteValue(2, UInt32, sizeof(int), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_REAL16:
+                        case LF_REAL16:
                             throw new NotImplementedException();
 
-                        case LEAF_ENUM_e.LF_REAL32:
+                        case LF_REAL32:
                             structWriter.WriteValue(2, Float, sizeof(float), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_REAL48:
+                        case LF_REAL48:
                             throw new NotImplementedException();
 
-                        case LEAF_ENUM_e.LF_REAL64:
+                        case LF_REAL64:
                             structWriter.WriteValue(2, Double, sizeof(double), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_REAL80:
-                        case LEAF_ENUM_e.LF_REAL128:
+                        case LF_REAL80:
+                        case LF_REAL128:
                             throw new NotImplementedException();
 
-                        case LEAF_ENUM_e.LF_QUADWORD:
+                        case LF_QUADWORD:
                             structWriter.WriteValue(2, Int64, sizeof(long), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_UQUADWORD:
+                        case LF_UQUADWORD:
                             structWriter.WriteValue(2, UInt64, sizeof(long), ViewKind.NumericValue);
                             break;
 
-                        case LEAF_ENUM_e.LF_COMPLEX32:
-                        case LEAF_ENUM_e.LF_COMPLEX64:
-                        case LEAF_ENUM_e.LF_COMPLEX80:
-                        case LEAF_ENUM_e.LF_COMPLEX128:
-                        case LEAF_ENUM_e.LF_OCTWORD:
-                        case LEAF_ENUM_e.LF_UOCTWORD:
-                        case LEAF_ENUM_e.LF_DECIMAL:
-                        case LEAF_ENUM_e.LF_DATE:
-                        case LEAF_ENUM_e.LF_UTF8STRING:
+                        case LF_COMPLEX32:
+                        case LF_COMPLEX64:
+                        case LF_COMPLEX80:
+                        case LF_COMPLEX128:
+                        case LF_OCTWORD:
+                        case LF_UOCTWORD:
+                        case LF_DECIMAL:
+                        case LF_DATE:
+                        case LF_UTF8STRING:
                             throw new NotImplementedException();
 
                         default:
@@ -215,20 +218,19 @@ namespace PESpy.PDB
 
         public override string ToString()
         {
-            switch (Kind)
+            return Kind switch
             {
-                case LEAF_ENUM_e.LF_VARSTRING:
-                    return String.ToString();
-
-                case LEAF_ENUM_e.LF_REAL32:
-                    return Float.ToString();
-
-                case LEAF_ENUM_e.LF_REAL64:
-                    return Double.ToString();
-
-                default:
-                    return _value.ToString();
-            }
+                LF_CHAR => Char.ToString(),
+                LF_SHORT => Int16.ToString(),
+                LF_USHORT => UInt16.ToString(),
+                LF_LONG => Int32.ToString(),
+                LF_ULONG => UInt32.ToString(),
+                LF_REAL32 => Float.ToString(),
+                LF_REAL64 => Double.ToString(),
+                LF_QUADWORD => Int64.ToString(),
+                LF_UQUADWORD => UInt64.ToString(),
+                _ => _value.ToString()
+            };
         }
     }
 }

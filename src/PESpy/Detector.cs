@@ -756,6 +756,7 @@ namespace PESpy
             {
                 decompressionInfo = default;
                 return false;
+            }
 
             decompressionInfo = new DecompressionInfo
             {

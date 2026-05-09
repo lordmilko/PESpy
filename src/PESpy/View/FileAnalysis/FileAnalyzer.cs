@@ -257,7 +257,7 @@ namespace PESpy.View
             var symbolAccessor = LocateSymbols();
         }
 
-        protected virtual void DiscoverCodeRoots() => throw new NotSupportedException();
+        protected virtual void DiscoverCodeRoots() => throw new NotSupportedException("If this method is called, it means a derived type has failed to override it");
 
         protected virtual Dictionary<long, int> GetImportMap() => null;
 
@@ -325,10 +325,17 @@ namespace PESpy.View
                     ProcessCoffSymbols(((CoffSymbolAccessor) symbolAccessor).Externals, sectionDataAccessor);
                     break;
 
-                case SymbolAccessorKind.CodeView:
-                    //We don't currently have an NB02 symbol accessor; that would break this.
+                case SymbolAccessorKind.DNRB:
+                    ProcessDNRBSymbols((DNRBData) symbolAccessor);
+                    break;
+
+                case SymbolAccessorKind.NB02:
+                    ProcessNB02Symbols((NB02Data) symbolAccessor);
+                    break;
+
+                case SymbolAccessorKind.NB05:
                     //Note that NB09 derives from NB05
-                    ProcessCodeViewSymbols(((NB05SymbolAccessor) symbolAccessor).data, sectionDataAccessor);
+                    ProcessNB05Symbols(((NB05SymbolAccessor) symbolAccessor).data, sectionDataAccessor);
                     break;
 
                 case SymbolAccessorKind.SYM:
@@ -429,7 +436,42 @@ namespace PESpy.View
             }
         }
 
-        internal void ProcessCodeViewSymbols(NB05Data data, ISectionDataAccessor sectionDataAccessor)
+        //CodeView (DNRB)
+        internal void ProcessDNRBSymbols(DNRBData data)
+        {
+            //Don't currently know what to do with these symbols
+            foreach (var symbol in data.Symbols.Value)
+            {
+                var str = symbol.ToString();
+            }
+        }
+
+        //CodeView (NB02)
+        internal void ProcessNB02Symbols(NB02Data data)
+        {
+            for (var i = 0; i < data.DirEntries.Length; i++)
+            {
+                ref var entry = ref data.DirEntries[i];
+
+                switch (entry.SubSection)
+                {
+                    case SST.SSTPUBLIC:
+                        var publics = (RawValue<pbi[]>) entry.Data;
+
+                        //Not sure what to do with these
+                        break;
+
+                    case SST.SSTSYMBOLS:
+                        var symbols = (RawValue<OldSymType[]>) entry.Data;
+
+                        //Not sure what to do with these
+                        break;
+                }
+            }
+        }
+
+        //CodeView (NB05)
+        internal void ProcessNB05Symbols(NB05Data data, ISectionDataAccessor sectionDataAccessor)
         {
             for (var i = 0; i < data.DirEntries.Length; i++)
             {
@@ -612,7 +654,9 @@ namespace PESpy.View
                     break;
 
                 default:
-                    //Some symbols point to sections that don't exist, so their RVAs are 0
+                    //Some symbols point to sections that don't exist, so their RVAs are 0.
+                    //Note that as of writing we have an issue in that NE/LE/DOS files don't have section headers
+                    //and we don't know how to get the RVAs for them
                     if (!symType.TryGetRVA(codeViewAccessor, out var rva) || rva == 0)
                         return;
 
@@ -997,14 +1041,14 @@ namespace PESpy.View
                     if (!_fileAccessor.TryGetViewByte(directoryInfo.Start, out var pStartByte, out var sectionAccessorIndex))
                         continue;
 
-                    SplitDirectoryStart(pStartByte, sectionAccessorIndex);
-
-                    var pEndByte = pStartByte + directoryInfo.Length - 1;
-
                     //Watch out for directories that say they're bigger than the actual size available!
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
 
-                    var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
+                    SplitDirectoryStart(pStartByte, sectionAccessor);
+
+                    var pEndByte = pStartByte + directoryInfo.Length - 1;
+
+                    var limit = sectionAccessor.pViewBytesEnd;
 
                     if (pEndByte >= limit)
                     {
@@ -1057,7 +1101,25 @@ namespace PESpy.View
             }
         }
 
-        protected void SplitDirectoryStart(ViewByte* pStartByte, int sectionAccessorIndex)
+        //Split any values that overlap the start and end positions of a region we're trying to create
+        protected void SplitRegionBounds(long start, long end)
+        {
+            var pStartByte = _fileAccessor.GetViewByte(start, out var sectionAccessorIndex);
+
+            ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+
+            SplitDirectoryStart(pStartByte, sectionAccessor);
+
+            var pEndByte = pStartByte + (end - start) - 1;
+
+            var limit = sectionAccessor.pViewBytesEnd;
+
+            var originalEnd = end;
+            SplitDirectoryEnd(pEndByte, limit, sectionAccessorIndex, ref end);
+            Debug.Assert(originalEnd == end); //I wouldn't expect that they would be modifying this
+        }
+
+        protected void SplitDirectoryStart(ViewByte* pStartByte, in SectionAccessor sectionAccessor)
         {
             var startKind = pStartByte->Kind;
 
@@ -1074,51 +1136,41 @@ namespace PESpy.View
                 } while (pEntityStart->Kind == startKind);
 
                 //What kind of entity is overlapping the start of the section?
-                if (pEntityStart->Kind == ViewByteKind.Data && pEntityStart->DataKind == ViewByteDataKind.Unknown)
+                switch (pEntityStart->Kind)
                 {
-                    //Junk; perfect! Let's split it
-                    pStartByte->Kind = ViewByteKind.Data;
-                }
-                else
-                    throw new NotImplementedException();
-            }
-            else if (startKind == ViewByteKind.Unknown)
-            {
-                //Be careful not to run off the start of the section!
+                    case ViewByteKind.Data:
+                        switch (pEntityStart->DataKind)
+                        {
+                            case ViewByteDataKind.Unknown:
+                                //Junk; perfect! Let's split it
+                                pStartByte->Kind = ViewByteKind.Data;
+                                break;
 
-                var pEntityStart = pStartByte;
-
-                var pViewBytes = _fileAccessor.SectionAccessors[sectionAccessorIndex].pViewBytes;
-
-                do
-                {
-                    pEntityStart--;
-                } while (pEntityStart >= pViewBytes && pEntityStart->Kind == startKind);
-
-                pEntityStart++;
-
-                pStartByte->Kind = ViewByteKind.Data;
-
-                //Convert all unknowns after us into a body
-
-                ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
-
-                var limit = sectionAccessor.pViewBytes + sectionAccessor.Length;
-
-                var pByte = pStartByte + 1;
-
-                while (pByte < limit)
-                {
-                    if (pByte->Kind != ViewByteKind.Unknown)
+                            default:
+                                throw new NotImplementedException();
+                        }
                         break;
 
-                    pByte->Kind = ViewByteKind.Body;
-                    pByte++;
+                    case ViewByteKind.Unknown:
+                        //Junk; perfect! Let's split it
+                        pStartByte->Kind = ViewByteKind.Unknown;
+
+                        pStartByte++;
+
+                        //This seems a bit risky but I guess it's safe assuming we're not the last section
+                        //that only has a single byte?
+                        //todo: maybe we should do a bounds check regardless
+                        if (pStartByte < (sectionAccessor.pViewBytesEnd) && pStartByte->Kind == ViewByteKind.Unknown)
+                            pStartByte->Kind = ViewByteKind.Body;
+                        break;
+
+                    default:
+                        throw new NotImplementedException();
                 }
             }
         }
 
-        protected void SplitDirectoryEnd(ViewByte* pEndByte, ViewByte* limit, int sectionAccessorIndex, ref int endOffset)
+        protected void SplitDirectoryEnd(ViewByte* pEndByte, ViewByte* limit, int sectionAccessorIndex, ref long endOffset)
         {
             //pEndByte is the very last byte of the directory. Sometimes the listed size of a directory doesn't
             //actually match the size of the data within it. If we're in the middle of reading a valid value,
@@ -1159,30 +1211,47 @@ namespace PESpy.View
                     if (length == 1)
                         return; //The last byte in the directory is its own standalone value. This is OK
 
-                    if (pEndByte->Kind == ViewByteKind.Data && pEndByte->DataKind == ViewByteDataKind.Unknown)
+                    if (pEndByte->Kind == ViewByteKind.Data)
                     {
-                        //If this check fails, we're at the end of the section; nothing to do
-                        if (pEndByte < limit - 1)
+                        switch (pEndByte->DataKind)
                         {
-                            //There's still more data to go!
-                            var nextByte = pEndByte + 1;
+                            case ViewByteDataKind.Unknown:
+                            case ViewByteDataKind.Padding:
+                                //If this check fails, we're at the end of the section; nothing to do
+                                if (pEndByte < limit - 1)
+                                {
+                                    //There's still more data to go!
+                                    var nextByte = pEndByte + 1;
 
-                            if (nextByte->Kind != ViewByteKind.Body)
-                                throw new NotImplementedException();
+                                    if (nextByte->Kind != ViewByteKind.Body)
+                                        throw new NotImplementedException();
 
-                            //Just mark the next byte as unknown data too and we're done.
-                            //Note that this doesn't interfere with our unknown bodies logic;
-                            //this is a legit data unknown value
-                            nextByte->Kind = ViewByteKind.Data;
-                            nextByte->DataKind = ViewByteDataKind.Unknown;
+                                    //Just mark the next byte as padding or unknown data too and we're done.
+                                    //Note that this doesn't interfere with our unknown bodies logic;
+                                    //this is a legit data unknown value
+                                    nextByte->Kind = ViewByteKind.Data;
+                                    nextByte->DataKind = pEndByte->DataKind;
+                                    return;
+                                }
+                                break;
                         }
-
-                        return;
                     }
 
                     //We're at the start of a known value, read to the end and we'll make that the "real end"
 
-                    throw new NotImplementedException();
+                    var pViewByte = pEndByte + 1;
+
+                    while (pViewByte < limit)
+                    {
+                        if (pViewByte->Kind != ViewByteKind.Body)
+                            break;
+
+                        pViewByte++;
+                    }
+
+                    var distance = (pViewByte - pEndByte) - 1;
+
+                    endOffset += distance;
                 }
             }
             else
@@ -1246,6 +1315,31 @@ namespace PESpy.View
                                         //Probably a ByteBlob
                                         goto case ViewByteDataKind.Struct;
 
+                                    case ViewByteDataKind.String:
+                                        ClearString(pEntityStart, limit);
+
+                                        ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
+
+                                        var origin = pEntityStart;
+
+                                        pEntityStart--;
+
+                                        if (pEntityStart > sectionAccessor.pViewBytes)
+                                        {
+                                            do
+                                            {
+                                                pEntityStart--;
+                                            } while (pEntityStart->Kind == ViewByteKind.Body && pEntityStart->BodyKind != ViewByteBodyKind.SplitHead);
+
+                                            if (pEntityStart->Kind == ViewByteKind.Unknown)
+                                            {
+                                                //Merge the start of the string we just split with the previous unknown in this section
+                                                origin->Kind = ViewByteKind.Body;
+                                            }
+                                        }
+
+                                        break;
+
                                     default:
                                         throw new NotImplementedException();
                                 }
@@ -1256,12 +1350,52 @@ namespace PESpy.View
                                 nextByte->Kind = ViewByteKind.Unknown;
                                 break;
 
+                            case ViewByteKind.Code:
+                                /* I had a ctor in the NGEN CodeManager Code Directory. This is a public,
+                                 * which means we've likely overestimated the total length we need. We've already
+                                 * set unknown bodies at this point, so we need to set everything after the end of
+                                 * the directory to unknown + body */
+                                nextByte->Kind = ViewByteKind.Unknown;
+
+                                /* If we don't have a file disassembler, all we had was Code + Body, which means we can just
+                                 * insert an Unknown byte in the middle and we're done. But if we did have a file disassembler,
+                                 * then we're going to have sequences of Code + Body, Code + Body, etc. We can't just change a single
+                                 * byte to Unknown, we need to loop through the whole lot and change them all to body? But we could have
+                                 * had a valid piece of code after all the garbage, so it's hard to say what the bounds of the garbage
+                                 * actually is */
+                                if (_fileDisassembler != null)
+                                    throw new NotImplementedException();
+
+                                break;
+
                             default:
                                 throw new NotImplementedException();
                         }
                     }
                 }
             }
+        }
+
+        protected int ClearString(ViewByte* pViewByte, ViewByte* pEnd)
+        {
+            pViewByte->DataKind = default;
+            pViewByte->Kind = ViewByteKind.Unknown;
+
+            var start = pViewByte;
+
+            pViewByte++;
+
+            Debug.Assert(_hasUnknownBodies);
+
+            while (pViewByte < pEnd && pViewByte->Kind == ViewByteKind.Body)
+            {
+                pViewByte->Kind = ViewByteKind.Body;
+                pViewByte++;
+            }
+
+            var length = (int) (pViewByte - start);
+
+            return length;
         }
 
         public unsafe void AddXRef(int source, int target)
@@ -1339,8 +1473,11 @@ namespace PESpy.View
             }
         }
 
-        internal void CreateOMFRegion(ICodeViewData codeViewData)
+        internal void CreateOMFRegion(ICodeViewData? codeViewData)
         {
+            if (codeViewData == null)
+                return;
+
             switch (codeViewData.Signature)
             {
                 case CodeViewSig.DNRB:
@@ -1461,6 +1598,17 @@ namespace PESpy.View
         {
             var pStart = pViewByte;
 
+            if (pViewByte->Kind == ViewByteKind.Unknown && pViewByte->IsFunction)
+            {
+                //It's very dubious that anywhere near the start of this unknown region will in fact contain strings,
+                //but we don't really know; clearly we didn't disassemble anything, and for all we know it'll be a few bytes
+                //of code followed by some actual strings. So all we can really do here is just skip over the head byte
+                //and pretend we didn't see anything
+                pStart++;
+
+                //We should not be immediately followed by another Unknown + IsFunction byte
+            }
+
             do
             {
                 pViewByte++;
@@ -1474,7 +1622,8 @@ namespace PESpy.View
 
             var length = (int) (pViewByte - pStart);
 
-            ranges.Add(new StringRange(pStart, pBytes + (pStart - pSectionStart), length, sectionAddress, pSectionStart));
+            if (length > 1)
+                ranges.Add(new StringRange(pStart, pBytes + (pStart - pSectionStart), length, sectionAddress, pSectionStart));
             pViewByte--; //Don't double skip at the end
         }
 
@@ -1520,7 +1669,10 @@ namespace PESpy.View
                 //Now that we've done that, eagerly expand until we hit something else
                 Parallel.ForEach(queue, item =>
                 {
-                    var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex);
+                    //Need to skip over the head, which we already set as code above. Setting it above is
+                    //important because we need to have all the boundaries in place that we might stop at before
+                    //we start processing items in parallel
+                    var pViewByte = _fileAccessor.GetViewByte(item.Address, out var sectionAccessorIndex) + 1;
 
                     ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionAccessorIndex];
                     var limit = sectionAccessor.pViewBytesEnd;
@@ -1596,10 +1748,21 @@ namespace PESpy.View
                             {
                                 if (pViewByte->Kind == ViewByteKind.Data)
                                 {
-                                    if (pViewByte->DataKind == ViewByteDataKind.String)
+                                    switch (pViewByte->DataKind)
                                     {
-                                        //Get rid of this string
-                                        pViewByte->DataKind = default;
+                                        case ViewByteDataKind.String:
+                                            //Get rid of this string
+                                            pViewByte->DataKind = default;
+                                            break;
+
+                                        case ViewByteDataKind.Unknown:
+                                        case ViewByteDataKind.Padding:
+                                            break;
+
+                                        default:
+                                            //We've run into a real entity. Likely we had a public whose length was way too much.
+                                            //It's the end of the line for us
+                                            return;
                                     }
                                 }
                                 else if (pViewByte->Kind == ViewByteKind.Code)
@@ -1646,6 +1809,9 @@ namespace PESpy.View
                          *   contribs may not be available?)
                          * 
                          * As such, fallback to just claiming code up until the next non-body item we encounter */
+
+                        pViewByte->Kind = ViewByteKind.Code;
+                        pViewByte++;
 
                         while (pViewByte < limit)
                         {
@@ -1727,6 +1893,8 @@ namespace PESpy.View
                     //e.g. in GFIDS
                 }
             }
+        }
+
         private void SetUnknownBodies()
         {
             _cancellationToken.ThrowIfCancellationRequested();
@@ -2080,6 +2248,64 @@ namespace PESpy.View
 
             _extraRegions.Add(builder);
         }
+        internal void MarkInterSectionData(int lastSectionEnd, int start, bool canHaveRelocations) =>
+            MarkInterSectionData(lastSectionEnd, start, canHaveRelocations, _fileAccessor, _extraRegions);
+
+        internal static void MarkInterSectionData(
+            int lastSectionEnd,
+            int start,
+            bool canHaveRelocations,
+            FileAccessor fileAccessor,
+            List<RegionBuilder> extraRegions)
+        {
+            if (lastSectionEnd != -1 && start > lastSectionEnd)
+            {
+                var interSectionLength = start - lastSectionEnd;
+
+                var interSectionName = "Inter-Section Data";
+                var interSectionKind = ViewKind.InterSectionData;
+
+                var interSectionEnd = lastSectionEnd + interSectionLength;
+
+                if (canHaveRelocations)
+                {
+                    //We only have one section
+                    var iterator = fileAccessor.EnumerateEntities(sectionAccessorIndex: 0);
+                    iterator.MoveTo(lastSectionEnd);
+
+                    //If all entities within the region are relocations, we can say that this is a relocation
+                    //region instead
+                    if (iterator.MoveNext() && iterator.Current.Kind == ViewKind.ImageRelocation)
+                    {
+                        var hasOtherData = false;
+
+                        while (iterator.MoveNext() && iterator.Current.TargetAddress < interSectionEnd)
+                        {
+                            if (iterator.Current.Kind != ViewKind.ImageRelocation)
+                            {
+                                hasOtherData = true;
+                                break;
+                            }
+                        }
+
+                        if (!hasOtherData)
+                        {
+                            interSectionName = "Relocations";
+                            interSectionKind = ViewKind.Relocations;
+                        }
+                    }
+                }
+
+                extraRegions.Add(new RegionBuilder
+                {
+                    Name = interSectionName,
+                    Kind = interSectionKind,
+                    Start = lastSectionEnd,
+                    End = interSectionEnd
+                });
+            }
+        }
+
 #if DEBUG
         protected void ValidateNames()
         {

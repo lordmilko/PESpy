@@ -20,13 +20,13 @@ namespace PESpy.Tests
             #region Header
                 v => v.VerifyHeader(size: 220,
                     c => c.VerifyStruct(name: "IMAGE_FILE_HEADER", offset: 0, size: 20,
-                        c1 => c1.VerifyField("Machine", IMAGE_FILE_MACHINE.I386),
-                        c1 => c1.VerifyField("NumberOfSections", (short) 5),
+                        c1 => c1.VerifyField("Machine", IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_I386),
+                        c1 => c1.VerifyField("NumberOfSections", (ushort) 5),
                         c1 => c1.VerifyFieldIgnoreValue("TimeDateStamp"),
                         c1 => c1.VerifyField("PointerToSymbolTable", 982),
                         c1 => c1.VerifyField("NumberOfSymbols", 14),
                         c1 => c1.VerifyField("SizeOfOptionalHeader", (short) 0),
-                        c1 => c1.VerifyField("Characteristics", (ImageFile) 0)
+                        c1 => c1.VerifyField("Characteristics", (IMAGE_FILE) 0)
                     ),
                     c => c.VerifyStruct(name: "IMAGE_SECTION_HEADER", offset: 0x14, size: 40,
                         c1 => c1.VerifyField("Name", ".drectve"),
@@ -95,76 +95,77 @@ namespace PESpy.Tests
                 ),
             #region .debug$S
                 v => v.VerifySection(name: ".debug$S", offset: 281, size: 536,
-                    c => c.VerifyValue(offset: 0x10B, value: CV_SIGNATURE.C13),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x10F, size: 208, //DEBUG_S_SYMBOLS
+                    c => c.VerifyValue(offset: 0x119, value: CV_SIGNATURE.C13),
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x11D, size: 157, //DEBUG_S_SYMBOLS
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS),
-                        c1 => c1.VerifyField("cbLen", 200),
-                        c1 => c1.VerifySymType(offset: 0x117, size: 82, SYM_ENUM_e.S_OBJNAME),
-                        c1 => c1.VerifySymType(offset: 0x169, size: 60, SYM_ENUM_e.S_COMPILE3),
-                        c1 => c1.VerifySymType(offset: 0x1A5, size: 20, SYM_ENUM_e.S_UNAMESPACE),
-                        c1 => c1.VerifySymType(offset: 0x1B9, size: 22, SYM_ENUM_e.S_UNAMESPACE),
-                        c1 => c1.VerifySymType(offset: 0x1CF, size: 8, SYM_ENUM_e.S_UNAMESPACE),
-                        c1 => c1.VerifySymType(offset: 0x1D7, size: 8, SYM_ENUM_e.S_UNAMESPACE)
+                        c1 => c1.VerifyField("cbLen", 149),
+                        c1 => c1.VerifySymType(offset: 0x125, size: 31, SYM_ENUM_e.S_OBJNAME),
+                        c1 => c1.VerifySymType(offset: 0x144, size: 60, SYM_ENUM_e.S_COMPILE3),
+                        c1 => c1.VerifySymType(offset: 0x180, size: 20, SYM_ENUM_e.S_UNAMESPACE),
+                        c1 => c1.VerifySymType(offset: 0x194, size: 22, SYM_ENUM_e.S_UNAMESPACE),
+                        c1 => c1.VerifySymType(offset: 0x1AA, size: 8, SYM_ENUM_e.S_UNAMESPACE),
+                        c1 => c1.VerifySymType(offset: 0x1B2, size: 8, SYM_ENUM_e.S_UNAMESPACE)
                     ),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x1DF, size: 44, //DEBUG_S_FRAMEDATA
+                    c => c.VerifyByteBlob(offset: 0x1BA, new byte[3]),
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x1BD, size: 44, //DEBUG_S_FRAMEDATA
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA),
                         c1 => c1.VerifyField("cbLen", 36),
-                        c1 => c1.VerifyStruct(name: "RVA + FrameData", offset: 0x1EF, size: 36,
-                            c2 => c2.VerifyField(name: "RVA", value: 3),
-                            c2 => c2.VerifyStruct(name: "FRAMEDATA", offset: 0x1F3, size: 32,
+                        c1 => c1.VerifyStruct(name: "RVA + FrameData", offset: 0x1C5, size: 40,
+                            c2 => c2.VerifyField(name: "RVA", value: 0),
+                            c2 => c2.VerifyStruct(name: "FRAMEDATA", offset: 0x1C9, size: 32,
                                 c3 => c3.VerifyField(name: "ulRvaStart", value: 0),
-                                c3 => c3.VerifyField(name: "cbBlock", value: 4),
+                                c3 => c3.VerifyField(name: "cbBlock", value: 3),
                                 c3 => c3.VerifyField(name: "cbLocals", value: 0),
-                                c3 => c3.VerifyField(name: "cbParams", value: 0x4B),
+                                c3 => c3.VerifyField(name: "cbParams", value: 4),
                                 c3 => c3.VerifyField(name: "cbStkMax", value: 0),
-                                c3 => c3.VerifyField(name: "frameFunc", value: 4),
-                                c3 => c3.VerifyField(name: "cbProlog", value: (short) 241),
+                                c3 => c3.VerifyField(name: "frameFunc", value: 24),
+                                c3 => c3.VerifyField(name: "cbProlog", value: (short) 0),
                                 c3 => c3.VerifyField(name: "cbSavedRegs", value: (short) 0),
                                 c3 => c3.VerifyBitField(name: "fHasSEH", value: (byte) 0, bits: 1),
-                                c3 => c3.VerifyBitField(name: "fHasEH", value: (byte) 1, bits: 1),
+                                c3 => c3.VerifyBitField(name: "fHasEH", value: (byte) 0, bits: 1),
                                 c3 => c3.VerifyBitField(name: "fIsFunctionStart", value: (byte) 1, bits: 1),
-                                c3 => c3.VerifyBitField(name: "reserved", value: 16, bits: 29) //todo: i dont think this is right, we shouldnt have a value
+                                c3 => c3.VerifyBitField(name: "reserved", value: 0, bits: 29)
                             )
                         )
                     ),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x20B, size: 142, //DEBUG_S_SYMBOLS
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x1E9, size: 142, //DEBUG_S_SYMBOLS
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS),
                         c1 => c1.VerifyField("cbLen", 134),
-                        c1 => c1.VerifySymType(offset: 0x213, size: 44, SYM_ENUM_e.S_GPROC32_ID),
-                        c1 => c1.VerifySymType(offset: 0x23F, size: 12, SYM_ENUM_e.S_LOCAL),
-                        c1 => c1.VerifySymType(offset: 0x24B, size: 20, SYM_ENUM_e.S_DEFRANGE_REGISTER_REL),
-                        c1 => c1.VerifySymType(offset: 0x25F, size: 8, SYM_ENUM_e.S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE),
-                        c1 => c1.VerifySymType(offset: 0x267, size: 30, SYM_ENUM_e.S_FRAMEPROC),
-                        c1 => c1.VerifySymType(offset: 0x285, size: 16, SYM_ENUM_e.S_REGREL32),
-                        c1 => c1.VerifySymType(offset: 0x295, size: 4, SYM_ENUM_e.S_PROC_ID_END)
+                        c1 => c1.VerifySymType(offset: 0x1F1, size: 44, SYM_ENUM_e.S_GPROC32_ID),
+                        c1 => c1.VerifySymType(offset: 0x21D, size: 12, SYM_ENUM_e.S_LOCAL),
+                        c1 => c1.VerifySymType(offset: 0x229, size: 20, SYM_ENUM_e.S_DEFRANGE_REGISTER_REL),
+                        c1 => c1.VerifySymType(offset: 0x23D, size: 8, SYM_ENUM_e.S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE),
+                        c1 => c1.VerifySymType(offset: 0x245, size: 30, SYM_ENUM_e.S_FRAMEPROC),
+                        c1 => c1.VerifySymType(offset: 0x263, size: 16, SYM_ENUM_e.S_REGREL32),
+                        c1 => c1.VerifySymType(offset: 0x273, size: 4, SYM_ENUM_e.S_PROC_ID_END)
                     ),
-                    c => c.VerifyByteBlob(offset: 0x299, new byte[2]),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x29B, size: 52, //DEBUG_S_LINES
+                    c => c.VerifyByteBlob(offset: 0x277, new byte[2]),
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x279, size: 56, //DEBUG_S_LINES
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_LINES),
                         c1 => c1.VerifyField("cbLen", 48),
-                        c1 => c1.VerifyStruct(name: "CV_DebugSLinesHeader_t", offset: 0x2A3, size: 44,
+                        c1 => c1.VerifyStruct(name: "CV_DebugSLinesHeader_t", offset: 0x281, size: 48,
                             c2 => c2.VerifyField(name: "offCon", 0),
                             c2 => c2.VerifyField(name: "segCon", (short) 0),
                             c2 => c2.VerifyField(name: "flags", (CV_LINES) 0),
                             c2 => c2.VerifyField(name: "cbCon", 3),
-                            c2 => c2.VerifyStruct(name: "CV_DebugSLinesFileBlockHeader_t", offset: 0x2AF, size: 32,
+                            c2 => c2.VerifyStruct(name: "CV_DebugSLinesFileBlockHeader_t", offset: 0x28D, size: 36,
                                 c3 => c3.VerifyField(name: "nLines", 3),
                                 c3 => c3.VerifyField(name: "cbBlock", 36),
-                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x2BB, size: 8,
+                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x299, size: 8,
+                                    c4 => c4.VerifyField(name: "offset", value: 0),
+                                    c4 => c4.VerifyBitField(name: "linenumStart", value: 2, bits: 24),
+                                    c4 => c4.VerifyBitField(name: "deltaLineEnd", value: 0, bits: 7),
+                                    c4 => c4.VerifyBitField(name: "fStatement", value: (byte) 1, bits: 1)
+                                ),
+                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x2A1, size: 8,
                                     c4 => c4.VerifyField(name: "offset", value: 0),
                                     c4 => c4.VerifyBitField(name: "linenumStart", value: 3, bits: 24),
                                     c4 => c4.VerifyBitField(name: "deltaLineEnd", value: 0, bits: 7),
                                     c4 => c4.VerifyBitField(name: "fStatement", value: (byte) 1, bits: 1)
                                 ),
-                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x2C3, size: 8,
-                                    c4 => c4.VerifyField(name: "offset", value: 0),
-                                    c4 => c4.VerifyBitField(name: "linenumStart", value: 4, bits: 24),
-                                    c4 => c4.VerifyBitField(name: "deltaLineEnd", value: 0, bits: 7),
-                                    c4 => c4.VerifyBitField(name: "fStatement", value: (byte) 1, bits: 1)
-                                ),
-                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x2CB, size: 8,
+                                c3 => c3.VerifyStruct(name: "CV_Line_t", offset: 0x2A9, size: 8,
                                     c4 => c4.VerifyField(name: "offset", value: 2),
-                                    c4 => c4.VerifyBitField(name: "linenumStart", value: 5, bits: 24),
+                                    c4 => c4.VerifyBitField(name: "linenumStart", value: 4, bits: 24),
                                     c4 => c4.VerifyBitField(name: "deltaLineEnd", value: 0, bits: 7),
                                     c4 => c4.VerifyBitField(name: "fStatement", value: (byte) 1, bits: 1)
                                 )
@@ -172,174 +173,171 @@ namespace PESpy.Tests
                         )
                     ),
 
-                    //For some reason I have an extra 4 bytes at the end. This is wrong, I don't know why it's doing this
-                    c => c.VerifyByteBlob(offset: 0x2CF, value: new byte[] {0x05, 0x00, 0x00, 0x80}),
-
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x2D3, size: 30, //DEBUG_S_FILECHKSMS
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x2B1, size: 32, //DEBUG_S_FILECHKSMS
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS),
                         c1 => c1.VerifyField("cbLen", 24),
-                        c1 => c1.VerifyStruct(name: "CV_FileCheckSum", offset: 0x2DB, size: 22,
+                        c1 => c1.VerifyStruct(name: "CV_FileCheckSum", offset: 0x2B9, size: 22,
                             c2 => c2.VerifyField(name: "name", 1),
                             c2 => c2.VerifyField(name: "len", (byte) 16),
                             c2 => c2.VerifyField(name: "type", CV_SourceChksum_t.CHKSUM_TYPE_MD5),
-                            c2 => c2.VerifyField(name: "hash", new byte[] { 0x6d, 0x81, 0xcf, 0xfd, 0xd7, 0x2f, 0xb8, 0x9f, 0xb1, 0xe8, 0x76, 0xe9, 0xe9, 0x8c, 0xe4, 0xe2 })
+                            c2 => c2.VerifyField(name: "hash", new byte[] { 0x41, 0x11, 0xff, 0x38, 0x4f, 0x65, 0x34, 0x5d, 0x9f, 0xcd, 0xe7, 0xaa, 0xa1, 0xd2, 0x7e, 0xa8 })
                         )
                     ),
-                    c => c.VerifyByteBlob(offset: 0X2F1, new byte[2]),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x2F3, size: 128, //DEBUG_S_STRINGTABLE
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x2D1, size: 77, //DEBUG_S_STRINGTABLE
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE),
-                        c1 => c1.VerifyField("cbLen", 120),
-                        c1 => c1.VerifyValue(offset: 0x2FB, value: string.Empty),
-                        c1 => c1.VerifyValueIgnoreValue(offset: 0x2FC), //The path to the obj file
-                        c1 => c1.VerifyValue(offset: 0x346, value: "$T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + = ")
+                        c1 => c1.VerifyField("cbLen", 69),
+                        c1 => c1.VerifyValue(offset: 0x2D9, value: string.Empty),
+                        c1 => c1.VerifyValueIgnoreValue(offset: 0x2DA), //The path to the obj file
+                        c1 => c1.VerifyValue(offset: 0x2F1, value: "$T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + = ")
                     ),
-                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x373, size: 16, //DEBUG_S_SYMBOLS
+                    c => c.VerifyByteBlob(offset: 0x31E, new byte[3]),
+                    c => c.VerifyStruct(name: "CV_DebugSSubsectionHeader_t", offset: 0x321, size: 16, //DEBUG_S_SYMBOLS
                         c1 => c1.VerifyField("type", DEBUG_S_SUBSECTION_TYPE.DEBUG_S_SYMBOLS),
                         c1 => c1.VerifyField("cbLen", 8),
-                        c1 => c1.VerifySymType(offset: 0x37B, size: 8, SYM_ENUM_e.S_BUILDINFO)
+                        c1 => c1.VerifySymType(offset: 0x329, size: 8, SYM_ENUM_e.S_BUILDINFO)
                     )
                 ),
             #endregion
             #region Relocations
-                v => v.VerifyLogicalRegion(name: "Relocations", offset: 0x383, size: 70,
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x383, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0xDC),
+                v => v.VerifyLogicalRegion(name: "Relocations", offset: 0x331, size: 70,
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x331, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0xAC),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.Dir32NB)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_DIR32NB)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x38D, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x128),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x33B, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0xF8),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.SecRel)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECREL)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x397, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x12C),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x345, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0xFC),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.Section)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECTION)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x3A1, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x14C),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x34F, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0x11C),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.SecRel)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECREL)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x3AB, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x150),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x359, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0x120),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.Section)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECTION)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x3B5, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x198),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x363, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0x168),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.SecRel)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECREL)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x3BF, size: 10,
-                        c1 => c1.VerifyField(name: "VirtualAddress", 0x19C),
+                    c => c.VerifyStruct(name: "IMAGE_RELOCATION", offset: 0x36D, size: 10,
+                        c1 => c1.VerifyField(name: "VirtualAddress", 0x16C),
                         c1 => c1.VerifyField(name: "SymbolTableIndex", 9),
-                        c1 => c1.VerifyField(name: "Type", ImageRelI386.Section)
+                        c1 => c1.VerifyField(name: "Type", IMAGE_REL_I386.IMAGE_REL_I386_SECTION)
                     )
                 ),
             #endregion
-                v => v.VerifySection(name: ".text$mn", offset: 0x3C9, size: 3,
-                    c => c.VerifyByteBlob(offset: 0x3C9, new byte[] {0x33, 0xC0, 0xC3})
+                v => v.VerifySection(name: ".text$mn", offset: 0x377, size: 3,
+                    c => c.VerifyByteBlob(offset: 0x377, new byte[] {0x33, 0xC0, 0xC3})
                 ),
-                v => v.VerifySection(name: ".debug$T", offset: 0x3CC, size: 68,
-                    c => c.VerifyValue(offset: 0x3CC, value: CV_SIGNATURE.C13),
-                    c => c.VerifyTypType(offset: 0x3D0, size: 64, type: LEAF_ENUM_e.LF_TYPESERVER2)
+                v => v.VerifySection(name: ".debug$T", offset: 0x37A, size: 52,
+                    c => c.VerifyValue(offset: 0x37A, value: CV_SIGNATURE.C13),
+                    c => c.VerifyTypType(offset: 0x37E, size: 48, type: LEAF_ENUM_e.LF_TYPESERVER2)
                 ),
-                v => v.VerifySection(name: ".chks64", offset: 0x410, size: 40,
-                    c => c.VerifyByteBlob(offset: 0x410, value: new byte[] {
-                        0x76, 0xf6, 0xab, 0xfb, 0x56, 0x48, 0xde, 0xc7, 0x14, 0xbd,
-                        0x94, 0x74, 0xe6, 0x1f, 0xa1, 0xfb, 0x4b, 0xc7, 0x24, 0xf3,
-                        0xb1, 0xd0, 0xca, 0xf4, 0x93, 0xef, 0x81, 0xfe, 0x37, 0xec,
-                        0x71, 0x6b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                v => v.VerifySection(name: ".chks64", offset: 0x3AE, size: 40,
+                    c => c.VerifyByteBlob(offset: 0x3AE, value: new byte[] {
+                        0x22, 0x8f, 0x00, 0x40, 0x54, 0x5a, 0x85, 0x76, 0xcb, 0x49,
+                        0x7b, 0xa5, 0x45, 0x81, 0x9d, 0x54, 0x4b, 0xc7, 0x24, 0xf3,
+                        0xb1, 0xd0, 0xca, 0xf4, 0xdf, 0x1f, 0x75, 0x68, 0x7f, 0xfb,
+                        0x56, 0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
                     })
                 ),
             #region Coff Symbol Table
-                v => v.VerifyStruct(name: "Coff Symbol Table", offset: 0x438, size: 256,
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x438, size: 18,
+                v => v.VerifyStruct(name: "Coff Symbol Table", offset: 0x3D6, size: 256,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x3D6, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@comp.id"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0x10575BC),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x44A, size: 18,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x3E8, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@feat.00"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0x80010091),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x45C, size: 18,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x3FA, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@vol.md"),
                         c1 => c1.VerifyField(name: "Value", (uint) 2),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x46E, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x40C, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".drectve"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 1),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x480, size: 18,
-                            c2 => c2.VerifyField("Bytes", value: new byte[]{47,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x41E, size: 18,
+                            c2 => c2.VerifyField("Bytes", value: new byte[]{0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4b, 0x22, 0x07, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x492, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x430, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".debug$S"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 2),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 2),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x4A4, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{120,2,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x442, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{ 0x18, 0x02, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x4B6, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x454, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".text$mn"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 3),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 3),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x4C8, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{3,0,0,0,0,0,0,0,141,31,186,239,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x466, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{ 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8d, 0x1f, 0xba, 0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x4DA, size: 18,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x478, size: 18,
                         c1 => c1.VerifyField(name: "Name", "_main"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 3),
-                        c1 => c1.VerifyField(name: "Type", (ImageSymType) 0x20), //IMAGE_SYM_DTYPE_FUNCTION bit shifted. See ImageSymtype for info
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.External),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 3),
+                        c1 => c1.VerifyField(name: "Type", (IMAGE_SYM_TYPE) 0x20), //IMAGE_SYM_DTYPE_FUNCTION bit shifted. See ImageSymtype for info
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_EXTERNAL),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x4EC, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x48A, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".debug$T"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 4),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 4),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x4FE, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{68,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x49C, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{ 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x510, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x4AE, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".chks64"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 5),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 5),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x522, size: 18,
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x4C0, size: 18,
                             c2 => c2.VerifyField(name: "Bytes", value: new byte[]{40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
@@ -355,24 +353,24 @@ namespace PESpy.Tests
             TestObj(
                 "NewObj", true,
             #region Header
-                v => v.VerifyHeader(size: 300,
+                v => v.VerifyHeader(size: 332,
                     c => c.VerifyStruct(name: "ANON_OBJECT_HEADER", offset: 0, size: 32,
-                        c1 => c1.VerifyField(name: "Sig1", value: IMAGE_FILE_MACHINE.UNKNOWN),
+                        c1 => c1.VerifyField(name: "Sig1", value: IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_UNKNOWN),
                         c1 => c1.VerifyField(name: "Sig2", value: (short) -1),
                         c1 => c1.VerifyField(name: "Version", value: (short) 1),
-                        c1 => c1.VerifyField(name: "Machine", value: IMAGE_FILE_MACHINE.I386),
+                        c1 => c1.VerifyField(name: "Machine", value: IMAGE_FILE_MACHINE.IMAGE_FILE_MACHINE_I386),
                         c1 => c1.VerifyFieldIgnoreValue(name: "TimeDateStamp"),
                         c1 => c1.VerifyField(name: "ClassID", value: new Guid("0cb3fe38-d9a5-4dab-ac9b-d6b6222653c2")), //It's written in c2!UtcCOMWriteCilObjHeader and queried in c2!DllGetObjHandler
-                        c1 => c1.VerifyField(name: "SizeOfData", value: 2608)
+                        c1 => c1.VerifyField(name: "SizeOfData", value: 2411)
                     ),
                     c => c.VerifyStruct(name: "IMAGE_FILE_HEADER", offset: 0x20, size: 20,
                         c1 => c1.VerifyField("Machine", (IMAGE_FILE_MACHINE) 0xC13),
-                        c1 => c1.VerifyField("NumberOfSections", (short) 7),
+                        c1 => c1.VerifyField("NumberOfSections", (ushort) 7),
                         c1 => c1.VerifyFieldIgnoreValue("TimeDateStamp"),
-                        c1 => c1.VerifyField("PointerToSymbolTable", 0x8FA),
+                        c1 => c1.VerifyField("PointerToSymbolTable", 2101),
                         c1 => c1.VerifyField("NumberOfSymbols", 17),
                         c1 => c1.VerifyField("SizeOfOptionalHeader", (short) 0),
-                        c1 => c1.VerifyField("Characteristics", (ImageFile) 0)
+                        c1 => c1.VerifyField("Characteristics", (IMAGE_FILE) 0)
                     ),
                     c => c.VerifyStruct(name: "IMAGE_SECTION_HEADER", offset: 0x34, size: 40,
                         c1 => c1.VerifyField("Name", ".drectve"),
@@ -390,7 +388,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".cil$fg"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 0xF8),
+                        c1 => c1.VerifyField("SizeOfRawData", 146),
                         c1 => c1.VerifyField("PointerToRawData", 0x1AB),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
@@ -402,8 +400,8 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".cil$gl"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 0x493),
-                        c1 => c1.VerifyField("PointerToRawData", 0x2A3),
+                        c1 => c1.VerifyField("SizeOfRawData", 1120),
+                        c1 => c1.VerifyField("PointerToRawData", 573),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -415,7 +413,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
                         c1 => c1.VerifyField("SizeOfRawData", 1),
-                        c1 => c1.VerifyField("PointerToRawData", 0x736),
+                        c1 => c1.VerifyField("PointerToRawData", 1693),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -427,7 +425,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
                         c1 => c1.VerifyField("SizeOfRawData", 223),
-                        c1 => c1.VerifyField("PointerToRawData", 0x737),
+                        c1 => c1.VerifyField("PointerToRawData", 1694),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -439,7 +437,7 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
                         c1 => c1.VerifyField("SizeOfRawData", 30),
-                        c1 => c1.VerifyField("PointerToRawData", 0X816),
+                        c1 => c1.VerifyField("PointerToRawData", 1917),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -450,8 +448,8 @@ namespace PESpy.Tests
                         c1 => c1.VerifyField("Name", ".cil$db"),
                         c1 => c1.VerifyField("VirtualSize", 0),
                         c1 => c1.VerifyField("VirtualAddress", 0),
-                        c1 => c1.VerifyField("SizeOfRawData", 198),
-                        c1 => c1.VerifyField("PointerToRawData", 0X834),
+                        c1 => c1.VerifyField("SizeOfRawData", 154),
+                        c1 => c1.VerifyField("PointerToRawData", 1947),
                         c1 => c1.VerifyField("PointerToRelocations", 0),
                         c1 => c1.VerifyField("PointerToLineNumbers", 0),
                         c1 => c1.VerifyField("NumberOfRelocations", (short) 0),
@@ -463,113 +461,113 @@ namespace PESpy.Tests
                 v => v.VerifySection(name: ".drectve", offset: 0x14C, size: 127,
                     c => c.VerifyValue(offset: 0x14C, "   -compiler:\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Tools\\MSVC\\14.29.30133\\bin\\HostX86\\x86\\c2.dll\" ")
                 ),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$fg", offset: 0x1CB, size: 248),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$gl", offset: 0x2C3, size: 1171),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$in", offset: 0x756, size: 1),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$ex", offset: 0x757, size: 223),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$sy", offset: 0x836, size: 30),
-                v => v.VerifySectionIgnoreChildren(name: ".cil$db", offset: 0x854, size: 198),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$fg", offset: 459, size: 146),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$gl", offset: 605, size: 1120),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$in", offset: 1725, size: 1),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$ex", offset: 1726, size: 223),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$sy", offset: 1949, size: 30),
+                v => v.VerifySectionIgnoreChildren(name: ".cil$db", offset: 1979, size: 154),
             #region Coff Symbol Table
-                v => v.VerifyStruct(name: "Coff Symbol Table", offset: 0x91A, size: 310,
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x91A, size: 18,
+                v => v.VerifyStruct(name: "Coff Symbol Table", offset: 0x855, size: 310,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x855, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@comp.id"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0x10575BC),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x92C, size: 18,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x867, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@feat.00"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0x80010091),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x93E, size: 18,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x879, size: 18,
                         c1 => c1.VerifyField(name: "Name", "@vol.md"),
                         c1 => c1.VerifyField(name: "Value", (uint) 2),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) -1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", ushort.MaxValue),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 0)
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x950, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x88B, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".drectve"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 1),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 1),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x962, size: 18,
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x89D, size: 18,
                             c2 => c2.VerifyField(name: "Bytes", value: new byte[]{127,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x974, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x8AF, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$fg"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 2),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 2),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x986, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{248,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x8C1, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{146,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x998, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x8D3, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$gl"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 3),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 3),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x9AA, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{147,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x8E5, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{96,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x9BC, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x8F7, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$in"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 4),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 4),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x9CE, size: 18,
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x909, size: 18,
                             c2 => c2.VerifyField(name: "Bytes", value: new byte[]{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x9E0, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x91B, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$ex"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 5),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 5),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x9F2, size: 18,
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x92D, size: 18,
                             c2 => c2.VerifyField(name: "Bytes", value: new byte[]{223,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0xA04, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x93F, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$sy"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 6),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 6),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0xA16, size: 18,
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x951, size: 18,
                             c2 => c2.VerifyField(name: "Bytes", value: new byte[]{30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
-                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0xA28, size: 36,
+                    c => c.VerifyStruct(name: "IMAGE_SYMBOL", offset: 0x963, size: 36,
                         c1 => c1.VerifyField(name: "Name", ".cil$db"),
                         c1 => c1.VerifyField(name: "Value", (uint) 0),
-                        c1 => c1.VerifyField(name: "SectionNumber", (short) 7),
-                        c1 => c1.VerifyField(name: "Type", ImageSymType.Null),
-                        c1 => c1.VerifyField(name: "StorageClass", ImageSymClass.Static),
+                        c1 => c1.VerifyField(name: "SectionNumber", (ushort) 7),
+                        c1 => c1.VerifyField(name: "Type", IMAGE_SYM_TYPE.IMAGE_SYM_TYPE_NULL),
+                        c1 => c1.VerifyField(name: "StorageClass", IMAGE_SYM_CLASS.IMAGE_SYM_CLASS_STATIC),
                         c1 => c1.VerifyField(name: "NumberOfAuxSymbols", (byte) 1),
-                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0xA3A, size: 18,
-                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{198,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+                        c1 => c1.VerifyStruct(name: "IMAGE_AUX_SYMBOL", offset: 0x975, size: 18,
+                            c2 => c2.VerifyField(name: "Bytes", value: new byte[]{154,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
                         )
                     ),
                     c => c.VerifyField(name: "String Table Size", 4)
@@ -646,11 +644,6 @@ namespace PESpy.Tests
             bool ltcg,
             params Action<IView>[] verify)
         {
-            var str = @"
-int main(int a)
-{
-    return 0;
-}";
             var objFile = ltcg ? Sample.VS22_LTCG_OBJ : Sample.VS22_OBJ;
 
             using var obj = OBJFile.FromFile(objFile);
@@ -659,7 +652,7 @@ int main(int a)
 
             var views = obj.GetView().Children;
 
-            Assert.AreEqual(views.Length, verify.Length);
+            Assert.AreEqual(views.Count, verify.Length);
 
             for (var i = 0; i < verify.Length; i++)
                 verify[i](views[i]);

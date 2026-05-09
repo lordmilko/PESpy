@@ -43,6 +43,10 @@ namespace PESpy
         /// <inheritdoc cref="THUNKSYMTYPE.name"/>
         public SymString name => throw new NotImplementedException();
 
+        //Haven't been able to generate a THUNKSYMTYPE; not sure how this can exist
+        //if there's a name before it in the way the native struct layout is defined
+        public THUNKSYMTYPE.Variant Variant => throw new NotImplementedException();
+
         internal ThunkSymType(byte* value)
         {
             this.value = value;

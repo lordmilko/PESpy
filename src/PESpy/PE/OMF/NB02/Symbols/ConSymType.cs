@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug.OMF;
 using static PESpy.OldSymType;
 
@@ -22,6 +23,14 @@ namespace PESpy
 
         /// <inheritdoc cref="CONSYMTYPE.typind"/>
         public short typind => *(short*) (value + typindOffset16);
+
+        //Not sure how to generate CONSYMTYPE; I tried and failed
+        //to generate one various ways. Need one to figure out how
+        //to read Value and Name
+
+        public object Value => throw new NotImplementedException();
+
+        public object Name => throw new NotImplementedException();
 
         internal ConSymType(byte* value)
         {

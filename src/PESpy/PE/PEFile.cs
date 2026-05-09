@@ -131,6 +131,8 @@ namespace PESpy
         public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators => peFile.GetRTTICompleteObjectLocators(debugger: true);
 
         public VftableInfo[]? Vftables => peFile.GetVftables(debugger: true);
+
+        public RpcInfo? RpcInfo => peFile.RpcInfo;
     }
 
     /// <summary>
@@ -920,15 +922,17 @@ namespace PESpy
             {
                 var sectionHeaders = SectionHeaders;
 
-                if (sectionHeaders.Length > 0)
+                for (var i = 0; i < sectionHeaders.Length; i++)
                 {
                     ref var sectionHeader = ref sectionHeaders[0];
 
-                    if (sectionHeader.PointerToRawData < sizeOfHeaders)
+                    //Watch out for empty bss sections at the start
+                    if (sectionHeader.SizeOfRawData > 0 && sectionHeader.PointerToRawData < sizeOfHeaders)
                         sizeOfHeaders = sectionHeader.PointerToRawData;
                 }
             }
 
+            Debug.Assert(sizeOfHeaders != 0);
             return sizeOfHeaders;
         }
 
@@ -2895,6 +2899,48 @@ namespace PESpy
             return null;
         }
 
+
+        #endregion
+        #region RpcInfo
+
+        private RpcInfo? rpcInfo;
+        private bool hasTriedRpcInfo;
+
+        public RpcInfo? RpcInfo
+        {
+            get
+            {
+                if (rpcInfo == null && !hasTriedRpcInfo)
+                {
+                    //I think we should only try RPC info if we actually import rpcrt4.dll.
+                    //This is also the dll name in Windows 95. The only risk we have with
+                    //this approach is if a DLL decides to import RPC functions via an API
+                    //set rather than directly
+
+                    var importTable = ImportTable;
+
+                    if (importTable == null)
+                    {
+                        hasTriedRpcInfo = true;
+                        return null;
+                    }
+
+                    for (var i = 0; i < importTable.Length; i++)
+                    {
+                        ref var imageImportDescriptor = ref importTable[i];
+
+                        if (imageImportDescriptor.Name.IsValid && imageImportDescriptor.Name.Value.EqualsIgnoreCase("rpcrt4.dll"))
+                        {
+                            rpcInfo = RpcInfo.Parse(this);
+                            hasTriedRpcInfo = true;
+                            break;
+                        }
+                    }
+                }
+
+                return rpcInfo;
+            }
+        }
 
         #endregion
 

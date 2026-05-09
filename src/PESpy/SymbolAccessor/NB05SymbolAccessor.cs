@@ -234,6 +234,12 @@ namespace PESpy
 
             var sectionHeaders = GetSectionHeaders();
 
+            if (sectionHeaders == null)
+            {
+                _sectionContribs = Array.Empty<SC40>();
+                return;
+            }
+
             for (var i = 0; i < dirEntries.Length ; i++)
             {
                 ref var dirEntry = ref dirEntries[i];

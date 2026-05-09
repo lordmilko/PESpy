@@ -1554,10 +1554,27 @@ namespace PESpy.View
 
         //NE
         NEFile,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="SymString"/>.
+        /// </summary>
         NE_ImportedName_String,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="ushort"/>.
+        /// </summary>
         NE_ModuleReference,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NE.ImageOS2Header"/>.
+        /// </summary>
         ImageOS2Header,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.NE.new_seg"/>.
+        /// </summary>
         NewSeg,
+
         NE_SegmentTable,
         NE_ResourceTable,
         NE_ResidentNameTable,
@@ -1682,12 +1699,21 @@ namespace PESpy.View
         [Description(nameof(Str.NewDBIHdr))]
         NewDbiHdr,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.Modi20"/>.
+        /// </summary>
         [Description(nameof(Str.MODIv2))]
         Modiv2,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.Modi20"/>.
+        /// </summary>
         [Description(nameof(Str.MODIv4))]
         Modiv4,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.Modi50"/>.
+        /// </summary>
         [Description(nameof(Str.MODI50))]
         Modi50,
 
@@ -2597,7 +2623,11 @@ namespace PESpy.View
 
         #region Sections
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="FixedUtf8String"/>.
+        /// </summary>
         drectve,
+
         text,
         text_mn,
         data,
@@ -2609,6 +2639,13 @@ namespace PESpy.View
         rsrc,
         sxdata,
         chks64,
+        cil_db,
+        cil_ex,
+        cil_fg,
+        cil_gl,
+        cil_in,
+        cil_md,
+        cil_sy,
         UnknownSection,
 
         #endregion
@@ -2783,30 +2820,57 @@ namespace PESpy.View
 
         //NB02
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.dnt"/>.
+        /// </summary>
         [Description(nameof(Str.dnt))]
         dnt,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.nsg"/>.
+        /// </summary>
         [Description(nameof(Str.nsg))]
         nsg,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.nsg32"/>.
+        /// </summary>
         [Description(nameof(Str.nsg32))]
         nsg32,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.pbi"/>.
+        /// </summary>
         [Description(nameof(Str.pbi))]
         pbi,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.pbi32"/>.
+        /// </summary>
         [Description(nameof(Str.pbi32))]
         pbi32,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.smd"/>.
+        /// </summary>
         [Description(nameof(Str.smd))]
         smd,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.smd32"/>.
+        /// </summary>
         [Description(nameof(Str.smd32))]
         smd32,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.loe"/>.
+        /// </summary>
         [Description(nameof(Str.loe))]
         loe,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.loe32"/>.
+        /// </summary>
         [Description(nameof(Str.loe32))]
         loe32,
 
@@ -2828,26 +2892,63 @@ namespace PESpy.View
         [Description(nameof(Str.SegmentName))]
         SegmentName,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.OldSymType"/>.
+        /// </summary>
         OldSymType,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.OldTypType"/>.
+        /// </summary>
         OldTypType,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.DNRBModule"/>.
+        /// </summary>
         [Description(nameof(Str.DNRBModule))]
         DNRBModule,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.pbi"/>.
+        /// </summary>
         DNRB_Publics,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.OldTypType"/>.
+        /// </summary>
         DNRB_Types,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.OldSymType"/>.
+        /// </summary>
         DNRB_Symbols,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="PESpy.loe"/>.
+        /// </summary>
         DNRB_SourceLines,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/>
+        /// </summary>
         [Description(nameof(Str.secOffset))]
         DNRBSecOffset,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="ushort"/>.
+        /// </summary>
         [Description(nameof(Str.version))]
         DNRBVersion,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="CodeViewSig"/>.
+        /// </summary>
         [Description(nameof(Str.signature))]
         DNRBSignature,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="int"/>.
+        /// </summary>
         [Description(nameof(Str.secTblOffset))]
         DNRBSecTblOffset,
 

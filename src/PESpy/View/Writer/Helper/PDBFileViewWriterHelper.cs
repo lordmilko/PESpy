@@ -62,10 +62,15 @@ namespace PESpy.View
 
             if (pdbFile.PDB != null)
             {
-                foreach (var kv in pdbFile.PDB.StreamNameTable.NameToStreamNumberMap)
+                var streamNameTable = pdbFile.PDB.StreamNameTable;
+
+                if (streamNameTable != null)
                 {
-                    //Note that you can have named streams that don't actually have any pages!
-                    streamIndexToNameMap.Add(kv.Value, kv.Key);
+                    foreach (var kv in streamNameTable.NameToStreamNumberMap)
+                    {
+                        //Note that you can have named streams that don't actually have any pages!
+                        streamIndexToNameMap.Add(kv.Value, kv.Key);
+                    }
                 }
             }
 

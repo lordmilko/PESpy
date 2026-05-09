@@ -102,10 +102,10 @@ namespace PESpy
 
                     while (read < length)
                     {
-                            var str = valueChunk.PeekSymString(read, isLengthPrefixed: true);
-                            read += str.Length + 1;
-                            libraries.Add(str);
-                        }
+                        var str = valueChunk.PeekSymString(read, isLengthPrefixed: true);
+                        read += str.Length + 1;
+                        libraries.Add(str);
+                    }
 
                     return new RawValue<SymString[]>(valueChunk.AbsoluteOffset, libraries.ToArray());
                 }

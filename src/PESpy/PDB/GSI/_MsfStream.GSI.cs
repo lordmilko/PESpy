@@ -368,15 +368,24 @@ namespace PESpy.PDB
 
                     var offset = chunk.RelativeOffset + GSIHashHdr.StructSize;
 
-                    writer.WritePagedGlobal<HRFile>(offset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
-                    offset += (HashRecords.Length * HRFile.StructSize);
+                    if (HashRecords.Length > 0)
+                    {
+                        writer.WritePagedGlobal<HRFile>(offset, (PagedMemoryBlock) chunk.block, HashRecords, ViewKind.HRFile);
+                        offset += (HashRecords.Length * HRFile.StructSize);
+                    }
 
-                    var bucketsBitmapLength = BucketsBitmap.Length * sizeof(int);
-                    writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketsBitmap, bucketsBitmapLength, ViewKind.HashBucketsBitmap);
-                    offset += bucketsBitmapLength;
+                    if (BucketsBitmap.Length > 0)
+                    {
+                        var bucketsBitmapLength = BucketsBitmap.Length * sizeof(int);
+                        writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketsBitmap, bucketsBitmapLength, ViewKind.HashBucketsBitmap);
+                        offset += bucketsBitmapLength;
+                    }
 
-                    var bucketOffsetsLength = BucketOffsets.Length * sizeof(int);
-                    writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketOffsets, bucketOffsetsLength, ViewKind.HashBuckets);
+                    if (BucketOffsets.Length > 0)
+                    {
+                        var bucketOffsetsLength = BucketOffsets.Length * sizeof(int);
+                        writer.WriteGlobal(chunk.block.GetAbsoluteOffset(offset), BucketOffsets, bucketOffsetsLength, ViewKind.HashBuckets);
+                    }
                 }
                 else
                 {

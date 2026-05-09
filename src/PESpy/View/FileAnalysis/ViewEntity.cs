@@ -195,6 +195,29 @@ namespace PESpy.View
             }
             else if (ViewByte->Kind == ViewByteKind.Unknown)
             {
+#if DEBUG
+                //We shouldn't be interacting with entities until we've completed our analysis; however in debug,
+                //we may want to inspect how our construction is going, so we need to be able to handle having
+                //and not having unknown bodies set
+
+                if (body < pEnd)
+                {
+                    var successorKind = body->Kind;
+                    
+                    if (successorKind == ViewByteKind.Unknown || successorKind == ViewByteKind.Body)
+                    {
+                        while (body < pEnd)
+                        {
+                            var kind = body->Kind;
+
+                            if (kind == successorKind)
+                                body++;
+                            else
+                                break;
+                        }
+                    }
+                }
+#else
                 while (body < pEnd)
                 {
                     var kind = body->Kind;
@@ -204,6 +227,7 @@ namespace PESpy.View
                     else
                         break;
                 }
+#endif
 
                 HasChildren = false;
             }
@@ -211,13 +235,18 @@ namespace PESpy.View
             {
                 if (largeAddresses != null && largeAddresses.TryGetValue(TargetAddress, out var length))
                 {
+                    //This double minus seems wrong but it's not
                     body += length - 1;
+
+                    var last = body - 1;
+
+                    if (last->BodyKind == ViewByteBodyKind.SplitTail)
+                        IsSplit = true;
                 }
                 else
                 {
                     while (body < pEnd)
                     {
-                        if (body->BodyKind == ViewByteBodyKind.SplitTail)
                         if (body->Kind == ViewByteKind.Body)
                         {
                             if (body->BodyKind == ViewByteBodyKind.SplitTail)
@@ -342,6 +371,14 @@ namespace PESpy.View
             ((PDBFileAccessor) fileAccessor).GetSplitHeadOrigin(ref pViewByte, ref offset, out var sectionIndex, out bytesRewound);
 
             return fileAccessor.GetEntity(offset, pViewByte, sectionIndex);
+        }
+
+        internal int GetFullLength(FileAccessor fileAccessor)
+        {
+            Debug.Assert(IsSplit);
+            Debug.Assert(ViewByte->Kind != ViewByteKind.Body);
+
+            return ((PDBFileAccessor) fileAccessor).GetFullLength(ViewByte, TargetAddress);
         }
 
         internal ViewEntity GetHead(FileAccessor fileAccessor, out int bytesRewound)

@@ -14,7 +14,7 @@ namespace PESpy.View
 
         private ViewWriter _viewWriter;
 
-        public OBJFileAccessor(OBJFile objFile) : base(GetBitness(objFile.FileHeader.Machine))
+        public OBJFileAccessor(OBJFile objFile) : base(GetBitness(objFile))
         {
             OBJFile = objFile;
 
@@ -24,6 +24,17 @@ namespace PESpy.View
             };
 
             Length = objFile.Length;
+        }
+
+        private static int GetBitness(OBJFile objFile)
+        {
+            var anonObjectHeader = objFile.AnonObjectHeader;
+
+            //The machine on the FileHeader will be 0xc13; the real machine is listed on the ANON_OBJECT_HEADER
+            if (anonObjectHeader != null)
+                return GetBitness(anonObjectHeader.Machine);
+
+            return GetBitness(objFile.FileHeader.Machine);
         }
 
         protected override object CreateOverview()

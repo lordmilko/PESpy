@@ -161,7 +161,9 @@ namespace PESpy.View
             //This works for both loaded and unloaded cases
             var pData = block.LocalPointer - vaStart;
 
+#if DEBUG
             viewWriter.EnterUniqueXRef();
+#endif
 
             for (; pRuntimeFunction < pEnd; pRuntimeFunction++)
             {
@@ -239,7 +241,9 @@ namespace PESpy.View
                 }
             }
 
+#if DEBUG
             viewWriter.ExitUniqueXRef();
+#endif
         }
 
         #region DiscoverCodeRoots
@@ -899,6 +903,27 @@ namespace PESpy.View
                 Start = targetAddress,
                 End = targetAddress + length
             };
+
+            //Cut the end to the next data directory. Even if that data directory contains unknown info, the Unwind Infos region
+            //shouldn't extend on top of that
+
+            var topLevelDirectories = _fileAccessor.TopLevelDirectories;
+
+            for (var i = 0; i < topLevelDirectories.Length; i++)
+            {
+                ref var item = ref topLevelDirectories[i];
+
+                if (item.Start > targetAddress)
+                {
+                    var distance = item.Start - targetAddress;
+                    var directoryStart = pViewByte + distance;
+
+                    if (directoryStart < pEnd)
+                        pEnd = directoryStart;
+
+                    break;
+                }
+            }
 
             pViewByte += length;
             targetAddress += length;

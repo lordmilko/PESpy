@@ -142,6 +142,7 @@ namespace PESpy.View
             {
                 case IMAGE_FILE_MACHINE_I386:
                 case IMAGE_FILE_MACHINE_UNKNOWN: //Assume 32-bit
+                case IMAGE_FILE_MACHINE_CEE: //MSIL. You can have this in a PDB for a .NET Framework app. Just assume 32-bit
                     return 32;
 
                 case IMAGE_FILE_MACHINE_AMD64:

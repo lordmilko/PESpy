@@ -43,7 +43,7 @@ namespace PESpy
             try
             {
 #if NET
-                var actualLength = deflate.ReadAtLeast(embeddedPortablePdb.PortablePdbImage, embeddedPortablePdb.UncompressedSize, throwOnEndOfStream: false);
+                var actualLength = deflate.ReadAtLeast(new Span<byte>(mmf.Address, (int) mmf.Length), embeddedPortablePdb.UncompressedSize, throwOnEndOfStream: false);
 #else
                 using var output = new UnmanagedMemoryStream(mmf.Address, mmf.Length, mmf.Length, FileAccess.Write);
                 deflate.CopyTo(output);

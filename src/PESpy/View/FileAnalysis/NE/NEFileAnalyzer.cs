@@ -35,5 +35,10 @@ namespace PESpy.View
         }
 
         public override void Execute() => ExecuteCode();
+
+        protected override void DiscoverCodeRoots()
+        {
+            //Not yet implemented
+        }
     }
 }

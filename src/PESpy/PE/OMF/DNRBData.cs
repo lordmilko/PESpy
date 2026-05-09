@@ -71,7 +71,7 @@ namespace PESpy
 
             var cvInfoOffset = (Offset + Length) - 8;
             writer.WriteGlobalField(cvInfoOffset, Signature, sizeof(int), ViewKind.DNRBSignature);
-            writer.WriteGlobalField(cvInfoOffset + 4, Offset, sizeof(int), ViewKind.DNRBSecTblOffset); //The offset to the MemoryChunk comes from the OMFSignature filepos, which is secTblOffset
+            writer.WriteGlobalField(cvInfoOffset + 4, (int) Offset, sizeof(int), ViewKind.DNRBSecTblOffset); //The offset to the MemoryChunk comes from the OMFSignature filepos, which is secTblOffset
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) => null;

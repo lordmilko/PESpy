@@ -20,6 +20,12 @@ namespace PESpy
                 case FileKind.OBJ:
                     return ((OBJFile) file).SectionHeaders;
 
+                case FileKind.DOS:
+                case FileKind.NE:
+                case FileKind.LE:
+                    //Synthesize section headers? We need these for resolving CodeView symbol RVAs
+                    return null;
+
                 default:
                     throw new NotImplementedException($"Don't know how to get section headers from a file of type '{file}'");
             }

@@ -382,6 +382,7 @@ namespace PESpy.View
                 case ViewKind.Manifest:
                 case ViewKind.Metadata_String:
                 case ViewKind.RuntimeConfigJson:
+                case ViewKind.drectve:
 
                 //SymString
                 case ViewKind.LibraryName:
@@ -432,6 +433,8 @@ namespace PESpy.View
                 case ViewKind.DNRB_SourceLines:
                 case ViewKind.DNRB_Symbols:
                 case ViewKind.DNRB_Types:
+                case ViewKind.OldSymType:
+                case ViewKind.OldTypType:
                     pViewByte->DataKind = ViewByteDataKind.Struct;
                     break;
 

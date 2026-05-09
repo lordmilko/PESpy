@@ -135,7 +135,7 @@ namespace PESpy
                 {
                     ref var item = ref _headers[_index];
 
-                    if (item.ListedAddress == 0)
+                    if (item.ListedAddress != 0)
                     {
                         var ptr = (long) chunk.PeekPointer(_index * chunk.PointerSize);
 

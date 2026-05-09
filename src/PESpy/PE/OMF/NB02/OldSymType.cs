@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ClrDebug.OMF;
 
 namespace PESpy
 {
@@ -73,12 +75,31 @@ namespace PESpy
 
             return new SymString(value + effectiveOffset + 1, true);
         }
+
         public NativeSpan<byte> Data => new NativeSpan<byte>(value + 2, reclen - 1);
 
         internal OldSymType(byte* value)
         {
             this.value = value;
         }
+
+        public override int GetHashCode()
+        {
+            return ((IntPtr) value).GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj == null)
+                return value == default;
+
+            if (obj is OldSymType s)
+                return value == s.value;
+
+            return false;
+        }
+
+        public bool Equals(OldSymType other) => value == other.value;
 
         public override string ToString()
         {

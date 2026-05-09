@@ -408,6 +408,10 @@ namespace PESpy
 
                 #endregion
 
+                ViewKind.NE_ImportedName_String                      => WriteSymString(chunk, viewWriter, length, kind),
+                ViewKind.NE_ModuleReference                          => viewWriter.NewValue(chunk.AbsoluteOffset, (ushort) chunk.PeekUInt16(0), sizeof(short), kind),
+                ViewKind.ImageOS2Header                              => Write(new NE.ImageOS2Header(chunk),                           viewWriter),
+                ViewKind.NewSeg                                      => Write(new NE.new_seg(chunk),                                  viewWriter),
                 ViewKind.ImageVXDHeader                              => Write(new ImageVXDHeader(chunk),                              viewWriter),
                 ViewKind.PN                                          => viewWriter.NewValue(chunk.AbsoluteOffset, (PN) (length == 2 ? chunk.PeekUInt16(0) : chunk.PeekUInt32(0)), length, kind),
                 ViewKind.MsfHdr                                      => Write(new PDB.MsfHdr(chunk),                                  viewWriter),
@@ -420,7 +424,10 @@ namespace PESpy
                 ViewKind.Hdr_16t                                     => Write(new PDB.HDR_16t(chunk),                                 viewWriter),
                 ViewKind.DbiHdr                                      => Write(new PDB.DBIHdr(chunk),                                  viewWriter),
                 ViewKind.NewDbiHdr                                   => Write(new PDB.NewDBIHdr(chunk),                               viewWriter),
-                ViewKind.Modi60Persist                               => GetModi60Persist(chunk, viewWriter),
+                ViewKind.Modiv2                                      => GetModi(chunk, viewWriter, kind),
+                ViewKind.Modiv4                                      => GetModi(chunk, viewWriter, kind),
+                ViewKind.Modi50                                      => GetModi(chunk, viewWriter, kind),
+                ViewKind.Modi60Persist                               => GetModi(chunk, viewWriter, kind),
                 ViewKind.ECInfo                                      => Write(new PDB.ECInfo(chunk),                                  viewWriter),
                 //ViewKind.SC20                                        => Write(new PDB.SC20(chunk),                                    viewWriter),
                 //ViewKind.SC40                                        => Write(new PDB.SC40(chunk),                                    viewWriter),
@@ -675,7 +682,7 @@ namespace PESpy
 
                 #region Sections
 
-                ViewKind.drectve                                     => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.drectve                                     => WriteFixedUtf8String(chunk, viewWriter, length, kind),
                 ViewKind.text                                        => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.text_mn                                     => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.data                                        => GetBytes(chunk, viewWriter, length, kind),
@@ -686,6 +693,13 @@ namespace PESpy
                 ViewKind.rsrc                                        => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.sxdata                                      => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.chks64                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_db                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_ex                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_fg                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_gl                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_in                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_md                                      => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.cil_sy                                      => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.UnknownSection                              => GetBytes(chunk, viewWriter, length, kind),
 
                 #endregion
@@ -717,8 +731,28 @@ namespace PESpy
                 ViewKind.AddrHash32v12                               => Write((IViewable) OMFDirEntry.AddrHash32(chunk, 12), viewWriter),
                 ViewKind.UnknownSymHash                              => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.UnknownAddrHash                             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.dnt                                         => Getdnt(chunk, viewWriter),
+                ViewKind.nsg                                         => Write(new nsg(chunk),                                         viewWriter),
+                ViewKind.nsg32                                       => Write(new nsg32(chunk),                                       viewWriter),
+                ViewKind.pbi                                         => Write(new pbi(chunk),                                         viewWriter),
+                ViewKind.pbi32                                       => Write(new pbi32(chunk),                                       viewWriter),
+                ViewKind.smd                                         => Write(new smd(chunk),                                         viewWriter),
+                ViewKind.smd32                                       => Write(new smd32(chunk),                                       viewWriter),
+                ViewKind.loe                                         => Getloe(chunk, viewWriter),
+                ViewKind.loe32                                       => Getloe32(chunk, viewWriter),
                 ViewKind.LibraryName                                 => WriteSymString(chunk, viewWriter, length, kind),
                 ViewKind.SegmentName                                 => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.OldSymType                                  => GetOldSymType(chunk, viewWriter, length),
+                ViewKind.OldTypType                                  => GetOldTypType(chunk, viewWriter, length),
+                ViewKind.DNRBModule                                  => Write(new DNRBModule(chunk),                                  viewWriter),
+                ViewKind.DNRB_Publics                                => GetDNRB_Publics(chunk, viewWriter, length),
+                ViewKind.DNRB_Types                                  => GetDNRB_Types(chunk, viewWriter, length),
+                ViewKind.DNRB_Symbols                                => GetDNRB_Symbols(chunk, viewWriter, length),
+                ViewKind.DNRB_SourceLines                            => GetDNRB_SourceLines(chunk, viewWriter, length),
+                ViewKind.DNRBSecOffset                               => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.DNRBVersion                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (ushort) chunk.PeekUInt16(0), sizeof(short), kind),
+                ViewKind.DNRBSignature                               => viewWriter.NewValue(chunk.AbsoluteOffset, (CodeViewSig) chunk.PeekUInt32(0), sizeof(int), kind),
+                ViewKind.DNRBSecTblOffset                            => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.LfoDir                                      => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.LfoBase                                     => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.cDir                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
@@ -820,6 +854,7 @@ namespace PESpy
             switch (kind)
             {
                 case ViewKind.LibraryName: //LibraryName is from NB02/NB05 era data; always length prefixed
+                case ViewKind.NE_ImportedName_String:
                     isLengthPrefixed = true;
                     break;
 
@@ -992,11 +1027,67 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
+        private static IStructView Getdnt(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var dosFile = chunk.DOSFile();
+            var nb02Data = (NB02Data) dosFile.CodeViewData;
+
+            for (var i = 0; i < nb02Data.DirEntries.Length; i++)
+            {
+                ref var entry = ref nb02Data.DirEntries[i];
+
+                if (entry.Offset == chunk.AbsoluteOffset)
+                    return Write(entry, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
         private static IStructView GetDotNetRuntimeDebugHeader(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             var peFile = chunk.PEFile();
 
             return Write(peFile.DotNetRuntimeDebugHeader, viewWriter);
+        }
+
+        private static IView GetDNRB_Publics(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var dnrbData = (DNRBData) dosFile.CodeViewData;
+
+            var publics = dnrbData.Publics;
+
+            return viewWriter.NewValue(chunk.AbsoluteOffset, publics.Value, length, ViewKind.DNRB_Publics);
+        }
+
+        private static IView GetDNRB_Types(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var dnrbData = (DNRBData) dosFile.CodeViewData;
+
+            var types = dnrbData.Types;
+
+            return viewWriter.NewValue(chunk.AbsoluteOffset, types.Value, length, ViewKind.DNRB_Types);
+        }
+
+        private static IView GetDNRB_Symbols(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var dnrbData = (DNRBData) dosFile.CodeViewData;
+
+            var symbols = dnrbData.Symbols;
+
+            return viewWriter.NewValue(chunk.AbsoluteOffset, symbols.Value, length, ViewKind.DNRB_Symbols);
+        }
+
+        private static IView GetDNRB_SourceLines(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var dnrbData = (DNRBData) dosFile.CodeViewData;
+
+            var sourceLines = dnrbData.SourceLines;
+
+            return viewWriter.NewValue(chunk.AbsoluteOffset, sourceLines.Value, length, ViewKind.DNRB_SourceLines);
         }
 
         private static IStructView GetImageSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
@@ -1112,11 +1203,93 @@ namespace PESpy
                     isIAT = true;
             }
 
+            if (!isIAT)
+            {
+                //Check in the ImportTable instead
+
+                var importTable = peFile.ImportTable;
+
+                if (importTable != null)
+                {
+                    for (var i = 0; i < importTable.Length; i++)
+                    {
+                        ref var descriptor = ref importTable[i];
+
+                        if (!descriptor.FirstThunk.IsValid)
+                            continue;
+
+                        var thunkStart = descriptor.FirstThunk.ActualOffset;
+                        var thunkEnd = thunkStart + (descriptor.FirstThunk.Value.Count * chunk.PointerSize);
+
+                        if (chunk.AbsoluteOffset >= thunkStart && chunk.AbsoluteOffset < thunkEnd)
+                        {
+                            isIAT = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!isIAT)
+                {
+                    var delayLoadTable = peFile.DelayImportTable;
+
+                    if (delayLoadTable != null)
+                    {
+                        for (var i = 0; i < delayLoadTable.Length; i++)
+                        {
+                            ref var descriptor = ref delayLoadTable[i];
+
+                            if (!descriptor.ImportAddressTableRVA.IsValid)
+                                continue;
+
+                            var thunkStart = descriptor.ImportAddressTableRVA.ActualOffset;
+                            var thunkEnd = thunkStart + (descriptor.ImportAddressTableRVA.Value.Count * chunk.PointerSize);
+
+                            if (chunk.AbsoluteOffset >= thunkStart && chunk.AbsoluteOffset < thunkEnd)
+                            {
+                                isIAT = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
             return Write(new ImageThunkData(chunk, isIAT), viewWriter);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IStructView GetModi60Persist(in MemoryChunk chunk, ViewWriter viewWriter)
+        private static IView Getloe(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var dosFile = chunk.DOSFile();
+            var nb02Data = (NB02Data) dosFile.CodeViewData;
+
+            for (var i = 0; i < nb02Data.DirEntries.Length; i++)
+            {
+                ref var entry = ref nb02Data.DirEntries[i];
+
+                if (entry.SubSection == SST.SSTSRCLINES || entry.SubSection == SST.SSTSRCLNSEG)
+                {
+                    var lines = ((RawValue<loe[]>) entry.Data).Value;
+
+                    for (var j = 0; j < lines.Length; j++)
+                    {
+                        ref var line = ref lines[j];
+
+                        if (line.Offset == chunk.AbsoluteOffset)
+                            return Write(line, viewWriter);
+                    }
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IView Getloe32(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetModi(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
         {
             //Modi will try and register its symbols if it hasn't already; as such we need to get the existing modi
             var modules = chunk.PDBFile().DBI.Modules;
@@ -1125,6 +1298,48 @@ namespace PESpy
             {
                 if (module.Offset == chunk.AbsoluteOffset)
                     return Write(module, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IView GetOldSymType(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var nb02Data = (NB02Data) dosFile.CodeViewData;
+
+            for (var i = 0; i < nb02Data.DirEntries.Length; i++)
+            {
+                ref var entry = ref nb02Data.DirEntries[i];
+
+                if (entry.SubSection == SST.SSTSYMBOLS)
+                {
+                    var types = (RawValue<OldSymType[]>) entry.Data;
+
+                    if (types.Offset == chunk.AbsoluteOffset)
+                        return viewWriter.NewValue(chunk.AbsoluteOffset, types.Value, length, ViewKind.OldSymType);
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IView GetOldTypType(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var dosFile = chunk.DOSFile();
+            var nb02Data = (NB02Data) dosFile.CodeViewData;
+
+            for (var i = 0; i < nb02Data.DirEntries.Length; i++)
+            {
+                ref var entry = ref nb02Data.DirEntries[i];
+
+                if (entry.SubSection == SST.SSTTYPES)
+                {
+                    var types = (RawValue<OldTypType[]>) entry.Data;
+
+                    if (types.Offset == chunk.AbsoluteOffset)
+                        return viewWriter.NewValue(chunk.AbsoluteOffset, types.Value, length, ViewKind.OldTypType);
+                }
             }
 
             throw new NotImplementedException();
@@ -1154,6 +1369,9 @@ namespace PESpy
             switch (file.Kind)
             {
                 case FileKind.PE:
+                case FileKind.NE:
+                case FileKind.LE:
+                case FileKind.DOS:
                     return WriteNB05Data(SST.sstFileIndex, chunk, viewWriter);
 
                 case FileKind.PDB:
@@ -1235,6 +1453,15 @@ namespace PESpy
                     }
 
                     break;
+
+                case FileKind.DOS:
+                    return (NB05Data) ((DOSFile) file).CodeViewData;
+
+                case FileKind.NE:
+                    return (NB05Data) ((NEFile) file).CodeViewData;
+
+                case FileKind.LE:
+                    return (NB05Data) ((LEFile) file).CodeViewData;
             }
 
             throw new NotImplementedException();

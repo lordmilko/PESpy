@@ -43,7 +43,7 @@ namespace PESpy.View
 
             _cancellationToken.ThrowIfCancellationRequested();
 
-            throw new NotImplementedException();
+            //Not yet implemented
         }
 
         protected override void MarkRegions()

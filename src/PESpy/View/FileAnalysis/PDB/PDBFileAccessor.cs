@@ -112,7 +112,7 @@ namespace PESpy.View
                     nameBuilder.Append('-');
                     nameBuilder.Append(section.LocalEndIndex + 1);
                     nameBuilder.Append(" of ");
-                    nameBuilder.Append(section.NumPages);
+                    nameBuilder.Append(section.TotalPagesInStream);
 
                     sectionAccessors.Add(
                         new SectionAccessor(
@@ -155,7 +155,8 @@ namespace PESpy.View
             if (dbi.DbiHdr is NewDBIHdr n)
                 return GetBitness(n.wMachine);
 
-            throw new NotImplementedException("Don't know whether DbiHdr strictly indicates the EXE was 16-bit");
+            //MSF2 was 16-bit but you only have MSF when you've got at least NB10 which is VC2 which is 32-bit
+            return 32;
         }
 
         protected override object CreateOverview() => new PDBFileOverview(PDBFile, PDBFile.GetSymbolAccessor());
@@ -318,5 +319,62 @@ namespace PESpy.View
 
             throw new InvalidOperationException("Failed to get the origin of a split head");
         }
+
+        internal unsafe int GetFullLength(ViewByte* pViewByte, long offset)
+        {
+            var pageSize = PDBFile.PageSize;
+
+            var totalLength = pageSize - (int) (offset % pageSize);
+
+            while (true)
+            {
+                offset = Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
+
+                pViewByte = GetViewByte(offset, out var sectionIndex);
+
+                ref var sectionAccessor = ref SectionAccessors[sectionIndex];
+
+                //If the first page is actually part of a SectionAccessor with multiple contiguous pages in it, that's going
+                //to cause an issue, because we need to ignore the initial length before the start of the entity. This is only
+                //a potential issue on the first section; after that, we should be processing an entire section at a time from
+                //the start
+                var distanceInSection = (int) (pViewByte - sectionAccessor.pViewBytes);
+
+                pViewByte++; //Skip over the head
+
+                var end = sectionAccessor.pViewBytesEnd;
+
+                while (true)
+                {
+                    if (pViewByte >= end)
+                    {
+                        //We reached the end of a page without having reached a SplitTail; we're done
+                        totalLength += (int) (pViewByte - sectionAccessor.pViewBytes) - distanceInSection;
+                        return totalLength;
+                    }
+
+                    if (pViewByte->Kind != ViewByteKind.Body)
+                    {
+                        totalLength += (int) (pViewByte - sectionAccessor.pViewBytes) - distanceInSection;
+                        return totalLength;
+                    }
+
+                    if (pViewByte->BodyKind != ViewByteBodyKind.SplitTail)
+                    {
+                        pViewByte++;
+                        continue;
+                    }
+
+                    var sectionAccessorUsed = sectionAccessor.Length - distanceInSection;
+
+                    totalLength += sectionAccessorUsed;
+                    offset += sectionAccessorUsed - 1;
+                    distanceInSection = 0;
+                    break;
+                }
+            }
+        }
+
+        internal long GetNextPageOffset(long offset) => Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
     }
 }

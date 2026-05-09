@@ -527,6 +527,24 @@ namespace PESpy
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
+        {
+            ptr = globalBlock.LocalPointer;
+            remainingLength = (int) globalBlock.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawPointer(out byte* pointer, out long length)
         {

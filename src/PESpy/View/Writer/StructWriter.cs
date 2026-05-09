@@ -123,6 +123,7 @@ namespace PESpy.View
                 case ViewKind.HandlerType4:
                 case ViewKind.UnwindMapEntry4:
                 case ViewKind.TryBlockMapEntry4:
+                case ViewKind.Map:
                     return true;
 
                 default:

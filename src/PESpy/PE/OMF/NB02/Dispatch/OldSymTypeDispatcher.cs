@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using static PESpy.OLDSYM;
+using static ClrDebug.OMF.OLDSYM;
 
 namespace PESpy
 {

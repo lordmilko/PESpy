@@ -21,7 +21,7 @@ The first CodeView debugger was developed in 1985 and first shipped with Microso
 |      |              | Visual C++ 1.00        |      | 8.00    | *5.50*  | ?      | ?      | N/A             |
 | NB09 | Windows 3.11 | Visual C++ 1.52        | 1993 | 8.00c   | *5.60*  |        | Yes    |`vc152\`         | CodeView 4.10 after it has been packed. CL 8.00c, LINK 5.60
 |      |              | Visual C++ 2.0         |      | 9.00    | *2.50*  | ?      | ?      | N/A
-| NB10 | Windows 11   | Visual C++ 4           | 1995 | 10.00   | *3.00*  |        | N/A    |`vc40\`          | LINK is now the incremental linker (and perhaps took over ILINK's version numbers?)
+| NB10 | Windows 11   | Visual C++ 4           | 1995 | 10.00   | *3.00*  |        | N/A    |`vc40\`          | LINK is now the incremental linker (and perhaps took over ILINK's version numbers?). I think NB10 was first present in VC2
 | NB11 | Windows 11   | Visual C++ 5           | 1997 | 11.00   | *5.00*  |        | Yes    |`vc50\`          | Not sure if there's even a way to prevent packing anymore, it's either automatic, or implied by the NB version. You have to specify No PDB in link options. CodeView 5.0. Only NB10 (PDB 2.0) and RSDS (PDB 7.0) refer to PDBs
 |      |              | Visual C++ 6           | 1998 | 12.00   | *6.00*  |        | ?      | N/A             |
 | RSDS | Windows 7    | Visual Studio .NET     | 2002 | 13.00   | *7.00*  |        | N/A    |`vc70\`          | Visual C++ 7.0
