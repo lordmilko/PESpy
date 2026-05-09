@@ -51,7 +51,7 @@ namespace PESpy.View
 
         internal static unsafe ExtractedString[] GetAnsiNullTerminated(byte* bytes, int bytesLength)
         {
-            var results = new PooledList<ExtractedString>();
+            var results = new ValueList<ExtractedString>();
 
             var arr = displayableAscii;
 
@@ -80,7 +80,7 @@ namespace PESpy.View
         //Don't use Span/NativeSpan, it's too slow indexing into it
         public unsafe static ExtractedString[] GetStrings(byte* bytes, int bytesLength)
         {
-            var results = new PooledList<ExtractedString>();
+            var results = new ValueList<ExtractedString>();
 
             var arr = displayableAscii;
 
@@ -117,7 +117,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetAnsiWorker(ref int i, byte* bytes, int bytesLength, ref PooledList<ExtractedString> results)
+        private static unsafe void GetAnsiWorker(ref int i, byte* bytes, int bytesLength, ref ValueList<ExtractedString> results)
         {
             var foundEnd = false;
 
@@ -180,7 +180,7 @@ namespace PESpy.View
 
         //Don't pass NativeSpan around; it's too slow indexing into it
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void GetUnicodeWorker(ref int i, byte* bytes, int bytesLength, bool nullTerminated, ref PooledList<ExtractedString> results)
+        private static unsafe void GetUnicodeWorker(ref int i, byte* bytes, int bytesLength, bool nullTerminated, ref ValueList<ExtractedString> results)
         {
             var foundEnd = false;
 

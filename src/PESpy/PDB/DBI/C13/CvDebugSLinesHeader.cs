@@ -28,7 +28,7 @@ namespace PESpy.PDB
                 {
                     var read = 12;
 
-                    using var results = new PooledList<CvDebugSLinesFileBlockHeader>();
+                    using var results = new ValueList<CvDebugSLinesFileBlockHeader>();
 
                     while (read < length)
                     {

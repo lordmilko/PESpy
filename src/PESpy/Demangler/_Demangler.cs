@@ -1473,7 +1473,7 @@ namespace PESpy
             if (isNegative || rank == 0)
                 return false;
 
-            var dimensions = new PooledList<Node>((int) rank);
+            var dimensions = new ValueList<Node>((int) rank);
 
             try
             {
@@ -1528,7 +1528,7 @@ namespace PESpy
                 return true;
             }
 
-            var nodes = new PooledList<Node>();
+            var nodes = new ValueList<Node>();
 
             try
             {
@@ -1585,7 +1585,7 @@ namespace PESpy
             }
             finally
             {
-                //If we successfully created a NodeArrayNode, ownership of the rented array was transferred from the PooledList
+                //If we successfully created a NodeArrayNode, ownership of the rented array was transferred from the ValueList
                 //to the NodeArrayNode, and will be returned when the arena cleans up the node
                 nodes.Dispose();
             }
@@ -1595,7 +1595,7 @@ namespace PESpy
         {
             nodeArray = default;
 
-            var nodes = new PooledList<Node>();
+            var nodes = new ValueList<Node>();
 
             try
             {
@@ -2086,7 +2086,7 @@ namespace PESpy
         {
             qualifiedName = default;
 
-            var nodes = new PooledList<Node>();
+            var nodes = new ValueList<Node>();
             nodes.Add(unqualifiedName);
 
             try
@@ -2651,7 +2651,7 @@ namespace PESpy
 
             //Eat tokens until we hit a @@
 
-            var nodes = new PooledList<Node>();
+            var nodes = new ValueList<Node>();
 
             try
             {

@@ -159,7 +159,7 @@ namespace PESpy
                 {
                     if (TryGetTableChunk(LETableKind.ResidentNameTable, out var valueChunk, out var length))
                     {
-                        using var results = new PooledList<FixedAnsiString>();
+                        using var results = new ValueList<FixedAnsiString>();
 
                         var read = 0;
 
@@ -200,7 +200,7 @@ namespace PESpy
             {
                 if (entryTable == null && TryGetTableChunk(LETableKind.EntryTable, out var valueChunk, out var length))
                 {
-                    using var results = new PooledList<e32_bundle>();
+                    using var results = new ValueList<e32_bundle>();
 
                     var read = 0;
 
@@ -256,7 +256,7 @@ namespace PESpy
                 {
                     if (TryGetTableChunk(LETableKind.NonResidentNamesTable, out var valueChunk, out var length))
                     {
-                        using var results = new PooledList<NameAndOrdinal>();
+                        using var results = new ValueList<NameAndOrdinal>();
 
                         var read = 0;
 

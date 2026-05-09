@@ -21,7 +21,7 @@ namespace PESpy
             {
                 if (funcOverrides == null)
                 {
-                    using var results = new PooledList<ImageFunctionOverrideDynamicRelocation>();
+                    using var results = new ValueList<ImageFunctionOverrideDynamicRelocation>();
 
                     var read = 4;
                     var end = FuncOverrideSize + 4;

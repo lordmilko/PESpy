@@ -75,17 +75,17 @@ namespace PESpy
             //As publics, the length of each vftable will be the length of their section contrib.
             //So we want to try and defer parsing these until we've read them all so we can clamp
             //the length of each item
-            internal PooledList<VftableInfo> _vftableInfos;
+            internal ValueList<VftableInfo> _vftableInfos;
 
-            internal PooledList<SymbolValue<Utf8String>> _nullTerminatedUtf8Strings;
-            internal PooledList<SymbolValue<Utf16String>> _nullTerminatedUtf16Strings;
-            internal PooledList<SymbolValue<FixedUtf8String>> _fixedUtf8Strings;
-            internal PooledList<SymbolValue<FixedUtf16String>> _fixedUtf16Strings;
+            internal ValueList<SymbolValue<Utf8String>> _nullTerminatedUtf8Strings;
+            internal ValueList<SymbolValue<Utf16String>> _nullTerminatedUtf16Strings;
+            internal ValueList<SymbolValue<FixedUtf8String>> _fixedUtf8Strings;
+            internal ValueList<SymbolValue<FixedUtf16String>> _fixedUtf16Strings;
 
-            internal PooledList<RTTICompleteObjectLocator> _rttiCompleteObjectLocators;
+            internal ValueList<RTTICompleteObjectLocator> _rttiCompleteObjectLocators;
 
-            internal PooledList<SymbolValue<float>> _real8;
-            internal PooledList<SymbolValue<double>> _real16;
+            internal ValueList<SymbolValue<float>> _real8;
+            internal ValueList<SymbolValue<double>> _real16;
 
             internal NativeAOTModulesList? _nativeAOTModules;
 

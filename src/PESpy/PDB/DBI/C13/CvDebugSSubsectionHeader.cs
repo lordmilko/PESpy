@@ -170,7 +170,7 @@ namespace PESpy.PDB
 
             var end = Length;
 
-            using var results = new PooledList<RawValue<Utf8String>>();
+            using var results = new ValueList<RawValue<Utf8String>>();
 
             var dataChunk = DataChunk;
 
@@ -191,7 +191,7 @@ namespace PESpy.PDB
         {
             VerifyType(DEBUG_S_FILECHKSMS);
 
-            using var results = new PooledList<CvFileCheckSum>();
+            using var results = new ValueList<CvFileCheckSum>();
 
             var read = 0;
             var length = Length;
@@ -250,7 +250,7 @@ namespace PESpy.PDB
                 var read = sizeof(int);
                 var length = Length;
 
-                using var list = new PooledList<InlineeSourceLineEx>();
+                using var list = new ValueList<InlineeSourceLineEx>();
 
                 while (read < length)
                 {
@@ -276,7 +276,7 @@ namespace PESpy.PDB
 
             var dataChunk = DataChunk;
 
-            using var list = new PooledList<CrossScopeReferences>();
+            using var list = new ValueList<CrossScopeReferences>();
 
             while (read < length)
             {
@@ -353,7 +353,7 @@ namespace PESpy.PDB
 
             var read = 0;
 
-            using var results = new PooledList<MergedAssemblyInfo>();
+            using var results = new ValueList<MergedAssemblyInfo>();
 
             while (read < length)
             {

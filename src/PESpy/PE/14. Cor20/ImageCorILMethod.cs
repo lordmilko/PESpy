@@ -133,7 +133,7 @@ namespace PESpy
 
         private static ImageCorILMethodSectEH[] ReadExtraSections(in MemoryChunk chunk)
         {
-            using var sections = new PooledList<ImageCorILMethodSectEH>();
+            using var sections = new ValueList<ImageCorILMethodSectEH>();
 
             var sectFlags = (CorILMethodSect) chunk.PeekByte(0);
 

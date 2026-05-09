@@ -57,7 +57,7 @@ namespace PESpy.ISO
         {
             get
             {
-                using var list = new PooledList<string>();
+                using var list = new ValueList<string>();
 
                 DirectoryRecord? current = this;
 

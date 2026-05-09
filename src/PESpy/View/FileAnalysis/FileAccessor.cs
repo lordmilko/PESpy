@@ -372,7 +372,7 @@ namespace PESpy.View
         {
             var iterator = EnumerateEntities(sectionAccessorIndex);
 
-            using var list = new PooledList<ViewEntity>();
+            using var list = new ValueList<ViewEntity>();
 
             while (iterator.MoveNext())
             {

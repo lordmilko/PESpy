@@ -57,7 +57,7 @@ namespace PESpy
 
                     var read = 0;
 
-                    using var recs = new PooledList<C8Rec>();
+                    using var recs = new ValueList<C8Rec>();
 
                     //Next we appear to have a list of C8REC records. A C8REC consists of a USHORT hash and a BYTE[] buf.
                     //The buf is the TYPTYPE. Per NT 4 TPI1::fLoadOldPDB

@@ -1015,7 +1015,7 @@ namespace PESpy.View
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            var dataDirectories = new PooledList<DirectoryInfo>();
+            var dataDirectories = new ValueList<DirectoryInfo>();
 
             try
             {
@@ -1028,8 +1028,8 @@ namespace PESpy.View
                  * 1. Split values overlapping the end of directories (as we normally would)
                  * 2. Construct a hierarchy of directories in the event one directory contains another */
 
-                using var topLevelDirectories = new PooledList<RegionBuilder>();
-                using var firstDirectoryByAddress = new PooledList<RegionBuilder>();
+                using var topLevelDirectories = new ValueList<RegionBuilder>();
+                using var firstDirectoryByAddress = new ValueList<RegionBuilder>();
                 using var stack = new ValueStack<RegionBuilder>();
 
                 //Split any data that overlaps the start/end of each directory

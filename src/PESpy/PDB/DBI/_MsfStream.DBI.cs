@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     {
                         var end = DbiHdr.cbGpModi;
 
-                        using var results = new PooledList<IModi>();
+                        using var results = new ValueList<IModi>();
 
                         var moduleChunk = chunk.Slice(DbiHdr.StructSize);
 

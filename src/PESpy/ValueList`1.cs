@@ -9,9 +9,9 @@ namespace PESpy
     /// <summary>
     /// Represents a non-allocating list that is backed by a rented array.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of value contained in the list.</typeparam>
     [DebuggerDisplay("Count = {Count}")]
-    internal ref struct PooledList<T>
+    internal ref struct ValueList<T>
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Count { get; private set; }
@@ -30,19 +30,19 @@ namespace PESpy
 
         private T[] array;
 
-        internal PooledList(int capacity)
+        internal ValueList(int capacity)
         {
             array = ArrayPool<T>.Shared.Rent(capacity);
             Count = 0;
         }
 
-        internal PooledList(T[] items)
+        internal ValueList(T[] items)
         {
             array = items;
             Count = items.Length;
         }
 
-        internal PooledList(List<T> items)
+        internal ValueList(List<T> items)
         {
             array = ArrayPool<T>.Shared.Rent(items.Count);
             items.CopyTo(array);
@@ -73,7 +73,7 @@ namespace PESpy
             Count = count + 1;
         }
 
-        public void AddRange(in PooledList<T> items)
+        public void AddRange(in ValueList<T> items)
         {
             if (items.Count == 0)
                 return;
@@ -140,7 +140,7 @@ namespace PESpy
             Count = count + 1;
         }
 
-        public void InsertRange(int index, in PooledList<T> items)
+        public void InsertRange(int index, in ValueList<T> items)
         {
             if (index > array.Length)
                 throw new ArgumentOutOfRangeException();
@@ -221,7 +221,7 @@ namespace PESpy
         }
 
         //We're the key
-        public void SortKeyed<TItem>(ref PooledList<TItem> items, IComparer<T>? comparer = null)
+        public void SortKeyed<TItem>(ref ValueList<TItem> items, IComparer<T>? comparer = null)
         {
             Debug.Assert(Count == items.Count);
 

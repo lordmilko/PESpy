@@ -113,7 +113,7 @@ namespace PESpy
             var hasFirstLinkerMember = false;
             var hasSecondLinkerMember = false;
 
-            using var imports = new PooledList<IImportLibraryMember>();
+            using var imports = new ValueList<IImportLibraryMember>();
 
             var symbolNameMap = new Dictionary<int, AnsiString>();
 

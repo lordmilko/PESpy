@@ -16,11 +16,11 @@ namespace PESpy
         {
             var sections = peFile.SectionHeaders;
 
-            using var ptrs = new PooledList<int>();
-            using var ptrs64 = new PooledList<int>();
+            using var ptrs = new ValueList<int>();
+            using var ptrs64 = new ValueList<int>();
 
-            var clients = new PooledList<RpcClientInterface>();
-            var servers = new PooledList<RpcServerInterface>();
+            var clients = new ValueList<RpcClientInterface>();
+            var servers = new ValueList<RpcServerInterface>();
 
             try
             {
@@ -101,8 +101,8 @@ namespace PESpy
         }
 
         private static unsafe void ParseTransferSyntax(
-            ref PooledList<RpcClientInterface> clients,
-            ref PooledList<RpcServerInterface> servers,
+            ref ValueList<RpcClientInterface> clients,
+            ref ValueList<RpcServerInterface> servers,
             PEFile peFile,
             MemoryBlock block,
             Span<int> offsets)

@@ -154,7 +154,7 @@ namespace PESpy.PDB
 
                         Debug.Assert(cbC13Lines <= moduleChunk.Remaining);
 
-                        using var headers = new PooledList<CvDebugSSubsectionHeader>();
+                        using var headers = new ValueList<CvDebugSSubsectionHeader>();
 
                         var read = 0;
 

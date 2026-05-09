@@ -21,7 +21,7 @@ namespace PESpy.View.Builder
 
         internal Dictionary<PN, int> pageNumberToSIIndex;
 
-        internal IView[] MergePDB(PooledList<PDBContiguousSectionInfo> contiguousSections)
+        internal IView[] MergePDB(ValueList<PDBContiguousSectionInfo> contiguousSections)
         {
             //When a value spans multiple pages, we'll split the value. The page that the first half is in
             //may be far away from the page that the second half is in. The way we figure out what our "next" page is
@@ -38,7 +38,7 @@ namespace PESpy.View.Builder
 
             var currentPageIndex = 0;
 
-            using var results = new PooledList<IView>();
+            using var results = new ValueList<IView>();
 
             var pageSize = pdbFile.PageSize;
 

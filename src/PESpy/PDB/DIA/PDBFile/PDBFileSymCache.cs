@@ -38,7 +38,7 @@ namespace PESpy.PDB.DIA
 
         protected override OffSegSym[] InitializeGlobalDataSymbols()
         {
-            var globalDataList = new PooledList<OffSegSym>();
+            var globalDataList = new ValueList<OffSegSym>();
 
             try
             {

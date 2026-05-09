@@ -197,7 +197,7 @@ namespace PESpy
         {
             var groups = data.DirEntries.GroupBy(e => e.iMod);
 
-            using var modules = new PooledList<OMFDirEntry[]>();
+            using var modules = new ValueList<OMFDirEntry[]>();
 
             var i = 0;
 
@@ -228,7 +228,7 @@ namespace PESpy
              * a "preferred" order that all of the sstModule entries are written first, this is not necessarily guaranteed, so we'll run through
              * all subsections and construct fake SC entries as we go */
 
-            using var results = new PooledList<SC40>();
+            using var results = new ValueList<SC40>();
 
             var dirEntries = data.DirEntries;
 

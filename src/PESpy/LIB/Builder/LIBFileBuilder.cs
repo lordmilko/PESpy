@@ -132,7 +132,7 @@ namespace PESpy
             //Do contains on this to also check for imports. This isn't really the safest thing as you could legitimately have a name containing an underscore
             var stdcallName = $"_{name}@";
 
-            using var names = new PooledList<string>();
+            using var names = new ValueList<string>();
 
             foreach (var kv in _nameToLibraryMap)
             {

@@ -101,7 +101,7 @@ namespace PESpy.View
                 //SectionRanges lists virtual addresses, but SectionHeaders always list physical
                 var sectionHeaders = peFile.SectionHeaders;
 
-                using var list = new PooledList<IView>(sectionHeaders.Length + 1);
+                using var list = new ValueList<IView>(sectionHeaders.Length + 1);
 
                 var sizeOfHeaders = peFile.GetSizeOfHeaders(ViewMode);
                 var startOffset = peFile.blockProvider.StartOffset;

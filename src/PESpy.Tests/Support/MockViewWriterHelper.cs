@@ -19,7 +19,7 @@ namespace PESpy.Tests
             throw new NotImplementedException();
         }
 
-        public void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
             throw new NotImplementedException();
         }

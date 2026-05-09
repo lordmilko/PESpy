@@ -165,7 +165,7 @@ namespace PESpy
             gapStart += length;
         }
 
-        public void InsertRange(int index, PooledList<T> value)
+        public void InsertRange(int index, ValueList<T> value)
         {
             if (index < 0 || index > Count)
                 throw new ArgumentOutOfRangeException();

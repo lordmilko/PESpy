@@ -82,7 +82,7 @@ namespace PESpy
 
             public override void Reset()
             {
-                //If Count == 0 then the array we got from the PooledList was null, and we substituted it with Array.Empty<T>(),
+                //If Count == 0 then the array we got from the ValueList was null, and we substituted it with Array.Empty<T>(),
                 //meaning that we don't need to return that array
                 if (Count > 0)
                 {

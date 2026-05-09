@@ -95,7 +95,7 @@
 
             if (gd_spline != 0)
             {
-                using var results = new PooledList<linedef_s>();
+                using var results = new ValueList<linedef_s>();
 
                 var offset = gd_spline;
 

@@ -351,7 +351,7 @@ namespace PESpy
 
         internal static RawValue<pbi[]> ReadNB02Publics16(in MemoryChunk valueChunk, int size)
         {
-            using var publics = new PooledList<pbi>();
+            using var publics = new ValueList<pbi>();
 
             var read = 0;
 
@@ -367,7 +367,7 @@ namespace PESpy
 
         internal static RawValue<pbi32[]> ReadNB02Publics32(in MemoryChunk valueChunk, int size)
         {
-            using var publics = new PooledList<pbi32>();
+            using var publics = new ValueList<pbi32>();
 
             var read = 0;
 
@@ -385,7 +385,7 @@ namespace PESpy
         {
             var read = 0;
 
-            using var list = new PooledList<OldSymType>();
+            using var list = new ValueList<OldSymType>();
 
             while (read < size)
             {
@@ -415,7 +415,7 @@ namespace PESpy
 
             var read = 0;
 
-            using var list = new PooledList<OldTypType>();
+            using var list = new ValueList<OldTypType>();
 
             while (read < size)
             {
@@ -438,7 +438,7 @@ namespace PESpy
 
             var read = 0;
 
-            using var results = new PooledList<loe>();
+            using var results = new ValueList<loe>();
 
             while (read < size)
             {
@@ -456,7 +456,7 @@ namespace PESpy
         {
             var read = 0;
 
-            using var results = new PooledList<loe32>();
+            using var results = new ValueList<loe32>();
 
             while (read < size)
             {

@@ -19,7 +19,7 @@ namespace PESpy
         {
             get
             {
-                using var ancestors = new PooledList<ImageResourceDirectoryEntry>();
+                using var ancestors = new ValueList<ImageResourceDirectoryEntry>();
 
                 var current = this;
 

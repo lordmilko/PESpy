@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace PESpy
 {
     //In a separate class so that ValueStack<T> can share these
-    //without needing to create an instantiation of PooledList<T> for
+    //without needing to create an instantiation of ValueList<T> for
     //each T in ValueStack<T> in NativeAOT
     internal static class ValueArrayHelpers<T>
     {

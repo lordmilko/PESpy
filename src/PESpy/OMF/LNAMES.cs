@@ -20,7 +20,7 @@ namespace PESpy.OMF
 
                 var ptr = value + 3;
 
-                using var results = new PooledList<FixedAnsiString>();
+                using var results = new ValueList<FixedAnsiString>();
 
                 while (ptr < end)
                 {

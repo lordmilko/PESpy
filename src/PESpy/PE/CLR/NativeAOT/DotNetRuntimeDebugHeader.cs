@@ -56,7 +56,7 @@ namespace PESpy.NativeAOT
 
                             if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
                             {
-                                using var results = new PooledList<DebugTypeEntry>();
+                                using var results = new ValueList<DebugTypeEntry>();
 
                                 var read = 0;
                                 var ptrSize = chunk.PointerSize;
@@ -114,7 +114,7 @@ namespace PESpy.NativeAOT
 
                             if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
                             {
-                                using var results = new PooledList<GlobalValueEntry>();
+                                using var results = new ValueList<GlobalValueEntry>();
 
                                 var read = 0;
                                 var ptrSize = chunk.PointerSize;

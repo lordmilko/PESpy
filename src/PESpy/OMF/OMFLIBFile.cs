@@ -76,9 +76,9 @@ namespace PESpy
 
                 var end = mmf.Address + mmf.Length;
 
-                using var modules = new PooledList<ObjectModule>();
+                using var modules = new ValueList<ObjectModule>();
 
-                using var results = new PooledList<OMFRecord>();
+                using var results = new ValueList<OMFRecord>();
 
                 var offset = 0;
 
@@ -139,7 +139,7 @@ namespace PESpy
 
         private unsafe DicRecord[] ParseDictionary(ref int offset)
         {
-            using var records = new PooledList<DicRecord>();
+            using var records = new ValueList<DicRecord>();
 
             //Following the DICHDR is the actual dictionary. The dictionary is comprised of LIBHDR.DictionaryBlockCount blocks, each 512 bytes
             //in length. Each block stores 37 buckets

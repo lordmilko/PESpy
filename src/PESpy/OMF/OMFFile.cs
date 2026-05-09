@@ -66,7 +66,7 @@ namespace PESpy
 
             try
             {
-                using var results = new PooledList<OMFRecord>();
+                using var results = new ValueList<OMFRecord>();
 
                 var end = mmf.Address + mmf.Length;
 

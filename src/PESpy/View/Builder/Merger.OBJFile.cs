@@ -8,7 +8,7 @@ namespace PESpy.View.Builder
         {
             var objFile = (OBJFile) file;
 
-            var results = new PooledList<IView>();
+            var results = new ValueList<IView>();
 
             try
             {
@@ -55,7 +55,7 @@ namespace PESpy.View.Builder
             int size,
             int lastSectionEnd,
             ref Merger merger,
-            ref PooledList<IView> results)
+            ref ValueList<IView> results)
         {
             //You can have data in between sections
             if (lastSectionEnd != -1 && start > lastSectionEnd)
@@ -88,7 +88,7 @@ namespace PESpy.View.Builder
             results.Add(new SectionView(start, section.Name.ToString(), data, merger.viewWriter, size));
         }
 
-        internal static void ProcessOverlay(int lastSectionEnd, int end, ref Merger merger, ref PooledList<IView> results)
+        internal static void ProcessOverlay(int lastSectionEnd, int end, ref Merger merger, ref ValueList<IView> results)
         {
             var overlayData = merger.BuildSection(lastSectionEnd, end, v => v, v => v, true);
 

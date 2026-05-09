@@ -40,7 +40,7 @@ namespace PESpy
                 //ImageDynamicRelocation contains heaps of dynamically sized structures, so we can't assume how many
                 //entries we'll have
 
-                using var dynamicRelocations = new PooledList<ImageDynamicRelocation>();
+                using var dynamicRelocations = new ValueList<ImageDynamicRelocation>();
 
                 var end = Size + 8;
                 var read = 8;

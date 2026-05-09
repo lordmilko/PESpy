@@ -9,8 +9,8 @@ namespace PESpy.View.Builder
         {
             var libFile = (LIBFile) file;
 
-            var results = new PooledList<IView>();
-            var nestedObjRegions = new PooledList<IView>();
+            var results = new ValueList<IView>();
+            var nestedObjRegions = new ValueList<IView>();
 
             try
             {

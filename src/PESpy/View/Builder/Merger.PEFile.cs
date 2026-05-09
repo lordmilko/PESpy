@@ -9,7 +9,7 @@ namespace PESpy.View.Builder
         {
             var peFile = (PEFile) file;
 
-            var results = new PooledList<IView>();
+            var results = new ValueList<IView>();
 
             try
             {
@@ -171,7 +171,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void TryCreateOMFRegion(PEFile peFile, ref PooledList<IView> results)
+        private void TryCreateOMFRegion(PEFile peFile, ref ValueList<IView> results)
         {
             /* If we have OMF data, we want to read that separately. We would expect that if we have OMF data,
              * even if it's pointed to by a debug directory, that the typical OMF pattern is followed and that the

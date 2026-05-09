@@ -50,7 +50,7 @@ namespace PESpy
                     var read = 16 + RvaSize;
                     var end = BaseRelocSize + read;
 
-                    using var results = new PooledList<ImageBaseRelocation>();
+                    using var results = new ValueList<ImageBaseRelocation>();
 
                     // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY]; // Base relocations (RVA + Size + TO)
                     // Padded with extra TOs for 4B alignment

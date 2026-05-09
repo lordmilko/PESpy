@@ -15,6 +15,6 @@ namespace PESpy.View
 
         IView Finalize(ViewWriter viewWriter);
 
-        void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories);
+        void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories);
     }
 }

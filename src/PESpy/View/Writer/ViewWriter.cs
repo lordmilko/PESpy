@@ -1505,7 +1505,7 @@ namespace PESpy.View
             );
         }
 
-        internal void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories) =>
+        internal void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories) =>
             helper.CollectDataDirectories(ref dataDirectories);
 
         internal ViewWriter CreateNestedWriter(PEFile file) => new NestedViewWriter(this, new PEFileViewWriterHelper(file, mode), byteViewProvider);

@@ -98,7 +98,7 @@ namespace PESpy
                     //The first entry is an empty string, because library indices are 1-based
                     var read = 0;
 
-                    using var libraries = new PooledList<SymString>();
+                    using var libraries = new ValueList<SymString>();
 
                     while (read < length)
                     {

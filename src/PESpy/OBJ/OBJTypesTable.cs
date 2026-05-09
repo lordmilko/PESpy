@@ -83,7 +83,7 @@ namespace PESpy.OBJ
                 var i = 0;
                 var off = 0;
 
-                using var results = new PooledList<int>();
+                using var results = new ValueList<int>();
 
                 while (off < l)
                 {

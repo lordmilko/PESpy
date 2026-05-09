@@ -221,7 +221,7 @@ namespace PESpy.Ecma335
             }
             else
             {
-                using var parameters = new PooledList<TType>(parameterCount);
+                using var parameters = new ValueList<TType>(parameterCount);
 
                 var i = 0;
 

@@ -38,7 +38,7 @@ namespace PESpy
 
                     var read = 4;
 
-                    using var results = new PooledList<PogoItem>();
+                    using var results = new ValueList<PogoItem>();
 
                     while (read < end)
                     {

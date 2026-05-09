@@ -50,7 +50,7 @@ namespace PESpy
 
                         if (alignedRead < length)
                         {
-                            using var results = new PooledList<Var>();
+                            using var results = new ValueList<Var>();
 
                             do
                             {

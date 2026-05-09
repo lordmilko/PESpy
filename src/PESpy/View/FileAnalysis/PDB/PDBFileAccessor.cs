@@ -28,8 +28,8 @@ namespace PESpy.View
             var numPages = PDBFile.NumPages;
 
             var pages = ArrayPool<DirectoryInfo>.Shared.Rent(numPages);
-            var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
-            var sectionAccessors = new PooledList<SectionAccessor>();
+            var contiguousSections = new ValueList<PDBContiguousSectionInfo>();
+            var sectionAccessors = new ValueList<SectionAccessor>();
             var nameBuilder = new ValueStringBuilder();
 
             var pagesToSectionAccessors = new int[numPages];
@@ -56,7 +56,7 @@ namespace PESpy.View
 
                 void AddPages(
                     DirectoryInfo[] pages,
-                    ref PooledList<SectionAccessor> sectionAccessors,
+                    ref ValueList<SectionAccessor> sectionAccessors,
                     ref ValueStringBuilder nameBuilder,
                     int currentPageIndex,
                     int endIndex)

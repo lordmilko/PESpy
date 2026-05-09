@@ -37,7 +37,7 @@ namespace PESpy.View
              * - LongNamesMember
              * - ImportLibrary */
 
-            using var dataDirectories = new PooledList<DirectoryInfo>();
+            using var dataDirectories = new ValueList<DirectoryInfo>();
 
             var firstLinkerMember = libFile.FirstLinkerMember;
 
@@ -68,7 +68,7 @@ namespace PESpy.View
             return new FileView(ViewMode.Physical, libFile, results, viewWriter, ViewKind.LIBFile);
         }
 
-        public void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
             foreach (var item in libFile.ImportLibrary)
             {

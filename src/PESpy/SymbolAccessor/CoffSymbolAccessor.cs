@@ -119,7 +119,7 @@ namespace PESpy
             if (_externals != null)
                 return;
 
-            using var results = new PooledList<ImageSymbol>();
+            using var results = new ValueList<ImageSymbol>();
 
             var symbols = _coffSymbolTable.Symbols;
 

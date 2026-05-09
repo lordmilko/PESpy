@@ -25,7 +25,7 @@ namespace PESpy.PDB
         {
             get
             {
-                using var results = new PooledList<MlMethod16t>();
+                using var results = new ValueList<MlMethod16t>();
 
                 var ptr = value->mList;
 

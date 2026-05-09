@@ -188,7 +188,7 @@ namespace PESpy
 
                         var read = 0;
 
-                        using var results = new PooledList<SymString>();
+                        using var results = new ValueList<SymString>();
 
                         while (read < length)
                         {
@@ -225,7 +225,7 @@ namespace PESpy
                         var length = os2Header.ne_nrestab - os2Header.Offset - os2Header.ne_enttab;
                         Debug.Assert(length == OS2Header.ne_cbenttab);
 
-                        using var results = new PooledList<NEBundle>();
+                        using var results = new ValueList<NEBundle>();
 
                         var read = 0;
 

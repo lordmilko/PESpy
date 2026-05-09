@@ -25,10 +25,10 @@ namespace PESpy
 
             internal int Position;
 
-            public PooledList<TypeNode> BackRefFunctionParams;
-            public PooledList<(FixedUtf8String key, IdentifierNode node)> BackRefNames;
+            public ValueList<TypeNode> BackRefFunctionParams;
+            public ValueList<(FixedUtf8String key, IdentifierNode node)> BackRefNames;
 
-            private PooledList<FixedUtf8String> strings; //We don't need to initialize this; if we add something to it, it will initialize itself
+            private ValueList<FixedUtf8String> strings; //We don't need to initialize this; if we add something to it, it will initialize itself
 
             private DemanglerNodeArena? arena;
 
@@ -532,7 +532,7 @@ namespace PESpy
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public NodeArrayNode AllocNodeArray(ref PooledList<Node> list)
+            public NodeArrayNode AllocNodeArray(ref ValueList<Node> list)
             {
                 var nodeArrayNode = arena?.NodeArray.Allocate() ?? new NodeArrayNode();
                 nodeArrayNode.count = list.Count;

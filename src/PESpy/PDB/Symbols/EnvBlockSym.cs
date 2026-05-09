@@ -40,7 +40,7 @@ namespace PESpy.PDB
             {
                 var ptr = value->rgsz;
 
-                using var results = new PooledList<AnsiString>();
+                using var results = new ValueList<AnsiString>();
 
                 while (true)
                 {

@@ -117,7 +117,7 @@ namespace PESpy.OBJ
                 {
                     var totalOffset = 4;
 
-                    using var results = new PooledList<CvDebugSSubsectionHeader>();
+                    using var results = new ValueList<CvDebugSSubsectionHeader>();
 
                     while (totalOffset < Length)
                     {

@@ -37,7 +37,7 @@ namespace PESpy.View
 
             var numPages = pdbFile.NumPages;
             var pages = ArrayPool<DirectoryInfo>.Shared.Rent(numPages);
-            var contiguousSections = new PooledList<PDBContiguousSectionInfo>();
+            var contiguousSections = new ValueList<PDBContiguousSectionInfo>();
 
             try
             {
@@ -376,7 +376,7 @@ namespace PESpy.View
 
         internal static void GetContiguousSectionInfos(
             PDBFile pdbFile,
-            ref PooledList<PDBContiguousSectionInfo> contiguousSections,
+            ref ValueList<PDBContiguousSectionInfo> contiguousSections,
             DirectoryInfo[] pages)
         {
             var streamIndexToNameMap = BuildStreamIndexToNameMap(pdbFile);
@@ -518,7 +518,7 @@ namespace PESpy.View
 
         private static void RecordContiguousSection(
             ref PDBContiguousSectionInfo currentContiguousSection,
-            ref PooledList<PDBContiguousSectionInfo> contiguousSections,
+            ref ValueList<PDBContiguousSectionInfo> contiguousSections,
             in FullNameInfo nameInfo,
             int streamIndex,
             int localPageIndex,
@@ -551,7 +551,7 @@ namespace PESpy.View
             }
         }
 
-        public void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
         }
     }

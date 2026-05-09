@@ -70,7 +70,7 @@ namespace PESpy.PDB
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ProcessGlobalDataSymbol(SymType symType, ref PooledList<OffSegSym> globalDataList)
+        protected void ProcessGlobalDataSymbol(SymType symType, ref ValueList<OffSegSym> globalDataList)
         {
             ushort seg;
             int off;

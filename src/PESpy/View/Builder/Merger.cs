@@ -27,9 +27,9 @@ namespace PESpy.View.Builder
         private ByteViewProvider byteViewProvider;
         private RepeatingGroupMode repeatingGroupMode;
 
-        private PooledList<IView> masterList;
-        private PooledList<IView> currentList;
-        private PooledList<IView> repeatingTypeList;
+        private ValueList<IView> masterList;
+        private ValueList<IView> currentList;
+        private ValueList<IView> repeatingTypeList;
 
         internal Merger(IFile file, ViewWriter viewWriter, List<IView> sortedStructs, ByteViewProvider byteViewProvider) :
             this(file, viewWriter, sortedStructs, default, byteViewProvider)
@@ -460,7 +460,7 @@ end:
 
                             var numItemsToReplace = k - j - 1;
 
-                            using var newViews = new PooledList<IView>();
+                            using var newViews = new ValueList<IView>();
 
                             if (child.Offset > replacement.Offset)
                             {
@@ -487,9 +487,9 @@ end:
                                 var oldRepeatingGroupMode = repeatingGroupMode;
                                 var oldCurrentList = currentList;
 
-                                repeatingTypeList = new PooledList<IView>();
+                                repeatingTypeList = new ValueList<IView>();
                                 repeatingGroupMode = 0;
-                                currentList = new PooledList<IView>();
+                                currentList = new ValueList<IView>();
 
                                 try
                                 {

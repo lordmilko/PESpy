@@ -675,7 +675,7 @@ namespace PESpy
         {
             var overallSpan = _chars.Slice(startIndex, count);
 
-            using var indices = new PooledList<int>();
+            using var indices = new ValueList<int>();
 
             var pos = 0;
 

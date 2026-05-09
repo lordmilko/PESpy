@@ -56,7 +56,7 @@ namespace PESpy
 
                     if (read < length)
                     {
-                        using var results = new PooledList<IValue>();
+                        using var results = new ValueList<IValue>();
 
                         do
                         {

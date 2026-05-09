@@ -54,7 +54,7 @@ namespace PESpy
 
                         if (read < length)
                         {
-                            using var results = new PooledList<StringTable>();
+                            using var results = new ValueList<StringTable>();
 
                             do
                             {

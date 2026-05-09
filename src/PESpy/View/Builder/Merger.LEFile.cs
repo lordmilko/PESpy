@@ -8,7 +8,7 @@ namespace PESpy.View.Builder
         {
             var leFile = (LEFile) file;
 
-            var results = new PooledList<IView>();
+            var results = new ValueList<IView>();
 
             try
             {
@@ -82,7 +82,7 @@ namespace PESpy.View.Builder
             in ImageVXDHeader vxdHeader,
             ref int index,
             ref int lastSectionEnd,
-            ref PooledList<IView> results,
+            ref ValueList<IView> results,
             ViewKind kind)
         {
             var current = offsets[index];
@@ -133,7 +133,7 @@ namespace PESpy.View.Builder
             in ImageVXDHeader vxdHeader,
             ref int index,
             ref int lastSectionEnd,
-            ref PooledList<IView> results,
+            ref ValueList<IView> results,
             int length,
             ViewKind kind)
         {

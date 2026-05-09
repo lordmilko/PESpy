@@ -32,7 +32,7 @@ namespace PESpy
 
                     var valueChunk = new MemoryChunk(chunk.block, absoluteRva - chunk.block.RemoteStartOffset);
 
-                    using var list = new PooledList<MessageResourceEntry>();
+                    using var list = new ValueList<MessageResourceEntry>();
 
                     var offset = 0;
 

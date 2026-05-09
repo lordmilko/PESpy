@@ -6,7 +6,7 @@
         {
             //todo: not sure if theres actually any sections we need to take into consideration
 
-            var results = new PooledList<IView>();
+            var results = new ValueList<IView>();
 
             var dosFile = (DOSFile) file;
 

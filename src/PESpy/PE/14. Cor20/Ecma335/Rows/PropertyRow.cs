@@ -97,7 +97,7 @@ namespace PESpy.Ecma335
                 var getter = 0;
                 var setter = 0;
 
-                using var others = new PooledList<MethodDefIndex>();
+                using var others = new ValueList<MethodDefIndex>();
 
                 for (var i = 0; i < methodCount; i++)
                 {

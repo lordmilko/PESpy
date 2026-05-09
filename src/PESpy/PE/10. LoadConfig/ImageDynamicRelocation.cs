@@ -69,7 +69,7 @@ namespace PESpy
                         case IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER: //3
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            using var list = new PooledList<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
+                            using var list = new ValueList<ImageBaseRelocation<ImageImportControlTransferDynamicRelocation>>();
 
                             var read = chunk.PointerSize + 4;
                             var end = BaseRelocSize + read;
@@ -101,7 +101,7 @@ namespace PESpy
                         case IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER: //4
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            using var list = new PooledList<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
+                            using var list = new ValueList<ImageBaseRelocation<ImageIndirControlTransferDynamicRelocation>>();
 
                             var read = chunk.PointerSize + 4;
                             var end = BaseRelocSize + read;
@@ -133,7 +133,7 @@ namespace PESpy
                         case IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH: //5
                         {
                             //Don't know how many entries each ImageBaseRelocation will have
-                            using var list = new PooledList<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
+                            using var list = new ValueList<ImageBaseRelocation<ImageSwitchTableBranchDynamicRelocation>>();
 
                             var read = chunk.PointerSize + 4;
                             var end = BaseRelocSize + read;
@@ -174,7 +174,7 @@ namespace PESpy
                             //When parsing ntoskrnl you can get strange values starting with FFFF.
                             //This is apparently related to PTE randomization https://blog.csdn.net/zhuhuibeishadiao/article/details/110172123
                             //Not really sure what to do, but treating the entries as an array of regular old ImageBaseRelocation seems to work
-                            using var list = new PooledList<ImageBaseRelocation>();
+                            using var list = new ValueList<ImageBaseRelocation>();
 
                                 var read = chunk.PointerSize + 4;
                                 var end = BaseRelocSize + read;

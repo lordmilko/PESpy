@@ -164,7 +164,7 @@ namespace PESpy.View
             var structs = viewWriter.globalList;
             structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
-            var dataDirectories = new PooledList<DirectoryInfo>();
+            var dataDirectories = new ValueList<DirectoryInfo>();
 
             try
             {
@@ -190,7 +190,7 @@ namespace PESpy.View
             }
         }
 
-        public void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
             #region IMAGE_OPTIONAL_HEADER
 
@@ -317,7 +317,7 @@ namespace PESpy.View
             dataDirectories.Sort((a, b) => a.Start.CompareTo(b.Start));
         }
 
-        private void AddVirtualDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
+        private void AddVirtualDirectory(ref ValueList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
         {
             if (directory.HasData)
             {
@@ -356,7 +356,7 @@ namespace PESpy.View
             }
         }
 
-        private void AddPhysicalDirectory(ref PooledList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
+        private void AddPhysicalDirectory(ref ValueList<DirectoryInfo> dataDirectories, ImageDataDirectory directory, string name)
         {
             if (directory.VirtualAddress == 0)
                 return;

@@ -508,7 +508,7 @@ namespace PESpy
             {
                 if (symStoreKeys == null)
                 {
-                    using var results = new PooledList<SymStoreKey>();
+                    using var results = new ValueList<SymStoreKey>();
 
                     if (Name != null)
                     {
@@ -1029,7 +1029,7 @@ namespace PESpy
                         //I don't know if we're guaranteed to fill up the entire ImportTableDirectory with
                         //ImageImportDescriptor objects, or if there's other stuff in there too. I feel like
                         //the latter is the case, as such we can't calculate exactly how many entries we'll have
-                        using var results = new PooledList<ImageImportDescriptor>();
+                        using var results = new ValueList<ImageImportDescriptor>();
 
                         var read = 0;
 
@@ -1218,7 +1218,7 @@ namespace PESpy
 
                         var end = securityTableDirectory.Size;
 
-                        using var results = new PooledList<WinCertificate>();
+                        using var results = new ValueList<WinCertificate>();
 
                         var read = 0;
 
@@ -1261,7 +1261,7 @@ namespace PESpy
                 {
                     var end = OptionalHeader.BaseRelocationTableDirectory.Size;
 
-                    using var results = new PooledList<ImageBaseRelocation>();
+                    using var results = new ValueList<ImageBaseRelocation>();
 
                     var read = 0;
 
@@ -1451,7 +1451,7 @@ namespace PESpy
                     {
                         var end = boundImportTableDirectory.Size;
 
-                        using var results = new PooledList<ImageBoundImportDescriptor>();
+                        using var results = new ValueList<ImageBoundImportDescriptor>();
 
                         var read = 0;
 
@@ -1525,7 +1525,7 @@ namespace PESpy
 
                     if (delayImportTableDirectory.HasData && TryGetDirectoryChunk(delayImportTableDirectory, out var chunk))
                     {
-                        using var results = new PooledList<ImageDelayLoadDescriptor>();
+                        using var results = new ValueList<ImageDelayLoadDescriptor>();
 
                         var read = 0;
 
@@ -1669,7 +1669,7 @@ namespace PESpy
                             if (resourceTable != null)
                             {
                                 //Only rows with a RID of 0 should be processed (per nidump.cpp)
-                                using var results = new PooledList<ManifestResource>();
+                                using var results = new ValueList<ManifestResource>();
 
                                 foreach (var row in resourceTable)
                                 {
@@ -1975,7 +1975,7 @@ namespace PESpy
 
                             var pointerSize = chunk.PointerSize;
 
-                            using var results = new PooledList<NgenHelperEntry>();
+                            using var results = new ValueList<NgenHelperEntry>();
 
                             while (read < table.Size)
                             {

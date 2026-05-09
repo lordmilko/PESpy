@@ -70,7 +70,7 @@ namespace PESpy.Ecma335
 
             ulong bit = 1;
 
-            using var compressedRowCounts = new PooledList<int>();
+            using var compressedRowCounts = new ValueList<int>();
 
             RowCounts = default!;
             var valid = Valid;

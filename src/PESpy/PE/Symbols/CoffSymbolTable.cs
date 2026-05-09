@@ -26,7 +26,7 @@ namespace PESpy
                      * NumberOfSymbols gives us the total number of regular and AUX symbols. We don't
                      * know how many AUX symbols we will have; all we can know is how much memory the symbols
                      * will occupy (both IMAGE_SYMBOL and IMAGE_AUX_SYMBOL are 18 bytes) */
-                    using var results = new PooledList<ImageSymbol>();
+                    using var results = new ValueList<ImageSymbol>();
 
                     var read = 0;
                     var end = numberOfSymbols * ImageSymbol.StructSize;
@@ -72,7 +72,7 @@ namespace PESpy
                         strings = Array.Empty<RawValue<AnsiString>>();
                     else
                     {
-                        using var results = new PooledList<RawValue<AnsiString>>();
+                        using var results = new ValueList<RawValue<AnsiString>>();
 
                         while (offset < end)
                         {

@@ -16,7 +16,7 @@ namespace PESpy.View
 
         public int Size => currentFieldOffset;
 
-        private PooledList<IView> items;
+        private ValueList<IView> items;
 
         public bool Is32Bit() => structWriter.ViewWriter.Is32Bit;
 
@@ -24,7 +24,7 @@ namespace PESpy.View
         {
             this.structWriter = structWriter;
             currentFieldOffset = default;
-            items = new PooledList<IView>();
+            items = new ValueList<IView>();
         }
 
         #region Byte

@@ -9,7 +9,7 @@ namespace PESpy.View.Builder
         {
             var neFile = (NEFile) file;
 
-            var results = new PooledList<IView>();
+            var results = new ValueList<IView>();
 
             try
             {
@@ -52,7 +52,7 @@ namespace PESpy.View.Builder
             int nextTableOffset,
             in ImageOS2Header os2Header,
             ref int lastSectionEnd,
-            ref PooledList<IView> results,
+            ref ValueList<IView> results,
             ViewKind viewKind)
         {
             if (tableOffset == nextTableOffset)
@@ -70,7 +70,7 @@ namespace PESpy.View.Builder
             lastSectionEnd = end;
         }
 
-        private void ReadNonResidentNameTable(in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadNonResidentNameTable(in ImageOS2Header os2Header, ref int lastSectionEnd, ref ValueList<IView> results)
         {
             if (os2Header.ne_cbnrestab == 0)
                 return; //There's no table after it, hence why there's an explicit size listed for it
@@ -87,7 +87,7 @@ namespace PESpy.View.Builder
             lastSectionEnd = end;
         }
 
-        private void ReadSegmentData(NEFile neFile, in ImageOS2Header os2Header, ref int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadSegmentData(NEFile neFile, in ImageOS2Header os2Header, ref int lastSectionEnd, ref ValueList<IView> results)
         {
             for (var i = 0; i < neFile.SegmentTable.Length; i++)
             {
@@ -106,7 +106,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        private void ReadOMFData(NEFile neFile, int lastSectionEnd, ref PooledList<IView> results)
+        private void ReadOMFData(NEFile neFile, int lastSectionEnd, ref ValueList<IView> results)
         {
             var omfData = neFile.CodeViewData;
 
@@ -141,7 +141,7 @@ namespace PESpy.View.Builder
             }
         }
 
-        internal static void ReadInterSectionData(int lastSectionEnd, int start, Merger merger, ref PooledList<IView> results)
+        internal static void ReadInterSectionData(int lastSectionEnd, int start, Merger merger, ref ValueList<IView> results)
         {
             //You can have data in between segments
             if (lastSectionEnd != -1 && start > lastSectionEnd)

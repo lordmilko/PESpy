@@ -83,7 +83,7 @@ namespace PESpy.View
             return new FileView(ViewMode.Physical, file, results, viewWriter, kind);
         }
 
-        public void CollectDataDirectories(ref PooledList<DirectoryInfo> dataDirectories)
+        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
         }
     }
