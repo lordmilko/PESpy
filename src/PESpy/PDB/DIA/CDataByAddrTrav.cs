@@ -7,13 +7,16 @@
     internal struct CDataByAddrTrav<TEnumProvider> : IModSymFinder where TEnumProvider : IEnumProvider
     {
         private CModSymsByAddrTrav<TEnumProvider> _modTrav;
+        private bool _label;
 
         public CDataByAddrTrav(
             TEnumProvider enumProvider,
             OffSeg targetOffSeg,
-            OffSegSym bestOffSeg)
+            OffSegSym bestOffSeg,
+            bool label)
         {
             _modTrav = new CModSymsByAddrTrav<TEnumProvider>(enumProvider, targetOffSeg, bestOffSeg);
+            _label = label;
         }
 
         public bool find(ISECT scSeg, int scOff, out OffSegSym candidateOffSeg)
@@ -21,8 +24,16 @@
             var targetSeg = _modTrav._targetSeg;
             var targetOff = _modTrav._targetOff;
 
-            if (!_modTrav._enumProvider.SymCache.TryGetDataSymbol(_modTrav._imod, targetSeg, targetOff, out candidateOffSeg))
-                return false;
+            if (_label)
+            {
+                if (!_modTrav._enumProvider.SymCache.TryGetLabelSymbol(_modTrav._imod, targetSeg, targetOff, out candidateOffSeg))
+                    return false;
+            }
+            else
+            {
+                if (!_modTrav._enumProvider.SymCache.TryGetDataSymbol(_modTrav._imod, targetSeg, targetOff, out candidateOffSeg))
+                    return false;
+            }
 
             //ModCache::dataByAddr may be handed a module where all of its symbols are way before the offset we're after. This is an issue,
             //because while trying to find the best module to use, we may need to rewind by 1 to get the best module. DIA seems to handle

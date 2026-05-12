@@ -92,12 +92,12 @@ namespace PESpy.View
         public bool MoveTo(long offset)
         {
             _bytesRead = (int) (offset - SectionAccessor.StartAddress);
-            Debug.Assert(_bytesRead >= _startOffset);
 
             if (_bytesRead >= _bytesReadLimit)
                 return false;
 
             _current = GetEntity();
+            Debug.Assert(_current.TargetAddress == offset);
             return true;
         }
 
@@ -193,7 +193,6 @@ namespace PESpy.View
                     var entity = new ViewEntity(
                         fileAccessor,
                         SectionAccessorIndex,
-                        symbolAccessor,
                         sectionAccessor,
                         bytesRead,
                         bytesReadLimit,
@@ -206,7 +205,7 @@ namespace PESpy.View
 
                     if (entity.TargetAddress == state.NextDataDirectoryOffset)
                     {
-                        SkipOverDirectory(dataDirectories, sectionAccessor, ref bytesRead, ref nextDataDirectoryIndex, ref nextDataDirectoryOffset);
+                        //I feel like we maybe need to skip over nested files too?
 #if DEBUG_VIEWENTITY
                         _debugEntities.Add("Directory");
 #endif
@@ -221,6 +220,7 @@ namespace PESpy.View
 #if DEBUG_VIEWENTITY
                         _debugEntities.Add("Region");
 #endif
+                        //I feel like we maybe need to skip over nested files too? And those files can contain directories
                         SkipOverRegion(sectionAccessor, ref bytesRead, ref state);
 
                         if (state.NextDataDirectoryOffset != -1)
@@ -302,7 +302,6 @@ namespace PESpy.View
                     var entity = new ViewEntity(
                         _fileAccessor,
                         SectionAccessorIndex,
-                        symbolAccessor,
                         sectionAccessor,
                         bytesRead,
                         _bytesReadLimit,
@@ -320,6 +319,10 @@ namespace PESpy.View
 #endif
                         SkipOverRegion(sectionAccessor, ref bytesRead, ref state);
                     }
+                    else if (kind != GlobalViewProviderKind.NestedFile && entity.TargetAddress == state.NextNestedFileOffset)
+                    {
+                        //Haven't run into this yet
+                        throw new NotImplementedException();
                     }
                     else
                     {
@@ -529,6 +532,18 @@ namespace PESpy.View
             _bytesRead = _startOffset;
         }
 
-        private ViewEntity GetEntity() => new ViewEntity(_fileAccessor, SectionAccessorIndex, _symbolAccessor, SectionAccessor, _bytesRead, _bytesReadLimit, _pBytes, _infoMap, _largeAddresses);
+        private ViewEntity GetEntity()
+        {
+            return new ViewEntity(
+                _fileAccessor,
+                SectionAccessorIndex,
+                SectionAccessor,
+                _bytesRead,
+                _bytesReadLimit,
+                _pBytes,
+                _infoMap,
+                _largeAddresses
+            );
+        }
     }
 }

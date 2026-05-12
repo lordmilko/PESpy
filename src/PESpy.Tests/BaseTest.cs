@@ -88,7 +88,7 @@ namespace PESpy.Tests
                         {
                             var p2 = (ProdItem) v2;
 
-                            if (!(p1.BuildId == p2.BuildId && p1.Count == p2.Count && p1.ProdId == p2.ProdId && p1.ProductId == p2.ProductId && p1.VisualStudioVersion == p2.VisualStudioVersion))
+                            if (!(p1.BuildId == p2.BuildId && p1.Count == p2.Count && p1.ProdId == p2.ProdId))
                                 return false;
 
                             continue;
@@ -1257,7 +1257,20 @@ namespace PESpy.Tests
                             else
                                 throw new NotImplementedException();
 
-                            var dd = ((PEFile) file).LoadConfigTable?.DynamicValueRelocTableOffset.ValueOrDefault.DynamicRelocations;
+                            ((IViewable) file).WriteGlobals(viewWriter);
+
+                            if (viewWriter.Matches.Count > 0)
+                                yield return fileName;
+                        }
+                    }
+                    finally
+                    {
+                        file.Dispose();
+                    }
+                }
+            }
+        }
+
         #endregion
     }
 }

@@ -442,77 +442,8 @@ namespace PESpy.View
                     if (kind >= ViewKind.drectve && kind <= ViewKind.UnknownSection)
                         pViewByte->DataKind = ViewByteDataKind.Integer;
                     else
-                        throw new System.NotImplementedException();
+                        throw new NotImplementedException();
 
-                    break;
-            }
-
-            /* Certain values have well known symbol names. We don't want to apply these names if
-             * it turns out we'll have symbols however, as that'll cause us to double up. So instead,
-             * we'll collect a series of "pending" names, and then figure out whether or not we want
-             * to commit them after we know what kind of symbols we have
-             */
-
-            switch (kind)
-            {
-                case ViewKind.GuardAddressTakenIatEntryTable:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_iat_table);
-                    break;
-
-                case ViewKind.GuardCFFunctionTable:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_fids_table);
-                    break;
-
-                case ViewKind.GuardEHContinuationTable:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_eh_cont_table);
-                    break;
-
-                case ViewKind.GuardLongJumpTargetTable:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_longjmp_table);
-                    break;
-
-                case ViewKind.SecurityCookie:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__security_cookie);
-                    break;
-
-                case ViewKind.SEHandlerTable:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__safe_se_handler_table);
-                    break;
-
-                case ViewKind.GuardCFCheckFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_check_icall_fptr);
-                    break;
-
-                case ViewKind.GuardCFDispatchFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_dispatch_icall_fptr);
-                    break;
-
-                case ViewKind.GuardRFFailureRoutineFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_ss_verify_failure_fptr);
-                    break;
-
-                case ViewKind.GuardRFVerifyStackPointerFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_ss_verify_sp_fptr);
-                    break;
-
-                case ViewKind.GuardXFGCheckFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_check_icall_fptr);
-                    break;
-
-                case ViewKind.GuardXFGDispatchFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_dispatch_icall_fptr);
-                    break;
-
-                case ViewKind.GuardXFGTableDispatchFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_xfg_table_dispatch_icall_fptr);
-                    break;
-
-                case ViewKind.CastGuardOsDeterminedFailureMode:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__castguard_check_failure_os_handled_fptr);
-                    break;
-
-                case ViewKind.GuardMemcpyFunctionPointer:
-                    _fileAnalyzer.AddPendingName(offset, Strings.__guard_memcpy_fptr);
                     break;
             }
 

@@ -20,6 +20,7 @@ namespace PESpy
                 ViewKind.Padding                                     => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.CC                                          => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.ImageArchivePad                             => GetBytes(chunk, viewWriter, length, kind),
+                ViewKind.Vftable                                     => GetVftable(chunk, viewWriter, length),
 
                 #region Headers
 
@@ -402,9 +403,10 @@ namespace PESpy
                 #endregion
                 #region RTTI
 
-                //ViewKind.RTTIBaseClassArray                          => Write(new RTTIBaseClassArray(chunk),                          viewWriter),
-                //ViewKind.RTTIClassHierarchyDescriptor                => Write(new RTTIClassHierarchyDescriptor(chunk),                viewWriter),
-                //ViewKind.RTTICompleteObjectLocator                   => Write(new RTTICompleteObjectLocator(chunk),                   viewWriter),
+                ViewKind.RTTIBaseClassDescriptor                     => Write(new RTTIBaseClassDescriptor(chunk),                     viewWriter),
+                ViewKind.RTTIBaseClassArray                          => GetRTTIBaseClassArray(chunk, viewWriter, length),
+                ViewKind.RTTIClassHierarchyDescriptor                => Write(new RTTIClassHierarchyDescriptor(chunk),                viewWriter),
+                ViewKind.RTTICompleteObjectLocator                   => Write(new RTTICompleteObjectLocator(chunk),                   viewWriter),
 
                 #endregion
 
@@ -1303,6 +1305,11 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
+        private static IStructView GetRTTIBaseClassArray(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            return Write(new RTTIBaseClassArray(chunk, length / sizeof(int)), viewWriter);
+        }
+
         private static IView GetOldSymType(in MemoryChunk chunk, ViewWriter viewWriter, int length)
         {
             var dosFile = chunk.DOSFile();
@@ -1411,6 +1418,14 @@ namespace PESpy
             }
 
             throw new NotImplementedException();
+        }
+
+        private static IView GetVftable(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            if (chunk.Is32Bit)
+                return viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, ViewKind.Vftable);
+            else
+                return viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<long>(0, length / 8), length, ViewKind.Vftable);
         }
 
         private static IStructView WriteNB05Data(SST sst, in MemoryChunk chunk, ViewWriter viewWriter)

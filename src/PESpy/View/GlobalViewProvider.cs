@@ -103,14 +103,20 @@ namespace PESpy.View
                     {
                         if (_kind != GlobalViewProviderKind.NestedFile && _fileAccessor.TryGetNestedFileRange(entity.TargetAddress, out nestedFileRange) && structWriter.ViewWriter is not NestedViewWriter)
                             _entities.MoveTo(nestedFileRange.EndOffset);
-                        else if (_fileAccessor.TryGetRegion(entity.TargetAddress, _depthAtStartOffset, out var region))
+                        else if (_fileAccessor.TryGetRegion(entity.TargetAddress, _kind == GlobalViewProviderKind.Region ? _depthAtStartOffset + 1 : 0, out var region))
                             _entities.MoveTo(region.End);
                     }
                 }
 
                 _nextChild = index;
             }
+
+            //Note that there's special logic in ViewEntityIterator so it knows whether we need to move next or not based on whether we've called MoveTo or not
+            if (!_entities.MoveNext())
+                throw new InvalidOperationException("Attempted to move beyond the last available entity; this indicates a bug in ViewEntityIterator.GetCount");
+
             entity = _entities.Current;
+            Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
             int childOffset;
 
             //Watch our for a struct inside of a region inside of a nested file
@@ -201,12 +207,6 @@ namespace PESpy.View
             }
 
             //Now write the appropriate view based on the type of the entity
-
-            if (entity.Kind != 0)
-            {
-                structWriter.Field = ViewProvider.CreateStructView(entity.Kind, entity.Length, _fileAccessor.GetMemoryChunkFromAddress(entity.TargetAddress), structWriter.ViewWriter, entity.IsSplit);
-            }
-            else
 
             structWriter.Field = _fileAccessor.GetViewFromEntity(entity);
 

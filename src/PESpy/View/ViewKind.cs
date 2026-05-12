@@ -81,6 +81,8 @@ namespace PESpy.View
 
         BitField,
 
+        Vftable,
+
         /// <summary>
         /// A jump table that has been discovered through data flow analysis
         /// </summary>
@@ -730,28 +732,28 @@ namespace PESpy.View
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardAddressTakenIatEntryTable"/><para/>
         /// __guard_iat_table
         /// </summary>
-        [Description(nameof(Str.GuardAddressTakenIatEntryTable))]
+        [Description(nameof(Str.__guard_iat_table))]
         GuardAddressTakenIatEntryTable,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardCFFunctionTable"/>.<para/>
         /// __guard_fids_table
         /// </summary>
-        [Description(nameof(Str.GuardCFFunctionTable))]
+        [Description(nameof(Str.__guard_fids_table))]
         GuardCFFunctionTable,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardEHContinuationTable"/><para/>
         /// __guard_eh_cont_table
         /// </summary>
-        [Description(nameof(Str.GuardEHContinuationTable))]
+        [Description(nameof(Str.__guard_eh_cont_table))]
         GuardEHContinuationTable,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.GuardLongJumpTargetTable"/><para/>
         /// __guard_longjmp_table
         /// </summary>
-        [Description(nameof(Str.GuardLongJumpTargetTable))]
+        [Description(nameof(Str.__guard_longjmp_table))]
         GuardLongJumpTargetTable,
 
         [Description(nameof(Str.Entry))]
@@ -777,60 +779,70 @@ namespace PESpy.View
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __security_cookie
         /// </summary>
+        [Description(nameof(Str.__security_cookie))]
         SecurityCookie,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="int"/><para/>
         /// __safe_se_handler_table
         /// </summary>
+        [Description(nameof(Str.__safe_se_handler_table))]
         SEHandlerTable,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_check_icall_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_check_icall_fptr))]
         GuardCFCheckFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_dispatch_icall_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_dispatch_icall_fptr))]
         GuardCFDispatchFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_ss_verify_failure_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_ss_verify_failure_fptr))]
         GuardRFFailureRoutineFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_ss_verify_sp_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_ss_verify_sp_fptr))]
         GuardRFVerifyStackPointerFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_xfg_check_icall_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_xfg_check_icall_fptr))]
         GuardXFGCheckFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_xfg_dispatch_icall_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_xfg_dispatch_icall_fptr))]
         GuardXFGDispatchFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __guard_xfg_table_dispatch_icall_fptr
         /// </summary>
+        [Description(nameof(Str.__guard_xfg_table_dispatch_icall_fptr))]
         GuardXFGTableDispatchFunctionPointer,
 
         /// <summary>
         /// An <see cref="IValueView"/> that represents an <see cref="IntPtr"/> typed as a <see cref="long"/>.<para/>
         /// __castguard_check_failure_os_handled_fptr
         /// </summary>
+        [Description(nameof(Str.__castguard_check_failure_os_handled_fptr))]
         CastGuardOsDeterminedFailureMode,
 
         /// <summary>
@@ -839,6 +851,7 @@ namespace PESpy.View
         /// Contains a pointer to the memcpy function. <see cref="ImageLoadConfigDirectory.GuardMemcpyFunctionPointer"/> is therefore
         /// a pointer to a pointer.
         /// </summary>
+        [Description(nameof(Str.__guard_memcpy_fptr))]
         GuardMemcpyFunctionPointer,
 
         /// <summary>
@@ -1526,6 +1539,9 @@ namespace PESpy.View
 
         //TypeDescriptor is covered under exception data
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.RTTIBaseClassDescriptor"/>
+        /// </summary>
         [Description(nameof(Str._RTTIBaseClassDescriptor))]
         RTTIBaseClassDescriptor,
 

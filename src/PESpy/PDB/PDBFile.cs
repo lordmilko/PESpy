@@ -1365,15 +1365,12 @@ namespace PESpy
 
         private FileAccessor? _viewAccessor;
 
-        public FileView GetView(
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
-            bool trackXRefs = false,
-            CancellationToken cancellationToken = default)
+        public FileView GetView(in FileAnalyzerOptions options = default)
         {
             if (_viewAccessor == null)
             {
                 var accessor = FileAccessor.Create(this);
-                FileAnalyzer.Analyze(accessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                FileAnalyzer.Analyze(accessor, options);
                 _viewAccessor = accessor;
             }
 

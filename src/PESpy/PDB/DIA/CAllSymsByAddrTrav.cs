@@ -94,7 +94,7 @@ namespace PESpy.PDB
             if (blockTraverser.next(out candidate))
                 findBetterSymbol(candidate, ref bestResult, targetOffSeg);
 
-            var dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym);
+            var dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym, label: false);
 
             if (dataTraverser.next(out candidate))
                 findBetterSymbol(candidate, ref bestResult, targetOffSeg);
@@ -103,6 +103,22 @@ namespace PESpy.PDB
 
             if (globalDataTraverser.next(out candidate))
                 findBetterSymbol(candidate, ref bestResult, targetOffSeg);
+
+            /* DIA doesn't actually seem to support labels at all; even though you can search for SymTagLabel, you don't
+             * seem to get any results, and when you specify an RVA to search for, the best you'll get is a public symbol.
+             * I think this is no good. I suspect the reason they don't support labels is you can sometimes have a junk
+             * label like $LN4 that shares its address with its parent function. In this case, labels should have the lowest
+             * precedence of any symbol. So only if we don't have a perfect match should we consider looking for labels */
+
+            if (bestResult.offSegSym.off != targetOffSeg.off || bestResult.offSegSym.seg != targetOffSeg.seg)
+            {
+                //Try for a label
+
+                dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym, label: true);
+
+                if (dataTraverser.next(out candidate))
+                    findBetterSymbol(candidate, ref bestResult, targetOffSeg);
+            }
 
             return bestResult.offSegSym.symType != default;
         }

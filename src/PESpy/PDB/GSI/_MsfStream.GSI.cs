@@ -338,8 +338,6 @@ namespace PESpy.PDB
                 const uint _5_32 = 0x55555555;
                 const uint _3_32 = 0x33333333;
                 const uint _F1_32 = 0x0f0f0f0f;
-                const uint _F2_32 = 0x00ff00ff;
-                const uint _F4_32 = 0x0000ffff;
 
                 u -= (u >> 1) & _5_32;
                 u = ((u >> 2) & _3_32) + (u & _3_32);

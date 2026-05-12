@@ -128,9 +128,9 @@ namespace PESpy
 
         public NativeAOTModulesList? NativeAOTModules => peFile.GetNativeAOTModules(debugger: true);
 
-        public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators => peFile.GetRTTICompleteObjectLocators(debugger: true);
+        public SymbolValueList<RTTICompleteObjectLocator>? RTTICompleteObjectLocators => peFile.GetRTTICompleteObjectLocators(debugger: true);
 
-        public VftableInfo[]? Vftables => peFile.GetVftables(debugger: true);
+        public SymbolValueList<VftableInfo>? Vftables => peFile.GetVftables(debugger: true);
 
         public RpcInfo? RpcInfo => peFile.RpcInfo;
     }
@@ -2517,7 +2517,7 @@ namespace PESpy
                     {
                         var realIndex = kOrdinalForMetrics - exportTable.Base;
 
-                        if ((uint) realIndex < exportTable.NumberOfFunctions)
+                        if (unchecked((uint) realIndex < exportTable.NumberOfFunctions))
                         {
                             var rvaOfRva = exportTable.RawAddressOfFunctions + (realIndex * sizeof(int));
 
@@ -2870,9 +2870,9 @@ namespace PESpy
         #endregion
         #region RTTICompleteObjectLocators
 
-        public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators => GetRTTICompleteObjectLocators(debugger: false);
+        public SymbolValueList<RTTICompleteObjectLocator>? RTTICompleteObjectLocators => GetRTTICompleteObjectLocators(debugger: false);
 
-        internal RTTICompleteObjectLocator[]? GetRTTICompleteObjectLocators(
+        internal SymbolValueList<RTTICompleteObjectLocator>? GetRTTICompleteObjectLocators(
             bool debugger,
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress progress = null)
@@ -2886,9 +2886,9 @@ namespace PESpy
         #endregion
         #region Vftables
 
-        public VftableInfo[] Vftables => GetVftables(debugger: false);
+        public SymbolValueList<VftableInfo>? Vftables => GetVftables(debugger: false);
 
-        internal VftableInfo[]? GetVftables(
+        internal SymbolValueList<VftableInfo>? GetVftables(
             bool debugger,
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress progress = null)
@@ -2949,17 +2949,12 @@ namespace PESpy
         private FileAccessor? _viewAccessorPhysical;
         private FileAccessor? _viewAccessorVirtual;
 
-        public FileView GetView(
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
-            bool trackXRefs = false,
-            CancellationToken cancellationToken = default) =>
-            GetView(ViewMode.Default, httpPolicy, trackXRefs, cancellationToken);
+        public FileView GetView(in FileAnalyzerOptions options = default) =>
+            GetView(ViewMode.Default, options);
 
         public FileView GetView(
             ViewMode viewMode,
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
-            bool trackXRefs = false,
-            CancellationToken cancellationToken = default)
+            in FileAnalyzerOptions options = default)
         {
             var wantVirtual = viewMode switch
             {
@@ -2973,7 +2968,7 @@ namespace PESpy
             if (viewAccessor == null)
             {
                 viewAccessor = new PEFileAccessor(this, viewMode);
-                FileAnalyzer.Analyze(viewAccessor, httpPolicy: httpPolicy, trackXRefs: trackXRefs, cancellationToken: cancellationToken);
+                FileAnalyzer.Analyze(viewAccessor, options);
                 ((PEFileAccessor) viewAccessor).OwnsPEFile = false;
 
                 if (wantVirtual)
@@ -4129,6 +4124,8 @@ namespace PESpy
 
                     sectionBlocks = null;
                 }
+
+                _symbolReader?.Dispose();
 
                 (blockProvider as IDisposable)?.Dispose();
 

@@ -42,7 +42,7 @@ namespace PESpy.View
         //too much time writing content that may later end up being discarded (e.g. structs, disassembly, etc)
         protected Stack<EntityState> _path = new();
         protected FileAccessor _fileAccessor;
-        protected ValueStringBuilder.NonRef _builder;
+        protected PooledStringBuilder _builder;
         private List<PhysicalLine> _physicalLines = new List<PhysicalLine>();
         protected List<LogicalLine> _logicalLines = new List<LogicalLine>();
         protected readonly ViewByteFormatRangeList _formatRanges;
@@ -140,7 +140,7 @@ namespace PESpy.View
         public AbstractViewByteFormatter(FileAccessor fileAccessor)
         {
             _fileAccessor = fileAccessor;
-            _builder = new ValueStringBuilder.NonRef(100);
+            _builder = new PooledStringBuilder(100);
             _formatRanges = new ViewByteFormatRangeList();
 
             if (fileAccessor is PEFileAccessor p)

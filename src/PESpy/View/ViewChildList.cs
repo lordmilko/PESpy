@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -40,7 +41,16 @@ namespace PESpy.View
             _parentView = parentView;
         }
 
-        public IView this[int index] => viewWriter.GetChild(parentOffset, parent, index, _parentView);
+        public IView this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= numChildren)
+                    throw new IndexOutOfRangeException();
+
+                return viewWriter.GetChild(parentOffset, parent, index, _parentView);
+            }
+        }
 
         public IView First() => this[0];
 

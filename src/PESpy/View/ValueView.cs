@@ -10,6 +10,28 @@ namespace PESpy.View
         object Value { get; }
     }
 
+    //Outline logic from ValueView<T>
+
+    internal class ValueViewHelper
+    {
+        public static FixedUtf8String GetName(long targetAddress, ref FixedUtf8String name, ViewKind kind, FileAccessor fileAccessor)
+        {
+            if (name.Length == 0)
+            {
+                if (kind == ViewKind.Vftable)
+                {
+                    fileAccessor.TryGetNameFromAddress(targetAddress, out name);
+                }
+                else
+                {
+                    name = ViewProvider.GetName(kind);
+                }
+            }
+
+            return name;
+        }
+    }
+
     /// <summary>
     /// Provides a view over a simple value.
     /// </summary>
@@ -19,7 +41,7 @@ namespace PESpy.View
         /// <inheritdoc />
         public long Offset { get; }
 
-        public FixedUtf8String Name { get; }
+        public FixedUtf8String Name => ValueViewHelper.GetName(Offset, ref _name, Kind, _fileAccessor);
 
         /// <summary>
         /// Gets the simple value that this view encompasses.
@@ -48,6 +70,7 @@ namespace PESpy.View
         //We stash IsSplit in the top bit
         private ushort _kind;
         private FileAccessor _fileAccessor;
+        private FixedUtf8String _name;
 
         public ValueView(long offset, TValue value, long size, ViewKind kind, FileAccessor fileAccessor, FixedUtf8String name = default)
         {
@@ -60,7 +83,7 @@ namespace PESpy.View
             Value = value;
             Size = size;
             _kind = (ushort) kind;
-            Name = name;
+            _name = name;
             _fileAccessor = fileAccessor;
         }
 

@@ -232,10 +232,7 @@ namespace PESpy
             throw new NotImplementedException("Reading resource files properly is not implemented");
         }
 
-        public FileView GetView(
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
-            bool trackXRefs = false,
-            CancellationToken cancellationToken = default)
+        public FileView GetView(in FileAnalyzerOptions options = default)
         {
             throw new NotImplementedException();
         }

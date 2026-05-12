@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using ClrDebug;
 
 namespace PESpy.View
@@ -17,14 +16,13 @@ namespace PESpy.View
 
         internal PEFileAnalyzer(
             PEFileAccessor fileAccessor,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken,
-            IFileDisassembler? disassembler,
-            LocatorHttpPolicy httpPolicy) : base(fileAccessor, progress, trackXRefs, cancellationToken, disassembler, httpPolicy)
+            in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
             _peFile = fileAccessor.PEFile;
             _lookupCache = fileAccessor._lookupCache;
+
+            if (options.ExcludeSymbols)
+                fileAccessor._symbolAccessor = NullSymbolAccessor.Instance;
         }
 
         protected override ViewWriter CreateViewWriter()
@@ -99,32 +97,57 @@ namespace PESpy.View
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
+            //The only module that would have no imports is ntdll; as such we don't have a cached empty dictionary
+            //for the scenario in which there are no imports
             var imports = _peFile.ImportTable;
-
-            if (imports == null)
-                return new Dictionary<long, int>(); //The only module that would have no imports is ntdll; as such we don't have a cached empty dictionary
 
             var importMap = new Dictionary<long, int>();
 
             var wantVirtual = ((PEFileAccessor) _fileAccessor).ViewMode == ViewMode.Virtual;
-
             var imageBase = _fileAccessor.ImageBase;
 
-            for (var i = 0; i < imports.Length; i++)
+            if (imports != null)
             {
-                ref var desc = ref imports[i];
-
-                if (desc.FirstThunk.IsValid)
+                for (var i = 0; i < imports.Length; i++)
                 {
-                    var thunks = desc.FirstThunk.Value;
+                    ref var desc = ref imports[i];
 
-                    foreach (var thunk in thunks)
+                    if (desc.FirstThunk.IsValid)
                     {
-                        //The last null function
-                        if (thunk.Value == 0 || !_peFile.TryGetRVA((int) thunk.Offset, out var rva))
-                            continue;
+                        var thunks = desc.FirstThunk.Value;
 
-                        importMap[imageBase + rva] = wantVirtual ? rva : (int) thunk.Offset;
+                        foreach (var thunk in thunks)
+                        {
+                            //The last null function
+                            if (thunk.Value == 0 || !_peFile.TryGetRVA((int) thunk.Offset, out var rva))
+                                continue;
+
+                            importMap[imageBase + rva] = wantVirtual ? rva : (int) thunk.Offset;
+                        }
+                    }
+                }
+            }
+
+            var delayImportTable = _peFile.DelayImportTable;
+
+            if (delayImportTable != null)
+            {
+                for (var i = 0; i < delayImportTable.Length; i++)
+                {
+                    ref var desc = ref delayImportTable[i];
+
+                    if (desc.ImportAddressTableRVA.IsValid)
+                    {
+                        var thunks = desc.ImportAddressTableRVA.Value;
+
+                        foreach (var thunk in thunks)
+                        {
+                            //The last null function
+                            if (thunk.Value == 0 || !_peFile.TryGetRVA((int) thunk.Offset, out var rva))
+                                continue;
+
+                            importMap[imageBase + rva] = wantVirtual ? rva : (int) thunk.Offset;
+                        }
                     }
                 }
             }

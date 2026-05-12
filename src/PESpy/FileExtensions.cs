@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using PESpy.View;
 
 namespace PESpy
 {
@@ -29,6 +31,39 @@ namespace PESpy
                 default:
                     throw new NotImplementedException($"Don't know how to get section headers from a file of type '{file}'");
             }
+        }
+
+        public static FileView GetView(
+            this IFile file,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default,
+            bool excludeSymbols = false)
+        {
+            return file.GetView(new FileAnalyzerOptions
+            {
+                HttpPolicy = httpPolicy,
+                TrackXRefs = trackXRefs,
+                CancellationToken = cancellationToken,
+                ExcludeSymbols = excludeSymbols
+            });
+        }
+
+        public static FileView GetView(
+            this PEFile peFile,
+            ViewMode viewMode,
+            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
+            bool trackXRefs = false,
+            CancellationToken cancellationToken = default,
+            bool excludeSymbols = false)
+        {
+            return peFile.GetView(viewMode, new FileAnalyzerOptions
+            {
+                HttpPolicy = httpPolicy,
+                TrackXRefs = trackXRefs,
+                CancellationToken = cancellationToken,
+                ExcludeSymbols = excludeSymbols
+            });
         }
     }
 }

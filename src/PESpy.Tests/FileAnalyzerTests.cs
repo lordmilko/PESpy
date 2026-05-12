@@ -6,6 +6,8 @@ namespace PESpy.Tests
     [TestClass]
     public class FileAnalyzerTests
     {
+        #region File
+
         [TestMethod]
         public void FileAnalyzer_PEFile() => Test(Sample.VC20_EXE, FileKind.PE);
 
@@ -54,6 +56,40 @@ namespace PESpy.Tests
             var view = file.GetView();
 
             view.Accept(NullViewWalker.Instance);
+        }
+
+        #endregion
+
+        [TestMethod]
+        public void FileAnalyzer_ILName()
+        {
+            //We need to apply names to all IL instructions, and need to be able to retrieve
+            //those names later
+
+            using var peFile = PEFile.FromFile(Sample.Framework_EXE);
+
+            var view = peFile.GetView();
+
+            var entity = view[1][2][1];
+
+            var str = entity.ToString(ViewFormatFlags.None);
+
+            Assert.AreEqual("TestApp.Program.Main", str);
+        }
+
+        [TestMethod]
+        public void FileAnalyzer_KnownSymbolNames()
+        {
+            //When symbols aren't available, known entities should still have names applied to them.
+            //i.e. many entities pointed to by the load config table
+
+            using var peFile = PEFile.FromKey(WellKnownTestModule.ntdll);
+
+            var view = peFile.GetView(excludeSymbols: true);
+
+            var entity = (IValueView) view.GetViewFromOffset(0x196530);
+
+            Assert.AreEqual("__security_cookie", entity.Name.ToString());
         }
     }
 }

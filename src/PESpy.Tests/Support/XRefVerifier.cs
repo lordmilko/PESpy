@@ -288,18 +288,18 @@ namespace PESpy.Tests
 
                     nameof(RTTIBaseClassArray) => propertyName switch
                     {
-                        nameof(RTTIBaseClassArray.arrayOfBaseClassDescriptors) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value
+                        nameof(RTTIBaseClassArray.arrayOfBaseClassDescriptors) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value.pClassDescriptor.Value.pBaseClassArray.Value
                     },
 
                     nameof(RTTIClassHierarchyDescriptor) => propertyName switch
                     {
-                        nameof(RTTIClassHierarchyDescriptor.pBaseClassArray) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value
+                        nameof(RTTIClassHierarchyDescriptor.pBaseClassArray) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value.pClassDescriptor.Value
                     },
 
                     nameof (RTTIBaseClassDescriptor) => propertyName switch
                     {
-                        nameof(RTTIBaseClassDescriptor.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors.Value[0],
-                        nameof(RTTIBaseClassDescriptor.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors.Value[0],
+                        nameof(RTTIBaseClassDescriptor.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value.pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors[0].Value,
+                        nameof(RTTIBaseClassDescriptor.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value.pClassDescriptor.Value.pBaseClassArray.Value.arrayOfBaseClassDescriptors[0].Value,
                     }
 
                     #endregion

@@ -112,7 +112,24 @@ namespace PESpy.View
         public static void FormatAsm(IAsmView view, ViewFormatFlags flags, ref ValueStringBuilder builder)
         {
             WriteRange(view, flags, ref builder);
-            builder.Append(view.Name ?? "<Code>");
+
+            if (view.Name != null)
+            {
+                var pooledStringBuilder = new PooledStringBuilder(256);
+
+                try
+                {
+                    view.GetFullName(ref pooledStringBuilder);
+
+                    builder.Append(pooledStringBuilder.AsSpan());
+                }
+                finally
+                {
+                    pooledStringBuilder.Dispose();
+                }
+            }
+            else
+                builder.Append("<Code>");
         }
 
         #endregion
@@ -733,17 +750,26 @@ namespace PESpy.View
 
             var value = view.Value;
 
-            FormatValueName(view.Name, value, ref builder);
-            FormatValueKind(view.Kind, ref builder);
+            if (view.Kind == ViewKind.Vftable)
+            {
+                builder.Append(view.Name);
+            }
+            else
+            {
+                FormatValueName(view.Name, value, ref builder);
 
-            var valueStart = builder.Length;
+                if (view.Name.Length == 0)
+                    FormatValueKind(view.Kind, ref builder);
 
-            ValueToString(value, ref builder, smallHexNumbers: true);
+                var valueStart = builder.Length;
+
+                ValueToString(value, ref builder, smallHexNumbers: true);
+
+                builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
+            }
 
             if (view is ISplitView)
                 builder.Append(" (Split)");
-
-            builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -836,6 +862,14 @@ namespace PESpy.View
                     var str = Unsafe.As<T, SymString>(ref value);
 
                     if (str != name)
+                    {
+                        builder.Append(name);
+                        builder.Append(" = ");
+                    }
+                }
+                else
+                {
+                    if (name.Length > 0)
                     {
                         builder.Append(name);
                         builder.Append(" = ");
@@ -1078,17 +1112,26 @@ namespace PESpy.View
 
             var value = view.Value;
 
-            FormatValueName(view.Name, value, ref builder);
-            FormatValueKind(view.Kind, ref builder);
+            if (view.Kind == ViewKind.Vftable)
+            {
+                builder.Append(view.Name);
+            }
+            else
+            {
+                FormatValueName(view.Name, value, ref builder);
 
-            var valueStart = builder.Length;
+                if (view.Name.Length > 0)
+                    FormatValueKind(view.Kind, ref builder);
 
-            ValueToString(value, ref builder, smallHexNumbers: false);
+                var valueStart = builder.Length;
+
+                ValueToString(value, ref builder, smallHexNumbers: false);
+
+                builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
+            }
 
             if (view is ISplitView)
                 builder.Append(" (Split)");
-
-            builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
         }
 
         private static void FormatValueName(FixedUtf8String name, object value, ref ValueStringBuilder builder)
@@ -1137,7 +1180,7 @@ namespace PESpy.View
 
                 case FixedAnsiString v3:
                     builder.Append("\"");
-                    builder.Append(v3);
+                    builder.Append(v3.AsSpan());
                     builder.Append("\"");
                     break;
 

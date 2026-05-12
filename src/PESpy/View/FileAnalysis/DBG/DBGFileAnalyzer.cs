@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace PESpy.View
+﻿namespace PESpy.View
 {
     internal class DBGFileAnalyzer : FileAnalyzer
     {
@@ -8,10 +6,7 @@ namespace PESpy.View
 
         internal DBGFileAnalyzer(
             DBGFileAccessor fileAccessor,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken,
-            IFileDisassembler? disassembler) : base(fileAccessor, progress, trackXRefs, cancellationToken, disassembler, LocatorHttpPolicy.None)
+            in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
             _dbgFile = fileAccessor.DBGFile;
         }

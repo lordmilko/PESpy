@@ -128,8 +128,22 @@ namespace PESpy.Ecma335
 
         public override string ToString()
         {
-            using var builder = new Utf8StringBuilder();
+            var builder = new Utf8StringBuilder();
 
+            try
+            {
+                ToString(ref builder);
+
+                return builder.ToString();
+            }
+            finally
+            {
+                builder.Dispose();
+            }
+        }
+
+        public void ToString(ref Utf8StringBuilder builder)
+        {
             var declaringType = DeclaringType;
 
             if (declaringType != null)
@@ -147,8 +161,6 @@ namespace PESpy.Ecma335
             }
 
             builder.Append(Name.GetString());
-
-            return builder.ToString();
         }
     }
 }

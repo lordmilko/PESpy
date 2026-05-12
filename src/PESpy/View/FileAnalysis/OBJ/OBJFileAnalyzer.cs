@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Collections.Generic;
 
 namespace PESpy.View
 {
@@ -10,10 +8,7 @@ namespace PESpy.View
 
         internal OBJFileAnalyzer(
             OBJFileAccessor fileAccessor,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken,
-            IFileDisassembler? disassembler) : base(fileAccessor, progress, trackXRefs, cancellationToken, disassembler, LocatorHttpPolicy.None)
+            in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
             _objFile = fileAccessor.OBJFile;
         }

@@ -20,8 +20,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498-8619-4E11-92BF-F358D9DFC882}"
 	ProjectSection(SolutionItems) = preProject
 		build\ClrDebug.props = build\ClrDebug.props
-		build\ILLink.Descriptors.xml = build\ILLink.Descriptors.xml
-		build\ILLink.LinkAttributes.xml = build\ILLink.LinkAttributes.xml
+		build\GhidraSharp.props = build\GhidraSharp.props
 		build\PInvoke.props = build\PInvoke.props
 		build\ReAnalyze.props = build\ReAnalyze.props
 		build\SizeHacks.props = build\SizeHacks.props

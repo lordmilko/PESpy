@@ -34,6 +34,11 @@ namespace PESpy.PDB
                     int off;
                     ISECT seg;
 
+                    //There's a bit of a gotcha with this logic: in a .NET module, there is a public "COM+ Entry Point"
+                    //with offset 0x06000001 and segment 0. This can cause us to erroneously match against this symbol
+                    //which isn't even a native symbol, it's an mdMethodDef. fMSIL erroneously is not set to true,
+                    //so there's no indication on the symbol itself that it's actually a managed symbol
+
                     while (true)
                     {
                         pubSym.TryGetRawOffSeg(out off, out seg);

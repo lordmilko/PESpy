@@ -75,7 +75,11 @@ namespace PESpy.PowerShell
 
             using var accessor = FileAccessor.Create(File);
 
-            FileAnalyzer.Analyze(accessor, IntelFileDisassembler.Instance, LocatorHttpPolicy.None);
+            FileAnalyzer.Analyze(accessor, new FileAnalyzerOptions
+            {
+                Disassembler = IntelFileDisassembler.Instance,
+                HttpPolicy = LocatorHttpPolicy.None
+            });
 
             IList<XRef> xrefs;
 

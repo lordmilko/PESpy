@@ -98,10 +98,7 @@ namespace PESpy
 
         long Length { get; }
 
-        FileView GetView(
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.None,
-            bool trackXRefs = false,
-            CancellationToken cancellationToken = default);
+        FileView GetView(in FileAnalyzerOptions options = default);
 
         //If no symbol accessor could be found, returns the NullSymbolAccessor
         ISymbolAccessor GetSymbolAccessor(

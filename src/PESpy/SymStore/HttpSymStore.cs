@@ -64,6 +64,29 @@ namespace PESpy
             return GetWithProgressAsync(builder.ToString(), progress, cancellationToken);
         }
 
+        /* WinDbgX contains a new version of symsrv.dll written in Rust. The major enhancement present in this rewrite
+         * is the ability to download large files using HTTP range requests. This ability shows up in WinDbg when
+         * you've done !sym noisy and see logs belonging to SYMSRV2. SYMSRV2 is only used when Settings -> Debugging settings
+         * -> "Enable faster hTTP downloads via new SymSrv backend" is enabled. It seems that WinDbg is buggy and sometimes
+         * this setting will either self-disable itself, or require a schrodinger's cat like situation wherein the setting
+         * will be disabled unless you "inspect" that the setting is active prior to attempting to use it. If the setting keeps
+         * disabling itself whenever you disable it, you may need to clear your %localappdat%\Dbg folder
+         * 
+         * It does not appear to me that these parallel downloads use wininet or winhttp; it's possible it uses raw sockets
+         * instead. Thus, I was unable to see what requests were actually going on using Fiddler or Wireshark. I only had success
+         * with mitmproxy.
+         * 
+         * When you attempt to download a file, SymSrv will initiate a GET request for bytes 0-7999999. msdl.microsoft.com
+         * is actually a CNAME for the true storage location in Azure blob storage. The server may then respond back with
+         * a Content-Range, telling you the total number of bytes that are available. Content-Length in this scenario will be
+         * 8000000 - the total number of bytes that you requested.
+         * 
+         * In the event that the PDB did not fit within a single 7.6mb request, WinDbg will absolutely blast the server with
+         * HTTP requests. I am guessing that overlapped IO is then used to write the file, as all I can see is calls to NtWriteFile.
+         * I'm not sure how this would work with .NET Streams, and I feel like we'd need to be careful here as not to DDOS a symbol
+         * server. As such, for now we're not going to support HTTP range requests.
+         */
+
         private async ValueTask<(SymStoreFile file, Stream stream)?> GetWithProgressAsync(string requestUri, ILocatorProgress progress, CancellationToken cancellationToken)
         {
             progress?.Notify(LocatorProgressEventArgs.CreateBeginHttpRequest(requestUri));
@@ -341,6 +364,17 @@ namespace PESpy
         {
             if (!AllowRequest())
                 return default;
+
+#if NET
+            if (!OperatingSystem.IsWindows())
+            {
+#if NATIVEAOT
+                throw new NotSupportedException();
+#else
+                return GetFileAsync(key, progress, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+#endif
+            }
+#endif
 
             using var builder = new ValueStringBuilder();
             builder.Append(Uri);

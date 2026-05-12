@@ -5,23 +5,23 @@ using PESpy.PDB;
 
 namespace PESpy
 {
-    internal class SymbolReader
+    internal class SymbolReader : IDisposable
     {
-        public VftableInfo[]? Vftables { get; }
+        public SymbolValueList<VftableInfo> Vftables { get; }
 
-        public SymbolValue<Utf8String>[] NullTerminatedUtf8Strings { get; }
-        public SymbolValue<Utf16String>[] NullTerminatedUtf16Strings { get; }
+        public SymbolValueList<Utf8String> NullTerminatedUtf8Strings { get; }
+        public SymbolValueList<Utf16String> NullTerminatedUtf16Strings { get; }
 
-        public SymbolValue<FixedUtf8String>[] FixedUtf8Strings { get; }
-        public SymbolValue<FixedUtf16String>[] FixedUtf16Strings { get; }
+        public SymbolValueList<FixedUtf8String> FixedUtf8Strings { get; }
+        public SymbolValueList<FixedUtf16String> FixedUtf16Strings { get; }
 
-        public RTTICompleteObjectLocator[]? RTTICompleteObjectLocators { get; }
+        public SymbolValueList<RTTICompleteObjectLocator>? RTTICompleteObjectLocators { get; }
 
         //All symbols that are 32-bit __real@
-        public SymbolValue<float>[] Floats { get; }
+        public SymbolValueList<float> Floats { get; }
 
         //All symbols that are 64-bit __real@
-        public SymbolValue<double>[] Doubles { get; }
+        public SymbolValueList<double> Doubles { get; }
 
         public NativeAOTModulesList? NativeAOTModules { get; }
 
@@ -43,28 +43,200 @@ namespace PESpy
             return false;
         }
 
+        private MemoryMappedFileHolder mmf;
+
         private unsafe SymbolReader(PEFile peFile, PDBFile pdbFile, GlobalSymTypeList symbols)
         {
             using var builder = new Builder(peFile);
 
             builder.InitializeFromPDB(pdbFile, symbols);
 
-            if (builder._vftableInfos.Count > 0)
-                Vftables = builder._vftableInfos.ToArray();
+            var totalSymbols =
+                builder._vftables.Count +
+                builder._nullTerminatedUtf8Strings.Count +
+                builder._nullTerminatedUtf16Strings.Count +
+                builder._fixedUtf8Strings.Count +
+                builder._fixedUtf16Strings.Count +
+                builder._rttiCompleteObjectLocators.Count +
+                builder._real8.Count +
+                builder._real16.Count;
 
-            NullTerminatedUtf8Strings = builder._nullTerminatedUtf8Strings.ToArray();
-            NullTerminatedUtf16Strings = builder._nullTerminatedUtf16Strings.ToArray();
+            mmf = new MemoryMappedFileHolder(totalSymbols * IntPtr.Size);
 
-            FixedUtf8Strings = builder._fixedUtf8Strings.ToArray();
-            FixedUtf16Strings = builder._fixedUtf16Strings.ToArray();
+            var target = (SymType*) mmf.Address;
 
-            if (builder._rttiCompleteObjectLocators.Count > 0)
-                RTTICompleteObjectLocators = builder._rttiCompleteObjectLocators.ToArray();
-
-            Floats = builder._real8.ToArray();
-            Doubles = builder._real16.ToArray();
+            Vftables                   = WriteSymbols(CreateVftable,                   builder._vftables.Span,                   ref target, peFile, pdbFile);
+            NullTerminatedUtf8Strings  = WriteSymbols(CreateUtf8String,                builder._nullTerminatedUtf8Strings.Span,  ref target, peFile, pdbFile);
+            NullTerminatedUtf16Strings = WriteSymbols(CreateUtf16String,               builder._nullTerminatedUtf16Strings.Span, ref target, peFile, pdbFile);
+            FixedUtf8Strings           = WriteSymbols(CreateFixedUtf8String,           builder._fixedUtf8Strings.Span,           ref target, peFile, pdbFile);
+            FixedUtf16Strings          = WriteSymbols(CreateFixedUtf16String,          builder._fixedUtf16Strings.Span,          ref target, peFile, pdbFile);
+            RTTICompleteObjectLocators = WriteSymbols(CreateRttiCompleteObjectLocator, builder._rttiCompleteObjectLocators.Span, ref target, peFile, pdbFile);
+            Floats                     = WriteSymbols(CreateReal8,                     builder._real8.Span,                      ref target, peFile, pdbFile);
+            Doubles                    = WriteSymbols(CreateReal16,                    builder._real16.Span,                     ref target, peFile, pdbFile);
 
             NativeAOTModules = builder._nativeAOTModules;
+        }
+
+        private static unsafe SymbolValue<VftableInfo> CreateVftable(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            var peFile = (PEFile) file;
+
+            //We already know all of these should succeed
+            symType.TryGetRawOffSeg(out var off, out var seg);
+            symType.TryGetLength(out var length, codeViewAccessor);
+            peFile.TryGetOffset(off, seg - 1, out var offset);
+
+            var name = symType.GetName(codeViewAccessor);
+
+            var sectionIndex = seg - 1;
+            ref var section = ref peFile.SectionHeaders[sectionIndex];
+
+            var block = peFile.GetSectionBlock(sectionIndex, section);
+
+            var pVftable = block.LocalPointer + off;
+
+            NativeSpan<int> slots32 = default;
+            NativeSpan<long> slots64 = default;
+
+            if (peFile.Is32Bit)
+                slots32 = new NativeSpan<int>(pVftable, length / sizeof(int));
+            else
+                slots64 = new NativeSpan<long>(pVftable, length / sizeof(long));
+
+            //Our TryGetLength looks at the address map if available, which theoretically
+            //should give us the same result (or better) as if we had collected all vftables and checked
+            //their distance from each other at the end
+
+            return new(
+                block.RemoteStartOffset + off,
+                symType,
+                new VftableInfo(
+                    (FixedUtf8String) name,
+                    slots32,
+                    slots64,
+                    peFile.OptionalHeader.ImageBase,
+                    (PDBFile) codeViewAccessor
+                ),
+                length
+            );
+        }
+
+        private static unsafe SymbolValue<Utf8String> CreateUtf8String(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            GetStringInfo(file, codeViewAccessor, symType, out var offset, out var pString, out var strLength);
+
+            return new(offset, symType, new Utf8String(pString), (int) strLength);
+        }
+
+        private static unsafe SymbolValue<Utf16String> CreateUtf16String(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            GetStringInfo(file, codeViewAccessor, symType, out var offset, out var pString, out var strLength);
+
+            return new(offset, symType, new Utf16String((char*) pString), (int) strLength);
+        }
+
+        private static unsafe SymbolValue<FixedUtf8String> CreateFixedUtf8String(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            GetStringInfo(file, codeViewAccessor, symType, out var offset, out var pString, out var strLength);
+
+            return new(offset, symType, new FixedUtf8String(pString, (int) strLength), (int) strLength);
+        }
+
+        private static unsafe SymbolValue<FixedUtf16String> CreateFixedUtf16String(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            GetStringInfo(file, codeViewAccessor, symType, out var offset, out var pString, out var strLength);
+
+            return new(offset, symType, new FixedUtf16String((char*) pString, (int) strLength / 2), (int) strLength);
+        }
+
+        private static unsafe void GetStringInfo(
+            IFile file,
+            ICodeViewAccessor codeViewAccessor,
+            SymType symType,
+            out int offset,
+            out byte* pString,
+            out ulong strLength)
+        {
+            var peFile = (PEFile) file;
+
+            var name = symType.GetName(codeViewAccessor);
+
+            var textWindow = new Demangler.TextWindow(name.Value, name.Length, true);
+            textWindow.AdvanceChar(6);
+
+            textWindow.TryNextChar(out var stringKind);
+            Demangler.TryParseNumber(ref textWindow, out _, out strLength);
+
+            symType.TryGetRawOffSeg(out var off, out var seg);
+            peFile.TryGetOffset(off, seg - 1, out offset);
+
+            peFile.GetRawSectionDataFromRelativeOffset(off, seg - 1, out pString, out var _);
+        }
+
+        private static SymbolValue<RTTICompleteObjectLocator> CreateRttiCompleteObjectLocator(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            var peFile = (PEFile) file;
+
+            symType.TryGetRawOffSeg(out var off, out var seg);
+
+            peFile.TryGetValueChunkFromSection(off, seg - 1, out var chunk);
+
+            //Note: apparently the first base class of a given type is always the main derived type
+            var rttiCompleteObjectLocator = new RTTICompleteObjectLocator(chunk);
+
+            return new(chunk.AbsoluteOffset, symType, rttiCompleteObjectLocator, RTTICompleteObjectLocator.StructSize);
+        }
+
+        private static unsafe SymbolValue<float> CreateReal8(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            symType.TryGetRawOffSeg(out var off, out var seg);
+            ((PEFile) file).TryGetOffset(off, seg - 1, out var offset);
+
+            var name = symType.GetName(codeViewAccessor);
+
+            Utf8Parser.TryParse(name.AsSpan().Slice(7), out long i, out _, 'X');
+
+            var f = *(float*) &i;
+
+            return new(offset, symType, f, 4);
+        }
+
+        private static unsafe SymbolValue<double> CreateReal16(IFile file, ICodeViewAccessor codeViewAccessor, SymType symType)
+        {
+            symType.TryGetRawOffSeg(out var off, out var seg);
+            ((PEFile) file).TryGetOffset(off, seg - 1, out var offset);
+
+            var name = symType.GetName(codeViewAccessor);
+
+            Utf8Parser.TryParse(name.AsSpan().Slice(7), out long i, out _, 'X');
+
+            var d = *(double*) &i;
+
+            return new(offset, symType, d, 8);
+        }
+
+        static unsafe SymbolValueList<T> WriteSymbols<T>(
+            Func<IFile, ICodeViewAccessor, SymType, SymbolValue<T>> factory,
+            Span<SymType> source,
+            ref SymType* target,
+            IFile file,
+            ICodeViewAccessor codeViewAccessor)
+        {
+            if (source.Length == 0)
+                return default;
+
+            source.CopyTo(new Span<SymType>(target, source.Length));
+
+            var symbols = new SymTypeCollection(target, source.Length);
+
+            target += source.Length;
+
+            return new SymbolValueList<T>(factory, symbols, file, codeViewAccessor);
+        }
+
+        public void Dispose()
+        {
+            mmf.Dispose();
         }
 
         public ref struct Builder
@@ -75,17 +247,17 @@ namespace PESpy
             //As publics, the length of each vftable will be the length of their section contrib.
             //So we want to try and defer parsing these until we've read them all so we can clamp
             //the length of each item
-            internal ValueList<VftableInfo> _vftableInfos;
+            internal NativeList<SymType> _vftables;
 
-            internal ValueList<SymbolValue<Utf8String>> _nullTerminatedUtf8Strings;
-            internal ValueList<SymbolValue<Utf16String>> _nullTerminatedUtf16Strings;
-            internal ValueList<SymbolValue<FixedUtf8String>> _fixedUtf8Strings;
-            internal ValueList<SymbolValue<FixedUtf16String>> _fixedUtf16Strings;
+            internal NativeList<SymType> _nullTerminatedUtf8Strings;
+            internal NativeList<SymType> _nullTerminatedUtf16Strings;
+            internal NativeList<SymType> _fixedUtf8Strings;
+            internal NativeList<SymType> _fixedUtf16Strings;
 
-            internal ValueList<RTTICompleteObjectLocator> _rttiCompleteObjectLocators;
+            internal NativeList<SymType> _rttiCompleteObjectLocators;
 
-            internal ValueList<SymbolValue<float>> _real8;
-            internal ValueList<SymbolValue<double>> _real16;
+            internal NativeList<SymType> _real8;
+            internal NativeList<SymType> _real16;
 
             internal NativeAOTModulesList? _nativeAOTModules;
 
@@ -117,8 +289,10 @@ namespace PESpy
                      *                       I would expect that we already tagged all of these
                      */
 
+                    //Keep in sync with FileAnalyzer.TryHandleSpecialPublic
+
                     if (span.StartsWith("??_C@_"u8))
-                        ProcessString(symType, name, span);
+                        ProcessString(symType, name.Value, span);
                     else if (span.StartsWith("??_7"u8))
                         ProcessVftable(symType, name, span, pdbFile);
                     else if (span.StartsWith("??_R4"u8)) //While each RTTI entity may have a symbol associated with it, we're only interested in matching the top level object locator type, which should point to all the rest
@@ -140,19 +314,19 @@ namespace PESpy
                     }
                 }
 
-                ProcessNativeAOTModules(nativeAOTModulesA, nativeAOTModulesZ);
+                ProcessNativeAOTModules(_peFile, nativeAOTModulesA, nativeAOTModulesZ, out _nativeAOTModules);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private unsafe void ProcessString(
                 SymType symType,
-                SymString name,
+                byte* name,
                 Span<byte> span)
             {
                 //It's a string literal. If a 1 follows it's wide, if a 0 follows it's ANSI.
                 //Then, following this is a length
 
-                var textWindow = new Demangler.TextWindow(name.Value, span.Length, true);
+                var textWindow = new Demangler.TextWindow(name, span.Length, true);
                 textWindow.AdvanceChar(6);
 
                 if (textWindow.TryNextChar(out var stringKind) && Demangler.TryParseNumber(ref textWindow, out _, out var strLength))
@@ -165,16 +339,17 @@ namespace PESpy
                     if (stringKind == '1')
                     {
                         if (*((ushort*) (pString + strLength - 2)) == 0)
-                            _nullTerminatedUtf16Strings.Add(new(offset, symType, new Utf16String((char*) pString), (int) strLength));
+                            _nullTerminatedUtf16Strings.Add(symType);
                         else
-                            _fixedUtf16Strings.Add(new(offset, symType, new FixedUtf16String((char*) pString, (int) strLength / 2), (int) strLength));
+                            _fixedUtf16Strings.Add(symType);
+                            
                     }
                     else
                     {
                         if (*(pString + strLength - 1) == 0)
-                            _nullTerminatedUtf8Strings.Add(new(offset, symType, new Utf8String(pString), (int) strLength));
+                            _nullTerminatedUtf8Strings.Add(symType);
                         else
-                            _fixedUtf8Strings.Add(new(offset, symType, new FixedUtf8String(pString, (int) strLength), (int) strLength));
+                            _fixedUtf8Strings.Add(symType);
                     }
                 }
             }
@@ -188,35 +363,7 @@ namespace PESpy
                 if (!symType.TryGetRawOffSeg(out var off, out var seg) || !symType.TryGetLength(out var length, pdbFile) || !_peFile.TryGetOffset(off, seg - 1, out var offset))
                     return;
 
-                _peFile.GetRawSectionDataFromRelativeOffset(off, seg - 1, out var pVftable, out var remainingLength);
-
-                if (length > remainingLength)
-                    return; //We clearly don't know what the real length is
-
-                NativeSpan<int> slots32 = default;
-                NativeSpan<long> slots64 = default;
-
-                if (_peFile.Is32Bit)
-                    slots32 = new NativeSpan<int>(pVftable, length / sizeof(int));
-                else
-                    slots64 = new NativeSpan<long>(pVftable, length / sizeof(long));
-
-                //Our TryGetLength looks at the address map if available, which theoretically
-                //should give us the same result (or better) as if we had collected all vftables and checked
-                //their distance from each other at the end
-
-                _vftableInfos.Add(
-                    new VftableInfo(
-                        offset,
-                        symType,
-                        new FixedUtf8String(name.Value, span.Length), //Avoid re-measuring the length of the string
-                        slots32,
-                        slots64,
-                        _imageBase,
-                        pdbFile,
-                        length
-                    )
-                );
+                _vftables.Add(symType);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -243,10 +390,7 @@ namespace PESpy
                 if (!_peFile.TryGetValueChunkFromSection(off, seg - 1, out var chunk))
                     return; //If this symbol doesn't point to valid memory, not much we can do
 
-                //Note: apparently the first base class of a given type is always the main derived type
-                var rttiCompleteObjectLocator = new RTTICompleteObjectLocator(chunk);
-
-                _rttiCompleteObjectLocators.Add(rttiCompleteObjectLocator);
+                _rttiCompleteObjectLocators.Add(symType);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -266,7 +410,7 @@ namespace PESpy
 
                         var f = *(float*) &i;
 
-                        _real8.Add(new(offset, symType, f, 4));
+                        _real8.Add(symType);
                         break;
 
                     case 16 + 7: //__real@ + 16 chars
@@ -275,7 +419,7 @@ namespace PESpy
 
                         var d = *(double*) &l;
 
-                        _real16.Add(new(offset, symType, d, 8));
+                        _real16.Add(symType);
                         break;
 
                     default:
@@ -283,15 +427,21 @@ namespace PESpy
                 }
             }
 
-            private void ProcessNativeAOTModules(SymType nativeAOTModulesA, SymType nativeAOTModulesZ)
+            internal static void ProcessNativeAOTModules(
+                PEFile peFile,
+                SymType nativeAOTModulesA,
+                SymType nativeAOTModulesZ,
+                out NativeAOTModulesList nativeAOTModules)
             {
+                nativeAOTModules = default;
+
                 if (nativeAOTModulesA != default && nativeAOTModulesZ != default)
                 {
                     //I'm expecting this data should span only a single section, so we'll just check that the sections are the same so we don't
                     //need to spend time doing RVA math
                     if (nativeAOTModulesA.TryGetRawOffSeg(out var offA, out var segA) && nativeAOTModulesZ.TryGetRawOffSeg(out var offZ, out var segZ) && segA == segZ)
                     {
-                        if (_peFile.TryGetValueChunkFromSection(offA, segA - 1, out var chunk))
+                        if (peFile.TryGetValueChunkFromSection(offA, segA - 1, out var chunk))
                         {
                             //On the one hand, we want to ensure that __modules_z is included
                             //in this. However, when NativeOAT calculates the number of modules
@@ -299,7 +449,7 @@ namespace PESpy
                             //so we shouldn't either
                             var numModules = ((offZ - offA) / chunk.PointerSize);
 
-                            _nativeAOTModules = new NativeAOTModulesList(chunk, numModules);
+                            nativeAOTModules = new NativeAOTModulesList(chunk, numModules);
                         }
                     }
                 }

@@ -25,6 +25,7 @@ namespace PESpy.Tests
         public static SymStoreKey SharedLibraryPDB = new SymStoreKey("SharedLibrary.pdb/13C8DCDB8CDE4CE1BB43877B7F8A40341/SharedLibrary.pdb", SymStoreKeyKind.PDB);
         public static SymStoreKey ShoulderTapView = new SymStoreKey("shouldertapview.dll/1456661987000/shouldertapview.dll", SymStoreKeyKind.PE);
         public static SymStoreKey _7z = new SymStoreKey("7z.dll/61C875601ad000/7z.dll", SymStoreKeyKind.PE);
+        public static SymStoreKey CppDebug = new SymStoreKey("cppdebug.dll/68C309857fb000/cppdebug.dll", SymStoreKeyKind.PE);
 
         //This module is notable in that it provides both PDBv7 and Portable PDB symbols on the symbol server, depending on whether you
         //use the age 1 or -1

@@ -103,7 +103,7 @@ namespace PESpy
         /// <summary>
         /// Locator may execute HTTP requests for locating both Microsoft and Third Party symbols.
         /// </summary>
-        All,
+        All
     }
 
     public interface ILocatorProgress
@@ -1126,7 +1126,7 @@ for(int i = 0; i < 2; i++)
 
             var remainingSearchPath = new SpanInfo(searchPath);
 
-            var builder = new ValueStringBuilder.NonRef(256);
+            var builder = new PooledStringBuilder(256);
 
             try
             {
@@ -1214,7 +1214,7 @@ for(int i = 0; i < 2; i++)
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool LocateFileInPathLocal(
-            ref ValueStringBuilder.NonRef builder,
+            ref PooledStringBuilder builder,
             ReadOnlySpan<char> currentPath,
             string nameAndExt,
             string? peFileExt,

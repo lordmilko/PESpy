@@ -135,16 +135,19 @@ namespace PESpy
                 {
                     ref var item = ref _headers[_index];
 
-                    if (item.ListedAddress != 0)
+                    if (item.ListedAddress == 0)
                     {
                         var ptr = (long) chunk.PeekPointer(_index * chunk.PointerSize);
 
-                        var rva = (int) (ptr - _imageBase);
+                        if (ptr != 0)
+                        {
+                            var rva = (int) (ptr - _imageBase);
 
-                        if (_peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                            item = new VA<NativeAOT.ReadyToRunHeader>(ptr, rva, new NativeAOT.ReadyToRunHeader(valueChunk));
-                        else
-                            item = new VA<NativeAOT.ReadyToRunHeader>(ptr);
+                            if (_peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                                item = new VA<NativeAOT.ReadyToRunHeader>(ptr, rva, new NativeAOT.ReadyToRunHeader(valueChunk));
+                            else
+                                item = new VA<NativeAOT.ReadyToRunHeader>(ptr);
+                        }
                     }
 
                     _index++;

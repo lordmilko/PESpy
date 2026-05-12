@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading;
-using PESpy.LIB;
+﻿using PESpy.LIB;
 using PESpy.Native;
 
 namespace PESpy.View
@@ -11,10 +9,7 @@ namespace PESpy.View
 
         internal LIBFileAnalyzer(
             LIBFileAccessor fileAccessor,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken,
-            IFileDisassembler? disassembler) : base(fileAccessor, progress, trackXRefs, cancellationToken, disassembler, LocatorHttpPolicy.None)
+            in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
             _libFile = fileAccessor.LIBFile;
         }

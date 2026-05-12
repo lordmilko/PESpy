@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
 using PESpy.PDB;
 
 namespace PESpy
 {
     public struct VftableInfo
     {
-        public int Offset { get; }
-
-        public SymType SymType { get; }
-
         private string _className;
 
         /// <summary>
@@ -99,34 +94,22 @@ namespace PESpy
             }
         }
 
-        /// <summary>
-        /// Gets the length of the vftable (in bytes).
-        /// </summary>
-        public int Length { get; }
-
         private readonly FixedUtf8String _name;
         private readonly long _imageBase;
         private PDBFile _pdbFile;
 
         internal VftableInfo(
-            int offset,
-            SymType symType,
             FixedUtf8String name,
             NativeSpan<int> slots32,
             NativeSpan<long> slots64,
             long imageBase,
-            PDBFile pdbFile,
-            int length)
+            PDBFile pdbFile)
         {
-            Debug.Assert(length != 0);
-            Offset = offset;
-            SymType = symType;
             _name = name;
             Slots32 = slots32;
             Slots64 = slots64;
             _imageBase = imageBase;
             _pdbFile = pdbFile;
-            Length = length;
         }
 
         public override string ToString()

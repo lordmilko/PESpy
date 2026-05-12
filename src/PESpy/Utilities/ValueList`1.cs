@@ -30,19 +30,19 @@ namespace PESpy
 
         private T[] array;
 
-        internal ValueList(int capacity)
+        public ValueList(int capacity)
         {
             array = ArrayPool<T>.Shared.Rent(capacity);
             Count = 0;
         }
 
-        internal ValueList(T[] items)
+        public ValueList(T[] items)
         {
             array = items;
             Count = items.Length;
         }
 
-        internal ValueList(List<T> items)
+        public ValueList(List<T> items)
         {
             array = ArrayPool<T>.Shared.Rent(items.Count);
             items.CopyTo(array);
@@ -56,7 +56,7 @@ namespace PESpy
             get => array[index];
             set
             {
-                Debug.Assert(index >= 0 && index <= Count);
+                Debug.Assert(index >= 0 && index < Count);
 
                 array[index] = value;
             }

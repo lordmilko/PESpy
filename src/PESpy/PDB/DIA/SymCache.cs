@@ -140,6 +140,13 @@ namespace PESpy.PDB
             return modCache.dataByAddr(seg, off, out offSegSym);
         }
 
+        public bool TryGetLabelSymbol(IMOD imod, ISECT seg, int off, out OffSegSym offSegSym)
+        {
+            var modCache = GetModCache(imod);
+
+            return modCache.GetLabel(seg, off, out offSegSym);
+        }
+
         public abstract void GetModuleSymbols(IMOD imod, out SymTypeList symbols, out ICodeViewModuleAccessor codeViewModuleAccessor);
     }
 }

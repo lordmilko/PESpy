@@ -30,6 +30,8 @@ namespace PESpy.View
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public ViewChildList Children => new ViewChildList(default, childProvider, viewWriter, this);
 
+        public FileAccessor FileAccessor => viewWriter._fileAccessor;
+
         private ViewWriter viewWriter;
         private IViewable childProvider;
 

@@ -108,5 +108,8 @@ namespace PESpy.View
 
         public static bool Contains(this IView view, long offset) =>
             offset >= view.Offset && offset < view.Offset + view.Size;
+
+        public static string ToString(this IView view, ViewFormatFlags flags) =>
+            ViewFormatter.Format(view, flags);
     }
 }

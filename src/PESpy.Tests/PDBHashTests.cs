@@ -125,29 +125,32 @@ namespace PESpy.Tests
 
             var missing = new List<(int i, LEAF_ENUM_e leaf)>();
 
-            var sw = Stopwatch.StartNew();
-
             for (var i = hdr.tiMin; i < hdr.tiMac; i++)
             {
                 var ourType = tpiHash.GetTypTypeFromIndex(i);
 
                 var typType = tpi1.QueryPbCVRecordForTi(i);
 
-                for (var j = 0; j < sectionHeader.VirtualSize; j++)
+                var leaf = typType->leaf;
+
+                //QueryTi16ForCVRecord now always returns an error
+                //LF_CLASS, LF_STRUCTURE, LF_UNION and LF_ENUM sometimes don't respond
+                //to this for some reason, perhaps because they're UDT's
+                if (tpi1.TryQueryTiForCVRecord(typType, out var ti32))
                 {
-                    var theirResult = gsi.NearestSym((ushort) (i + 1), j, out var theirDisp);
+                    if (!tpiHash.TryGetIndexFromTypType(ourType, out var typeIndex))
+                        throw new NotImplementedException();
 
-                    if (theirResult! == null)
-                    {
-                        if (psgsi.TryGetNearestSymbol(j, i + 1, out var ourSym, out var ourDisp))
-                            throw new NotImplementedException();
-                    }
-                    else
-                    {
-                        var theirName = ((SymType) theirResult).GetName(pdbFile);
+                    Assert.AreEqual(i, ti32);
+                    Assert.AreEqual(i, typeIndex);
+                }
+                else
+                {
+                    if (!tpiHash.TryGetIndexFromTypType(ourType, out var typeIndex))
+                        throw new NotImplementedException();
 
-                        if (!psgsi.TryGetNearestSymbol(j, i + 1, out var ourResult, out var ourDisp))
-                            throw new NotImplementedException();
+                    Assert.AreEqual(i, typeIndex);
+                }
 
                         var ourName = ((SymType) ourResult).GetName(pdbFile);
                         static string CleanName(SymString name)

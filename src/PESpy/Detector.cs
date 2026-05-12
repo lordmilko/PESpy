@@ -837,5 +837,19 @@ namespace PESpy
 
             //We should now be at the compressed data offset, but let's reset just in case
             ptr = mmf.Address + compressedDataOffset;
+
+#if !DEBUG
+            //Not implemented yet
+            decompressionInfo = default;
+            return false;
+#endif
+
+            if (compressionMethod != KWAJCompressionMethod.JeffJohnson)
+                throw new NotImplementedException();
+
+            //See libmspack documentation
+
+            throw new NotImplementedException();
+        }
     }
 }

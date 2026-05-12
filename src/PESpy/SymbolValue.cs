@@ -6,9 +6,9 @@ namespace PESpy
     /// Encapsulates a simple value identified by a debug symbol.
     /// </summary>
     /// <typeparam name="T">The type of value that this type encapsulates.</typeparam>
-    internal struct SymbolValue<T>
+    public readonly struct SymbolValue<T>
     {
-        public int Offset { get; }
+        public long Offset { get; }
 
         public SymType SymType { get; }
 
@@ -16,7 +16,7 @@ namespace PESpy
 
         public int Length { get; }
 
-        internal SymbolValue(int offset, SymType symType, T value, int length)
+        internal SymbolValue(long offset, SymType symType, T value, int length)
         {
             Offset = offset;
             SymType = symType;

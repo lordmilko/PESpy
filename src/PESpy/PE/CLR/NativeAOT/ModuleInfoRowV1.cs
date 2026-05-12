@@ -19,11 +19,11 @@ namespace PESpy.NativeAOT
 
         public long End => (long) chunk.PeekPointer(EndOffset);
 
-        int IModuleInfoRow.Length => (int) (End - Start);
+        int IModuleInfoRow.Length => End == 0 ? 0 : (int) (End - Start);
 
         private VA<IValue> data;
 
-        public VA<IValue> Data => GetData(SectionId, ref data, chunk, Start, (int) (End - Start));
+        public VA<IValue> Data => End == 0 ? default : GetData(SectionId, ref data, chunk, Start, (int) (End - Start));
 
         public long Offset => chunk.AbsoluteOffset;
 

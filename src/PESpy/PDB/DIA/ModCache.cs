@@ -12,6 +12,7 @@ namespace PESpy.PDB
 
         private OffSegSym[] _functionSymbols;
         private OffSegSym[] _dataSymbols;
+        private OffSegSym[] _labelSymbols; //Not supported by DIA
 
         #region Block
 
@@ -167,6 +168,16 @@ namespace PESpy.PDB
             return TryBinarySearchSymbols(_dataSymbols, targetSeg, targetOff, out offSegSym);
         }
 
+        public bool GetLabel(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
+        {
+            //Labels should only be tried after having tried data symbols, so implicitly
+            //_labelSymbols should not be null
+
+            var labelSymbols = _labelSymbols;
+
+            return TryBinarySearchSymbols(labelSymbols, targetSeg, targetOff, out offSegSym);
+        }
+
 #if FALSE
         private bool dataByAddrManual(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
@@ -272,10 +283,12 @@ namespace PESpy.PDB
             if (symbols == null)
             {
                 _dataSymbols = Array.Empty<OffSegSym>();
+                _labelSymbols = Array.Empty<OffSegSym>();
                 return;
             }
 
             var dict = new Dictionary<ulong, OffSegSym>();
+            var labelDict = new Dictionary<ulong, OffSegSym>();
 
             foreach (var symType in symbols)
             {
@@ -284,10 +297,6 @@ namespace PESpy.PDB
 
                 switch (symType.rectyp)
                 {
-                    //DIA doesn't actually seem to support labels at all; even though you can search for SymTagLabel, you don't
-                    //seem to get any results, and when you specify an RVA to search for, the best you'll get is a public symbol.
-                    //I think this is no good, so we've shoved label support in here
-
                     //Note that GTHREAD support doesn't go here, it goes in SymCache; you don't find GTHREAD inside a module
 
                     //LabelSym16
@@ -299,7 +308,22 @@ namespace PESpy.PDB
 
                         candidateSeg = labelSym16.seg;
                         candidateOff = labelSym16.off;
-                        break;
+
+                        {
+                            var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
+
+                            if (!labelDict.ContainsKey(labelKey))
+                            {
+                                labelDict.Add(labelKey, new OffSegSym
+                                {
+                                    off = candidateOff,
+                                    seg = candidateSeg,
+                                    symType = symType
+                                });
+                            }
+                        }
+
+                        continue;
 
                     //LabelSym32
                     case S_LABEL32_ST:
@@ -311,7 +335,22 @@ namespace PESpy.PDB
 
                         candidateSeg = labelSym32.seg;
                         candidateOff = labelSym32.off;
-                        break;
+
+                        {
+                            var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
+
+                            if (!labelDict.ContainsKey(labelKey))
+                            {
+                                labelDict.Add(labelKey, new OffSegSym
+                                {
+                                    off = candidateOff,
+                                    seg = candidateSeg,
+                                    symType = symType
+                                });
+                            }
+                        }
+
+                        continue;
 
                     //DataSym16
                     case S_LDATA16:
@@ -371,10 +410,11 @@ namespace PESpy.PDB
             }
 
             _dataSymbols = FinalizeArray(dict);
+            _labelSymbols = FinalizeArray(labelDict);
             return;
         }
 
-#endregion
+        #endregion
 
         private bool TryBinarySearchSymbols(
             OffSegSym[] symbols,

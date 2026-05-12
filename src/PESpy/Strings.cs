@@ -1088,58 +1088,6 @@ namespace PESpy
         }
 
         /// <summary>
-        /// GuardAddressTakenIatEntryTable
-        /// </summary>
-        internal static FixedUtf8String GuardAddressTakenIatEntryTable
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x47, 0x75, 0x61, 0x72, 0x64, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x54, 0x61, 0x6B, 0x65, 0x6E, 0x49, 0x61, 0x74, 0x45, 0x6E, 0x74, 0x72, 0x79, 0x54, 0x61, 0x62, 0x6C, 0x65 })
-                    return new FixedUtf8String(p, 30);
-            }
-        }
-
-        /// <summary>
-        /// GuardCFFunctionTable
-        /// </summary>
-        internal static FixedUtf8String GuardCFFunctionTable
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x47, 0x75, 0x61, 0x72, 0x64, 0x43, 0x46, 0x46, 0x75, 0x6E, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x54, 0x61, 0x62, 0x6C, 0x65 })
-                    return new FixedUtf8String(p, 20);
-            }
-        }
-
-        /// <summary>
-        /// GuardEHContinuationTable
-        /// </summary>
-        internal static FixedUtf8String GuardEHContinuationTable
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x47, 0x75, 0x61, 0x72, 0x64, 0x45, 0x48, 0x43, 0x6F, 0x6E, 0x74, 0x69, 0x6E, 0x75, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x54, 0x61, 0x62, 0x6C, 0x65 })
-                    return new FixedUtf8String(p, 24);
-            }
-        }
-
-        /// <summary>
-        /// GuardLongJumpTargetTable
-        /// </summary>
-        internal static FixedUtf8String GuardLongJumpTargetTable
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x47, 0x75, 0x61, 0x72, 0x64, 0x4C, 0x6F, 0x6E, 0x67, 0x4A, 0x75, 0x6D, 0x70, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6C, 0x65 })
-                    return new FixedUtf8String(p, 24);
-            }
-        }
-
-        /// <summary>
         /// Entry
         /// </summary>
         internal static FixedUtf8String Entry

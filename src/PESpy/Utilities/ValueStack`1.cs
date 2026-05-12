@@ -13,7 +13,7 @@ namespace PESpy
 
         private T[] _array;
 
-        internal ValueStack(int capacity)
+        public ValueStack(int capacity)
         {
             _array = ArrayPool<T>.Shared.Rent(capacity);
             Count = 0;

@@ -195,6 +195,12 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
+        public void PDBFile_RVA_OMAP_StressTest()
+        {
+            StressTestRVA(Locator.Locate(WellKnownTestModule.CppDebug));
+        }
+
+        [TestMethod]
         public void NB05_RVA_StressTest()
         {
             using var peFile = PEFile.FromFile(Sample.NB11);

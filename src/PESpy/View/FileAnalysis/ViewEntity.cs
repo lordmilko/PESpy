@@ -12,6 +12,9 @@ namespace PESpy.View
     public unsafe struct ViewEntity
     {
         public ViewByte* ViewByte;
+
+        public NativeSpan<ViewByte> ViewBytes => new NativeSpan<ViewByte>(ViewByte, Length);
+
         public int SectionAccessorIndex;
         public long TargetAddress;
         public FixedUtf8String Name
@@ -26,6 +29,33 @@ namespace PESpy.View
         }
 
         private FixedUtf8String _name;
+
+        public string FullName
+        {
+            get
+            {
+                var builder = new PooledStringBuilder();
+
+                try
+                {
+                    GetFullName(ref builder);
+
+                    return builder.ToString();
+                }
+                finally
+                {
+                    builder.Dispose();
+                }
+            }
+        }
+
+        public void GetFullName(ref PooledStringBuilder builder)
+        {
+            if (ViewByte->Kind == ViewByteKind.Code)
+                _fileAccessor.GetFullCodeName(TargetAddress, SectionAccessorIndex, ViewByte, ref builder);
+            else
+                builder.Append(Name);
+        }
 
         public FixedUtf16String NameWide;
         public int Length;
@@ -44,7 +74,6 @@ namespace PESpy.View
         internal ViewEntity(
             FileAccessor fileAccessor,
             int sectionAccessorIndex,
-            ISymbolAccessor symbolAccessor,
             in SectionAccessor sectionAccessor,
             int sectionAccessorOffset,
             int sectionAccessorLength,
@@ -55,7 +84,6 @@ namespace PESpy.View
             : this(
                   fileAccessor,
                   sectionAccessorIndex,
-                  symbolAccessor: symbolAccessor,
                   sectionAccessor: sectionAccessor,
                   targetAddress: sectionAccessor.StartAddress + sectionAccessorOffset,
                   pViewByte: sectionAccessor.pViewBytes + sectionAccessorOffset,
@@ -71,7 +99,6 @@ namespace PESpy.View
         internal ViewEntity(
             FileAccessor fileAccessor,
             int sectionAccessorIndex,
-            ISymbolAccessor symbolAccessor,
             in SectionAccessor sectionAccessor,
             long targetAddress,
             ViewByte* pViewByte,
@@ -118,9 +145,7 @@ namespace PESpy.View
             {
                 //If this is the first instruction of a code chunk, roll all the code up into one chunk
 
-                if (!measureOnly &&
-                    _fileAccessor.TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva) &&
-                    symbolAccessor.TryGetNameFromAddress(rva, out var symName, out var disp))
+                if (!measureOnly && _fileAccessor.TryGetCodeName(sectionAccessor, targetAddress, allowDisplacement: true, out var symName, out var disp))
                 {
                     _name = symName;
                     Displacement = disp;
@@ -296,7 +321,7 @@ namespace PESpy.View
 
         public bool Contains(int targetAddress) => targetAddress >= TargetAddress && targetAddress < (TargetAddress + Length);
 
-        internal void ToString(ref ValueStringBuilder.NonRef builder)
+        internal void ToString(ref PooledStringBuilder builder)
         {
             if (ViewByte == default)
                 return;
@@ -343,12 +368,20 @@ namespace PESpy.View
             }
             else if (Name.Length > 0)
             {
-                builder.Append(Name);
-
-                if (Displacement != 0)
+                if (ViewByte->Kind == ViewByteKind.Code)
                 {
-                    builder.Append(Displacement < 0 ? "-0x" : "+0x");
-                    builder.AppendHex((ulong) Math.Abs(Displacement));
+                    //This includes displacement
+                    GetFullName(ref builder);
+                }
+                else
+                {
+                    builder.Append(Name);
+
+                    if (Displacement != 0)
+                    {
+                        builder.Append(Displacement < 0 ? "-0x" : "+0x");
+                        builder.AppendHex((ulong) Math.Abs(Displacement));
+                    }
                 }
             }
             else if (Kind != 0)
@@ -413,7 +446,7 @@ namespace PESpy.View
 
         public override string ToString()
         {
-            var builder = new ValueStringBuilder.NonRef(100);
+            var builder = new PooledStringBuilder(100);
 
             try
             {

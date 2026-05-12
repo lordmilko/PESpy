@@ -25,7 +25,7 @@ namespace PESpy.View
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when
          * we're constantly looking up values that likely all belong to the same section */
         internal PESectionLookupCache _lookupCache;
-        private ISymbolAccessor _symbolAccessor;
+        internal ISymbolAccessor _symbolAccessor;
         private readonly bool _wantVirtual;
         internal Dictionary<int, int> _rvaToMethodDefMap = new();
 
@@ -44,6 +44,8 @@ namespace PESpy.View
                 ViewMode.Physical => false,
                 ViewMode.Virtual => true
             };
+
+            _isManaged = peFile.Cor20Header != null;
 
             _lookupCache = new PESectionLookupCache(peFile, _wantVirtual);
 

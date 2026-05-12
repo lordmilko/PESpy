@@ -97,6 +97,7 @@ namespace PESpy.View
         internal Dictionary<long, int> LargeAddresses;
 
         protected object _overview;
+        protected bool _isManaged;
         private SpanAllocator<XRef> _xrefs;
 
         private long[] _stringAddresses;
@@ -199,7 +200,6 @@ namespace PESpy.View
             return new ViewEntity(
                 this,
                 sectionAccessorIndex,
-                GetSymbolAccessor(),
                 accessor,
                 address,
                 pViewByte,
@@ -222,7 +222,6 @@ namespace PESpy.View
             return new ViewEntity(
                 this,
                 sectionAccessorIndex,
-                GetSymbolAccessor(),
                 sectionAccessor,
                 targetAddress,
                 pViewByte,
@@ -249,7 +248,6 @@ namespace PESpy.View
             return new ViewEntity(
                 this,
                 sectionIndex + 1,
-                GetSymbolAccessor(),
                 accessor,
                 address,
                 pViewByte,
@@ -352,7 +350,6 @@ namespace PESpy.View
                     var entity = new ViewEntity(
                         this,
                         i,
-                        symbolAccessor,
                         sectionAccessor,
                         j,
                         sectionLength,
@@ -380,100 +377,6 @@ namespace PESpy.View
             }
 
             return list.ToArray();
-        }
-
-        public void EnumerateEntitiesMatchingName(FixedUtf8String utf8String, FixedUtf16String utf16String, Func<ViewEntity, int, int, bool> callback)
-        {
-            var local = _names;
-
-            var utf8Span = utf8String.AsSpan();
-            for (var i = 0; i < local.Length; i++)
-            {
-                ref var item = ref local[i];
-
-                var index = StringHelpers.IndexOfIgnoreCase(item.AsSpan(), utf8Span);
-
-                if (index != -1)
-                {
-                    var owners = _nameRefAllocator.GetSpan(_nameRefHandles[i]);
-
-                    foreach (var owner in owners)
-                    {
-                        var entity = GetEntity(owner);
-
-                        if (!callback(entity, index, utf8Span.Length))
-                            return;
-                    }
-                }
-            }
-
-            //Now try strings (these may either be UTF8 or UTF16)
-
-            var utf16Span = utf16String.AsSpan();
-
-            var stringAddresses = _stringAddresses;
-
-            for (var i = 0; i < stringAddresses.Length; i++)
-            {
-                var targetAddress = stringAddresses[i];
-
-                var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
-
-                Debug.Assert(pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.String);
-
-                ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
-
-                var pBytes = GetRawSectionData(sectionAccessor);
-
-                var pEnd = sectionAccessor.pViewBytes + sectionAccessor.Length;
-
-                var pBody = pViewByte + 1;
-
-                while (pBody < pEnd)
-                {
-                    if (pBody->Kind == ViewByteKind.Body)
-                    {
-                        if (pBody->BodyKind == ViewByteBodyKind.SplitTail)
-                            throw new NotImplementedException();
-
-                        pBody++;
-                    }
-                    else
-                        break;
-                }
-
-                var relativeOffset = (int) (pViewByte - sectionAccessor.pViewBytes);
-                var length = (int) (pBody - pViewByte);
-
-                if (pViewByte->IsWide)
-                {
-                    var item = new FixedUtf16String((char*) (pBytes + relativeOffset), length / 2);
-
-                    var index = StringHelpers.IndexOfIgnoreCase(item.AsSpan(), utf16Span);
-
-                    if (index != -1)
-                    {
-                        var entity = GetEntity(sectionAccessorIndex, targetAddress, pViewByte, sectionAccessor, pBytes);
-
-                        if (!callback(entity, index, utf8Span.Length))
-                            return;
-                    }
-                }
-                else
-                {
-                    var item = new FixedUtf8String((byte*) pBytes + relativeOffset, length);
-
-                    var index = StringHelpers.IndexOfIgnoreCase(item.AsSpan(), utf8Span);
-
-                    if (index != -1)
-                    {
-                        var entity = GetEntity(sectionAccessorIndex, targetAddress, pViewByte, sectionAccessor, pBytes);
-
-                        if (!callback(entity, index, utf8Span.Length))
-                            return;
-                    }
-                }
-            }
         }
 
         public ViewEntityIterator EnumerateEntities(int sectionAccessorIndex)
@@ -539,6 +442,13 @@ namespace PESpy.View
             }
         }
 
+        /// <summary>
+        /// Creates a view around the entity at a given target address.
+        /// </summary>
+        /// <param name="targetAddress">The address of the entity to resolve. If this address is partway
+        /// into an entity, the field that the address lies within will be resolved. If the address points
+        /// to the start of the first field, the parent struct will be returned instead.</param>
+        /// <returns>A view that encapsulates the entity located at the given address</returns>
         public IView GetView(int targetAddress)
         {
             var entity = GetEntity(targetAddress);
@@ -548,9 +458,7 @@ namespace PESpy.View
                 var head = entity.GetHead(this, out _);
 
                 if (head.Kind == 0)
-                {
-                    throw new NotImplementedException(); //An xref partway into an entity; that's tricky
-                }
+                    throw new InvalidOperationException("Don't know how to handle an address partway into an entity that doesn't have a kind");
 
                 var parent = GetViewFromEntity(head);
 
@@ -559,6 +467,8 @@ namespace PESpy.View
                 while (@continue)
                 {
                     @continue = false;
+
+                    var childIndex = 0;
 
                     foreach (var child in parent.Children)
                     {
@@ -572,14 +482,168 @@ namespace PESpy.View
                                 break;
                             }
 
+                            if (childIndex == 0)
+                            {
+                                //This is the first field; return the parent struct instead
+                                return parent;
+                            }
+
                             //The xref had better be at the start of the value!
                             Debug.Assert(child.Offset == targetAddress);
                             return child;
                         }
+
+                        childIndex++;
                     }
                 }
+            }
+
+            return GetViewFromEntity(entity);
+        }
+
+        public IView GetViewFromEntity(ViewEntity entity)
+        {
+            if (entity.Kind != 0)
+            {
+                GetMemoryChunkFromAddress(entity.TargetAddress, out var chunk, out var viewWriter);
+                return ViewProvider.CreateStructView(entity.Kind, entity.Length, chunk, viewWriter, entity.IsSplit); //The ViewWriter is cached so this is OK
+            }
+                switch (entity.ViewByte->Kind)
+                {
+                    case ViewByteKind.Data:
+                        switch (entity.ViewByte->DataKind)
+                        {
+                            case ViewByteDataKind.Padding:
+                                if (entity.IsSplit)
+                                    throw new NotImplementedException("Splitting padding is not implemented"); //Just get the bytes before the split?
+
+                                return new ByteBlobView(entity.TargetAddress, entity.Bytes, null, this);
+
+                            case ViewByteDataKind.String:
+                                if (entity.IsSplit)
+                                    throw new NotImplementedException("Splitting a string is not implemented"); //Just get the bytes before the split?
+
+                                //Note that even if it _is_ null terminated, we _do_ still want to include the null terminator
+                                //in the name so we can print it properly
+                                if (entity.ViewByte->IsWide)
+                                {
+                                    var str = new FixedUtf16String((char*) (byte*) entity.Bytes, entity.Length / 2);
+                                    return new ValueView<FixedUtf16String>(entity.TargetAddress, str, entity.Length, ViewKind.String, this, entity.Name);
+                                }
+                                else
+                                {
+                                    var str = new FixedUtf8String((byte*) entity.Bytes, entity.Length);
+                                    return new ValueView<FixedUtf8String>(entity.TargetAddress, str, entity.Length, ViewKind.String, this, entity.Name);
+                                }
+
+                            case ViewByteDataKind.Unknown:
+                                if (entity.IsSplit)
+                                    throw new NotImplementedException("Splitting unknown data is not implemented"); //Just get the bytes before the split?
+
+                                return new ByteBlobView(entity.TargetAddress, entity.Bytes, null, this, entity.Name);
+
+                            case ViewByteDataKind.Decimal:
+                                if (entity.IsSplit)
+                                    throw new NotImplementedException("Splitting a decimal is not implemented"); //Just get the bytes before the split?
+
+                                if (entity.Length == 4)
+                                    return new ValueView<float>(entity.TargetAddress, *(float*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, this, entity.Name);
+                                else
+                                    return new ValueView<double>(entity.TargetAddress, *(double*) (byte*) entity.Bytes, entity.Length, ViewKind.Decimal, this, entity.Name);
+
+                            default:
+                                throw new NotImplementedException();
+                        }
+
+                    case ViewByteKind.Code:
+                        if (entity.IsSplit)
+                            throw new NotImplementedException("Splitting code is not implemented"); //Just get the bytes before the split?
+                        var range = new AsmRange<object>(startOffset: (int) entity.TargetAddress, startRVA: (int) entity.TargetAddress, functionRVA: (int) (entity.TargetAddress - entity.Displacement), entity.Name);
+                        range.EndOffset = (int) entity.TargetAddress + entity.Length;
+
+                        return new AsmView<object>((int) entity.TargetAddress, (byte) Bitness, range, this, entity.ViewByte->IsIL ? ViewKind.IL : ViewKind.Assembly);
+
+                    case ViewByteKind.Unknown:
+                        if (entity.IsSplit)
+                            throw new NotImplementedException("Splitting unknown is not implemented"); //Just get the bytes before the split?
+
+                        return new ByteBlobView(entity.TargetAddress, entity.Bytes, null, this);
+
+                    case ViewByteKind.Body:
+                        Debug.Assert(entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
+
+                        //We want to create a view that just encapsulates the portion that this body encapsulates.
+                        //First, we need to rewind to get the head
+
+                        var origin = entity.GetSplitHeadOrigin(this, out var bytesRewound);
+
+                        if (origin.Kind != 0)
+                        {
+                            //We use origin.TargetAddress to get the head; we're then going to split it at the point we're actually after
+                            GetMemoryChunkFromAddress(origin.TargetAddress, out var chunk, out var viewWriter);
+
+                            //The length of the origin is just the length up to the end of the current page. However, we need
+                            //to be constructing a split against the data contained in the entire entity, so we need to get the true
+                            //length of the entity so that things like arrays can correctly compute the total number of elements they
+                            //should have
+                            var fullLength = origin.GetFullLength(this);
+
+                            var baseView = ViewProvider.CreateStructView(origin.Kind, fullLength, chunk, viewWriter, origin.IsSplit);
+
+                            if (baseView is ISplittableView sv)
+                            {
+                                var (first, second) = sv.Split(entity.TargetAddress, baseView.Offset + bytesRewound);
+
+                                var pageSize = ((PDBFile) File).PageSize;
+
+                                //Second now contains the remainder; but the question now is what is contiguous region
+                                //within second that doesn't require a split as well
+                                var numPages = SI.DivideUp((int) second.Size, pageSize);
+
+                                if (numPages == 1)
+                                    return second; //The right hand side fits within a single page, no need to consider further splitting
+
+                                //Second is now at the start of a frame; check all pages but the last one to see whether there's actually
+                                //a SplitTail in there. If so, we need to split. If not, implicitly the last tail (which may not have a full
+                                //page's worth) is part of the value and we don't need to split
+
+                                var pPageStart = entity.ViewByte + pageSize - 1;
+
+                                for (var i = 0; i < numPages - 1; i++)
+                                {
+                                    if (pPageStart->BodyKind == ViewByteBodyKind.SplitTail)
+                                    {
+                                        IView third;
+
+                                        var secondEnd = (int) entity.TargetAddress + (pPageStart - entity.ViewByte) + 1;
+
+                                        var thirdTargetAddress = ((PDBFileAccessor) this).GetNextPageOffset(secondEnd - 1);
+
+                                        (second, third) = ((ISplittableView) second).Split(thirdTargetAddress, secondEnd);
+
+                                        return second;
+                                    }
+
+                                    pPageStart += pageSize;
+                                }
+
+                                //No need to split, just return second
+                                return second;
+                            }
+                            else
+                                throw new InvalidOperationException("We should not have a ViewEntity around a body unless that body is splittable");
+                        }
+                        else
+                            throw new NotImplementedException("Don't know how to split an entity that doesn't have a kind");
+
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+        }
+
         //Not related to being in a nested file
-        private IStructView GetNestedStructView(ViewByte* pViewByte, ViewByte* limit, int offset, ViewKind viewKind)
+        private IStructView GetNestedStructView(ViewByte* pViewByte, ViewByte* limit, long offset, ViewKind viewKind)
         {
             //Rewind
 
@@ -780,9 +844,13 @@ namespace PESpy.View
 
         #region Struct
 
-        internal void AddStruct(FileAnalyzer fileAnalyzer, int targetAddress, int sectionIndex, ViewKind kind, int length)
+        internal bool AddStruct(FileAnalyzer fileAnalyzer, int targetAddress, int sectionIndex, ViewKind kind, int length)
         {
             var pViewByte = GetViewByteForSection(targetAddress, sectionIndex);
+
+            if (pViewByte->Kind == ViewByteKind.Data)
+                return false; //Perhaps we got a duplicate symbol at this address
+
             pViewByte->Kind = ViewByteKind.Data;
             pViewByte->DataKind = ViewByteDataKind.Struct;
             CheckName(targetAddress);
@@ -796,6 +864,8 @@ namespace PESpy.View
                 Debug.Assert(i->Kind == ViewByteKind.Unknown);
                 i->Kind = ViewByteKind.Body;
             }
+
+            return true;
         }
 
         internal void AddStructKind(long targetAddress, ViewKind kind)
@@ -887,12 +957,49 @@ namespace PESpy.View
 
             ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
 
+            if (TryGetCodeName(sectionAccessor, targetAddress, allowDisplacement: false, out var name, out _))
+                return name;
+
+            throw new InvalidOperationException($"Failed to get the name of the byte at address 0x{targetAddress:X}. We've been told it has a name, so the name must come from somewhere we don't handle yet");
+        }
+
+        internal bool TryGetCodeName(
+            in SectionAccessor sectionAccessor,
+            long targetAddress,
+            bool allowDisplacement,
+            out FixedUtf8String name,
+            out int displacement)
+        {
+            name = default;
+            displacement = default;
+
             if (TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva))
             {
+                if (_isManaged)
+                {
+                    //Managed RVAs can erroneously match against the COM+ Entry Point symbol which reports itself as having an off/seg
+                    //0x06000001/0, which our symbol matcher will accept since it's prior to section 1 that we're likely asking for.
+                    //As such, we need to try for a managed symbol first
+
+                    var peFileAccessor = (PEFileAccessor) this;
+
+                    if (peFileAccessor._rvaToMethodDefMap.TryGetValue(rva, out var methodDef))
+                    {
+                        var row = peFileAccessor.PEFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
+
+                        name = (FixedUtf8String) row.Name.GetString();
+                        return true;
+                    }
+                }
+
                 //If displacement is not 0, this can't be where the name came from
                 if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out var displacement) && displacement == 0)
                 {
-                    return symName;
+                    if (allowDisplacement || displacement == 0)
+                    {
+                        name = symName;
+                        return true;
+                    }
                 }
 
                 //Must be an export
@@ -908,26 +1015,94 @@ namespace PESpy.View
                         {
                             if (!export.ForwardOrAddress.IsForward && export.ForwardOrAddress.Address == rva)
                             {
-                                return (FixedUtf8String) export.Name;
+                                name = (FixedUtf8String) export.Name;
+                                return true;
                             }
                         }
                     }
+                }
+            }
+
+            return false;
+        }
+
+        //We used PooledStringBuilder here because the principal usage of this is printing to the UI, which uses PooledStringBuilder
+        internal void GetFullCodeName(
+            long targetAddress,
+            int sectionAccessorIndex,
+            ViewByte* pViewByte,
+            ref PooledStringBuilder builder)
+        {
+            ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
+
+            if (TryGetVirtualAddress(sectionAccessor, targetAddress, out var rva))
+            {
+                if (_isManaged)
+                {
+                    //Managed RVAs can erroneously match against the COM+ Entry Point symbol which reports itself as having an off/seg
+                    //0x06000001/0, which our symbol matcher will accept since it's prior to section 1 that we're likely asking for.
+                    //As such, we need to try for a managed symbol first
 
                     var peFileAccessor = (PEFileAccessor) this;
 
                     if (peFileAccessor._rvaToMethodDefMap.TryGetValue(rva, out var methodDef))
                     {
-                        var row = peFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
+                        var row = peFileAccessor.PEFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
 
-                        return (FixedUtf8String) row.Name.GetString();
+                        var utf8Builder = new Utf8StringBuilder(256);
+
+                        try
+                        {
+                            row.ToString(ref utf8Builder);
+
+                            builder.Append(utf8Builder.AsSpan());
+                        }
+                        finally
+                        {
+                            utf8Builder.Dispose();
+                        }
+
+                        return;
+                    }
+                }
+
+                //If displacement is not 0, this can't be where the name came from
+                if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out var displacement))
+                {
+                    builder.Append(symName);
+
+                    if (displacement != 0)
+                    {
+                        builder.Append(displacement < 0 ? "-0x" : "+0x");
+                        builder.AppendHex((ulong) Math.Abs(displacement));
+                    }
+
+                    return;
+                }
+
+                //Must be an export
+                if (File.Kind == FileKind.PE)
+                {
+                    var peFile = (PEFile) File;
+
+                    var exportTable = peFile.ExportTable;
+
+                    if (exportTable != null)
+                    {
+                        foreach (var export in exportTable.Exports)
+                        {
+                            if (!export.ForwardOrAddress.IsForward && export.ForwardOrAddress.Address == rva)
+                            {
+                                builder.Append((FixedUtf8String) export.Name);
+                                return;
+                            }
+                        }
                     }
                 }
             }
-
-            throw new NotImplementedException();
         }
 
-        internal bool TryGetNameFromAddress(int targetAddress, out FixedUtf8String name)
+        internal bool TryGetNameFromAddress(long targetAddress, out FixedUtf8String name)
         {
             var pViewByte = GetViewByte(targetAddress, out var sectionAccessorIndex);
 
@@ -944,6 +1119,21 @@ namespace PESpy.View
                 }
             }
 
+            while (pViewByte->HasFlow)
+            {
+                do
+                {
+                    pViewByte--;
+                } while (pViewByte->Kind == ViewByteKind.Body);
+
+                Debug.Assert(pViewByte->Kind == ViewByteKind.Code);
+
+                if (pViewByte->IsFunction)
+                {
+                    entity = GetEntity(pViewByte, sectionAccessorIndex);
+                    return true;
+                }
+            }
         internal void InstallDataDirectories(RegionBuilder[] topLevelDirectories, RegionBuilder[] firstDirectoryByAddress)
         {
             //Enable fast lookup of directories based on offset

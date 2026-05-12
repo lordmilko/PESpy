@@ -13,6 +13,31 @@ using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.View
 {
+    public struct FileAnalyzerOptions
+    {
+        public IFileDisassembler Disassembler { get; set; }
+
+        public LocatorHttpPolicy HttpPolicy { get; set; }
+
+        public IFileAnalyzerProgress Progress { get; set; }
+
+        public bool TrackXRefs { get; set; }
+
+        public CancellationToken CancellationToken { get; set; }
+
+        //By default we want to opt in to symbols, so we want a setting wherein setting it to "true"
+        //means we don't want to include symbols. This only excludes symbols that might be identified using
+        //an ISymbolAccessor; we may still identify certain symbols through heuristics (e.g. things in the load
+        //config table)
+        public bool ExcludeSymbols { get; set; }
+    }
+
+    internal struct SpecialSymbols
+    {
+        public SymType NativeAOTModulesA;
+        public SymType NativeAOTModulesZ;
+    }
+
     public unsafe abstract class FileAnalyzer
     {
         #region Static
@@ -33,7 +58,12 @@ namespace PESpy.View
             {
                 fileAccessor = FileAccessor.Create(file);
 
-                Analyze(fileAccessor, disassembler, httpPolicy, progress);
+                Analyze(fileAccessor, new FileAnalyzerOptions
+                {
+                    Disassembler = disassembler,
+                    HttpPolicy = httpPolicy,
+                    TrackXRefs = true
+                });
             }
             catch
             {
@@ -49,52 +79,44 @@ namespace PESpy.View
         //Takes control of file, will dispose it when the accessor is disposed
         public static void Analyze(
             FileAccessor fileAccessor,
-            IFileDisassembler disassembler = null,
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
-            IFileAnalyzerProgress? progress = null,
-            bool trackXRefs = true,
-            CancellationToken cancellationToken = default)
+            in FileAnalyzerOptions options = default)
         {
-            AnalyzeInternal(fileAccessor, disassembler, httpPolicy, progress, trackXRefs, cancellationToken);
+            AnalyzeInternal(fileAccessor, options);
 
             GCLargeObjectHeap();
         }
 
         private static void AnalyzeInternal(
             FileAccessor fileAccessor,
-            IFileDisassembler disassembler,
-            LocatorHttpPolicy httpPolicy,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken)
+            in FileAnalyzerOptions options)
         {
             FileAnalyzer fileAnalyzer = fileAccessor.File.Kind switch
             {
-                FileKind.PE          => new PEFileAnalyzer((PEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler, httpPolicy),
-                FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.PDB         => CreatePDBFileAnalyzer(fileAccessor, progress, trackXRefs, cancellationToken),
-                FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
-                FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken, disassembler),
-                FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
-                FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
-                FileKind.SYM         => new SYMFileAnalyzer((SYMFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken),
+                FileKind.PE          => new PEFileAnalyzer((PEFileAccessor) fileAccessor, options),
+                FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, options),
+                FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, options),
+                FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, options),
+                FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, options),
+                FileKind.PDB         => CreatePDBFileAnalyzer(fileAccessor, options),
+                FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, options),
+                FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, options),
+                FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, options),
+                FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, options),
+                FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, options),
+                FileKind.SYM         => new SYMFileAnalyzer((SYMFileAccessor) fileAccessor, options),
                 _ => throw new NotImplementedException($"Don't know how to analyze a file of type '{fileAccessor.File.Kind}'")
             };
 
-            static FileAnalyzer CreatePDBFileAnalyzer(FileAccessor fileAccessor, IFileAnalyzerProgress? progress, bool trackXRefs, CancellationToken cancellationToken)
+            static FileAnalyzer CreatePDBFileAnalyzer(FileAccessor fileAccessor, in FileAnalyzerOptions options)
             {
                 switch (((PDBFile) fileAccessor.File).PDBKind)
                 {
                     case PDBFileKind.V1:
-                        return new PDB1FileAnalyzer((PDB1FileAccessor) fileAccessor, progress, trackXRefs, cancellationToken);
+                        return new PDB1FileAnalyzer((PDB1FileAccessor) fileAccessor, options);
 
                     case PDBFileKind.V2:
                     case PDBFileKind.V7:
-                        return new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, progress, trackXRefs, cancellationToken);
+                        return new PDBFileAnalyzer((PDBFileAccessor) fileAccessor, options);
 
                     default:
                         Debug.Assert(false);
@@ -152,6 +174,8 @@ namespace PESpy.View
         private FileAnalyzerProgressPhase _lastPhase;
         protected bool _hasUnknownBodies;
 
+        private SpecialSymbols _specialSymbols;
+
         //This is super way faster than trying to do everything directly within SpanAllocator
         private bool _trackXRefs;
         private List<XRef> _xrefs;
@@ -192,21 +216,17 @@ namespace PESpy.View
 
         protected FileAnalyzer(
             FileAccessor fileAccessor,
-            IFileAnalyzerProgress? progress,
-            bool trackXRefs,
-            CancellationToken cancellationToken,
-            IFileDisassembler? fileDisassembler,
-            LocatorHttpPolicy httpPolicy)
+            in FileAnalyzerOptions options)
         {
             _fileAccessor = fileAccessor;
-            _fileDisassembler = fileDisassembler;
-            _httpPolicy = httpPolicy;
-            _progress = progress;
+            _fileDisassembler = options.Disassembler;
+            _httpPolicy = options.HttpPolicy;
+            _progress = options.Progress;
             _viewWriter = CreateViewWriter();
-            _trackXRefs = trackXRefs;
-            _cancellationToken = cancellationToken;
+            _trackXRefs = options.TrackXRefs;
+            _cancellationToken = options.CancellationToken;
 
-            if (trackXRefs)
+            if (options.TrackXRefs)
                 _xrefs = new List<XRef>();
         }
 
@@ -395,6 +415,16 @@ namespace PESpy.View
                         default:
                             throw new NotImplementedException();
                     }
+                }
+            }
+
+            if (_fileAccessor.File.Kind == FileKind.PE)
+            {
+                SymbolReader.Builder.ProcessNativeAOTModules((PEFile) _fileAccessor.File, _specialSymbols.NativeAOTModulesA, _specialSymbols.NativeAOTModulesZ, out var nativeAOTModules);
+
+                if (nativeAOTModules != null)
+                {
+                    _viewWriter.WriteGlobal(nativeAOTModules);
                 }
             }
         }
@@ -846,7 +876,7 @@ namespace PESpy.View
             }
         }
 
-        private bool TryGetPubSymInfo(
+        private unsafe bool TryGetPubSymInfo(
             SymType symType,
             ICodeViewAccessor codeViewAccessor,
             ISectionDataAccessor sectionDataAccessor,
@@ -856,8 +886,17 @@ namespace PESpy.View
             Unsafe.SkipInit(out rva);
             Unsafe.SkipInit(out name);
 
-            //Some symbols point to sections that don't exist, so their RVAs are 0
-            if (!symType.TryGetRVA(codeViewAccessor, out rva) || rva == 0)
+            if (!symType.TryGetRawOffSeg(out var off, out var seg))
+                return false;
+
+            var rawRva = SymType.GetOmapRelativeVirtualAddress((SYMTYPE*) symType, seg, off, codeViewAccessor);
+
+            if (rawRva == null)
+                return false;
+
+            rva = rawRva.Value;
+
+            if (rva == 0)
                 return false;
 
             if (!_fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
@@ -868,92 +907,195 @@ namespace PESpy.View
             //Things without names might still be code, so we can't just bail out, as we want
             //to collect all code addresses
 
-            if (TryHandleSpecialPublic(name, rva, targetAddress, sectionIndex))
+            if (TryHandleSpecialPublic(symType, name, codeViewAccessor, targetAddress, sectionIndex, off, seg))
                 return false;
 
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryHandleSpecialPublic(
+            SymType symType,
             FixedUtf8String name,
-            int rva,
+            ICodeViewAccessor codeViewAccessor,
             int targetAddress,
-            int sectionIndex)
+            int sectionIndex,
+            int off,
+            ISECT seg)
         {
+            //Keep in sync with SymbolReader
+
             //We're going to be doing multiple name checks, so get the length once
             var span = name.AsSpan();
 
-            /* If we're NativeAOT, we should also check for a __modules_a symbol. This marks the start of
-             * the area where pseudo ReadyToRunReader entries live. InitializeModules() is then called with the difference between __modules_z and __modules_a being
-             * the count. (need to consider the size of a pointer here). Watch out, because InitializeRuntime + InitializeModules may be inlined into main
-             * 
-             * These are not the same thing as READYTORUN_HEADER (which PESpy calls "ReadyToRunHeader"), these are literally also called
-             * "ReadyToRunHeader" and have a slightly different layout. The end of these headers is demarcated by a __modules_z symbol.
-             * Following the header are a number of ModuleInfoRow items (defined in TypeManager.h)
-             * https://github.com/dotnet/runtime/blob/e5ae1f68938942fd6a65c65fecc7cafda8835e82/src/coreclr/nativeaot/Bootstrap/main.cpp#L189
-             * Rather than spend time checking this in the main symbol processing loop, we should special case it afterwards if we know we're NativeAOT */
-
-#if NET
             if (span.StartsWith("??_C@_"u8))
-            {
-                //It's a string literal. If a 1 follows it's wide, if a 0 follows it's ANSI.
-                //Then, following this is a length
-
-                var textWindow = new Demangler.TextWindow(name.Value, span.Length, true);
-                textWindow.AdvanceChar(6);
-
-                if (textWindow.TryNextChar(out var stringKind) && Demangler.TryParseNumber(ref textWindow, out _, out var length))
-                {
-                    //The length should be the true length of the string. The symbol name only includes up to the first 64 characters
-                    _fileAccessor.AddString(targetAddress, sectionIndex, isWide: stringKind == '1', numBytes: (int) length);
-                }
-
-                return true;
-            }
+                return ProcessStringSymbol(symType, name, targetAddress, sectionIndex);
             else if (span.StartsWith("??_7"u8))
-            {
-                //It's a vftable. Add each entry as code in the work queue, and
-                //also add xrefs from each slot to the target function
-                throw new NotImplementedException();
-            }
-            else if (span.StartsWith("__IMPORT_DESCRIPTOR"u8))
-            {
-                //Any time you have an __IMPORT_DESCRIPTOR symbol, this points to an ImageImportDescriptor struct.
-                //I would expect that we already tagged all of these
-#if DEBUG
-                var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
-
-                //todo: should we also add the symbol name?
-                Debug.Assert(pViewByte->Kind == ViewByteKind.Data);
-#endif
+                return ProcessVftableSymbol(symType, codeViewAccessor, targetAddress, sectionIndex);
+            else if (span.StartsWith("??_R4"u8)) //While each RTTI entity may have a symbol associated with it, we're only interested in matching the top level object locator type, which should point to all the rest
+                return ProcessRTTISymbol(off, seg);
             else if (span.StartsWith("__real@"u8))
+                return ProcessFloatSymbol(name, span, targetAddress, sectionIndex);
+            else if (span.StartsWith("__modules_"u8) && span.Length == 11)
             {
-                //Ostensibly it's going to be __real@ followed by either 8 or 16 hex digits. I'm not sure if you could ever
-                //have any other characters at the end; for now; we'll just assume it'll always be the simple case
-
-                ViewByte* pViewByte;
-
-                switch (span.Length)
+                switch (span[10])
                 {
-                    case 8 + 7: //__real@ + 8 chars
-                        pViewByte = _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Decimal, 4); //float (single)
-                        AddName(targetAddress, pViewByte, new FixedUtf8String(name.Value, span.Length));
+                    case (byte) 'a':
+                        _specialSymbols.NativeAOTModulesA = symType;
                         break;
 
-                    case 16 + 7: //__real@ + 16 chars
-                        pViewByte = _fileAccessor.AddData(targetAddress, sectionIndex, ViewByteDataKind.Decimal, 8); //float (double)
-                        AddName(targetAddress, pViewByte, new FixedUtf8String(name.Value, span.Length));
+                    case (byte) 'z':
+                        _specialSymbols.NativeAOTModulesZ = symType;
                         break;
-
-                    default:
-                        throw new NotImplementedException($"Don't know how to handle symbol '{name}'");
                 }
-
-                return true;
             }
-#endif
 
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ProcessStringSymbol(
+            SymType symType,
+            FixedUtf8String name,
+            int targetAddress,
+            int sectionIndex)
+        {
+            //It's a string literal. If a 1 follows it's wide, if a 0 follows it's ANSI.
+            //Then, following this is a length
+
+            var textWindow = new Demangler.TextWindow(name.Value, name.Length, true);
+            textWindow.AdvanceChar(6);
+
+            if (textWindow.TryNextChar(out var stringKind) && Demangler.TryParseNumber(ref textWindow, out _, out var strLength))
+            {
+                //The length should be the true length of the string. The symbol name only includes up to the first 64 characters
+                _fileAccessor.AddString(targetAddress, sectionIndex, isWide: stringKind == '1', numBytes: (int) strLength);
+                return true;
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ProcessVftableSymbol(
+            SymType symType,
+            ICodeViewAccessor codeViewAccessor,
+            int targetAddress,
+            int sectionIndex)
+        {
+            if (!symType.TryGetLength(out var length, codeViewAccessor))
+                return false;
+
+            var peFileAccessor = (PEFileAccessor) _fileAccessor;
+
+            var lookupCache = peFileAccessor._lookupCache;
+
+            lookupCache.GetRawSectionDataFromTargetAddress(targetAddress, sectionIndex, out var pVftable, out var remainingLength);
+
+            var imageBase = peFileAccessor.PEFile.OptionalHeader.ImageBase;
+
+            var viewWriter = _viewWriter;
+
+            switch (_fileAccessor.Bitness)
+            {
+                case 32:
+                    var slots32 = new NativeSpan<int>(pVftable, length / sizeof(int));
+
+                    for (var i = 0; i < slots32.Length; i++)
+                    {
+                        var rva = (int) (slots32[i] - imageBase);
+
+                        if (lookupCache.TryGetSectionInfo(rva, out var functionTargetAddress, out _, out _))
+                            AddXRef(targetAddress + (i * sizeof(int)), functionTargetAddress);
+                    }
+
+                    break;
+
+                case 64:
+                    var slots64 = new NativeSpan<long>(pVftable, length / sizeof(long));
+
+                    for (var i = 0; i < slots64.Length; i++)
+                    {
+                        var rva = (int) (slots64[i] - imageBase);
+
+                        if (lookupCache.TryGetSectionInfo(rva, out var functionTargetAddress, out _, out _))
+                            AddXRef(targetAddress + (i * sizeof(long)), functionTargetAddress);
+                    }
+
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            _fileAccessor.AddStruct(this, targetAddress, sectionIndex, ViewKind.Vftable, length);
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ProcessRTTISymbol(int off, ISECT seg)
+        {
+            //We should implement support for detecting RTTI + vftables without symbols
+            //https://github.com/kweatherman/IDA_ClassInformer_PlugIn/blob/master/RTTI.cpp
+            //https://github.com/kweatherman/IDA_ClassInformer_PlugIn/blob/master/Main.cpp#L1328
+
+            if (!((PEFileAccessor) _fileAccessor).PEFile.TryGetValueChunkFromSection(off, seg - 1, out var chunk))
+                return false;
+
+            var rttiCompleteObjectLocator = new RTTICompleteObjectLocator(chunk);
+            _viewWriter.WriteGlobal(rttiCompleteObjectLocator);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ProcessFloatSymbol(FixedUtf8String name, Span<byte> span, int targetAddress, int sectionIndex)
+        {
+            ref var sectionAccessor = ref _fileAccessor.SectionAccessors[sectionIndex + 1];
+            var pViewByte = sectionAccessor.pViewBytes + (targetAddress - sectionAccessor.StartAddress);
+
+            long l;
+            ViewByte* pEnd;
+
+            switch (span.Length)
+            {
+                case 8 + 7: //__real@ + 8 chars
+                    if (!Utf8Parser.TryParse(span.Slice(7), out l, out _, 'X'))
+                        return false;
+
+                    var f = *(float*) &l;
+
+                    pViewByte->Kind = ViewByteKind.Data;
+                    pViewByte->DataKind = ViewByteDataKind.Decimal;
+
+                    pEnd = pViewByte + 4;
+
+                    for (var i = pViewByte + 1; i < pEnd; i++)
+                        i->Kind = ViewByteKind.Body;
+
+                    break;
+
+                case 16 + 7: //__real@ + 16 chars
+                    if (!Utf8Parser.TryParse(span.Slice(7), out l, out _, 'X'))
+                        return false;
+
+                    var d = *(double*) &l;
+
+                    pViewByte->Kind = ViewByteKind.Data;
+                    pViewByte->DataKind = ViewByteDataKind.Decimal;
+
+                    pEnd = pViewByte + 8;
+
+                    for (var i = pViewByte + 1; i < pEnd; i++)
+                        i->Kind = ViewByteKind.Body;
+
+                    break;
+
+                default:
+                    throw new NotImplementedException($"Don't know how to handle symbol '{name}'");
+            }
+
+            return true;
         }
 
         #endregion
@@ -1624,6 +1766,7 @@ namespace PESpy.View
 
             if (length > 1)
                 ranges.Add(new StringRange(pStart, pBytes + (pStart - pSectionStart), length, sectionAddress, pSectionStart));
+
             pViewByte--; //Don't double skip at the end
         }
 
@@ -2248,6 +2391,7 @@ namespace PESpy.View
 
             _extraRegions.Add(builder);
         }
+
         internal void MarkInterSectionData(int lastSectionEnd, int start, bool canHaveRelocations) =>
             MarkInterSectionData(lastSectionEnd, start, canHaveRelocations, _fileAccessor, _extraRegions);
 

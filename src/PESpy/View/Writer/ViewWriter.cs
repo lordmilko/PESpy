@@ -1025,12 +1025,13 @@ namespace PESpy.View
         {
             if (value.IsValid && value.ListedOffset != 0 && trackedRVAXRefs.Add(((int) structOffset + fieldOffset, value.ActualOffset)))
             {
+#if DEBUG
                 _wroteUniqueXRef = true;
                 WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
                 _wroteUniqueXRef = false;
-
-#if DEBUG
                 globalFields.Add(value.ListedOffset);
+#else
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
 #endif
 
                 WriteGlobal(value.Value);
@@ -1071,9 +1072,13 @@ namespace PESpy.View
         {
             if (trackedRVAXRefs.Add(((int) structOffset + fieldOffset, targetOffset)))
             {
+#if DEBUG
                 _wroteUniqueXRef = true;
                 WriteOffsetXRef(structOffset, fieldOffset, targetOffset);
                 _wroteUniqueXRef = false;
+#else
+                WriteOffsetXRef(structOffset, fieldOffset, targetOffset);
+#endif
             }
         }
 
@@ -1092,9 +1097,13 @@ namespace PESpy.View
         {
             if (trackedRVAXRefs.Add(((int) structOffset + fieldOffset, targetRVA)))
             {
+#if DEBUG
                 _wroteUniqueXRef = true;
                 WriteRVAXRef(structOffset, fieldOffset, targetRVA);
                 _wroteUniqueXRef = false;
+#else
+                WriteRVAXRef(structOffset, fieldOffset, targetRVA);
+#endif
             }
         }
 

@@ -308,10 +308,7 @@ namespace PESpy.View
             return false;
         }
 
-        public override string ToString()
-        {
-            return ViewFormatter.FormatStruct(this);
-        }
+        public override string ToString() => ViewFormatter.FormatStruct(this);
     }
 
     class SplitStructView : StructView, ISplitView

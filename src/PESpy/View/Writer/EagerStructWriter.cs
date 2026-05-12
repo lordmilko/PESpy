@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using ClrDebug.PDB;
 using PESpy.PDB;
 using static PESpy.View.ViewWriter;
-using Enum = System.Enum;
 
 namespace PESpy.View
 {
@@ -508,7 +507,10 @@ namespace PESpy.View
 
         public void WriteInline<T>(RVA<T> value, ViewKind kind) where T : IViewableValue
         {
-            throw new NotImplementedException();
+            //We don't write the xref here; that should have been done in WriteGlobals
+
+            items.Add(new ValueView<int>(structWriter.ParentOffset + currentFieldOffset, value.ListedOffset, sizeof(int), kind, structWriter.ViewWriter._fileAccessor));
+            currentFieldOffset += sizeof(int);
         }
 
         public unsafe void WriteInline<T>(RawValue<T> value, ViewKind kind) where T : unmanaged
