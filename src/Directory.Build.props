@@ -11,6 +11,15 @@
     <UseLatestTargetFramework Condition="'$(VisualStudioVersion)' != '15.0' And '$(VisualStudioVersion)' != '16.0'">true</UseLatestTargetFramework>
     <UseLatestTargetFramework Condition="'$(UseLatestTargetFramework)' == ''">false</UseLatestTargetFramework>
 
-		<NoWarn>$(NoWarn);1591;8509;8524;8981;1701;1702</NoWarn>
+    <DefineConstants Condition="'$(_IsPublishing)' == 'yes'">$(DefineConstants);NATIVEAOT</DefineConstants>
+    <!--<DefineConstants>$(DefineConstants);NATIVEAOT</DefineConstants>-->
+
+    <!-- NU1510 relates to .NET 10 complaining about us explicitly referencing packages that are provided
+         by the runtime. But we need to do that in PESpy for compatibility with .NET Standard -->
+    <NoWarn>$(NoWarn);1591;8509;8524;8981;1701;1702;MSB3042;NU1510</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SystemReflectionMetadataVersion>10.0.0</SystemReflectionMetadataVersion>
   </PropertyGroup>
 </Project>

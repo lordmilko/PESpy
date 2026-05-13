@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using PESpy.PDB;
 
 namespace PESpy.View
@@ -32,12 +33,15 @@ namespace PESpy.View
                 this.shouldAdd = shouldAdd;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void WriteValue(int value, ViewKind kind) =>
                 WriteValueInternal(value, sizeof(int), kind);
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void WriteValue(uint value, ViewKind kind) =>
                 WriteValueInternal(value, sizeof(int), kind);
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void WriteValue(long offset, Guid value, ViewKind kind)
             {
                 Debug.Assert(currentOffset == offset);

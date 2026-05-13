@@ -6,6 +6,7 @@
   
   <Import Project="$(Build)ClrDebug.props" />
 	<Import Project="$(Build)ReFlow.props" />
+  <Import Project="$(Build)ReView.props" />
   <Import Project="$(Build)PInvoke.props" />
   <Import Project="$(Build)SizeHacks.props" />
 	<Import Project="$(Build)SymHelp.props" />
@@ -34,6 +35,12 @@
     <PublishTrimmed>true</PublishTrimmed>
     <PublishAot>true</PublishAot>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="_old3\**" />
+    <EmbeddedResource Remove="_old3\**" />
+    <None Include="_old3\**" />
+  </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\PESpy\PESpy.csproj" />
@@ -45,6 +52,7 @@
 		<PackageReference Include="System.Reflection.Metadata" Version="9.0.0" />
 		<PackageReference Include="System.Text.Json" Version="9.0.0" />
 		<PackageReference Include="Iced" Version="1.21.0" />
+    <PackageReference Include="System.Resources.Extensions" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

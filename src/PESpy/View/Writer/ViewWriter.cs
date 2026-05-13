@@ -1075,7 +1075,15 @@ namespace PESpy.View
         protected internal virtual IView? NewStruct<T>(in T value, ViewKind kind, int structSize)
             where T : IValue, IViewable
         {
-            var shouldAdd = _tryGetViewOffset(value.Offset, out var viewOffset);
+            //We want generics for ViewByteViewWriter so we don't box, but here we're guaranteed
+            //to box when we create the StructView, so may as well outline the implementation of this
+            //method to reduce NativeAOT size
+            return NewStruct((IViewable) value, kind, structSize);
+        }
+
+        private IView? NewStruct(IViewable value, ViewKind kind, int structSize)
+        {
+            var shouldAdd = _tryGetViewOffset(((IValue) value).Offset, out var viewOffset);
 
             if (!shouldAdd)
                 return null;
@@ -1201,6 +1209,12 @@ namespace PESpy.View
 #endif
 
         protected internal virtual IView? NewUnmanagedStruct<T>(in T value, ViewKind kind, int structSize) where T : IViewable
+        {
+            //Outline for NativeAOT (like we do for NewStruct)
+            return NewUnmanagedStruct((IViewable) value, kind, structSize);
+        }
+
+        protected internal virtual IView? NewUnmanagedStruct(IViewable value, ViewKind kind, int structSize)
         {
             Debug.Assert(UnmanagedOffset != 0);
             var shouldAdd = _tryGetViewOffset(UnmanagedOffset, out var viewOffset);

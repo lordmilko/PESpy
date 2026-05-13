@@ -19,7 +19,7 @@ namespace PESpy.View
 
         public LocatorHttpPolicy HttpPolicy { get; set; }
 
-        public IFileAnalyzerProgress Progress { get; set; }
+        public IFileAnalyzerProgress? Progress { get; set; }
 
         public bool TrackXRefs { get; set; }
 

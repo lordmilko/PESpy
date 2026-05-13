@@ -570,7 +570,7 @@ namespace PESpy.Tests
                 nameof(PogoData)                  => (PogoData)                   GetSampleFile(Sample.SingleFileApp_EXE, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_POGO).Data,
                 nameof(PogoItem)                  => (PogoItem)                   ((PogoData) GetSampleFile(Sample.SingleFileApp_EXE, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_POGO).Data).Entries[0],
                 nameof(Reproducible)              => (Reproducible?)              GetFile(WellKnownTestModule.ntdll, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_REPRO).Data,
-                nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb?)       GetSampleFile(Sample.MPDB_DLL, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB).Data, //todo: need a test module that has an embedded portable pdb
+                nameof(EmbeddedPortablePdb)       => (EmbeddedPortablePdb)        GetSampleFile(Sample.MPDB_DLL, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB).Data, //todo: need a test module that has an embedded portable pdb
                 nameof(PdbChecksum)               => (PdbChecksum?)               GetSampleFile(Sample.R2R_DLL, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_PDB_CHECKSUM).Data, //todo: need a test module that has a pdb checksum
                 nameof(IMAGE_DLLCHARACTERISTICS_EX) => (GetFile(WellKnownTestModule.ntdll, out fs, out file).DebugTable?.First(t => t.Type == IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS)),
 

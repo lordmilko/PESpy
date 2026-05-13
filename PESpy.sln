@@ -23,6 +23,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498
 		build\GhidraSharp.props = build\GhidraSharp.props
 		build\PInvoke.props = build\PInvoke.props
 		build\ReAnalyze.props = build\ReAnalyze.props
+		build\ReView.props = build\ReView.props
 		build\SizeHacks.props = build\SizeHacks.props
 		build\SymHelp.props = build\SymHelp.props
 	EndProjectSection
