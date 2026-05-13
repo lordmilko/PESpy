@@ -268,13 +268,21 @@ namespace PESpy.View
                 _fileAnalyzer.AddXRef((int) structOffset + fieldOffset, targetAddress);
         }
 
-        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, long targetVA)
         {
 #if DEBUG
             VerifyWritingUniqueXRef();
 #endif
 
-            throw new NotImplementedException();
+            if (targetVA == 0)
+                return;
+
+            var rva = (int) (targetVA - _fileAccessor.ImageBase);
+
+            //structOffset is already in targetAddress space, so we don't need to convert it
+
+            if (_fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out _))
+                _fileAnalyzer.AddXRef((int) structOffset + fieldOffset, targetAddress);
         }
 
         internal void RegisterStruct(ViewByte* pViewByte, long offset, ViewKind kind)
@@ -373,6 +381,7 @@ namespace PESpy.View
                 case ViewKind.SegmentName:
                 case ViewKind.ShortImportLibrary_ImportName:
                 case ViewKind.ShortImportLibrary_DllName:
+                case ViewKind.AnsiString:
 
                 //FixedAnsiString
                 case ViewKind.LIBFile_Signature:
@@ -383,6 +392,7 @@ namespace PESpy.View
                 case ViewKind.Metadata_String:
                 case ViewKind.RuntimeConfigJson:
                 case ViewKind.drectve:
+                case ViewKind.Utf8String:
 
                 //SymString
                 case ViewKind.LibraryName:
@@ -391,6 +401,7 @@ namespace PESpy.View
                     break;
 
                 case ViewKind.Metadata_Guid:
+                case ViewKind.Guid:
                     pViewByte->DataKind = ViewByteDataKind.Guid;
                     break;
 
@@ -480,7 +491,9 @@ namespace PESpy.View
                                 pViewByte->Kind = ViewByteKind.Code; //That leading byte should be code then, not data. Not sure if it's a bad idea to have code with a ViewKind on it?
                                 break;
 
-                            case ViewKind.String:
+                            case ViewKind.AnsiString:
+                            case ViewKind.Utf8String:
+                            case ViewKind.Utf16String:
                                 pViewByte->DataKind = ViewByteDataKind.String;
                                 break;
 

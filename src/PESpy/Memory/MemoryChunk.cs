@@ -80,10 +80,29 @@ namespace PESpy
         public Guid PeekGuid(int offset) => *(Guid*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FixedUtf8String PeekNullPaddedUtf8(int offset, int numChars)
+        public FixedUtf8String PeekNullPaddedUtf8(int offset, int numBytes)
+        {
+            //The string is at most numBytes long
+            var ptr = Pointer + offset;
+
+            int i = 0;
+
+            for (; i < numBytes; i++)
+            {
+                if (*(ptr + i) == 0)
+                    break;
+            }
+
+            return new FixedUtf8String(ptr, i);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FixedUtf16String PeekNullPaddedUtf16(int offset, int numBytes)
         {
             //The string is at most numChars long
-            var ptr = Pointer + offset;
+            var ptr = (char*) (Pointer + offset);
+
+            var numChars = numBytes / 2;
 
             int i = 0;
 
@@ -93,7 +112,7 @@ namespace PESpy
                     break;
             }
 
-            return new FixedUtf8String(ptr, i);
+            return new FixedUtf16String(ptr, i);
         }
 
         //bytesRead includes both the length of the length and the length of the string
@@ -120,14 +139,14 @@ namespace PESpy
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public FixedAnsiString PeekNullPaddedAnsi(int offset, int numChars)
+        public FixedAnsiString PeekNullPaddedAnsi(int offset, int numBytes)
         {
             //The string is at most numChars long
             var ptr = Pointer + offset;
 
             int i = 0;
 
-            for (; i < numChars; i++)
+            for (; i < numBytes; i++)
             {
                 if (*(ptr + i) == 0)
                     break;

@@ -285,6 +285,9 @@ namespace PESpy.View
         public void WriteNullPaddedUtf8Field(string name, int relativeOffset, FixedUtf8String value, int length) => RelayField(name, relativeOffset, value, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteNullPaddedUtf16Field(string name, int relativeOffset, FixedUtf16String value, int length) => RelayField(name, relativeOffset, value, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteNullPaddedUtf8Field(string name, int relativeOffset, string value, int length) => RelayField(name, relativeOffset, value, length);
 
         #endregion
@@ -370,7 +373,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, int relativeOffset, VA<long> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, int relativeOffset, VA<long> value)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -378,7 +381,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong> value)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -386,7 +389,7 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong[]> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, int relativeOffset, VA<ulong[]> value)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -394,7 +397,15 @@ namespace PESpy.View
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteVAPointerField(string name, int relativeOffset, VA<NativeSpan<int>> value, ViewKind valueKind)
+        public void WriteVAPointerField(string name, int relativeOffset, VA<Guid> value)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<NativeSpan<int>> value)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -411,6 +422,14 @@ namespace PESpy.View
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteVAAnsiNullTerminatedField(string name, int relativeOffset, VA<AnsiString> value)
+        {
+            WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
+
+            _viewWriter.VerifyXRef(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteVAPointerField(string name, int relativeOffset, VA<Guid[]> value)
         {
             WritePointerField(name, relativeOffset, value.ListedAddress, FieldViewFlags.Address);
 
@@ -961,11 +980,11 @@ namespace PESpy.View
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineAnsiNullTerminated(RawValue<string> value) =>
-            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.AnsiString);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineAnsiNullTerminated(RawValue<AnsiString> value) =>
-            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.AnsiString);
 
         public void WriteInlineAnsiNullTerminated(AnsiString value) =>
             throw new NotImplementedException();
@@ -974,10 +993,10 @@ namespace PESpy.View
             throw new NotImplementedException();
 
         public void WriteInlineFixedUtf8String(long offset, FixedUtf8String value) =>
-            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
+            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.Utf8String);
 
         public void WriteInlineUtf16NullTerminated(long offset, FixedUtf16String value) =>
-            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.String);
+            RelayInlineAbsoluteOffset(offset, value, value.Length, ViewKind.Utf16String);
 
         public unsafe void WriteInlineLengthPrefixedAnsiString(RawValue<FixedUtf8String> value) =>
             throw new NotImplementedException();
@@ -986,7 +1005,7 @@ namespace PESpy.View
             throw new NotImplementedException();
 
         public void WriteInlineUtf8NullTerminated(RawValue<Utf8String> value) =>
-            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.Utf8String);
 
         public unsafe void WriteInlineUtf8NullTerminated(RawValue<FixedUtf8String> value) =>
             throw new NotImplementedException();
@@ -996,7 +1015,7 @@ namespace PESpy.View
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInlineSymString(RawValue<SymString> value) =>
-            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, ViewKind.String);
+            RelayInlineAbsoluteOffset(value.Offset, value.Value, value.Value.Length + 1, value.Value.IsLengthPrefixed ? ViewKind.SymStringLengthPrefixed : ViewKind.SymStringUtf8);
 
         #endregion
         #endregion

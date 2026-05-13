@@ -29,7 +29,7 @@ namespace PESpy.Tests
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }
 
-        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetRVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, long targetRVA)
         {
             XRefs.Add(new XRef { FieldOffset = fieldOffset, TargetValue = targetRVA });
         }

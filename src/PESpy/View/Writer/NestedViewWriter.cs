@@ -56,7 +56,7 @@ namespace PESpy.View
             outerWriter.WriteRVAXRef(structOffset, fieldOffset, targetRVA);
         }
 
-        public override void WriteVAXRef(long structOffset, int fieldOffset, int targetVA)
+        public override void WriteVAXRef(long structOffset, int fieldOffset, long targetVA)
         {
             outerWriter.WriteVAXRef(structOffset, fieldOffset, targetVA);
         }

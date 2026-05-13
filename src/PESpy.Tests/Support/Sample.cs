@@ -30,8 +30,8 @@ namespace PESpy.Tests
         public static string OBJ_C13 => VS22_OBJ; //Classic OBJ
 
         #endregion
-
-        #region 1. Microsoft C 4.0
+        #region C
+        #region Microsoft C 4.0 (1986)
 
         /// <summary>
         /// Unknown DNRB signature
@@ -43,7 +43,7 @@ namespace PESpy.Tests
         public static readonly string C400_OBJ;
 
         #endregion
-        #region 2. Microsoft C 5.0
+        #region Microsoft C 5.0 (1987)
 
         /// <summary>
         /// NB00
@@ -54,22 +54,7 @@ namespace PESpy.Tests
         public static readonly string C500_OBJ;
 
         #endregion
-        #region 3. MASM 5
-
-        public static readonly string MASM5_NB00_VXD;
-
-        #endregion
-        #region 4. Basic PDS 7.0
-
-        /// <summary>
-        /// NB01
-        /// </summary>
-        public static readonly string BC7_EXE;
-
-        public static readonly string BC7_OBJ;
-
-        #endregion
-        #region 5. Microsoft C 6.0
+        #region Microsoft C 6.0 (1990)
 
         public static readonly string C600_NoSymbols_EXE;
         public static readonly string C600_NoSymbols_OBJ;
@@ -85,7 +70,7 @@ namespace PESpy.Tests
         public static readonly string C600_Tiny_DBG;
 
         #endregion
-        #region 6. Microsoft C/C++ 7.0
+        #region Microsoft C/C++ 7.0 (1992)
 
         /// <summary>
         /// NB08
@@ -102,7 +87,23 @@ namespace PESpy.Tests
         public static readonly string C700_Unpacked_OBJ;
 
         #endregion
-        #region 7. QuickC for Windows 1.0
+        #endregion
+        #region MASM 5 (1988)
+
+        public static readonly string MASM5_NB00_VXD;
+
+        #endregion
+        #region Basic PDS 7.0 (1989)
+
+        /// <summary>
+        /// NB01
+        /// </summary>
+        public static readonly string BC7_EXE;
+
+        public static readonly string BC7_OBJ;
+
+        #endregion
+        #region QuickC for Windows 1.0 (1991)
 
         /// <summary>
         /// NB07
@@ -112,7 +113,28 @@ namespace PESpy.Tests
         public static readonly string QCWIN_OBJ; //Not a COFF file
 
         #endregion
-        #region 8. Visual C++ 1.52
+        #region Visual Basic
+        #region Visual Basic 1
+
+        #endregion
+        #region Visual Basic 2
+
+        #endregion
+        #region Visual Basic 3 (1993)
+
+        #endregion
+        #region Visual Basic 4 (1995)
+
+        #endregion
+        #region Visual Basic 5 (1997)
+
+        #endregion
+        #region Visual Basic 6 (1998)
+
+        #endregion
+        #endregion
+        #region Visual C++
+        #region Visual C++ 1.52 (1993)
 
         /// <summary>
         /// Visual C++ 1.52 EXE New Executable<para/>
@@ -123,7 +145,7 @@ namespace PESpy.Tests
         public static readonly string VC152_PDB;
 
         #endregion
-        #region 9. Visual C++ 2.0
+        #region Visual C++ 2.0
 
         public static readonly string VC20_EXE;
 
@@ -131,7 +153,7 @@ namespace PESpy.Tests
         public static readonly string VC20_PDB;
 
         #endregion
-        #region 10. Visual C++ 4.0
+        #region Visual C++ 4.0 (1995)
 
         /// <summary>
         /// NB10
@@ -153,7 +175,7 @@ namespace PESpy.Tests
         public static readonly string VC40_LE;
 
         #endregion
-        #region 11. Visual C++ 5.0
+        #region Visual C++ 5.0 (1997)
 
         /// <summary>
         /// NB11
@@ -166,7 +188,7 @@ namespace PESpy.Tests
         public static readonly string VC50_PDB;
 
         #endregion
-        #region 12. Visual C++ 6.0
+        #region Visual C++ 6.0 (1998)
 
         //Misc pointing to Dbg which has NB10
         public static readonly string VC60_EXE;
@@ -176,7 +198,12 @@ namespace PESpy.Tests
         public static readonly string VC60_Coff_EXE;
 
         #endregion
-        #region 14. Visual Studio 2022
+        #endregion
+        #region Visual Studio
+        #region Visual Studio .NET (2002)
+
+        #endregion
+        #region Visual Studio 2022 (2022)
 
         /// <summary>
         /// Visual Studio 2022 Portable Executable<para/>
@@ -198,7 +225,8 @@ namespace PESpy.Tests
         public static readonly string VS22_Debug_PDB;
 
         #endregion
-        #region 15. CLR
+        #endregion
+        #region CLR
 
         public static readonly string Framework_EXE;
         public static readonly string Framework_PDB;
@@ -242,143 +270,172 @@ namespace PESpy.Tests
                 return path;
             }
 
-            #region 1. Microsoft C 4.0
+            #region C
+            #region Microsoft C 4.0 (1986)
 
-            C400_EXE = MakePath("1. C400\\TESTAPP.EXE");
-            C400_MAP = MakePath("1. C400\\TESTAPP.MAP");
-            C400_SYM = MakePath("1. C400\\LineNumbers\\TESTAPP.SYM");
-            C400_OBJ = MakePath("1. C400\\TESTAPP.OBJ");
-
-            #endregion
-            #region 2. Microsoft C 5.0
-
-            C500_EXE = MakePath("2. C500\\TESTAPP.EXE");
-            C500_MAP = MakePath("2. C500\\TESTAPP.MAP");
-            C500_OBJ = MakePath("2. C500\\TESTAPP.OBJ");
+            C400_EXE = MakePath("C\\C400 (1986)\\TESTAPP.EXE");
+            C400_MAP = MakePath("C\\C400 (1986)\\TESTAPP.MAP");
+            C400_SYM = MakePath("C\\C400 (1986)\\LineNumbers\\TESTAPP.SYM");
+            C400_OBJ = MakePath("C\\C400 (1986)\\TESTAPP.OBJ");
 
             #endregion
-            #region 3. MASM 5
+            #region Microsoft C 5.0 (1987)
 
-            MASM5_NB00_VXD = MakePath("3. masm5\\NB00_VXD\\EBIOS.386");
-
-            #endregion
-            #region 4. Basic PDS 7.0
-
-            BC7_EXE = MakePath("4. bc7\\TESTAPP.EXE");
-            BC7_OBJ = MakePath("4. bc7\\TESTAPP.OBj");
+            C500_EXE = MakePath("C\\C500 (1987)\\TESTAPP.EXE");
+            C500_MAP = MakePath("C\\C500 (1987)\\TESTAPP.MAP");
+            C500_OBJ = MakePath("C\\C500 (1987)\\TESTAPP.OBJ");
 
             #endregion
-            #region 5. Microsoft C 6.0
+            #region Microsoft C 6.0 (1990)
 
-            C600_NoSymbols_EXE = MakePath("5. C600\\NoSymbols\\TESTAPP.EXE");
-            C600_NoSymbols_OBJ = MakePath("5. C600\\NoSymbols\\TESTAPP.OBJ");
+            C600_NoSymbols_EXE = MakePath("C\\C600 (1990)\\NoSymbols\\TESTAPP.EXE");
+            C600_NoSymbols_OBJ = MakePath("C\\C600 (1990)\\NoSymbols\\TESTAPP.OBJ");
 
-            C600_Symbols_EXE = MakePath("5. C600\\Symbols\\TESTAPP.EXE");
-            C600_Symbols_OBJ = MakePath("5. C600\\Symbols\\TESTAPP.OBJ");
+            C600_Symbols_EXE = MakePath("C\\C600 (1990)\\Symbols\\TESTAPP.EXE");
+            C600_Symbols_OBJ = MakePath("C\\C600 (1990)\\Symbols\\TESTAPP.OBJ");
 
-            C600_Tiny_COM = MakePath("5. C600\\Tiny\\TESTAPP.COM");
-            C600_Tiny_DBG = MakePath("5. C600\\Tiny\\TESTAPP.DBG");
-
-            #endregion
-            #region 6. Microsoft C/C++ 7.0
-
-            C700_Packed_EXE = MakePath("6. C700\\Packed\\TESTAPP.EXE");
-            C700_Packed_OBJ = MakePath("6. C700\\Packed\\TESTAPP.OBJ");
-
-            C700_Unpacked_EXE = MakePath("6. C700\\Unpacked\\TESTAPP.EXE");
-            C700_Unpacked_OBJ = MakePath("6. C700\\Unpacked\\TESTAPP.OBJ");
+            C600_Tiny_COM = MakePath("C\\C600 (1990)\\Tiny\\TESTAPP.COM");
+            C600_Tiny_DBG = MakePath("C\\C600 (1990)\\Tiny\\TESTAPP.DBG");
 
             #endregion
-            #region 7. QuickC for Windows 1.0
+            #region Microsoft C/C++ 7.0 (1992)
 
-            QCWIN_EXE = MakePath("7. qcwin\\TESTAPP.EXE");
-            QCWIN_OBJ = MakePath("7. qcwin\\TESTAPP.OBJ");
+            C700_Packed_EXE = MakePath("C\\C700 (1992)\\Packed\\TESTAPP.EXE");
+            C700_Packed_OBJ = MakePath("C\\C700 (1992)\\Packed\\TESTAPP.OBJ");
 
-            #endregion
-            #region 8. Visual C++ 1.52
-
-            VC152_EXE = MakePath("8. vc152\\TESTAPP.EXE");
-            VC152_PDB = MakePath("8. vc152\\TESTAPP.PDB");
+            C700_Unpacked_EXE = MakePath("C\\C700 (1992)\\Unpacked\\TESTAPP.EXE");
+            C700_Unpacked_OBJ = MakePath("C\\C700 (1992)\\Unpacked\\TESTAPP.OBJ");
 
             #endregion
-            #region 9. Visual C++ 2.0
+            #endregion
+            #region MASM 5 (1988)
 
-            VC20_EXE = MakePath("9. vc20\\TestApp.exe");
-            VC20_OBJ = MakePath("9. vc20\\main.obj");
-            VC20_PDB = MakePath("9. vc20\\TestApp.pdb");
+            MASM5_NB00_VXD = MakePath("MASM\\masm5 (1988)\\NB00_VXD\\EBIOS.386");
 
             #endregion
-            #region 10. Visual C++ 4.0
+            #region Basic PDS 7.0 (1989)
 
-            VC40_EXE = MakePath("10. vc40\\Normal\\TestApp.exe");
-            VC40_OBJ = MakePath("10. vc40\\Normal\\main.obj");
-            VC40_PDB = MakePath("10. vc40\\Normal\\TestApp.pdb");
-
-            VC40_VXD_EXE = MakePath("10. vc40\\CVXD32\\con_samp.exe");
-            VC40_LE = MakePath("10. vc40\\CVXD32\\cvxdsamp.vxd");
+            BC7_EXE = MakePath("BASIC\\bc7 (1989)\\TESTAPP.EXE");
+            BC7_OBJ = MakePath("BASIC\\bc7 (1989)\\TESTAPP.OBj");
 
             #endregion
-            #region 11. Visual C++ 5.0
+            #region QuickC for Windows 1.0 (1991)
 
-            VC50_EXE = MakePath("11. vc50\\TestApp.exe");
-            VC50_OBJ = MakePath("11. vc50\\main.obj");
-            VC50_PDB = MakePath("11. vc50\\TestApp.pdb");
-
-            #endregion
-            #region 12. Visual C++ 6.0
-
-            VC60_EXE = MakePath("12. vc60\\CoffAndPdbSymbols_PostSplit\\TestApp.exe");
-            VC60_PDB = MakePath("12. vc60\\CoffAndPdbSymbols_PostSplit\\TestApp.pdb");
-            VC60_DBG = MakePath("12. vc60\\CoffAndPdbSymbols_PostSplit\\TestApp.dbg");
-
-            VC60_Coff_EXE = MakePath("12. vc60\\CoffSymbolsOnly\\TestApp.exe");
+            QCWIN_EXE = MakePath("QuickC\\qcwin (1991)\\TESTAPP.EXE");
+            QCWIN_OBJ = MakePath("QuickC\\qcwin (1991)\\TESTAPP.OBJ");
 
             #endregion
-            #region 14. Visual Studio 2022
-
-            VS22_EXE = MakePath("14. vs22\\Normal\\TestApp.exe");
-            VS22_EXP = MakePath("14. vs22\\Normal\\TestApp.exp"); //Exports (relating to the lib file)
-            VS22_LIB = MakePath("14. vs22\\Normal\\TestApp.lib");
-            VS22_OBJ = MakePath("14. vs22\\Normal\\TestApp.obj");
-            VS22_PDB = MakePath("14. vs22\\Normal\\TestApp.pdb");
-
-            VS22_LTCG_EXE = MakePath("14. vs22\\LTCG\\TestApp.exe");
-            VS22_LTCG_EXP = MakePath("14. vs22\\LTCG\\TestApp.exp");
-            VS22_LTCG_LIB = MakePath("14. vs22\\LTCG\\TestApp.lib");
-            VS22_LTCG_OBJ = MakePath("14. vs22\\LTCG\\TestApp.obj");
-            VS22_LTCG_PDB = MakePath("14. vs22\\LTCG\\TestApp.pdb");
-
-            VS22_Debug_EXE = MakePath("14. vs22\\Debug\\TestApp.exe");
-            VS22_Debug_PDB = MakePath("14. vs22\\Debug\\TestApp.pdb");
+            #region Visual Basic
+            #region Visual Basic 1 (1991)
 
             #endregion
-            #region 15. CLR
+            #region Visual Basic 2 (1992)
 
-            Framework_EXE     = MakePath("15. CLR\\framework\\TestApp.exe");
-            Framework_PDB     = MakePath("15. CLR\\framework\\TestApp.pdb");
+            #endregion
+            #region Visual Basic 3 (1993)
 
-            Interop_EXE       = MakePath("15. CLR\\interop\\TestApp.exe");
-            Interop_PDB       = MakePath("15. CLR\\interop\\TestApp.pdb");
+            #endregion
+            #region Visual Basic 4 (1995)
 
-            Interop_Core_DLL  = MakePath("15. CLR\\interop-core\\TestLib.dll");
-            Interop_Core_PDB  = MakePath("15. CLR\\interop-core\\TestLib.pdb");
+            #endregion
+            #region Visual Studio 5 (1997)
 
-            MPDB_DLL          = MakePath("15. CLR\\MPDB\\TestLib.dll");
+            #endregion
+            #region Visual Basic 6 (1998)
 
-            NativeAOT_EXE     = MakePath("15. CLR\\NativeAOT\\TestApp.exe");
-            NativeAOT_PDB     = MakePath("15. CLR\\NativeAOT\\TestApp.pdb");
+            #endregion
+            #endregion
+            #region Visual C++
+            #region Visual C++ 1.52 (1993)
 
-            NGEN_DLL          = MakePath("15. CLR\\NGEN\\TestLib.dll");
-            NGEN_NI_DLL       = MakePath("15. CLR\\NGEN\\TestLib.ni.dll");
-            NGEN_PDB          = MakePath("15. CLR\\NGEN\\TestLib.pdb");
-            NGEN_NI_PDB       = MakePath("15. CLR\\NGEN\\TestLib.ni.pdb");
+            VC152_EXE = MakePath("VC\\vc152 (1993)\\TESTAPP.EXE");
+            VC152_PDB = MakePath("VC\\vc152 (1993)\\TESTAPP.PDB");
 
-            R2R_EXE           = MakePath("15. CLR\\R2R\\TestApp.exe");
-            R2R_DLL           = MakePath("15. CLR\\R2R\\TestApp.dll");
-            R2R_PDB           = MakePath("15. CLR\\R2R\\TestApp.pdb");
+            #endregion
+            #region Visual C++ 2.0 (1994)
 
-            SingleFileApp_EXE = MakePath("15. CLR\\SingleFileApp\\TestApp.exe");
-            SingleFileApp_PDB = MakePath("15. CLR\\SingleFileApp\\TestApp.pdb");
+            VC20_EXE = MakePath("VC\\vc20 (1994)\\TestApp.exe");
+            VC20_OBJ = MakePath("VC\\vc20 (1994)\\main.obj");
+            VC20_PDB = MakePath("VC\\vc20 (1994)\\TestApp.pdb");
+
+            #endregion
+            #region Visual C++ 4.0 (1995)
+
+            VC40_EXE = MakePath("VC\\vc40 (1995)\\Normal\\TestApp.exe");
+            VC40_OBJ = MakePath("VC\\vc40 (1995)\\Normal\\main.obj");
+            VC40_PDB = MakePath("VC\\vc40 (1995)\\Normal\\TestApp.pdb");
+
+            VC40_VXD_EXE = MakePath("VC\\vc40 (1995)\\CVXD32\\con_samp.exe");
+            VC40_LE = MakePath("VC\\vc40 (1995)\\CVXD32\\cvxdsamp.vxd");
+
+            #endregion
+            #region Visual C++ 5.0 (1997)
+
+            VC50_EXE = MakePath("VC\\vc50 (1997)\\TestApp.exe");
+            VC50_OBJ = MakePath("VC\\vc50 (1997)\\main.obj");
+            VC50_PDB = MakePath("VC\\vc50 (1997)\\TestApp.pdb");
+
+            #endregion
+            #region Visual C++ 6.0 (1998)
+
+            VC60_EXE = MakePath("VC\\vc60 (1998)\\CoffAndPdbSymbols_PostSplit\\TestApp.exe");
+            VC60_PDB = MakePath("VC\\vc60 (1998)\\CoffAndPdbSymbols_PostSplit\\TestApp.pdb");
+            VC60_DBG = MakePath("VC\\vc60 (1998)\\CoffAndPdbSymbols_PostSplit\\TestApp.dbg");
+
+            VC60_Coff_EXE = MakePath("VC\\vc60 (1998)\\CoffSymbolsOnly\\TestApp.exe");
+
+            #endregion
+            #endregion
+            #region Visual Studio
+            #region Visual Studio .NET 2002 (2002)
+
+            #endregion
+            #region Visual Studio 2022 (2022)
+
+            VS22_EXE = MakePath("VS\\vs22 (2022)\\Normal\\TestApp.exe");
+            VS22_EXP = MakePath("VS\\vs22 (2022)\\Normal\\TestApp.exp"); //Exports (relating to the lib file)
+            VS22_LIB = MakePath("VS\\vs22 (2022)\\Normal\\TestApp.lib");
+            VS22_OBJ = MakePath("VS\\vs22 (2022)\\Normal\\TestApp.obj");
+            VS22_PDB = MakePath("VS\\vs22 (2022)\\Normal\\TestApp.pdb");
+
+            VS22_LTCG_EXE = MakePath("VS\\vs22 (2022)\\LTCG\\TestApp.exe");
+            VS22_LTCG_EXP = MakePath("VS\\vs22 (2022)\\LTCG\\TestApp.exp");
+            VS22_LTCG_LIB = MakePath("VS\\vs22 (2022)\\LTCG\\TestApp.lib");
+            VS22_LTCG_OBJ = MakePath("VS\\vs22 (2022)\\LTCG\\TestApp.obj");
+            VS22_LTCG_PDB = MakePath("VS\\vs22 (2022)\\LTCG\\TestApp.pdb");
+
+            VS22_Debug_EXE = MakePath("VS\\vs22 (2022)\\Debug\\TestApp.exe");
+            VS22_Debug_PDB = MakePath("VS\\vs22 (2022)\\Debug\\TestApp.pdb");
+
+            #endregion
+            #endregion
+            #region CLR
+
+            Framework_EXE = MakePath("CLR\\framework\\TestApp.exe");
+            Framework_PDB     = MakePath("CLR\\framework\\TestApp.pdb");
+
+            Interop_EXE       = MakePath("CLR\\interop\\TestApp.exe");
+            Interop_PDB       = MakePath("CLR\\interop\\TestApp.pdb");
+
+            Interop_Core_DLL  = MakePath("CLR\\interop-core\\TestLib.dll");
+            Interop_Core_PDB  = MakePath("CLR\\interop-core\\TestLib.pdb");
+
+            MPDB_DLL          = MakePath("CLR\\MPDB\\TestLib.dll");
+
+            NativeAOT_EXE     = MakePath("CLR\\NativeAOT\\TestApp.exe");
+            NativeAOT_PDB     = MakePath("CLR\\NativeAOT\\TestApp.pdb");
+
+            NGEN_DLL          = MakePath("CLR\\NGEN\\TestLib.dll");
+            NGEN_NI_DLL       = MakePath("CLR\\NGEN\\TestLib.ni.dll");
+            NGEN_PDB          = MakePath("CLR\\NGEN\\TestLib.pdb");
+            NGEN_NI_PDB       = MakePath("CLR\\NGEN\\TestLib.ni.pdb");
+
+            R2R_EXE           = MakePath("CLR\\R2R\\TestApp.exe");
+            R2R_DLL           = MakePath("CLR\\R2R\\TestApp.dll");
+            R2R_PDB           = MakePath("CLR\\R2R\\TestApp.pdb");
+
+            SingleFileApp_EXE = MakePath("CLR\\SingleFileApp\\TestApp.exe");
+            SingleFileApp_PDB = MakePath("CLR\\SingleFileApp\\TestApp.pdb");
 
             #endregion
         }

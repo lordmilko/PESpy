@@ -13,6 +13,7 @@ using Stream = System.IO.Stream;
 using static PESpy.IMAGE_DEBUG_TYPE;
 using static PESpy.NativeMethods;
 using static ClrDebug.IMAGE_FILE_MACHINE;
+using PESpy.VB;
 
 namespace PESpy
 {
@@ -133,6 +134,8 @@ namespace PESpy
         public SymbolValueList<VftableInfo>? Vftables => peFile.GetVftables(debugger: true);
 
         public RpcInfo? RpcInfo => peFile.RpcInfo;
+
+        public ExeProjectInfo? ExeProjectInfo => peFile.ExeProjectInfo;
     }
 
     /// <summary>
@@ -2943,6 +2946,55 @@ namespace PESpy
         }
 
         #endregion
+        #region VB
+
+        private ExeProjectInfo? exeProjectInfo;
+        private bool hasTriedExeProjectInfo;
+
+        /// <summary>
+        /// Gets the Visual Basic header that identifies this executable as a VB5/6 application.
+        /// </summary>
+        public ExeProjectInfo? ExeProjectInfo
+        {
+            get
+            {
+                if (exeProjectInfo == null && !hasTriedExeProjectInfo)
+                {
+                    /* In a Visual Basic 5/6 EXE, the entry point points to a stub that loads
+                     * the EXEPROJECTINFO header and then calls msvbvm<version>!ThunRTMain. On this basis,
+                     * a VB5/6 EXE can be detected based on the presence of a "push" against a VA, followed
+                     * by a "call", where the target of the "push" starts with the VB5 magic bytes. (VB6 uses the same
+                     * magic bytes as VB5) */
+
+                    var entryPoint = OptionalHeader.AddressOfEntryPoint;
+
+                    if (entryPoint != 0 && TryGetValueChunkFromSection(entryPoint, out var valueChunk) && valueChunk.Remaining >= 10)
+                    {
+                        //VB 5/6 were only ever 32-bit
+                        const int pushPrefix = 0x68;
+                        const int callPrefix = 0xE8;
+
+                        if (valueChunk.PeekByte(0) == pushPrefix && valueChunk.PeekByte(5) == callPrefix)
+                        {
+                            var va = valueChunk.PeekInt32(1);
+
+                            var rva = (int) (va - OptionalHeader.ImageBase);
+
+                            if (TryGetValueChunkFromSection(rva, out valueChunk) && valueChunk.Remaining >= ExeProjectInfo.StructSize && valueChunk.PeekUInt32(0) == ExeProjectInfo.VBMagic)
+                            {
+                                exeProjectInfo = new ExeProjectInfo(valueChunk);
+                            }
+                        }
+                    }
+
+                    hasTriedExeProjectInfo = true;
+                }
+
+                return exeProjectInfo;
+            }
+        }
+
+        #endregion
 
         public FileView GetViewOld() => GetViewOld(ViewMode.Default);
 
@@ -4073,6 +4125,7 @@ namespace PESpy
 
             #endregion
 
+            writer.WriteGlobal(ExeProjectInfo);
             writer.WriteGlobal(ReadyToRunHeader);
 
             writer.WriteGlobal(AppHostSignature);

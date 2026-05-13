@@ -765,6 +765,11 @@ namespace PESpy.Tests
                                                     size = "ulong";
                                                     break;
 
+                                                case "System.Guid":
+                                                    peekKind = "Guid";
+                                                    size = "16";
+                                                    break;
+
                                                 case "CodeViewSig":
                                                     builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, (CodeViewSig) chunk.PeekUInt32(0), sizeof(int), kind),");
                                                     continue;
@@ -775,6 +780,14 @@ namespace PESpy.Tests
 
                                                 case "AnsiString":
                                                     builder.AppendLine("WriteAnsiNullTerminated(chunk, viewWriter, kind),");
+                                                    continue;
+
+                                                case "Utf8String":
+                                                    builder.AppendLine("WriteUtf8NullTerminated(chunk, viewWriter, kind),");
+                                                    continue;
+
+                                                case "Utf16String":
+                                                    builder.AppendLine("WriteUtf16NullTerminated(chunk, viewWriter, kind),");
                                                     continue;
 
                                                 case "FixedAnsiString":
@@ -801,7 +814,13 @@ namespace PESpy.Tests
 
                                     //builder.Append($"");
                                     var cast = structKind == string.Empty ? string.Empty : $"({structKind}) ";
-                                    builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, {cast}chunk.Peek{peekKind}(0), sizeof({size}), kind),");
+
+                                    var s = $"sizeof({size})";
+
+                                    if (int.TryParse(size, out _))
+                                        s = size;
+
+                                    builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, {cast}chunk.Peek{peekKind}(0), {s}, kind),");
                                 }
                                 else if (viewType == ViewType.Field)
                                 {

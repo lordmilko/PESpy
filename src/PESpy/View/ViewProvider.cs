@@ -21,6 +21,10 @@ namespace PESpy
                 ViewKind.CC                                          => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.ImageArchivePad                             => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.Vftable                                     => GetVftable(chunk, viewWriter, length),
+                ViewKind.AnsiString                                  => WriteAnsiNullTerminated(chunk, viewWriter, kind),
+                ViewKind.Utf8String                                  => WriteUtf8NullTerminated(chunk, viewWriter, kind),
+                ViewKind.Utf16String                                 => WriteUtf16NullTerminated(chunk, viewWriter, kind),
+                ViewKind.Guid                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (System.Guid) chunk.PeekGuid(0), 16, kind),
 
                 #region Headers
 
@@ -758,6 +762,18 @@ namespace PESpy
                 ViewKind.LfoDir                                      => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.LfoBase                                     => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.cDir                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.ExeProjectInfo                              => Write(new VB.ExeProjectInfo(chunk),                           viewWriter),
+                ViewKind.ExeFormInfo                                 => Write(new VB.ExeFormInfo(chunk),                              viewWriter),
+                ViewKind.ExeOcxInfo                                  => Write(new VB.ExeOcxInfo(chunk),                               viewWriter),
+                ViewKind.RegData                                     => Write(new VB.RegData(chunk),                                  viewWriter),
+                ViewKind.VBProjectInfo1                              => Write(new VB.VBProjectInfo1(chunk),                           viewWriter),
+                ViewKind.VBProjectInfo2                              => Write(new VB.VBProjectInfo2(chunk),                           viewWriter),
+                ViewKind.VBObjectTable                               => Write(new VB.VBObjectTable(chunk),                            viewWriter),
+                ViewKind.VBPublicObjectDescriptor                    => Write(new VB.VBPublicObjectDescriptor(chunk),                 viewWriter),
+                ViewKind.VBPrivateObjectDescriptor                   => Write(new VB.VBPrivateObjectDescriptor(chunk),                viewWriter),
+                ViewKind.VBObjectInfo                                => Write(new VB.VBObjectInfo(chunk),                             viewWriter),
+                ViewKind.VBOptionalObjectInfo                        => Write(new VB.VBOptionalObjectInfo(chunk),                     viewWriter),
+                ViewKind.VBControlInfo                               => Write(new VB.VBControlInfo(chunk),                            viewWriter),
 
                 _ => throw new InvalidOperationException($"Don't know how to handle kind '{kind}'")
             };
@@ -835,6 +851,18 @@ namespace PESpy
         {
             var str = chunk.PeekAnsiNullTerminatedString(0);
             return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length + 1, kind);
+        }
+
+        private static IView WriteUtf8NullTerminated(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
+        {
+            var str = chunk.PeekUtf8NullTerminatedString(0);
+            return viewWriter.NewValue(chunk.AbsoluteOffset, str, str.Length + 1, kind);
+        }
+
+        private static IView WriteUtf16NullTerminated(in MemoryChunk chunk, ViewWriter viewWriter, ViewKind kind)
+        {
+            var str = chunk.PeekUtf16NullTerminatedString(0);
+            return viewWriter.NewValue(chunk.AbsoluteOffset, str, (str.Length + 1) * 2, kind);
         }
 
         private static IView WriteFixedAnsiString(in MemoryChunk chunk, ViewWriter viewWriter, int length, ViewKind kind)

@@ -887,7 +887,9 @@ namespace PESpy.View
                     builder.Append(kind.ToString());
                     break;
 
-                case ViewKind.String:
+                case ViewKind.AnsiString:
+                case ViewKind.Utf8String:
+                case ViewKind.Utf16String:
                 case ViewKind.Metadata_String:
                 case ViewKind.Metadata_UserString:
                 case ViewKind.Metadata_Guid:
@@ -933,6 +935,7 @@ namespace PESpy.View
 
                 builder.Append("\"");
                 builder.Append(str);
+                builder.Append('\0');
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedAnsiString))
@@ -949,6 +952,7 @@ namespace PESpy.View
 
                 builder.Append("\"");
                 builder.Append(str);
+                builder.Append('\0');
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedUtf8String))
@@ -965,6 +969,7 @@ namespace PESpy.View
 
                 builder.Append("L\"");
                 builder.Append(str);
+                builder.Append('\0');
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedUtf16String))
@@ -985,6 +990,7 @@ namespace PESpy.View
                     builder.Append("\"");
 
                 builder.Append(str);
+                builder.Append('\0');
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(SymString))
@@ -993,6 +999,10 @@ namespace PESpy.View
 
                 builder.Append("\"");
                 builder.Append(str);
+
+                if (!str.IsLengthPrefixed)
+                    builder.Append('\0');
+
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(byte))
@@ -1050,7 +1060,7 @@ namespace PESpy.View
                 if (smallHexNumbers)
                 {
                     builder.Append("0x");
-                    builder.AppendHex((uint) val);
+                    builder.AppendHex(unchecked((uint) val));
                 }
                 else
                     builder.Append(val);
@@ -1187,6 +1197,7 @@ namespace PESpy.View
                 case Utf8String v4:
                     builder.Append("\"");
                     builder.Append((FixedUtf8String) v4);
+                    builder.Append('\0');
                     builder.Append("\"");
                     break;
 
@@ -1199,6 +1210,7 @@ namespace PESpy.View
                 case Utf16String v6:
                     builder.Append("L\"");
                     builder.Append(v6);
+                    builder.Append('\0');
                     builder.Append("\"");
                     break;
 
@@ -1215,12 +1227,17 @@ namespace PESpy.View
                         builder.Append("L\"");
 
                     builder.Append(v8);
+                    builder.Append('\0');
                     builder.Append("\"");
                     break;
 
                 case SymString v9:
                     builder.Append("L\"");
                     builder.Append(v9);
+
+                    if (!v9.IsLengthPrefixed)
+                        builder.Append('\0');
+
                     builder.Append("\"");
                     break;
 

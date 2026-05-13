@@ -708,7 +708,7 @@ namespace PESpy
             {
                 var fnPtr = (long) valueChunk.PeekPointer(0);
 
-                return new VA<long>(value, valueChunk.AbsoluteOffset, fnPtr);
+                field = new VA<long>(value, valueChunk.AbsoluteOffset, fnPtr);
             }
             else
             {

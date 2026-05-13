@@ -613,6 +613,20 @@ var strings = new[]{
     "lfoBase",
     "cDir",
 
+    //VB
+    "EXEPROJECTINFO",
+    "EXEFORMINFO",
+    "EXEOCXINFO",
+    "REGDATA",
+    "Project Info",
+    "Secondary Project Info",
+    "Object Table",
+    "Public Object Descriptor",
+    "Private Object Descriptor",
+    "Object Info",
+    "Optional Object Info",
+    "Control Info",
+
     //Demangler
     "`RTTI Type Descriptor'",
     "`RTTI Type Descriptor Name'",

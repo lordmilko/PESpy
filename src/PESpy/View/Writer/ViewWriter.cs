@@ -845,6 +845,23 @@ namespace PESpy.View
             }
         }
 
+        public void WriteVAPointerField(VA<Guid> value, ViewKind valueKind, long structOffset, int fieldOffset)
+        {
+            if (value.IsValid && value.ListedAddress != 0)
+            {
+                WriteOffsetXRef(structOffset, fieldOffset, value.ActualOffset);
+
+#if DEBUG
+                globalFields.Add(value.ListedAddress);
+#endif
+
+                if (helper.Is32Bit)
+                    WriteGlobal(value.ActualOffset, value.Value, 16, valueKind);
+                else
+                    WriteGlobal(value.ActualOffset, value.Value, 16, valueKind);
+            }
+        }
+
         public void WriteVAPointerField(VA<ulong[]> value, ViewKind valueKind, long structOffset, int fieldOffset)
         {
             if (value.IsValid && value.ListedAddress != 0)
@@ -1070,6 +1087,8 @@ namespace PESpy.View
 
         public void WriteUniqueOffsetXRef(long structOffset, int fieldOffset, int targetOffset)
         {
+            //It's up to derived implementations to decide to ignore 0
+
             if (trackedRVAXRefs.Add(((int) structOffset + fieldOffset, targetOffset)))
             {
 #if DEBUG
@@ -1085,6 +1104,8 @@ namespace PESpy.View
         //NOTE: anyone that calls this method must provide the _target_ offset, after having resolved an RVA to its physical location
         public virtual void WriteOffsetXRef(long structOffset, int fieldOffset, long targetOffset)
         {
+            //It's up to derived implementations to decide to ignore 0
+
 #if DEBUG
             VerifyWritingUniqueXRef();
 #endif
@@ -1095,6 +1116,8 @@ namespace PESpy.View
 
         public void WriteUniqueRVAXRef(long structOffset, int fieldOffset, int targetRVA)
         {
+            //It's up to derived implementations to decide to ignore 0
+
             if (trackedRVAXRefs.Add(((int) structOffset + fieldOffset, targetRVA)))
             {
 #if DEBUG
@@ -1119,6 +1142,8 @@ namespace PESpy.View
 
         public void WriteRVAXRef(long structOffset, int fieldOffset, VA<NativeSpan<int>> value)
         {
+            //It's up to derived implementations to decide to ignore 0
+
 #if DEBUG
             VerifyWritingUniqueXRef();
 #endif
@@ -1133,8 +1158,10 @@ namespace PESpy.View
             }
         }
 
-        public virtual void WriteVAXRef(long structOffset, int fieldOffset, int targetVA)
+        public virtual void WriteVAXRef(long structOffset, int fieldOffset, long targetVA)
         {
+            //It's up to derived implementations to decide to ignore 0
+
 #if DEBUG
             VerifyWritingUniqueXRef();
 #endif

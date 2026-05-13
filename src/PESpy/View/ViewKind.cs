@@ -93,8 +93,28 @@ namespace PESpy.View
         /// </summary>
         Strings,
 
-        String,
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
+        /// </summary>
+        AnsiString,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.Utf8String"/>.
+        /// </summary>
+        Utf8String,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.Utf16String"/>.
+        /// </summary>
+        Utf16String,
+        SymStringLengthPrefixed,
+        SymStringUtf8,
         StringLength, //For length prefixed string
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an <see cref="System.Guid"/>.
+        /// </summary>
+        Guid,
 
         //Unknown decimal value
         Decimal,
@@ -212,12 +232,12 @@ namespace PESpy.View
         ImageExportDirectory,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageExportDirectory_Name,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageExportDirectory_ForwarderName,
 
@@ -225,7 +245,7 @@ namespace PESpy.View
         ImageExportDirectory_AddressOfNames_Entry,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageExportDirectory_AddressOfNames_Name,
 
@@ -256,12 +276,12 @@ namespace PESpy.View
         ImageImportDescriptor,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageImportDescriptor_Name,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageEnclaveImport_ImportName,
 
@@ -939,7 +959,7 @@ namespace PESpy.View
         ImageBoundImportDescriptor,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageBoundImportName,
 
@@ -962,7 +982,7 @@ namespace PESpy.View
         ImageDelayLoadDescriptor,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ImageDelayLoadDescriptor_DllNameRVA,
 
@@ -2703,12 +2723,12 @@ namespace PESpy.View
         ShortImportLibraryMember,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents a <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents a <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ShortImportLibrary_DllName,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents a <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents a <see cref="PESpy.AnsiString"/>.
         /// </summary>
         ShortImportLibrary_ImportName,
 
@@ -2903,7 +2923,7 @@ namespace PESpy.View
         LibraryName,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="AnsiString"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="PESpy.AnsiString"/>.
         /// </summary>
         [Description(nameof(Str.SegmentName))]
         SegmentName,
@@ -2985,6 +3005,80 @@ namespace PESpy.View
         /// </summary>
         [Description(nameof(Str.cDir))]
         cDir,
+
+        //VB
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.ExeProjectInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.EXEPROJECTINFO))]
+        ExeProjectInfo,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.ExeFormInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.EXEFORMINFO))]
+        ExeFormInfo,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.ExeOcxInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.EXEOCXINFO))]
+        ExeOcxInfo,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.RegData"/>.
+        /// </summary>
+        [Description(nameof(Str.REGDATA))]
+        RegData,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBProjectInfo1"/>.
+        /// </summary>
+        [Description(nameof(Str.ProjectInfo))]
+        VBProjectInfo1,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBProjectInfo2"/>.
+        /// </summary>
+        [Description(nameof(Str.SecondaryProjectInfo))]
+        VBProjectInfo2,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBObjectTable"/>.
+        /// </summary>
+        [Description(nameof(Str.ObjectTable))]
+        VBObjectTable,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBPublicObjectDescriptor"/>.
+        /// </summary>
+        [Description(nameof(Str.PublicObjectDescriptor))]
+        VBPublicObjectDescriptor,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBPrivateObjectDescriptor"/>.
+        /// </summary>
+        [Description(nameof(Str.PrivateObjectDescriptor))]
+        VBPrivateObjectDescriptor,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBObjectInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.ObjectInfo))]
+        VBObjectInfo,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBOptionalObjectInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.OptionalObjectInfo))]
+        VBOptionalObjectInfo,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.VB.VBControlInfo"/>.
+        /// </summary>
+        [Description(nameof(Str.ControlInfo))]
+        VBControlInfo,
 
         PortablePDBFile,
 
