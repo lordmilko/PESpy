@@ -1,9 +1,5 @@
 using System;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using PInvoke;
-using ReView;
 
 namespace PESpy
 {
@@ -17,12 +13,10 @@ namespace PESpy
 
             try
             {
-                var mainWindow = new MainWindow
-                {
-                    Visible = true
-                };
-
+                var mainWindow = new MainWindow();
                 App.MainWindow = mainWindow;
+
+                mainWindow.Visible = true;
 
                 var hWnd = mainWindow.NativeHandle;
 

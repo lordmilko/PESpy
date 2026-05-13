@@ -528,12 +528,12 @@ namespace PESpy.View
                                 if (entity.ViewByte->IsWide)
                                 {
                                     var str = new FixedUtf16String((char*) (byte*) entity.Bytes, entity.Length / 2);
-                                    return new ValueView<FixedUtf16String>(entity.TargetAddress, str, entity.Length, ViewKind.String, this, entity.Name);
+                                    return new ValueView<FixedUtf16String>(entity.TargetAddress, str, entity.Length, ViewKind.Utf16String, this, entity.Name);
                                 }
                                 else
                                 {
                                     var str = new FixedUtf8String((byte*) entity.Bytes, entity.Length);
-                                    return new ValueView<FixedUtf8String>(entity.TargetAddress, str, entity.Length, ViewKind.String, this, entity.Name);
+                                    return new ValueView<FixedUtf8String>(entity.TargetAddress, str, entity.Length, ViewKind.Utf8String, this, entity.Name);
                                 }
 
                             case ViewByteDataKind.Unknown:
@@ -993,7 +993,7 @@ namespace PESpy.View
                 }
 
                 //If displacement is not 0, this can't be where the name came from
-                if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out var displacement) && displacement == 0)
+                if (GetSymbolAccessor().TryGetNameFromAddress(rva, out var symName, out displacement))
                 {
                     if (allowDisplacement || displacement == 0)
                     {
@@ -1027,11 +1027,11 @@ namespace PESpy.View
         }
 
         //We used PooledStringBuilder here because the principal usage of this is printing to the UI, which uses PooledStringBuilder
-        internal void GetFullCodeName(
+        internal bool GetFullCodeName(
             long targetAddress,
             int sectionAccessorIndex,
             ViewByte* pViewByte,
-            ref PooledStringBuilder builder)
+            ref ValueStringBuilder builder)
         {
             ref var sectionAccessor = ref SectionAccessors[sectionAccessorIndex];
 
@@ -1062,7 +1062,7 @@ namespace PESpy.View
                             utf8Builder.Dispose();
                         }
 
-                        return;
+                        return true;
                     }
                 }
 
@@ -1077,7 +1077,7 @@ namespace PESpy.View
                         builder.AppendHex((ulong) Math.Abs(displacement));
                     }
 
-                    return;
+                    return true;
                 }
 
                 //Must be an export
@@ -1094,12 +1094,14 @@ namespace PESpy.View
                             if (!export.ForwardOrAddress.IsForward && export.ForwardOrAddress.Address == rva)
                             {
                                 builder.Append((FixedUtf8String) export.Name);
-                                return;
+                                return true;
                             }
                         }
                     }
                 }
             }
+
+            return false;
         }
 
         internal bool TryGetNameFromAddress(long targetAddress, out FixedUtf8String name)

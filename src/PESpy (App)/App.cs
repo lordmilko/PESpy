@@ -10,9 +10,6 @@ using ReView;
 
 namespace PESpy
 {
-
-    
-
     internal class App
     {
         [AllowNull]
@@ -20,7 +17,28 @@ namespace PESpy
 
         private static object _fatalErrorLock = new object();
 
-        public static FileAccessor? FileAccessor { get; set; }
+        public static event EventHandler<FileOpenedEventArgs>? FileOpened;
+        public static event EventHandler? FileClosed;
+
+        public static event EventHandler<int>? PositionChanged;
+
+        private static RefCounted<FileAccessor> FileAccessor = new();
+
+        internal static FileAccessorHolder AcquireFileAccessor() => new FileAccessorHolder(FileAccessor.Acquire());
+
+        internal static void ReleaseFileAccessor() => FileAccessor.Release();
+
+        internal static void SetFileAccessor(FileAccessor fileAccessor)
+        {
+            Debug.Assert(FileAccessor.IsEmpty, "A CloseFileJob should have been dispatched prior to dispatching this OpenFileJob");
+            FileAccessor.Set(fileAccessor);
+        }
+
+        internal static bool TryCloseFileAccessor() => FileAccessor.TryDispose();
+
+        internal static void RaiseFileOpened(FileOpenedEventArgs eventArgs) => FileOpened?.Invoke(null, eventArgs);
+
+        internal static void RaiseFileClosed() => FileClosed?.Invoke(null, EventArgs.Empty);
 
         public static IFileAnalyzerProgress? Progress { get; set; }
 
@@ -34,7 +52,7 @@ namespace PESpy
 
         static App()
         {
-            NativeWindow.OnFatalError += (s, e) => App.FatalError(e);
+            NativeWindow.OnFatalError += (s, e) => FatalError(e);
         }
 
         public static void OpenFile(string fileName)
@@ -60,6 +78,8 @@ namespace PESpy
                     _workQueue.Enqueue(CloseFileJob.Instance);
                     _workQueue.Enqueue(new OpenFileJob(file, _fileCTS.Token));
                 }
+
+                FileOpened?.Invoke(null, new FileOpenedEventArgs(FileOpenedEventKind.OpenFile, file));
 
                 _hasWork.Set();
             }
@@ -94,12 +114,18 @@ namespace PESpy
 
                 _hasWork.Reset();
 
-                IJob job;
+                IJob? job;
 
-                lock (_workQueueLock)
-                    job = _workQueue.Dequeue();
+                while (true)
+                {
+                    lock (_workQueueLock)
+                    {
+                        if (!_workQueue.TryDequeue(out job))
+                            break;
+                    }
 
-                job.Execute();
+                    job.Execute();
+                }
             }
         }
 

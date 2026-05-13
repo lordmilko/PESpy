@@ -46,6 +46,8 @@ namespace PESpy.PowerShell
                 "*.exe",
                 "*.dll",
                 "*.sys",
+                "*.drv",
+                "*.ocx",
                 "*.pdb",
                 "*.dbg",
                 "*.sym"

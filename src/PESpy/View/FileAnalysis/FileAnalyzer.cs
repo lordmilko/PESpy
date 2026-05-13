@@ -779,7 +779,12 @@ namespace PESpy.View
         {
             if (sectionDataAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
             {
-                var pViewByte = AddCode(targetAddress, rva, sectionIndex);
+                var pViewByte = _fileAccessor.GetViewByteForSection(targetAddress, sectionIndex);
+
+                if (pViewByte->Kind == ViewByteKind.Data)
+                    return; //Already known to be data; don't mess it up by treating it like code
+
+                AddCode(targetAddress, rva);
 
                 if (name.Length > 0)
                 {
@@ -820,7 +825,8 @@ namespace PESpy.View
 
             var pubSym32 = (PubSym32) symType;
 
-            var name = (FixedUtf8String) symType.GetName(codeViewAccessor);
+            //Note that if our heuristic is wrong and in fact the public points to data already (e.g. an import or delay import)
+            //we'll catch this and abort in ProcessCodeSymbol
 
             if (pubSym32.pubsymflags.fFunction)
             {

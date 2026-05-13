@@ -32,6 +32,10 @@ namespace PESpy
 
         public static bool TryGetDescription(this Enum element, out string? description)
         {
+#if NATIVEAOT
+            description = default;
+            return false;
+#else
             var memberInfo = element.GetType().GetMember(element.ToString());
 
             if (memberInfo.Length > 0)
@@ -47,6 +51,7 @@ namespace PESpy
 
             description = null;
             return false;
+#endif
         }
     }
 }

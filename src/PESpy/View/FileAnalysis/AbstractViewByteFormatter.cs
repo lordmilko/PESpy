@@ -1809,7 +1809,7 @@ namespace PESpy.View
         protected internal static Type FormatField(
             IFieldView view,
             FileAccessor fileAccessor,
-            ref ValueStringBuilder.NonRef builder,
+            ref PooledStringBuilder builder,
             bool listFormat = false)
         {
             bool wantDecimal;
@@ -2448,7 +2448,7 @@ namespace PESpy.View
 
         #endregion
 
-        private static void WriteEnumByte<TEnum>(IFieldView view, ref ValueStringBuilder.NonRef builder) where TEnum : System.Enum
+        private static void WriteEnumByte<TEnum>(IFieldView view, ref PooledStringBuilder builder) where TEnum : System.Enum
         {
             var enumValue = ((FieldView<TEnum>) view).Value;
             //builder.Append(enumValue.ToString());
@@ -2457,7 +2457,7 @@ namespace PESpy.View
             AppendEnumNumeric(underlying, ref builder);
         }
 
-        private static void WriteEnumUInt16<TEnum>(IFieldView view, ref ValueStringBuilder.NonRef builder) where TEnum : System.Enum
+        private static void WriteEnumUInt16<TEnum>(IFieldView view, ref PooledStringBuilder builder) where TEnum : System.Enum
         {
             var enumValue = ((FieldView<TEnum>) view).Value;
             //builder.Append(enumValue.ToString());
@@ -2466,7 +2466,7 @@ namespace PESpy.View
             AppendEnumNumeric(underlying, ref builder);
         }
 
-        private static void WriteEnumUInt32<TEnum>(IFieldView view, ref ValueStringBuilder.NonRef builder) where TEnum : System.Enum
+        private static void WriteEnumUInt32<TEnum>(IFieldView view, ref PooledStringBuilder builder) where TEnum : System.Enum
         {
             var enumValue = ((FieldView<TEnum>) view).Value;
             //builder.Append(enumValue.ToString());
@@ -2661,7 +2661,7 @@ namespace PESpy.View
             _formatRanges.Add(format, startPos, _builder.Length);
         }
 
-        private static void WriteXRef(int offset, ulong target, FileAccessor fileAccessor, ref ValueStringBuilder.NonRef builder)
+        private static void WriteXRef(int offset, ulong target, FileAccessor fileAccessor, ref ValueStringBuilder builder)
         {
             return;
 

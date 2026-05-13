@@ -22,7 +22,7 @@ namespace PESpy.View
             get
             {
                 if (_name.Length == 0 && ViewByte->HasName)
-                    _name = _fileAccessor.GetNameFromViewByte(TargetAddress, SectionAccessorIndex, ViewByte);
+                    _name = _fileAccessor.GetNameFromViewByte(TargetAddress - Displacement, SectionAccessorIndex, ViewByte);
 
                 return _name;
             }
@@ -34,7 +34,7 @@ namespace PESpy.View
         {
             get
             {
-                var builder = new PooledStringBuilder();
+                var builder = new ValueStringBuilder();
 
                 try
                 {
@@ -49,7 +49,7 @@ namespace PESpy.View
             }
         }
 
-        public void GetFullName(ref PooledStringBuilder builder)
+        public void GetFullName(ref ValueStringBuilder builder)
         {
             if (ViewByte->Kind == ViewByteKind.Code)
                 _fileAccessor.GetFullCodeName(TargetAddress, SectionAccessorIndex, ViewByte, ref builder);
@@ -321,7 +321,7 @@ namespace PESpy.View
 
         public bool Contains(int targetAddress) => targetAddress >= TargetAddress && targetAddress < (TargetAddress + Length);
 
-        internal void ToString(ref PooledStringBuilder builder)
+        internal void ToString(ref ValueStringBuilder builder)
         {
             if (ViewByte == default)
                 return;
@@ -446,7 +446,7 @@ namespace PESpy.View
 
         public override string ToString()
         {
-            var builder = new PooledStringBuilder(100);
+            var builder = new ValueStringBuilder(100);
 
             try
             {

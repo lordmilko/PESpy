@@ -18,6 +18,38 @@ namespace PESpy
 
             Text = _baseTitle;
             Size = new SIZE(1133, 756);
+
+            App.FileOpened += App_FileOpened;
+            App.FileClosed += App_FileClosed;
+
+            Children.Add(new ViewMap(out var viewMap)
+            {
+                Dock = DockStyle.Fill
+            });
+        }
+
+        private void App_FileOpened(object? sender, FileOpenedEventArgs e)
+        {
+            if (e.EventKind != FileOpenedEventKind.OpenFile)
+                return;
+
+            /* We optimize our title so that it displays nicely when you've got lots of windows open
+             * in your taskbar. You're only going to be able to see a few characters, so it's important
+             * to show the base name first. Once you've opened the window, it's then useful to be able
+             * to see which version of that file it is, followed by the fact that you're using PESpy */
+            Text = $"{e.File!.Name} - {e.File.FileName} - {_baseTitle}";
+        }
+
+        private void App_FileClosed(object? sender, EventArgs e)
+        {
+            Text = _baseTitle;
+        }
+
+        protected override void OnHandleCreated()
+        {
+            base.OnHandleCreated();
+
+            App.OpenFile("C:\\symbols\\coreclr.dll\\68A4F5894A9000\\coreclr.dll");
         }
 
         protected override unsafe void WmDropFiles(HDROP hDrop)

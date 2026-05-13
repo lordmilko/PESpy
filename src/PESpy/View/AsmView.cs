@@ -9,7 +9,7 @@ namespace PESpy.View
 
         string FullName { get; }
 
-        void GetFullName(ref PooledStringBuilder builder);
+        void GetFullName(ref ValueStringBuilder builder);
 
         byte Bitness { get; }
     }
@@ -44,7 +44,7 @@ namespace PESpy.View
         {
             get
             {
-                var builder = new PooledStringBuilder();
+                var builder = new ValueStringBuilder();
 
                 try
                 {
@@ -59,7 +59,7 @@ namespace PESpy.View
             }
         }
 
-        public unsafe void GetFullName(ref PooledStringBuilder builder)
+        public unsafe void GetFullName(ref ValueStringBuilder builder)
         {
             var pViewByte = _fileAccessor.GetViewByte(Offset, out var sectionAccessorIndex);
             _fileAccessor.GetFullCodeName(Offset, sectionAccessorIndex, pViewByte, ref builder);

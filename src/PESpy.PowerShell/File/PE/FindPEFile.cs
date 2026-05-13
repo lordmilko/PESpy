@@ -25,7 +25,7 @@ namespace PESpy.PowerShell.PE
         protected override void ProcessRecord()
         {
             if (Extensions == null)
-                Extensions = new[] { "*.dll", "*.exe", "*.sys" };
+                Extensions = new[] { "*.dll", "*.exe", "*.sys", "*.drv", "*.ocx" };
             else
                 throw new System.NotImplementedException();
 

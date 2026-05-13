@@ -144,7 +144,14 @@ namespace PESpy.View
                 sectionAccessors[sectionAccessors.Length - 1] = new SectionAccessor(overlayStart, overlayStart + overlayLength, SectionAccessorKind.Overlay, -1, "OVERLAY", MemoryMappedFile.CreateNew(null, overlayLength * ViewByte.Size));
             }
 
-            Length = sectionAccessors[sectionAccessors.Length - 1].EndAddress;
+            //In virtual mode, ViewMap will underallocate pixels to each section as a result of the
+            //gaps in-between each section
+            var length = 0;
+
+            for (var i = 0; i < sectionAccessors.Length; i++)
+                length += sectionAccessors[i].Length;
+
+            Length = length;
 
             SectionAccessors = sectionAccessors;
         }

@@ -115,7 +115,7 @@ namespace PESpy.View
 
             if (view.Name != null)
             {
-                var pooledStringBuilder = new PooledStringBuilder(256);
+                var pooledStringBuilder = new ValueStringBuilder(256);
 
                 try
                 {
