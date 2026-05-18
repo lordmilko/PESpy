@@ -78,7 +78,7 @@ namespace PESpy.PDB
                 case DEBUG_S_LINES:
                 case DEBUG_S_IL_LINES:
                     var lines = GetLines();
-                    return Unsafe.As<CvDebugSLinesHeader, T>(ref lines); //CvDebugSLinesHeader is a class so sthis is safe
+                    return Unsafe.As<CvDebugSLinesHeader, T>(ref lines); //CvDebugSLinesHeader is a class so this is safe
 
                 case DEBUG_S_STRINGTABLE:
                     var stringTable = GetStringTable();

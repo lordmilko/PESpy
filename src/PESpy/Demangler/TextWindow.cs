@@ -409,6 +409,21 @@ namespace PESpy
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ManagedArrayTypeNode AllocManagedArrayType(
+                Qualifiers qualifiers,
+                PointerAffinity affinity,
+                TypeNode elementType,
+                int rank)
+            {
+                var managedArrayTypeNode = arena?.ManagedArrayType.Allocate() ?? new ManagedArrayTypeNode();
+                managedArrayTypeNode.Qualifiers = qualifiers;
+                managedArrayTypeNode.Affinity = affinity;
+                managedArrayTypeNode.ElementType = elementType;
+                managedArrayTypeNode.Rank = rank;
+                return managedArrayTypeNode;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public NamedIdentifierNode AllocNamedIdentifier(ref Utf8StringBuilder builder)
             {
                 var str = builder.ToPointer();
@@ -580,6 +595,4 @@ namespace PESpy
             }
         }
     }
-
-
 }

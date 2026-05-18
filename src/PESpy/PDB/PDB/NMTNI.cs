@@ -37,8 +37,7 @@ namespace PESpy.PDB
             {
                 var size = 4 + NameOffsetToStreamIndexMap.StructSize;
 
-                foreach (var name in Names)
-                    size += name.Value.Length + 1;
+                size += NameBufferSize;
 
                 size += 4; //niMac
 

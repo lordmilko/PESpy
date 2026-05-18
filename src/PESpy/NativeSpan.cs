@@ -5,28 +5,19 @@ using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
-    class NativeSpanDebugView<T> where T : unmanaged
-    {
-        private readonly NativeSpan<T> span;
-
-        public NativeSpanDebugView(NativeSpan<T> span)
-        {
-            this.span = span;
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public T[] Items => span.ToArray();
-    }
-
     /// <summary>
     /// Represents an a <see cref="Span{T}"/> around native memory, capable of being stored on the heap.
     /// </summary>
     /// <typeparam name="T">The type of element contained in the span.</typeparam>
-    [DebuggerTypeProxy(typeof(NativeSpanDebugView<>))]
     public readonly unsafe struct NativeSpan<T> where T : unmanaged
     {
         private readonly T* pointer;
         private readonly int length;
+
+        //Needed because NativeSpan<OMAP_DATA>? doesn't display properly
+        //if we use a debugger type proxy
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => AsSpan().ToArray();
 
         public NativeSpan(void* pointer, int length)
         {
@@ -48,6 +39,7 @@ namespace PESpy
 
         public int Length => length;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public bool IsEmpty => length == 0;
 
         public Span<T> AsSpan() => new Span<T>(pointer, length);

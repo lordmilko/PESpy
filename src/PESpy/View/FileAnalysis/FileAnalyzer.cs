@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime;
@@ -7,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ClrDebug.DIA;
 using ClrDebug.OMF;
+using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.View.Builder;
 using static ClrDebug.PDB.SYM_ENUM_e;
@@ -382,7 +384,7 @@ namespace PESpy.View
 
             var globals = pdbFile.GSI?.Symbols;
 
-            //Another complicating factor we have is that symbols for managed assemblies often seem to contain complete gargage
+            //Another complicating factor we have is that symbols for managed assemblies often seem to contain complete garbage
             //that points halfway into the ImageCorILMethod. We fix this by firstly ignoring any symbols that are a tokenref,
             //and secondly by ignoring any publics that are fMSIL
             if (globals != null)
@@ -1002,6 +1004,10 @@ namespace PESpy.View
 
             var viewWriter = _viewWriter;
 
+            //You can have multiple vftable symbols that target a specific address
+            if (!_fileAccessor.AddStruct(this, targetAddress, sectionIndex, ViewKind.Vftable, length))
+                return true;
+
             switch (_fileAccessor.Bitness)
             {
                 case 32:
@@ -1009,7 +1015,12 @@ namespace PESpy.View
 
                     for (var i = 0; i < slots32.Length; i++)
                     {
-                        var rva = (int) (slots32[i] - imageBase);
+                        var va = slots32[i];
+
+                        if (va == 0)
+                            continue;
+
+                        var rva = (int) (va - imageBase);
 
                         if (lookupCache.TryGetSectionInfo(rva, out var functionTargetAddress, out _, out _))
                             AddXRef(targetAddress + (i * sizeof(int)), functionTargetAddress);
@@ -1022,7 +1033,12 @@ namespace PESpy.View
 
                     for (var i = 0; i < slots64.Length; i++)
                     {
-                        var rva = (int) (slots64[i] - imageBase);
+                        var va = slots64[i];
+
+                        if (va == 0)
+                            continue;
+
+                        var rva = (int) (va - imageBase);
 
                         if (lookupCache.TryGetSectionInfo(rva, out var functionTargetAddress, out _, out _))
                             AddXRef(targetAddress + (i * sizeof(long)), functionTargetAddress);
@@ -1033,8 +1049,6 @@ namespace PESpy.View
                 default:
                     throw new NotImplementedException();
             }
-
-            _fileAccessor.AddStruct(this, targetAddress, sectionIndex, ViewKind.Vftable, length);
 
             return true;
         }
@@ -1323,7 +1337,7 @@ namespace PESpy.View
             //pEndByte is the very last byte of the directory. Sometimes the listed size of a directory doesn't
             //actually match the size of the data within it. If we're in the middle of reading a valid value,
             //expand the directory to the end of it. In rare circumstances, there might be a 1 byte value at the end
-            //of the current directoryl that's OK
+            //of the current directory that's OK
 
             if (pEndByte->Kind != ViewByteKind.Body)
             {
@@ -1647,6 +1661,7 @@ namespace PESpy.View
                 case CodeViewSig.NB07:
                 case CodeViewSig.NB08:
                 case CodeViewSig.NB09:
+                case CodeViewSig.NB11:
                     var nb05 = (NB05Data) codeViewData;
 
                     CreateOMFRegion(nb05.Offset, nb05.LfoBase, nb05.Signature);
@@ -2005,9 +2020,17 @@ namespace PESpy.View
 
                 while (pViewByte < pEnd)
                 {
+#if DEBUG
+                    var targetAddress = sectionAccessor.StartAddress + (pViewByte - sectionAccessor.pViewBytes);
+#endif
+
                     if (pViewByte->Kind == ViewByteKind.Data && pViewByte->DataKind == ViewByteDataKind.Unknown)
                     {
                         pViewByte++;
+
+                        //I don't know that we necessarily need to mark split heads/tails. We don't know whether a given piece of data will span multiple pages
+                        //or not. It's kind of hard to say. Also I know we made a comment in ViewByte.GetUnknownLength about the fact we rely on unknown data _not_ being split
+                        //over multiple pages
 
                         //Seize all unknown bytes that follow
                         while (pViewByte < pEnd)
@@ -2110,6 +2133,10 @@ namespace PESpy.View
 
                 while (pViewByte < pEnd)
                 {
+#if DEBUG
+                    var targetAddress = sectionAccessor.StartAddress + (pViewByte - sectionAccessor.pViewBytes);
+#endif
+
                     var kind = pViewByte->Kind;
 
                     if (kind == ViewByteKind.Unknown)
@@ -2459,8 +2486,6 @@ namespace PESpy.View
 #if DEBUG
         protected void ValidateNames()
         {
-            Log(FileAnalyzerProgressPhase.ValidateNames);
-
             //Any byte that says it has a name should actually have a name
 
             var sectionAccessors = _fileAccessor.SectionAccessors;
@@ -2485,44 +2510,6 @@ namespace PESpy.View
                 }
             }
         }
-
-        protected void ValidateBodyReferences()
-        {
-            Log(FileAnalyzerProgressPhase.ValidateBodyReferences);
-
-            //We should not have any body references preceeded by Unknown
-
-            var sectionAccessors = _fileAccessor.SectionAccessors;
-
-            for (var i = 0; i < sectionAccessors.Length; i++)
-            {
-                ref var sectionAccessor = ref sectionAccessors[i];
-
-                _fileAccessor.GetRawSectionData(sectionAccessor, out var pBytes, out _, out _);
-
-                var pViewByte = sectionAccessor.pViewBytes;
-                var pEnd = pViewByte + sectionAccessor.Length;
-
-                while (pViewByte < pEnd - 1)
-                {
-                    if (pViewByte->Kind == ViewByteKind.Unknown && (pViewByte + 1)->Kind == ViewByteKind.Body)
-                    {
-                        var relativeOffset = pViewByte - sectionAccessor.pViewBytes;
-
-                        var targetAddress = sectionAccessor.StartAddress + relativeOffset;
-
-                        var fakeLen = pViewByte->GetLength(pViewByte + 100);
-
-                        while (true)
-                        {
-                            var me = pViewByte - 1;
-
-                            while (me->Kind != ViewByteKind.Data)
-                                me--;
-
-                            var diff = sectionAccessor.StartAddress + (me - sectionAccessor.pViewBytes);
-
-                            var name = _fileAccessor.GetNameFromViewByte((int) diff, i, me);
-                        }
+#endif
     }
 }

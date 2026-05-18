@@ -53,14 +53,9 @@ namespace PESpy
                     var ptr = (long) chunk.PeekPointer(index * chunk.PointerSize);
 
                     var peFile = chunk.PEFile();
-                    var imageBase = peFile.OptionalHeader.ImageBase;
 
-                    var rva = (int) (ptr - imageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                    {
-                        item = new VA<NativeAOT.ReadyToRunHeader>(ptr, rva, new NativeAOT.ReadyToRunHeader(valueChunk));
-                    }
+                    if (peFile.TryGetValueChunkFromVA(ptr, out var valueChunk))
+                        item = new VA<NativeAOT.ReadyToRunHeader>(ptr, valueChunk.AbsoluteOffset, new NativeAOT.ReadyToRunHeader(valueChunk));
                     else
                         item = new VA<NativeAOT.ReadyToRunHeader>(ptr);
                 }

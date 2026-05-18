@@ -50,38 +50,31 @@ namespace PESpy.NativeAOT
 
                     if (peFile.IsLoadedImage)
                     {
-                        if (debugTypeEntriesAddress != 0)
+                        if (peFile.TryGetValueChunkFromVA(debugTypeEntriesAddress, out var valueChunk))
                         {
-                            var actualOffset = (int) (debugTypeEntriesAddress - peFile.OptionalHeader.ImageBase);
+                            using var results = new ValueList<DebugTypeEntry>();
 
-                            if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
+                            var read = 0;
+                            var ptrSize = chunk.PointerSize;
+
+                            while (true)
                             {
-                                using var results = new ValueList<DebugTypeEntry>();
+                                //The last entry is null
 
-                                var read = 0;
-                                var ptrSize = chunk.PointerSize;
+                                var entry = new DebugTypeEntry(valueChunk.Slice(read));
 
-                                while (true)
-                                {
-                                    //The last entry is null
+                                results.Add(entry);
 
-                                    var entry = new DebugTypeEntry(valueChunk.Slice(read));
+                                if (entry.TypeName.ListedAddress == 0)
+                                    break;
 
-                                    results.Add(entry);
-
-                                    if (entry.TypeName.ListedAddress == 0)
-                                        break;
-
-                                    read += (2 * ptrSize) + 8;
-                                }
-
-                                debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress, actualOffset, results.ToArray());
+                                read += (2 * ptrSize) + 8;
                             }
-                            else
-                                debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress);
+
+                            debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress, valueChunk.AbsoluteOffset, results.ToArray());
                         }
                         else
-                            debugTypeEntries = default;
+                            debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress);
                     }
                     else
                         debugTypeEntries = new VA<DebugTypeEntry[]>(debugTypeEntriesAddress);
@@ -108,38 +101,31 @@ namespace PESpy.NativeAOT
 
                     if (peFile.IsLoadedImage)
                     {
-                        if (globalEntriesAddress != 0)
+                        if (peFile.TryGetValueChunkFromVA(globalEntriesAddress, out var valueChunk))
                         {
-                            var actualOffset = (int) (globalEntriesAddress - peFile.OptionalHeader.ImageBase);
+                            using var results = new ValueList<GlobalValueEntry>();
 
-                            if (peFile.TryGetValueChunkFromSection(actualOffset, out var valueChunk))
+                            var read = 0;
+                            var ptrSize = chunk.PointerSize;
+
+                            while (true)
                             {
-                                using var results = new ValueList<GlobalValueEntry>();
+                                //The last entry is null
 
-                                var read = 0;
-                                var ptrSize = chunk.PointerSize;
+                                var entry = new GlobalValueEntry(valueChunk.Slice(read));
 
-                                while (true)
-                                {
-                                    //The last entry is null
+                                results.Add(entry);
 
-                                    var entry = new GlobalValueEntry(valueChunk.Slice(read));
+                                if (entry.Name.ListedAddress == 0)
+                                    break;
 
-                                    results.Add(entry);
-
-                                    if (entry.Name.ListedAddress == 0)
-                                        break;
-
-                                    read += (2 * ptrSize);
-                                }
-
-                                globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress, actualOffset, results.ToArray());
+                                read += (2 * ptrSize);
                             }
-                            else
-                                globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);
+
+                            globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress, valueChunk.AbsoluteOffset, results.ToArray());
                         }
                         else
-                            globalValueEntries = default;
+                            globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);
                     }
                     else
                         globalValueEntries = new VA<GlobalValueEntry[]>(globalEntriesAddress);

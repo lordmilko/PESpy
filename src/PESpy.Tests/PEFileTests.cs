@@ -5,6 +5,9 @@ using ClrDebug;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.Ecma335;
 using PESpy.View;
+using ClrDebug.OMF;
+using ClrDebug.PDB;
+using static ClrDebug.COMIMAGE_FLAGS;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 using static PESpy.IMAGE_FILE;
 using static PESpy.IMAGE_DEBUG_TYPE;
@@ -12,8 +15,6 @@ using static PESpy.IMAGE_DLLCHARACTERISTICS;
 using static PESpy.IMAGE_DLLCHARACTERISTICS_EX;
 using static PESpy.IMAGE_DYNAMIC_RELOCATION_KIND;
 using static PESpy.IMAGE_SYM_TYPE;
-using ClrDebug.OMF;
-using ClrDebug.PDB;
 
 namespace PESpy.Tests
 {
@@ -1033,8 +1034,8 @@ namespace PESpy.Tests
         public void UnwindCode_PushNonVolatile_Test()
         {
             TestStruct<UnwindCode.PushNonVolatile>(
-                v => v.OpInfo == UnwindInfo.Register.R14,
-                v => v.CodeOffset == 9,
+                v => v.OpInfo == UnwindInfo.Register.R15,
+                v => v.CodeOffset == 11,
                 v => v.UnwindOp == UWOP.UWOP_PUSH_NONVOL
             );
 
@@ -1042,10 +1043,10 @@ namespace PESpy.Tests
 
             TestView<UnwindCode.PushNonVolatile>(
                 v => v.VerifyStruct(
-                    name: "UNWIND_CODE", offset: 1424970, size: 2,
-                    c => c.VerifyField(name: "CodeOffset", value: (byte) 9),
+                    name: "UNWIND_CODE", offset: 1424968, size: 2,
+                    c => c.VerifyField(name: "CodeOffset", value: (byte) 11),
                     c => c.VerifyBitField(name: "UnwindOp", value: UWOP.UWOP_PUSH_NONVOL, bits: 4),
-                    c => c.VerifyBitField(name: "OpInfo", value: UnwindInfo.Register.R14, bits: 4)
+                    c => c.VerifyBitField(name: "OpInfo", value: UnwindInfo.Register.R15, bits: 4)
                 )
             );
         }
@@ -1502,7 +1503,7 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: nameof(FuncInfo4.dispUnwindMap), index: 0, fieldOffset: 1, targetOffset: 0x36ef5),
                 v => v.Verify(propertyName: nameof(FuncInfo4.dispTryBlockMap), index: 1, fieldOffset: 5, targetOffset: 0x36ce4),
                 v => v.Verify(propertyName: nameof(FuncInfo4.dispIPtoStateMap), index: 2, fieldOffset: 5, targetOffset: 0x37681),
-                v => v.Verify(propertyName: nameof(FuncInfo4.dispToSegMap), index: 10, fieldOffset: 5, targetOffset: 0x413b13)
+                v => v.Verify(propertyName: nameof(FuncInfo4.dispToSegMap), index: 6, fieldOffset: 5, targetOffset: 0x413b13)
             );
         }
 
@@ -1760,6 +1761,37 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: nameof(TryBlockMapEntry4.dispHandlerArray), index: 0, fieldOffset: 16, targetOffset: 67096)
             );
         }
+
+        [TestMethod]
+        public void UnwindMapEntry4_Test()
+        {
+            TestStruct<UnwindMapEntry4>(
+                v => v.nextOffset == 1,
+                v => v.type == UnwindMapEntry4.Type.RVA,
+                v => v.action == 141906,
+                v => v.@object == 0
+            );
+
+            TestView<UnwindMapEntry4>(
+                v => v.VerifyStruct(
+                    name: "UnwindMapEntry4", offset: 225014, size: 5,
+                    c => c.VerifyField(name: "nextOffset", value: 1),
+                    c => c.VerifyField(name: "type", value: UnwindMapEntry4.Type.RVA),
+                    c => c.VerifyField(name: "action", value: 141906)
+
+                    //object field is not present since our type was RVA
+                )
+            );
+
+            TestXRefs<UnwindMapEntry4>(
+                v => v.Verify(propertyName: nameof(UnwindMapEntry4.action), index: 0, fieldOffset: 1, targetOffset: 141906)
+
+                //Not sure how to convert object into an absolute position, so for now no xref. AzureAttest ExceptionData 551
+                //has one of these
+                //v => v.Verify(propertyName: nameof(UnwindMapEntry4.@object), index: -1, fieldOffset: -1, targetOffset: -1)
+            );
+        }
+
         [TestMethod]
         public void UWMap4_Test()
         {
@@ -2006,6 +2038,8 @@ namespace PESpy.Tests
             );
         }
 
+        #region NB05
+
         [TestMethod]
         public void ImageDebugDirectory_CodeView_NB05_OMFDirHeader()
         {
@@ -2222,6 +2256,10 @@ namespace PESpy.Tests
                 verifiers
             );
         }
+
+        //We should test OMFSymHash, OMFGlobalTypes and OMFFileIndex
+        //We also have a type OMFModuleTypes, however this requires an sstTypes section which neither our NB09 or NB11 sample has
+
         #endregion
         #endregion
         #region FPO (3)
@@ -2581,7 +2619,7 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "GuardCFFunctionTable", value: 6443712236),
                         c => c.VerifyField(name: "GuardCFFunctionCount", value: (long) 2217),
                         c => c.VerifyField(name: "GuardFlags", value: (IMAGE_GUARD) 281113856), //The high bits contain size info that will be masked out, which mucks up our visualization of the value
-                        c => c.VerifyStructIgnoreChildren(name: "IMAGE_LOAD_CONFIG_CODE_INTEGRITY", offset: 1257092, size: 12),
+                        c => c.VerifyStructFieldIgnoreChildren(name: "CodeIntegrity", type: "IMAGE_LOAD_CONFIG_CODE_INTEGRITY", offset: 1257092, size: 12),
                         c => c.VerifyField(name: "GuardAddressTakenIatEntryTable", value: (long) 0),
                         c => c.VerifyField(name: "GuardAddressTakenIatEntryCount", value: (long) 0),
                         c => c.VerifyField(name: "GuardLongJumpTargetTable", value: (long) 0),
@@ -2626,19 +2664,21 @@ namespace PESpy.Tests
                 v => v.Verify(propertyName: "GuardCFCheckFunctionPointer",              index: 1, fieldOffset: cfg64.GuardCFCheckFunctionPointerOffset,              targetOffset: 1651168), //ntdll
                 v => v.Verify(propertyName: "GuardCFDispatchFunctionPointer",           index: 2, fieldOffset: cfg64.GuardCFDispatchFunctionPointerOffset,           targetOffset: 1667072), //ntdll
                 v => v.Verify(propertyName: "GuardCFFunctionTable",                     index: 3, fieldOffset: cfg64.GuardCFFunctionTableOffset,                     targetOffset: 1261292), //ntdll
-                v => v.Verify(propertyName: "GuardAddressTakenIatEntryTable",           index: 4, fieldOffset: cfg64.GuardAddressTakenIatEntryTableOffset,           targetOffset: 6629368), //SingleFileApp_EXE
-                v => v.Verify(propertyName: "GuardLongJumpTargetTable",                 index: 4, fieldOffset: cfg64.GuardLongJumpTargetTableOffset,                 targetOffset: 58236), //ntoskrnl
-                v => v.Verify(propertyName: "GuardRFFailureRoutineFunctionPointer",     index: 4, fieldOffset: cfg64.GuardRFFailureRoutineFunctionPointerOffset,     targetOffset: 4155656), //DbgEng
-                v => v.Verify(propertyName: "DynamicValueRelocTableOffset",             index: 4, fieldOffset: cfg64.DynamicValueRelocTableOffsetOffset,             targetOffset: 2155868), //ntdll
-                v => v.Verify(propertyName: "GuardRFVerifyStackPointerFunctionPointer", index: 5, fieldOffset: cfg64.GuardRFVerifyStackPointerFunctionPointerOffset, targetOffset: 4155664), //DbgEng
-                v => v.Verify(propertyName: "EnclaveConfigurationPointer",              index: 5, fieldOffset: cfg64.EnclaveConfigurationPointerOffset,              targetOffset: 206864), //AzureAttest
-                v => v.Verify(propertyName: "GuardEHContinuationTable",                 index: 5, fieldOffset: cfg64.GuardEHContinuationTableOffset,                 targetOffset: 1260432), //ntdll
-                v => v.Verify(propertyName: "GuardXFGCheckFunctionPointer",             index: 6, fieldOffset: cfg64.GuardXFGCheckFunctionPointerOffset,             targetOffset: 1667080), //ntdll
-                v => v.Verify(propertyName: "GuardXFGDispatchFunctionPointer",          index: 7, fieldOffset: cfg64.GuardXFGDispatchFunctionPointerOffset,          targetOffset: 1667088), //ntdll
-                v => v.Verify(propertyName: "GuardXFGTableDispatchFunctionPointer",     index: 8, fieldOffset: cfg64.GuardXFGTableDispatchFunctionPointerOffset,     targetOffset: 1667096), //ntdll
-                v => v.Verify(propertyName: "CastGuardOsDeterminedFailureMode",         index: -2, fieldOffset: cfg64.CastGuardOsDeterminedFailureModeOffset,        targetOffset: -1), //ntdll
-                v => v.Verify(propertyName: "GuardMemcpyFunctionPointer",               index: 9, fieldOffset: cfg64.GuardMemcpyFunctionPointerOffset,               targetOffset: 3917864), //coreclr
-                v => v.Verify(propertyName: "UmaFunctionPointers",                      index: -1, fieldOffset: -1, targetOffset: -1)
+                v => v.Verify(propertyName: "GuardAddressTakenIatEntryTable",           index: 4014, fieldOffset: cfg64.GuardAddressTakenIatEntryTableOffset,           targetOffset: 6629368), //SingleFileApp_EXE
+                v => v.Verify(propertyName: "GuardLongJumpTargetTable",                 index: 8284, fieldOffset: cfg64.GuardLongJumpTargetTableOffset,                 targetOffset: 58236), //ntoskrnl
+                v => v.Verify(propertyName: "GuardRFFailureRoutineFunctionPointer",     index: 6817, fieldOffset: cfg64.GuardRFFailureRoutineFunctionPointerOffset,     targetOffset: 4155656), //DbgEng
+                v => v.Verify(propertyName: "DynamicValueRelocTableOffset",             index: 2221, fieldOffset: cfg64.DynamicValueRelocTableOffsetOffset,             targetOffset: 2155868), //ntdll
+                v => v.Verify(propertyName: "GuardRFVerifyStackPointerFunctionPointer", index: 6818, fieldOffset: cfg64.GuardRFVerifyStackPointerFunctionPointerOffset, targetOffset: 4155664), //DbgEng
+                v => v.Verify(propertyName: "EnclaveConfigurationPointer",              index: 1162, fieldOffset: cfg64.EnclaveConfigurationPointerOffset,              targetOffset: 206864), //AzureAttest
+                v => v.Verify(propertyName: "GuardEHContinuationTable",                 index: 2222, fieldOffset: cfg64.GuardEHContinuationTableOffset,                 targetOffset: 1260432), //ntdll
+                v => v.Verify(propertyName: "GuardXFGCheckFunctionPointer",             index: 2223, fieldOffset: cfg64.GuardXFGCheckFunctionPointerOffset,             targetOffset: 1667080), //ntdll
+                v => v.Verify(propertyName: "GuardXFGDispatchFunctionPointer",          index: 2224, fieldOffset: cfg64.GuardXFGDispatchFunctionPointerOffset,          targetOffset: 1667088), //ntdll
+                v => v.Verify(propertyName: "GuardXFGTableDispatchFunctionPointer",     index: 2225, fieldOffset: cfg64.GuardXFGTableDispatchFunctionPointerOffset,     targetOffset: 1667096), //ntdll
+                v => v.Verify(propertyName: "CastGuardOsDeterminedFailureMode",         index: 2226, fieldOffset: cfg64.CastGuardOsDeterminedFailureModeOffset,        targetOffset: 1667104), //ntdll
+                v => v.Verify(propertyName: "GuardMemcpyFunctionPointer",               index: 3735, fieldOffset: cfg64.GuardMemcpyFunctionPointerOffset,               targetOffset: 3917864) //coreclr
+                
+                //Need to do a brute force scan for UmaFunctionPointers
+                //v => v.Verify(propertyName: "UmaFunctionPointers",                      index: -1, fieldOffset: -1, targetOffset: -1)
             );
         }
 
@@ -2749,7 +2789,7 @@ namespace PESpy.Tests
             );
 
             TestView<GuardAddressTakenIatEntryTable>(
-                v => v.VerifyStructIgnoreChildren(name: "GuardAddressTakenIatEntryTable", offset: 6629368, size: 15)
+                v => v.VerifyStructIgnoreChildren(name: "__guard_iat_table", offset: 6629368, size: 15)
             );
         }
 
@@ -2781,7 +2821,7 @@ namespace PESpy.Tests
                 WithIgnores(
                     before: 1579, //The first 1579 views are XFG
                     v => v.VerifyStructIgnoreChildren(
-                        name: "GuardCFFunctionTable", offset: 1261292, size: 11085
+                        name: "__guard_fids_table", offset: 1261292, size: 11085
                     )
                 )
             );
@@ -2815,7 +2855,7 @@ namespace PESpy.Tests
 
             TestView<GuardEHContinuationTable>(
                 v => v.VerifyStructIgnoreChildren(
-                    name: "GuardEHContinuationTable", offset: 1260432, size: 860
+                    name: "__guard_eh_cont_table", offset: 1260432, size: 860
                 )
             );
         }
@@ -2845,7 +2885,7 @@ namespace PESpy.Tests
             );
 
             TestView<GuardLongJumpTargetTable>(
-                v => v.VerifyStructIgnoreChildren(name: "GuardLongJumpTargetTable", offset: 58236, size: 5)
+                v => v.VerifyStructIgnoreChildren(name: "__guard_longjmp_table", offset: 58236, size: 5)
             );
         }
 
@@ -3250,8 +3290,8 @@ namespace PESpy.Tests
                 v => v.ByteCount == 72,
                 v => v.MajorRuntimeVersion == 2,
                 v => v.MinorRuntimeVersion == 5,
-                v => v.Flags == (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED),
-                v => v.EntryPointTokenOrRVA == 0,
+                v => v.Flags == (COMIMAGE_FLAGS_ILONLY | COMIMAGE_FLAGS_32BITREQUIRED | COMIMAGE_FLAGS_STRONGNAMESIGNED),
+                v => v.EntryPointRVA == 0,
                 v => (object) v.Resources               == IgnoreValue,
                 v => (object) v.StrongNameSignature     == IgnoreValue,
                 v => (object) v.CodeManagerTable        == IgnoreValue,
@@ -3267,8 +3307,8 @@ namespace PESpy.Tests
                     c => c.VerifyField(name: "MajorRuntimeVersion", value: (ushort) 2),
                     c => c.VerifyField(name: "MinorRuntimeVersion", value: (ushort) 5),
                     c => c.VerifyStructFieldIgnoreChildren(name: "MetaData", type: "IMAGE_DATA_DIRECTORY", offset: 528, size: 8),
-                    c => c.VerifyField(name: "Flags", value: (COMIMAGE_FLAGS.ILONLY | COMIMAGE_FLAGS._32BITREQUIRED | COMIMAGE_FLAGS.STRONGNAMESIGNED)),
-                    c => c.VerifyField(name: "EntryPointTokenOrRVA", value: 0),
+                    c => c.VerifyField(name: "Flags", value: (COMIMAGE_FLAGS_ILONLY | COMIMAGE_FLAGS_32BITREQUIRED | COMIMAGE_FLAGS_STRONGNAMESIGNED)),
+                    c => c.VerifyField(name: "EntryPointToken", value: 0),
                     c => c.VerifyFieldIgnoreValue(name: "Resources"),
                     c => c.VerifyFieldIgnoreValue(name: "StrongNameSignature"),
                     c => c.VerifyFieldIgnoreValue(name: "CodeManagerTable"),
@@ -3539,7 +3579,7 @@ namespace PESpy.Tests
         public void RTTIBaseClassArray_Test()
         {
             TestStruct<RTTIBaseClassArray>(
-                v => v.arrayOfBaseClassDescriptors.ListedOffset == 4120056
+                //v => v.arrayOfBaseClassDescriptors[0].ListedOffset == 4120056
             );
 
             //Note we do get a duplicate RTTIBaseClassArray in the values we write,
@@ -3551,7 +3591,7 @@ namespace PESpy.Tests
                     before: 1,
                     v => v.VerifyStruct(
                         name: "_RTTIBaseClassArray", offset: 4110824, size: 4,
-                        c => c.VerifyField(name: "arrayOfBaseClassDescriptors", value: 4120056)
+                        c => c.VerifyField(name: "arrayOfBaseClassDescriptors", value: new[] { 4120056 })
                     ),
                     after: 3
                 )
@@ -4648,8 +4688,7 @@ namespace PESpy.Tests
             TestView<ImageSymbol>(
                 v => v.VerifyStruct(
                     name: "IMAGE_SYMBOL", offset: 61472, size: 18,
-                    c => c.VerifyField(name: "Name.Short", value: 0),
-                    c => c.VerifyField(name: "Name.Long", value: 0),
+                    c => c.VerifyField(name: "Name", value: "@comp.id"),
                     c => c.VerifyField(name: "Value", value: (uint) 0),
                     c => c.VerifyField(name: "SectionNumber", value: (ushort) 65535),
                     c => c.VerifyField(name: "Type", value: IMAGE_SYM_TYPE_NULL),

@@ -54,18 +54,23 @@ namespace PESpy.PowerShell.PE
                     //InvokeWithContext removes the special variables "this", "_", and "input", so we need to
                     //make sure we re-add $_ each time
                     variablesToDefine.Add(dollarUnder);
-                    var result = ScriptBlock.InvokeWithContext(null, variablesToDefine);
+                    var results = ScriptBlock.InvokeWithContext(null, variablesToDefine);
 
-                    if (result.Count == 0)
+                    if (results.Count == 0)
                         continue;
-                    else if (result.Count > 1)
+                    else if (results.Count > 1)
                     {
                         dispose = false;
                         WriteObject(file); //A bunch of stuff means they want it
                     }
                     else
                     {
-                        if (result[0].BaseObject is bool b)
+                        var result = results[0];
+
+                        if (result == null)
+                            continue;
+
+                        if (result.BaseObject is bool b)
                         {
                             if (b)
                             {

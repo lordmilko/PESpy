@@ -9,11 +9,12 @@ using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
 using PESpy.View.Builder;
+using PESpy.VB;
 using Stream = System.IO.Stream;
+using static ClrDebug.IMAGE_FILE_MACHINE;
+using static ClrDebug.COMIMAGE_FLAGS;
 using static PESpy.IMAGE_DEBUG_TYPE;
 using static PESpy.NativeMethods;
-using static ClrDebug.IMAGE_FILE_MACHINE;
-using PESpy.VB;
 
 namespace PESpy
 {
@@ -906,7 +907,7 @@ namespace PESpy
         public ImageFileHeader FileHeader => ntHeaders.FileHeader;
 
         /// <summary>
-        /// Gets the the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
+        /// Gets the <see cref="IMAGE_NT_HEADERS.OptionalHeader"/> field that represents the optional header of the image.
         /// </summary>
         public ImageOptionalHeader OptionalHeader => ntHeaders.OptionalHeader;
 
@@ -1837,7 +1838,7 @@ namespace PESpy
         /// <summary>
         /// Gets the data pointed to by the <see cref="ImageCor20Header.ManagedNativeHeader"/> directory.<para/>
         /// If this assembly has been NGEN'd, this will be a <see cref="CorCompileHeader"/>. If this assembly has been R2R'd,
-        /// this will be a <see cref="PESpy.ReadyToRunHeader"/>.
+        /// this will be a <see cref="PESpy.R2R.ReadyToRunHeader"/>.
         /// </summary>
         public IValue? Cor20ManagedNativeHeader
         {
@@ -1849,7 +1850,7 @@ namespace PESpy
 
                     //Files with a managed header should have COMIMAGE_FLAGS_IL_LIBRARY set. As per pedecoder.cpp,
                     //this name is a misnomer
-                    if (cor20 != null && (cor20.Flags & COMIMAGE_FLAGS.IL_LIBRARY) != 0)
+                    if (cor20 != null && (cor20.Flags & COMIMAGE_FLAGS_IL_LIBRARY) != 0)
                     {
                         var table = cor20.ManagedNativeHeader;
 
@@ -2856,9 +2857,7 @@ namespace PESpy
         //a ReadyToRunHeader, that it has the R2R signature and has EntryType 1
         private bool IsValidNativeAOTModuleHeader(long va)
         {
-            var rva = (int) (va - OptionalHeader.ImageBase);
-
-            if (TryGetValueChunkFromSection(rva, out var memoryChunk) && NativeAOT.ReadyToRunHeader.FixedStructSize < memoryChunk.Remaining)
+            if (TryGetValueChunkFromVA(va, out var memoryChunk) && NativeAOT.ReadyToRunHeader.FixedStructSize < memoryChunk.Remaining)
             {
                 var readyToRunHeader = new NativeAOT.ReadyToRunHeader(memoryChunk);
 
@@ -2978,9 +2977,7 @@ namespace PESpy
                         {
                             var va = valueChunk.PeekInt32(1);
 
-                            var rva = (int) (va - OptionalHeader.ImageBase);
-
-                            if (TryGetValueChunkFromSection(rva, out valueChunk) && valueChunk.Remaining >= ExeProjectInfo.StructSize && valueChunk.PeekUInt32(0) == ExeProjectInfo.VBMagic)
+                            if (TryGetValueChunkFromVA(va, out valueChunk) && valueChunk.Remaining >= ExeProjectInfo.StructSize && valueChunk.PeekUInt32(0) == ExeProjectInfo.VBMagic)
                             {
                                 exeProjectInfo = new ExeProjectInfo(valueChunk);
                             }
@@ -3138,7 +3135,8 @@ namespace PESpy
         /// the <see cref="PEFile"/> already has will be left in place.<para/>
         /// 
         /// If this method returns true, this method may also ahve cleared any properties that are best located using symbols that
-        /// we may have used fallback locator logic to detect.
+        /// we may have used fallback locator logic to detect. Ownership of the <see cref="PDBFile"/> transfers to the <see cref="PEFile"/>,
+        /// and will be closed when the <see cref="PEFile"/> is disposed.
         /// </summary>
         /// <param name="pdbFile">The <see cref="PDBFile"/> that pertains to this <see cref="PEFile"/>.</param>
         /// <returns>True if the <see cref="ISymbolAccessor"/> was replaced with a new accessor
@@ -3698,6 +3696,19 @@ namespace PESpy
 
             chunk = default;
             return false;
+        }
+
+        internal bool TryGetValueChunkFromVA(long va, out MemoryChunk chunk)
+        {
+            if (va == 0)
+            {
+                chunk = default;
+                return false;
+            }
+
+            var rva = (int) (va - OptionalHeader.ImageBase);
+
+            return TryGetValueChunkFromSection(rva, out chunk);
         }
 
         internal bool TryGetValueChunkFromSection(int relativeOffset, int sectionIndex, out MemoryChunk chunk)

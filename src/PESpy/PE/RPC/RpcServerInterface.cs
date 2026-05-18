@@ -42,14 +42,9 @@ namespace PESpy
             {
                 var va = (long) chunk.PeekPointer(InterpreterInfoOffset);
 
-                if (va == 0)
-                    return default;
-
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 {
                     var dispatchTable = DispatchTable;
 

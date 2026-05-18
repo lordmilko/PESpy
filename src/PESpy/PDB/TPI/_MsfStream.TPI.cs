@@ -183,6 +183,8 @@ namespace PESpy.PDB
                 writer.WriteGlobal(Hdr);
 
                 writer.WritePagedGlobal(chunk.RelativeOffset + Hdr.StructSize, (PagedMemoryBlock) chunk.block, Types);
+
+                writer.RelayGlobals(TpiHash);
             }
 
             IView? IViewable.WriteStruct(ViewWriter writer) => null;

@@ -154,6 +154,11 @@ namespace PESpy.Tests
                         nameof(TryBlockMapEntry4.dispHandlerArray) => (((RVA<FuncInfo>) GetStoreFile(WellKnownTestModule.AuthExt).ExceptionTable[74].UnwindData.Value.ExceptionData).Value).dispTryBlockMap.Value[0],
                     },
 
+                    nameof(UnwindMapEntry4) => propertyName switch
+                    {
+                        nameof(UnwindMapEntry4.action) => ((RVA<FuncInfo4>) GetStoreFile(WellKnownTestModule.AzureAttest).ExceptionTable[316].UnwindData.Value.ExceptionData).Value.dispUnwindMap.Value[0],
+                    },
+
                     #endregion
 
                     nameof(NativeAOT.GlobalValueEntry) => propertyName switch
@@ -236,7 +241,7 @@ namespace PESpy.Tests
                         nameof(ImageLoadConfigDirectory.GuardXFGDispatchFunctionPointer)          => GetStoreFile(WellKnownTestModule.ntdll).LoadConfigTable,
                         nameof(ImageLoadConfigDirectory.GuardXFGTableDispatchFunctionPointer)     => GetStoreFile(WellKnownTestModule.ntdll).LoadConfigTable,
                         nameof(ImageLoadConfigDirectory.GuardMemcpyFunctionPointer)               => GetStoreFile(WellKnownTestModule.coreclr).LoadConfigTable,
-                        nameof(ImageLoadConfigDirectory.CastGuardOsDeterminedFailureMode)         => throw new System.NotImplementedException(),
+                        nameof(ImageLoadConfigDirectory.CastGuardOsDeterminedFailureMode)         => GetStoreFile(WellKnownTestModule.ntdll).LoadConfigTable,
                         nameof(ImageLoadConfigDirectory.UmaFunctionPointers)                      => throw new System.NotImplementedException()
                     },
 
@@ -281,9 +286,9 @@ namespace PESpy.Tests
 
                     nameof(RTTICompleteObjectLocator) => propertyName switch
                     {
-                        nameof(RTTICompleteObjectLocator.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0],
-                        nameof(RTTICompleteObjectLocator.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0],
-                        nameof(RTTICompleteObjectLocator.pSelf) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0]
+                        nameof(RTTICompleteObjectLocator.pTypeDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value,
+                        nameof(RTTICompleteObjectLocator.pClassDescriptor) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value,
+                        nameof(RTTICompleteObjectLocator.pSelf) => GetStoreFile(WellKnownTestModule.coreclr, forceSymbols: true).RTTICompleteObjectLocators[0].Value
                     },
 
                     nameof(RTTIBaseClassArray) => propertyName switch

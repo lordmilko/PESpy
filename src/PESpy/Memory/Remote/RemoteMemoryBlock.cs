@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace PESpy
 {
-    //Maybe we should make a base class that implements common paging logic (although we can't call it PagedMemoryBlock beacuse that's used by PDB)
+    //Maybe we should make a base class that implements common paging logic (although we can't call it PagedMemoryBlock because that's used by PDB)
     //then we can use this for copy-on-write when editing PDBs?
     internal unsafe class RemoteMemoryBlock : MemoryBlock
     {

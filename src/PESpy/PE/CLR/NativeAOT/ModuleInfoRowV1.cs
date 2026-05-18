@@ -50,12 +50,10 @@ namespace PESpy.NativeAOT
             {
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (start - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(start, out var valueChunk))
                 {
                     var kind = GetViewKind(sectionId);
-                    data = new VA<IValue>(start, rva, new ByteBlob(valueChunk, length, kind));
+                    data = new VA<IValue>(start, valueChunk.AbsoluteOffset, new ByteBlob(valueChunk, length, kind));
                 }
                 else
                     data = new VA<IValue>(start);

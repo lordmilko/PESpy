@@ -328,7 +328,7 @@ namespace PESpy.PDB
                 if (!IsAddressInThunkTable(sectionNumber, relativeOffset))
                     return false; //Not a thunk symbol
 
-                //thunkRelativeOffset may not be aligned to the beginning of the actual thunk. I think that PDB1 inadvertantly handles this in PSGSI1::EnumPubsByAddr::get
+                //thunkRelativeOffset may not be aligned to the beginning of the actual thunk. I think that PDB1 inadvertently handles this in PSGSI1::EnumPubsByAddr::get
                 var alignedThunkRelativeOffset = (GetThunkIndex(relativeOffset) * psgsiHdr.cbSizeOfThunk) + psgsiHdr.offThunkTable;
                 var disp = relativeOffset - alignedThunkRelativeOffset; //I don't understand the logic of PSGSI1::pbInThunkTable; it seems to always set pdisp to 0, but DbgHelp shows an offset after the name anyway. Maybe this is something special DbgHelp does
                 relativeOffset = alignedThunkRelativeOffset;

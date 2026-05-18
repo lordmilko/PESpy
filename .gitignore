@@ -1,4 +1,5 @@
 _old/
+_old3/
 MsfTest/
 PDB/_old/
 .idea/
@@ -6,9 +7,34 @@ R2R/
 BenchmarkDotnet.Artifacts/
 PESpy.Benchmarks/
 PESpyUI/
+CorBBTProf*
 SizeHacks.props
 src/PESpy/PDB/Builder/
 SymTypeBuilder.cs
+Mod1Builder.cs
+PDB1Builder.cs
+PDBPatcher.cs
+FuncInfo.cs
+TypTypeBuilder.cs
+LegacyShim/
+ReSharperMenu/
+MockGraphics.cs
+.stfolder/
+.stignore
+Design/
+
+# NGEN unimplemented types
+CorCompileMethodProfileList.cs
+CorCompileVirtualImportThunk.cs
+CorCompileExternalMethodThunk.cs
+CorCompileExceptionLookupTableEntry.cs
+CorCompileColdMethodEntry.cs
+CorCompileDebugLabelledEntry.cs
+CorCompileEEInfoTable.cs
+CorCompileExceptionClause.cs
+CorCompileExceptionLookupTable.cs
+
+MainWindow.Test.cs
 
 #################
 # Visual Studio #

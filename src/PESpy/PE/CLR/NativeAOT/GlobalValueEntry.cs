@@ -21,12 +21,10 @@ namespace PESpy.NativeAOT
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (ptr - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(ptr, out var valueChunk))
                     {
                         var str = valueChunk.PeekAnsiNullTerminatedString(0);
-                        name = new VA<AnsiString>(ptr, rva, str);
+                        name = new VA<AnsiString>(ptr, valueChunk.AbsoluteOffset, str);
                     }
                     else
                         name = new VA<AnsiString>(ptr);

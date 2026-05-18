@@ -43,10 +43,10 @@ namespace PESpy
         public short PeekInt16(int offset) => *(short*) (Pointer + offset);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ushort PeekUInt16(int offset) => *(ushort*) (Pointer + offset);
+        public ushort PeekUInt16(int offset) => *(ushort*) (unchecked(Pointer + offset));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int PeekInt32(int offset) => *(int*) (Pointer + offset);
+        public int PeekInt32(int offset) => *(int*) (unchecked(Pointer + offset));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int PeekInt24(int offset)

@@ -294,6 +294,8 @@ namespace PESpy.View
 
                 pViewByte = GetViewByte(offset, out sectionIndex);
 
+                //If we've got a great big contiguous section, then we're not going to have a SplitTail between each page.
+                //However, in that case we shouldn't have had a SplitHead in the first place
                 Debug.Assert(pViewByte->Kind == ViewByteKind.Body && pViewByte->BodyKind == ViewByteBodyKind.SplitTail);
 
                 while (true)

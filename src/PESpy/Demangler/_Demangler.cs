@@ -26,6 +26,8 @@ namespace PESpy
      * and classes whose line above says "CLASS TEMPLATE". From my initial review of all items that match these criteria, I don't feel like there's actually
      * that many interesting types that are worth "tidying up". In any case, it _would_ be useful to have an extensible mechanism for tidying up
      * STL garbage
+     * 
+     * Note that Visual Studio includes undname.cxx which contains most of the implementation of the DbgHelp undecorator
      */
 
     public static partial class Demangler
@@ -542,8 +544,8 @@ namespace PESpy
                  * _Foo@8 = stdcall
                  * @Foo@8 = fastcall
                  * 
-                 * vectorcall is apprently Foo@@8 ?
-                 * In ARM64EC it sasy there's a leading # ?
+                 * vectorcall is apparently Foo@@8 ?
+                 * In ARM64EC it says there's a leading # ?
                  * 
                  * In x64, only vectorcall is decorated
                  */
@@ -754,7 +756,7 @@ namespace PESpy
 
                     var affinity = PointerAffinity.Pointer;
 
-                    if (!TryParseManagedQualifiers(ref textWindow, ref affinity))
+                    if (!TryParseManagedQualifiers(ref textWindow, ref affinity, out _))
                         return false;
 
                     if (!TryParseQualifiers(ref textWindow, out var extraChildQualifiers, out var isMember))
@@ -886,8 +888,10 @@ namespace PESpy
             return qualifiers;
         }
 
-        private static bool TryParseManagedQualifiers(ref TextWindow textWindow, ref PointerAffinity affinity)
+        private static bool TryParseManagedQualifiers(ref TextWindow textWindow, ref PointerAffinity affinity, out int arrayRank)
         {
+            arrayRank = default;
+
             if (textWindow.TryAdvance('$'))
             {
                 Debug.Assert(affinity == PointerAffinity.Pointer); //I'm assuming it'll always be P$
@@ -896,12 +900,14 @@ namespace PESpy
 
                 switch (c)
                 {
-                    case 'A': //^
+                    case 'A': //^ (DIT_GCPointer)
                         affinity = PointerAffinity.ManagedPointer;
                         textWindow.AdvanceChar();
                         break;
 
-                    case 'B': //Pinned?
+                    case 'B': //DIT_PinPointer
+                    case 'C': //DIT_InteriorPointer
+                        //See undname.cxx in Visual Studio installation; the result of being pinned is you get cli::pin_ptr
                         Debug.Assert(false); //Figure out what this looks like
                         return false;
 
@@ -913,11 +919,12 @@ namespace PESpy
                         if (!textWindow.TryNextChar(out var c2))
                             return false;
 
-                        var rank = ((c - '0') << 4) + (c2 - '0');
+                        arrayRank = ((c - '0') << 4) + (c2 - '0');
 
                         if (!textWindow.TryAdvance('$'))
                             return false; //Should be terminated by another $
-                        break;
+
+                        return true;
                 }
             }
 
@@ -1336,7 +1343,7 @@ namespace PESpy
             return true;
         }
 
-        private static bool TryParsePointerType(ref TextWindow textWindow, out PointerTypeNode pointerType)
+        private static bool TryParsePointerType(ref TextWindow textWindow, out TypeNode pointerType)
         {
             pointerType = default;
 
@@ -1351,7 +1358,7 @@ namespace PESpy
                 return true;
             }
 
-            if (!TryParseManagedQualifiers(ref textWindow, ref affinity))
+            if (!TryParseManagedQualifiers(ref textWindow, ref affinity, out var managedArrayRank))
                 return false;
 
             //We store these qualifiers in the regular qualifiers; only when we're adding more qualifiers later on do we use ExtQualifiers
@@ -1362,7 +1369,10 @@ namespace PESpy
             if (!TryParseType(ref textWindow, QualifierMangleMode.Mangle, out var type))
                 return false;
 
-            pointerType = textWindow.AllocPointerType(qualifiers | extQualifiers, affinity, type);
+            if (managedArrayRank != 0)
+                pointerType = textWindow.AllocManagedArrayType(qualifiers | extQualifiers, affinity, type, managedArrayRank);
+            else
+                pointerType = textWindow.AllocPointerType(qualifiers | extQualifiers, affinity, type);
             return true;
         }
 
@@ -1417,7 +1427,7 @@ namespace PESpy
             {
                 var affinity = PointerAffinity.Pointer;
 
-                if (!TryParseManagedQualifiers(ref textWindow, ref affinity))
+                if (!TryParseManagedQualifiers(ref textWindow, ref affinity, out _))
                     return false;
 
                 extQualifiers = ParsePointerExtQualifiers(ref textWindow);
@@ -1558,7 +1568,7 @@ namespace PESpy
 
                     var charsConsumed = textWindow.Position - oldPosition;
 
-                    //Single letter types aren't stored as backreferences beacuse memorizing them doesn't save anything
+                    //Single letter types aren't stored as backreferences because memorizing them doesn't save anything
                     if (textWindow.BackRefFunctionParams.Count <= 9 && charsConsumed > 1)
                         textWindow.BackRefFunctionParams.Add(type);
 
@@ -2289,7 +2299,7 @@ namespace PESpy
                     return true;
 
                 default:
-                    //All enum values sbould be handled
+                    //All enum values should be handled
                     Debug.Assert(false);
                     intrinsicFunctionIdentifier = default;
                     return false;
@@ -2924,7 +2934,7 @@ namespace PESpy
                 return false;
 
             //After subtracting a base value from these characters, they're actually bit patterns that specify each of these
-            //combinations in a more succinct manor
+            //combinations in a more succinct manner
 
             //All values A-X represent members
             switch (c)

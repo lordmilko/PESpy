@@ -128,10 +128,6 @@ namespace PESpy.PowerShell
 
         private void TestFile(IFile file)
         {
-            //Haven't implemented support for processing SYM files yet
-            if (file.Kind == FileKind.SYM)
-                return;
-
             var view = file.GetView();
             view.Accept(NullViewWalker.Instance);
         }

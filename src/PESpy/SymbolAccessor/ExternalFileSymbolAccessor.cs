@@ -3,7 +3,7 @@
 namespace PESpy
 {
     //Wraps an underlying ISymbolAccessor so that you can dispose an external symbol file once you're
-    //done using symbols without inadvertantly disposing your main file
+    //done using symbols without inadvertently disposing your main file
     internal class ExternalFileSymbolAccessor : ISymbolAccessor
     {
         private IFile file;

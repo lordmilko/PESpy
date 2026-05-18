@@ -151,40 +151,20 @@ namespace PESpy.Tests
 
                     Assert.AreEqual(i, typeIndex);
                 }
-
-                        var ourName = ((SymType) ourResult).GetName(pdbFile);
-                        static string CleanName(SymString name)
-                        {
-                            var str = name.ToString();
-
-                            if (str.Contains("ILT") && str.Contains("(?"))
-                            {
-                                var openParen = str.IndexOf('(');
-                                var closeParen = str.IndexOf(')');
-
-                                var mangledStr = str.Substring(openParen + 1, closeParen - openParen - 1);
-
-                                var demangled = Demangler.ParseString(mangledStr, ClrDebug.DIA.UNDNAME.UNDNAME_NAME_ONLY);
-
-                                return str.Substring(0, openParen + 1) + demangled + str.Substring(closeParen);
-                            }
-
-                            return str;
-                        }
-                        if (theirName == ".Base")
-                            continue;
-
-                        //We generate thunk symbols with nice demangled names. PDB1 does not, so if there's a name difference,
-                        //check if we need to demangle their name
-                        Assert.AreEqual(ourName.ToString(), CleanName(theirName));
-
-                        if (ourName.StartsWith("@ILT"))
-                            continue; //PDB1 does not properly report displacements for thunks
-
-                        Assert.AreEqual(ourDisp, theirDisp);
-                    }
-                }
             }
+        }
+
+        #endregion
+        #region Map Find
+
+        [TestMethod]
+        public void MapFind()
+        {
+            Assert.Inconclusive();
+
+            using var symbolModule = SymbolProvider.LoadModule(Locator.Locate(WellKnownTestModule.WinForms), false);
+
+            throw new NotImplementedException();
         }
 
         #endregion

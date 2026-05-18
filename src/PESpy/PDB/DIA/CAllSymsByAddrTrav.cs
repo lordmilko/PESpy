@@ -106,19 +106,21 @@ namespace PESpy.PDB
 
             /* DIA doesn't actually seem to support labels at all; even though you can search for SymTagLabel, you don't
              * seem to get any results, and when you specify an RVA to search for, the best you'll get is a public symbol.
-             * I think this is no good. I suspect the reason they don't support labels is you can sometimes have a junk
-             * label like $LN4 that shares its address with its parent function. In this case, labels should have the lowest
-             * precedence of any symbol. So only if we don't have a perfect match should we consider looking for labels */
+             * It's a bit of a tricky situation, because there are times when you _do_ want to get labels, and times that you _don't_.
+             * Also, I'm not sure whether asking only for labels may result in a spurious match if it's the only thing we're looking for.
+             * I thought that only going for labels when you have an imperfect match might work, but that's no good when we're really just
+             * looking for a top level entity. As such, for now label support has been commented out. FileAccessor will really want labels
+             * however to show inside code! */
 
-            if (bestResult.offSegSym.off != targetOffSeg.off || bestResult.offSegSym.seg != targetOffSeg.seg)
-            {
-                //Try for a label
+            //if (bestResult.offSegSym.off != targetOffSeg.off || bestResult.offSegSym.seg != targetOffSeg.seg)
+            //{
+            //    //Try for a label
 
-                dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym, label: true);
+            //    dataTraverser = new CDataByAddrTrav<TEnumProvider>(_enumProvider, targetOffSeg, bestResult.offSegSym, label: true);
 
-                if (dataTraverser.next(out candidate))
-                    findBetterSymbol(candidate, ref bestResult, targetOffSeg);
-            }
+            //    if (dataTraverser.next(out candidate))
+            //        findBetterSymbol(candidate, ref bestResult, targetOffSeg);
+            //}
 
             return bestResult.offSegSym.symType != default;
         }

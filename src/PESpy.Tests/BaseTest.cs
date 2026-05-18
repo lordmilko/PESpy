@@ -389,7 +389,7 @@ namespace PESpy.Tests
                     return propertyInfo.Name == nameof(ImageDelayLoadDescriptor.UnloadInformationTable); //I don't think this is present in unloaded modules
 
                 if (propertyInfo.DeclaringType == typeof(ImageLoadConfigDirectory))
-                    return propertyInfo.Name == nameof(ImageLoadConfigDirectory.LockPrefixTable); //Haven't been able to find anything with LockPrefixTable
+                    return propertyInfo.Name == nameof(ImageLoadConfigDirectory.LockPrefixTable) || propertyInfo.Name == nameof(ImageLoadConfigDirectory.UmaFunctionPointers); //Haven't been able to find anything with LockPrefixTable
 
                 return false;
             }

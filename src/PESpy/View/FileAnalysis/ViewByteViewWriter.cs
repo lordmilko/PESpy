@@ -421,12 +421,16 @@ namespace PESpy.View
                 case ViewKind.CastGuardOsDeterminedFailureMode:
                 case ViewKind.ImageDelayLoadDescriptor_ModuleHandleRVA:
                 case ViewKind.PN:
-                case ViewKind.LockPrefixTable: //Array
                 case ViewKind.NativeAOTModulesA:
                 case ViewKind.NativeAOTModuleAddress:
                 case ViewKind.NativeAOTModulesZ:
                 case ViewKind.CodeViewSig:
                 case ViewKind.NE_ModuleReference:
+                case ViewKind.LockPrefixTable: //Array
+                case ViewKind.TpiHashValues32: //Array
+                case ViewKind.TpiHashValues16: //Array
+                case ViewKind.TpiHashOffsets32: //Array
+                case ViewKind.TpiHashOffsets16: //Array
                     pViewByte->DataKind = ViewByteDataKind.Integer;
                     break;
 

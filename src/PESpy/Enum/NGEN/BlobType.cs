@@ -3,7 +3,7 @@
     public enum BlobType
     {
         /* IMPORTANT: Keep the first four enums together in the same order and at
-           the very begining of this enum. See MetaModelPub.h for the order */
+           the very beginning of this enum. See MetaModelPub.h for the order */
         MetadataStringPool = 0,
         MetadataGuidPool = 1,
         MetadataBlobPool = 2,

@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ClrDebug.PDB;
 using PESpy.View;
 
 namespace PESpy.PDB
@@ -279,6 +279,8 @@ namespace PESpy.PDB
                             structWriter.WriteField("Value", sizeof(D), Unsafe.As<R, SN>(ref value), valueSize);
                         else if (typeof(R) == typeof(SrcHeaderOut))
                             structWriter.WriteStructField("Value", Unsafe.As<R, SrcHeaderOut>(ref value));
+                        else if (typeof(R) == typeof(CV_typ_t))
+                            structWriter.WriteField("Value", sizeof(D), Unsafe.As<R, CV_typ_t>(ref value));
                         else
                             Debug.Assert(false);
                         break;

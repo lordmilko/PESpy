@@ -116,7 +116,7 @@ namespace PESpy.View
                 throw new InvalidOperationException("Attempted to move beyond the last available entity; this indicates a bug in ViewEntityIterator.GetCount");
 
             entity = _entities.Current;
-            Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body);
+            Debug.Assert(entity.ViewByte->Kind != ViewByteKind.Body || entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
             int childOffset;
 
             //Watch our for a struct inside of a region inside of a nested file

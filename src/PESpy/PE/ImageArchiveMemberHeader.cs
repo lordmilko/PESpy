@@ -18,7 +18,7 @@ namespace PESpy
 
         public FixedAnsiString Name => chunk.PeekAnsiFixedLength(NameOffset, 16);
 
-        public Timestamp Date => (uint) chunk.PeekSpacePaddedInt32(DateOffset, 12 - dateMissing); //Should parse as number
+        public Timestamp Date => unchecked((uint) chunk.PeekSpacePaddedInt32(DateOffset, 12 - dateMissing)); //Should parse as number
 
         public int? UserID => chunk.PeekSpacePaddedNullableInt32(UserIDOffset - dateMissing, 6); //Should be a decimal
 

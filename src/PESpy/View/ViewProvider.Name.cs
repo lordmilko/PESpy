@@ -437,6 +437,10 @@ namespace PESpy
             /* Hdr                                                       */ Strings.HDR,
             /* Hdr_16t                                                   */ Strings.HDR_16t,
             /* TpiHash                                                   */ Strings.TpiHash,
+            /* TpiHashValues32                                           */ default,
+            /* TpiHashValues16                                           */ default,
+            /* TpiHashOffsets32                                          */ default,
+            /* TpiHashOffsets16                                          */ default,
             /* OffCb                                                     */ Strings.OffCb,
             /* DbiHdr                                                    */ Strings.DBIHdr,
             /* NewDbiHdr                                                 */ Strings.NewDBIHdr,
@@ -812,17 +816,7 @@ namespace PESpy
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static FixedUtf8String GetName(ViewKind kind)
-        {
-            //You should not be asking for the name of a kind that does not have a name
-#if DEBUG
-            var result = _structNames[(int) kind - 1];
-            Debug.Assert(result.Length > 0, $"Kind '{kind}' does not have a name");
-            return result;
-#else
-            return _structNames[(int) kind - 1];
-#endif
-        }
+        internal static FixedUtf8String GetName(ViewKind kind) => _structNames[(int) kind - 1];
 
         internal static string GetFieldName(ViewKind kind)
         {

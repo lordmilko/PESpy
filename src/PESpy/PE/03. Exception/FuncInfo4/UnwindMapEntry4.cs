@@ -21,7 +21,8 @@ namespace PESpy
         public int action { get; }
 
         /// <summary>
-        /// Frame offset of object pointer to be destroyed, exists for DtorWithObj and DtorWithPtrToObj types
+        /// Frame offset of object pointer to be destroyed, exists for DtorWithObj and DtorWithPtrToObj types<para/>
+        /// Offset to object directly or to stack location containing its pointer depending on UnwindEntryType.
         /// </summary>
         public int @object { get; }
 
@@ -92,7 +93,8 @@ namespace PESpy
                     writer.WriteUniqueRVAXRef(Offset, read, action);
                     read += sizeof(int);
 
-                    writer.WriteUniqueRVAXRef(Offset, read, @object);
+                    //Not sure how to convert offset into an absolute pointer so for now, no xref
+                    //writer.WriteUniqueRVAXRef(Offset, read, @object);
                     break;
 
                 case Type.RVA:

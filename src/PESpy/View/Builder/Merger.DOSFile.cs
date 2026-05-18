@@ -4,7 +4,7 @@
     {
         internal IView[] MergeDOS()
         {
-            //todo: not sure if theres actually any sections we need to take into consideration
+            //todo: not sure if there's actually any sections we need to take into consideration
 
             var results = new ValueList<IView>();
 

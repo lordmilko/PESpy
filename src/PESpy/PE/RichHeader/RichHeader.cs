@@ -98,7 +98,6 @@ namespace PESpy
                 if (alloc != default)
                     Marshal.FreeHGlobal(alloc);
             }
-
         }
 
         private static bool TryFindRich(Span<byte> bytes, out int richPosition)

@@ -26,9 +26,7 @@ namespace PESpy
 
         internal static VA<Ndr64ProcFormat> ReadNdr64ProcFormat(long va, PEFile peFile)
         {
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 var desc = new Ndr64ProcFormat(valueChunk);
                 return new VA<Ndr64ProcFormat>(va, valueChunk.AbsoluteOffset, desc);
@@ -59,9 +57,7 @@ namespace PESpy
 
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 var results = new RpcFormatStringItem[offsets.Value.Length];
 

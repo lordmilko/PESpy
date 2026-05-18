@@ -1,4 +1,5 @@
 ﻿using ClrDebug;
+using static ClrDebug.COMIMAGE_FLAGS;
 
 namespace PESpy
 {
@@ -6,9 +7,9 @@ namespace PESpy
     {
         public class CorPlatform
         {
-            public bool Is32BitRequired => (flags & COMIMAGE_FLAGS._32BITREQUIRED) != 0;
+            public bool Is32BitRequired => (flags & COMIMAGE_FLAGS_32BITREQUIRED) != 0;
 
-            public bool Is32BitPreferred => (flags & COMIMAGE_FLAGS._32BITPREFERRED) != 0;
+            public bool Is32BitPreferred => (flags & COMIMAGE_FLAGS_32BITPREFERRED) != 0;
 
             private COMIMAGE_FLAGS flags;
             private PEMagic magic;

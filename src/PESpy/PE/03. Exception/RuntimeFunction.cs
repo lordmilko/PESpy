@@ -23,7 +23,7 @@ namespace PESpy
      */
 
     /// <summary>
-    /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure that provides information on how an 64-bit stack frame should be unwound.
+    /// Represents the AMD64 <see cref="RUNTIME_FUNCTION"/> structure that provides information on how a 64-bit stack frame should be unwound.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public struct RuntimeFunction : IViewableValue

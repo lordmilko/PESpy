@@ -293,18 +293,31 @@ namespace PESpy
 #endif
         }
 
-        public void Append(Guid value)
+        public void Append(Guid value, string? format = null)
         {
 #if NET
-            EnsureCapacity(Length + 36);
-            var result = value.TryFormat(_chars.Slice(Length), out var charsWritten);
+            EnsureCapacity(Length + GetStringFormatSize(format));
+            var result = value.TryFormat(_chars.Slice(Length), out var charsWritten, format);
             Debug.Assert(result);
-            Debug.Assert(charsWritten == 36);
 
-            _pos += 36;
+            _pos += charsWritten;
 #else
-            Append(value.ToString());
+            Append(value.ToString(format));
 #endif
+        }
+
+        private int GetStringFormatSize(string? format)
+        {
+            if (string.IsNullOrEmpty(format))
+                return 36;
+
+            return (format![0] | 0x20) switch
+            {
+                'd' => 36,
+                'n' => 32,
+                'b' or 'p' => 38,
+                'x' => 68
+            };
         }
 
         public void Remove(int startIndex, int length)
@@ -766,6 +779,8 @@ namespace PESpy
             //Append anything remaining
             Append(span);
         }
+
+        public void Replace(char oldChar, char newChar) => Replace(oldChar, newChar, 0, Length);
 
         public void Replace(char oldChar, char newChar, int startIndex, int count)
         {

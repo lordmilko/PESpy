@@ -192,7 +192,7 @@ namespace PESpy
                      *
                      * Per https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#import-library-format, it seems to me
                      * that the OBJ file may be encoded in one of two formats:
-                     * 1. "long format", wherein you have the typical OBJFile format, albiet with an Archive Member Header
+                     * 1. "long format", wherein you have the typical OBJFile format, albeit with an Archive Member Header
                      *    in front of the IMAGE_FILE_HEADER
                      * 2. "short" format, wherein you have an IMPORT_OBJECT_HEADER after the Archive Member Header.
                      *    IMPORT_OBJECT_HEADER is fairly similar to ANON_OBJECT_HEADER. We check the first two members
@@ -204,7 +204,7 @@ namespace PESpy
 
                     AnsiString name = default;
 
-                    //If the name begins with a slash, then it is followed by an offset into thje long names member. Otherwise,
+                    //If the name begins with a slash, then it is followed by an offset into the long names member. Otherwise,
                     //the name is stored inline followed by a trailing slash and padding spaces
                     if (chunk.PeekByte(read) == (byte) '/')
                     {

@@ -449,10 +449,10 @@ namespace PESpy.PDB
                         if (omapFromSrc.TryConvertOmapFromSrc(rva.Value, out var omapRva))
                         {
                             //Split this back into an off/seg
-                            if (codeViewAccessor.TryGetSectionAndOffset(omapRva, out var omapOff, out var omapSeg))
+                            if (codeViewAccessor.TryGetSectionAndOffset(omapRva, out var omapSeg, out var omapOff))
                             {
-                                off = omapOff;
                                 seg = omapSeg;
+                                off = omapOff;
                                 return true;
                             }
                         }

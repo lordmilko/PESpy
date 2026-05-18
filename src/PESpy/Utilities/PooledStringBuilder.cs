@@ -25,7 +25,7 @@ namespace PESpy
     /// methods (where ref-structs cannot be used) or when you need to store a string builder inside a class.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public partial struct PooledStringBuilder
+    public partial struct PooledStringBuilder : IDisposable
     {
         internal static ReadOnlySpan<char> _escapeCharsUtf16 => new[]
         {
@@ -167,7 +167,6 @@ namespace PESpy
             _pos += count;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(char c)
         {
             int pos = _pos;
@@ -183,7 +182,6 @@ namespace PESpy
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(long value)
         {
             var isNegative = value < 0;
@@ -269,18 +267,31 @@ namespace PESpy
 #endif
         }
 
-        public void Append(Guid value)
+        public void Append(Guid value, string format = null)
         {
 #if NET
-            EnsureCapacity(Length + 36);
-            var result = value.TryFormat(_chars.AsSpan(Length), out var charsWritten);
+            EnsureCapacity(Length + GetStringFormatSize(format));
+            var result = value.TryFormat(_chars.AsSpan(Length), out var charsWritten, format);
             Debug.Assert(result);
-            Debug.Assert(charsWritten == 36);
 
-            _pos += 36;
+            _pos += charsWritten;
 #else
-            Append(value.ToString());
+            Append(value.ToString(format));
 #endif
+        }
+
+        private int GetStringFormatSize(string format)
+        {
+            if (string.IsNullOrEmpty(format))
+                return 36;
+
+            return (format![0] | 0x20) switch
+            {
+                'd' => 36,
+                'n' => 32,
+                'b' or 'p' => 38,
+                'x' => 68
+            };
         }
 
         public void Remove(int startIndex, int length)
@@ -305,7 +316,6 @@ namespace PESpy
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(string s)
         {
             if (s == null)
@@ -418,7 +428,6 @@ namespace PESpy
             _pos += requiredLength;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(StringBuilder b)
         {
             int pos = _pos;
@@ -538,7 +547,6 @@ namespace PESpy
             _pos = pos;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<char> AppendSpan(int length)
         {
             int origPos = _pos;
@@ -595,7 +603,6 @@ namespace PESpy
         }
 
         //From Iced
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AppendHex(
             ulong value,
             int digitGroupSize,
@@ -746,6 +753,8 @@ namespace PESpy
             //Append anything remaining
             Append(span);
         }
+
+        public void Replace(char oldChar, char newChar) => Replace(oldChar, newChar, 0, Length);
 
         public void Replace(char oldChar, char newChar, int startIndex, int count)
         {
@@ -925,7 +934,6 @@ namespace PESpy
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             char[] toReturn = _chars;

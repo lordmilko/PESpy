@@ -120,9 +120,9 @@
         // now.
         //
         //     CSTRING - character string
-        //     BSTRING - byte string (Beta2 compatability only)
+        //     BSTRING - byte string (Beta2 compatibility only)
         //     SSTRING - structure string
-        //     WSTRING - wide charater string
+        //     WSTRING - wide character string
         //
 
         //

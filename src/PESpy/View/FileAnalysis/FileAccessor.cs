@@ -15,6 +15,9 @@ namespace PESpy.View
     /// </summary>
     public abstract unsafe class FileAccessor : IDisposable
     {
+        public static FileAccessor Create(PEFile peFile, ViewMode viewMode) =>
+            new PEFileAccessor(peFile, viewMode);
+
         public static FileAccessor Create(IFile file)
         {
             return file.Kind switch
@@ -74,7 +77,10 @@ namespace PESpy.View
         public virtual bool IsLoaded => false;
 
         /// <summary>
-        /// Gets the total length of the file.
+        /// Gets the total length of the file.<para/>
+        /// When modelling a file as it exists on disk, this is the physical length
+        /// of the file. When modelling a virtual file, this is the total number of bytes
+        /// that all sections encompass; it is _not_ the same as <see cref="ImageOptionalHeader.SizeOfImage"/>.
         /// </summary>
         public long Length { get; protected set; }
 
@@ -133,7 +139,7 @@ namespace PESpy.View
         //to show something in the UI, and then let analysis/external symbol loading run in the background.
         //When analysis has completed, we may have now located an external symbol file, in which case we should
         //refresh the symbols contained in our overview
-        protected virtual void RefreshOverviewSymbols()
+        protected internal virtual void RefreshOverviewSymbols()
         {
         }
 
@@ -449,7 +455,7 @@ namespace PESpy.View
         /// into an entity, the field that the address lies within will be resolved. If the address points
         /// to the start of the first field, the parent struct will be returned instead.</param>
         /// <returns>A view that encapsulates the entity located at the given address</returns>
-        public IView GetView(int targetAddress)
+        public IView GetView(long targetAddress)
         {
             var entity = GetEntity(targetAddress);
 
@@ -501,6 +507,51 @@ namespace PESpy.View
             return GetViewFromEntity(entity);
         }
 
+        //Gets the immediate parent of a field, or null if this is a top level entity
+        public IView? GetParentView(long targetAddress)
+        {
+            //The logic is similar to GetView, except we keep track of the last container we saw; once we hit the target
+            //value, return the last parent
+
+            var entity = GetEntity(targetAddress);
+
+            if (entity.ViewByte->Kind != ViewByteKind.Body)
+                return null; //We hit a top level entity, which means there's no parent
+
+            var head = entity.GetHead(this, out _);
+
+            if (head.Kind == 0)
+                throw new InvalidOperationException("Don't know how to handle an address partway into an entity that doesn't have a kind");
+
+            var parent = GetViewFromEntity(head);
+
+            var @continue = true;
+
+            while (@continue)
+            {
+                @continue = false;
+
+                foreach (var child in parent.Children)
+                {
+                    if (child.Contains(targetAddress))
+                    {
+                        if (child.IsContainer())
+                        {
+                            parent = child;
+
+                            @continue = true;
+                            break;
+                        }
+
+                        //We've finally hit a field, so return the current parent
+                        return parent;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public IView GetViewFromEntity(ViewEntity entity)
         {
             if (entity.Kind != 0)
@@ -508,6 +559,8 @@ namespace PESpy.View
                 GetMemoryChunkFromAddress(entity.TargetAddress, out var chunk, out var viewWriter);
                 return ViewProvider.CreateStructView(entity.Kind, entity.Length, chunk, viewWriter, entity.IsSplit); //The ViewWriter is cached so this is OK
             }
+            else
+            {
                 switch (entity.ViewByte->Kind)
                 {
                     case ViewByteKind.Data:
@@ -558,7 +611,12 @@ namespace PESpy.View
                     case ViewByteKind.Code:
                         if (entity.IsSplit)
                             throw new NotImplementedException("Splitting code is not implemented"); //Just get the bytes before the split?
-                        var range = new AsmRange<object>(startOffset: (int) entity.TargetAddress, startRVA: (int) entity.TargetAddress, functionRVA: (int) (entity.TargetAddress - entity.Displacement), entity.Name);
+
+                        //If we already know there's code here we shouldn't be failing to do this
+                        var result = TryGetVirtualAddress(SectionAccessors[entity.SectionAccessorIndex], entity.TargetAddress, out var rva);
+                        Debug.Assert(result);
+
+                        var range = new AsmRange<object>(startOffset: (int) entity.TargetAddress, startRVA: (int) rva, functionRVA: (int) (rva - entity.Displacement), entity.Name);
                         range.EndOffset = (int) entity.TargetAddress + entity.Length;
 
                         return new AsmView<object>((int) entity.TargetAddress, (byte) Bitness, range, this, entity.ViewByte->IsIL ? ViewKind.IL : ViewKind.Assembly);
@@ -570,6 +628,8 @@ namespace PESpy.View
                         return new ByteBlobView(entity.TargetAddress, entity.Bytes, null, this);
 
                     case ViewByteKind.Body:
+                        //It should not be possible to naturally have a ViewEntity that contains a Body; the only valid scenario where that could occur
+                        //is if that body is a SplitHead
                         Debug.Assert(entity.ViewByte->BodyKind == ViewByteBodyKind.SplitHead);
 
                         //We want to create a view that just encapsulates the portion that this body encapsulates.
@@ -664,38 +724,7 @@ namespace PESpy.View
             GetMemoryChunkFromAddress(headOffset, out var chunk, out var viewWriter);
             var headStructView = (IStructView) ViewProvider.CreateStructView(structKind, pStartViewByte->GetLength(limit), chunk, viewWriter);
 
-            //Traverse the struct until we find the struct we were looking for
-
-            var current = headStructView;
-
-            var loop = true;
-
-            while (loop)
-            {
-                loop = false;
-
-                var children = current.Children;
-
-                foreach (var child in children)
-                {
-                    if (child.Contains(offset))
-                    {
-                        if (child is IStructFieldView s)
-                        {
-                            if (s.Kind == viewKind)
-                                return s.Value;
-
-                            current = s.Value;
-                            loop = true;
-                            break;
-                        }
-                        else if (child is IStructArrayFieldView a)
-                            throw new NotImplementedException();
-                        else
-                            throw new NotImplementedException();
-                    }
-                }
-            }
+            return headStructView;
         }
 
         #endregion
@@ -708,7 +737,7 @@ namespace PESpy.View
         /// <param name="address">The target relative address to lookup.</param>
         /// <param name="sectionIndex">The 0-based index of a non-header section to retrieve. This method will do +1 to whatever value is specified to account for the header section that is always listed first.</param>
         /// <returns>The <see cref="ViewByte"/> that is pointed to by the specified address and section.</returns>
-        public ViewByte* GetViewByteForSection(int address, int sectionIndex)
+        public ViewByte* GetViewByteForSection(long address, int sectionIndex)
         {
             ref var accessor = ref SectionAccessors[sectionIndex + 1]; //The first section is the header
 
@@ -1121,6 +1150,74 @@ namespace PESpy.View
                 }
             }
 
+            //Plan B: maybe someone just randomly happened to stumble upon an address and wants to know what
+            //the name of it is; rewind to find the head and see if it has a name. This is important for
+            //things like the DOS Stub
+            var entity = GetEntity(targetAddress, pViewByte, sectionAccessorIndex);
+
+            name = default;
+
+            while (true)
+            {
+                switch (pViewByte->Kind)
+                {
+                    case ViewByteKind.Body:
+                        if (pViewByte->BodyKind == ViewByteBodyKind.SplitHead)
+                            throw new NotImplementedException("Getting the name of a split head is not implemented");
+
+                        pViewByte--;
+                        break;
+
+                    case ViewByteKind.Code:
+                        if (this is PEFileAccessor p)
+                        {
+                            var dosStub = p.PEFile.DosStub;
+
+                            if (targetAddress >= dosStub.Offset && targetAddress <= dosStub.Offset + dosStub.Bytes.Length)
+                            {
+                                name = GetNameFromViewByte(targetAddress, sectionAccessorIndex, pViewByte);
+                                return true;
+                            }
+                        }
+                        else
+                            throw new NotImplementedException($"Don't know how to get the name for code in a {File.Kind} file");
+                        break;
+
+                    default:
+                        throw new NotImplementedException($"Don't know how to process a ViewByte of kind {pViewByte->Kind}");
+                }
+            }
+        }
+
+        public bool TryGetFunctionForAddress(int targetAddress, out ViewEntity entity)
+        {
+            ViewByte* pViewByte;
+            int sectionAccessorIndex;
+
+            if (GetSymbolAccessor().TryGetNameFromAddress(targetAddress, out _, out var disp))
+            {
+                var head = targetAddress - disp;
+
+                pViewByte = GetViewByte(targetAddress, out sectionAccessorIndex);
+
+                entity = GetEntity(head, pViewByte, sectionAccessorIndex);
+                return true;
+            }
+
+            pViewByte = GetViewByte(targetAddress, out sectionAccessorIndex);
+
+            entity = default;
+
+            if (pViewByte->Kind != ViewByteKind.Code)
+                return false;
+
+            if (pViewByte->IsFunction)
+            {
+                //This is the head, so we can go right ahead and return
+                entity = GetEntity(targetAddress, pViewByte, sectionAccessorIndex);
+                return true;
+            }
+
             while (pViewByte->HasFlow)
             {
                 do
@@ -1136,6 +1233,12 @@ namespace PESpy.View
                     return true;
                 }
             }
+
+            //Check for xrefs and walk back to a calling chunk
+
+            throw new NotImplementedException();
+        }
+
         internal void InstallDataDirectories(RegionBuilder[] topLevelDirectories, RegionBuilder[] firstDirectoryByAddress)
         {
             //Enable fast lookup of directories based on offset

@@ -55,7 +55,8 @@ namespace PESpy.PDB
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
-            //No globals
+            //No globals. Note that while ulRvaStart may technically point
+            //to a code location, that doesn't help us if we're a PDB!
         }
 
         IView? IViewable.WriteStruct(ViewWriter writer) =>

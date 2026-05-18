@@ -163,7 +163,7 @@ namespace PESpy.View
             return new PEFileOverview(PEFile, _symbolAccessor ?? NullSymbolAccessor.Instance);
         }
 
-        protected override void RefreshOverviewSymbols()
+        protected internal override void RefreshOverviewSymbols()
         {
             //The caller _must_ have populated our symbol accessor at this point
             Debug.Assert(_symbolAccessor != null);

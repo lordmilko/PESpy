@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ClrDebug;
 using PESpy.Ecma335;
+using static ClrDebug.COMIMAGE_FLAGS;
 using static PESpy.IMAGE_DEBUG_TYPE;
 using static System.Diagnostics.DebuggableAttribute;
 
@@ -130,12 +131,12 @@ namespace PESpy
         public Version? NgenVersion { get; set; }
 
         /// <summary>
-        /// Gets whether the <see cref="ImageCor20Header.ManagedNativeHeader"/> points to a <see cref="ReadyToRunHeader"/>.
+        /// Gets whether the <see cref="ImageCor20Header.ManagedNativeHeader"/> points to a <see cref="R2R.ReadyToRunHeader"/>.
         /// </summary>
         public bool IsR2R { get; set; }
 
         /// <summary>
-        /// Gets the version listed in <see cref="ReadyToRunHeader.MajorVersion"/> and <see cref="ReadyToRunHeader.MinorVersion"/>.
+        /// Gets the version listed in <see cref="R2R.ReadyToRunHeader.MajorVersion"/> and <see cref="R2R.ReadyToRunHeader.MinorVersion"/>.
         /// </summary>
         public Version? R2RHeaderVersion { get; set; }
 
@@ -237,12 +238,12 @@ namespace PESpy
 
         private void ProcessManagedEntryPoint(ImageCor20Header cor20Header, CompressedModelHeap compressedModelHeap, ISymbolAccessor symbolAccessor)
         {
-            var rva = cor20Header.EntryPointTokenOrRVA;
+            var rva = cor20Header.EntryPointRVA;
 
             if (rva == 0)
                 return;
 
-            if ((cor20Header.Flags & COMIMAGE_FLAGS.NATIVE_ENTRYPOINT) != 0)
+            if ((cor20Header.Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) != 0)
                 Cor20NativeEntryPoint = GetNativeSymbol(rva, symbolAccessor);
             else
             {

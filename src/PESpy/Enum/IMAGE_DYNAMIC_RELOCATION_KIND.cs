@@ -6,9 +6,16 @@ namespace PESpy
     /// Represents the IMAGE_DYNAMIC_RELOCATION_* enumeration which describes the type of value contained
     /// in a <see cref="IMAGE_DYNAMIC_RELOCATION32"/> / <see cref="IMAGE_DYNAMIC_RELOCATION64"/> structure.
     /// </summary>
-    public enum IMAGE_DYNAMIC_RELOCATION_KIND : long //Name is made up
+    public enum IMAGE_DYNAMIC_RELOCATION_KIND : ulong //Name is made up
     {
+        /// <summary>
+        /// Specifies that the value is a <see cref="IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER"/>.
+        /// </summary>
         IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE = 0x00000001,
+
+        /// <summary>
+        /// Specifies that the value is a <see cref="IMAGE_EPILOGUE_DYNAMIC_RELOCATION_HEADER"/>.
+        /// </summary>
         IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE = 0x00000002,
 
         /// <summary>

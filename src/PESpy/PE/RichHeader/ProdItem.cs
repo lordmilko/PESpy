@@ -13,7 +13,7 @@ namespace PESpy
      * 
      * https://github.com/dishather/richprint/blob/master/comp_id.txt
      * 
-     * Instead, we base our product info on PEAnatomist, which contains the most overwhelming comprehensive list in existence (as far as I can find).
+     * Instead, we base our product info on PEAnatomist, which contains the most overwhelmingly comprehensive list in existence (as far as I can find).
      * Names present in richprint that are missing from PEAnatomist that I have not vetted yet include the following:
      * 
      * - VS98 (6.0) SP6 cvtres build 1736

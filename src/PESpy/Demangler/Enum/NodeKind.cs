@@ -36,6 +36,7 @@
             ThunkSignature,
             FunctionSignatureEnd = ThunkSignature,
 
+            ManagedArray,
             PointerType,
             PrimitiveType,
             TagType,

@@ -259,9 +259,46 @@ namespace PESpy.PDB
                 }
             }
 
-            //FPO
+            #region FPO
+
+            private FpoData[]? fpo;
+
+            public FpoData[] FPO
+            {
+                get
+                {
+                    if (fpo == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.FPO, out var valueChunk))
+                            {
+                                var numItems = ((int) valueChunk.Remaining) / FpoData.StructSize;
+
+                                var results = new FpoData[numItems];
+
+                                for (var i = 0; i < results.Length; i++)
+                                    results[i] = new FpoData(valueChunk.Slice(i * FpoData.StructSize));
+
+                                fpo = results;
+                            }
+                        }
+                    }
+
+                    return fpo;
+                }
+            }
+
+            #endregion
+
             //Exception
             //Fixup
+
+            #region OmapToSrc
 
             private NativeSpan<OMAP_DATA>? omapToSrc;
 
@@ -293,6 +330,9 @@ namespace PESpy.PDB
                 }
             }
 
+            #endregion
+            #region OmapFromSrc
+
             private NativeSpan<OMAP_DATA>? omapFromSrc;
 
             //Given an RVA in a PDB symbol, binary search for the OMAP entry that the RVA would be associated with.
@@ -302,7 +342,7 @@ namespace PESpy.PDB
             {
                 get
                 {
-                    if (omapToSrc == null)
+                    if (omapFromSrc == null)
                     {
                         var dbgHdr = DbgHdr;
 
@@ -323,6 +363,7 @@ namespace PESpy.PDB
                 }
             }
 
+            #endregion
             #region SectionHdr
 
             private ImageSectionHeader[]? sectionHdr;
@@ -362,12 +403,50 @@ namespace PESpy.PDB
             //TokenRidMap
             //XData
             //PData
-            //NewFPO
 
+            #region NewFPO
+
+            private FrameData[]? newFPO;
+
+            public FrameData[]? NewFPO
+            {
+                get
+                {
+                    if (newFPO == null)
+                    {
+                        var dbgHdr = DbgHdr;
+
+                        if (dbgHdr != null)
+                        {
+                            var pdbFile = chunk.PDBFile();
+
+                            if (pdbFile.TryGetStreamChunk(dbgHdr.NewFPO, out var valueChunk))
+                            {
+                                var numItems = ((int) valueChunk.Remaining) / FrameData.StructSize;
+
+                                var results = new FrameData[numItems];
+
+                                for (var i = 0; i < results.Length; i++)
+                                    results[i] = new FrameData(valueChunk.Slice(i * FrameData.StructSize));
+
+                                newFPO = results;
+                            }
+                        }
+                    }
+
+                    return newFPO;
+                }
+            }
+
+            #endregion
             #region SectionHdrOrig
 
             private ImageSectionHeader[]? sectionHdrOrig;
 
+            //When OMAP data is present, SectionHdr matches the headers found in the PE File, while SectionHdrOrig
+            //contains the section headers as were originally understood by the symbols that were written. As such,
+            //when calculating the raw section headers we need to look at SectionHdrOrig, and when calculating the
+            //translated section headers we need to look at SectionHdr
             public ImageSectionHeader[]? SectionHdrOrig
             {
                 get
@@ -399,7 +478,6 @@ namespace PESpy.PDB
             }
 
             #endregion
-
             #endregion
             #region Symbols
 
@@ -504,13 +582,15 @@ namespace PESpy.PDB
 
             void IViewable.WriteGlobals(ViewWriter writer)
             {
+                var dbgHdr = DbgHdr;
+
                 writer.WriteGlobal(DbiHdr);
                 writer.WriteGlobal(Modules);
                 writer.WriteGlobal(SectionContribs);
                 writer.WriteGlobal(SectionMap);
                 writer.WriteGlobal(FileInfo);
                 writer.WriteGlobal(NameTableEC);
-                writer.WriteGlobal(DbgHdr);
+                writer.WriteGlobal(dbgHdr);
 
                 var pdbFile = chunk.PDBFile();
 
@@ -524,16 +604,35 @@ namespace PESpy.PDB
                     }
                 }
 
-                //FPO
+                writer.WriteGlobal(FPO);
                 //Exception
                 //Fixup
-                //OmapToSrc
-                //OmapFromSrc
+
+                var omapToSrc = OmapToSrc;
+
+                if (omapToSrc != null)
+                {
+                    var result = pdbFile.TryGetStreamChunk(dbgHdr.OmapToSrc, out var valueChunk);
+                    Debug.Assert(result);
+
+                    writer.WritePagedGlobal(valueChunk.RelativeOffset, (PagedMemoryBlock) valueChunk.block, omapToSrc.Value, ViewKind.OmapData);
+                }
+
+                var omapFromSrc = OmapFromSrc;
+
+                if (omapFromSrc != null)
+                {
+                    var result = pdbFile.TryGetStreamChunk(dbgHdr.OmapFromSrc, out var valueChunk);
+                    Debug.Assert(result);
+
+                    writer.WritePagedGlobal(valueChunk.RelativeOffset, (PagedMemoryBlock) valueChunk.block, omapFromSrc.Value, ViewKind.OmapData);
+                }
+
                 writer.WriteGlobal(SectionHdr);
                 //TokenRidMap
                 //XData
                 //PData
-                //NewFPO
+                writer.WriteGlobal(NewFPO);
                 writer.WriteGlobal(SectionHdrOrig);
             }
 

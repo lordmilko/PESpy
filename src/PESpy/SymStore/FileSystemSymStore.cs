@@ -75,13 +75,15 @@ namespace PESpy
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 
+            //This will get the original file name + all the parts of the index we just added
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
 
             //We don't want to download to the final file, because if the download is interrupted we'll trip over the file
             //when we next attempt to read the file, since it will now already exist
 
             //Per symsrv!GetTempDownloadFileName
-            var tempFile = Path.Combine(DirectoryName, $"download{Guid.NewGuid().ToString("N").ToUpperInvariant()}.error");
+
+            var tempFile = GetTempFileName();
 
             using (var fs = File.OpenWrite(tempFile))
             {
@@ -98,13 +100,15 @@ namespace PESpy
         {
             var fileName = Path.Combine(DirectoryName, key.Index);
 
+            //This will get the original file name + all the parts of the index we just added
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
 
             //We don't want to download to the final file, because if the download is interrupted we'll trip over the file
             //when we next attempt to read the file, since it will now already exist
 
             //Per symsrv!GetTempDownloadFileName
-            var tempFile = Path.Combine(DirectoryName, $"download{Guid.NewGuid().ToString("N").ToUpperInvariant()}.error");
+
+            var tempFile = GetTempFileName();
 
             using (var fs = File.OpenWrite(tempFile))
             {
@@ -116,5 +120,27 @@ namespace PESpy
             return (new SymStoreFile(fileName.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)), File.OpenRead(fileName));
         }
 #endif
+
+        private unsafe string GetTempFileName()
+        {
+            using var builder = new ValueStringBuilder(stackalloc char[260]);
+
+            builder.Append(DirectoryName);
+            builder.Append(Path.DirectorySeparatorChar);
+            builder.Append("download");
+
+#if NET
+            Span<char> guid = stackalloc char[32];
+            Guid.NewGuid().TryFormat(guid, out _, "N");
+            var target = builder.AppendSpan(32);
+            ((ReadOnlySpan<char>) guid).ToUpperInvariant(target);
+#else
+            builder.Append(Guid.NewGuid(), "N");
+#endif
+
+            builder.Append(".error");
+
+            return builder.ToString();
+        }
     }
 }

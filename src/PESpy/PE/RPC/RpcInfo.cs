@@ -167,14 +167,9 @@ namespace PESpy
         {
             var va = (long) chunk.PeekPointer(fieldOffset);
 
-            if (va == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 return new VA<RpcProtseqEndpoint>(va, chunk.AbsoluteOffset, new PESpy.RpcProtseqEndpoint(valueChunk));
 
             return new VA<RpcProtseqEndpoint>(va);
@@ -205,9 +200,7 @@ namespace PESpy
 
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 var span = valueChunk.PeekNativeSpan<ushort>(0, (int) valueChunk.Remaining / 2);
 
@@ -248,14 +241,9 @@ namespace PESpy
 
             var va = (long) chunk.PeekPointer(offsetsFieldOffset);
 
-            if (va == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 var low = peFile.OptionalHeader.ImageBase;
                 var high = low + peFile.OptionalHeader.SizeOfImage;
@@ -321,14 +309,9 @@ namespace PESpy
         {
             var va = (long) chunk.PeekPointer(fieldOffset);
 
-            if (va == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 return new VA<RpcSyntaxIdentifier>(va, chunk.AbsoluteOffset, new RpcSyntaxIdentifier(valueChunk));
 
             return new VA<RpcSyntaxIdentifier>(va);
@@ -341,14 +324,9 @@ namespace PESpy
         {
             var va = (long) chunk.PeekPointer(fieldOffset);
 
-            if (va == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 var results = new MidlSyntaxInfo[nCount];
 
@@ -367,14 +345,9 @@ namespace PESpy
         {
             var va = (long) chunk.PeekPointer(fieldOffset);
 
-            if (va == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 return new VA<RpcDispatchTable>(va, chunk.AbsoluteOffset, new RpcDispatchTable(valueChunk));
 
             return new VA<RpcDispatchTable>(va);
@@ -386,9 +359,7 @@ namespace PESpy
 
             var peFile = chunk.PEFile();
 
-            var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
             {
                 if (chunk.Is32Bit)
                 {

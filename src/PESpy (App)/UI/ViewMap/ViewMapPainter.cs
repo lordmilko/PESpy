@@ -4,7 +4,8 @@ using System.Runtime.CompilerServices;
 using PESpy.View;
 using PInvoke;
 using ReView;
-namespace PESpy
+
+namespace PESpy.ViewMap
 {
     /// <summary>
     /// Provides facilities for painting a layer of a <see cref="ViewMap"/>.
@@ -12,13 +13,19 @@ namespace PESpy
     internal struct ViewMapPainter
     {
         private HWND _hWnd;
+        internal HDC _hMemDC;
+        private HBITMAP _hBitmap;
+        private ViewMapPanel _viewMap; //Provides access to the various GDI handles we need in order to paint
         private RECT _clientRect;
         private int _yOffset;
 
         public bool IsValid;
 
+        public bool IsEmpty => _hBitmap == default;
+        public int Width => _clientRect.Width;
+
         //The DC that is passed in is only used to create a compatible DC; it will be released once the ViewMap has been initialized
-        public ViewMapPainter(HWND hWnd, HDC hdc, ViewMap viewMap, int yOffset)
+        public ViewMapPainter(HWND hWnd, HDC hdc, ViewMapPanel viewMap, int yOffset)
         {
             _hWnd = hWnd;
             _hMemDC = Gdi32.CreateCompatibleDC(hdc);
@@ -61,8 +68,34 @@ namespace PESpy
             User32.FillRect(_hMemDC, _clientRect, UIElement.DefaultBackgroundBrush);
 
             var visualSections = _viewMap._visualSections;
+            var pixels = _viewMap._pixels;
             var sectionAccessors = fileAccessor.SectionAccessors;
 
+            Debug.Assert(pixels != null);
+
+            //If we don't have any visual sections, that means we had more sections than will fit on the screen, which is an issue
+            if (visualSections == null)
+                RenderBaseFlat(fileAccessor, pixels);
+            else
+                RenderBaseSections(fileAccessor, sectionAccessors, visualSections, pixels);
+
+            //Below the main area, draw a legend
+            DrawLegend();
+
+            IsValid = true;
+        }
+
+        private void RenderBaseFlat(FileAccessor fileAccessor, ViewMapPixel[] pixels)
+        {
+            DrawPixels(fileAccessor, _hMemDC, xPos: 0, startIndex: 0, endIndex: pixels.Length, pixels, isHighlighted: false);
+        }
+
+        private void RenderBaseSections(
+            FileAccessor fileAccessor,
+            SectionAccessor[] sectionAccessors,
+            VisualSection[] visualSections,
+            ViewMapPixel[] pixels)
+        {
             for (var i = 0; i < visualSections!.Length; i++)
             {
                 ref var sectionAccessor = ref sectionAccessors[i];
@@ -74,9 +107,16 @@ namespace PESpy
 
                 if (visualSection.Width == 0)
                     continue;
+
+                var start = visualSection.PhysicalStartPixel;
+
+                DrawSection(start, false, sectionAccessor, visualSection, fileAccessor, pixels);
+            }
+        }
+
         private void DrawLegend()
         {
-            var rectTop = ViewMap.COLORLINE_HEIGHT + 3 + _yOffset;
+            var rectTop = ViewMapPanel.COLORLINE_HEIGHT + 3 + _yOffset;
             var rectLeft = 3;
             var rectSideLength = 16;
 
@@ -156,33 +196,55 @@ namespace PESpy
             }
         }
 
-        private unsafe void DrawSection(int start, bool isHighlighted, in SectionAccessor sectionAccessor, in VisualSection visualSection, FileAccessor fileAccessor)
+        private unsafe void DrawSection(
+            int start,
+            bool isHighlighted,
+            in SectionAccessor sectionAccessor,
+            in VisualSection visualSection,
+            FileAccessor fileAccessor,
+            ViewMapPixel[] pixels)
         {
             var xPos = start;
 
             var hMemDC = _hMemDC;
 
-            //For each pixel, draw the type of data it contains
-            for (var j = 0; j < visualSection.Data.Length; j++)
-            {
-                var data = visualSection.Data[j];
+            var startIndex = visualSection.PhysicalStartPixel;
+            var endIndex = startIndex + visualSection.Width;
 
-                var pViewByte = (ViewByte*) data.pViewByte;
+            DrawPixels(fileAccessor, hMemDC, xPos, startIndex, endIndex, pixels, isHighlighted);
 
-                var pen = GetUsagePen(pViewByte, isHighlighted, fileAccessor, data.startAddress);
-
-                Gdi32.SelectObject(hMemDC, pen);
-
-                Gdi32.MoveToEx(hMemDC, xPos, 1 + _yOffset);
-                Gdi32.LineTo(hMemDC, xPos, ViewMap.COLORLINE_HEIGHT + _yOffset - 1);
-
-                xPos++;
-            }
             //Draw the name of the section
 
             //We need right to be xPos + the actual width, else the edge of it might get clipped
             var minRight = xPos;
             DrawText(hMemDC, sectionAccessor.Name, left: visualSection.PhysicalStartPixel, top: _yOffset, ref minRight, _viewMap._codeFontHeight);
+        }
+
+        private unsafe void DrawPixels(
+            FileAccessor fileAccessor,
+            HDC hMemDC,
+            int xPos,
+            int startIndex,
+            int endIndex,
+            ViewMapPixel[] pixels,
+            bool isHighlighted)
+        {
+            //For each pixel, draw the type of data it contains
+            for (var j = startIndex; j < endIndex; j++)
+            {
+                var pixel = pixels[j];
+
+                var pViewByte = pixel.pStartViewByte;
+
+                var pen = GetUsagePen(pViewByte, isHighlighted, fileAccessor, pixel.StartAddress);
+
+                Gdi32.SelectObject(hMemDC, pen);
+
+                Gdi32.MoveToEx(hMemDC, xPos, 1 + _yOffset);
+                Gdi32.LineTo(hMemDC, xPos, ViewMapPanel.COLORLINE_HEIGHT + _yOffset - 1);
+
+                xPos++;
+            }
         }
 
         #endregion
@@ -194,13 +256,28 @@ namespace PESpy
             Debug.Assert(_viewMap._highlightedSection != -1);
             Debug.Assert(!IsValid);
 
-            ref var sectionAccessor = ref fileAccessor.SectionAccessors[_viewMap._highlightedSection];
-            ref var visualSection = ref _viewMap!._visualSections![_viewMap._highlightedSection];
+            var pixels = _viewMap._pixels;
+            Debug.Assert(pixels != null);
 
-            var start = visualSection.PhysicalStartPixel;
-            DrawSection(start, true, sectionAccessor, visualSection, fileAccessor);
+            if (_viewMap._visualSections == null)
+            {
+                //Highlight everything
 
-            DrawHighlightOutline(_hMemDC, visualSection.PhysicalStartPixel, visualSection.Width, ViewMap.COLORLINE_HEIGHT);
+                DrawPixels(fileAccessor, _hMemDC, xPos: 0, startIndex: 0, endIndex: pixels.Length, pixels, isHighlighted: true);
+
+                DrawHighlightOutline(_hMemDC, 0, pixels.Length, ViewMapPanel.COLORLINE_HEIGHT);
+            }
+            else
+            {
+                ref var sectionAccessor = ref fileAccessor.SectionAccessors[_viewMap._highlightedSection];
+                ref var visualSection = ref _viewMap!._visualSections![_viewMap._highlightedSection];
+
+                var start = visualSection.PhysicalStartPixel;
+
+                DrawSection(start, isHighlighted: true, sectionAccessor, visualSection, fileAccessor, pixels);
+
+                DrawHighlightOutline(_hMemDC, visualSection.PhysicalStartPixel, visualSection.Width, ViewMapPanel.COLORLINE_HEIGHT);
+            }
 
             IsValid = true;
         }

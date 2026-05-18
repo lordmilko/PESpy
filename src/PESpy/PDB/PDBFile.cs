@@ -249,7 +249,7 @@ namespace PESpy
         private IStreamTable? previousStreamTable;
 
         //This value is not available when writing, as snSt will return the in-memory version of the stream table,
-        //which will match the current version of the stream table (which will upset the view since they haev the same offset).
+        //which will match the current version of the stream table (which will upset the view since they have the same offset).
         //Only the on-disk snSt will be the previous stream table
         public IStreamTable? PreviousStreamTable
         {
@@ -441,7 +441,7 @@ namespace PESpy
         {
             get
             {
-                /* Note that there a confusing illusion that can occur with /names (and likely other data) when looking
+                /* Note that there's a confusing illusion that can occur with /names (and likely other data) when looking
                  * at a view of the PDB. Consider the following page layout:
                  * 100: NewDbiHdr, C:\Windows\sys
                  * 102: /names(2) stem32\notepad.exe
@@ -886,7 +886,15 @@ namespace PESpy
             }
         }
 
-        public ImageSectionHeader[]? GetSectionHeaders() => DBI?.SectionHdr ?? fallbackSectionHeaders;
+        public ImageSectionHeader[]? GetSectionHeaders()
+        {
+            var dbi = DBI;
+
+            if (dbi != null)
+                return dbi.SectionHdrOrig ?? dbi.SectionHdr ?? fallbackSectionHeaders;
+
+            return fallbackSectionHeaders;
+        }
 
         /// <summary>
         /// Attempts to get the symbol associated with the given RVA.<para/>
@@ -1027,7 +1035,7 @@ namespace PESpy
         /// Gets the section number and offset into the section that maps to the specified RVA.<para/>
         /// If the RVA does not lie within the bounds of a section (i.e. it resides prior to the start of the first section,
         /// between the end and start of two sections, or past the bounds of the last section) this method will return <see langword="false"/>.<para/>
-        /// This method does perform OMAP transformations; it merely detects the <see cref="ImageSectionHeader"/> that the given
+        /// This method does not perform OMAP transformations; it merely detects the <see cref="ImageSectionHeader"/> that the given
         /// RVA lies within.
         /// </summary>
         /// <param name="rva">The RVA to resolve to a section number and offset</param>
@@ -1073,10 +1081,7 @@ namespace PESpy
             if (HasOmapToSrc)
             {
                 //TryConvertOmapToSrc preserves the rva
-                if (!omapToSrc.TryConvertOmapToSrc(rva, out rva))
-                {
-                    Debug.Assert(false); //Not sure what we should do here
-                }
+                omapToSrc.TryConvertOmapToSrc(rva, out rva);
             }
 
             ImageSectionHeader.GetSectionAndOffset(GetSectionHeaders(), rva, out sectionNumber, out relativeOffset, out isValid);
@@ -1130,7 +1135,8 @@ namespace PESpy
             if (sectionContribs == null)
                 return false;
 
-            var sectionHeaders = dbi.SectionHdr ?? fallbackSectionHeaders;
+            //SectionHdrOrig needs to be used if we originally had an OMAP address and had to convert it back to src
+            var sectionHeaders = dbi.SectionHdrOrig ?? dbi.SectionHdr ?? fallbackSectionHeaders;
 
             if (sectionHeaders == null || sectionNumber > sectionHeaders.Length)
                 return false;
@@ -1260,8 +1266,6 @@ namespace PESpy
         //Caller must have asked if we have OmapFromSrc data before calling this method
         NativeSpan<OMAP_DATA> ICodeViewAccessor.GetOmapFromSrc() => omapFromSrc;
 
-        ImageSectionHeader[]? ICodeViewAccessor.GetSectionHeaders() => DBI?.SectionHdr ?? fallbackSectionHeaders;
-
         SymType ICodeViewAccessor.GetModuleSymbol(ushort imod, int ibSym)
         {
             var modules = DBI?.Modules;
@@ -1303,11 +1307,13 @@ namespace PESpy
         }
 
         int? ICodeViewAccessor.GetRawRelativeVirtualAddress(ushort seg, int off) =>
-            SymType.GetRelativeVirtualAddressFromSectionHeaders(((ICodeViewAccessor) this).GetSectionHeaders(), seg, off);
+            SymType.GetRelativeVirtualAddressFromSectionHeaders(DBI?.SectionHdrOrig ?? DBI?.SectionHdr ?? fallbackSectionHeaders, seg, off);
 
         int? ICodeViewAccessor.GetOmapRelativeVirtualAddress(ushort rawSeg, int rawOff)
         {
-            var rawRVA = SymType.GetRelativeVirtualAddressFromSectionHeaders(((ICodeViewAccessor) this).GetSectionHeaders(), rawSeg, rawOff);
+            //You might think you can shortcut all this by using SectionHdr rather than SectionHdrOrig, but this is wrong.
+            //You need to go through the whole "best match" logic that you get from analyzing OmapFromSrc
+            var rawRVA = SymType.GetRelativeVirtualAddressFromSectionHeaders(GetSectionHeaders(), rawSeg, rawOff);
 
             if (rawRVA != null)
             {
@@ -1320,8 +1326,8 @@ namespace PESpy
                         return omapRva;
                     }
 
-                    Debug.Assert(false);
-                    return null; //Not sure what we should do
+                    //DIA just seems to return 0 in this scenario
+                    return null;
                 }
                 else
                     return rawRVA;

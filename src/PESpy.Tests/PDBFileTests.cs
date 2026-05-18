@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using System.Threading;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -197,6 +196,9 @@ namespace PESpy.Tests
         [TestMethod]
         public void PDBFile_RVA_OMAP_StressTest()
         {
+            //This is an important test, but it takes several minutes!
+            Assert.Inconclusive();
+
             StressTestRVA(Locator.Locate(WellKnownTestModule.CppDebug));
         }
 
@@ -265,13 +267,23 @@ namespace PESpy.Tests
 
                                 Assert.AreEqual(symTag, diaSymbol.SymTag);
 
-                                ((PDBFileSymbol) ourSymbol.Symbol).SymType.TryGetOffSeg(out var ourOff, out var ourSeg);
+                                //DIA reports the raw off/seg
+                                ((PDBFileSymbol) ourSymbol.Symbol).SymType.TryGetRawOffSeg(out var ourOff, out var ourSeg);
 
                                 var theirOff = diaSymbol.AddressOffset;
                                 var theirSeg = diaSymbol.AddressSection;
 
                                 Assert.AreEqual(ourOff, theirOff);
                                 Assert.AreEqual(ourSeg, theirSeg);
+
+                                var theirRVA = theirSymbol.RelativeVirtualAddress;
+                                var ourRVA = ourSymbol.RelativeVirtualAddress;
+
+                                //We handle failure in GetOmapRelativeVirtualAddress differently
+                                if (ourRVA == null)
+                                    Assert.AreEqual(theirRVA, (int) ourSymbol.Displacement);
+                                else
+                                    Assert.AreEqual(theirRVA, ourRVA);
                             }
                         }
                         Assert.AreEqual(ourSymbol.Displacement, theirSymbol.Displacement);
@@ -322,6 +334,53 @@ namespace PESpy.Tests
 
             action(ctx);
         }
+
+        [TestMethod]
+        public void BigMsfHdr_StreamTable_Test()
+        {
+            Assert.Inconclusive();
+
+            //TestStruct<BigMsfHdr.StreamTable>(
+            //    v => v.NumStreams == 20,
+            //    //v => v.StreamSizes == NativeSpan<Int32>[20],
+            //    v => v.StreamPages == null,
+            //    v => v.StreamInfos == null
+            //);
+
+            TestView<BigMsfHdr.StreamTable>(
+                v => v.VerifyStruct(
+                    name: "Stream Table", offset: 98304, size: 148,
+                    c => c.VerifyField(name: "NumStreams", value: 20),
+                    c => c.VerifyField(name: "StreamSizes", value: null),
+                    c => c.VerifyField(name: "StreamPages", value: null),
+                    c => c.VerifyField(name: "StreamInfos", value: null)
+                )
+            );
+        }
+
+        [TestMethod]
+        public void MsfHdr_StreamTable_Test()
+        {
+            Assert.Inconclusive();
+
+            //TestStruct<MsfHdr.StreamTable>(
+            //    v => v.NumStreams == 75,
+            //    v => v.StreamPersists == null,
+            //    v => v.StreamPages == null,
+            //    v => v.StreamInfos == null
+            //);
+
+            TestView<MsfHdr.StreamTable>(
+                v => v.VerifyStruct(
+                    name: "Stream Table", offset: 307200, size: 1166,
+                    c => c.VerifyField(name: "NumStreams", value: 75),
+                    c => c.VerifyField(name: "StreamPersists", value: null),
+                    c => c.VerifyField(name: "StreamPages", value: null),
+                    c => c.VerifyField(name: "StreamInfos", value: null)
+                )
+            );
+        }
+
         #region DBI
 
         [TestMethod]

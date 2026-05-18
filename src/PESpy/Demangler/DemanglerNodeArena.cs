@@ -19,6 +19,7 @@ namespace PESpy
         internal NodeArena<LiteralOperatorIdentifierNode> LiteralOperatorIdentifier;
         internal NodeArena<LocalStaticGuardIdentifierNode> LocalStaticGuardIdentifier;
         internal NodeArena<LocalStaticGuardVariableNode> LocalStaticGuardVariable;
+        public NodeArena<ManagedArrayTypeNode> ManagedArrayType;
         internal NodeArena<NamedIdentifierNode> NamedIdentifier;
         internal NodeArena<PointerTypeNode> PointerType;
         internal NodeArena<PrimitiveTypeNode> PrimitiveType;
@@ -50,6 +51,7 @@ namespace PESpy
             LiteralOperatorIdentifier    = new NodeArena<LiteralOperatorIdentifierNode>        (1, () => new LiteralOperatorIdentifierNode());
             LocalStaticGuardIdentifier   = new NodeArena<LocalStaticGuardIdentifierNode>       (1, () => new LocalStaticGuardIdentifierNode());
             LocalStaticGuardVariable     = new NodeArena<LocalStaticGuardVariableNode>         (1, () => new LocalStaticGuardVariableNode());
+            ManagedArrayType             = new NodeArena<ManagedArrayTypeNode>                 (1, () => new ManagedArrayTypeNode());
             NamedIdentifier              = new NodeArena<NamedIdentifierNode>                  (417, () => new NamedIdentifierNode());
             PointerType                  = new NodeArena<PointerTypeNode>                      (38, () => new PointerTypeNode());
             PrimitiveType                = new NodeArena<PrimitiveTypeNode>                    (38, () => new PrimitiveTypeNode());

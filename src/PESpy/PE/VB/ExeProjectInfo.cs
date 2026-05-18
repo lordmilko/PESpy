@@ -106,9 +106,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         projectData = new VA<VBProjectInfo1>(va, valueChunk.AbsoluteOffset, new VBProjectInfo1(valueChunk));
                     }
@@ -171,9 +169,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         var results = new ExeFormInfo[wFormCount];
 
@@ -212,9 +208,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         var results = new ExeOcxInfo[wExternalCount];
 
@@ -253,9 +247,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         comRegisterData = new VA<RegData>(va, valueChunk.AbsoluteOffset, new RegData(valueChunk));
                     }
@@ -341,9 +333,7 @@ namespace PESpy.VB
 
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 {
                     field = new VA<AnsiString>(va, valueChunk.AbsoluteOffset, valueChunk.PeekAnsiNullTerminatedString(0));
                 }
@@ -362,9 +352,7 @@ namespace PESpy.VB
 
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 {
                     field = new VA<Guid>(va, valueChunk.AbsoluteOffset, valueChunk.PeekGuid(0));
                 }

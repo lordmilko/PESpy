@@ -129,6 +129,11 @@ namespace PESpy
             }
         }
 
+        public static void RaisePositionChanged(object sender, long newPosition)
+        {
+            //Not implemented
+        }
+
         public static void RaiseError(Exception ex) => RaiseError(ex.Message);
 
         public static void RaiseError(string message)

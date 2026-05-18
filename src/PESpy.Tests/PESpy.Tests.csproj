@@ -8,7 +8,7 @@
   <Import Project="$(Build)SymHelp.props" />
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
 		<LangVersion>latest</LangVersion>
 
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>

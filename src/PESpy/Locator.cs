@@ -1390,6 +1390,8 @@ namespace PESpy
 
             var remainingSearchPath = new SpanInfo(searchPath);
 
+            SpanInfo cachePath = default;
+
             var builder = new PooledStringBuilder(256);
 
             try
@@ -1401,7 +1403,7 @@ namespace PESpy
                     //We can't store a ReadOnlySpan in the async version of the method, so we'll store the bounds here instead
                     SpanInfo currentPath = default; //I can't pass this to LocateFileInPathLocal for some reason if this is returned as an out parameter from LocateFileInPathSetup
 
-                    if (!LocateFileInPathSetup(ref remainingSearchPath, ref currentPath, ref run, out var symSrv, out var cache))
+                    if (!LocateFileInPathSetup(ref remainingSearchPath, ref currentPath, ref cachePath, ref run, out var symSrv, out var cache))
                         return default;
 
                     if (symSrv || cache)
@@ -1411,13 +1413,21 @@ namespace PESpy
                             var result = SymStore.GetFile(file, currentPath.Span, symSrvIndex, altSymSrvIndex, httpPolicy, progress, cancellationToken);
 
                             if (result.filePath != null)
+                            {
+                                CopyToCache(result.filePath, result.keyUsed ?? symSrvIndex, cachePath.Span, cache);
+
                                 return result;
+                            }
                         }
                     }
                     else
                     {
                         if (LocateFileInPathLocal(ref builder, currentPath.Span, nameAndExt, peFileExt, out var str))
+                        {
+                            CopyToCache(str, symSrvIndex, cachePath.Span, cache);
+
                             return (str, null);
+                        }
                     }
                 }
 
@@ -1447,6 +1457,8 @@ namespace PESpy
 
             var remainingSearchPath = new SpanInfo(searchPath);
 
+            SpanInfo cachePath = default;
+
             var builder = new PooledStringBuilder(256);
 
             try
@@ -1458,7 +1470,7 @@ namespace PESpy
                     //We can't store a ReadOnlySpan in the async version of the method, so we'll store the bounds here instead
                     SpanInfo currentPath = default; //I can't pass this to LocateFileInPathLocal for some reason if this is returned as an out parameter from LocateFileInPathSetup
 
-                    if (!LocateFileInPathSetup(ref remainingSearchPath, ref currentPath, ref run, out var symSrv, out var cache))
+                    if (!LocateFileInPathSetup(ref remainingSearchPath, ref currentPath, ref cachePath, ref run, out var symSrv, out var cache))
                         return default;
 
                     if (symSrv || cache)
@@ -1468,13 +1480,21 @@ namespace PESpy
                             var result = await SymStore.GetFileAsync(file, currentPath.Span, symSrvIndex, altSymSrvIndex, httpPolicy, progress, cancellationToken).ConfigureAwait(false);
 
                             if (result.filePath != null)
+                            {
+                                CopyToCache(result.filePath, result.keyUsed ?? symSrvIndex, cachePath.Span, cache);
+
                                 return result;
+                            }
                         }
                     }
                     else
                     {
                         if (LocateFileInPathLocal(ref builder, currentPath.Span, nameAndExt, peFileExt, out var str))
+                        {
+                            CopyToCache(str, symSrvIndex, cachePath.Span, cache);
+
                             return (str, null);
+                        }
                     }
                 }
 
@@ -1487,7 +1507,13 @@ namespace PESpy
         }
 #endif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool LocateFileInPathSetup(ref SpanInfo remainingSearchPath, ref SpanInfo currentPath, ref bool run, out bool symSrv, out bool cache)
+        private static bool LocateFileInPathSetup(
+            ref SpanInfo remainingSearchPath,
+            ref SpanInfo currentPath,
+            ref SpanInfo cachePath,
+            ref bool run,
+            out bool symSrv,
+            out bool cache)
         {
             var index = remainingSearchPath.IndexOf(";".AsSpan(), StringComparison.OrdinalIgnoreCase);
 
@@ -1522,6 +1548,12 @@ namespace PESpy
 
                 symSrv = true;
                 currentPath = currentPath.Slice(18);
+            }
+            else if (currentPath.StartsWith("cache*".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            {
+                cache = true;
+                currentPath = currentPath.Slice(6);
+                cachePath = currentPath;
             }
 
             return true;
@@ -1583,6 +1615,35 @@ namespace PESpy
         }
 
         #endregion
+
+        private static void CopyToCache(string fileName, SymStoreKey keyUsed, ReadOnlySpan<char> cachePath, bool cache)
+        {
+            //If we don't have a cache path, or we do but we just read the value from a cache path,
+            //there's nothing to do
+            if (cachePath.Length == 0 || cache)
+                return;
+
+            var index = cachePath.IndexOfAny('*', ';');
+
+            if (index != -1)
+                cachePath = cachePath.Slice(0, index);
+
+            using var builder = new ValueStringBuilder(stackalloc char[260]);
+            builder.Append(cachePath);
+            
+            if (!cachePath.EndsWith("\\".AsSpan()) && !cachePath.EndsWith("/".AsSpan()))
+                builder.Append(Path.DirectorySeparatorChar);
+
+            builder.Append(keyUsed.Index);
+
+            builder.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+            var destinationFile = builder.ToString();
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationFile));
+
+            File.Copy(fileName, destinationFile, true);
+        }
 
         [Flags]
         enum SearchFlags

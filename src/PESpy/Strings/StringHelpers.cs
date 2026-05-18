@@ -326,10 +326,10 @@ namespace PESpy
                 var x = str1[i];
                 var y = str2[i];
 
-                if ((uint) (x - 'A') <= ('Z' - 'A'))
+                if (unchecked((uint) (x - 'A') <= ('Z' - 'A')))
                     x |= 0x20;
 
-                if ((uint) (y - 'A') <= ('Z' - 'A'))
+                if (unchecked((uint) (y - 'A') <= ('Z' - 'A')))
                     y |= 0x20;
 
                 if (x != y)

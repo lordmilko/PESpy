@@ -208,7 +208,7 @@ namespace PESpy.Tests
 
             Test(heap =>
             {
-                var type = heap.TypeDefTable["PESpy.Tests.PEFindKindViewWriter"];
+                var type = heap.TypeDefTable["PESpy.Tests.FindKindViewWriter"];
                 var method = type.Methods["NewStruct"];
 
                 var genericParam = method.GenericParameters[0];

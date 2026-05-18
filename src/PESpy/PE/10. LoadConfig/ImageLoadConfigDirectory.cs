@@ -118,32 +118,27 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(LockPrefixTableOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
+                        var pointerSize = chunk.PointerSize;
 
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+                        var read = 0;
 
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                        while (true)
                         {
-                            var pointerSize = chunk.PointerSize;
+                            var entry = (int) valueChunk.PeekPointer(read);
+                            read += pointerSize;
 
-                            var read = 0;
-
-                            while (true)
-                            {
-                                var entry = (int) valueChunk.PeekPointer(read);
-                                read += pointerSize;
-
-                                if (entry == 0)
-                                    break;
-                            }
-
-                            lockPrefixTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, read / pointerSize));
+                            if (entry == 0)
+                                break;
                         }
-                        else
-                            lockPrefixTable = new VA<NativeSpan<int>>(value);
+
+                        lockPrefixTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, read / pointerSize));
                     }
+                    else
+                        lockPrefixTable = new VA<NativeSpan<int>>(value);
                 }
 
                 return lockPrefixTable;
@@ -227,24 +222,19 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(SecurityCookieOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
+                        //I previously remarked that this is 8 bytes in x86 and x64, but in stress testing this caused conflicts with the value that comes after it,
+                        //so we're back to treating it like a pointer
 
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
+                        var cookie = valueChunk.PeekPointer(0);
 
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            //I previously remarked that this is 8 bytes in x86 and x64, but in stress testing this caused conflicts with the value that comes after it,
-                            //so we're back to treating it like a pointer
-
-                            var cookie = valueChunk.PeekPointer(0);
-
-                            securityCookie = new VA<ulong>(value, valueChunk.AbsoluteOffset, cookie);
-                        }
-                        else
-                            securityCookie = new VA<ulong>(value);
+                        securityCookie = new VA<ulong>(value, valueChunk.AbsoluteOffset, cookie);
                     }
+                    else
+                        securityCookie = new VA<ulong>(value);
                 }
 
                 return securityCookie;
@@ -265,19 +255,12 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(SEHandlerTableOffset, Size);
 
-                    if (value != 0)
-                    {
-                        var peFile = chunk.PEFile();
+                    var peFile = chunk.PEFile();
 
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            seHandlerTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, SEHandlerCount));
-                        }
-                        else
-                            seHandlerTable = new VA<NativeSpan<int>>(value);
-                    }
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
+                        seHandlerTable = new VA<NativeSpan<int>>(value, valueChunk.AbsoluteOffset, valueChunk.PeekNativeSpan<int>(0, SEHandlerCount));
+                    else
+                        seHandlerTable = new VA<NativeSpan<int>>(value);
                 }
 
                 return seHandlerTable;
@@ -325,25 +308,20 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(GuardCFFunctionTableOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    //GuardCFFunctionTable lists a Virtual Address (which includes the module base).
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
-
-                        //GuardCFFunctionTable lists a Virtual Address (which includes the module base).
-
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            guardCFFunctionTable = new VA<GuardCFFunctionTable>(
-                                value,
-                                valueChunk.AbsoluteOffset,
-                                new GuardCFFunctionTable(valueChunk, GuardFlags, GuardCFFunctionCount)
-                            );
-                        }
-                        else
-                            guardCFFunctionTable = new VA<GuardCFFunctionTable>(value);
+                        guardCFFunctionTable = new VA<GuardCFFunctionTable>(
+                            value,
+                            valueChunk.AbsoluteOffset,
+                            new GuardCFFunctionTable(valueChunk, GuardFlags, GuardCFFunctionCount)
+                        );
                     }
+                    else
+                        guardCFFunctionTable = new VA<GuardCFFunctionTable>(value);
                 }
 
                 return guardCFFunctionTable;
@@ -397,21 +375,18 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(GuardAddressTakenIatEntryTableOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
-
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            guardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(
-                                value,
-                                valueChunk.AbsoluteOffset,
-                                new GuardAddressTakenIatEntryTable(valueChunk, GuardFlags, GuardAddressTakenIatEntryCount)
-                            );
-                        }
+                        guardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(
+                            value,
+                            valueChunk.AbsoluteOffset,
+                            new GuardAddressTakenIatEntryTable(valueChunk, GuardFlags, GuardAddressTakenIatEntryCount)
+                        );
                     }
+                    else
+                        guardAddressTakenIatEntryTable = new VA<GuardAddressTakenIatEntryTable>(value);
                 }
 
                 return guardAddressTakenIatEntryTable;
@@ -437,23 +412,18 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(GuardLongJumpTargetTableOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
-
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(
-                                value,
-                                valueChunk.AbsoluteOffset,
-                                new GuardLongJumpTargetTable(valueChunk, GuardFlags, GuardLongJumpTargetCount)
-                            );
-                        }
-                        else
-                            guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(value);
+                        guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(
+                            value,
+                            valueChunk.AbsoluteOffset,
+                            new GuardLongJumpTargetTable(valueChunk, GuardFlags, GuardLongJumpTargetCount)
+                        );
                     }
+                    else
+                        guardLongJumpTargetTable = new VA<GuardLongJumpTargetTable>(value);
                 }
 
                 return guardLongJumpTargetTable;
@@ -561,23 +531,18 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(EnclaveConfigurationPointerOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
-
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(
-                                value,
-                                valueChunk.AbsoluteOffset,
-                                new ImageEnclaveConfig(valueChunk)
-                            );
-                        }
-                        else
-                            enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(value);
+                        enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(
+                            value,
+                            valueChunk.AbsoluteOffset,
+                            new ImageEnclaveConfig(valueChunk)
+                        );
                     }
+                    else
+                        enclaveConfigurationPointer = new VA<ImageEnclaveConfig>(value);
                 }
 
                 return enclaveConfigurationPointer;
@@ -605,23 +570,18 @@ namespace PESpy
                 {
                     var value = chunk.TryPeekPointer(GuardEHContinuationTableOffset, Size);
 
-                    if (value != 0)
+                    var peFile = chunk.PEFile();
+
+                    if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
                     {
-                        var peFile = chunk.PEFile();
-
-                        var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-                        if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
-                        {
-                            guardEHContinuationTable = new VA<GuardEHContinuationTable>(
-                                value,
-                                valueChunk.AbsoluteOffset,
-                                new GuardEHContinuationTable(valueChunk, GuardFlags, GuardEHContinuationCount)
-                            );
-                        }
-                        else
-                            guardEHContinuationTable = new VA<GuardEHContinuationTable>(value);
+                        guardEHContinuationTable = new VA<GuardEHContinuationTable>(
+                            value,
+                            valueChunk.AbsoluteOffset,
+                            new GuardEHContinuationTable(valueChunk, GuardFlags, GuardEHContinuationCount)
+                        );
                     }
+                    else
+                        guardEHContinuationTable = new VA<GuardEHContinuationTable>(value);
                 }
 
                 return guardEHContinuationTable;
@@ -697,23 +657,16 @@ namespace PESpy
             if (field.ListedAddress != 0)
                 return field;
 
-            if (value == 0)
-                return default;
-
             var peFile = chunk.PEFile();
 
-            var rva = (int) (value - peFile.OptionalHeader.ImageBase);
-
-            if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+            if (peFile.TryGetValueChunkFromVA(value, out var valueChunk))
             {
                 var fnPtr = (long) valueChunk.PeekPointer(0);
 
                 field = new VA<long>(value, valueChunk.AbsoluteOffset, fnPtr);
             }
             else
-            {
                 field = new VA<long>(value);
-            }
 
             return field;
         }

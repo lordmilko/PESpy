@@ -139,6 +139,7 @@ namespace PESpy
                 ViewKind.XFixupData                                  => Write(new XFixupData(chunk),                                  viewWriter),
                 ViewKind.ImageDebugMisc                              => Write(new ImageDebugMisc(chunk),                              viewWriter),
                 ViewKind.ImageCoffSymbolsHeader                      => Write(new ImageCoffSymbolsHeader(chunk),                      viewWriter),
+                ViewKind.OmapData                                    => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<OMAP_DATA>(0, length / sizeof(OMAP_DATA)), length, kind),
                 ViewKind.BBT                                         => GetBytes(chunk, viewWriter, length, kind),
                 ViewKind.VCFeature                                   => Write(new VCFeature(chunk),                                   viewWriter),
                 ViewKind.PogoData                                    => GetPogoData(chunk, viewWriter),
@@ -166,9 +167,9 @@ namespace PESpy
                 ViewKind.GuardEHContinuationTable                    => Write(chunk.PEFile().LoadConfigTable.GuardEHContinuationTable.Value, viewWriter),
                 ViewKind.GuardLongJumpTargetTable                    => Write(chunk.PEFile().LoadConfigTable.GuardLongJumpTargetTable.Value, viewWriter),
                 ViewKind.XFG                                         => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekUInt64(0), sizeof(long), kind),
-                ViewKind.LockPrefixTable                             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.LockPrefixTable                             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / sizeof(int)), length, kind),
                 ViewKind.SecurityCookie                              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
-                ViewKind.SEHandlerTable                              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.SEHandlerTable                              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / sizeof(int)), length, kind),
                 ViewKind.GuardCFCheckFunctionPointer                 => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
                 ViewKind.GuardCFDispatchFunctionPointer              => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
                 ViewKind.GuardRFFailureRoutineFunctionPointer        => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekPointer(0), chunk.PointerSize, kind),
@@ -426,8 +427,13 @@ namespace PESpy
                 ViewKind.PDBStream                                   => Write((PDB.PDBStream) chunk.PDBFile().PDB.PDBHeader, viewWriter),
                 ViewKind.PDBStream70                                 => Write((PDB.PDBStream70) chunk.PDBFile().PDB.PDBHeader, viewWriter),
                 ViewKind.StreamNameTable                             => Write(chunk.PDBFile().PDB.StreamNameTable, viewWriter),
+                ViewKind.Map                                         => GetMap(chunk, viewWriter),
                 ViewKind.Hdr                                         => Write(new PDB.HDR(chunk),                                     viewWriter),
                 ViewKind.Hdr_16t                                     => Write(new PDB.HDR_16t(chunk),                                 viewWriter),
+                ViewKind.TpiHashValues32                             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<uint>(0, length / sizeof(uint)), length, kind),
+                ViewKind.TpiHashValues16                             => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<ushort>(0, length / sizeof(ushort)), length, kind),
+                ViewKind.TpiHashOffsets32                            => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<TI_OFF>(0, length / sizeof(TI_OFF)), length, kind),
+                ViewKind.TpiHashOffsets16                            => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<TI_OFF_16t>(0, length / sizeof(TI_OFF_16t)), length, kind),
                 ViewKind.DbiHdr                                      => Write(new PDB.DBIHdr(chunk),                                  viewWriter),
                 ViewKind.NewDbiHdr                                   => Write(new PDB.NewDBIHdr(chunk),                               viewWriter),
                 ViewKind.Modiv2                                      => GetModi(chunk, viewWriter, kind),
@@ -450,8 +456,8 @@ namespace PESpy
                 ViewKind.PdbFeature                                  => viewWriter.NewValue(chunk.AbsoluteOffset, (PdbFeature) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.CvSignature                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (CV_SIGNATURE) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.HRFile                                      => WriteUnmanaged<HRFile>(chunk, viewWriter, kind),
-                ViewKind.HashBucketsBitmap                           => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
-                ViewKind.HashBuckets                                 => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.HashBucketsBitmap                           => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / sizeof(int)), length, kind),
+                ViewKind.HashBuckets                                 => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / sizeof(int)), length, kind),
                 ViewKind.CvDebugSSubsectionHeader                    => Write(new PDB.CvDebugSSubsectionHeader(chunk),                viewWriter),
                 ViewKind.CvFileCheckSum                              => Write(new PDB.CvFileCheckSum(chunk),                          viewWriter),
                 ViewKind.FrameData                                   => Write(new PDB.FrameData(chunk),                               viewWriter),
@@ -755,13 +761,13 @@ namespace PESpy
                 ViewKind.DNRB_Types                                  => GetDNRB_Types(chunk, viewWriter, length),
                 ViewKind.DNRB_Symbols                                => GetDNRB_Symbols(chunk, viewWriter, length),
                 ViewKind.DNRB_SourceLines                            => GetDNRB_SourceLines(chunk, viewWriter, length),
-                ViewKind.DNRBSecOffset                               => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),
+                ViewKind.DNRBSecOffset                               => viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / sizeof(int)), length, kind),
                 ViewKind.DNRBVersion                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (ushort) chunk.PeekUInt16(0), sizeof(short), kind),
                 ViewKind.DNRBSignature                               => viewWriter.NewValue(chunk.AbsoluteOffset, (CodeViewSig) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.DNRBSecTblOffset                            => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.LfoDir                                      => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
                 ViewKind.LfoBase                                     => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
-                ViewKind.cDir                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (int) chunk.PeekInt32(0), sizeof(int), kind),
+                ViewKind.cDir                                        => viewWriter.NewValue(chunk.AbsoluteOffset, (ushort) chunk.PeekUInt16(0), sizeof(short), kind),
                 ViewKind.ExeProjectInfo                              => Write(new VB.ExeProjectInfo(chunk),                           viewWriter),
                 ViewKind.ExeFormInfo                                 => Write(new VB.ExeFormInfo(chunk),                              viewWriter),
                 ViewKind.ExeOcxInfo                                  => Write(new VB.ExeOcxInfo(chunk),                               viewWriter),
@@ -1316,6 +1322,46 @@ namespace PESpy
 
         private static IView Getloe32(in MemoryChunk chunk, ViewWriter viewWriter)
         {
+            throw new NotImplementedException();
+        }
+
+        private static IStructView GetMap(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var pdbFile = chunk.PDBFile();
+
+            if (pdbFile.PDB != null)
+            {
+                var nmtni = pdbFile.PDB.StreamNameTable;
+
+                if (nmtni != null)
+                {
+                    if (nmtni.NameOffsetToStreamIndexMap.Offset == chunk.AbsoluteOffset)
+                        return Write(nmtni.NameOffsetToStreamIndexMap, viewWriter);
+                }
+            }
+
+            if (pdbFile.TPI != null)
+            {
+                var adjustments = pdbFile.TPI.TpiHash?.UdtHashAdjustments;
+
+                if (adjustments != null && adjustments.Value.Offset == chunk.AbsoluteOffset)
+                    return Write(adjustments.Value, viewWriter);
+            }
+
+            if (pdbFile.IPI != null)
+            {
+                var adjustments = pdbFile.IPI.TpiHash?.UdtHashAdjustments;
+
+                if (adjustments != null && adjustments.Value.Offset == chunk.AbsoluteOffset)
+                    return Write(adjustments.Value, viewWriter);
+            }
+
+            if (pdbFile.SrcHeaders != null)
+            {
+                if (pdbFile.SrcHeaders.FileHeaderMap.Offset == chunk.AbsoluteOffset)
+                    return Write(pdbFile.SrcHeaders.FileHeaderMap, viewWriter);
+            }
+
             throw new NotImplementedException();
         }
 

@@ -170,12 +170,9 @@ namespace PESpy.PDB
 
         public bool GetLabel(ISECT targetSeg, int targetOff, out OffSegSym offSegSym)
         {
-            //Labels should only be tried after having tried data symbols, so implicitly
-            //_labelSymbols should not be null
+            fInitDataPositionCache();
 
-            var labelSymbols = _labelSymbols;
-
-            return TryBinarySearchSymbols(labelSymbols, targetSeg, targetOff, out offSegSym);
+            return TryBinarySearchSymbols(_labelSymbols, targetSeg, targetOff, out offSegSym);
         }
 
 #if FALSE
@@ -275,143 +272,149 @@ namespace PESpy.PDB
         {
             //DIA disallows using a cache if the entire module's symbols are less than 1024 bytes, if it's a minimal PDB or it's ENC
 
-            if (_dataSymbols != null)
+            if (_dataSymbols != null && _labelSymbols != null)
                 return;
 
-            var symbols = Symbols;
-
-            if (symbols == null)
+            lock (this)
             {
-                _dataSymbols = Array.Empty<OffSegSym>();
-                _labelSymbols = Array.Empty<OffSegSym>();
-                return;
-            }
+                if (_dataSymbols != null && _labelSymbols != null)
+                    return;
 
-            var dict = new Dictionary<ulong, OffSegSym>();
-            var labelDict = new Dictionary<ulong, OffSegSym>();
+                var symbols = Symbols;
 
-            foreach (var symType in symbols)
-            {
-                int candidateOff;
-                ISECT candidateSeg;
-
-                switch (symType.rectyp)
+                if (symbols == null)
                 {
-                    //Note that GTHREAD support doesn't go here, it goes in SymCache; you don't find GTHREAD inside a module
-
-                    //LabelSym16
-                    case S_LABEL16:
-                        var labelSym16 = (LabelSym16) symType;
-
-                        if (labelSym16.name.Length == 0)
-                            continue;
-
-                        candidateSeg = labelSym16.seg;
-                        candidateOff = labelSym16.off;
-
-                        {
-                            var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
-
-                            if (!labelDict.ContainsKey(labelKey))
-                            {
-                                labelDict.Add(labelKey, new OffSegSym
-                                {
-                                    off = candidateOff,
-                                    seg = candidateSeg,
-                                    symType = symType
-                                });
-                            }
-                        }
-
-                        continue;
-
-                    //LabelSym32
-                    case S_LABEL32_ST:
-                    case S_LABEL32:
-                        var labelSym32 = (LabelSym32) symType;
-
-                        if (labelSym32.name.Length == 0)
-                            continue;
-
-                        candidateSeg = labelSym32.seg;
-                        candidateOff = labelSym32.off;
-
-                        {
-                            var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
-
-                            if (!labelDict.ContainsKey(labelKey))
-                            {
-                                labelDict.Add(labelKey, new OffSegSym
-                                {
-                                    off = candidateOff,
-                                    seg = candidateSeg,
-                                    symType = symType
-                                });
-                            }
-                        }
-
-                        continue;
-
-                    //DataSym16
-                    case S_LDATA16:
-                    case S_GDATA16:
-                        var dataSym16 = (DataSym16) symType;
-
-                        if (dataSym16.name.Length == 0)
-                            continue;
-
-                        candidateSeg = dataSym16.seg;
-                        candidateOff = dataSym16.off;
-                        break;
-
-                    //DataSym3216t
-                    case S_LDATA32_16t:
-                    case S_GDATA32_16t:
-                        var dataSym3216t = (DataSym3216t) symType;
-
-                        if (dataSym3216t.name.Length == 0)
-                            continue;
-
-                        candidateSeg = dataSym3216t.seg;
-                        candidateOff = dataSym3216t.off;
-                        break;
-
-                    //DataSym32
-                    case S_LDATA32:
-                    case S_LDATA32_ST:
-                    case S_GDATA32:
-                    case S_GDATA32_ST:
-                    case S_GTHREAD32:
-                    case S_GTHREAD32_ST: //DIA doesn't seem to support global thread data either, but we do
-                        var dataSym32 = (DataSym32) symType;
-
-                        if (dataSym32.name.Length == 0)
-                            continue;
-
-                        candidateSeg = dataSym32.seg;
-                        candidateOff = dataSym32.off;
-                        break;
-
-                    default:
-                        continue;
+                    _dataSymbols = Array.Empty<OffSegSym>();
+                    _labelSymbols = Array.Empty<OffSegSym>();
+                    return;
                 }
 
-                var key = (ulong) candidateSeg << 32 | (uint) candidateOff;
+                var dict = new Dictionary<ulong, OffSegSym>();
+                var labelDict = new Dictionary<ulong, OffSegSym>();
 
-                if (!dict.ContainsKey(key))
+                foreach (var symType in symbols)
                 {
-                    dict.Add(key, new OffSegSym
+                    int candidateOff;
+                    ISECT candidateSeg;
+
+                    switch (symType.rectyp)
                     {
-                        off = candidateOff,
-                        seg = candidateSeg,
-                        symType = symType
-                    });
-                }
-            }
+                        //Note that GTHREAD support doesn't go here, it goes in SymCache; you don't find GTHREAD inside a module
 
-            _dataSymbols = FinalizeArray(dict);
-            _labelSymbols = FinalizeArray(labelDict);
-            return;
+                        //LabelSym16
+                        case S_LABEL16:
+                            var labelSym16 = (LabelSym16) symType;
+
+                            if (labelSym16.name.Length == 0)
+                                continue;
+
+                            candidateSeg = labelSym16.seg;
+                            candidateOff = labelSym16.off;
+
+                            {
+                                var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
+
+                                if (!labelDict.ContainsKey(labelKey))
+                                {
+                                    labelDict.Add(labelKey, new OffSegSym
+                                    {
+                                        off = candidateOff,
+                                        seg = candidateSeg,
+                                        symType = symType
+                                    });
+                                }
+                            }
+
+                            continue;
+
+                        //LabelSym32
+                        case S_LABEL32_ST:
+                        case S_LABEL32:
+                            var labelSym32 = (LabelSym32) symType;
+
+                            if (labelSym32.name.Length == 0)
+                                continue;
+
+                            candidateSeg = labelSym32.seg;
+                            candidateOff = labelSym32.off;
+
+                            {
+                                var labelKey = (ulong) candidateSeg << 32 | (uint) candidateOff;
+
+                                if (!labelDict.ContainsKey(labelKey))
+                                {
+                                    labelDict.Add(labelKey, new OffSegSym
+                                    {
+                                        off = candidateOff,
+                                        seg = candidateSeg,
+                                        symType = symType
+                                    });
+                                }
+                            }
+
+                            continue;
+
+                        //DataSym16
+                        case S_LDATA16:
+                        case S_GDATA16:
+                            var dataSym16 = (DataSym16) symType;
+
+                            if (dataSym16.name.Length == 0)
+                                continue;
+
+                            candidateSeg = dataSym16.seg;
+                            candidateOff = dataSym16.off;
+                            break;
+
+                        //DataSym3216t
+                        case S_LDATA32_16t:
+                        case S_GDATA32_16t:
+                            var dataSym3216t = (DataSym3216t) symType;
+
+                            if (dataSym3216t.name.Length == 0)
+                                continue;
+
+                            candidateSeg = dataSym3216t.seg;
+                            candidateOff = dataSym3216t.off;
+                            break;
+
+                        //DataSym32
+                        case S_LDATA32:
+                        case S_LDATA32_ST:
+                        case S_GDATA32:
+                        case S_GDATA32_ST:
+                        case S_GTHREAD32:
+                        case S_GTHREAD32_ST: //DIA doesn't seem to support global thread data either, but we do
+                            var dataSym32 = (DataSym32) symType;
+
+                            if (dataSym32.name.Length == 0)
+                                continue;
+
+                            candidateSeg = dataSym32.seg;
+                            candidateOff = dataSym32.off;
+                            break;
+
+                        default:
+                            continue;
+                    }
+
+                    var key = (ulong) candidateSeg << 32 | (uint) candidateOff;
+
+                    if (!dict.ContainsKey(key))
+                    {
+                        dict.Add(key, new OffSegSym
+                        {
+                            off = candidateOff,
+                            seg = candidateSeg,
+                            symType = symType
+                        });
+                    }
+                }
+
+                _dataSymbols = FinalizeArray(dict);
+                _labelSymbols = FinalizeArray(labelDict);
+                return;
+            }
         }
 
         #endregion
@@ -441,7 +444,7 @@ namespace PESpy.PDB
                 }
             }
 
-            //I'm not sure if I inadvertantly fixed this, but it seems to me that there may be a difference between us and DIA
+            //I'm not sure if I inadvertently fixed this, but it seems to me that there may be a difference between us and DIA
             //based on the quicksort algorithm DIA used to sort their list of symbols in the first place.
             //Not sure what we can do about this without reversing how exactly their sort algorithm works
             if (lo > 0)

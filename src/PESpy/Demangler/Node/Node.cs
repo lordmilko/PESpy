@@ -112,6 +112,8 @@ namespace PESpy
                 }
 
                 spaceBefore = OutputQualifierIfPresent(ref builder, flags, qualifiers, Qualifiers.Volatile, spaceBefore, ref skipFirstSpaceBefore);
+
+                //Sometimes undname.cxx emits a const after the ptr64, sometimes it doesn't I don't understand when it will or won't do this
                 spaceBefore = OutputQualifierIfPresent(ref builder, flags, qualifiers, Qualifiers.Const, spaceBefore, ref skipFirstSpaceBefore);
 
                 var end = builder.Length;

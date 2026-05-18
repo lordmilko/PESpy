@@ -35,11 +35,11 @@ namespace PESpy.PDB
                     {
                         //In DbgHelp, SYMOPT_OMAP_FIND_NEAREST will cause the nearest symbol to be used,
                         //by doing rva-- and setting lo = pMid. This helps handle us being at the start
-                        //of an inserted branch instruction. But we never use SYMOPT_OMAP_FIND_NEAREST
-                        //so don't do that
+                        //of an inserted branch instruction. But in DIA, it seems like we simply break out
+                        //when we hit our target RVA; if rvaTo has a value, great! Otherwise, it's rewind time
 
-                        srcRva = rva;
-                        return false;
+                        lo = pMid + 1;
+                        break;
                     }
 
                     srcRva = pMid->rvaTo;

@@ -139,6 +139,152 @@ namespace PESpy.View
                 throw new NotImplementedException();
         }
 
+        public IView this[int index] => Children[index];
+
+        #region View
+
+        //Gets the logical value associated with the given physical offset. If this address points to the beginning
+        //of a struct, the top level struct will be returned. If it points to a field inside a struct, the field will
+        //be returned instead
+        public IView? GetViewFromOffset(long offset)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (ViewMode != ViewMode.Physical)
+            {
+                //Specifying ViewMode.Virtual is only supported with PEFile instances
+
+                if (!((PEFile) File).TryGetRVA((int) offset, out var targetAddress))
+                    throw new InvalidOperationException($"Failed to translate offset 0x{offset:X} to an RVA as required by {nameof(PESpy.View.ViewMode)}.{nameof(ViewMode.Virtual)}");
+
+                return fileAccessor.GetView(targetAddress);
+            }
+            else
+            {
+                //We want physical and we already have physical
+
+                return fileAccessor.GetView(offset);
+            }
+        }
+
+        //Gets the logical value associated with the given RVA. If this address points to the beginning
+        //of a struct, the top level struct will be returned. If it points to a field inside a struct, the field will
+        //be returned instead
+        public IView? GetViewFromRVA(int rva)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (ViewMode != ViewMode.Virtual)
+            {
+                if (!fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
+                    throw new InvalidOperationException($"Failed to translate RVA 0x{rva:X} to a physical offset as required by {nameof(PESpy.View.ViewMode)}.{nameof(ViewMode.Physical)}");
+
+                return fileAccessor.GetView(targetAddress);
+            }
+            else
+            {
+                //We want virtual and we already have virtual
+
+                return fileAccessor.GetView(rva);
+            }
+        }
+
+        //Gets the logical value associated with the given VA. If this address points to the beginning
+        //of a struct, the top level struct will be returned. If it points to a field inside a struct, the field will
+        //be returned instead
+        public IView? GetViewFromVA(long va)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (va < fileAccessor.ImageBase)
+                return null;
+
+            var rva = (int) (va - fileAccessor.ImageBase);
+
+            return GetViewFromRVA(rva);
+        }
+
+        #endregion
+        #region Parent
+
+        //Gets the parent view associated with the given physical offset. If this address points to a field
+        //inside a struct, the immediate (and not top level) parent of that field will be returned instead
+        public IView? GetParentFromOffset(long offset)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (ViewMode != ViewMode.Physical)
+            {
+                //Specifying ViewMode.Virtual is only supported with PEFile instances
+
+                if (!((PEFile) File).TryGetRVA((int) offset, out var targetAddress))
+                    throw new InvalidOperationException($"Failed to translate offset 0x{offset:X} to an RVA as required by {nameof(PESpy.View.ViewMode)}.{nameof(ViewMode.Virtual)}");
+
+                return fileAccessor.GetParentView(targetAddress);
+            }
+            else
+            {
+                //We want physical and we already have physical
+
+                return fileAccessor.GetParentView(offset);
+            }
+        }
+
+        //Gets the parent view associated with the given RVA. If this address points to a field
+        //inside a struct, the immediate (and not top level) parent of that field will be returned instead
+        public IView? GetParentFromRVA(int rva)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (ViewMode != ViewMode.Virtual)
+            {
+                if (!fileAccessor.TryGetTargetAddress(rva, out var targetAddress, out var sectionIndex))
+                    throw new InvalidOperationException($"Failed to translate RVA 0x{rva:X} to a physical offset as required by {nameof(PESpy.View.ViewMode)}.{nameof(ViewMode.Physical)}");
+
+                return fileAccessor.GetParentView(targetAddress);
+            }
+            else
+            {
+                //We want virtual and we already have virtual
+
+                return fileAccessor.GetParentView(rva);
+            }
+        }
+
+        //Gets the parent view associated with the given VA. If this address points to a field
+        //inside a struct, the immediate (and not top level) parent of that field will be returned instead
+        public IView? GetParentFromVA(long va)
+        {
+            var fileAccessor = viewWriter._fileAccessor;
+
+            if (fileAccessor == null)
+                throw new InvalidOperationException("Cannot get view: ViewWriter does not have a FileAccessor");
+
+            if (va < fileAccessor.ImageBase)
+                return null;
+
+            var rva = (int) (va - fileAccessor.ImageBase);
+
+            return GetParentFromRVA(rva);
+        }
+
+        #endregion
+
         public IEnumerator<IView> GetEnumerator() => ((IEnumerable<IView>) Children).GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -31,7 +31,7 @@ namespace PESpy.PowerShell.Adapters
 
         public override string GetPropertyTypeName(PSAdaptedProperty adaptedProperty)
         {
-            //The the name of a property and hit tab
+            //The name of a property and hit tab
             return ((PropertyInfo) adaptedProperty.Tag).PropertyType.FullName;
         }
 
@@ -44,7 +44,7 @@ namespace PESpy.PowerShell.Adapters
 
         public override bool IsSettable(PSAdaptedProperty adaptedProperty)
         {
-            //Called when you the the name of a property and hit tab; _not_ called when you just randomly assign
+            //Called when you the name of a property and hit tab; _not_ called when you just randomly assign
             //a value to a property
             return ((PropertyInfo) adaptedProperty.Tag).GetSetMethod() != null;
         }

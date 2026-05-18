@@ -82,8 +82,13 @@ namespace PESpy
             {
                 if (symType.TryGetLength(out length, PDBFile))
                 {
-                    length -= displacement;
-                    return true;
+                    //If displacement is greater than length, we clearly have a public that reported a section contrib
+                    //that is prior to the actual code location we asked for
+                    if (displacement < length)
+                    {
+                        length -= displacement;
+                        return true;
+                    }
                 }
 
                 return false;

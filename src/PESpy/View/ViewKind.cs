@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using ClrDebug.PDB;
+using PESpy.PDB;
 using Str = PESpy.Strings;
 
 namespace PESpy.View
@@ -655,6 +656,9 @@ namespace PESpy.View
         [Description(nameof(Str.IMAGE_COFF_SYMBOLS_HEADER))]
         ImageCoffSymbolsHeader,
 
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="OMAP_DATA"/>
+        /// </summary>
         [Description(nameof(Str.OMAP_DATA))]
         OmapData,
 
@@ -1678,23 +1682,26 @@ namespace PESpy.View
         //snPDB
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents an <see cref="PESpy.PDB.PDBStream"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.PDBStream"/>.
         /// </summary>
         [Description(nameof(Str.PDBStream))]
         PDBStream,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents an <see cref="PESpy.PDB.PDBStream70"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.PDBStream70"/>.
         /// </summary>
         [Description(nameof(Str.PDBStream70))]
         PDBStream70,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents an <see cref="PESpy.PDB.NMTNI"/>.
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.NMTNI"/>.
         /// </summary>
         [Description(nameof(Str.StreamNameTable))]
         StreamNameTable,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.Map{D, R, H}"/>.
+        /// </summary>
         [Description(nameof(Str.Map))]
         Map,
 
@@ -1717,6 +1724,26 @@ namespace PESpy.View
 
         [Description(nameof(Str.TpiHash))]
         TpiHash,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="uint"/>
+        /// </summary>
+        TpiHashValues32,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="ushort"/>
+        /// </summary>
+        TpiHashValues16,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="TI_OFF"/>
+        /// </summary>
+        TpiHashOffsets32,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents a <see cref="NativeSpan{T}"/> of <see cref="TI_OFF_16t"/>
+        /// </summary>
+        TpiHashOffsets16,
 
         [Description(nameof(Str.OffCb))]
         OffCb,
@@ -3001,7 +3028,7 @@ namespace PESpy.View
         LfoBase,
 
         /// <summary>
-        /// An <see cref="IValueView"/> that represents an <see cref="int"/>.
+        /// An <see cref="IValueView"/> that represents an <see cref="ushort"/>.
         /// </summary>
         [Description(nameof(Str.cDir))]
         cDir,

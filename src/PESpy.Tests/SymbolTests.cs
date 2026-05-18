@@ -47,7 +47,7 @@ namespace PESpy.Tests
 
             //Section 3
             Assert.AreEqual(6, data.Symbols.Value.Length);
-            Assert.AreEqual("S_PROC", data.Symbols.Value[0].ToString());
+            Assert.AreEqual("main", data.Symbols.Value[0].ToString());
 
             //Section 4
             Assert.AreEqual(1, data.SourceLines.Value.Length);
@@ -325,9 +325,8 @@ namespace PESpy.Tests
                 Assert.AreEqual("_main", pubSym.ToString());
 
                 //I haven't been able to figure out how DOS segments work
-                Assert.ThrowsException<NotImplementedException>(
-                    () => _ = pubSym.RelativeVirtualAddress.Value
-                );
+                var rva = pubSym.RelativeVirtualAddress;
+                Assert.IsNull(rva);
             });
         }
 
@@ -340,9 +339,8 @@ namespace PESpy.Tests
                 Assert.AreEqual("main", procSym.ToString());
 
                 //I haven't been able to figure out how DOS segments work
-                Assert.ThrowsException<NotImplementedException>(
-                    () => _ = procSym.RelativeVirtualAddress.Value
-                );
+                var rva = procSym.RelativeVirtualAddress;
+                Assert.IsNull(rva);
             });
         }
 
@@ -2987,7 +2985,12 @@ namespace PESpy.Tests
                 isFieldListMember: true,
                 c => c.VerifyField(name: "leaf", value: LEAF_ENUM_e.LF_MEMBER_16t),
                 c => c.VerifyField(name: "index", value: (short) 1136),
-                c => c.VerifyField(name: "attr", value: (short) 3)
+                c => c.VerifyField(name: "attr", value: (short) 3),
+                c => c.VerifyStructField(name: "offset", type: "Numeric Data", offset: 0x1006, size: 2, new Action<IView>[]
+                {
+                    c1 => c1.VerifyValue(offset: 0x1006, value: (ushort) 0)
+                }),
+                c => c.VerifyField(name: "name", value: "_ptr")
             );
         }
 

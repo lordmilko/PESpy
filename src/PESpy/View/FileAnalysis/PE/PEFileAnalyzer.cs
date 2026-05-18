@@ -514,8 +514,10 @@ namespace PESpy.View
 
                     foreach (var stateMapEntry in dispIPtoStateMap)
                     {
-                        if (lookupCache.TryGetSectionInfo(stateMapEntry.Ip, out var targetAddress, out var sectionIndex, out _))
-                            AddCode(targetAddress, stateMapEntry.Ip);
+                        //Note that this IP can't necessarily be trusted; in coreclr.dll I had a case where this pointed to
+                        //the first item in a jump table; IDA Pro confirmed I'm reading the state map entry right
+                        //if (lookupCache.TryGetSectionInfo(stateMapEntry.Ip, out var targetAddress, out var sectionIndex, out _))
+                        //    AddCode(targetAddress, stateMapEntry.Ip);
                     }
                 }
             }

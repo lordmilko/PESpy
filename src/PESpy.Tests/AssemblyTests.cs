@@ -193,9 +193,9 @@ namespace PESpy.Tests
 
             var compilation = CreateCompilation();
 
-            var peViewWriter = compilation.GetTypeByMetadataName("PESpy.View.PEViewWriter");
+            var viewWriter = compilation.GetTypeByMetadataName("PESpy.View.PEFileViewWriterHelper");
 
-            var finalize = (IMethodSymbol) peViewWriter.GetMembers("CollectDataDirectories")[0];
+            var finalize = (IMethodSymbol) viewWriter.GetMembers("CollectDataDirectories")[0];
 
             var finalizeSyntax = (MethodDeclarationSyntax) finalize.DeclaringSyntaxReferences[0].GetSyntax();
 
@@ -619,6 +619,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.loe):
                             case nameof(ViewKind.loe32):
                             case nameof(ViewKind.dnt):
+                            case nameof(ViewKind.Map):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
                                 break;
 
@@ -774,10 +775,6 @@ namespace PESpy.Tests
                                                     builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, (CodeViewSig) chunk.PeekUInt32(0), sizeof(int), kind),");
                                                     continue;
 
-                                                case "NativeSpan<int>":
-                                                    builder.AppendLine("viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<int>(0, length / 4), length, kind),");
-                                                    continue;
-
                                                 case "AnsiString":
                                                     builder.AppendLine("WriteAnsiNullTerminated(chunk, viewWriter, kind),");
                                                     continue;
@@ -807,6 +804,14 @@ namespace PESpy.Tests
                                                     continue;
 
                                                 default:
+                                                    if (structKind.StartsWith("NativeSpan<"))
+                                                    {
+                                                        var elementType = structKind.Substring(11, structKind.Length - 12);
+
+                                                        builder.AppendLine($"viewWriter.NewValue(chunk.AbsoluteOffset, chunk.PeekNativeSpan<{elementType}>(0, length / sizeof({elementType})), length, kind),");
+                                                        continue;
+                                                    }
+
                                                     throw new NotImplementedException();
                                             }
                                             break;
@@ -987,17 +992,7 @@ namespace PESpy.Tests
 
             //Also gets field names for ViewEntity items
             builder.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-            builder.AppendLine("        internal static FixedUtf8String GetName(ViewKind kind)");
-            builder.AppendLine("        {");
-            builder.AppendLine("            //You should not be asking for the name of a kind that does not have a name");
-            builder.AppendLine("#if DEBUG");
-            builder.AppendLine("            var result = _structNames[(int) kind - 1];");
-            builder.AppendLine("            Debug.Assert(result.Length > 0, $\"Kind '{kind}' does not have a name\");");
-            builder.AppendLine("            return result;");
-            builder.AppendLine("#else");
-            builder.AppendLine("            return _structNames[(int) kind - 1];");
-            builder.AppendLine("#endif");
-            builder.AppendLine("        }");
+            builder.AppendLine("        internal static FixedUtf8String GetName(ViewKind kind) => _structNames[(int) kind - 1];");
 
             builder.AppendLine();
 
@@ -1061,7 +1056,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void GeneratePooledStringBuilder()
         {
-            var projectDir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(AssemblyTests).Assembly.Location), "..\\..\\..\\..\\PESpy"));
+            var projectDir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(AssemblyTests).Assembly.Location), "..\\..\\..\\..\\PESpy\\Utilities"));
 
             var valueStringBuilderPath = Path.Combine(projectDir, "ValueStringBuilder.cs");
             var pooledStringBuilderPath = Path.Combine(projectDir, "PooledStringBuilder.cs");
@@ -1120,6 +1115,7 @@ namespace PESpy.Tests
             root = root.ReplaceNodes(nullableTypes, (a, b) => a.ElementType.WithLeadingTrivia(a.GetLeadingTrivia()).WithTrailingTrivia(a.GetTrailingTrivia()));
 
             var newStr = root.ToFullString()
+                .Replace("struct PooledStringBuilder", "struct PooledStringBuilder : IDisposable")
                 .Replace("chars.Slice", "chars.AsSpan") //Replace the ones inside the ifdef too
                 .Replace("#nullable enable", "#nullable disable")
                 .Replace("dest.Slice(pos)", "dest.AsSpan(pos)")
@@ -1146,22 +1142,6 @@ namespace PESpy.Tests
                     continue;
 
                 using var file = Detector.OpenFile(path);
-
-                //GetView not yet implemented
-                switch (file.Kind)
-                {
-                    case FileKind.OMF:
-                    case FileKind.OMFLIB:
-                    case FileKind.OMFDBG:
-                    case FileKind.SYM:
-                    case FileKind.PortablePDB:
-                        continue;
-
-                    case FileKind.PDB:
-                        if (((PDBFile) file).PDBKind == PDB.PDBFileKind.V1)
-                            continue;
-                        break;
-                }
 
                 var view = file.GetView();
                 view.Accept(NullViewWalker.Instance);

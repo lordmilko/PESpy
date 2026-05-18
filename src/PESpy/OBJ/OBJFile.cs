@@ -157,7 +157,7 @@ namespace PESpy
             else if (sectionName == ".edata")
             {
                 //Found in *.exp files. I think the format consists of a meaningless ImageExportDirectory
-                //header (it doesn't actually seem to point to any symbols, followed by a numberof symbols),
+                //header (it doesn't actually seem to point to any symbols, followed by a number of symbols),
                 //whose locations are pointed to by COFF symbols
                 //whose section is .edata
                 return AssertNotImplemented(sectionChunk, sectionName, sizeOfRawData);

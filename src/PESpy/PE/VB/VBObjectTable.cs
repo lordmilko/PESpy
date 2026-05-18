@@ -51,9 +51,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         projectInfo2 = new VA<VBProjectInfo2>(va, valueChunk.AbsoluteOffset, new VBProjectInfo2(valueChunk));
                     }
@@ -120,9 +118,7 @@ namespace PESpy.VB
 
                     var peFile = chunk.PEFile();
 
-                    var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                    if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                    if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                     {
                         var results = new VBPublicObjectDescriptor[dwTotalObjects];
 

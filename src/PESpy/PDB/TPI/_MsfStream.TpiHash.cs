@@ -94,7 +94,7 @@ namespace PESpy.PDB
         /// <summary>
         /// Represents the stream pointed to by the sn in <see cref="PESpy.PDB.TpiHash.sn"/>.
         /// </summary>
-        public unsafe class TpiHash : IDisposable //This is a stream, not the TpiHash type itself
+        public unsafe class TpiHash : IViewable, IDisposable //This is a stream, not the TpiHash type itself
         {
             //The following information is contained in TpiHash when the header type is "HDR".
             //If the header type is an older type such as HDR_VC50Interim or HDR_16t, this information
@@ -172,6 +172,10 @@ namespace PESpy.PDB
             //in modelling the on-disk format.
             public Map<NI, CV_typ_t, HcNi>? UdtHashAdjustments { get; }
 
+            public long Offset => chunk.AbsoluteOffset;
+
+            private readonly MemoryChunk chunk; //This wont be set if we've synthesized our TpiHash, but that's OK because this is not exposed externally
+
             private PDBFile pdbFile;
             private bool synthetic;
 
@@ -185,6 +189,8 @@ namespace PESpy.PDB
                 HashDelegate hasher,
                 int hashSize)
             {
+                this.chunk = chunk;
+
                 var tpiHash = hdr.tpihash;
                 this.impv = impv;
                 this.types = types;
@@ -236,6 +242,8 @@ namespace PESpy.PDB
                 TypTypeList types,
                 HashDelegate hasher)
             {
+                this.chunk = chunk;
+
                 var hashValsSize = (tiMac - tiMin) * sizeof(ushort);
 
                 this.impv = impv;
@@ -728,7 +736,7 @@ namespace PESpy.PDB
             {
                 /* There's some weird logic in TPI1::fInitHashToPchnMap wherein it doesn't seem
                  * to trust the serialized hash value when the version < impv70. After spending a bit
-                 * of time investigating this, I inadvertantly stumbled upon the answer: TPI1
+                 * of time investigating this, I inadvertently stumbled upon the answer: TPI1
                  * has a mechanism to automatically "upgrade" any 16-bit records it sees to be 32-bit.
                  * When reading an older PDB that contains 16-bit types, these hash values will naturally
                  * be the hashes of their original 16-bit versions. But when TPI1 upgrades these 16-bit
@@ -1153,6 +1161,59 @@ namespace PESpy.PDB
 
             #endregion
             #endregion
+
+            void IViewable.WriteGlobals(ViewWriter writer)
+            {
+                switch (impv)
+                {
+                    case TPIImpv.impv80:
+                        if (offcbHashVals.cb > 0)
+                            writer.WriteGlobal(Offset, HashValues32, offcbHashVals.cb, ViewKind.TpiHashValues32);
+
+                        if (offcbTiOff.cb > 0)
+                            writer.WriteGlobal(chunk.block.GetAbsoluteOffset(chunk.RelativeOffset + offcbHashVals.cb), TiOff32, offcbTiOff.cb, ViewKind.TpiHashOffsets32);
+
+                        if (offcbHashAdj.cb > 0)
+                            writer.WriteGlobal(UdtHashAdjustments.Value);
+
+                        break;
+
+                    case TPIImpv.impv70:
+                    case TPIImpv.impv50:
+                        if (offcbHashVals.cb > 0)
+                            writer.WriteGlobal(Offset, HashValues16, offcbHashVals.cb, ViewKind.TpiHashValues16);
+
+                        if (offcbTiOff.cb > 0)
+                            writer.WriteGlobal(chunk.block.GetAbsoluteOffset(chunk.RelativeOffset + offcbHashVals.cb), TiOff32, offcbTiOff.cb, ViewKind.TpiHashOffsets32);
+
+                        if (offcbHashAdj.cb > 0)
+                            writer.WriteGlobal(UdtHashAdjustments.Value);
+
+                        break;
+
+                    //Note that the layout of all 4 of these is the same; impv50Interim just has a different TPI header
+                    case TPIImpv.impv50Interim:
+                    case TPIImpv.impv41:
+                    case TPIImpv.impv40:
+                    case TPIImpv.intvVC2:
+                        if (offcbHashVals.cb > 0)
+                            writer.WriteGlobal(Offset, HashValues16, offcbHashVals.cb, ViewKind.TpiHashValues16);
+
+                        if (offcbTiOff.cb > 0)
+                            writer.WriteGlobal(chunk.block.GetAbsoluteOffset(chunk.RelativeOffset + offcbHashVals.cb), TiOff16, offcbTiOff.cb, ViewKind.TpiHashOffsets16);
+
+                        break;
+
+                    default:
+                        throw new NotImplementedException($"Don't know how to handle {nameof(TPIImpv)} '{impv}'");
+                }
+            }
+
+            IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+            int IViewable.NumChildren() => throw new NotSupportedException();
+
+            void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
             public void Dispose()
             {

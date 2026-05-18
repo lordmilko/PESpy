@@ -127,7 +127,7 @@ namespace PESpy
                 if (resourceTable == null)
                 {
                     //The tables in a NE file are sequentially ordered. I believe each entry's size can be computed by
-                    //looking at the different between that entry and the one next to it. This is a technique that Windows
+                    //looking at the difference between that entry and the one next to it. This is a technique that Windows
                     //does use in some scenarios (e.g. definitely in the case of resources)
 
                     if (os2Header.ne_rsrctab == os2Header.ne_restab)
@@ -234,7 +234,7 @@ namespace PESpy
                             var numEntries = chunk.PeekByte(read);
 
                             if (numEntries == 0)
-                                break; //Sometimes there's 1 byte remaining (e.g. when there were no records), sometimes there's 2 bytes remaining. People say when the countis 0, it's time to give up
+                                break; //Sometimes there's 1 byte remaining (e.g. when there were no records), sometimes there's 2 bytes remaining. People say when the count is 0, it's time to give up
 
                             read++;
 

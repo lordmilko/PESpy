@@ -10,9 +10,9 @@ namespace PESpy.Tests
 
         public bool Is32Bit => throw new NotImplementedException();
 
-        public ViewWriter.TryGetOffsetDelegate TryGetOffsetDelegate => throw new NotImplementedException();
+        public ViewWriter.TryGetOffsetDelegate TryGetOffsetDelegate => SimpleViewWriterHelper.TryGetViewOffset;
 
-        public Func<int, int> GetRealOffsetDelegate => throw new NotImplementedException();
+        public Func<int, int> GetRealOffsetDelegate => null;
 
         public IView Finalize(ViewWriter viewWriter)
         {

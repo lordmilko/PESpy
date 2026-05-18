@@ -82,7 +82,7 @@ namespace PESpy
 
             //Apparently there's two versions of sym files: one stores offsets in bytes (MapSym 2.08 - 3.00)
             //and one that stores offsets in paragraphs (3.10). https://win-archaeology.fandom.com/wiki/.SYM_Format
-            //Note that the document on this page is not completely accurate; they think that the first field is the the length
+            //Note that the document on this page is not completely accurate; they think that the first field is the length
             //of the file itself; not true - md_spmap * 16 + 4 = the size of the file. But the main point here is that you apparently
             //have multiple maps compressed within a single SYM file
 

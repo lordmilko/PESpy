@@ -331,7 +331,7 @@ namespace PESpy.View
             if (hasUnknownBody)
                 return GetLength(limit);
 
-            //I tested commenting our some entities PDBFIle knwos about and it seems our logic does not allow for unknown
+            //I tested commenting out some entities PDBFIle knows about and it seems our logic does not allow for unknown
             //bytes to span multiple pages. All of the bytes in one page were just unknown, and the end was not split
 
             fixed (ViewByte* me = &this)

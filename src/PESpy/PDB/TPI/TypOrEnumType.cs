@@ -90,7 +90,7 @@ namespace PESpy.PDB
          * and the result of resolving 0x80004242 will get a virtual type index of 80000004
          */
 
-        public bool IsCrossScopeReference => (((uint) typeId) & 0x80000000) != 0;
+        public bool IsCrossScopeReference => unchecked((((uint) typeId) & 0x80000000) != 0);
 
         public CV_ItemId LocalId => (uint) typeId & ~0x80000000;
 
@@ -201,13 +201,13 @@ namespace PESpy.PDB
         internal TypOrEnumType(byte* parent, CV_typ_t typeId)
         {
             this.parent = (ulong) parent;
-            this.typeId = (int) typeId;
+            this.typeId = unchecked((int) typeId);
         }
 
         internal TypOrEnumType(byte* parent, CV_ItemId typeId)
         {
             this.parent = (ulong) parent | IPI_BIT;
-            this.typeId = (int) (uint) typeId;
+            this.typeId = unchecked((int) (uint) typeId);
         }
 
         public override string ToString()

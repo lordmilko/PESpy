@@ -31,7 +31,8 @@ namespace PESpy
         public ImageDataDirectory Metadata => new ImageDataDirectory(chunk.Slice(MetadataOffset));
 
         public COMIMAGE_FLAGS Flags => (COMIMAGE_FLAGS) chunk.PeekUInt32(FlagsOffset);
-        public int EntryPointTokenOrRVA => chunk.PeekInt32(EntryPointTokenOrRVAOffset);
+        public mdToken EntryPointToken => chunk.PeekInt32(EntryPointTokenOrRVAOffset);
+        public int EntryPointRVA => chunk.PeekInt32(EntryPointTokenOrRVAOffset);
         public ImageDataDirectory Resources => new ImageDataDirectory(chunk.Slice(ResourcesOffset));
         public ImageDataDirectory StrongNameSignature => new ImageDataDirectory(chunk.Slice(StrongNameSignatureOffset));
         public ImageDataDirectory CodeManagerTable => new ImageDataDirectory(chunk.Slice(CodeManagerTableOffset));
@@ -97,7 +98,10 @@ namespace PESpy
                     break;
 
                 case 5:
-                    structWriter.WriteField(nameof(EntryPointTokenOrRVA), EntryPointTokenOrRVAOffset, EntryPointTokenOrRVA);
+                    if ((Flags & COMIMAGE_FLAGS.COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) != 0)
+                        structWriter.WriteField(nameof(EntryPointRVA), EntryPointTokenOrRVAOffset, EntryPointRVA);
+                    else
+                        structWriter.WriteField(nameof(EntryPointToken), EntryPointTokenOrRVAOffset, EntryPointToken);
                     break;
 
                 case 6:

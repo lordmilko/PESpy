@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Threading;
 using PESpy.View;
-using PESpy.View.Builder;
 using PInvoke;
 using ReView;
 
-namespace PESpy
+namespace PESpy.ViewMap
 {
-    internal class ViewMap : UIElement
+    internal class ViewMapPanel : UIElement
     {
         //Each section should be at least 3 pixels so that I can draw an outline around the section when I hover over it
         private const int MIN_WIDTH = 3;
@@ -34,6 +34,10 @@ namespace PESpy
         private ViewMapPainter _screenPainter; //Stores everything we're working on as we prepare to blit to the screen. This should just be the contents of base and/or highlight painter + the arrow
 
         private FileOpenedEventKind _lastFileOpenEvent;
+
+        internal ViewMapPixel[]? _pixels;
+
+        private bool _isActive = true;
 
         #region Brushes / Pens
 
@@ -73,9 +77,16 @@ namespace PESpy
 
         #endregion
 
-        public ViewMap(out ViewMap field)
+        private ManualResetEventSlim _refreshEvent = new ManualResetEventSlim(false);
+        private AutoResetEvent _pulseRefreshEvent = new AutoResetEvent(false);
+        private Thread? _refreshThread;
+
+        public ViewMapPanel(out ViewMapPanel field)
         {
             field = this;
+
+            Dock = DockStyle.Top;
+            Size = new SIZE(0, 48);
 
             _tooltip = new NativeTooltip
             {
@@ -115,20 +126,20 @@ namespace PESpy
         {
             ComputeRegions();
 
-            BeginInvoke(() =>
+            Window.BeginInvoke(() =>
             {
                 //Invalidate just in case we're already visible?
                 ForceInvalidate();
-
-                //Install a timer to periodically refresh the map while we're still in the process of loading
-                SetTimer(1, 1);
             });
+
+            //Install a timer to periodically refresh the map while we're still in the process of loading
+            _refreshEvent.Set();
         }
 
         private void ProcessAnalysisComplete()
         {
             //Stop the timer, and do one final refresh
-            StopTimer();
+            _refreshEvent.Reset();
 
             ComputeRegions();
 
@@ -156,6 +167,8 @@ namespace PESpy
 
                 _lastFileOpenEvent = default;
             }
+            else if (_basePainter.IsEmpty)
+                OnWindowPosChanged();
         }
 
         private void ForceInvalidate()
@@ -169,28 +182,17 @@ namespace PESpy
             Invalidate();
         }
 
-        private void StopTimer()
-        {
-            KillTimer(1);
-        }
-
-        protected override void OnTimer(nuint id)
-        {
-            ComputeRegions();
-            ForceInvalidate();
-        }
-
         private void App_FileClosed(object? sender, EventArgs e)
         {
             _lastFileOpenEvent = default;
 
             //Stop the refresh timer if it's active
-            StopTimer();
+            _refreshEvent.Reset();
         }
 
         private void App_PositionChanged(object? sender, int e)
         {
-            if (sender == this || _visualSections == null)
+            if (sender == this || _pixels == null)
                 return;
 
             using var scope = App.AcquireFileAccessor();
@@ -200,33 +202,45 @@ namespace PESpy
 
             if (e != _arrowAddress)
             {
-                var sectionAccessors = scope.FileAccessor.SectionAccessors;
+                //Binary search to find the best pixel
 
-                for (var i = _visualSections.Length - 1; i >= 0; i--)
-                {
-                    ref var sectionAccessor = ref sectionAccessors[i];
+                var pixels = _pixels;
 
-                    if (e >= sectionAccessor.StartAddress)
-                    {
-                        ref var visualSection = ref _visualSections[i];
-
-                        _arrowXPos = visualSection.PhysicalStartPixel + visualSection.GetBestPixel(e, 0, visualSection.Data.Length - 1);
-                        break;
-                    }
-                }
+                _arrowXPos = BinarySearchPixels(pixels, e);
 
                 _arrowAddress = e;
 
-                var hdc = User32.GetDCEx(NativeHandle, default, GET_DCX_FLAGS.DCX_CACHE);
+                using var hdc = RentDC();
 
                 OnPaint(hdc);
-
-                User32.ReleaseDC(NativeHandle, hdc);
             }
+        }
+
+        private int BinarySearchPixels(ViewMapPixel[] pixels, long address)
+        {
+            var lo = 0;
+            var hi = pixels.Length - 1;
+
+            while (lo <= hi)
+            {
+                var mid = (lo + hi) / 2;
+
+                ref var item = ref pixels[mid];
+
+                if (item.PixelAddress > address)
+                    hi = mid - 1;
+                else if (item.PixelAddress < address)
+                    lo = mid + 1;
+                else
+                    return mid;
+            }
+
+            return lo;
         }
 
         protected unsafe override void OnHandleCreated()
         {
+            //No need to call RentDC here because we're not writing anything to the screen
             var hdc = User32.GetDCEx(NativeHandle, default, GET_DCX_FLAGS.DCX_CACHE);
 
             #region Brushes / Pens
@@ -307,6 +321,38 @@ namespace PESpy
 
             //Yes you should release a DC that came from the cache
             User32.ReleaseDC(NativeHandle, hdc);
+
+            _refreshThread = new Thread(ThreadProc)
+            {
+                Name = "ViewMap Refresh Thread",
+                IsBackground = true
+            };
+            _refreshThread.Start();
+        }
+
+        private void ThreadProc()
+        {
+            var waitHandles = new[] { _refreshEvent.WaitHandle, _pulseRefreshEvent };
+
+            while (_isActive)
+            {
+                WaitHandle.WaitAny(waitHandles);
+
+                ComputeRegions();
+
+                if (_arrowAddress != 0)
+                {
+                    _arrowXPos = BinarySearchPixels(_pixels!, _arrowAddress);
+                }
+
+                Window.BeginInvoke(() =>
+                {
+                    //This touches the painters which may also be being touched on the UI thread during the resize
+                    ForceInvalidate();
+                });
+
+                Thread.Sleep(1);
+            }
         }
 
         #region ComputeRegions
@@ -323,7 +369,8 @@ namespace PESpy
 
             var width = Width;
 
-            if (width == 0)
+            //If the window has been resized so much the control is no longer visible, the Width may be -1
+            if (width <= 0)
                 return;
 
             var fileAccessor = scope.FileAccessor;
@@ -333,15 +380,13 @@ namespace PESpy
 
             Debug.Assert(totalBytes != 0); //FileAccessor must set this in its ctor
 
-            var visualSections = new VisualSection[sectionAccessors.Length];
-
-            var start = 0;
-
             //We start by reserving 3 at least 3 pixels for each section (empty sections are excluded)
             var numVisibleSections = GetNumVisibleSections(sectionAccessors);
             var reservedWidth = MIN_WIDTH * sectionAccessors.Length;
 
-            //Now, for each section, distribute the remaining pixels based on the size of each section
+            //Now, for each section, distribute the remaining pixels based on the size of each section.
+            //If this is not possible, we won't have any visual sections and the whole thing will be one
+            //flat section
 
             var virtualWidth = width;
 
@@ -349,7 +394,104 @@ namespace PESpy
 
             //A big PDB like msedge.dll hits this
             if (availableWidth < 0)
-                throw new NotImplementedException("Don't know how to handle having so many sections that we can't accomodate the required minimum section widths");
+            {
+                //We don't have enough room for modelling individual sections. Model the entire file as one big flat array
+                ComputeFlatRegions(fileAccessor, sectionAccessors, width);
+            }
+            else
+            {
+                ComputeSectionRegions(fileAccessor, sectionAccessors, virtualWidth, totalBytes, width, availableWidth);
+            }
+        }
+
+        private unsafe void ComputeFlatRegions(
+            FileAccessor fileAccessor,
+            SectionAccessor[] sectionAccessors,
+            int width)
+        {
+            var pixels = new ViewMapPixel[width];
+            var pixelIndex = 0;
+
+            var bytesPerPixel = (int) Math.Ceiling((double) fileAccessor.Length / width);
+
+            var startOffset = 0;
+            for (var i = 0; i < sectionAccessors.Length; i++)
+            {
+                ref var sectionAccessor = ref sectionAccessors[i];
+
+                var pViewByte = sectionAccessor.pViewBytes + startOffset;
+
+                var limit = sectionAccessor.pViewBytesEnd;
+
+                long pixelAddress = sectionAccessor.StartAddress + startOffset;
+
+                if (pViewByte > limit)
+                {
+                    startOffset = (int) (pViewByte - limit);
+                    continue;
+                }
+                while (pViewByte < limit)
+                {
+                    var pHead = pViewByte;
+                    var startAddress = pixelAddress;
+
+                    while (pHead->Kind == ViewByteKind.Body)
+                    {
+                        if (pHead->BodyKind == ViewByteBodyKind.SplitHead)
+                        {
+                            /* We store two values: the address of the pixel, and the address of the head.
+                             * The goal in this loop is to get the address of the head, and a ViewByte that
+                             * describes the head's entity. We've hit the beginning of a disconnected page however,
+                             * so in order to rewind further we need to ask the view accessor to trace through the
+                             * previous page for us. This is not an issue for the ViewMap; as stated, the pixel address
+                             * stores the fact the value is in a disconnected page. We just need to obtain the head info
+                             * so we know what name and color to apply, etc */
+
+                            ((PDBFileAccessor) fileAccessor).GetSplitHeadOrigin(ref pHead, ref startAddress, out _, out _);
+                            break;
+                        }
+
+                        pHead--;
+                        startAddress--;
+                    }
+
+                    pixels[pixelIndex++] = new ViewMapPixel(startAddress, pixelAddress, pHead, i);
+
+                    pViewByte += bytesPerPixel;
+                    pixelAddress += bytesPerPixel;
+
+                    if (pViewByte > limit)
+                    {
+                        startOffset = (int) (pViewByte - limit);
+                        break;
+                    }
+                }
+            }
+
+            //Sometimes it seems we're 1 pixel off the end due to rounding errors; fill all remaining pixels witht he last pixel
+            var last = pixels[pixelIndex - 1];
+
+            for (var i = pixelIndex; i < pixels.Length; i++)
+                pixels[i] = last;
+
+            _pixels = pixels;
+            _visualSections = null;
+        }
+
+        private unsafe void ComputeSectionRegions(
+            FileAccessor fileAccessor,
+            SectionAccessor[] sectionAccessors,
+            int virtualWidth,
+            long totalBytes,
+            int width,
+            int availableWidth)
+        {
+            var pixels = new ViewMapPixel[width];
+            var pixelIndex = 0;
+
+            var start = 0;
+
+            var visualSections = new VisualSection[sectionAccessors.Length];
 
             var totalWidth = AssignVisualWidth(sectionAccessors, visualSections, totalBytes, availableWidth);
 
@@ -363,6 +505,10 @@ namespace PESpy
                 //Each section could introduce at most a 1 pixel rounding error, so the number of missing pixels should be less than the number of sections
                 Debug.Assert(missing < sectionAccessors.Length);
 
+                var indices = ArrayPool<int>.Shared.Rent(sectionAccessors.Length);
+                var lengths = ArrayPool<int>.Shared.Rent(sectionAccessors.Length);
+
+                try
                 {
                     for (var i = 0; i < sectionAccessors.Length; i++)
                     {
@@ -396,9 +542,9 @@ namespace PESpy
 
             var totalPhysicalWidthUsed = 0;
 
-            DirectoryInfo[]? dataDirectories = null;
-            int nextDataDirectoryIndex = 0;
-            using var directories = new ValueList<(int startPixel, int endPixel, int directoryIndex)>();
+            //Potentially in the future we can think about showing directories somehow instead; maybe
+            //across multiple lines in the tooltip?
+
             for (var i = 0; i < visualSections.Length; i++)
             {
                 ref var sectionAccessor = ref sectionAccessors[i];
@@ -422,6 +568,12 @@ namespace PESpy
                     continue;
                 }
 
+                if (totalPhysicalWidthUsed >= width)
+                {
+                    visualSection.Width = 0;
+                    continue;
+                }
+
                 visualSection.PhysicalStartPixel = start;
 
                 var effectiveWidth = visualSection.Width;
@@ -429,7 +581,7 @@ namespace PESpy
 
                 //bytesPerPixel is relative to the width of _this_ region. So if there's 2 pixels,
                 //the two pixels at the start and the halfway point
-                var bytesPerPixel = (int) ((sectionAccessor.Length / effectiveWidth) / _scale);
+                var bytesPerPixel = (int) Math.Floor((((double) sectionAccessor.Length / effectiveWidth) / _scale));
 
                 if (bytesPerPixel == 0)
                 {
@@ -449,7 +601,14 @@ namespace PESpy
                     effectiveWidth -= diff;
                     Debug.Assert(effectiveWidth > 0);
                     visualSection.Width -= diff;
-                var data = new (long startAddress, long pixelAddress, IntPtr info)[effectiveWidth];
+
+                    bytesPerPixel = (int) Math.Floor((((double) sectionAccessor.Length / effectiveWidth) / _scale));
+
+                    if (bytesPerPixel == 1)
+                    {
+                        _isMaxScroll = true;
+                    }
+                }
 
                 Debug.Assert(bytesPerPixel > 0);
 
@@ -462,6 +621,7 @@ namespace PESpy
                     var pixelAddress = sectionAccessor.StartAddress + offset;
 
                     var pViewByte = sectionAccessor.pViewBytes + byteIndex;
+
                     var startAddress = sectionAccessor.StartAddress + offset;
 
                     //With PDB files we have to watch out, because a value might be split across multiple pages,
@@ -489,45 +649,22 @@ namespace PESpy
                     //We just need to store the address of the target value;
                     //the type of value contained at this address can be computed during painting,
                     //and its name can be looked up on hover.
-                    data[j] = (startAddress, pixelAddress, (IntPtr) pViewByte);
-                }
-
-                visualSection.Data = data;
-
-                Debug.Assert(dataDirectories == null || fileAccessor is not PDBFileAccessor); //The logic below uses the start address which could be somewhere totally different in a PDBFile duue to split pages
-
-                //Associate any data directories with this visual section
-                while (dataDirectories != null && nextDataDirectoryIndex < dataDirectories.Length)
-                {
-                    var nextDataDirectory = dataDirectories[nextDataDirectoryIndex];
-
-                    var firstPixelAddress = data[0].startAddress;
-                    var lastPixelAddress = data[data.Length - 1].startAddress;
-
-                    if (nextDataDirectory.Start >= firstPixelAddress && nextDataDirectory.Start <= lastPixelAddress)
-                    {
-                        var startIndex = visualSection.GetBestPixel(nextDataDirectory.Start, 0, data.Length - 1);
-                        Debug.Assert(startIndex != -1);
-
-                        var endIndex = visualSection.GetBestPixel(nextDataDirectory.End, startIndex, data.Length - 1);
-                        directories.Add((startIndex, endIndex, nextDataDirectoryIndex));
-
-                        nextDataDirectoryIndex++;
-                    }
-                    else
-                        break;
-                }
-
-                if (directories.Count > 0)
-                {
-                    visualSection.Directories = directories.ToArray();
-                    directories.Clear();
+                    pixels[pixelIndex++] = new ViewMapPixel(startAddress, pixelAddress, pViewByte, i);
                 }
 
                 start += visualSection.Width;
             }
 
+            //We may not be at the end due to rounding errors; we can't do ceiling above because then we'll overshoot
+            var last = pixels[pixelIndex - 1];
+
+            for (var i = pixelIndex; i < pixels.Length; i++)
+                pixels[i] = last;
+
             _visualSections = visualSections;
+            _pixels = pixels;
+
+            Debug.Assert(pixelIndex == pixels.Length);
         }
 
         private static int GetNumVisibleSections(SectionAccessor[] sectionAccessors)
@@ -582,7 +719,7 @@ namespace PESpy
         {
             using var scope = App.AcquireFileAccessor();
 
-            if (_visualSections == null || scope.FileAccessor == null)
+            if (_pixels == null || scope.FileAccessor == null || _basePainter.IsEmpty)
             {
                 //Nothing for us to do here, so just paint the background straight to the screen
                 User32.FillRect(hdc, ClientRectangle, DefaultBackgroundBrush);
@@ -616,21 +753,22 @@ namespace PESpy
         {
             base.OnWindowPosChanged();
 
-            var hdc = User32.GetDCEx(NativeHandle, default, GET_DCX_FLAGS.DCX_CACHE);
+            if (_basePainter.Width != ClientWidth)
+            {
+                using var hdc = RentDC();
 
-            var clientRect = ClientRectangle;
+                var clientRect = ClientRectangle;
 
-            _basePainter.Resize(hdc, clientRect);
-            _highlightPainter.Resize(hdc, clientRect);
-            _screenPainter.Resize(hdc, clientRect);
+                _basePainter.Resize(hdc, clientRect);
+                _highlightPainter.Resize(hdc, clientRect);
+                _screenPainter.Resize(hdc, clientRect);
 
-            User32.ReleaseDC(NativeHandle, hdc);
+                _pulseRefreshEvent.Set();
 
-            ComputeRegions();
-
-            //Windows won't repaint everything properly unless you call Invalidate. WinForms automatically calls
-            //Invalidate in response to DoLayout
-            Invalidate();
+                //Windows won't repaint everything properly unless you call Invalidate. WinForms automatically calls
+                //Invalidate in response to DoLayout
+                Invalidate();
+            }
         }
         protected override void OnMouseDown(int x, int y)
         {
@@ -659,7 +797,7 @@ namespace PESpy
 
             var visualSections = _visualSections;
 
-            if (visualSections == null)
+            if (_pixels == null)
                 return;
 
             //If the high order bit is 1, the key is down (i.e. 0x80000000)
@@ -701,16 +839,10 @@ namespace PESpy
                 }
             }
 
-            //Binary search to find which section we're in
+            var pixel = _pixels[x];
 
-            var sectionIndex = GetVisualSectionUnderCursor(x);
-
-            ref var visualSection = ref visualSections[sectionIndex];
-
-            //This is the section
-            var offset = x - visualSection.PhysicalStartPixel;
-            Debug.Assert(offset < visualSection.Width);
-            var pViewByte = (ViewByte*) item.pViewByte;
+            //It seems like we have to call SetToolTip every time in order for it to follow our mouse.
+            //This can cause a bit of flicker unfortunately
 
             if (_lastToolTipPos != x)
             {
@@ -718,7 +850,7 @@ namespace PESpy
 
                 try
                 {
-                    GetTooltipText(scope.FileAccessor, pViewByte, sectionIndex, item.startAddress, item.pixelAddress, ref builder);
+                    GetTooltipText(scope.FileAccessor, pixel.pStartViewByte, pixel.SectionAccessorIndex, pixel.StartAddress, pixel.PixelAddress, ref builder);
 
                     const int limit = 150;
 
@@ -743,52 +875,39 @@ namespace PESpy
 
             var oldHighlightedSection = _highlightedSection;
 
-            if (_highlightedSection == sectionIndex)
+            if (_highlightedSection == pixel.SectionAccessorIndex)
             {
                 //This section is already highlighted
             }
             else
             {
                 //We need to re-render everything using the highlighted colors
-                _highlightedSection = sectionIndex;
+                _highlightedSection = pixel.SectionAccessorIndex;
                 _highlightPainter.Invalidate();
 
                 needInvalidate = true;
             }
-                if (_highlightedSection == _arrowSectionIndex)
-                {
-                    //We're still in the same section as before. Which direction are we moving?
-                    if (item.pixelAddress < _arrowAddress)
-                    {
-                        //We're dragging to the left
-                        _arrowXPos = visualSection.PhysicalStartPixel + visualSection.GetBestPixel(item.pixelAddress, 0, _arrowXPos - visualSection.PhysicalStartPixel);
-                        _arrowSectionIndex = sectionIndex;
-                    }
-                    else
-                    {
-                        //We're dragging to the right
-                        _arrowXPos = visualSection.PhysicalStartPixel + visualSection.GetBestPixel(item.pixelAddress, _arrowXPos - visualSection.PhysicalStartPixel, visualSection.Data.Length - 1);
-                        _arrowSectionIndex = sectionIndex;
-                    }
-                }
-                else
-                {
-                    //It's a different section. Binary search all pixels to find the best match
 
-                    _arrowXPos = visualSection.PhysicalStartPixel + visualSection.GetBestPixel(item.pixelAddress, 0, visualSection.Data.Length - 1);
-                    _arrowSectionIndex = sectionIndex;
-                }
+            //If the left mouse button was initially pressed on top of our control, as long as its held down we'll continue
+            //to get mouse move events
+            if (isLeftMouseDown && pixel.PixelAddress != _arrowAddress)
+            {
+                _arrowXPos = x;
+                _arrowSectionIndex = pixel.SectionAccessorIndex;
 
-                _arrowAddress = item.pixelAddress;
+                _arrowAddress = pixel.PixelAddress;
+
+                App.RaisePositionChanged(this, _arrowAddress);
+
+                needInvalidate = true;
+            }
             if (needInvalidate)
             {
                 //The key to fast painting is to paint what you want _immediately_. Calling Invalidate() and waiting for a WM_PAINT is too slow, as Windows seems to allow these requests to build
-                //up before actually dispatching the WM_PAINT (either that, or the the process of doing the dispatch is also slow)
-                var hdc = User32.GetDCEx(NativeHandle, default, GET_DCX_FLAGS.DCX_CACHE);
+                //up before actually dispatching the WM_PAINT (either that, or the process of doing the dispatch is also slow)
+                using var hdc = RentDC();
 
                 OnPaint(hdc);
-
-                User32.ReleaseDC(NativeHandle, hdc);
             }
         }
 
@@ -821,6 +940,7 @@ namespace PESpy
         protected override void OnMouseLeave()
         {
             if (_lastToolTipPos != -1)
+            {
                 _lastToolTipPos = -1;
                 _tooltip.SetToolTip(Window, null);
             }
@@ -833,22 +953,51 @@ namespace PESpy
             }
         }
 
-        private int GetVisualSectionUnderCursor(int xPos)
+        protected override void OnHandleDestroyed()
         {
-            var low = 0;
-            var high = _visualSections!.Length - 1;
+            base.OnHandleDestroyed();
 
-            while (low <= high)
+            _isActive = false;
+
+            _basePainter.Dispose();
+            _highlightPainter.Dispose();
+            _screenPainter.Dispose();
+
+            DeleteObject(ref _dataPen);
+            DeleteObject(ref _dataHighlightPen);
+            DeleteObject(ref _dataBrush);
+            DeleteObject(ref _codePen);
+            DeleteObject(ref _codeHighlightPen);
+            DeleteObject(ref _codeBrush);
+            DeleteObject(ref _externalPen);
+            DeleteObject(ref _externalHighlightPen);
+            DeleteObject(ref _externalBrush);
+            DeleteObject(ref _unknownPen);
+            DeleteObject(ref _unknownHighlightPen);
+            DeleteObject(ref _unknownBrush);
+            DeleteObject(ref _paddingPen);
+            DeleteObject(ref _paddingHighlightPen);
+            DeleteObject(ref _paddingBrush);
+            DeleteObject(ref _arrowPen);
+            DeleteObject(ref _arrowBrush);
+            DeleteObject(ref _outlineSectionHighlightPen);
+        }
+
+        private void DeleteObject(ref HPEN pen)
+        {
+            if (pen != default)
             {
-                var mid = (low + high) / 2;
-                ref var visualSection = ref _visualSections[mid];
+                Gdi32.DeleteObject(pen);
+                pen = default;
+            }
+        }
 
-                if (xPos < visualSection.PhysicalStartPixel)
-                    high = mid - 1;
-                else if (xPos >= visualSection.PhysicalStartPixel + visualSection.Width)
-                    low = mid + 1;
-                else
-                    return mid;
+        private void DeleteObject(ref HBRUSH brush)
+        {
+            if (brush != default)
+            {
+                Gdi32.DeleteObject(brush);
+                brush = default;
             }
         }
     }

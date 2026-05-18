@@ -11,9 +11,7 @@
 
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 {
                     var str = valueChunk.PeekAnsiNullTerminatedString(0);
                     return new VA<AnsiString>(va, valueChunk.AbsoluteOffset, str);
@@ -31,9 +29,7 @@
 
                 var peFile = chunk.PEFile();
 
-                var rva = (int) (va - peFile.OptionalHeader.ImageBase);
-
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromVA(va, out var valueChunk))
                 {
                     var str = valueChunk.PeekAnsiNullTerminatedString(0);
                     return new VA<AnsiString>(va, valueChunk.AbsoluteOffset, str);
