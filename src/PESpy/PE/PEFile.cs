@@ -1668,7 +1668,7 @@ namespace PESpy
                         {
                             //The managed resources are described by the manifest resources table
 
-                            var resourceTable = EcmaMetadata?.CompressedModelHeap?.ManifestResourceTable;
+                            var resourceTable = EcmaMetadata?.ModelHeap?.ManifestResourceTable;
 
                             if (resourceTable != null)
                             {
@@ -1892,7 +1892,7 @@ namespace PESpy
                 {
                     //For some reason referencing MethodDefTable causes a type load exception to occur in the JIT. I think it's because ClassLoader::LoadTypeHandlerForTypeKey_Body
                     //gets upset that we're doing a recursive type load, because the row and table types reference each other
-                    var methodDefs = EcmaMetadata?.CompressedModelHeap?.MethodDefTable;
+                    var methodDefs = EcmaMetadata?.ModelHeap?.MethodDefTable;
 
                     if (methodDefs == null)
                         return null;
@@ -1912,7 +1912,7 @@ namespace PESpy
         /// <returns><see langword="true"/> if the RVA of the metadata row pointed to by <paramref name="methodDef"/> could be resolved to an <see cref="ImageCorILMethod"/>. Otherwise, <see langword="false"/>.</returns>
         public bool TryGetILMethod(mdMethodDef methodDef, out ImageCorILMethod ilMethod)
         {
-            var methodDefs = EcmaMetadata?.CompressedModelHeap?.MethodDefTable;
+            var methodDefs = EcmaMetadata?.ModelHeap?.MethodDefTable;
             ilMethod = default;
 
             if (methodDefs == null)

@@ -9,18 +9,18 @@
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigMethodDefOrRefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal MethodImplTable(
             int numRows,
             int typeDefIndexSize,
             int methodDefOrRefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.27
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigMethodDefOrRefIndex = methodDefOrRefIndexSize == 4;
@@ -51,7 +51,7 @@
 
         internal void GetRange(TypeDefIndex typeDef, out int firstImplRowId, out int lastImplRowId)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,

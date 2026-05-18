@@ -19,7 +19,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigFieldIndex;
         private readonly bool isBigMethodIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         private Dictionary<TypeDefIndex, TypeDefIndex[]>? _lazyNestedTypesMap;
@@ -30,13 +30,13 @@ namespace PESpy.Ecma335
             int typeDefOrRefIndexSize,
             int fieldIndexSize,
             int methodIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.37
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -124,7 +124,7 @@ namespace PESpy.Ecma335
 
         internal TypeDefRow? FindTypeContainingMethod(int methodRowId, int numberOfMethods)
         {
-            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+            var row = ModelHeap.BinarySearchEcmaIndexList(
                 tableChunk,
                 Count,
                 RowSize,
@@ -170,7 +170,7 @@ namespace PESpy.Ecma335
 
         internal TypeDefRow? FindTypeContainingField(int fieldRowId, int numberOfFields)
         {
-            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+            var row = ModelHeap.BinarySearchEcmaIndexList(
                 tableChunk,
                 Count,
                 RowSize,
@@ -219,7 +219,7 @@ namespace PESpy.Ecma335
         {
             var groupedNestedTypes = new Dictionary<TypeDefIndex, List<TypeDefIndex>>();
 
-            var nestedClassTable = CompressedModelHeap.NestedClassTable;
+            var nestedClassTable = ModelHeap.NestedClassTable;
 
             int numberOfNestedTypes = nestedClassTable.Count;
             List<TypeDefIndex>? builder = null;
@@ -275,10 +275,10 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(TypeDefIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.TypeDef));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.TypeDef));
 
         public DeclSecurityAttributeList GetDeclSecurityAttributes(TypeDefIndex index) =>
-            new DeclSecurityAttributeList(CompressedModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.TypeDef));
+            new DeclSecurityAttributeList(ModelHeap, HasDeclSecurityTag.CreateIndex((int) index, TableKind.TypeDef));
 
         public long GetRowOffset(TypeDefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

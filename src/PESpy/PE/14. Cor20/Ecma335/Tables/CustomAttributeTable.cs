@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigCustomAttributeTypeIndexSize;
         private readonly bool isBigBlobIndexSize;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         //System.Reflection.Metadata calls this "PtrTable" which I think is a confusing name
@@ -24,11 +24,11 @@ namespace PESpy.Ecma335
             int hasCustomAttributeIndexSize,
             int customAttributeTypeIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasCustomAttributeIndexSize = hasCustomAttributeIndexSize == 4;
@@ -71,7 +71,7 @@ namespace PESpy.Ecma335
             if (SortedTable != null)
                 throw new NotImplementedException("Getting the range from the sorted table is not implemented");
 
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,

@@ -6,12 +6,12 @@ namespace PESpy.Ecma335
     //II.23.3 (p293)
     internal readonly struct CustomAttributeDecoder<TType>
     {
-        private readonly CompressedModelHeap _compressedModelHeap;
+        private readonly ModelHeap _modelHeap;
         private readonly ICustomAttributeTypeProvider<TType>? _provider;
 
-        internal CustomAttributeDecoder(CompressedModelHeap compressedModelHeap, ICustomAttributeTypeProvider<TType> provider)
+        internal CustomAttributeDecoder(ModelHeap modelHeap, ICustomAttributeTypeProvider<TType> provider)
         {
-            _compressedModelHeap = compressedModelHeap;
+            _modelHeap = modelHeap;
             _provider = provider;
         }
 
@@ -24,17 +24,17 @@ namespace PESpy.Ecma335
             switch (ctorIndex.TableKind)
             {
                 case TableKind.MethodDef:
-                    var methodDef = _compressedModelHeap.MethodDefTable[ctorIndex];
+                    var methodDef = _modelHeap.MethodDefTable[ctorIndex];
                     sigIndex = methodDef.Signature;
                     break;
 
                 case TableKind.MemberRef:
-                    var memberRef = _compressedModelHeap.MemberRefTable[ctorIndex];
+                    var memberRef = _modelHeap.MemberRefTable[ctorIndex];
                     sigIndex = memberRef.Signature;
 
                     if (memberRef.Class.TableKind == TableKind.TypeSpec)
                     {
-                        var typeSpec = _compressedModelHeap.TypeSpecTable[memberRef.Class];
+                        var typeSpec = _modelHeap.TypeSpecTable[memberRef.Class];
                         typeSpecSig = typeSpec.Signature;
                     }
 
@@ -532,8 +532,8 @@ namespace PESpy.Ecma335
         {
             return token.Type switch
             {
-                CorTokenType.mdtTypeDef => _provider.GetTypeDef(_compressedModelHeap, (mdTypeDef) token),
-                CorTokenType.mdtTypeRef => _provider.GetTypeRef(_compressedModelHeap, (mdTypeRef) token)
+                CorTokenType.mdtTypeDef => _provider.GetTypeDef(_modelHeap, (mdTypeDef) token),
+                CorTokenType.mdtTypeRef => _provider.GetTypeRef(_modelHeap, (mdTypeRef) token)
             };
         }
 

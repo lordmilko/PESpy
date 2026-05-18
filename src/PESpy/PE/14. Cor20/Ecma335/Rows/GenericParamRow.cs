@@ -20,7 +20,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object OwnerRow => Owner.GetRow(table.CompressedModelHeap);
+        public object OwnerRow => Owner.GetRow(table.ModelHeap);
 
         private readonly GenericParamTable table;
 
@@ -32,7 +32,7 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        public GenericParamConstraintList Constraints => table.CompressedModelHeap.GenericParamConstraintTable.FindConstraintsForGenericParam(RowIndex);
+        public GenericParamConstraintList Constraints => table.ModelHeap.GenericParamConstraintTable.FindConstraintsForGenericParam(RowIndex);
 
         public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 

@@ -569,7 +569,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.ImageFunctionOverrideHeader):
                             case nameof(ViewKind.ImageEpilogueDynamicRelocationHeader):
                             case nameof(ViewKind.StorageStream):
-                            case nameof(ViewKind.CompressedModelHeap):
+                            case nameof(ViewKind.ModelHeap):
                             case nameof(ViewKind.StringPoolHeap):
                             case nameof(ViewKind.USBlobPoolHeap):
                             case nameof(ViewKind.BlobPoolHeap):

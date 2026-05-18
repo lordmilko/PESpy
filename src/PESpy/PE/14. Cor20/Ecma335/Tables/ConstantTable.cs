@@ -13,18 +13,18 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasConstantIndexSize;
         private readonly bool isBigBlobIndexSize;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         internal ConstantTable(
             int numRows,
             int hasConstantIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasConstantIndexSize = hasConstantIndexSize == 4;
@@ -63,7 +63,7 @@ namespace PESpy.Ecma335
 
         internal ConstantIndex FindConstant(CodedIndex index)
         {
-            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+            var foundRowNumber = ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

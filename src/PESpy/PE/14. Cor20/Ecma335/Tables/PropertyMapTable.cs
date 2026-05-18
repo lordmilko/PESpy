@@ -8,16 +8,16 @@
         internal readonly int ParentOffset;
         internal readonly int PropertyListOffset;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal PropertyMapTable(
             int numRows,
             int typeDefIndexSize,
             int propertyIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigPropertyIndex = propertyIndexSize == 4;
@@ -43,7 +43,7 @@
         {
             var numberOfRows = Count;
 
-            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+            var row = ModelHeap.BinarySearchEcmaIndexList(
                 tableChunk,
                 numberOfRows,
                 RowSize,
@@ -58,17 +58,17 @@
             if (row > numberOfRows)
             {
                 if (propertyRowId <= numberOfProperties)
-                    return CompressedModelHeap.TypeDefTable[GetParent((PropertyMapIndex) numberOfRows)];
+                    return ModelHeap.TypeDefTable[GetParent((PropertyMapIndex) numberOfRows)];
 
                 return default;
             }
 
-            return CompressedModelHeap.TypeDefTable[GetParent((PropertyMapIndex) row)];
+            return ModelHeap.TypeDefTable[GetParent((PropertyMapIndex) row)];
         }
 
         internal int FindPropertyMapRowIdFor(TypeDefIndex typeDef)
         {
-            var rowNumber = CompressedModelHeap.LinearSearchEcmaIndex(
+            var rowNumber = ModelHeap.LinearSearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

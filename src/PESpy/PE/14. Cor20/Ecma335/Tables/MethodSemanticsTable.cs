@@ -11,18 +11,18 @@ namespace PESpy.Ecma335
         private readonly bool hasBigMethodDefIndex;
         private readonly bool hasBigHasSemanticsIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal MethodSemanticsTable(
             int numRows,
             int methodDefIndexSize,
             int hasSemanticsIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.28
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             hasBigMethodDefIndex = methodDefIndexSize == 4;
             hasBigHasSemanticsIndex = hasSemanticsIndexSize == 4;
@@ -53,7 +53,7 @@ namespace PESpy.Ecma335
 
         internal int FindSemanticMethods(CodedIndex index, ref ushort methodCount)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,

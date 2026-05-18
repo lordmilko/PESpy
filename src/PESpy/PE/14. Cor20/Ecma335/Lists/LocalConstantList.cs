@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(LocalConstantListDebugView))]
     public readonly struct LocalConstantList : IEnumerable<LocalConstantRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal LocalConstantList(LocalScopeIndex scope, CompressedModelHeap compressedModelHeap)
+        internal LocalConstantList(LocalScopeIndex scope, ModelHeap modelHeap)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var LocalConstantTable = compressedModelHeap.LocalConstantTable;
+            this.modelHeap = modelHeap;
+            var LocalConstantTable = modelHeap.LocalConstantTable;
 
             if (LocalConstantTable != null)
                 LocalConstantTable.GetRange(scope, out firstRowId, out lastRowId);
@@ -44,9 +44,9 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public LocalConstantRow this[int index] => compressedModelHeap.LocalConstantTable[(LocalConstantIndex) (firstRowId + index)];
+        public LocalConstantRow this[int index] => modelHeap.LocalConstantTable[(LocalConstantIndex) (firstRowId + index)];
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<LocalConstantRow> IEnumerable<LocalConstantRow>.GetEnumerator() => GetEnumerator();
 
@@ -58,9 +58,9 @@ namespace PESpy.Ecma335
             private LocalConstantTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.LocalConstantTable;
+                table = modelHeap?.LocalConstantTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -69,7 +69,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

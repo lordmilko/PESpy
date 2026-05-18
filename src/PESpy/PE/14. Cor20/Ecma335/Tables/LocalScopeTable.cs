@@ -14,7 +14,7 @@
         private readonly bool isBigLocalVariableIndex;
         private readonly bool isBigLocalConstantIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal LocalScopeTable(
             int numRows,
@@ -22,10 +22,10 @@
             int importScopeIndexSize,
             int localVariableIndexSize,
             int localConstantIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigMethodIndex = methodIndexSize == 4;
             isBigImportScopeIndex = importScopeIndexSize == 4;
@@ -87,7 +87,7 @@
 
         internal void GetRange(MethodDefIndex methodDef, out int firstScopeRowId, out int lastScopeRowId)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,

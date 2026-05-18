@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public PropertyRow PropertyRow => table.CompressedModelHeap.PropertyTable[Property];
+        public PropertyRow PropertyRow => table.ModelHeap.PropertyTable[Property];
 
         private readonly PropertyPtrTable table;
 

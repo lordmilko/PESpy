@@ -11,20 +11,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigResolutionScopeIndex;
         private readonly bool isBigStringIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         internal TypeRefTable(
             int numRows,
             int resolutionScopeIndexSize,
             int stringIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.38
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigResolutionScopeIndex = resolutionScopeIndexSize == 4;

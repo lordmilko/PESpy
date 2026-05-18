@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using PESpy.Ecma335;
 using PESpy.View;
 using static PESpy.StorageStream;
@@ -20,17 +21,17 @@ namespace PESpy
         #region Streams
         #region #~
 
-        private CompressedModelHeap? compressedModelHeap;
+        private ModelHeap? modelHeap;
 
         /// <summary>
-        /// Provides access to the compressed model heap pointed to by the <see cref="StorageHeader"/> -> <see cref="StorageStream"/> whose name is "#~"
+        /// Provides access to the compressed or uncompressed model heap pointed to by the <see cref="StorageHeader"/> -> <see cref="StorageStream"/> whose name is either "#~" or "#-"
         /// </summary>
-        public CompressedModelHeap? CompressedModelHeap
+        public ModelHeap? ModelHeap
         {
             get
             {
                 EnsureHeaps();
-                return compressedModelHeap;
+                return modelHeap;
             }
         }
 
@@ -120,6 +121,34 @@ namespace PESpy
             }
         }
 
+        internal PdbHeap? GetPdbHeap()
+        {
+            //ModelHeap will want to ask for this, but that's a catch-22 because we may already be in the middle of ensuring heaps,
+            //which will cause an infinite recursion and a stack overflow. As such, we need to manually search for the header
+
+            //If we're not a PortablePDB, don't waste time searching for it
+            if (chunk.File().Kind != FileKind.PortablePDB)
+                return null;
+
+            if (initialized)
+                return pdbHeap;
+
+            var streamHeaders = Header.StreamHeaders;
+
+            for (var i = 0; i < streamHeaders.Length; i++)
+            {
+                ref var streamHeader = ref streamHeaders[i];
+
+                if (streamHeader.Name == PdbStream)
+                {
+                    pdbHeap = (PdbHeap?) streamHeader.Data;
+                    break;
+                }
+            }
+
+            return pdbHeap;
+        }
+
         #endregion
         #endregion
 
@@ -133,7 +162,7 @@ namespace PESpy
             this.chunk = chunk;
 
             Signature = new StorageSignature(chunk);
-            Header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), (int) Offset); //Align to next 4 byte boundary
+            Header = new StorageHeader(chunk.Slice((StorageSignature.FixedStructSize + Signature.VersionStringLength + 3) & ~3), (int) Offset, this); //Align to next 4 byte boundary
         }
 
         private void EnsureHeaps()
@@ -150,7 +179,9 @@ namespace PESpy
                 switch (streamHeader.Name)
                 {
                     case CompressedModelStream:
-                        compressedModelHeap = (CompressedModelHeap?) streamHeader.Data;
+                    case EnCModelStream:
+                        Debug.Assert(modelHeap == null); //I don't think you can have both at once? But I haven't tested with EnC
+                        modelHeap = (ModelHeap?) streamHeader.Data;
                         break;
 
                     case StringPoolStream:

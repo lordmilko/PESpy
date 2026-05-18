@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object MethodRow => Method.GetRow(table.CompressedModelHeap);
+        public object MethodRow => Method.GetRow(table.ModelHeap);
 
         private readonly MethodSpecTable table;
 
@@ -30,7 +30,7 @@ namespace PESpy.Ecma335
 
         public TType[] DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Instantiation.GetReader();
             return decoder.DecodeMethodSpecificationSignature(ref reader);
         }
@@ -69,14 +69,14 @@ namespace PESpy.Ecma335
 
             using var builder = new ValueStringBuilder();
 
-            builder.Append(Method.GetRow(table.CompressedModelHeap).ToString());
+            builder.Append(Method.GetRow(table.ModelHeap).ToString());
             builder.Append('<');
 
             GenericParamList genericParams = default;
 
             if (Method.TableKind == TableKind.MethodDef)
             {
-                var methodDef = table.CompressedModelHeap.MethodDefTable[Method];
+                var methodDef = table.ModelHeap.MethodDefTable[Method];
 
                 genericParams = methodDef.GenericParameters;
             }

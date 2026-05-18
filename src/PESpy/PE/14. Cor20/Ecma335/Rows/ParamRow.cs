@@ -28,7 +28,7 @@ namespace PESpy.Ecma335
                 if (defaultValue.IsNil)
                     return null;
 
-                return table.CompressedModelHeap.ConstantTable[DefaultValue];
+                return table.ModelHeap.ConstantTable[DefaultValue];
             }
         }
 
@@ -42,13 +42,13 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        public ConstantIndex DefaultValue => table.CompressedModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Param));
+        public ConstantIndex DefaultValue => table.ModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Param));
 
         public BlobIndex MarshallingDescriptor
         {
             get
             {
-                var fieldMarshalTable = table.CompressedModelHeap.FieldMarshalTable;
+                var fieldMarshalTable = table.ModelHeap.FieldMarshalTable;
 
                 if (fieldMarshalTable == null)
                     return default;

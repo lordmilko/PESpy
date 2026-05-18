@@ -24,13 +24,13 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public LocalVariableList Variables => new LocalVariableList(RowIndex, table.CompressedModelHeap);
+        public LocalVariableList Variables => new LocalVariableList(RowIndex, table.ModelHeap);
 
-        public LocalConstantList Constants => new LocalConstantList(RowIndex, table.CompressedModelHeap);
+        public LocalConstantList Constants => new LocalConstantList(RowIndex, table.ModelHeap);
 
         public ChildScopeList Children => new ChildScopeList(RowIndex, table);
 
-        public MethodDebugInformationRow MethodRow => table.CompressedModelHeap.MethodDebugInformationTable[Method];
+        public MethodDebugInformationRow MethodRow => table.ModelHeap.MethodDebugInformationTable[Method];
 
         private readonly LocalScopeTable table;
 

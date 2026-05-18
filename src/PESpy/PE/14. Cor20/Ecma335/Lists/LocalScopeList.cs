@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(LocalScopeListDebugView))]
     public readonly struct LocalScopeList : IEnumerable<LocalScopeRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal LocalScopeList(MethodDefIndex methodDef, CompressedModelHeap compressedModelHeap)
+        internal LocalScopeList(MethodDefIndex methodDef, ModelHeap modelHeap)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var localScopeTable = compressedModelHeap.LocalScopeTable;
+            this.modelHeap = modelHeap;
+            var localScopeTable = modelHeap.LocalScopeTable;
 
             if (localScopeTable != null)
                 localScopeTable.GetRange(methodDef, out firstRowId, out lastRowId);
@@ -44,9 +44,9 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public LocalScopeRow this[int index] => compressedModelHeap.LocalScopeTable[(LocalScopeIndex) (firstRowId + index)];
+        public LocalScopeRow this[int index] => modelHeap.LocalScopeTable[(LocalScopeIndex) (firstRowId + index)];
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<LocalScopeRow> IEnumerable<LocalScopeRow>.GetEnumerator() => GetEnumerator();
 
@@ -58,9 +58,9 @@ namespace PESpy.Ecma335
             private LocalScopeTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.LocalScopeTable;
+                table = modelHeap?.LocalScopeTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -69,7 +69,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

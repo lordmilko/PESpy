@@ -13,20 +13,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigImplementationIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         internal ManifestResourceTable(
             int numRows,
             int stringIndexSize,
             int implementationIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.24
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -64,7 +64,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(ManifestResourceIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ManifestResource));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ManifestResource));
 
         public long GetRowOffset(ManifestResourceIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

@@ -8,17 +8,17 @@ namespace PESpy.Ecma335
 
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         internal StandAloneSigTable(
             int numRows,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigBlobIndex = blobIndexSize == 4;
@@ -34,7 +34,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(StandAloneSigIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.StandAloneSig));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.StandAloneSig));
 
         public long GetRowOffset(StandAloneSigIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

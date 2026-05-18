@@ -15,7 +15,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object TokenRow => table.CompressedModelHeap.GetRow(Token);
+        public object TokenRow => table.ModelHeap.GetRow(Token);
 
         private readonly EncMapTable table;
 

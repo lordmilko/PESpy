@@ -7,14 +7,14 @@ namespace PESpy.Ecma335
         internal readonly int TokenOffset;
         internal readonly int FuncCodeOffset;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal EncLogTable(
             int numRows,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             TokenOffset = 0;
             FuncCodeOffset = TokenOffset + sizeof(int);

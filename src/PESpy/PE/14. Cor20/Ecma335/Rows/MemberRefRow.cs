@@ -29,7 +29,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public object ClassRow => Class.GetRow(table.CompressedModelHeap);
+        public object ClassRow => Class.GetRow(table.ModelHeap);
 
         private readonly MemberRefTable table;
 
@@ -45,14 +45,14 @@ namespace PESpy.Ecma335
 
         public TType DecodeFieldSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Signature.GetReader();
             return decoder.DecodeFieldSignature(ref reader);
         }
 
         public MethodSignature<TType> DecodeMethodSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Signature.GetReader();
             return decoder.DecodeMethodSignature(ref reader);
         }

@@ -20,9 +20,9 @@ namespace PESpy.Ecma335
 
         public ParamIndex ParamList => table.GetParamList(RowIndex);
 
-        public ParamList Parameters => new ParamList(RowIndex, table.CompressedModelHeap);
+        public ParamList Parameters => new ParamList(RowIndex, table.ModelHeap);
 
-        public GenericParamList GenericParameters => table.CompressedModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.MethodDef));
+        public GenericParamList GenericParameters => table.ModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.MethodDef));
 
         //System.Reflection.Metadata's MethodImport type basically just contains
         //all of the properties of the ImplMapRow type minus the MemberForwarded member
@@ -31,7 +31,7 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var implMapTable = table.CompressedModelHeap.ImplMapTable;
+                var implMapTable = table.ModelHeap.ImplMapTable;
 
                 if (implMapTable == null)
                     return default;
@@ -41,7 +41,7 @@ namespace PESpy.Ecma335
                 if (implIndex.RowId == 0)
                     return default;
 
-                return table.CompressedModelHeap.ImplMapTable[implIndex];
+                return table.ModelHeap.ImplMapTable[implIndex];
             }
         }
 
@@ -53,7 +53,7 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var peFile = table.CompressedModelHeap.File() as PEFile;
+                var peFile = table.ModelHeap.File() as PEFile;
 
                 if (peFile != null && peFile.TryGetILMethod(RowIndex, out var ilMethod))
                     return ilMethod;
@@ -76,12 +76,12 @@ namespace PESpy.Ecma335
 
         public MethodSignature<TType> DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Signature.GetReader();
             return decoder.DecodeMethodSignature(ref reader);
         }
 
-        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+        public TypeDefRow? DeclaringType => table.ModelHeap.GetDeclaringType(RowIndex);
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigGuidIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
         private readonly Func<GuidHeap?> guidHeap;
 
@@ -21,12 +21,12 @@ namespace PESpy.Ecma335
             int hasCustomDebugInformationIndexSize,
             int guidIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             Func<GuidHeap?> guidHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
             this.guidHeap = guidHeap;
 

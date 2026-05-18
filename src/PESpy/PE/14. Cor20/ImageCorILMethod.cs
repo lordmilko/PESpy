@@ -45,7 +45,7 @@ namespace PESpy
 
         public mdSignature LocalVarSigTok { get; }
 
-        public StandAloneSigRow? Sig => LocalVarSigTok.Rid == 0 ? null : chunk.PEFile().EcmaMetadata.CompressedModelHeap.StandAloneSigTable.FromToken(LocalVarSigTok);
+        public StandAloneSigRow? Sig => LocalVarSigTok.Rid == 0 ? null : chunk.PEFile().EcmaMetadata.ModelHeap.StandAloneSigTable.FromToken(LocalVarSigTok);
 
         public ImageCorILMethodSectEH[] EHSections { get; }
 

@@ -9,15 +9,15 @@
 
         private readonly bool isBigAssemblyRefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal AssemblyRefOSTable(
             int numRows,
             int assemblyRefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigAssemblyRefIndex = assemblyRefIndexSize == 4;
 

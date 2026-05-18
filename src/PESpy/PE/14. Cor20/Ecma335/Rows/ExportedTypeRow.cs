@@ -25,7 +25,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object ImplementationRow => Implementation.GetRow(table.CompressedModelHeap);
+        public object ImplementationRow => Implementation.GetRow(table.ModelHeap);
 
         private readonly ExportedTypeTable table;
 
@@ -78,6 +78,6 @@ namespace PESpy.Ecma335
             }
         }
 
-        public override string ToString() => CompressedModelHeap.FormatType(TypeNamespace, TypeName);
+        public override string ToString() => ModelHeap.FormatType(TypeNamespace, TypeName);
     }
 }

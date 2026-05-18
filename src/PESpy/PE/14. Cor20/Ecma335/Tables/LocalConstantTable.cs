@@ -10,7 +10,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
@@ -20,10 +20,10 @@ namespace PESpy.Ecma335
             int blobIndexSize,
             Func<StringHeap?> stringHeap,
             Func<BlobHeap?> blobHeap,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -49,20 +49,20 @@ namespace PESpy.Ecma335
 
         internal void GetRange(LocalScopeIndex localScope, out int firstConstantRowId, out int lastConstantRowId)
         {
-            firstConstantRowId = (int) CompressedModelHeap.LocalScopeTable.GetConstantList(localScope);
+            firstConstantRowId = (int) ModelHeap.LocalScopeTable.GetConstantList(localScope);
 
             if (firstConstantRowId == 0)
             {
                 firstConstantRowId = 0;
                 lastConstantRowId = 0;
             }
-            else if (localScope.RowId == CompressedModelHeap.LocalScopeTable.Count)
+            else if (localScope.RowId == ModelHeap.LocalScopeTable.Count)
             {
                 lastConstantRowId = Count + 1;
             }
             else
             {
-                lastConstantRowId = (int) CompressedModelHeap.LocalScopeTable.GetVariableList((LocalScopeIndex) (localScope.RowId + 1));
+                lastConstantRowId = (int) ModelHeap.LocalScopeTable.GetVariableList((LocalScopeIndex) (localScope.RowId + 1));
             }
         }
 

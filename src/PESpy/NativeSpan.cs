@@ -12,6 +12,8 @@ namespace PESpy
     public readonly unsafe struct NativeSpan<T> where T : unmanaged
     {
         private readonly T* pointer;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly int length;
 
         //Needed because NativeSpan<OMAP_DATA>? doesn't display properly
@@ -37,6 +39,7 @@ namespace PESpy
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int Length => length;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

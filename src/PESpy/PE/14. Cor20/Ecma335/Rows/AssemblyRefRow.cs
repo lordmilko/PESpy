@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
 
         public BlobIndex HashValue => table.GetHashValue(RowIndex);
 
-        public AssemblyName AssemblyName => CompressedModelHeap.GetAssemblyName(Name, Version, Culture, PublicKeyOrToken, AssemblyHashAlgorithm.None, Flags);
+        public AssemblyName AssemblyName => ModelHeap.GetAssemblyName(Name, Version, Culture, PublicKeyOrToken, AssemblyHashAlgorithm.None, Flags);
 
         public long Offset => table.GetRowOffset(RowIndex);
 

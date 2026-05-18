@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(CustomAttributeListDebugView))]
     public readonly struct CustomAttributeList : IEnumerable<CustomAttributeRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal CustomAttributeList(CompressedModelHeap compressedModelHeap, CodedIndex index)
+        internal CustomAttributeList(ModelHeap modelHeap, CodedIndex index)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var customAttributeTable = compressedModelHeap.CustomAttributeTable;
+            this.modelHeap = modelHeap;
+            var customAttributeTable = modelHeap.CustomAttributeTable;
 
             if (customAttributeTable != null)
                 customAttributeTable.GetRange(index, out firstRowId, out lastRowId);
@@ -44,7 +44,7 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public CustomAttributeRow this[int index] => compressedModelHeap.CustomAttributeTable[(CustomAttributeIndex) (firstRowId + index)];
+        public CustomAttributeRow this[int index] => modelHeap.CustomAttributeTable[(CustomAttributeIndex) (firstRowId + index)];
 
         public CustomAttributeRow this[string fullName]
         {
@@ -76,7 +76,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<CustomAttributeRow> IEnumerable<CustomAttributeRow>.GetEnumerator() => GetEnumerator();
 
@@ -88,9 +88,9 @@ namespace PESpy.Ecma335
             private CustomAttributeTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.CustomAttributeTable;
+                table = modelHeap?.CustomAttributeTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -99,7 +99,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

@@ -230,13 +230,13 @@ namespace PESpy
             //My interop sample has a managed entry point, whereas my interop-core sample has a native one.
             //Not sure how to detect if we're C++/CLI reliably
 
-            var compressedModelHeap = peFile.EcmaMetadata?.CompressedModelHeap;
+            var modelHeap = peFile.EcmaMetadata?.ModelHeap;
 
-            ProcessManagedEntryPoint(cor20Header, compressedModelHeap, symbolAccessor);
-            ProcessCustomAttributes(compressedModelHeap);
+            ProcessManagedEntryPoint(cor20Header, modelHeap, symbolAccessor);
+            ProcessCustomAttributes(modelHeap);
         }
 
-        private void ProcessManagedEntryPoint(ImageCor20Header cor20Header, CompressedModelHeap compressedModelHeap, ISymbolAccessor symbolAccessor)
+        private void ProcessManagedEntryPoint(ImageCor20Header cor20Header, ModelHeap modelHeap, ISymbolAccessor symbolAccessor)
         {
             var rva = cor20Header.EntryPointRVA;
 
@@ -249,11 +249,11 @@ namespace PESpy
             {
                 var token = (mdToken) rva;
 
-                if (compressedModelHeap != null)
+                if (modelHeap != null)
                 {
                     if (token.Type == CorTokenType.mdtMethodDef)
                     {
-                        var methodDef = compressedModelHeap.MethodDefTable.FromToken(token);
+                        var methodDef = modelHeap.MethodDefTable.FromToken(token);
 
                         Cor20ManagedEntryPoint = new FileOverview.ManagedSymbol(token, methodDef.ToString());
                     }
@@ -268,12 +268,12 @@ namespace PESpy
             }
         }
 
-        private void ProcessCustomAttributes(CompressedModelHeap compressedModelHeap)
+        private void ProcessCustomAttributes(ModelHeap modelHeap)
         {
-            if (compressedModelHeap == null)
+            if (modelHeap == null)
                 return;
 
-            var assemblyTable = compressedModelHeap.AssemblyTable;
+            var assemblyTable = modelHeap.AssemblyTable;
 
             if (assemblyTable != null && assemblyTable.Count > 0)
             {

@@ -6,15 +6,15 @@
 
         private readonly bool isBigFieldIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal FieldPtrTable(
             int numRows,
             int fieldIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigFieldIndex = fieldIndexSize == 4;
 

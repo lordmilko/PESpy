@@ -3436,9 +3436,9 @@ namespace PESpy.Tests
         }
 
         [TestMethod]
-        public void Ecma335_CompressedModelHeader_Test()
+        public void Ecma335_ModelHeader_Test()
         {
-            TestStruct<CompressedModelHeader>(
+            TestStruct<ModelHeader>(
                 v => v.Reserved1 == 0,
                 v => v.MajorVersion == 2,
                 v => v.MinorVersion == 0,
@@ -3449,7 +3449,7 @@ namespace PESpy.Tests
                 v => v.RowCounts == new int[] { 1, 16, 2, 2, 1, 15, 14, 1, 1 }
             );
 
-            TestView<CompressedModelHeader>(
+            TestView<ModelHeader>(
                 v => v.VerifyStruct(
                     name: "Metadata Header", offset: 712, size: 60,
                     c => c.VerifyField(name: "Reserved1", value: 0),
@@ -3464,7 +3464,7 @@ namespace PESpy.Tests
             );
         }
 
-        //CompressedModelHeap doesn't really "store" anything; it's just a type that holds the unpacked metadata
+        //ModelHeap doesn't really "store" anything; it's just a type that holds the unpacked metadata
 
         [TestMethod]
         public void Ecma335_UserString_Test()
@@ -4002,9 +4002,9 @@ namespace PESpy.Tests
 
             var manifestMetadata = peFile.NgenManifestMetaData;
 
-            var compressedModelHeap = manifestMetadata.CompressedModelHeap;
+            var modelHeap = manifestMetadata.ModelHeap;
 
-            Assert.AreEqual("Class1", compressedModelHeap.TypeDefTable.Single().ToString());
+            Assert.AreEqual("Class1", modelHeap.TypeDefTable.Single().ToString());
         }
 
         [TestMethod]

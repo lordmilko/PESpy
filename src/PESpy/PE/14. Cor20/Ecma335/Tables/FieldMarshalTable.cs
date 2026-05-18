@@ -10,20 +10,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasFieldMarshalIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         internal FieldMarshalTable(
             int numRows,
             int hasFieldMarshalIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.17
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasFieldMarshalIndex = hasFieldMarshalIndexSize == 4;
@@ -48,7 +48,7 @@ namespace PESpy.Ecma335
 
         internal FieldMarshalIndex FindFieldMarshalRowId(CodedIndex index)
         {
-            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+            var foundRowNumber = ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

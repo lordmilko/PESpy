@@ -7,14 +7,14 @@ using AssemblyHashAlgorithm = System.Configuration.Assemblies.AssemblyHashAlgori
 namespace PESpy.Ecma335
 {
     /// <summary>
-    /// Encapsulates all data in the compressed model heap (#~).<para/>
+    /// Encapsulates all data in the compressed model heap (#~) or the uncompressed EnC model heap (#-).<para/>
     /// Neither this type, or any types referenced from this type, have a native equivalent.
     /// </summary>
-    public class CompressedModelHeap : IValue, IViewable
+    public class ModelHeap : IValue, IViewable
     {
         internal const int EnumEnded = 1 << 24;
 
-        public CompressedModelHeader Header { get; }
+        public ModelHeader Header { get; }
 
         #region ECMA-335
 
@@ -141,26 +141,16 @@ namespace PESpy.Ecma335
 
         private readonly MemoryChunk chunk;
 
-        internal CompressedModelHeap(in MemoryChunk chunk, int size)
+        //We need to pass the EcmaMetadata in because there can be many complex sources of metadata (e.g.
+        //on an NGEN executable) so we need to know exactly which metadata we're reading
+        internal ModelHeap(in MemoryChunk chunk, int size, EcmaMetadata ecmaMetadata)
         {
             this.chunk = chunk;
             Size = size;
 
-            Header = new CompressedModelHeader(chunk, out var rowCounts);
+            Header = new ModelHeader(chunk, out var rowCounts);
 
-            var offset = CompressedModelHeader.FixedStructSize + (Header.RowCounts.Length * 4);
-
-            var peFile = chunk.PEFile();
-
-            EcmaMetadata ecmaMetadata;
-
-            if (peFile != null!)
-                ecmaMetadata = peFile.EcmaMetadata!;
-            else
-            {
-                //It's a Portable PDB
-                ecmaMetadata = chunk.PortablePDBFile().EcmaMetadata;
-            }
+            var offset = ModelHeader.FixedStructSize + (Header.RowCounts.Length * 4);
 
             var isMinimalDelta = false;
 
@@ -175,12 +165,12 @@ namespace PESpy.Ecma335
                     isMinimalDelta = true;
             }
 
-            //When constructing the CompressedModelHeap, the other heaps may not have been constructed yet, so these need to be lazily evaluated
+            //When constructing the ModelHeap, the other heaps may not have been constructed yet, so these need to be lazily evaluated
             Func<StringHeap?> stringHeap = () => ecmaMetadata.StringHeap;
             Func<BlobHeap?> blobHeap = () => ecmaMetadata.BlobHeap;
             Func<GuidHeap?> guidHeap = () => ecmaMetadata.GuidHeap;
 
-            var sizes = new MetadataSizes(Header.HeapSizes, isMinimalDelta, rowCounts);
+            var sizes = new MetadataSizes(Header.HeapSizes, isMinimalDelta, rowCounts, ecmaMetadata.GetPdbHeap());
             this.sizes = sizes;
             var stringIndexSize = sizes.StringIndexSize;
 
@@ -919,7 +909,7 @@ namespace PESpy.Ecma335
             {
                 LocalScopeTable = new LocalScopeTable(
                     numRows,
-                    sizes.GetSimpleIndexSize(TableKind.MethodDebugInformation),
+                    sizes.ExternalMethodDefSize,
                     sizes.GetSimpleIndexSize(TableKind.ImportScope),
                     sizes.GetSimpleIndexSize(TableKind.LocalVariable),
                     sizes.GetSimpleIndexSize(TableKind.LocalConstant),
@@ -983,7 +973,7 @@ namespace PESpy.Ecma335
             {
                 StateMachineMethodTable = new StateMachineMethodTable(
                     numRows,
-                    sizes.GetSimpleIndexSize(TableKind.MethodDebugInformation),
+                    sizes.ExternalMethodDefSize,
                     this,
                     chunk.Slice(offset)
                 );
@@ -997,6 +987,10 @@ namespace PESpy.Ecma335
             {
                 CustomDebugInformationTable = new CustomDebugInformationTable(
                     numRows,
+
+                    //MetadataSizes.cs ensures that this takes into consideration the total number of entities within the Portable PDB
+                    //and within the .NET assembly that may want to have custom debug information applied to them in determining the size
+                    //of this member
                     sizes.HasCustomDebugInformationSize,
                     sizes.GuidIndexSize,
                     sizes.BlobIndexSize,

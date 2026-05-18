@@ -16,7 +16,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public TypeDefRow ParentRow => table.CompressedModelHeap.TypeDefTable[Parent];
+        public TypeDefRow ParentRow => table.ModelHeap.TypeDefTable[Parent];
 
         //EventList points to the first property in the list
 

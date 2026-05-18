@@ -120,6 +120,7 @@ namespace PESpy.View
         {
             switch (bitness)
             {
+                case 0:
                 case 16:
                 case 32:
                 case 64:
@@ -1014,7 +1015,7 @@ namespace PESpy.View
 
                     if (peFileAccessor._rvaToMethodDefMap.TryGetValue(rva, out var methodDef))
                     {
-                        var row = peFileAccessor.PEFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
+                        var row = peFileAccessor.PEFile.EcmaMetadata.ModelHeap.MethodDefTable[methodDef];
 
                         name = (FixedUtf8String) row.Name.GetString();
                         return true;
@@ -1076,7 +1077,7 @@ namespace PESpy.View
 
                     if (peFileAccessor._rvaToMethodDefMap.TryGetValue(rva, out var methodDef))
                     {
-                        var row = peFileAccessor.PEFile.EcmaMetadata.CompressedModelHeap.MethodDefTable[methodDef];
+                        var row = peFileAccessor.PEFile.EcmaMetadata.ModelHeap.MethodDefTable[methodDef];
 
                         var utf8Builder = new Utf8StringBuilder(256);
 

@@ -222,12 +222,12 @@ namespace PESpy
                 ViewKind.StorageSignature                            => Write(new StorageSignature(chunk),                            viewWriter),
                 ViewKind.StorageHeader                               => GetStorageHeader(chunk, viewWriter),
                 //ViewKind.StorageStream                               => Write(new StorageStream(chunk),                               viewWriter),
-                //ViewKind.CompressedModelHeap                         => Write(new Ecma335.CompressedModelHeap(chunk),                 viewWriter),
+                //ViewKind.ModelHeap                                   => Write(new Ecma335.ModelHeap(chunk),                           viewWriter),
                 //ViewKind.StringPoolHeap                              => Write(new Ecma335.StringHeap(chunk),                          viewWriter),
                 //ViewKind.USBlobPoolHeap                              => Write(new Ecma335.UserStringHeap(chunk),                      viewWriter),
                 //ViewKind.BlobPoolHeap                                => Write(new Ecma335.BlobHeap(chunk),                            viewWriter),
                 //ViewKind.GuidPoolHeap                                => Write(new Ecma335.GuidHeap(chunk),                            viewWriter),
-                ViewKind.MetadataHeader                              => Write(new Ecma335.CompressedModelHeader(chunk),               viewWriter),
+                ViewKind.MetadataHeader                              => Write(new Ecma335.ModelHeader(chunk),                         viewWriter),
 
                 #region Metadata Rows
 
@@ -789,7 +789,7 @@ namespace PESpy
         {
             var ecmaMetadata = GetEcmaMetadata(chunk);
 
-            var heap = ecmaMetadata.CompressedModelHeap;
+            var heap = ecmaMetadata.ModelHeap;
 
             return kind switch
             {

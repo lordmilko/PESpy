@@ -23,19 +23,19 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(DeclSecurityAttributeListDebugView))]
     public readonly struct DeclSecurityAttributeList : IEnumerable<DeclSecurityRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal DeclSecurityAttributeList(CompressedModelHeap compressedModelHeap, CodedIndex index)
+        internal DeclSecurityAttributeList(ModelHeap modelHeap, CodedIndex index)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var declSecurityTable = compressedModelHeap.DeclSecurityTable;
+            this.modelHeap = modelHeap;
+            var declSecurityTable = modelHeap.DeclSecurityTable;
 
             if (declSecurityTable != null)
-                compressedModelHeap.DeclSecurityTable.GetRange(index, out firstRowId, out lastRowId);
+                modelHeap.DeclSecurityTable.GetRange(index, out firstRowId, out lastRowId);
             else
             {
                 firstRowId = 0;
@@ -44,9 +44,9 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public DeclSecurityRow this[int index] => compressedModelHeap.DeclSecurityTable[(DeclSecurityIndex) (firstRowId + index)];
+        public DeclSecurityRow this[int index] => modelHeap.DeclSecurityTable[(DeclSecurityIndex) (firstRowId + index)];
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<DeclSecurityRow> IEnumerable<DeclSecurityRow>.GetEnumerator() => GetEnumerator();
 
@@ -58,9 +58,9 @@ namespace PESpy.Ecma335
             private DeclSecurityTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.DeclSecurityTable;
+                table = modelHeap?.DeclSecurityTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -69,7 +69,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

@@ -1087,9 +1087,9 @@ namespace PESpy.View
         StorageStream,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.CompressedModelHeap"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.ModelHeap"/>
         /// </summary>
-        CompressedModelHeap,
+        ModelHeap,
 
         /// <summary>
         /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.StringHeap"/>
@@ -1112,12 +1112,15 @@ namespace PESpy.View
         GuidPoolHeap,
 
         /// <summary>
-        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.CompressedModelHeader"/>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.ModelHeader"/>
         /// </summary>
         [Description(nameof(Str.MetadataHeader))]
         MetadataHeader,
 
         MetadataTable,
+
+        [Description(nameof(Str.PDBHeap))]
+        PdbHeap,
 
         #region Metadata Rows
 

@@ -12,20 +12,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigTypeDefOrRefIndexSize;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         internal EventTable(
             int numRows,
             int stringIndexSize,
             int typeDefOrRefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.13
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -56,7 +56,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(EventIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Event));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Event));
 
         public long GetRowOffset(EventIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

@@ -90,7 +90,7 @@ namespace PESpy.Tests
 
             using var peFile = PEFile.FromFile(GetType().Assembly.Location);
 
-            var heap = peFile.EcmaMetadata.CompressedModelHeap;
+            var heap = peFile.EcmaMetadata.ModelHeap;
 
             var typeDef = heap.TypeDefTable.First(v => v.TypeName.GetString() == "Dummy`1");
 

@@ -29,7 +29,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object ExtendsRow => Extends.GetRow(table.CompressedModelHeap);
+        public object ExtendsRow => Extends.GetRow(table.ModelHeap);
 
         private readonly TypeDefTable table;
 
@@ -49,12 +49,12 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var rowId = table.CompressedModelHeap.ClassLayoutTable.FindRow(RowIndex);
+                var rowId = table.ModelHeap.ClassLayoutTable.FindRow(RowIndex);
 
                 if (rowId.RowId == 0)
                     return default;
 
-                return table.CompressedModelHeap.ClassLayoutTable[rowId];
+                return table.ModelHeap.ClassLayoutTable[rowId];
             }
         }
 
@@ -62,7 +62,7 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var index = table.CompressedModelHeap.NestedClassTable.FindEnclosingType(RowIndex);
+                var index = table.ModelHeap.NestedClassTable.FindEnclosingType(RowIndex);
 
                 if (index.RowId == 0)
                     return null;
@@ -71,21 +71,21 @@ namespace PESpy.Ecma335
             }
         }
 
-        public GenericParamList GenericParameters => table.CompressedModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.TypeDef));
+        public GenericParamList GenericParameters => table.ModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.TypeDef));
 
-        public MethodDefList Methods => new MethodDefList(RowIndex, table.CompressedModelHeap);
+        public MethodDefList Methods => new MethodDefList(RowIndex, table.ModelHeap);
 
-        public FieldDefList Fields => new FieldDefList(RowIndex, table.CompressedModelHeap);
+        public FieldDefList Fields => new FieldDefList(RowIndex, table.ModelHeap);
 
-        public PropertyList Properties => new PropertyList(RowIndex, table.CompressedModelHeap);
+        public PropertyList Properties => new PropertyList(RowIndex, table.ModelHeap);
 
-        public EventList Events => new EventList(RowIndex, table.CompressedModelHeap);
+        public EventList Events => new EventList(RowIndex, table.ModelHeap);
 
         public TypeDefIndex[] NestedTypes => table.GetNestedTypes(RowIndex);
 
-        public MethodImplList MethodImplementations => new MethodImplList(RowIndex, table.CompressedModelHeap);
+        public MethodImplList MethodImplementations => new MethodImplList(RowIndex, table.ModelHeap);
 
-        public InterfaceImplList InterfaceImplementations => new InterfaceImplList(RowIndex, table.CompressedModelHeap);
+        public InterfaceImplList InterfaceImplementations => new InterfaceImplList(RowIndex, table.ModelHeap);
 
         public DeclSecurityAttributeList DeclSecurityAttributes => table.GetDeclSecurityAttributes(RowIndex);
 
@@ -132,6 +132,6 @@ namespace PESpy.Ecma335
             }
         }
 
-        public override string ToString() => CompressedModelHeap.FormatType(TypeNamespace, TypeName);
+        public override string ToString() => ModelHeap.FormatType(TypeNamespace, TypeName);
     }
 }

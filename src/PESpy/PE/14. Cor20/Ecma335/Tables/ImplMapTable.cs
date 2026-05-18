@@ -14,14 +14,14 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigModuleRefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
-        internal ImplMapTable(int numRows, int memberForwardedIndexSize, int stringIndexSize, int moduleRefIndexSize, CompressedModelHeap compressedModelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
+        internal ImplMapTable(int numRows, int memberForwardedIndexSize, int stringIndexSize, int moduleRefIndexSize, ModelHeap modelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.22
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigMemberForwardedIndex = memberForwardedIndexSize == 4;
@@ -63,7 +63,7 @@ namespace PESpy.Ecma335
         {
             var codedIndex = MemberForwardedTag.CreateIndex(index.RowId, TableKind.MethodDef);
 
-            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+            var foundRowNumber = ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

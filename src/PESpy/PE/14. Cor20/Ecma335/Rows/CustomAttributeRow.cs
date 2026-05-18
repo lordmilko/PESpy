@@ -21,7 +21,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object TypeRow => Type.GetRow(table.CompressedModelHeap);
+        public object TypeRow => Type.GetRow(table.ModelHeap);
 
         private readonly CustomAttributeTable table;
 
@@ -52,7 +52,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeType.Type == CorTokenType.mdtTypeDef)
             {
-                var typeDefRow = table.CompressedModelHeap.TypeDefTable.FromToken(customAttributeType);
+                var typeDefRow = table.ModelHeap.TypeDefTable.FromToken(customAttributeType);
 
                 nameIndex = typeDefRow.TypeName;
                 namespaceIndex = typeDefRow.TypeNamespace;
@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
             }
             else if (customAttributeType.Type == CorTokenType.mdtTypeRef)
             {
-                var typeRefRow = table.CompressedModelHeap.TypeRefTable.FromToken(customAttributeType);
+                var typeRefRow = table.ModelHeap.TypeRefTable.FromToken(customAttributeType);
                 var resolutionScopeKind = typeRefRow.ResolutionScope.TableKind;
 
                 //If it's a nested type, it's too complex for us to resolve just based on simple metadata
@@ -74,7 +74,7 @@ namespace PESpy.Ecma335
             else if (customAttributeType.Type == CorTokenType.mdtTypeSpec)
             {
                 retry:
-                var typeSpecRow = table.CompressedModelHeap.TypeSpecTable.FromToken(customAttributeType);
+                var typeSpecRow = table.ModelHeap.TypeSpecTable.FromToken(customAttributeType);
 
                 //We aren't exactly able to get the full name, but we can at least try and get the generic type definition
 
@@ -95,21 +95,21 @@ namespace PESpy.Ecma335
                 switch (token.Type)
                 {
                     case CorTokenType.mdtTypeDef:
-                        var typeDefRow = table.CompressedModelHeap.TypeDefTable.FromToken(token);
+                        var typeDefRow = table.ModelHeap.TypeDefTable.FromToken(token);
 
                         nameIndex = typeDefRow.TypeName;
                         namespaceIndex = typeDefRow.TypeNamespace;
                         break;
 
                     case CorTokenType.mdtTypeRef:
-                        var typeRefRow = table.CompressedModelHeap.TypeRefTable.FromToken(token);
+                        var typeRefRow = table.ModelHeap.TypeRefTable.FromToken(token);
 
                         nameIndex = typeRefRow.TypeName;
                         namespaceIndex = typeRefRow.TypeNamespace;
                         break;
 
                     case CorTokenType.mdtTypeSpec:
-                        typeSpecRow = table.CompressedModelHeap.TypeSpecTable.FromToken(token);
+                        typeSpecRow = table.ModelHeap.TypeSpecTable.FromToken(token);
                         goto retry;
 
                     default:
@@ -128,7 +128,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeCtor.TableKind == TableKind.MemberRef)
             {
-                var type = table.CompressedModelHeap.MemberRefTable[customAttributeCtor].Class;
+                var type = table.ModelHeap.MemberRefTable[customAttributeCtor].Class;
 
                 customAttributeType = (mdToken) type;
                 return true;
@@ -136,7 +136,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeCtor.TableKind == TableKind.MethodDef)
             {
-                var declaringType = table.CompressedModelHeap.MethodDefTable[customAttributeCtor].DeclaringType;
+                var declaringType = table.ModelHeap.MethodDefTable[customAttributeCtor].DeclaringType;
 
                 if (declaringType != null)
                 {
@@ -158,7 +158,7 @@ namespace PESpy.Ecma335
         /// <returns></returns>
         public bool TryDecodeValue(out CustomAttributeValue<object> value)
         {
-            var decoder = new CustomAttributeDecoder<object>(table.CompressedModelHeap, null);
+            var decoder = new CustomAttributeDecoder<object>(table.ModelHeap, null);
             return decoder.TryDecodeValue(Type, Value, out value);
         }
 
@@ -175,7 +175,7 @@ namespace PESpy.Ecma335
             if (provider == null)
                 throw new ArgumentNullException(nameof(provider));
 
-            var decoder = new CustomAttributeDecoder<TType>(table.CompressedModelHeap, provider);
+            var decoder = new CustomAttributeDecoder<TType>(table.ModelHeap, provider);
             var result = decoder.TryDecodeValue(Type, Value, out var value);
             Debug.Assert(result); //TryDecodeValue should not return false when a provider was provided
 
@@ -218,7 +218,7 @@ namespace PESpy.Ecma335
             TryGetTypeAndConstructor(out var customAttributeType, out _);
 
             if (customAttributeType.Type == CorTokenType.mdtTypeSpec)
-                return table.CompressedModelHeap.TypeSpecTable.FromToken(customAttributeType).ToString();
+                return table.ModelHeap.TypeSpecTable.FromToken(customAttributeType).ToString();
 
             TryGetTypeNamespaceAndName(customAttributeType, out var namespaceHandle, out var nameHandle);
 

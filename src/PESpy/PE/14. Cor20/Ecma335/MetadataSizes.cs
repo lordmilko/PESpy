@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace PESpy.Ecma335
 {
@@ -25,12 +27,14 @@ namespace PESpy.Ecma335
 
         public readonly int HasCustomDebugInformationSize;
 
+        public readonly int ExternalMethodDefSize;
+
         //Indicates we have a #JTD stream which means that all metadata references are always 4 bytes and not potentially 2
         public readonly bool IsMinimalDelta;
 
         private readonly int[] rowCounts;
 
-        public MetadataSizes(HeapSizes heapSizes, bool isMinimalDelta, int[] rowCounts)
+        public unsafe MetadataSizes(HeapSizes heapSizes, bool isMinimalDelta, int[] rowCounts, PdbHeap? pdbHeap)
         {
             IsMinimalDelta = isMinimalDelta;
             this.rowCounts = rowCounts;
@@ -54,10 +58,50 @@ namespace PESpy.Ecma335
             TypeOrMethodDefSize     = GetCodedIndexSize(rowCounts, isMinimalDelta, TypeOrMethodDefTag.CandidateTables,     TypeOrMethodDefTag.LargeRowThreshold);
 
             //Portable PDB
-            HasCustomDebugInformationSize = GetCodedIndexSize(rowCounts, isMinimalDelta, HasCustomDebugInformationTag.CandidateTables, HasCustomDebugInformationTag.LargeRowThreshold);
+            if (pdbHeap != null)
+            {
+                /* If we're a Portable PDB, the row counts we've been reading are the counts of our debug entities,
+                 * (which you would expect have been 0 so far). However, some debug entities refer to indices in
+                 * metadata tables; e.g. LocalScope lists a MethodDef index. We need to know how many methods were
+                 * in the original .NET assembly to know how big these indices should be! Now you might be asking:
+                 * can't we just use the MethodDebugInformation table for that? Arguably, yes, however there's a bit
+                 * of a catch in that the specification says
+                 * 
+                 *     MethodDebugInformation table is either empty (missing) or has exactly as many rows as MethodDef
+                 *     table
+                 * 
+                 * I'm not exactly sure under which circumstance it may be missing, but that alone seems to be enough to spook us
+                 * into retrieving the row count from the external MethodDef info instead.
+                 * 
+                 * The real reason we need to leverage these external counts is for processing custom debug information.
+                 * Almost every type of entity can have custom debug information associated with it, so we need to look
+                 * at the row counts of each of these to see if any of them warrant us using 4 byte coded indices instead
+                 * of 2
+                 * 
+                 * Note that we don't merge above, because all of these properties are used for computing the number of rows
+                 * in _this current image_. The merged count gives us the total number of rows across _either_ the .NET
+                 * assembly file or the current Portable PDB file.
+                 */
+
+                //At first, this will just be the external row counts, but then we'll copy the Portable PDB specific row counts on top
+                Span<int> allRowCounts = stackalloc int[64];
+                pdbHeap.GetRowCounts(allRowCounts);
+
+                //Copy the counts from the Portable PDB on top
+                rowCounts.AsSpan((int) TableKind.Document).CopyTo(allRowCounts.Slice((int) TableKind.Document));
+
+                //Query the size of each method index based on the number of rows in the external assembly.
+                //We also could have queried this from allRowCounts directly
+                ExternalMethodDefSize = GetSimpleIndexSize(allRowCounts, TableKind.MethodDef);
+
+                //Analyze all row counts (either within this Portable PDB or within the external .NET assembly) to determine
+                //whether any given record may have so many rows that it warrants using 4 byte coded indices for custom debug inforamtion
+                //rather than 2
+                HasCustomAttributeSize = GetCodedIndexSize(allRowCounts, isMinimalDelta, HasCustomDebugInformationTag.CandidateTables, HasCustomDebugInformationTag.LargeRowThreshold);
+            }
         }
 
-        internal static int GetCodedIndexSize(int[] rowCounts, bool isMinimalDelta, TableMask candidateTables, int largeRowThreshold)
+        internal static int GetCodedIndexSize(Span<int> rowCounts, bool isMinimalDelta, TableMask candidateTables, int largeRowThreshold)
         {
             /* A coded index is an index that can reference one of several potential tables. Which table, and the index to then use in that table,
              * are stored in a compact format. e.g. a TypeDefOrReg coded index is an index that targets either the TypeDef, TypeRef or TypeSpec table.
@@ -101,7 +145,10 @@ namespace PESpy.Ecma335
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal int GetSimpleIndexSize(TableKind tableKind)
+        internal int GetSimpleIndexSize(TableKind tableKind) => GetSimpleIndexSize(rowCounts, tableKind);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetSimpleIndexSize(Span<int> rowCounts, TableKind tableKind)
         {
             /* II.22
              *

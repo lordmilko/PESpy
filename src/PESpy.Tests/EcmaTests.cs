@@ -896,11 +896,11 @@ namespace PESpy.Tests
 
         #endregion
 
-        private void Test(Action<CompressedModelHeap> action)
+        private void Test(Action<ModelHeap> action)
         {
             using var peFile = PEFile.FromFile(GetType().Assembly.Location);
 
-            var heap = peFile.EcmaMetadata.CompressedModelHeap;
+            var heap = peFile.EcmaMetadata.ModelHeap;
 
             action(heap);
         }
@@ -915,7 +915,7 @@ namespace PESpy.Tests
             action(metadataReader);
         }
 
-        private void StressTest(Action<CompressedModelHeap> action)
+        private void StressTest(Action<ModelHeap> action)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
@@ -926,7 +926,7 @@ namespace PESpy.Tests
 
                 using var peFile = PEFile.FromFile(assembly.Location);
 
-                var heap = peFile.EcmaMetadata.CompressedModelHeap;
+                var heap = peFile.EcmaMetadata.ModelHeap;
 
                 action(heap);
             }

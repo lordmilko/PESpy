@@ -8,15 +8,15 @@
 
         private readonly bool isBigTypeDefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal ClassLayoutTable(
             int numRows,
             int typeDefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
 
@@ -46,7 +46,7 @@
 
         internal ClassLayoutIndex FindRow(TypeDefIndex index)
         {
-            return (ClassLayoutIndex) (1 + CompressedModelHeap.BinarySearchEcmaIndex(
+            return (ClassLayoutIndex) (1 + ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

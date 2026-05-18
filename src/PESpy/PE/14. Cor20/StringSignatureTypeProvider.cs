@@ -40,7 +40,7 @@ namespace PESpy.Ecma335
             throw new NotImplementedException();
         }
 
-        public string GetTypeSpec(CompressedModelHeap heap, mdTypeSpec mdTypeSpec, GenericParamList genericContext)
+        public string GetTypeSpec(ModelHeap heap, mdTypeSpec mdTypeSpec, GenericParamList genericContext)
         {
             throw new NotImplementedException();
         }
@@ -69,10 +69,10 @@ namespace PESpy.Ecma335
             };
         }
 
-        public string GetTypeDef(CompressedModelHeap heap, mdTypeDef mdTypeDef) =>
+        public string GetTypeDef(ModelHeap heap, mdTypeDef mdTypeDef) =>
             heap.TypeDefTable.FromToken(mdTypeDef).ToString();
 
-        public string GetTypeRef(CompressedModelHeap heap, mdTypeRef mdTypeRef) =>
+        public string GetTypeRef(ModelHeap heap, mdTypeRef mdTypeRef) =>
             heap.TypeRefTable.FromToken(mdTypeRef).ToString();
 
         public string GetGenericInstantiation(string genericType, string[] typeArgs)

@@ -11,17 +11,17 @@ namespace PESpy.Ecma335
         internal readonly int SequenceOffset;
         internal readonly int NameOffset;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         internal ParamTable(
             int numRows,
             int stringIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigStringIndex = stringIndexSize == 4;
@@ -52,25 +52,25 @@ namespace PESpy.Ecma335
 
         internal void GetRange(MethodDefIndex methodDef, out int firstParamRowId, out int lastParamRowId)
         {
-            firstParamRowId = (int) CompressedModelHeap.MethodDefTable.GetParamList(methodDef);
+            firstParamRowId = (int) ModelHeap.MethodDefTable.GetParamList(methodDef);
 
             if (firstParamRowId == 0)
             {
                 firstParamRowId = 0;
                 lastParamRowId = 0;
             }
-            else if (methodDef.RowId == CompressedModelHeap.MethodDefTable.Count)
+            else if (methodDef.RowId == ModelHeap.MethodDefTable.Count)
             {
-                lastParamRowId = (CompressedModelHeap.MethodPtrTable?.Count > 0 ? CompressedModelHeap.MethodPtrTable.Count : Count) + 1;
+                lastParamRowId = (ModelHeap.MethodPtrTable?.Count > 0 ? ModelHeap.MethodPtrTable.Count : Count) + 1;
             }
             else
             {
-                lastParamRowId = (int) CompressedModelHeap.MethodDefTable.GetParamList((MethodDefIndex) (methodDef.RowId + 1));
+                lastParamRowId = (int) ModelHeap.MethodDefTable.GetParamList((MethodDefIndex) (methodDef.RowId + 1));
             }
         }
 
         public CustomAttributeList GetCustomAttributes(ParamIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Param));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Param));
 
         public long GetRowOffset(ParamIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

@@ -8,13 +8,13 @@
         private readonly bool isBigGenericParamIndex;
         private readonly bool isBigTypeDefOrRefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
-        internal GenericParamConstraintTable(int numRows, int genericParamIndexSize, int typeDefOrRefIndexSize, CompressedModelHeap compressedModelHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
+        internal GenericParamConstraintTable(int numRows, int genericParamIndexSize, int typeDefOrRefIndexSize, ModelHeap modelHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.21
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigGenericParamIndex = genericParamIndexSize == 4;
             isBigTypeDefOrRefIndex = typeDefOrRefIndexSize == 4;
@@ -38,7 +38,7 @@
 
         public GenericParamConstraintList FindConstraintsForGenericParam(GenericParamIndex index)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,
@@ -55,12 +55,12 @@
             return new GenericParamConstraintList(
                 firstRowId: startRowNumber + 1,
                 count: (ushort) (endRowNumber - startRowNumber + 1),
-                CompressedModelHeap
+                ModelHeap
             );
         }
 
         public CustomAttributeList GetCustomAttributes(GenericParamConstraintIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParamConstraint));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParamConstraint));
 
         public long GetRowOffset(GenericParamConstraintIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

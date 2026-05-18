@@ -27,7 +27,7 @@ namespace PESpy.Ecma335
 
         public StringIndex Culture => table.GetCulture(RowIndex);
 
-        public AssemblyName AssemblyName => CompressedModelHeap.GetAssemblyName(Name, Version, Culture, PublicKey, HashAlgId, Flags);
+        public AssemblyName AssemblyName => ModelHeap.GetAssemblyName(Name, Version, Culture, PublicKey, HashAlgId, Flags);
 
         public long Offset => table.GetRowOffset(RowIndex);
 

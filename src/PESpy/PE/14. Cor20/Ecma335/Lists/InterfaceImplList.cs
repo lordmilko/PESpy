@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(InterfaceImplListDebugView))]
     public readonly struct InterfaceImplList : IEnumerable<InterfaceImplRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal InterfaceImplList(TypeDefIndex implementingType, CompressedModelHeap compressedModelHeap)
+        internal InterfaceImplList(TypeDefIndex implementingType, ModelHeap modelHeap)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var interfaceImplTable = compressedModelHeap.InterfaceImplTable;
+            this.modelHeap = modelHeap;
+            var interfaceImplTable = modelHeap.InterfaceImplTable;
 
             if (interfaceImplTable != null)
                 interfaceImplTable.GetRange(implementingType, out firstRowId, out lastRowId);
@@ -44,9 +44,9 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public InterfaceImplRow this[int index] => compressedModelHeap.InterfaceImplTable[(InterfaceImplIndex) (firstRowId + index)];
+        public InterfaceImplRow this[int index] => modelHeap.InterfaceImplTable[(InterfaceImplIndex) (firstRowId + index)];
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<InterfaceImplRow> IEnumerable<InterfaceImplRow>.GetEnumerator() => GetEnumerator();
 
@@ -58,9 +58,9 @@ namespace PESpy.Ecma335
             private InterfaceImplTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.InterfaceImplTable;
+                table = modelHeap?.InterfaceImplTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -69,7 +69,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

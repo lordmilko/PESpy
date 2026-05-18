@@ -8,17 +8,17 @@ namespace PESpy.Ecma335
 
         private readonly bool isBigStringIndex;
 
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
         internal ModuleRefTable(
             int numRows,
             int stringIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.compressedModelHeap = compressedModelHeap;
+            this.modelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             this.isBigStringIndex = stringIndexSize == 4;
@@ -34,7 +34,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(ModuleRefIndex index) =>
-            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ModuleRef));
+            new CustomAttributeList(modelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.ModuleRef));
 
         public long GetRowOffset(ModuleRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

@@ -55,7 +55,8 @@ namespace PESpy
                     {
                         //II.24.2.1
                         case CompressedModelStream: //#~
-                            data = new CompressedModelHeap(valueChunk, Size);
+                        case EnCModelStream: //#- (not in the spec)
+                            data = new ModelHeap(valueChunk, Size, ecmaMetadata);
                             break;
 
                         //II.24.2.3
@@ -112,11 +113,13 @@ namespace PESpy
 
         private readonly MemoryChunk chunk;
         private readonly int metadataRootOffset;
+        private readonly EcmaMetadata ecmaMetadata;
 
-        internal StorageStream(in MemoryChunk chunk, int metadataRootOffset)
+        internal StorageStream(in MemoryChunk chunk, int metadataRootOffset, EcmaMetadata ecmaMetadata)
         {
             this.chunk = chunk;
             this.metadataRootOffset = metadataRootOffset;
+            this.ecmaMetadata = ecmaMetadata;
 
             //We want to be able to switch on the name so we need to allocate
             Name = chunk.PeekUtf8NullTerminatedString(NameOffset).ToString();
@@ -128,13 +131,14 @@ namespace PESpy
             switch (Name)
             {
                 case CompressedModelStream:
+                case EnCModelStream:
                 {
-                    var data = (CompressedModelHeap) Data!;
+                    var data = (ModelHeap) Data!;
 
                     using var r = writer.CreateRegion(
                         data.Offset,
                         Name,
-                        ViewKind.CompressedModelHeap,
+                        ViewKind.ModelHeap,
                         global: true
                     );
 
@@ -187,6 +191,10 @@ namespace PESpy
 
                     break;
                 }
+
+                case PdbStream:
+                    writer.WriteGlobal((PdbHeap) Data!);
+                    break;
 
                 case HotModelStream:
                 {

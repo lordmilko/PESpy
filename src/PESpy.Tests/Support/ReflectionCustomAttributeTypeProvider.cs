@@ -61,12 +61,12 @@ namespace PESpy.Tests
             };
         }
 
-        public Type GetTypeDef(CompressedModelHeap heap, mdTypeDef typeDef)
+        public Type GetTypeDef(ModelHeap heap, mdTypeDef typeDef)
         {
             throw new NotImplementedException();
         }
 
-        public Type GetTypeRef(CompressedModelHeap heap, mdTypeRef mdTypeRef)
+        public Type GetTypeRef(ModelHeap heap, mdTypeRef mdTypeRef)
         {
             var typeRef = heap.TypeRefTable.FromToken(mdTypeRef);
 

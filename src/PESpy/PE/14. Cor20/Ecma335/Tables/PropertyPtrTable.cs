@@ -6,15 +6,15 @@
 
         private readonly bool isBigPropertyIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal PropertyPtrTable(
             int numRows,
             int propertyIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigPropertyIndex = propertyIndexSize == 4;
 

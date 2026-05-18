@@ -1491,6 +1491,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// PDB Heap
+        /// </summary>
+        internal static FixedUtf8String PDBHeap
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x50, 0x44, 0x42, 0x20, 0x48, 0x65, 0x61, 0x70 })
+                    return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
         /// Module Row
         /// </summary>
         internal static FixedUtf8String ModuleRow

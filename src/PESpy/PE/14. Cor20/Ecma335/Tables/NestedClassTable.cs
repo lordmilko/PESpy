@@ -7,15 +7,15 @@
         internal readonly int NestedClassOffset;
         internal readonly int EnclosingClassOffset;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal NestedClassTable(
             int numRows,
             int typeDefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
 
@@ -38,7 +38,7 @@
 
         internal TypeDefIndex FindEnclosingType(TypeDefIndex nestedTypeDef)
         {
-            var rowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+            var rowNumber = ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

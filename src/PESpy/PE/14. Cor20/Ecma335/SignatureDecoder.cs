@@ -9,12 +9,12 @@ namespace PESpy.Ecma335
     {
         private readonly ISignatureTypeProvider<TType, TGenericContext> _provider;
         private readonly TGenericContext _genericContext;
-        private readonly CompressedModelHeap _heap;
+        private readonly ModelHeap _heap;
 
         internal SignatureDecoder(
             ISignatureTypeProvider<TType, TGenericContext> provider,
             TGenericContext genericContext,
-            CompressedModelHeap heap)
+            ModelHeap heap)
         {
             _provider = provider;
             _genericContext = genericContext;

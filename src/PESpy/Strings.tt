@@ -175,6 +175,7 @@ var strings = new[]{
     "UserString",
     "BlobEntry",
     "Metadata Header",
+    "PDB Heap",
     "Module Row",
     "TypeRef Row",
     "TypeDef Row",

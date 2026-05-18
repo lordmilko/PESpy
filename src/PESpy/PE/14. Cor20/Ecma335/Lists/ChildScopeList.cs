@@ -51,7 +51,7 @@ namespace PESpy.Ecma335
             public bool MoveNext()
             {
                 int currentRowId = _currentRowId;
-                if (currentRowId == CompressedModelHeap.EnumEnded)
+                if (currentRowId == ModelHeap.EnumEnded)
                 {
                     return false;
                 }
@@ -75,7 +75,7 @@ namespace PESpy.Ecma335
                 {
                     if (nextRowId > rowCount || _parentMethodIndex != _localScopeTable.GetMethod((LocalScopeIndex) nextRowId))
                     {
-                        _currentRowId = CompressedModelHeap.EnumEnded;
+                        _currentRowId = ModelHeap.EnumEnded;
                         return false;
                     }
 
@@ -90,7 +90,7 @@ namespace PESpy.Ecma335
                         // then we ran out of the children.
                         if (nextEndOffset > _parentEndOffset)
                         {
-                            _currentRowId = CompressedModelHeap.EnumEnded;
+                            _currentRowId = ModelHeap.EnumEnded;
                             return false;
                         }
 

@@ -30,7 +30,7 @@ namespace PESpy.Ecma335
                 if (defaultValue.IsNil)
                     return null;
 
-                return table.CompressedModelHeap.ConstantTable[DefaultValue];
+                return table.ModelHeap.ConstantTable[DefaultValue];
             }
         }
 
@@ -46,14 +46,14 @@ namespace PESpy.Ecma335
 
         public TType DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Signature.GetReader();
             return decoder.DecodeFieldSignature(ref reader);
         }
 
-        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+        public TypeDefRow? DeclaringType => table.ModelHeap.GetDeclaringType(RowIndex);
 
-        public ConstantIndex DefaultValue => table.CompressedModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Field));
+        public ConstantIndex DefaultValue => table.ModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Field));
 
         /* II.22.18
          * 
@@ -67,12 +67,12 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var fieldRvaRowIndex = table.CompressedModelHeap.FieldRvaTable.FindFieldRvaRowId(RowIndex.RowId);
+                var fieldRvaRowIndex = table.ModelHeap.FieldRvaTable.FindFieldRvaRowId(RowIndex.RowId);
 
                 if (fieldRvaRowIndex.RowId == 0)
                     return 0;
 
-                return table.CompressedModelHeap.FieldRvaTable.GetRVA(fieldRvaRowIndex);
+                return table.ModelHeap.FieldRvaTable.GetRVA(fieldRvaRowIndex);
             }
         }
 
@@ -80,7 +80,7 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var fieldMarshalTable = table.CompressedModelHeap.FieldMarshalTable;
+                var fieldMarshalTable = table.ModelHeap.FieldMarshalTable;
 
                 if (fieldMarshalTable == null)
                     return default;

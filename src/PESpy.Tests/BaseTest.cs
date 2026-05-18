@@ -681,8 +681,8 @@ namespace PESpy.Tests
                 nameof(StorageStream)            => GetFile(WellKnownTestModule.mscorlib, out fs, out file).EcmaMetadata.Header.StreamHeaders[0],
 
                 nameof(EcmaMetadata)             => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata,
-                nameof(CompressedModelHeap)      => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.CompressedModelHeap,
-                nameof(CompressedModelHeader)    => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.CompressedModelHeap.Header,
+                nameof(ModelHeap)                => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.ModelHeap,
+                nameof(ModelHeader)              => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.ModelHeap.Header,
                 nameof(StringHeap)               => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.StringHeap,
                 nameof(BlobHeap)                 => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.BlobHeap,
                 nameof(GuidHeap)                 => GetSampleFile(Sample.Framework_EXE, out fs, out file).EcmaMetadata.GuidHeap,

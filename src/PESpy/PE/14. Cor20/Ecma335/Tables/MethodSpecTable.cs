@@ -10,19 +10,19 @@ namespace PESpy.Ecma335
         private readonly bool isBigMethodDefOrRefIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         internal MethodSpecTable(
             int numRows,
             int methodDefOrRefIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.29
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigMethodDefOrRefIndex = methodDefOrRefIndexSize == 4;
@@ -46,7 +46,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(MethodSpecIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.MethodSpec));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.MethodSpec));
 
         public long GetRowOffset(MethodSpecIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

@@ -7,9 +7,9 @@ namespace PESpy.Ecma335
         TType GetType(CorElementType corElementType);
 
         //Passing in the heap allows you to potentially have a static type provider instance
-        TType GetTypeDef(CompressedModelHeap heap, mdTypeDef mdTypeDef);
+        TType GetTypeDef(ModelHeap heap, mdTypeDef mdTypeDef);
 
-        TType GetTypeRef(CompressedModelHeap heap, mdTypeRef mdTypeRef);
+        TType GetTypeRef(ModelHeap heap, mdTypeRef mdTypeRef);
     }
 
     public interface ISZArrayTypeProvider<TType>
@@ -51,6 +51,6 @@ namespace PESpy.Ecma335
 
         TType GetPinnedType(TType elementType);
 
-        TType GetTypeSpec(CompressedModelHeap heap, mdTypeSpec mdTypeSpec, TGenericContext genericContext);
+        TType GetTypeSpec(ModelHeap heap, mdTypeSpec mdTypeSpec, TGenericContext genericContext);
     }
 }

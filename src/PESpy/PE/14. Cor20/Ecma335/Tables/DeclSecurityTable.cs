@@ -12,20 +12,20 @@ namespace PESpy.Ecma335
         private readonly bool isBigHasDeclSecurityIndex;
         private readonly bool isBigBlobIndexSize;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
         internal DeclSecurityTable(
             int numRows,
             int hasDeclSecurityIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.11
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.blobHeap = blobHeap;
 
             isBigHasDeclSecurityIndex = hasDeclSecurityIndexSize == 4;
@@ -57,7 +57,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(CodedIndex index, out int firstRowId, out int lastRowId)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,

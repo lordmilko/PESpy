@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
@@ -20,12 +20,12 @@ namespace PESpy.Ecma335
             int numRows,
             int stringIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -58,25 +58,25 @@ namespace PESpy.Ecma335
 
         internal void GetRange(TypeDefIndex typeDef, out int firstFieldRowId, out int lastFieldRowId)
         {
-            firstFieldRowId = (int) CompressedModelHeap.TypeDefTable.GetFieldList(typeDef);
+            firstFieldRowId = (int) ModelHeap.TypeDefTable.GetFieldList(typeDef);
 
             if (firstFieldRowId == 0)
             {
                 firstFieldRowId = 1;
                 lastFieldRowId = 0;
             }
-            else if (typeDef.RowId == CompressedModelHeap.TypeDefTable.Count)
+            else if (typeDef.RowId == ModelHeap.TypeDefTable.Count)
             {
-                lastFieldRowId = (CompressedModelHeap.FieldPtrTable?.Count > 0 ? CompressedModelHeap.FieldPtrTable.Count : Count) + 1;
+                lastFieldRowId = (ModelHeap.FieldPtrTable?.Count > 0 ? ModelHeap.FieldPtrTable.Count : Count) + 1;
             }
             else
             {
-                lastFieldRowId = (int) CompressedModelHeap.TypeDefTable.GetFieldList((TypeDefIndex) (typeDef.RowId + 1));
+                lastFieldRowId = (int) ModelHeap.TypeDefTable.GetFieldList((TypeDefIndex) (typeDef.RowId + 1));
             }
         }
 
         public CustomAttributeList GetCustomAttributes(FieldIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Field));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Field));
 
         public long GetRowOffset(FieldIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

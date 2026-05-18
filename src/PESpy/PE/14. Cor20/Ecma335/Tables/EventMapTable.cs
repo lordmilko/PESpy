@@ -8,16 +8,16 @@
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigEventIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal EventMapTable(
             int numRows,
             int typeDefIndexSize,
             int eventIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigEventIndex = eventIndexSize == 4;
@@ -43,7 +43,7 @@
         {
             var numberOfRows = Count;
 
-            var row = CompressedModelHeap.BinarySearchEcmaIndexList(
+            var row = ModelHeap.BinarySearchEcmaIndexList(
                 tableChunk,
                 numberOfRows,
                 RowSize,
@@ -58,12 +58,12 @@
             if (row > numberOfRows)
             {
                 if (eventRowId <= numberOfEvents)
-                    return CompressedModelHeap.TypeDefTable[GetParent((EventMapIndex) numberOfRows)];
+                    return ModelHeap.TypeDefTable[GetParent((EventMapIndex) numberOfRows)];
 
                 return default;
             }
 
-            return CompressedModelHeap.TypeDefTable[GetParent((EventMapIndex)row)];
+            return ModelHeap.TypeDefTable[GetParent((EventMapIndex)row)];
         }
 
         internal void GetRange(TypeDefIndex typeDef, out int firstEventRowId, out int lastEventRowId)
@@ -81,7 +81,7 @@
 
             if (eventMapRowId == Count)
             {
-                lastEventRowId = (CompressedModelHeap.EventPtrTable?.Count > 0 ? CompressedModelHeap.EventPtrTable.Count : CompressedModelHeap.EventTable.Count) + 1;
+                lastEventRowId = (ModelHeap.EventPtrTable?.Count > 0 ? ModelHeap.EventPtrTable.Count : ModelHeap.EventTable.Count) + 1;
             }
             else
                 lastEventRowId = (int) GetEventList((EventMapIndex) (eventMapRowId + 1));
@@ -90,7 +90,7 @@
         private int FindEventMapRowIdFor(TypeDefIndex typeDef)
         {
             //Apparently these tables aren't sorted so we have to linear scan
-            var rowNumber = CompressedModelHeap.LinearSearchEcmaIndex(
+            var rowNumber = ModelHeap.LinearSearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

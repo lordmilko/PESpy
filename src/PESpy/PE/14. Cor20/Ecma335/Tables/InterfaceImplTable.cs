@@ -8,18 +8,18 @@
         private readonly bool isBigTypeDefIndex;
         private readonly bool isBigTypeDefOrRefIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal InterfaceImplTable(
             int numRows,
             int typeDefIndexSize,
             int typeDefOrRefIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.23
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigTypeDefIndex = typeDefIndexSize == 4;
             isBigTypeDefOrRefIndex = typeDefOrRefIndexSize == 4;
@@ -43,7 +43,7 @@
 
         internal void GetRange(TypeDefIndex typeDef, out int firstImplRowId, out int lastImplRowId)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,
@@ -67,7 +67,7 @@
         }
 
         public CustomAttributeList GetCustomAttributes(InterfaceImplIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.InterfaceImpl));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.InterfaceImpl));
 
         public long GetRowOffset(InterfaceImplIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

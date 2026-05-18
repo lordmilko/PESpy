@@ -18,7 +18,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigBlobIndex;
         private readonly bool isBigStringIndex;
 
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
@@ -26,12 +26,12 @@ namespace PESpy.Ecma335
             int numRows,
             int blobIndexSize,
             int stringIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            this.compressedModelHeap = compressedModelHeap;
+            this.modelHeap = modelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -105,7 +105,7 @@ namespace PESpy.Ecma335
         }
 
         public CustomAttributeList GetCustomAttributes(AssemblyRefIndex index) =>
-            new CustomAttributeList(compressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.AssemblyRef));
+            new CustomAttributeList(modelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.AssemblyRef));
 
         public long GetRowOffset(AssemblyRefIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

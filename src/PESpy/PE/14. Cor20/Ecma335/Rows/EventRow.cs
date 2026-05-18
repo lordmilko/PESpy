@@ -21,7 +21,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object EventTypeRow => EventType.GetRow(table.CompressedModelHeap);
+        public object EventTypeRow => EventType.GetRow(table.ModelHeap);
 
         private readonly EventTable table;
 
@@ -33,7 +33,7 @@ namespace PESpy.Ecma335
             this.table = table;
         }
 
-        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+        public TypeDefRow? DeclaringType => table.ModelHeap.GetDeclaringType(RowIndex);
 
         public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
@@ -43,7 +43,7 @@ namespace PESpy.Ecma335
             {
                 ushort methodCount = 0;
 
-                var methodSemanticsTable = table.CompressedModelHeap.MethodSemanticsTable;
+                var methodSemanticsTable = table.ModelHeap.MethodSemanticsTable;
 
                 var firstRowId = methodSemanticsTable.FindSemanticMethods(
                     HasSemanticsTag.CreateIndex(RowIndex.RowId, TableKind.Event),

@@ -6,14 +6,14 @@ namespace PESpy.Ecma335
     {
         internal readonly int TokenOffset;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal EncMapTable(
             int numRows,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             TokenOffset = 0;
             RowSize = TokenOffset + sizeof(int);

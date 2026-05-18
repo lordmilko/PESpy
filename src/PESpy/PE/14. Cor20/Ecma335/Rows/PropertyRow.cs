@@ -54,7 +54,7 @@ namespace PESpy.Ecma335
                 if (defaultValue.IsNil)
                     return null;
 
-                return table.CompressedModelHeap.ConstantTable[DefaultValue];
+                return table.ModelHeap.ConstantTable[DefaultValue];
             }
         }
 
@@ -70,16 +70,16 @@ namespace PESpy.Ecma335
 
         public MethodSignature<TType> DecodeSignature<TType, TGenericContext>(ISignatureTypeProvider<TType, TGenericContext> provider, TGenericContext genericContext)
         {
-            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.CompressedModelHeap);
+            var decoder = new SignatureDecoder<TType, TGenericContext>(provider, genericContext, table.ModelHeap);
             var reader = Type.GetReader();
             return decoder.DecodeMethodSignature(ref reader);
         }
 
-        public ConstantIndex DefaultValue => table.CompressedModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Property));
+        public ConstantIndex DefaultValue => table.ModelHeap.ConstantTable.FindConstant(HasConstantTag.CreateIndex(RowIndex.RowId, TableKind.Property));
 
         public CustomAttributeList CustomAttributes => table.GetCustomAttributes(RowIndex);
 
-        public TypeDefRow? DeclaringType => table.CompressedModelHeap.GetDeclaringType(RowIndex);
+        public TypeDefRow? DeclaringType => table.ModelHeap.GetDeclaringType(RowIndex);
 
         public PropertyAccessors Accessors
         {
@@ -87,7 +87,7 @@ namespace PESpy.Ecma335
             {
                 ushort methodCount = 0;
 
-                var methodSemanticsTable = table.CompressedModelHeap.MethodSemanticsTable;
+                var methodSemanticsTable = table.ModelHeap.MethodSemanticsTable;
 
                 var firstRowId = methodSemanticsTable.FindSemanticMethods(
                     HasSemanticsTag.CreateIndex(RowIndex.RowId, TableKind.Property),

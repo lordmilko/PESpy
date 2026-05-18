@@ -123,9 +123,18 @@ namespace PESpy
             Dispose(false);
         }
 
+        private FileAccessor? _viewAccessor;
+
         public FileView GetView(in FileAnalyzerOptions options = default)
         {
-            throw new NotImplementedException();
+            if (_viewAccessor == null)
+            {
+                var accessor = FileAccessor.Create(this);
+                FileAnalyzer.Analyze(accessor, options);
+                _viewAccessor = accessor;
+            }
+
+            return _viewAccessor.GetFileView();
         }
 
         public ISymbolAccessor GetSymbolAccessor(

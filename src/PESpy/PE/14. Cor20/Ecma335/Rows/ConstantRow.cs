@@ -49,7 +49,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public object ParentRow => Parent.GetRow(table.CompressedModelHeap);
+        public object ParentRow => Parent.GetRow(table.ModelHeap);
 
         private readonly ConstantTable table;
 

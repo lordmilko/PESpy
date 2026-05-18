@@ -13,14 +13,14 @@ namespace PESpy.Ecma335
         private readonly bool isBigTypeOrMethodDefIndex;
         private readonly bool isBigStringIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
 
-        internal GenericParamTable(int numRows, int typeOrMethodDefIndexSize, int stringIndexSize, CompressedModelHeap compressedModelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
+        internal GenericParamTable(int numRows, int typeOrMethodDefIndexSize, int stringIndexSize, ModelHeap modelHeap, Func<StringHeap?> stringHeap, in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
             //II.22.20
 
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
 
             isBigTypeOrMethodDefIndex = typeOrMethodDefIndexSize == 4;
@@ -59,7 +59,7 @@ namespace PESpy.Ecma335
 
         internal GenericParamList FindGenericParameters(CodedIndex index)
         {
-            CompressedModelHeap.BinarySearchEcmaIndexRange(
+            ModelHeap.BinarySearchEcmaIndexRange(
                 tableChunk,
                 Count,
                 RowSize,
@@ -84,11 +84,11 @@ namespace PESpy.Ecma335
                 startRid = startRowNumber + 1;
             }
 
-            return new GenericParamList(startRid, genericParamCount, CompressedModelHeap);
+            return new GenericParamList(startRid, genericParamCount, ModelHeap);
         }
 
         public CustomAttributeList GetCustomAttributes(GenericParamIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParam));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.GenericParam));
 
         public long GetRowOffset(GenericParamIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

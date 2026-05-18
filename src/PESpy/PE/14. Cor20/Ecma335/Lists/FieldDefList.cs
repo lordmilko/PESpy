@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(FieldDefListDebugView))]
     public readonly struct FieldDefList : IEnumerable<FieldRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal FieldDefList(TypeDefIndex containingType, CompressedModelHeap compressedModelHeap)
+        internal FieldDefList(TypeDefIndex containingType, ModelHeap modelHeap)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var fieldTable = compressedModelHeap.FieldTable;
+            this.modelHeap = modelHeap;
+            var fieldTable = modelHeap.FieldTable;
 
             if (fieldTable != null)
                 fieldTable.GetRange(containingType, out firstRowId, out lastRowId);
@@ -44,7 +44,7 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public FieldRow this[int index] => compressedModelHeap.FieldTable[(FieldIndex) (firstRowId + index)];
+        public FieldRow this[int index] => modelHeap.FieldTable[(FieldIndex) (firstRowId + index)];
 
         public FieldRow this[string name]
         {
@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
             }
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<FieldRow> IEnumerable<FieldRow>.GetEnumerator() => GetEnumerator();
 
@@ -72,9 +72,9 @@ namespace PESpy.Ecma335
             private FieldTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.FieldTable;
+                table = modelHeap?.FieldTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -83,7 +83,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

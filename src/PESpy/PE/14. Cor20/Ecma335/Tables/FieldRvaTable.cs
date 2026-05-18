@@ -7,15 +7,15 @@
 
         private readonly bool isBigFieldIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
 
         internal FieldRvaTable(
             int numRows,
             int fieldIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
 
             isBigFieldIndex = fieldIndexSize == 4;
 
@@ -38,7 +38,7 @@
 
         internal FieldRvaIndex FindFieldRvaRowId(int fieldDefRowId)
         {
-            var foundRowNumber = CompressedModelHeap.BinarySearchEcmaIndex(
+            var foundRowNumber = ModelHeap.BinarySearchEcmaIndex(
                 tableChunk,
                 Count,
                 RowSize,

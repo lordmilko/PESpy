@@ -22,7 +22,7 @@ namespace PESpy.View
                 //(or when the debugger is inspecting the PEViewWriter)
                 if (!hasMetadataSizes)
                 {
-                    var heap = peFile.EcmaMetadata?.CompressedModelHeap;
+                    var heap = peFile.EcmaMetadata?.ModelHeap;
 
                     if (heap != null)
                         metadataSizes = heap.Sizes;

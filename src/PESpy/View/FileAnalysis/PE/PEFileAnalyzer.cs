@@ -638,7 +638,7 @@ namespace PESpy.View
 
             if (ecmaMetadata != null)
             {
-                var methodDefTable = ecmaMetadata.CompressedModelHeap?.MethodDefTable;
+                var methodDefTable = ecmaMetadata.ModelHeap?.MethodDefTable;
                 var stringHeap = ecmaMetadata.StringHeap;
 
                 if (methodDefTable != null && stringHeap != null)

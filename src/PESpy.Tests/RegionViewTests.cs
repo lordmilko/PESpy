@@ -132,7 +132,7 @@ namespace PESpy.Tests
         }
 
         #endregion
-        #region CompressedModelHeap
+        #region ModelHeap
 
         //An example metadata table
 

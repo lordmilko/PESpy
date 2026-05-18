@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public FieldRow FieldRow => table.CompressedModelHeap.FieldTable[Field];
+        public FieldRow FieldRow => table.ModelHeap.FieldTable[Field];
 
         private readonly FieldPtrTable table;
 

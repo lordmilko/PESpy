@@ -19,9 +19,9 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public MethodDefRow MethodRow => table.CompressedModelHeap.MethodDefTable[Method];
+        public MethodDefRow MethodRow => table.ModelHeap.MethodDefTable[Method];
 
-        public object AssociationRow => Association.GetRow(table.CompressedModelHeap);
+        public object AssociationRow => Association.GetRow(table.ModelHeap);
 
         private readonly MethodSemanticsTable table;
 

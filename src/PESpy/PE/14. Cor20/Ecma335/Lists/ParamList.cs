@@ -23,16 +23,16 @@ namespace PESpy.Ecma335
     [DebuggerTypeProxy(typeof(ParamListDebugView))]
     public readonly struct ParamList : IEnumerable<ParamRow>
     {
-        private readonly CompressedModelHeap compressedModelHeap;
+        private readonly ModelHeap modelHeap;
         private readonly int firstRowId;
         private readonly int lastRowId;
 
         public int Count => lastRowId - firstRowId;
 
-        internal ParamList(MethodDefIndex containingMethod, CompressedModelHeap compressedModelHeap)
+        internal ParamList(MethodDefIndex containingMethod, ModelHeap modelHeap)
         {
-            this.compressedModelHeap = compressedModelHeap;
-            var ParamTable = compressedModelHeap.ParamTable;
+            this.modelHeap = modelHeap;
+            var ParamTable = modelHeap.ParamTable;
 
             if (ParamTable != null)
                 ParamTable.GetRange(containingMethod, out firstRowId, out lastRowId);
@@ -44,9 +44,9 @@ namespace PESpy.Ecma335
         }
 
         //0-based index
-        public ParamRow this[int index] => compressedModelHeap.ParamTable[(ParamIndex) (firstRowId + index)];
+        public ParamRow this[int index] => modelHeap.ParamTable[(ParamIndex) (firstRowId + index)];
 
-        public Enumerator GetEnumerator() => new Enumerator(compressedModelHeap, firstRowId, lastRowId);
+        public Enumerator GetEnumerator() => new Enumerator(modelHeap, firstRowId, lastRowId);
 
         IEnumerator<ParamRow> IEnumerable<ParamRow>.GetEnumerator() => GetEnumerator();
 
@@ -58,9 +58,9 @@ namespace PESpy.Ecma335
             private ParamTable table;
             private int currentRowId;
 
-            internal Enumerator(CompressedModelHeap compressedModelHeap, int firstRowId, int lastRowId)
+            internal Enumerator(ModelHeap modelHeap, int firstRowId, int lastRowId)
             {
-                table = compressedModelHeap?.ParamTable;
+                table = modelHeap?.ParamTable;
                 currentRowId = firstRowId - 1;
                 this.lastRowId = lastRowId - 1;
             }
@@ -69,7 +69,7 @@ namespace PESpy.Ecma335
             {
                 if (currentRowId >= lastRowId)
                 {
-                    currentRowId = CompressedModelHeap.EnumEnded;
+                    currentRowId = ModelHeap.EnumEnded;
                     return false;
                 }
                 else

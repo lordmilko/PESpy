@@ -12,7 +12,7 @@ namespace PESpy.Ecma335
         private readonly bool isBigStringIndex;
         private readonly bool isBigBlobIndex;
 
-        internal readonly CompressedModelHeap CompressedModelHeap;
+        internal readonly ModelHeap ModelHeap;
         private readonly Func<StringHeap?> stringHeap;
         private readonly Func<BlobHeap?> blobHeap;
 
@@ -20,12 +20,12 @@ namespace PESpy.Ecma335
             int numRows,
             int stringIndexSize,
             int blobIndexSize,
-            CompressedModelHeap compressedModelHeap,
+            ModelHeap modelHeap,
             Func<StringHeap?> stringHeap,
             Func<BlobHeap?> blobHeap,
             in MemoryChunk tableChunk) : base(tableChunk, numRows)
         {
-            CompressedModelHeap = compressedModelHeap;
+            ModelHeap = modelHeap;
             this.stringHeap = stringHeap;
             this.blobHeap = blobHeap;
 
@@ -58,7 +58,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(TypeDefIndex typeDef, out int firstPropertyRowId, out int lastPropertyRowId)
         {
-            var propertyMapRowId = CompressedModelHeap.PropertyMapTable.FindPropertyMapRowIdFor(typeDef);
+            var propertyMapRowId = ModelHeap.PropertyMapTable.FindPropertyMapRowIdFor(typeDef);
 
             if (propertyMapRowId == 0)
             {
@@ -67,20 +67,20 @@ namespace PESpy.Ecma335
                 return;
             }
 
-            firstPropertyRowId = (int) CompressedModelHeap.PropertyMapTable.GetPropertyList((PropertyMapIndex) propertyMapRowId);
+            firstPropertyRowId = (int) ModelHeap.PropertyMapTable.GetPropertyList((PropertyMapIndex) propertyMapRowId);
 
-            if (propertyMapRowId == CompressedModelHeap.PropertyMapTable.Count)
+            if (propertyMapRowId == ModelHeap.PropertyMapTable.Count)
             {
-                lastPropertyRowId = (CompressedModelHeap.PropertyPtrTable?.Count > 0 ? CompressedModelHeap.PropertyPtrTable.Count : Count) + 1;
+                lastPropertyRowId = (ModelHeap.PropertyPtrTable?.Count > 0 ? ModelHeap.PropertyPtrTable.Count : Count) + 1;
             }
             else
             {
-                lastPropertyRowId = (int) CompressedModelHeap.PropertyMapTable.GetPropertyList((PropertyMapIndex) (propertyMapRowId + 1));
+                lastPropertyRowId = (int) ModelHeap.PropertyMapTable.GetPropertyList((PropertyMapIndex) (propertyMapRowId + 1));
             }
         }
 
         public CustomAttributeList GetCustomAttributes(PropertyIndex index) =>
-            new CustomAttributeList(CompressedModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Property));
+            new CustomAttributeList(ModelHeap, HasCustomAttributeTag.CreateIndex((int) index, TableKind.Property));
 
         public long GetRowOffset(PropertyIndex index) => tableChunk.AbsoluteOffset + (index.RowId - 1) * RowSize;
 

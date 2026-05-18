@@ -16,9 +16,9 @@ namespace PESpy.Ecma335
         public long Offset => table.GetRowOffset(RowIndex);
 
         //Extensions
-        public MethodDefRow MoveNextMethodRow => table.CompressedModelHeap.MethodDefTable[MoveNextMethod];
+        public MethodDefRow MoveNextMethodRow => table.ModelHeap.MethodDefTable[MoveNextMethod];
 
-        public MethodDefRow KickoffMethodRow => table.CompressedModelHeap.MethodDefTable[KickoffMethod];
+        public MethodDefRow KickoffMethodRow => table.ModelHeap.MethodDefTable[KickoffMethod];
 
         private readonly StateMachineMethodTable table;
 
