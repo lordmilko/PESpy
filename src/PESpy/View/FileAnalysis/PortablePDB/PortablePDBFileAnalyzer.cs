@@ -17,7 +17,7 @@
             var portablePDBFile = (PortablePDBFile) _fileAccessor.File;
 
             return new ViewByteViewWriter(
-                new SimpleViewWriterHelper(portablePDBFile),
+                new PortablePDBViewWriterHelper(portablePDBFile),
                 portablePDBFile.CreateByteViewProvider(_fileAccessor),
                 ViewMode.Default,
                 _fileAccessor,

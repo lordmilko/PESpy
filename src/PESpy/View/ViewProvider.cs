@@ -228,6 +228,7 @@ namespace PESpy
                 //ViewKind.BlobPoolHeap                                => Write(new Ecma335.BlobHeap(chunk),                            viewWriter),
                 //ViewKind.GuidPoolHeap                                => Write(new Ecma335.GuidHeap(chunk),                            viewWriter),
                 ViewKind.MetadataHeader                              => Write(new Ecma335.ModelHeader(chunk),                         viewWriter),
+                ViewKind.PdbHeap                                     => GetPdbHeap(chunk, viewWriter),
 
                 #region Metadata Rows
 
@@ -1494,6 +1495,13 @@ namespace PESpy
             throw new NotImplementedException();
         }
 
+        private static IStructView GetPdbHeap(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var ecmaMetadata = chunk.PortablePDBFile().EcmaMetadata;
+
+            return Write(ecmaMetadata.PdbHeap, viewWriter);
+        }
+
         private static IView GetVftable(in MemoryChunk chunk, ViewWriter viewWriter, int length)
         {
             if (chunk.Is32Bit)
@@ -1674,7 +1682,7 @@ namespace PESpy
             }
             else if (file.Kind == FileKind.PortablePDB)
             {
-                throw new NotImplementedException();
+                return ((PortablePDBFile) file).EcmaMetadata;
             }
             else
             {

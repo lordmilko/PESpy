@@ -5,7 +5,7 @@ using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    class PEFileViewWriterHelper : IViewWriterHelper
+    class PEFileViewWriterHelper : IViewWriterHelper, IMetadataViewWriterHelper
     {
         public FileKind FileKind => peFile.Kind;
 
@@ -14,7 +14,7 @@ namespace PESpy.View
         private MetadataSizes metadataSizes;
         private bool hasMetadataSizes;
 
-        internal ref readonly MetadataSizes MetadataReader
+        public MetadataSizes MetadataReader
         {
             get
             {
@@ -27,12 +27,12 @@ namespace PESpy.View
                     if (heap != null)
                         metadataSizes = heap.Sizes;
                     else
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(); //Maybe NGEN?
 
                     hasMetadataSizes = true;
                 }
 
-                return ref metadataSizes;
+                return metadataSizes;
             }
         }
 

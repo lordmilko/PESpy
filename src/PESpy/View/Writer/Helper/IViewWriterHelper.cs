@@ -1,8 +1,14 @@
 ﻿using System;
+using PESpy.Ecma335;
 using PESpy.View.Builder;
 
 namespace PESpy.View
 {
+    interface IMetadataViewWriterHelper
+    {
+        MetadataSizes MetadataReader { get; }
+    }
+
     interface IViewWriterHelper
     {
         FileKind FileKind { get; }

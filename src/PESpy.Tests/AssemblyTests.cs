@@ -620,6 +620,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.loe32):
                             case nameof(ViewKind.dnt):
                             case nameof(ViewKind.Map):
+                            case nameof(ViewKind.PdbHeap):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
                                 break;
 

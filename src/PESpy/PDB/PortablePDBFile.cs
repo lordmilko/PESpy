@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
@@ -143,6 +144,25 @@ namespace PESpy
             CancellationToken cancellationToken = default) => symbolAccessor ??= new PortablePDBFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawHeaderData(out byte* pointer, out int length)
+        {
+            pointer = mmf.Address;
+            length = (int) mmf.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {

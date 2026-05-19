@@ -1,28 +1,15 @@
 ﻿using System;
-using PESpy.LIB;
 using PESpy.View.Builder;
 
 namespace PESpy.View
 {
-    class LIBFileViewWriterHelper : IViewWriterHelper
+    class LIBFileViewWriterHelper : SimpleViewWriterHelper
     {
-        public FileKind FileKind => libFile.Kind;
-
-        public bool Is32Bit => throw new NotSupportedException();
-
-        public ViewWriter.TryGetOffsetDelegate TryGetOffsetDelegate { get; }
-
-        public Func<int, int>? GetRealOffsetDelegate { get; }
-
-        private LIBFile libFile;
-
-        internal LIBFileViewWriterHelper(LIBFile libFile)
+        internal LIBFileViewWriterHelper(LIBFile libFile) : base(libFile)
         {
-            this.libFile = libFile;
-            TryGetOffsetDelegate = SimpleViewWriterHelper.TryGetViewOffset;
         }
 
-        public IView Finalize(ViewWriter viewWriter)
+        public override IView Finalize(ViewWriter viewWriter)
         {
             if (viewWriter.viewStack.Count != 0)
                 throw new InvalidOperationException("Expected viewStack to be empty");
@@ -38,6 +25,8 @@ namespace PESpy.View
              * - ImportLibrary */
 
             using var dataDirectories = new ValueList<DirectoryInfo>();
+
+            var libFile = (LIBFile) file;
 
             var firstLinkerMember = libFile.FirstLinkerMember;
 
@@ -68,9 +57,9 @@ namespace PESpy.View
             return new FileView(ViewMode.Physical, libFile, results, viewWriter, ViewKind.LIBFile);
         }
 
-        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
+        public override void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
-            foreach (var item in libFile.ImportLibrary)
+            foreach (var item in ((LIBFile) file).ImportLibrary)
             {
                 var size = item.ArchiveHeader.Size + ImageArchiveMemberHeader.StructSize;
 

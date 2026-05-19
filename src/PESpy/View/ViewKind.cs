@@ -1119,6 +1119,9 @@ namespace PESpy.View
 
         MetadataTable,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.Ecma335.PdbHeap"/>
+        /// </summary>
         [Description(nameof(Str.PDBHeap))]
         PdbHeap,
 

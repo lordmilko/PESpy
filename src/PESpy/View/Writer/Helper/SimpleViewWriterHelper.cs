@@ -5,7 +5,7 @@ namespace PESpy.View
 {
     class SimpleViewWriterHelper : IViewWriterHelper
     {
-        private IFile file;
+        protected IFile file;
 
         public FileKind FileKind => file.Kind;
 
@@ -28,7 +28,7 @@ namespace PESpy.View
             return true;
         }
 
-        public IView Finalize(ViewWriter viewWriter)
+        public virtual IView Finalize(ViewWriter viewWriter)
         {
             if (viewWriter.viewStack.Count != 0)
                 throw new InvalidOperationException("Expected viewStack to be empty");
@@ -83,7 +83,7 @@ namespace PESpy.View
             return new FileView(ViewMode.Physical, file, results, viewWriter, kind);
         }
 
-        public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
+        public virtual void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {
         }
     }
