@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -26,15 +27,15 @@ namespace PESpy.View
                 FileKind.NE          => new NEFileAccessor((NEFile) file),
                 FileKind.LE          => new LEFileAccessor((LEFile) file),
                 FileKind.DOS         => new DOSFileAccessor((DOSFile) file),
-                FileKind.DBG         => new DBGFileAccessor((DBGFile) file),
+                FileKind.DBG         => new DataFileAccessor((DBGFile) file),
                 FileKind.PDB           => CreatePDBFileAccessor((PDBFile) file),
                 FileKind.PortablePDB => new PortablePDBFileAccessor((PortablePDBFile) file),
-                FileKind.OBJ         => new OBJFileAccessor((OBJFile) file),
+                FileKind.OBJ         => new DataFileAccessor((OBJFile) file),
                 FileKind.LIB         => new LIBFileAccessor((LIBFile) file),
-                FileKind.OMF         => new OMFFileAccessor((OMFFile) file),
-                FileKind.OMFLIB      => new OMFLIBFileAccessor((OMFLIBFile) file),
-                FileKind.OMFDBG      => new OMFDBGFileAccessor((OMFDBGFile) file),
-                FileKind.SYM         => new SYMFileAccessor((SYMFile) file),
+                FileKind.OMF         => new DataFileAccessor((OMFFile) file),
+                FileKind.OMFLIB      => new DataFileAccessor((OMFLIBFile) file),
+                FileKind.OMFDBG      => new DataFileAccessor((OMFDBGFile) file),
+                FileKind.SYM         => new DataFileAccessor((SYMFile) file),
                 _ => throw new NotImplementedException($"Don't know how to open a file of type '{file.Kind}'")
             };
 
@@ -43,7 +44,7 @@ namespace PESpy.View
                 switch (pdbFile.PDBKind)
                 {
                     case PDBFileKind.V1:
-                        return new PDB1FileAccessor((PDB1File) pdbFile);
+                        return new DataFileAccessor((PDB1File) pdbFile);
 
                     case PDBFileKind.V2:
                     case PDBFileKind.V7:
@@ -84,7 +85,9 @@ namespace PESpy.View
         /// </summary>
         public long Length { get; protected set; }
 
-        public abstract IFile File { get; }
+        public IFile File => _file;
+
+        private IFileInternal _file;
 
         private RegionBuilder[] _topLevelDirectories;
         private RegionBuilder[] _firstDirectoryByAddress;
@@ -105,6 +108,7 @@ namespace PESpy.View
         protected object _overview;
         protected bool _isManaged;
         private SpanAllocator<XRef> _xrefs;
+        protected ViewWriter _viewWriter;
 
         private long[] _stringAddresses;
 
@@ -114,10 +118,12 @@ namespace PESpy.View
         internal Dictionary<long, ViewInfo> _infoMap = new Dictionary<long, ViewInfo>();
         private bool _disposed;
 
-        protected abstract ViewKind FileViewKind { get; }
+        protected ViewKind FileViewKind { get; set; }
 
-        protected FileAccessor(int bitness)
+        internal FileAccessor(IFileInternal file, int bitness, ViewMode viewMode = ViewMode.Default)
         {
+            _file = file;
+
             switch (bitness)
             {
                 case 0:
@@ -132,9 +138,22 @@ namespace PESpy.View
             }
 
             SectionAccessors = null!;
+
+            InitializeSectionAccessors(viewMode);
         }
 
-        protected abstract object CreateOverview();
+        protected virtual void InitializeSectionAccessors(ViewMode viewMode)
+        {
+            SectionAccessors = new[]
+            {
+                //We don't expose this as a SectionView; instead, we unwrap all of the items inside the view
+                new SectionAccessor(0, File.Length, SectionAccessorKind.Header, -1, "HEADER", MemoryMappedFile.CreateNew(null, File.Length * ViewByte.Size))
+            };
+
+            Length = File.Length;
+        }
+
+        protected virtual object CreateOverview() => throw new NotImplementedException();
 
         //We do a two phase load of files in the UI: get a FileAccessor up and running as quickly as possible
         //to show something in the UI, and then let analysis/external symbol loading run in the background.
@@ -161,7 +180,7 @@ namespace PESpy.View
             }
         }
 
-        public abstract bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex);
+        public virtual bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex) => throw new NotImplementedException();
 
         public ViewEntity GetEntity(long address)
         {
@@ -414,17 +433,43 @@ namespace PESpy.View
             return (IntPtr) pByte;
         }
 
-        public abstract unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength);
+        public virtual unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
+        {
+            _file.GetRawHeaderData(out pByte, out remainingLength);
+            rva = 0; //PEFile sets RVA to 0 for header, -1 for overlay
+        }
 
         //Must specifically be an RVA
-        internal abstract MemoryChunk GetMemoryChunkFromRVA(int rva);
+        internal virtual MemoryChunk GetMemoryChunkFromRVA(int rva) => throw new NotImplementedException();
 
         //Could either be an RVA or an offset (depends if we're a loaded image or not)
-        internal abstract void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter);
+        internal virtual void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
+        {
+            if (!_file.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
+                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
+
+            viewWriter = GetViewWriter();
+        }
 
         #region GetStructView
 
-        protected abstract ViewWriter GetViewWriter();
+        protected virtual ViewWriter GetViewWriter()
+        {
+            if (_viewWriter == null)
+            {
+                _viewWriter = new ViewWriter(
+                    new SimpleViewWriterHelper(File),
+                    _file.CreateByteViewProvider(this),
+                    fileAccessor: this
+                );
+
+#if DEBUG
+                _viewWriter.ShouldVerifyXRefs = false;
+#endif
+            }
+
+            return _viewWriter;
+        }
 
         //For when the type of view you're after may not be top level. When it's top level
         //it is possible to ask the info map what the ViewKind is
@@ -966,15 +1011,16 @@ namespace PESpy.View
         #endregion
         #endregion
 
-        public abstract bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva);
+        public virtual bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva) => throw new NotImplementedException();
 
-        internal abstract ISectionDataAccessor CreateThreadLocalSectionDataAccessor();
+        internal virtual ISectionDataAccessor CreateThreadLocalSectionDataAccessor() => throw new NotImplementedException();
 
-        internal abstract ISymbolAccessor GetSymbolAccessor(
+        internal virtual ISymbolAccessor GetSymbolAccessor(
             bool load = false,
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default) =>
+            File.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
 
         internal FixedUtf8String GetNameFromViewByte(long targetAddress, int sectionAccessorIndex, ViewByte* pViewByte)
         {

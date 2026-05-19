@@ -7,10 +7,10 @@ namespace PESpy.View
         private readonly OBJFile _objFile;
 
         internal OBJFileAnalyzer(
-            OBJFileAccessor fileAccessor,
+            DataFileAccessor fileAccessor,
             in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
-            _objFile = fileAccessor.OBJFile;
+            _objFile = (OBJFile) fileAccessor.File;
         }
 
         protected override ViewWriter CreateViewWriter()

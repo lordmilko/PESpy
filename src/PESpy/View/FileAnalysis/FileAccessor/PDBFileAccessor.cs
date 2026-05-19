@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
-using System.Threading;
 using PESpy.PDB;
 using PESpy.View.Builder;
 
@@ -13,19 +12,21 @@ namespace PESpy.View
     {
         public PDBFile PDBFile { get; }
 
-        public override IFile File => PDBFile;
-
-        protected override ViewKind FileViewKind => ViewKind.PDBFile;
-
         internal readonly Dictionary<PN, int> _pageNumberToSIIndex;
         internal int[] _pagesToSectionAccessors;
-        private ViewWriter _viewWriter;
 
-        public PDBFileAccessor(PDBFile pdbFile) : base(GetBitness(pdbFile))
+        public PDBFileAccessor(PDBFile pdbFile) : base(pdbFile, GetBitness(pdbFile))
         {
             PDBFile = pdbFile;
+            FileViewKind = ViewKind.PDBFile;
 
-            var numPages = PDBFile.NumPages;
+            _pageNumberToSIIndex = Merger.GetPageNumberToSIIndex(pdbFile);
+        }
+        protected override void InitializeSectionAccessors(ViewMode viewMode)
+        {
+            var pdbFile = (PDBFile) File;
+
+            var numPages = pdbFile.NumPages;
 
             var pages = ArrayPool<DirectoryInfo>.Shared.Rent(numPages);
             var contiguousSections = new ValueList<PDBContiguousSectionInfo>();
@@ -34,9 +35,7 @@ namespace PESpy.View
 
             var pagesToSectionAccessors = new int[numPages];
 
-            _pageNumberToSIIndex = Merger.GetPageNumberToSIIndex(pdbFile);
-
-            Length = PDBFile.Length;
+            Length = pdbFile.Length;
 
             try
             {
@@ -273,14 +272,6 @@ namespace PESpy.View
         {
             throw new NotImplementedException();
         }
-
-        //We are our own symbol accessor, so we don't need to be afraid to return ourselves right away even if we don't want to allow loading.
-        //The PDBFile stores the actual reference to the symbol accessor
-        internal override ISymbolAccessor GetSymbolAccessor(
-            bool load,
-            LocatorHttpPolicy httpPolicy,
-            ILocatorProgress? progress,
-            CancellationToken cancellationToken = default) => PDBFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
 
         internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref long offset, out int sectionIndex, out int bytesRewound)
         {

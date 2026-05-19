@@ -1,24 +1,24 @@
 ﻿namespace PESpy.View
 {
-    internal class PDB1FileAnalyzer : FileAnalyzer
+    internal class DBGFileAnalyzer : FileAnalyzer
     {
-        private readonly PDB1File _pdbFile;
+        private readonly DBGFile _dbgFile;
 
-        public PDB1FileAnalyzer(
-            PDB1FileAccessor fileAccessor,
+        internal DBGFileAnalyzer(
+            DataFileAccessor fileAccessor,
             in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
-            _pdbFile = fileAccessor.PDBFile;
+            _dbgFile = (DBGFile) fileAccessor.File;
         }
 
         protected override ViewWriter CreateViewWriter()
         {
             //CreateViewWriter is called by the base ctor
-            var pdbFile = (PDB1File) _fileAccessor.File;
+            var dbgFile = (DBGFile) _fileAccessor.File;
 
             return new ViewByteViewWriter(
-                new SimpleViewWriterHelper(pdbFile),
-                pdbFile.CreateByteViewProvider(_fileAccessor),
+                new SimpleViewWriterHelper(dbgFile),
+                dbgFile.CreateByteViewProvider(_fileAccessor),
                 ViewMode.Default,
                 _fileAccessor,
                 null,
@@ -29,5 +29,10 @@
         }
 
         public override void Execute() => ExecuteData();
+
+        protected override void MarkRegions()
+        {
+            CreateOMFRegion(_dbgFile.DebugTable);
+        }
     }
 }

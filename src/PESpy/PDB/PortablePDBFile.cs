@@ -8,7 +8,7 @@ using PESpy.View.Builder;
 
 namespace PESpy
 {
-    public class PortablePDBFile : IFile, IViewable, IDisposable //Not a PDBFile, as the format is not similar in any way what-so-ever
+    public class PortablePDBFile : IFileInternal, IViewable, IDisposable //Not a PDBFile, as the format is not similar in any way what-so-ever
     {
         public static PortablePDBFile FromFile(string path)
         {
@@ -143,6 +143,8 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new PortablePDBFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -151,6 +153,9 @@ namespace PESpy
             pointer = mmf.Address;
             length = (int) mmf.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

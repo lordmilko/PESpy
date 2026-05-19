@@ -1,24 +1,24 @@
 ﻿namespace PESpy.View
 {
-    internal class OMFFileAnalyzer : FileAnalyzer
+    internal class PDB1FileAnalyzer : FileAnalyzer
     {
-        private readonly OMFFile _omfFile;
+        private readonly PDB1File _pdbFile;
 
-        internal OMFFileAnalyzer(
-            OMFFileAccessor fileAccessor,
+        public PDB1FileAnalyzer(
+            DataFileAccessor fileAccessor,
             in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
-            _omfFile = fileAccessor.OMFFile;
+            _pdbFile = (PDB1File) fileAccessor.File;
         }
 
         protected override ViewWriter CreateViewWriter()
         {
             //CreateViewWriter is called by the base ctor
-            var omfFile = (OMFFile) _fileAccessor.File;
+            var pdbFile = (PDB1File) _fileAccessor.File;
 
             return new ViewByteViewWriter(
-                new SimpleViewWriterHelper(omfFile),
-                omfFile.CreateByteViewProvider(_fileAccessor),
+                new SimpleViewWriterHelper(pdbFile),
+                pdbFile.CreateByteViewProvider(_fileAccessor),
                 ViewMode.Default,
                 _fileAccessor,
                 null,
@@ -28,7 +28,6 @@
             );
         }
 
-        //Maybe LEDATA actually has code? Haven't explored this yet; but ostensibly yes OMF files should actually contain disassembly
         public override void Execute() => ExecuteData();
     }
 }

@@ -71,7 +71,7 @@ namespace PESpy
 
     //Represents a file encoded using the Object Module Format (OMF).
     //Microsoft C 4.0 era *.obj files use this format, rather than COFF
-    public class OMFFile : IFile, IViewable
+    public class OMFFile : IFileInternal, IViewable
     {
         //An OMFFile should begin with either a THEADR or an LHEADR and then end with MODEND
         //If it's a lib file, it'll start with LIBHDR. So the file could really start with any of these 3.
@@ -189,6 +189,8 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new OMFFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -197,6 +199,9 @@ namespace PESpy
             pointer = mmf.Address;
             length = (int) mmf.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

@@ -13,13 +13,9 @@ namespace PESpy.View
         /// </summary>
         public PEFile PEFile { get; }
 
-        public override IFile File => PEFile;
-
         public override bool IsLoaded => PEFile.IsLoadedImage;
 
         public ViewMode ViewMode { get; }
-
-        protected override ViewKind FileViewKind => ViewKind.PEFile;
 
         /* To reduce the cost of having to constantly lookup what section a given RVA belongs to and whether that section
          * can contain code or not, we maintain a cache of the last detected section, which can improve performance when
@@ -31,12 +27,11 @@ namespace PESpy.View
 
         internal bool OwnsPEFile = true;
 
-        private ViewWriter _viewWriter;
-
-        public PEFileAccessor(PEFile peFile, ViewMode viewMode) : base(peFile.Is32Bit ? 32 : 64)
+        public PEFileAccessor(PEFile peFile, ViewMode viewMode) : base(peFile, peFile.Is32Bit ? 32 : 64, viewMode)
         {
             PEFile = peFile;
             ViewMode = viewMode;
+            FileViewKind = ViewKind.PEFile;
 
             _wantVirtual = viewMode switch
             {
@@ -50,11 +45,16 @@ namespace PESpy.View
             _lookupCache = new PESectionLookupCache(peFile, _wantVirtual);
 
             ImageBase = peFile.OptionalHeader.ImageBase;
+        }
 
+        protected override void InitializeSectionAccessors(ViewMode viewMode)
+        {
             /* For each section, we need to construct a SectionAccessor that will provide access to information about the
              * data contained in that section. For the purposes of analysis, both the header and overlay areas are also
              * considered to be "sections". The header should always exist; the question is simply whether the overlay
              * exists too */
+
+            var peFile = (PEFile) File;
 
             var sectionHeaders = peFile.SectionHeaders;
 
@@ -251,7 +251,12 @@ namespace PESpy.View
         {
             if (_viewWriter == null)
             {
-                _viewWriter = new ViewWriter(new PEFileViewWriterHelper(PEFile, ViewMode), PEFile.CreateByteViewProvider(null), ViewMode, this);
+                _viewWriter = new ViewWriter(
+                    new PEFileViewWriterHelper(PEFile, ViewMode),
+                    PEFile.CreateByteViewProvider(this),
+                    ViewMode,
+                    this
+                );
 
 #if DEBUG
                 _viewWriter.ShouldVerifyXRefs = false;

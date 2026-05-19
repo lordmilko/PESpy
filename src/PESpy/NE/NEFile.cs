@@ -15,7 +15,7 @@ namespace PESpy
     /// <summary>
     /// Represents a New Executable (NE) file.
     /// </summary>
-    public class NEFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
+    public class NEFile : IFileInternal, IFileWithCodeViewData, IViewable, IDisposable
     {
         public static unsafe NEFile FromFile(string path)
         {
@@ -522,13 +522,19 @@ namespace PESpy
             return NullSymbolAccessor.Instance;
         }
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
             remainingLength = (int) globalBlock.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

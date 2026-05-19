@@ -143,7 +143,7 @@ namespace PESpy
     /// Represents a Portable Executable (PE) file.
     /// </summary>
     [DebuggerTypeProxy(typeof(PEFileDebugView))]
-    public class PEFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
+    public class PEFile : IFileInternal, IFileWithCodeViewData, IViewable, IDisposable
     {
         #region Static
 
@@ -3237,6 +3237,8 @@ namespace PESpy
             return writer;
         }
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor)
         {
             if (blockProvider is LocalMemoryBlockProvider l)
@@ -3744,6 +3746,9 @@ namespace PESpy
 
             return false;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         //If the caller might pass in 0, it's on them to not do that
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)

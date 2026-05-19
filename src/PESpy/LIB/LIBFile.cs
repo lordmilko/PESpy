@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using ClrDebug;
@@ -10,7 +11,7 @@ using PESpy.View.Builder;
 
 namespace PESpy
 {
-    public class LIBFile : IFile, IViewable, IDisposable
+    public class LIBFile : IFileInternal, IViewable, IDisposable
     {
         public static LIBFile FromFile(string path)
         {
@@ -276,13 +277,19 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new LIBFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor, isLibFile: true);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
             remainingLength = (int) globalBlock.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

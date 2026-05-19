@@ -9,7 +9,7 @@ using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
 {
-    public class DOSFile : IFile, IFileWithCodeViewData, IViewable, IDisposable
+    public class DOSFile : IFileInternal, IFileWithCodeViewData, IViewable, IDisposable
     {
         internal const int ParagraphSize = 16;
         internal const int PageSize = 512;
@@ -175,6 +175,8 @@ namespace PESpy
             return NullSymbolAccessor.Instance;
         }
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -183,6 +185,9 @@ namespace PESpy
             pointer = mmf.Address;
             length = (int) mmf.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

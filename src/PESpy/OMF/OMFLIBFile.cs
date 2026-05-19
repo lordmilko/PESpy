@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using PESpy.OMF;
@@ -7,7 +8,7 @@ using PESpy.View.Builder;
 
 namespace PESpy
 {
-    public class OMFLIBFile : IFile
+    public class OMFLIBFile : IFileInternal
     {
         public static OMFLIBFile FromFile(string path)
         {
@@ -195,7 +196,31 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
+        {
+            ptr = globalBlock.LocalPointer;
+            remainingLength = (int) globalBlock.Length;
+        }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
 
         public void Dispose()
         {

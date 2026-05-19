@@ -1,24 +1,24 @@
 ﻿namespace PESpy.View
 {
-    internal class SYMFileAnalyzer : FileAnalyzer
+    internal class OMFDBGFileAnalyzer : FileAnalyzer
     {
-        private readonly SYMFile _symFile;
+        private readonly OMFDBGFile _omfDbgFile;
 
-        public SYMFileAnalyzer(
-            SYMFileAccessor fileAccessor,
+        internal OMFDBGFileAnalyzer(
+            DataFileAccessor fileAccessor,
             in FileAnalyzerOptions options) : base(fileAccessor, options)
         {
-            _symFile = fileAccessor.SYMFile;
+            _omfDbgFile = (OMFDBGFile) fileAccessor.File;
         }
 
         protected override ViewWriter CreateViewWriter()
         {
             //CreateViewWriter is called by the base ctor
-            var symFile = (SYMFile) _fileAccessor.File;
+            var omfDbgFile = (OMFDBGFile) _fileAccessor.File;
 
             return new ViewByteViewWriter(
-                new SimpleViewWriterHelper(symFile),
-                symFile.CreateByteViewProvider(_fileAccessor),
+                new SimpleViewWriterHelper(omfDbgFile),
+                omfDbgFile.CreateByteViewProvider(_fileAccessor),
                 ViewMode.Default,
                 _fileAccessor,
                 null,

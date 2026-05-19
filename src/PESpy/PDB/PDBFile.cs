@@ -74,7 +74,7 @@ namespace PESpy
     /// <summary>
     /// Represents a CodeView Program Database (PDB) file.
     /// </summary>
-    public abstract unsafe class PDBFile : IFile, IViewable, ICodeViewAccessor, IDisposable
+    public abstract unsafe class PDBFile : IFileInternal, IViewable, ICodeViewAccessor, IDisposable
     {
         /// <summary>
         /// Reads a <see cref="PDBFile"/> from a file on disk.
@@ -1396,7 +1396,13 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new PDBFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
+
+        unsafe void IFileInternal.GetRawHeaderData(out byte* ptr, out int remainingLength) => throw new NotSupportedException();
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) => throw new NotSupportedException();
 
         #endregion
 

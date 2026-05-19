@@ -12,7 +12,7 @@ namespace PESpy
     //The format of *.sym files is defined in mapsym, which is responsible for converting
     //*.map files to *.sym files
 
-    public class SYMFile : IFile, IViewable
+    public class SYMFile : IFileInternal, IViewable
     {
         public static SYMFile FromFile(string path)
         {
@@ -135,6 +135,8 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new SYMFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -144,7 +146,7 @@ namespace PESpy
             length = (int) mmf.Length;
         }
 
-        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {
             if (offset < Length)
             {

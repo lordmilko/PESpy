@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -7,7 +8,7 @@ using PESpy.View.Builder;
 
 namespace PESpy
 {
-    public class DBGFile : IFile, IViewable, IDisposable
+    public class DBGFile : IFileInternal, IViewable, IDisposable
     {
         public static DBGFile FromFile(string path)
         {
@@ -228,13 +229,19 @@ namespace PESpy
             return symbolAccessor;
         }
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
             remainingLength = (int) globalBlock.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {

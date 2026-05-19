@@ -98,14 +98,14 @@ namespace PESpy.View
                 FileKind.NE          => new NEFileAnalyzer((NEFileAccessor) fileAccessor, options),
                 FileKind.LE          => new LEFileAnalyzer((LEFileAccessor) fileAccessor, options),
                 FileKind.DOS         => new DOSFileAnalyzer((DOSFileAccessor) fileAccessor, options),
-                FileKind.DBG         => new DBGFileAnalyzer((DBGFileAccessor) fileAccessor, options),
+                FileKind.DBG         => new DBGFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 FileKind.PDB         => CreatePDBFileAnalyzer(fileAccessor, options),
                 FileKind.PortablePDB => new PortablePDBFileAnalyzer((PortablePDBFileAccessor) fileAccessor, options),
-                FileKind.OBJ         => new OBJFileAnalyzer((OBJFileAccessor) fileAccessor, options),
+                FileKind.OBJ         => new OBJFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, options),
-                FileKind.OMF         => new OMFFileAnalyzer((OMFFileAccessor) fileAccessor, options),
-                FileKind.OMFLIB      => new OMFLIBFileAnalyzer((OMFLIBFileAccessor) fileAccessor, options),
-                FileKind.SYM         => new SYMFileAnalyzer((SYMFileAccessor) fileAccessor, options),
+                FileKind.OMF         => new OMFFileAnalyzer((DataFileAccessor) fileAccessor, options),
+                FileKind.OMFLIB      => new OMFLIBFileAnalyzer((DataFileAccessor) fileAccessor, options),
+                FileKind.SYM         => new SYMFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 _ => throw new NotImplementedException($"Don't know how to analyze a file of type '{fileAccessor.File.Kind}'")
             };
 
@@ -114,7 +114,7 @@ namespace PESpy.View
                 switch (((PDBFile) fileAccessor.File).PDBKind)
                 {
                     case PDBFileKind.V1:
-                        return new PDB1FileAnalyzer((PDB1FileAccessor) fileAccessor, options);
+                        return new PDB1FileAnalyzer((DataFileAccessor) fileAccessor, options);
 
                     case PDBFileKind.V2:
                     case PDBFileKind.V7:

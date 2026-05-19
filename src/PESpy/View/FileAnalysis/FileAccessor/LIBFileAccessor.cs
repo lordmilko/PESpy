@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO.MemoryMappedFiles;
-using System.Threading;
 using ClrDebug;
 using PESpy.LIB;
 using static ClrDebug.IMAGE_FILE_MACHINE;
@@ -11,23 +9,10 @@ namespace PESpy.View
     {
         public LIBFile LIBFile { get; }
 
-        public override IFile File => LIBFile;
-
-        protected override ViewKind FileViewKind => ViewKind.LIBFile;
-
-        private ViewWriter _viewWriter;
-
-        public LIBFileAccessor(LIBFile libFile) : base(GetBitness(libFile))
+        public LIBFileAccessor(LIBFile libFile) : base(libFile, GetBitness(libFile))
         {
             LIBFile = libFile;
-
-            SectionAccessors = new[]
-            {
-                //We don't expose this as a SectionView; instead, we unwrap all of the items inside the view
-                new SectionAccessor(0, libFile.Length, SectionAccessorKind.Header, -1, "HEADER", MemoryMappedFile.CreateNew(null, libFile.Length * ViewByte.Size))
-            };
-
-            Length = libFile.Length;
+            FileViewKind = ViewKind.LIBFile;
         }
 
         private static int GetBitness(LIBFile libFile)
@@ -71,23 +56,9 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        public override unsafe void GetRawSectionData(in SectionAccessor sectionAccessor, out byte* pByte, out int rva, out int remainingLength)
-        {
-            LIBFile.GetRawHeaderData(out pByte, out remainingLength);
-            rva = 0; //PEFile sets RVA to 0 for header, -1 for overlay
-        }
-
         internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
         {
             throw new NotImplementedException();
-        }
-
-        internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
-        {
-            if (!LIBFile.TryGetValueChunkFromPhysicalOffset((int) address, out chunk))
-                throw new InvalidOperationException($"Failed to resolve a memory chunk for address 0x{address}");
-
-            viewWriter = GetViewWriter();
         }
 
         protected override ViewWriter GetViewWriter()
@@ -117,11 +88,5 @@ namespace PESpy.View
         {
             throw new NotImplementedException();
         }
-
-        internal override ISymbolAccessor GetSymbolAccessor(
-            bool load = false,
-            LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
-            ILocatorProgress? progress = null,
-            CancellationToken cancellationToken = default) => LIBFile.GetSymbolAccessor(httpPolicy, progress, cancellationToken);
     }
 }

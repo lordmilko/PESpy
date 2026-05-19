@@ -24,7 +24,7 @@ namespace PESpy
     /// by a more specific type (such as <see cref="PEFile"/>).<para/>
     /// File types commonly used with this type include *.exp and non-OMF *.obj files.
     /// </summary>
-    public class OBJFile : IFile, IOBJFile, IViewable, IDisposable
+    public class OBJFile : IFileInternal, IOBJFile, IViewable, IDisposable
     {
         public static OBJFile FromFile(string path)
         {
@@ -333,13 +333,19 @@ namespace PESpy
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new OBJFileSymbolAccessor(this);
 
+        ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
+
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)
         {
             ptr = globalBlock.LocalPointer;
             remainingLength = (int) globalBlock.Length;
         }
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) =>
+            TryGetValueChunkFromPhysicalOffset(offset, out chunk);
 
         internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
         {
