@@ -1,12 +1,14 @@
-﻿using System.Diagnostics;
-using PESpy.PDB;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using PESpy.View;
 
 namespace PESpy.OMF
 {
     //Name is made up. Has no relation to well known OMF debug info types defined in Microsoft headers
     [DebuggerTypeProxy(typeof(OMFRecordProxy))]
     [DebuggerDisplay("{OMFRecordProxy.DebuggerDisplay(this),nq}")]
-    public readonly unsafe struct OMFRecord
+    public readonly unsafe struct OMFRecord : IViewable
     {
         //https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/
 
@@ -33,20 +35,31 @@ namespace PESpy.OMF
 
         public ushort RecordLength => *(ushort*) (value + 1);
 
+        public NativeSpan<byte> Content => new NativeSpan<byte>(value + 3, RecordLength - (HasChecksum(RecordType) ? 1 : 0));
+
         //Invalid for LIBHDR and DICHDR
         public byte Checksum
         {
             get
             {
-                switch (RecordType)
-                {
-                    case OMFRecordType.LIBHDR:
-                    case OMFRecordType.DICHDR:
-                    case OMFRecordType.LIBEXD:
-                        return 0;
-                }
+                if (HasChecksum(RecordType))
+                    return *(value + RecordLength + 2);
 
-                return *(value + RecordLength + 2);
+                return 0;
+            }
+        }
+
+        private static bool HasChecksum(OMFRecordType type)
+        {
+            switch (type)
+            {
+                case OMFRecordType.LIBHDR:
+                case OMFRecordType.DICHDR:
+                case OMFRecordType.LIBEXD:
+                    return false;
+
+                default:
+                    return true;
             }
         }
 
@@ -64,6 +77,55 @@ namespace PESpy.OMF
 
             indexSize = 1;
             return lo;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int GetStructSize(byte* ptr) =>
+            *(ushort*) (ptr + 1) + sizeof(byte) + sizeof(short);
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.OMFRecord, GetStructSize(value));
+
+        int IViewable.NumChildren() => HasChecksum(RecordType) ? 4 : 3;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) =>
+            WriteDefaultChild(this, index, ref structWriter);
+
+        internal static int GetDefaultNumChildren() => 4;
+
+        internal static int GetDefaultNumChildrenNoChecksum() => 3;
+
+        internal static void WriteDefaultChild(OMFRecord omfRecord, int index, ref StructWriter structWriter)
+        {
+            switch (index)
+            {
+                case 0:
+                    structWriter.WriteField(nameof(RecordType), 0, omfRecord.RawRecordType);
+                    break;
+
+                case 1:
+                    structWriter.WriteField(nameof(RecordLength), 1, omfRecord.RecordLength);
+                    break;
+
+                case 2:
+                    structWriter.WriteField("Content", 3, omfRecord.Content);
+                    break;
+
+                case 3:
+                    if (HasChecksum(omfRecord.RecordType))
+                        structWriter.WriteField(nameof(Checksum), omfRecord.RecordLength + sizeof(short), omfRecord.Checksum);
+                    else
+                        throw new IndexOutOfRangeException();
+                    break;
+
+                default:
+                    throw new IndexOutOfRangeException();
+            }
         }
 
         public override string ToString()

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.PDB;
+using PESpy.OMF;
 using PESpy.View.Builder;
 
 namespace PESpy.View
@@ -76,16 +77,18 @@ namespace PESpy.View
         public bool Is32Bit => helper.Is32Bit;
 
         private ViewSymTypeDispatcher? _symTypeDispatcher;
+        private ViewTypTypeDispatcher? _typTypeDispatcher;
+        private ViewOMFRecordDispatcher? _omfRecordDispatcher;
 
         internal ViewSymTypeDispatcher SymTypeDispatcher => _symTypeDispatcher ??= new ViewSymTypeDispatcher(this);
+        internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
+        internal ViewOMFRecordDispatcher OMFRecordDispatcher => _omfRecordDispatcher ??= new ViewOMFRecordDispatcher(this);
 
-        private ViewTypTypeDispatcher? _typTypeDispatcher;
         internal LocatorHttpPolicy _httpPolicy;
         internal ILocatorProgress _progress;
         internal readonly FileAccessor? _fileAccessor;
         internal IViewWriterHelper helper;
 
-        internal ViewTypTypeDispatcher TypTypeDispatcher => _typTypeDispatcher ??= new ViewTypTypeDispatcher(this);
 
         internal ViewWriter(DBGFile dbgFile) : this(new SimpleViewWriterHelper(dbgFile), dbgFile.CreateByteViewProvider(null))
         {
@@ -1216,7 +1219,7 @@ namespace PESpy.View
 
         protected internal virtual IView? NewUnmanagedStruct(IViewable value, ViewKind kind, int structSize)
         {
-            Debug.Assert(UnmanagedOffset != 0);
+            Debug.Assert(UnmanagedOffset != 0 || kind == ViewKind.THEADR);
             var shouldAdd = _tryGetViewOffset(UnmanagedOffset, out var viewOffset);
 
             if (!shouldAdd)

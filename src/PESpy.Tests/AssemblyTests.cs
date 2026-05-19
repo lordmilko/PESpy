@@ -441,7 +441,7 @@ namespace PESpy.Tests
                 {
                     var region = regionStack.Peek();
 
-                    if (region.regionName == "Symbols" || region.regionName == "Types" || region.regionName == "Metadata Rows" || region.regionName == "ReadyToRunSection Bytes")
+                    if (region.regionName == "Symbols" || region.regionName == "Types" || region.regionName == "OMF Symbols" || region.regionName == "Metadata Rows" || region.regionName == "ReadyToRunSection Bytes")
                     {
                         //When we're in the symbols region, any enums we find we should immediately treat as being an IStructView to the type
                         //indicated by their enum name
@@ -858,6 +858,8 @@ namespace PESpy.Tests
                                         builder.AppendLine("WriteSymbol(chunk, viewWriter),");
                                     else if (regionName == "Types")
                                         builder.AppendLine("WriteType(chunk, viewWriter),");
+                                    else if (regionName == "OMF Symbols")
+                                        builder.AppendLine("WriteOMFSymbol(chunk, viewWriter),");
                                     else if (regionName == "ReadyToRunSection Bytes")
                                         builder.AppendLine("GetBytes(chunk, viewWriter, length, kind),");
                                     else if (regionName == "Metadata Rows")

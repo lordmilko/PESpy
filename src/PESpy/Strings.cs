@@ -6730,6 +6730,370 @@ namespace PESpy
         }
 
         /// <summary>
+        /// OMF Record
+        /// </summary>
+        internal static FixedUtf8String OMFRecord
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x4D, 0x46, 0x20, 0x52, 0x65, 0x63, 0x6F, 0x72, 0x64 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// BAKPAT
+        /// </summary>
+        internal static FixedUtf8String BAKPAT
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x42, 0x41, 0x4B, 0x50, 0x41, 0x54 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// CEXTDEF
+        /// </summary>
+        internal static FixedUtf8String CEXTDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x43, 0x45, 0x58, 0x54, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// COMDAT
+        /// </summary>
+        internal static FixedUtf8String COMDAT
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x43, 0x4F, 0x4D, 0x44, 0x41, 0x54 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// COMDEF
+        /// </summary>
+        internal static FixedUtf8String COMDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x43, 0x4F, 0x4D, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// COMENT
+        /// </summary>
+        internal static FixedUtf8String COMENT
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x43, 0x4F, 0x4D, 0x45, 0x4E, 0x54 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// DICHDR
+        /// </summary>
+        internal static FixedUtf8String DICHDR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x44, 0x49, 0x43, 0x48, 0x44, 0x52 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// EXTDEF
+        /// </summary>
+        internal static FixedUtf8String EXTDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x45, 0x58, 0x54, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// FIXUP2
+        /// </summary>
+        internal static FixedUtf8String FIXUP2
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x49, 0x58, 0x55, 0x50, 0x32 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// FIXUPP
+        /// </summary>
+        internal static FixedUtf8String FIXUPP
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x46, 0x49, 0x58, 0x55, 0x50, 0x50 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// GRPDEF
+        /// </summary>
+        internal static FixedUtf8String GRPDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x47, 0x52, 0x50, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LCOMDEF
+        /// </summary>
+        internal static FixedUtf8String LCOMDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x43, 0x4F, 0x4D, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// LEDATA
+        /// </summary>
+        internal static FixedUtf8String LEDATA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x45, 0x44, 0x41, 0x54, 0x41 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LEXTDEF
+        /// </summary>
+        internal static FixedUtf8String LEXTDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x45, 0x58, 0x54, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// LHEADR
+        /// </summary>
+        internal static FixedUtf8String LHEADR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x48, 0x45, 0x41, 0x44, 0x52 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LIBEXD
+        /// </summary>
+        internal static FixedUtf8String LIBEXD
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x49, 0x42, 0x45, 0x58, 0x44 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LIBHDR
+        /// </summary>
+        internal static FixedUtf8String LIBHDR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x49, 0x42, 0x48, 0x44, 0x52 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LIDATA
+        /// </summary>
+        internal static FixedUtf8String LIDATA
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x49, 0x44, 0x41, 0x54, 0x41 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LINNUM
+        /// </summary>
+        internal static FixedUtf8String LINNUM
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x49, 0x4E, 0x4E, 0x55, 0x4D })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LINSYM
+        /// </summary>
+        internal static FixedUtf8String LINSYM
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x49, 0x4E, 0x53, 0x59, 0x4D })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LLNAMES
+        /// </summary>
+        internal static FixedUtf8String LLNAMES
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x4C, 0x4E, 0x41, 0x4D, 0x45, 0x53 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// LNAMES
+        /// </summary>
+        internal static FixedUtf8String LNAMES
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x4E, 0x41, 0x4D, 0x45, 0x53 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// LPUBDEF
+        /// </summary>
+        internal static FixedUtf8String LPUBDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4C, 0x50, 0x55, 0x42, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 7);
+            }
+        }
+
+        /// <summary>
+        /// MODEND
+        /// </summary>
+        internal static FixedUtf8String MODEND
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4D, 0x4F, 0x44, 0x45, 0x4E, 0x44 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// NBKPAT
+        /// </summary>
+        internal static FixedUtf8String NBKPAT
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4E, 0x42, 0x4B, 0x50, 0x41, 0x54 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// PUBDEF
+        /// </summary>
+        internal static FixedUtf8String PUBDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x50, 0x55, 0x42, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// SEGDEF
+        /// </summary>
+        internal static FixedUtf8String SEGDEF
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x53, 0x45, 0x47, 0x44, 0x45, 0x46 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
+        /// THEADR
+        /// </summary>
+        internal static FixedUtf8String THEADR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x54, 0x48, 0x45, 0x41, 0x44, 0x52 })
+                    return new FixedUtf8String(p, 6);
+            }
+        }
+
+        /// <summary>
         /// endmap_s
         /// </summary>
         internal static FixedUtf8String endmap_s

@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
+using PESpy.View;
 
 namespace PESpy.OMF
 {
-    public readonly unsafe struct LIBEXD
+    public readonly unsafe struct LIBEXD : IViewable
     {
         private readonly byte* value;
 
@@ -43,6 +44,19 @@ namespace PESpy.OMF
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.LIBEXD, OMFRecord.GetStructSize(value));
+
+        int IViewable.NumChildren() => OMFRecord.GetDefaultNumChildrenNoChecksum();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) =>
+            OMFRecord.WriteDefaultChild(new OMFRecord(value), index, ref structWriter);
 
         public override string ToString()
         {

@@ -1,6 +1,11 @@
-﻿namespace PESpy.OMF
+﻿using PESpy.View;
+
+namespace PESpy.OMF
 {
-    public readonly unsafe struct GRPDEF
+    /// <summary>
+    /// Group Definition Record
+    /// </summary>
+    public readonly unsafe struct GRPDEF : IViewable
     {
         private readonly byte* value;
 
@@ -16,6 +21,18 @@
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.GRPDEF, OMFRecord.GetStructSize(value));
+
+        int IViewable.NumChildren() => OMFRecord.GetDefaultNumChildren();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => OMFRecord.WriteDefaultChild(new OMFRecord(value), index, ref structWriter);
 
         public override string ToString()
         {

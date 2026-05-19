@@ -1,6 +1,8 @@
-﻿namespace PESpy.OMF
+﻿using PESpy.View;
+
+namespace PESpy.OMF
 {
-    public readonly unsafe struct LIBHDR
+    public readonly unsafe struct LIBHDR : IViewable
     {
         private readonly byte* value;
 
@@ -22,6 +24,19 @@
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.LIBHDR, OMFRecord.GetStructSize(value));
+
+        int IViewable.NumChildren() => OMFRecord.GetDefaultNumChildrenNoChecksum();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) =>
+            OMFRecord.WriteDefaultChild(new OMFRecord(value), index, ref structWriter);
 
         public override string ToString()
         {

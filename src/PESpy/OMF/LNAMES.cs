@@ -1,8 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using PESpy.View;
 
 namespace PESpy.OMF
 {
-    public readonly unsafe struct LNAMES
+    /// <summary>
+    /// List of Names Record
+
+    /// </summary>
+    public readonly unsafe struct LNAMES : IViewable
     {
         private readonly byte* value;
 
@@ -42,6 +46,18 @@ namespace PESpy.OMF
         {
             this.value = value;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.LNAMES, OMFRecord.GetStructSize(value));
+
+        int IViewable.NumChildren() => OMFRecord.GetDefaultNumChildren();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => OMFRecord.WriteDefaultChild(new OMFRecord(value), index, ref structWriter);
 
         public override string ToString()
         {

@@ -1,9 +1,14 @@
-﻿namespace PESpy.OMF
+﻿using PESpy.View;
+
+namespace PESpy.OMF
 {
     //B3 is 32-bit
     //https://www.azillionmonkeys.com/qed/Omfg.pdf p57
 
-    public readonly unsafe struct BAKPAT
+    /// <summary>
+    /// Backpatch Record
+    /// </summary>
+    public readonly unsafe struct BAKPAT : IViewable
     {
         private readonly byte* value;
 
@@ -26,5 +31,17 @@
         {
             return RecordType.ToString();
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //No globals
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewUnmanagedStruct(this, ViewKind.BAKPAT, OMFRecord.GetStructSize(value));
+
+        int IViewable.NumChildren() => OMFRecord.GetDefaultNumChildren();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => OMFRecord.WriteDefaultChild(new OMFRecord(value), index, ref structWriter);
     }
 }

@@ -628,6 +628,38 @@ var strings = new[]{
     "Optional Object Info",
     "Control Info",
 
+    //OMF
+
+    "OMF Record",
+
+    "BAKPAT",
+    "CEXTDEF",
+    "COMDAT",
+    "COMDEF",
+    "COMENT",
+    "DICHDR",
+    "EXTDEF",
+    "FIXUP2",
+    "FIXUPP",
+    "GRPDEF",
+    "LCOMDEF",
+    "LEDATA",
+    "LEXTDEF",
+    "LHEADR",
+    "LIBEXD",
+    "LIBHDR",
+    "LIDATA",
+    "LINNUM",
+    "LINSYM",
+    "LLNAMES",
+    "LNAMES",
+    "LPUBDEF",
+    "MODEND",
+    "NBKPAT",
+    "PUBDEF",
+    "SEGDEF",
+    "THEADR",
+
     //SYM
     "endmap_s",
     "linedef_s",

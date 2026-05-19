@@ -3118,7 +3118,181 @@ namespace PESpy.View
         //DOS
         DOSFile,
 
+        //OMF
         OMFFile,
+
+        #region OMF Symbols
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.OMFRecord"/>.
+        /// </summary>
+        [Description(nameof(Str.OMFRecord))]
+        OMFRecord,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.BAKPAT"/>.
+        /// </summary>
+        [Description(nameof(Str.BAKPAT))]
+        BAKPAT,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.CEXTDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.CEXTDEF))]
+        CEXTDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.COMDAT"/>.
+        /// </summary>
+        [Description(nameof(Str.COMDAT))]
+        COMDAT,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.COMDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.COMDEF))]
+        COMDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.COMENT"/>.
+        /// </summary>
+        [Description(nameof(Str.COMENT))]
+        COMENT,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.DICHDR"/>.
+        /// </summary>
+        [Description(nameof(Str.DICHDR))]
+        DICHDR,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.EXTDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.EXTDEF))]
+        EXTDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.FIXUP2"/>.
+        /// </summary>
+        [Description(nameof(Str.FIXUP2))]
+        FIXUP2,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.FIXUPP"/>.
+        /// </summary>
+        [Description(nameof(Str.FIXUPP))]
+        FIXUPP,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.GRPDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.GRPDEF))]
+        GRPDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LCOMDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.LCOMDEF))]
+        LCOMDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LEDATA"/>.
+        /// </summary>
+        [Description(nameof(Str.LEDATA))]
+        LEDATA,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LEXTDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.LEXTDEF))]
+        LEXTDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LHEADR"/>.
+        /// </summary>
+        [Description(nameof(Str.LHEADR))]
+        LHEADR,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LIBEXD"/>.
+        /// </summary>
+        [Description(nameof(Str.LIBEXD))]
+        LIBEXD,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LIBHDR"/>.
+        /// </summary>
+        [Description(nameof(Str.LIBHDR))]
+        LIBHDR,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LIDATA"/>.
+        /// </summary>
+        [Description(nameof(Str.LIDATA))]
+        LIDATA,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LINNUM"/>.
+        /// </summary>
+        [Description(nameof(Str.LINNUM))]
+        LINNUM,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LINSYM"/>.
+        /// </summary>
+        [Description(nameof(Str.LINSYM))]
+        LINSYM,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LLNAMES"/>.
+        /// </summary>
+        [Description(nameof(Str.LLNAMES))]
+        LLNAMES,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LNAMES"/>.
+        /// </summary>
+        [Description(nameof(Str.LNAMES))]
+        LNAMES,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.LPUBDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.LPUBDEF))]
+        LPUBDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.MODEND"/>.
+        /// </summary>
+        [Description(nameof(Str.MODEND))]
+        MODEND,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.NBKPAT"/>.
+        /// </summary>
+        [Description(nameof(Str.NBKPAT))]
+        NBKPAT,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.PUBDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.PUBDEF))]
+        PUBDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.SEGDEF"/>.
+        /// </summary>
+        [Description(nameof(Str.SEGDEF))]
+        SEGDEF,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.OMF.THEADR"/>.
+        /// </summary>
+        [Description(nameof(Str.THEADR))]
+        THEADR,
+
+        #endregion
+
         OMFLIBFile,
         OMFDBGFile,
 

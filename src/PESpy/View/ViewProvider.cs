@@ -6,6 +6,7 @@ using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.LIB;
 using PESpy.PDB;
+using PESpy.OMF;
 using PESpy.View;
 
 namespace PESpy
@@ -781,6 +782,39 @@ namespace PESpy
                 ViewKind.VBObjectInfo                                => Write(new VB.VBObjectInfo(chunk),                             viewWriter),
                 ViewKind.VBOptionalObjectInfo                        => Write(new VB.VBOptionalObjectInfo(chunk),                     viewWriter),
                 ViewKind.VBControlInfo                               => Write(new VB.VBControlInfo(chunk),                            viewWriter),
+
+                #region OMF Symbols
+
+                ViewKind.BAKPAT                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.CEXTDEF                                     => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.COMDAT                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.COMDEF                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.COMENT                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.DICHDR                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.EXTDEF                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.FIXUP2                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.FIXUPP                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.GRPDEF                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LCOMDEF                                     => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LEDATA                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LEXTDEF                                     => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LHEADR                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LIBEXD                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LIBHDR                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LIDATA                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LINNUM                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LINSYM                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LLNAMES                                     => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LNAMES                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.LPUBDEF                                     => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.MODEND                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.NBKPAT                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.PUBDEF                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.SEGDEF                                      => WriteOMFSymbol(chunk, viewWriter),
+                ViewKind.THEADR                                      => WriteOMFSymbol(chunk, viewWriter),
+
+                #endregion
+
                 ViewKind.endmap_s                                    => Write(new SYM.endmap_s(chunk),                                viewWriter),
                 ViewKind.linedef_s                                   => Write(new SYM.linedef_s(chunk),                               viewWriter),
                 ViewKind.linerec0_s                                  => Write(new SYM.linerec0_s(chunk),                              viewWriter),
@@ -942,6 +976,21 @@ namespace PESpy
             {
                 //I think we should only be writing top level types, which means we're guaranteed to be a TypType
                 return viewWriter.TypTypeDispatcher.Dispatch(new TypType((TYPTYPE*) chunk.Pointer));
+            }
+            finally
+            {
+                viewWriter.UnmanagedOffset = oldOffset;
+            }
+        }
+
+        private static unsafe IView WriteOMFSymbol(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var oldOffset = viewWriter.UnmanagedOffset;
+            viewWriter.UnmanagedOffset = chunk.AbsoluteOffset;
+
+            try
+            {
+                return viewWriter.OMFRecordDispatcher.Dispatch(new OMFRecord(chunk.Pointer));
             }
             finally
             {
