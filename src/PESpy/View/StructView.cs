@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using PESpy.SYM;
 
 namespace PESpy.View
 {
@@ -7,7 +8,7 @@ namespace PESpy.View
     {
         FixedUtf8String Name { get; }
 
-        bool TryGetEnhancedName(out string name);
+        bool TryWriteEnhancedName(ref ValueStringBuilder builder);
 
         string ValueType { get; }
     }
@@ -257,7 +258,7 @@ namespace PESpy.View
             return new StructView(newOffset, new ViewChildProvider<IView>(newChildren), Size, Kind, viewWriter);
         }
 
-        public bool TryGetEnhancedName(out string name)
+        public bool TryWriteEnhancedName(ref ValueStringBuilder builder)
         {
             switch (Kind)
             {
@@ -266,7 +267,7 @@ namespace PESpy.View
 
                     if (imageImportDescriptor.Name.IsValid)
                     {
-                        name = imageImportDescriptor.Name.Value.ToString();
+                        builder.Append(imageImportDescriptor.Name.Value);
                         return true;
                     }
                     break;
@@ -276,7 +277,7 @@ namespace PESpy.View
 
                     if (imageDelayLoadDescriptor.DllNameRVA.IsValid)
                     {
-                        name = imageDelayLoadDescriptor.DllNameRVA.Value.ToString();
+                        builder.Append(imageDelayLoadDescriptor.DllNameRVA.Value);
                         return true;
                     }
                     break;
@@ -287,24 +288,52 @@ namespace PESpy.View
                     if (!debugTypeEntry.FieldName.IsValid)
                     {
                         if (debugTypeEntry.TypeName.IsValid)
-                            name = debugTypeEntry.TypeName.Value.ToString();
+                        {
+                            builder.Append(debugTypeEntry.TypeName.Value);
+                            return true;
+                        }
                     }
                     else
                     {
                         //We have a FieldName
                         if (debugTypeEntry.TypeName.IsValid)
-                            name = $"{debugTypeEntry.TypeName}.{debugTypeEntry.FieldName}";
+                        {
+                            builder.Append(debugTypeEntry.TypeName.Value);
+                            builder.Append('.');
+                            builder.Append(debugTypeEntry.FieldName.Value);
+                            return true;
+                        }
                     }
                     break;
 
                 case ViewKind.BundleFileEntry:
                     var fileEntry = (Bundle.FileEntry) value;
 
-                    name = fileEntry.RelativePath.ToString();
+                    builder.Append(fileEntry.RelativePath.Value);
+
+                    return true;
+
+                case ViewKind.mapdef_s:
+                    builder.Append(((mapdef_s) value).md_achname);
+                    return true;
+
+                case ViewKind.segdef_s:
+                    builder.Append(((segdef_s) value).gd_achname);
+                    return true;
+
+                case ViewKind.symdef16_s:
+                    builder.Append(((symdef16_s) value).sd16_achname);
+                    return true;
+
+                case ViewKind.symdef_s:
+                    builder.Append(((symdef_s) value).sd_achname);
+                    return true;
+
+                case ViewKind.linedef_s:
+                    builder.Append(((linedef_s) value).ld_achname);
                     return true;
             }
 
-            name = default;
             return false;
         }
 

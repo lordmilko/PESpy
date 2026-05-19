@@ -1,79 +1,97 @@
-﻿namespace PESpy.SYM
+﻿using System;
+using PESpy.View;
+
+namespace PESpy.SYM
 {
     //segdef_s
     //SYM is too obscure, so I think it's better to use the real name
     [Source(SourceKind.mapsym_h)]
-    public readonly struct segdef_s
+    public readonly struct segdef_s : IViewableValue
     {
+        private const int gd_spsegnextOffset = 0;
+        private const int gd_csymOffset = 2;
+        private const int gd_psymoffOffset = 4;
+        private const int gd_lsaOffset = 6;
+        private const int gd_in0Offset = 8;
+        private const int gd_in1Offset = 10;
+        private const int gd_in2Offset = 12;
+        private const int gd_typeOffset = 14;
+        private const int gd_padOffset = 15;
+        private const int gd_splineOffset = 16;
+        private const int gd_floadOffset = 18;
+        private const int gd_curinOffset = 19;
+        private const int gd_cbnameOffset = 20;
+        private const int gd_achnameOffset = 21;
+
         /// <summary>
         /// 16 bit SEG ptr to next segdef (0 if end), relative to mapdef
         /// </summary>
-        public ushort gd_spsegnext => chunk.PeekUInt16(0);
+        public ushort gd_spsegnext => chunk.PeekUInt16(gd_spsegnextOffset);
 
         /// <summary>
         /// 16 bit count of symbols in sym list
         /// </summary>
-        public ushort gd_csym => chunk.PeekUInt16(2);
+        public ushort gd_csym => chunk.PeekUInt16(gd_csymOffset);
 
         /// <summary>
         /// 16 bit ptr to symbol offsets array, 16 bit SEG ptr if MSF_BIG_GROUP set, either relative to segdef
         /// </summary>
-        public ushort gd_psymoff => chunk.PeekUInt16(4);
+        public ushort gd_psymoff => chunk.PeekUInt16(gd_psymoffOffset);
 
         /// <summary>
         /// 16 bit Load Segment address
         /// </summary>
-        public ushort gd_lsa => chunk.PeekUInt16(6);
+        public ushort gd_lsa => chunk.PeekUInt16(gd_lsaOffset);
 
         /// <summary>
         /// 16 bit instance 0 physical address
         /// </summary>
-        public ushort gd_in0 => chunk.PeekUInt16(8);
+        public ushort gd_in0 => chunk.PeekUInt16(gd_in0Offset);
 
         /// <summary>
         /// 16 bit instance 1 physical address
         /// </summary>
-        public ushort gd_in1 => chunk.PeekUInt16(10);
+        public ushort gd_in1 => chunk.PeekUInt16(gd_in1Offset);
 
         /// <summary>
         /// 16 bit instance 2 physical address
         /// </summary>
-        public ushort gd_in2 => chunk.PeekUInt16(12);
+        public ushort gd_in2 => chunk.PeekUInt16(gd_in2Offset);
 
         /// <summary>
         /// 16 or 32 bit symbols in group
         /// </summary>
-        public MSF gd_type => (MSF) chunk.PeekByte(14);
+        public MSF gd_type => (MSF) chunk.PeekByte(gd_typeOffset);
 
         /// <summary>
         /// pad byte to fill space for gd_in3
         /// </summary>
-        public byte gd_pad => chunk.PeekByte(15);
+        public byte gd_pad => chunk.PeekByte(gd_padOffset);
 
         /// <summary>
         /// 16 bit SEG ptr to linedef, relative to mapdef
         /// </summary>
-        public ushort gd_spline => chunk.PeekUInt16(16);
+        public ushort gd_spline => chunk.PeekUInt16(gd_splineOffset);
 
         /// <summary>
         /// 8 bit boolean 0 if seg not loaded
         /// </summary>
-        public byte gd_fload => chunk.PeekByte(18);
+        public byte gd_fload => chunk.PeekByte(gd_floadOffset);
 
         /// <summary>
         /// 8 bit current instance
         /// </summary>
-        public byte gd_curin => chunk.PeekByte(19);
+        public byte gd_curin => chunk.PeekByte(gd_curinOffset);
 
         /// <summary>
         /// 8 bit Segment name length
         /// </summary>
-        public byte gd_cbname => chunk.PeekByte(20);
+        public byte gd_cbname => chunk.PeekByte(gd_cbnameOffset);
 
         /// <summary>
         /// &lt;n&gt;  name of segment or group
         /// </summary>
-        public FixedAnsiString gd_achname => chunk.PeekAnsiFixedLength(21, gd_cbname);
+        public FixedAnsiString gd_achname => chunk.PeekAnsiFixedLength(gd_achnameOffset, gd_cbname);
 
         #region PESpy
 
@@ -83,6 +101,23 @@
 
         #endregion
 
+        public long Offset => chunk.AbsoluteOffset;
+
+        internal const int FixedStructSize =
+            sizeof(short) + //gd_spsegnext
+            sizeof(short) + //gd_csym
+            sizeof(short) + //gd_psymoff
+            sizeof(short) + //gd_lsa
+            sizeof(short) + //gd_in0
+            sizeof(short) + //gd_in1
+            sizeof(short) + //gd_in2
+            sizeof(byte) + //gd_type
+            sizeof(byte) + //gd_pad
+            sizeof(short) + //gd_spline
+            sizeof(byte) + //gd_fload
+            sizeof(byte) + //gd_curin
+            sizeof(byte); //gd_cbname
+
         private readonly MemoryChunk chunk;
 
         internal segdef_s(int segmentOffset, in MemoryChunk globalChunk)
@@ -91,7 +126,7 @@
 
             this.chunk = globalChunk.Slice(segmentOffset);
 
-            Symbols = new SymbolInfo(this.chunk, this);
+            Symbols = new SymbolInfo(this.chunk, gd_type, gd_psymoff, gd_csym, true);
 
             if (gd_spline != 0)
             {
@@ -112,74 +147,79 @@
             }
         }
 
-        //Type is made up
-        public struct SymbolInfo
+        void IViewable.WriteGlobals(ViewWriter writer)
         {
-            public symdef16_s[] Symbols16 { get; }
+            Symbols.WriteGlobals(writer);
+            writer.WriteGlobal(Lines);
+        }
 
-            public symdef_s[] Symbols32 { get; }
+        IView? IViewable.WriteStruct(ViewWriter writer) =>
+            writer.NewStruct(this, ViewKind.segdef_s, FixedStructSize + gd_cbname); //temp
 
-            //The offsets to the symbols and the symbols themselves are relative to the offset of the segdef_s
-            internal SymbolInfo(in MemoryChunk chunk, in segdef_s seg)
+        int IViewable.NumChildren() => 14;
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter)
+        {
+            switch (index)
             {
-                //gd_psymoff points to an array of _offsets_ to symbol records. These offsets are
-                //2 bytes large when not using big symbols, and 3 bytes large when you are using big symbols
+                case 0:
+                    structWriter.WriteField(nameof(gd_spsegnext), gd_spsegnextOffset, gd_spsegnext);
+                    break;
 
-                int arrayOffset;
-                int bytesPerOffset;
+                case 1:
+                    structWriter.WriteField(nameof(gd_csym), gd_csymOffset, gd_csym);
+                    break;
 
-                //from symres GetNameFromAddr in XP
-                if ((seg.gd_type & MSF.MSF_BIGSYMDEF) != 0)
-                {
-                    //When there's a large number of symbols, gd_psymoff is a distance in paragraphs
-                    arrayOffset = seg.gd_psymoff * 16;
+                case 2:
+                    structWriter.WriteField(nameof(gd_psymoff), gd_psymoffOffset, gd_psymoff);
+                    break;
 
-                    bytesPerOffset = 3;
-                }
-                else
-                {
-                    arrayOffset = seg.gd_psymoff;
+                case 3:
+                    structWriter.WriteField(nameof(gd_lsa), gd_lsaOffset, gd_lsa);
+                    break;
 
-                    bytesPerOffset = 2;
-                }
+                case 4:
+                    structWriter.WriteField(nameof(gd_in0), gd_in0Offset, gd_in0);
+                    break;
 
-                //Read the offsets of each symbol
+                case 5:
+                    structWriter.WriteField(nameof(gd_in1), gd_in1Offset, gd_in1);
+                    break;
 
-                var symbolOffsetsChunk = chunk.Slice(arrayOffset);
+                case 6:
+                    structWriter.WriteField(nameof(gd_in2), gd_in2Offset, gd_in2);
+                    break;
 
-                var symbolOffsets = new int[seg.gd_csym];
+                case 7:
+                    structWriter.WriteField(nameof(gd_type), gd_typeOffset, gd_type, sizeof(byte));
+                    break;
 
-                for (var i = 0; i < symbolOffsets.Length; i++)
-                {
-                    var bytes = symbolOffsetsChunk.PeekNativeSpan<byte>(i * bytesPerOffset, bytesPerOffset);
+                case 8:
+                    structWriter.WriteField(nameof(gd_pad), gd_padOffset, gd_pad);
+                    break;
 
-                    if (bytesPerOffset == 2)
-                        symbolOffsets[i] = bytes[0] | (bytes[1] << 8);
-                    else
-                        symbolOffsets[i] = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16);
-                }
+                case 9:
+                    structWriter.WriteField(nameof(gd_spline), gd_splineOffset, gd_spline);
+                    break;
 
-                //Read the actual symbols themselves
-                symdef16_s[] symbols16 = null;
-                symdef_s[] symbols32 = null;
+                case 10:
+                    structWriter.WriteField(nameof(gd_fload), gd_floadOffset, gd_fload);
+                    break;
 
-                if ((seg.gd_type & MSF.MSF_32BITSYMS) != 0)
-                {
-                    symbols32 = new symdef_s[seg.gd_csym];
+                case 11:
+                    structWriter.WriteField(nameof(gd_curin), gd_curinOffset, gd_curin);
+                    break;
 
-                    for (var i = 0; i < symbols32.Length; i++)
-                        symbols32[i] = new symdef_s(chunk.Slice(symbolOffsets[i]));
-                }
-                else
-                {
-                    symbols16 = new symdef16_s[seg.gd_csym];
+                case 12:
+                    structWriter.WriteField(nameof(gd_cbname), gd_cbnameOffset, gd_cbname);
+                    break;
 
-                    for (var i = 0; i < symbols16.Length; i++)
-                        symbols16[i] = new symdef16_s(chunk.Slice(symbolOffsets[i]));
-                }
+                case 13:
+                    structWriter.WriteAnsiFixedLengthField(nameof(gd_achname), gd_achnameOffset, gd_achname);
+                    break;
 
-                Symbols16 = symbols16;
-                Symbols32 = symbols32;
+                default:
+                    throw new IndexOutOfRangeException();
             }
         }
 

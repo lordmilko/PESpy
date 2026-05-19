@@ -10,6 +10,7 @@ namespace PESpy
         public static NEFile NEFile(this MemoryChunk chunk) => (NEFile) ((GlobalMemoryBlock) chunk.block).File;
         public static LEFile LEFile(this MemoryChunk chunk) => (LEFile) ((GlobalMemoryBlock) chunk.block).File;
         public static PortablePDBFile PortablePDBFile(this MemoryChunk chunk) => (PortablePDBFile) ((GlobalMemoryBlock) chunk.block).File;
+        public static SYMFile SYMFile(this MemoryChunk chunk) => (SYMFile) ((GlobalMemoryBlock) chunk.block).File;
 
         public static IFile File(this MemoryChunk chunk)
         {

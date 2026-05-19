@@ -568,10 +568,11 @@ namespace PESpy.View
                 return;
             }
 
-            if (view.TryGetEnhancedName(out var enhancedName))
+            var pos = builder.Length;
+
+            if (view.TryWriteEnhancedName(ref builder))
             {
-                builder.Append(" ");
-                builder.Append(enhancedName);
+                builder.Insert(pos, " ");
                 return;
             }
 

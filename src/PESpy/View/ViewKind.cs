@@ -3122,6 +3122,65 @@ namespace PESpy.View
         OMFLIBFile,
         OMFDBGFile,
 
-        SYMFile
+        SYMFile,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.endmap_s"/>.
+        /// </summary>
+        [Description(nameof(Str.endmap_s))]
+        endmap_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.linedef_s"/>.
+        /// </summary>
+        [Description(nameof(Str.linedef_s))]
+        linedef_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.linerec0_s"/>.
+        /// </summary>
+        [Description(nameof(Str.linerec0_s))]
+        linerec0_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.linerec1_s"/>.
+        /// </summary>
+        [Description(nameof(Str.linerec1_s))]
+        linerec1_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.linerec2_s"/>.
+        /// </summary>
+        [Description(nameof(Str.linerec2_s))]
+        linerec2_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.mapdef_s"/>.
+        /// </summary>
+        [Description(nameof(Str.mapdef_s))]
+        mapdef_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.segdef_s"/>.
+        /// </summary>
+        [Description(nameof(Str.segdef_s))]
+        segdef_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.symdef_s"/>.
+        /// </summary>
+        [Description(nameof(Str.symdef_s))]
+        symdef_s,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.SYM.symdef16_s"/>.
+        /// </summary>
+        [Description(nameof(Str.symdef16_s))]
+        symdef16_s,
+
+        /// <summary>
+        /// An <see cref="IValueView"/> that represents an array of <see cref="int"/>.
+        /// </summary>
+        SymbolOffsets,
     }
 }

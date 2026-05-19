@@ -781,6 +781,16 @@ namespace PESpy
                 ViewKind.VBObjectInfo                                => Write(new VB.VBObjectInfo(chunk),                             viewWriter),
                 ViewKind.VBOptionalObjectInfo                        => Write(new VB.VBOptionalObjectInfo(chunk),                     viewWriter),
                 ViewKind.VBControlInfo                               => Write(new VB.VBControlInfo(chunk),                            viewWriter),
+                ViewKind.endmap_s                                    => Write(new SYM.endmap_s(chunk),                                viewWriter),
+                ViewKind.linedef_s                                   => Write(new SYM.linedef_s(chunk),                               viewWriter),
+                ViewKind.linerec0_s                                  => Write(new SYM.linerec0_s(chunk),                              viewWriter),
+                ViewKind.linerec1_s                                  => Write(new SYM.linerec1_s(chunk),                              viewWriter),
+                ViewKind.linerec2_s                                  => Write(new SYM.linerec2_s(chunk),                              viewWriter),
+                ViewKind.mapdef_s                                    => Write(new SYM.mapdef_s(chunk),                                viewWriter),
+                ViewKind.segdef_s                                    => Getsegdef_s(chunk, viewWriter),
+                ViewKind.symdef_s                                    => Write(new SYM.symdef_s(chunk),                                viewWriter),
+                ViewKind.symdef16_s                                  => Write(new SYM.symdef16_s(chunk),                              viewWriter),
+                ViewKind.SymbolOffsets                               => GetSymbolOffsets(chunk, viewWriter, length),
 
                 _ => throw new InvalidOperationException($"Don't know how to handle kind '{kind}'")
             };
@@ -1500,6 +1510,47 @@ namespace PESpy
             var ecmaMetadata = chunk.PortablePDBFile().EcmaMetadata;
 
             return Write(ecmaMetadata.PdbHeap, viewWriter);
+        }
+
+        private static IStructView Getsegdef_s(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var symFile = chunk.SYMFile();
+
+            var segments = symFile.Segments;
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+                ref var segment = ref segments[i];
+
+                if (segment.Offset == chunk.AbsoluteOffset)
+                    return Write(segment, viewWriter);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static IView GetSymbolOffsets(in MemoryChunk chunk, ViewWriter viewWriter, int length)
+        {
+            var symFile = chunk.SYMFile();
+
+            var symbolOffsets = symFile.Constants.SymbolOffsets;
+
+            if (symbolOffsets.Offset == chunk.AbsoluteOffset)
+                return viewWriter.NewValue(symbolOffsets.Offset, symbolOffsets.Value, length, ViewKind.SymbolOffsets);
+
+            var segments = symFile.Segments;
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+                ref var segment = ref segments[i];
+
+                symbolOffsets = segment.Symbols.SymbolOffsets;
+
+                if (symbolOffsets.Offset == chunk.AbsoluteOffset)
+                    return viewWriter.NewValue(symbolOffsets.Offset, symbolOffsets.Value, length, ViewKind.SymbolOffsets);
+            }
+
+            throw new NotImplementedException();
         }
 
         private static IView GetVftable(in MemoryChunk chunk, ViewWriter viewWriter, int length)

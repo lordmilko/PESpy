@@ -621,6 +621,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.dnt):
                             case nameof(ViewKind.Map):
                             case nameof(ViewKind.PdbHeap):
+                            case nameof(ViewKind.segdef_s):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
                                 break;
 
@@ -639,6 +640,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.OldTypType):
                             case nameof(ViewKind.RTTIBaseClassArray):
                             case nameof(ViewKind.Vftable):
+                            case nameof(ViewKind.SymbolOffsets):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter, length),");
                                 break;
 

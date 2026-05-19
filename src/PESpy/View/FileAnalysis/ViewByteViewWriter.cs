@@ -431,6 +431,7 @@ namespace PESpy.View
                 case ViewKind.TpiHashValues16: //Array
                 case ViewKind.TpiHashOffsets32: //Array
                 case ViewKind.TpiHashOffsets16: //Array
+                case ViewKind.SymbolOffsets: //Array
                     pViewByte->DataKind = ViewByteDataKind.Integer;
                     break;
 

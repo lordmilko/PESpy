@@ -813,7 +813,17 @@ namespace PESpy
             /* OMFFile                                                   */ default,
             /* OMFLIBFile                                                */ default,
             /* OMFDBGFile                                                */ default,
-            /* SYMFile                                                   */ default
+            /* SYMFile                                                   */ default,
+            /* endmap_s                                                  */ Strings.endmap_s,
+            /* linedef_s                                                 */ Strings.linedef_s,
+            /* linerec0_s                                                */ Strings.linerec0_s,
+            /* linerec1_s                                                */ Strings.linerec1_s,
+            /* linerec2_s                                                */ Strings.linerec2_s,
+            /* mapdef_s                                                  */ Strings.mapdef_s,
+            /* segdef_s                                                  */ Strings.segdef_s,
+            /* symdef_s                                                  */ Strings.symdef_s,
+            /* symdef16_s                                                */ Strings.symdef16_s,
+            /* SymbolOffsets                                             */ default
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

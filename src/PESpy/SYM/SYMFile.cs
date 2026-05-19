@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using PESpy.SYM;
@@ -8,8 +9,10 @@ using PESpy.View.Builder;
 namespace PESpy
 {
     //The Windows 1.01 and 1.03 SDK has mapsym 3.10. Can't find mapsym 2.08 to 3.0
+    //The format of *.sym files is defined in mapsym, which is responsible for converting
+    //*.map files to *.sym files
 
-    public class SYMFile : IFile
+    public class SYMFile : IFile, IViewable
     {
         public static SYMFile FromFile(string path)
         {
@@ -30,6 +33,9 @@ namespace PESpy
         }
 
         public mapdef_s Header { get; private set; }
+
+        //Also referred to as "abs"
+        public SymbolInfo Constants { get; private set; }
 
         public segdef_s[] Segments { get; private set; }
 
@@ -78,6 +84,8 @@ namespace PESpy
             var chunk = new MemoryChunk(globalBlock, 0);
             Header = new mapdef_s(chunk);
 
+            Constants = new SymbolInfo(chunk, Header.md_abstype, Header.md_pabsoff, Header.md_cabs, false);
+
             Footer = new endmap_s(chunk.Slice((int) chunk.Remaining - endmap_s.StructSize));
 
             //Apparently there's two versions of sym files: one stores offsets in bytes (MapSym 2.08 - 3.00)
@@ -122,20 +130,45 @@ namespace PESpy
             return _viewAccessor.GetFileView();
         }
 
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
             CancellationToken cancellationToken = default) => symbolAccessor ??= new SYMFileSymbolAccessor(this);
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public unsafe void GetRawHeaderData(out byte* pointer, out int length)
+        {
+            pointer = mmf.Address;
+            length = (int) mmf.Length;
+        }
+
+        internal bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            writer.WriteGlobal(Header);
+            Constants.WriteGlobals(writer);
+            writer.WriteGlobal(Segments);
+            writer.WriteGlobal(Footer);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        int IViewable.NumChildren() => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

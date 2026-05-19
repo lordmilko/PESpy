@@ -527,6 +527,10 @@ namespace PESpy
             _pos += value.Length;
         }
 
+        public void Append(AnsiString value) => Append(value.AsSpan());
+
+        public void Append(FixedAnsiString value) => Append(value.AsSpan());
+
         public void Append(FixedUtf8String value) => Append(value.AsSpan());
 
         public void Append(FixedUtf16String value) => Append(value.AsSpan());

@@ -628,6 +628,17 @@ var strings = new[]{
     "Optional Object Info",
     "Control Info",
 
+    //SYM
+    "endmap_s",
+    "linedef_s",
+    "linerec0_s",
+    "linerec1_s",
+    "linerec2_s",
+    "mapdef_s",
+    "segdef_s",
+    "symdef_s",
+    "symdef16_s",
+
     //Demangler
     "`RTTI Type Descriptor'",
     "`RTTI Type Descriptor Name'",

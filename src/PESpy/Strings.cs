@@ -6730,6 +6730,123 @@ namespace PESpy
         }
 
         /// <summary>
+        /// endmap_s
+        /// </summary>
+        internal static FixedUtf8String endmap_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x65, 0x6E, 0x64, 0x6D, 0x61, 0x70, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
+        /// linedef_s
+        /// </summary>
+        internal static FixedUtf8String linedef_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6C, 0x69, 0x6E, 0x65, 0x64, 0x65, 0x66, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 9);
+            }
+        }
+
+        /// <summary>
+        /// linerec0_s
+        /// </summary>
+        internal static FixedUtf8String linerec0_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6C, 0x69, 0x6E, 0x65, 0x72, 0x65, 0x63, 0x30, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// linerec1_s
+        /// </summary>
+        internal static FixedUtf8String linerec1_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6C, 0x69, 0x6E, 0x65, 0x72, 0x65, 0x63, 0x31, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// linerec2_s
+        /// </summary>
+        internal static FixedUtf8String linerec2_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6C, 0x69, 0x6E, 0x65, 0x72, 0x65, 0x63, 0x32, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
+        /// mapdef_s
+        /// </summary>
+        internal static FixedUtf8String mapdef_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6D, 0x61, 0x70, 0x64, 0x65, 0x66, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
+        /// segdef_s
+        /// </summary>
+        internal static FixedUtf8String segdef_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x73, 0x65, 0x67, 0x64, 0x65, 0x66, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
+        /// symdef_s
+        /// </summary>
+        internal static FixedUtf8String symdef_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x73, 0x79, 0x6D, 0x64, 0x65, 0x66, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 8);
+            }
+        }
+
+        /// <summary>
+        /// symdef16_s
+        /// </summary>
+        internal static FixedUtf8String symdef16_s
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x73, 0x79, 0x6D, 0x64, 0x65, 0x66, 0x31, 0x36, 0x5F, 0x73 })
+                    return new FixedUtf8String(p, 10);
+            }
+        }
+
+        /// <summary>
         /// `RTTI Type Descriptor'
         /// </summary>
         internal static FixedUtf8String RTTITypeDescriptor
