@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasEH"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasEH"/>
         /// </summary>
-        public static bool TryGetHasEH(in this SymType symType, out bool hasEH)
+        public static bool TryGetHasEH(in this SymType symType, out bool hasEH, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasEH = ((FrameProcSym) child).fHasEH;
                         return true;

@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_PGOEntryCount"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_PGOEntryCount"/>
         /// </summary>
-        public static bool TryGetPGOEntryCount(in this SymType symType, out int PGOEntryCount)
+        public static bool TryGetPGOEntryCount(in this SymType symType, out int PGOEntryCount, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child, codeViewModuleAccessor))
                     {
                         PGOEntryCount = ((PogoInfo) child).invocations;
                         return true;

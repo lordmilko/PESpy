@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasControlFlowCheck"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasControlFlowCheck"/>
         /// </summary>
-        public static bool TryGetHasControlFlowCheck(in this SymType symType, out bool hasControlFlowCheck)
+        public static bool TryGetHasControlFlowCheck(in this SymType symType, out bool hasControlFlowCheck, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasControlFlowCheck = ((FrameProcSym) child).fGuardCF;
                         return true;

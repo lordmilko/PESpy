@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isNaked"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isNaked"/>
         /// </summary>
-        public static bool TryGetIsNaked(in this SymType symType, out bool isNaked)
+        public static bool TryGetIsNaked(in this SymType symType, out bool isNaked, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         isNaked = ((FrameProcSym) child).fNaked;
                         return true;

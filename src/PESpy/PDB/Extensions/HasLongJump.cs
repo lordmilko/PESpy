@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasLongJump"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasLongJump"/>
         /// </summary>
-        public static bool TryGetHasLongJump(in this SymType symType, out bool hasLongJump)
+        public static bool TryGetHasLongJump(in this SymType symType, out bool hasLongJump, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasLongJump = ((FrameProcSym) child).fHasLongJmp;
                         return true;

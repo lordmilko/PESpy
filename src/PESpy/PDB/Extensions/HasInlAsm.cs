@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasInlAsm"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasInlAsm"/>
         /// </summary>
-        public static bool TryGetHasInlAsm(in this SymType symType, out bool hasInlAsm)
+        public static bool TryGetHasInlAsm(in this SymType symType, out bool hasInlAsm, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasInlAsm = ((FrameProcSym) child).fHasInlAsm;
                         return true;

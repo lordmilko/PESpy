@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasValidPGOCounts"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasValidPGOCounts"/>
         /// </summary>
-        public static bool TryGetHasValidPGOCounts(in this SymType symType, out bool hasValidPGOCounts)
+        public static bool TryGetHasValidPGOCounts(in this SymType symType, out bool hasValidPGOCounts, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasValidPGOCounts = ((FrameProcSym) child).fValidCounts;
                         return true;

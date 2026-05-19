@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol9.get_framePadOffset"/><para/>
         /// Corresponds to <see cref="IDiaSymbol9.get_framePadOffset"/>
         /// </summary>
-        public static bool TryGetFramePadOffset(in this SymType symType, out int framePadOffset)
+        public static bool TryGetFramePadOffset(in this SymType symType, out int framePadOffset, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         framePadOffset = ((FrameProcSym) child).offPad;
                         return true;

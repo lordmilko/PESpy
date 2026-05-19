@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_noStackOrdering"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_noStackOrdering"/>
         /// </summary>
-        public static bool TryGetNoStackOrdering(in this SymType symType, out bool noStackOrdering)
+        public static bool TryGetNoStackOrdering(in this SymType symType, out bool noStackOrdering, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         noStackOrdering = ((FrameProcSym) child).fGSNoStackOrdering;
                         return true;

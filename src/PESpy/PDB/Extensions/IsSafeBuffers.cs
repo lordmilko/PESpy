@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isSafeBuffers"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isSafeBuffers"/>
         /// </summary>
-        public static bool TryGetIsSafeBuffers(in this SymType symType, out bool isSafeBuffers)
+        public static bool TryGetIsSafeBuffers(in this SymType symType, out bool isSafeBuffers, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         isSafeBuffers = ((FrameProcSym) child).fSafeBuffers;
                         return true;

@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_staticSize"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_staticSize"/>
         /// </summary>
-        public static bool TryGetStaticSize(in this SymType symType, out int staticSize)
+        public static bool TryGetStaticSize(in this SymType symType, out int staticSize, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child, codeViewModuleAccessor))
                     {
                         staticSize = ((PogoInfo) child).numInstrs;
                         return true;

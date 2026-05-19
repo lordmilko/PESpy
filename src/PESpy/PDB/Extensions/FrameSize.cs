@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_frameSize"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_frameSize"/>
         /// </summary>
-        public static bool TryGetFrameSize(in this SymType symType, out int frameSize)
+        public static bool TryGetFrameSize(in this SymType symType, out int frameSize, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         frameSize = ((FrameProcSym) child).cbFrame;
                         return true;

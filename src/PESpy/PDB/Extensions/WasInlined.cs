@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_wasInlined"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_wasInlined"/>
         /// </summary>
-        public static bool TryGetWasInlined(in this SymType symType, out bool wasInlined)
+        public static bool TryGetWasInlined(in this SymType symType, out bool wasInlined, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         wasInlined = ((FrameProcSym) child).fWasInlined;
                         return true;

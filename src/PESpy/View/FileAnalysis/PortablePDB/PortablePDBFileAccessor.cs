@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO.MemoryMappedFiles;
 using System.Threading;
 
 namespace PESpy.View
@@ -14,6 +15,14 @@ namespace PESpy.View
         public PortablePDBFileAccessor(PortablePDBFile portablePDBFile) : base(bitness: 0)
         {
             PortablePDBFile = portablePDBFile;
+
+            SectionAccessors = new[]
+            {
+                //We don't expose this as a SectionView; instead, we unwrap all of the items inside the view
+                new SectionAccessor(0, portablePDBFile.Length, SectionAccessorKind.Header, -1, "HEADER", MemoryMappedFile.CreateNew(null, portablePDBFile.Length * ViewByte.Size))
+            };
+
+            Length = portablePDBFile.Length;
         }
 
         protected override object CreateOverview()

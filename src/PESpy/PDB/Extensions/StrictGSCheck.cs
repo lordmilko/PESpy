@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_strictGSCheck"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_strictGSCheck"/>
         /// </summary>
-        public static bool TryGetStrictGSCheck(in this SymType symType, out bool strictGSCheck)
+        public static bool TryGetStrictGSCheck(in this SymType symType, out bool strictGSCheck, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         strictGSCheck = ((FrameProcSym) child).fGSCheck;
                         return true;

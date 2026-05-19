@@ -1533,9 +1533,9 @@ namespace PESpy.PDB
             }
         }
 
-        private static bool TryGetChild(BlockSym blockSym, SYM_ENUM_e kind, out SymType result)
+        private static bool TryGetChild(BlockSym blockSym, SYM_ENUM_e kind, out SymType result, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
-            foreach (var child in blockSym.Children)
+            foreach (var child in blockSym.GetChildren(codeViewModuleAccessor))
             {
                 if (child.rectyp == kind)
                 {

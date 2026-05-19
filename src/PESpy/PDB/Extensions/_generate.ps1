@@ -387,6 +387,8 @@ foreach($field in $config.properties.PSObject.properties.Name)
 
     $defaultCases = @()
 
+    $needCodeViewModuleAccessor = $false
+
     if($field -eq "Name")
     {
         # Name is special cased; sources is a list of types that contain a name
@@ -414,10 +416,12 @@ foreach($field in $config.properties.PSObject.properties.Name)
             if($childKind)
             {
                 # Any expression that targets FrameProcSym may also apply when you're looking at the parent function
+                $needCodeViewModuleAccessor = $true
+
                 $defaultCases += [pscustomobject]@{
                     EntityType = $expr.EntityType
                     Body = @"
-if (symType.IsProc() && TryGetChild((BlockSym) symType, $childKind, out var child))
+if (symType.IsProc() && TryGetChild((BlockSym) symType, $childKind, out var child, codeViewModuleAccessor))
 {{
     {0} = $($expr.Body.Replace("symType", "child"));
     return true;
@@ -440,6 +444,13 @@ break;
 
         $strs = @()
         $statics = @()
+
+        $extraParameters = $null
+
+        if ($needCodeViewModuleAccessor)
+        {
+            $extraParameters = ", ICodeViewModuleAccessor? codeViewModuleAccessor = null"
+        }
 
         foreach($group in $groups)
         {
@@ -571,7 +582,7 @@ break;
                 $extra = @"
 
 $xmlDoc
-        public static bool TryGet$field(in this TypType typType, out $fieldType $lowerFieldName) =>
+        public static bool TryGet$field(in this TypType typType, out $fieldType $lowerFieldName$extraParameters) =>
             TryGet$field((LfEasy) typType, out $lowerFieldName);
 
 "@
@@ -585,7 +596,7 @@ $xmlDoc
     public static partial class $($extensionTypeName)Extensions
     {$extra
 $xmlDoc
-        public static bool TryGet$field(in this $entityTypeName $entityTypeParameter, out $fieldType $lowerFieldName)
+        public static bool TryGet$field(in this $entityTypeName $entityTypeParameter, out $fieldType $lowerFieldName$extraParameters)
         {
             switch ($recordTypeExpr)
             {

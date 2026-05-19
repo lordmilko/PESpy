@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_PGODynamicInstructionCount"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_PGODynamicInstructionCount"/>
         /// </summary>
-        public static bool TryGetPGODynamicInstructionCount(in this SymType symType, out long PGODynamicInstructionCount)
+        public static bool TryGetPGODynamicInstructionCount(in this SymType symType, out long PGODynamicInstructionCount, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_POGODATA, out var child, codeViewModuleAccessor))
                     {
                         PGODynamicInstructionCount = ((PogoInfo) child).dynCount;
                         return true;

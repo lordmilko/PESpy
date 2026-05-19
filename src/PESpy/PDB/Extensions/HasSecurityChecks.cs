@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_hasSecurityChecks"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_hasSecurityChecks"/>
         /// </summary>
-        public static bool TryGetHasSecurityChecks(in this SymType symType, out bool hasSecurityChecks)
+        public static bool TryGetHasSecurityChecks(in this SymType symType, out bool hasSecurityChecks, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -36,7 +36,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         hasSecurityChecks = ((FrameProcSym) child).fSecurityChecks;
                         return true;

@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isPGO"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isPGO"/>
         /// </summary>
-        public static bool TryGetIsPGO(in this SymType symType, out bool isPGO)
+        public static bool TryGetIsPGO(in this SymType symType, out bool isPGO, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -30,7 +30,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         isPGO = ((FrameProcSym) child).fPogoOn;
                         return true;

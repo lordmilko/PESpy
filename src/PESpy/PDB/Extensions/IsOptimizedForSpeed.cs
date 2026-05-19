@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_isOptimizedForSpeed"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_isOptimizedForSpeed"/>
         /// </summary>
-        public static bool TryGetIsOptimizedForSpeed(in this SymType symType, out bool isOptimizedForSpeed)
+        public static bool TryGetIsOptimizedForSpeed(in this SymType symType, out bool isOptimizedForSpeed, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         isOptimizedForSpeed = ((FrameProcSym) child).fOptSpeed;
                         return true;

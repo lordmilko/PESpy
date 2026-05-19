@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_exceptionHandlerAddressOffset"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_exceptionHandlerAddressOffset"/>
         /// </summary>
-        public static bool TryGetExceptionHandlerAddressOffset(in this SymType symType, out int exceptionHandlerAddressOffset)
+        public static bool TryGetExceptionHandlerAddressOffset(in this SymType symType, out int exceptionHandlerAddressOffset, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         exceptionHandlerAddressOffset = ((FrameProcSym) child).offExHdlr;
                         return true;

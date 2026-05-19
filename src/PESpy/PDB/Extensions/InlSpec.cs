@@ -15,7 +15,7 @@ namespace PESpy.PDB
         /// <inheritdoc cref="IDiaSymbol.get_inlSpec"/><para/>
         /// Corresponds to <see cref="IDiaSymbol.get_inlSpec"/>
         /// </summary>
-        public static bool TryGetInlSpec(in this SymType symType, out bool inlSpec)
+        public static bool TryGetInlSpec(in this SymType symType, out bool inlSpec, ICodeViewModuleAccessor? codeViewModuleAccessor = null)
         {
             switch (symType.rectyp)
             {
@@ -25,7 +25,7 @@ namespace PESpy.PDB
                     return true;
 
                 default:
-                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child))
+                    if (symType.IsProc() && TryGetChild((BlockSym) symType, S_FRAMEPROC, out var child, codeViewModuleAccessor))
                     {
                         inlSpec = ((FrameProcSym) child).fInlSpec;
                         return true;
