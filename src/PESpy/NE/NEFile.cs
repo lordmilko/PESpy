@@ -5,7 +5,6 @@ using System.IO;
 using System.Threading;
 using PESpy.NE;
 using PESpy.View;
-using PESpy.View.Builder;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
@@ -501,14 +500,6 @@ namespace PESpy
             }
 
             return _viewAccessor.GetFileView();
-        }
-
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
         }
 
         public ISymbolAccessor GetSymbolAccessor(

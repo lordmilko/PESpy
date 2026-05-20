@@ -6,7 +6,6 @@ using System.IO;
 using System.Threading;
 using PESpy.LE;
 using PESpy.View;
-using PESpy.View.Builder;
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy
@@ -699,14 +698,6 @@ namespace PESpy
             return _viewAccessor.GetFileView();
         }
 
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
         //We need to update this if we ever find OMF data inside a LE file
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
@@ -771,6 +762,14 @@ namespace PESpy
             mmf.Dispose();
 
             disposed = true;
+        }
+
+        public override string ToString()
+        {
+            if (Name != null)
+                return Name.ToString();
+
+            return base.ToString();
         }
     }
 }

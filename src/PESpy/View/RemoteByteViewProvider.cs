@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PESpy.View.Builder
+namespace PESpy.View
 {
     //Needs to move between sections, potentially downloading data from the remote process as we go
     internal class RemoteByteViewProvider : ByteViewProvider

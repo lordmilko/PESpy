@@ -425,6 +425,7 @@ namespace PESpy
                 ViewKind.PN                                          => viewWriter.NewValue(chunk.AbsoluteOffset, (PN) (length == 2 ? chunk.PeekUInt16(0) : chunk.PeekUInt32(0)), length, kind),
                 ViewKind.MsfHdr                                      => Write(new PDB.MsfHdr(chunk),                                  viewWriter),
                 ViewKind.BigMsfHdr                                   => Write(new PDB.BigMsfHdr(chunk),                               viewWriter),
+                ViewKind.OHDR                                        => Write(new PDB.OHDR(chunk),                                    viewWriter),
                 ViewKind.StreamTable                                 => GetStreamTable(chunk, viewWriter),
                 ViewKind.PDBStream                                   => Write((PDB.PDBStream) chunk.PDBFile().PDB.PDBHeader, viewWriter),
                 ViewKind.PDBStream70                                 => Write((PDB.PDBStream70) chunk.PDBFile().PDB.PDBHeader, viewWriter),
@@ -455,6 +456,7 @@ namespace PESpy
                 ViewKind.OMFFileIndex                                => GetOMFFileIndex(chunk, viewWriter),
                 ViewKind.NameTable                                   => Write(new PDB.NMT(chunk),                                     viewWriter),
                 ViewKind.DbgDataHdr                                  => Write(chunk.PDBFile().DBI.DbgHdr, viewWriter),
+                ViewKind.C8REC                                       => GetC8REC(chunk, viewWriter),
                 ViewKind.PdbFeature                                  => viewWriter.NewValue(chunk.AbsoluteOffset, (PdbFeature) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.CvSignature                                 => viewWriter.NewValue(chunk.AbsoluteOffset, (CV_SIGNATURE) chunk.PeekUInt32(0), sizeof(int), kind),
                 ViewKind.HRFile                                      => WriteUnmanaged<HRFile>(chunk, viewWriter, kind),
@@ -785,6 +787,7 @@ namespace PESpy
 
                 #region OMF Symbols
 
+                ViewKind.OMFRecord                                   => WriteOMFSymbol(chunk, viewWriter),
                 ViewKind.BAKPAT                                      => WriteOMFSymbol(chunk, viewWriter),
                 ViewKind.CEXTDEF                                     => WriteOMFSymbol(chunk, viewWriter),
                 ViewKind.COMDAT                                      => WriteOMFSymbol(chunk, viewWriter),
@@ -1048,6 +1051,21 @@ namespace PESpy
             throw new InvalidOperationException($"Failed to find the file entry associated with offset '0x{chunk.AbsoluteOffset:X}'");
         }
 
+        private static unsafe IStructView GetC8REC(in MemoryChunk chunk, ViewWriter viewWriter)
+        {
+            var oldOffset = viewWriter.UnmanagedOffset;
+            viewWriter.UnmanagedOffset = chunk.AbsoluteOffset;
+
+            try
+            {
+                return Write(new C8Rec((C8REC*) chunk.Pointer), viewWriter);
+            }
+            finally
+            {
+                viewWriter.UnmanagedOffset = oldOffset;
+            }
+        }
+
         private static IStructView GetCoffSymbolTable(in MemoryChunk chunk, ViewWriter viewWriter)
         {
             if (chunk.block is GlobalSubMemoryBlock s)
@@ -1125,8 +1143,7 @@ namespace PESpy
 
         private static IStructView Getdnt(in MemoryChunk chunk, ViewWriter viewWriter)
         {
-            var dosFile = chunk.DOSFile();
-            var nb02Data = (NB02Data) dosFile.CodeViewData;
+            var nb02Data = GetNB02Data(chunk);
 
             for (var i = 0; i < nb02Data.DirEntries.Length; i++)
             {
@@ -1356,8 +1373,7 @@ namespace PESpy
 
         private static IView Getloe(in MemoryChunk chunk, ViewWriter viewWriter)
         {
-            var dosFile = chunk.DOSFile();
-            var nb02Data = (NB02Data) dosFile.CodeViewData;
+            var nb02Data = GetNB02Data(chunk);
 
             for (var i = 0; i < nb02Data.DirEntries.Length; i++)
             {
@@ -1446,8 +1462,7 @@ namespace PESpy
 
         private static IView GetOldSymType(in MemoryChunk chunk, ViewWriter viewWriter, int length)
         {
-            var dosFile = chunk.DOSFile();
-            var nb02Data = (NB02Data) dosFile.CodeViewData;
+            var nb02Data = GetNB02Data(chunk);
 
             for (var i = 0; i < nb02Data.DirEntries.Length; i++)
             {
@@ -1467,8 +1482,7 @@ namespace PESpy
 
         private static IView GetOldTypType(in MemoryChunk chunk, ViewWriter viewWriter, int length)
         {
-            var dosFile = chunk.DOSFile();
-            var nb02Data = (NB02Data) dosFile.CodeViewData;
+            var nb02Data = GetNB02Data(chunk);
 
             for (var i = 0; i < nb02Data.DirEntries.Length; i++)
             {
@@ -1630,6 +1644,19 @@ namespace PESpy
             }
 
             throw new NotImplementedException();
+        }
+
+        private static NB02Data GetNB02Data(in MemoryChunk chunk)
+        {
+            var file = chunk.File();
+
+            var nb02Data = (NB02Data) (file.Kind switch
+            {
+                FileKind.DOS => ((DOSFile) file).CodeViewData,
+                FileKind.OMFDBG => ((OMFDBGFile) file).data,
+            });
+
+            return nb02Data;
         }
 
         private static NB05Data GetNB05Data(in MemoryChunk chunk)

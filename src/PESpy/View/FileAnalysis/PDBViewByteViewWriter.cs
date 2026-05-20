@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.PDB;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -244,7 +243,7 @@ namespace PESpy.View
                     //Whatever we just wrote ends in a split tail then
                     (pViewByte + numBytesToWrite - 1)->BodyKind = ViewByteBodyKind.SplitTail;
 
-                    currentSegmentStart = Merger.GetNextPageOffset(_pdbFile, currentSegmentStart, _pageNumberToSIIndex);
+                    currentSegmentStart = PDBFileAccessor.GetNextPageOffset(_pdbFile, currentSegmentStart, _pageNumberToSIIndex);
                     relativeOffset = 0;
 
                     //Note that there is not a 1:1 correspondence between page index and section accessor index,

@@ -25,11 +25,6 @@ namespace PESpy.View
             return false;
         }
 
-        internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
-        {
-            throw new NotImplementedException();
-        }
-
         bool ISectionDataAccessor.TryGetOffSeg(int rva, out int off, out ushort seg)
         {
             throw new NotImplementedException();
@@ -41,16 +36,6 @@ namespace PESpy.View
         }
 
         void ISectionDataAccessor.GetRawSectionData(int targetAddress, int sectionIndex, out byte* pByte, out int remainingLength)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor()
         {
             throw new NotImplementedException();
         }

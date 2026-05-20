@@ -156,7 +156,7 @@ namespace PESpy.PDB
             switch (index)
             {
                 case 0:
-                    structWriter.WriteNullPaddedUtf8Field("szMagic", MagicOffset, BigHdrMagic, 32); //It's not null padded, it's just exactly 32 bytes
+                    structWriter.WriteAnsiFixedLengthField("szMagic", MagicOffset, Magic); //It's not null padded, it's just exactly 32 bytes
                     break;
 
                 case 1:

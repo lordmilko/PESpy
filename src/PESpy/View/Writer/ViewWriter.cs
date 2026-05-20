@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.PDB;
 using PESpy.OMF;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -342,11 +341,7 @@ namespace PESpy.View
 
             nestedWriter.WriteGlobal(peFile);
 
-            var view = nestedWriter.Finalize();
-
             ExitNestedFile();
-
-            globalList.Add(view);
         }
 
         public void RelayGlobals<T>(T? viewable) where T : IViewable
@@ -1576,7 +1571,5 @@ namespace PESpy.View
             list.Clear();
             listPool.Push(list);
         }
-
-        public IView Finalize() => helper.Finalize(this);
     }
 }

@@ -2583,6 +2583,19 @@ namespace PESpy
         }
 
         /// <summary>
+        /// OHDR
+        /// </summary>
+        internal static FixedUtf8String OHDR
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x4F, 0x48, 0x44, 0x52 })
+                    return new FixedUtf8String(p, 4);
+            }
+        }
+
+        /// <summary>
         /// SI_PERSIST
         /// </summary>
         internal static FixedUtf8String SI_PERSIST
@@ -5920,6 +5933,19 @@ namespace PESpy
             {
                 fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x6D, 0x6C, 0x4D, 0x65, 0x74, 0x68, 0x6F, 0x64, 0x5F, 0x31, 0x36, 0x74 })
                     return new FixedUtf8String(p, 12);
+            }
+        }
+
+        /// <summary>
+        /// C8REC
+        /// </summary>
+        internal static FixedUtf8String C8REC
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (byte* p = (ReadOnlySpan<byte>) new byte[] { 0x43, 0x38, 0x52, 0x45, 0x43 })
+                    return new FixedUtf8String(p, 5);
             }
         }
 

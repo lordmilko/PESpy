@@ -80,6 +80,15 @@ namespace PESpy
         Resource
     }
 
+    internal interface IFileInternal : IFile
+    {
+        ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor);
+
+        unsafe void GetRawHeaderData(out byte* pointer, out int length);
+
+        bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk);
+    }
+
     public interface IFile : IDisposable
     {
         /// <summary>

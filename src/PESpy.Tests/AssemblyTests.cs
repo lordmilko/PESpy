@@ -195,15 +195,15 @@ namespace PESpy.Tests
 
             var viewWriter = compilation.GetTypeByMetadataName("PESpy.View.PEFileViewWriterHelper");
 
-            var finalize = (IMethodSymbol) viewWriter.GetMembers("CollectDataDirectories")[0];
+            var collectDataDirectories = (IMethodSymbol) viewWriter.GetMembers("CollectDataDirectories")[0];
 
-            var finalizeSyntax = (MethodDeclarationSyntax) finalize.DeclaringSyntaxReferences[0].GetSyntax();
+            var collectDataDirectoriesSyntax = (MethodDeclarationSyntax) collectDataDirectories.DeclaringSyntaxReferences[0].GetSyntax();
 
-            var semanticModel = compilation.GetSemanticModel(finalizeSyntax.SyntaxTree, true);
+            var semanticModel = compilation.GetSemanticModel(collectDataDirectoriesSyntax.SyntaxTree, true);
 
             var propertiesUsed = new HashSet<string>();
 
-            foreach (var memberAccess in finalizeSyntax.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+            foreach (var memberAccess in collectDataDirectoriesSyntax.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
             {
                 var symbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
 
@@ -233,7 +233,7 @@ namespace PESpy.Tests
 
             if (missingProperties.Length > 0)
             {
-                Assert.Fail($"The following {nameof(ImageDataDirectory)} properties are not being written in {nameof(ViewWriter)}.{nameof(ViewWriter.Finalize)}" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
+                Assert.Fail($"The following {nameof(ImageDataDirectory)} properties are not being written in {nameof(PEFileViewWriterHelper)}.{nameof(PEFileViewWriterHelper.CollectDataDirectories)}" + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, missingProperties));
             }
         }
 
@@ -622,6 +622,7 @@ namespace PESpy.Tests
                             case nameof(ViewKind.Map):
                             case nameof(ViewKind.PdbHeap):
                             case nameof(ViewKind.segdef_s):
+                            case nameof(ViewKind.C8REC):
                                 builder.AppendLine($"Get{enumValue}(chunk, viewWriter),");
                                 break;
 

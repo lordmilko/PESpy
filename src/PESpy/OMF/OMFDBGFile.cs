@@ -4,12 +4,11 @@ using System.IO;
 using System.Threading;
 using ClrDebug;
 using PESpy.View;
-using PESpy.View.Builder;
 
 namespace PESpy
 {
     //The whole file is just NB02 data
-    internal class OMFDBGFile : IFileInternal
+    internal class OMFDBGFile : IFileInternal, IViewable
     {
         public static OMFDBGFile FromFile(string path)
         {
@@ -58,7 +57,7 @@ namespace PESpy
         private readonly GlobalMemoryBlock globalBlock;
         private bool disposed;
 
-        private NB02Data data;
+        internal NB02Data data;
 
         internal unsafe OMFDBGFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
         {
@@ -102,14 +101,6 @@ namespace PESpy
             return _viewAccessor.GetFileView();
         }
 
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
@@ -140,6 +131,18 @@ namespace PESpy
             chunk = default;
             return false;
         }
+
+        void IViewable.WriteGlobals(ViewWriter writer)
+        {
+            //There's an additional 4 bytes prior to the start of the OMF data that we haven't figured out yet
+            writer.WriteGlobal(data);
+        }
+
+        IView? IViewable.WriteStruct(ViewWriter writer) => null;
+
+        int IViewable.NumChildren() => throw new NotSupportedException();
+
+        void IViewable.WriteChild(int index, ref StructWriter structWriter) => throw new NotSupportedException();
 
         public void Dispose()
         {

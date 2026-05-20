@@ -4,12 +4,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using PESpy.PDB;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
     internal class PDBFileAccessor : FileAccessor
     {
+        //Not streams, but we need their indices to be in the page number to SI index lookup map for file analysis
+        //lookups (we don't need them for merging)
+        internal const int SPECIAL_STREAM_MASTER_INDEX = -1;
+        internal const int SPECIAL_STREAM_FPM_0 = -2;
+        internal const int SPECIAL_STREAM_FPM_1 = -3;
+
+        internal const int SPECIAL_STREAM_STREAMTABLE = -4;
+        internal const int SPECIAL_STREAM_STREAMTABLE_LOCATION = -5;
+        internal const int SPECIAL_STREAM_FREE = -6;
+
         public PDBFile PDBFile { get; }
 
         internal readonly Dictionary<PN, int> _pageNumberToSIIndex;
@@ -20,8 +29,52 @@ namespace PESpy.View
             PDBFile = pdbFile;
             FileViewKind = ViewKind.PDBFile;
 
-            _pageNumberToSIIndex = Merger.GetPageNumberToSIIndex(pdbFile);
+            _pageNumberToSIIndex = GetPageNumberToSIIndex(pdbFile);
         }
+
+        private static Dictionary<PN, int> GetPageNumberToSIIndex(PDBFile pdbFile)
+        {
+            var dict = new Dictionary<PN, int>();
+
+            dict[0] = SPECIAL_STREAM_MASTER_INDEX;
+
+            foreach (var page in pdbFile.FPM0.FpmPages)
+                dict[page] = SPECIAL_STREAM_FPM_0;
+
+            foreach (var page in pdbFile.FPM1.FpmPages)
+                dict[page] = SPECIAL_STREAM_FPM_1;
+
+            var streamInfos = pdbFile.StreamTable.StreamInfos;
+
+            for (var i = 0; i < streamInfos.Length; i++)
+            {
+                var si = streamInfos[i];
+
+                foreach (var pn in si.PageList)
+                    dict[pn] = i;
+            }
+
+            if (pdbFile is PDB7File v7)
+            {
+                //For the pages that describe the location of the stream table, we list these as being at index -1, which we special case
+                //to know that we need to retrieve the StreamTableLocation.PageList
+                foreach (var page in v7.StreamTableLocation.PageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE;
+
+                //And for the pages that describe the location of the stream table's pages, we list these as being at -2
+                foreach (var page in v7.MsfHeader.PagesOfStreamTablePageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE_LOCATION;
+            }
+            else
+            {
+                //In V2, mpspnpnSt lists the pages of the stream table directly
+                foreach (var page in ((PDB2File) pdbFile).MsfHeader.StreamTablePageList)
+                    dict[page] = SPECIAL_STREAM_STREAMTABLE;
+            }
+
+            return dict;
+        }
+
         protected override void InitializeSectionAccessors(ViewMode viewMode)
         {
             var pdbFile = (PDBFile) File;
@@ -160,11 +213,6 @@ namespace PESpy.View
 
         protected override object CreateOverview() => new PDBFileOverview(PDBFile, PDBFile.GetSymbolAccessor());
 
-        public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex)
-        {
-            throw new NotImplementedException();
-        }
-
         public override unsafe void GetRawSectionData(
             in SectionAccessor sectionAccessor,
             out byte* pByte,
@@ -176,11 +224,6 @@ namespace PESpy.View
             pByte = PDBFile.globalBlock.LocalPointer;
             rva = default;
             remainingLength = sectionAccessor.Length;
-        }
-
-        internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
-        {
-            throw new NotImplementedException();
         }
 
         internal override void GetMemoryChunkFromAddress(long address, out MemoryChunk chunk, out ViewWriter viewWriter)
@@ -205,12 +248,12 @@ namespace PESpy.View
 
             switch (siIndex)
             {
-                case Merger.SPECIAL_STREAM_MASTER_INDEX: //-1
-                case Merger.SPECIAL_STREAM_FPM_0: //-2
-                case Merger.SPECIAL_STREAM_FPM_1: //-3
+                case SPECIAL_STREAM_MASTER_INDEX: //-1
+                case SPECIAL_STREAM_FPM_0: //-2
+                case SPECIAL_STREAM_FPM_1: //-3
                     throw new NotImplementedException();
 
-                case Merger.SPECIAL_STREAM_STREAMTABLE: //-4
+                case SPECIAL_STREAM_STREAMTABLE: //-4
                     if (PDBFile is PDB7File v7)
                     {
                         pageList = v7.StreamTableLocation.PageList;
@@ -225,7 +268,7 @@ namespace PESpy.View
                     }
                     break;
 
-                case Merger.SPECIAL_STREAM_STREAMTABLE_LOCATION: //-5
+                case SPECIAL_STREAM_STREAMTABLE_LOCATION: //-5
                     pageList = ((PDB7File) PDBFile)._pagesOfStreamTablePageListArray;
                     byteCount = pageList.Length * PDBFile.PageSize;
                     break;
@@ -263,16 +306,6 @@ namespace PESpy.View
             return _viewWriter;
         }
 
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor()
-        {
-            throw new NotImplementedException();
-        }
-
         internal unsafe void GetSplitHeadOrigin(ref ViewByte* pViewByte, ref long offset, out int sectionIndex, out int bytesRewound)
         {
             bytesRewound = 0;
@@ -281,7 +314,7 @@ namespace PESpy.View
             {
                 Debug.Assert(pViewByte->Kind == ViewByteKind.Body && pViewByte->BodyKind == ViewByteBodyKind.SplitHead);
 
-                offset = Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex, previous: true) + PDBFile.PageSize - 1;
+                offset = GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex, previous: true) + PDBFile.PageSize - 1;
 
                 pViewByte = GetViewByte(offset, out sectionIndex);
 
@@ -321,7 +354,7 @@ namespace PESpy.View
 
             while (true)
             {
-                offset = Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
+                offset = GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
 
                 pViewByte = GetViewByte(offset, out var sectionIndex);
 
@@ -368,6 +401,102 @@ namespace PESpy.View
             }
         }
 
-        internal long GetNextPageOffset(long offset) => Merger.GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
+        internal long GetNextPageOffset(long offset) => GetNextPageOffset(PDBFile, offset, _pageNumberToSIIndex);
+
+        //Given an offset in the current page, gets the offset of the start of the page after it.
+        //If previous is true, returns the offset of the start of the page before it
+        internal static long GetNextPageOffset(
+            PDBFile pdbFile,
+            long offsetInCurrentPage,
+            Dictionary<PN, int> pageNumberToSIIndex,
+            bool previous = false)
+        {
+            /* The current value may exist between 0x1000-0x1120. However, the current directory may only
+             * span from 0x1000-0x1100, meaning that the bytes at 0x1100-0x1120 need to be split off. However,
+             * it's actually erroneous to say that these bytes necessarily existed at 0x1100-0x1120; they may have been
+             * read from a page far, far away from here, e.g. in the 0x4000 range. To figure out the offset
+             * to use for the split page, we must figure out what our current page is, which stream that's in,
+             * what our index is within that stream, and then what the next page after us is */
+
+            var currentPage = (PN) (offsetInCurrentPage / pdbFile.PageSize); //We want the current page, so don't divide up
+            var siIndex = pageNumberToSIIndex[currentPage];
+
+            Span<PN> siPageList;
+
+            //MSF v2 files store their pages as ushort instead of uint, so we rent an array to expand these values to uint
+            //to enable sharing the same pagelist lookup logic
+            PN[] pdbV2PageList = null;
+
+            try
+            {
+                //Get the appropriate page list to search
+
+                if (siIndex == SPECIAL_STREAM_STREAMTABLE)
+                {
+                    if (pdbFile is PDB7File v7)
+                        siPageList = v7.StreamTableLocation.PageList;
+                    else
+                    {
+                        //In V2 mpspnpnSt lists the pages of the stream table, not the pages that the stream table's pages are found in
+                        var rawPages = ((PDB2File) pdbFile).MsfHeader.StreamTablePageList;
+
+                        pdbV2PageList = ArrayPool<PN>.Shared.Rent(rawPages.Length);
+
+                        for (var i = 0; i < rawPages.Length; i++)
+                            pdbV2PageList[i] = rawPages[i];
+
+                        siPageList = pdbV2PageList.AsSpan(0, rawPages.Length);
+                    }
+                }
+                else if (siIndex == SPECIAL_STREAM_STREAMTABLE_LOCATION)
+                {
+                    //It's a page describing the location of the stream table's pages
+                    siPageList = ((PDB7File) pdbFile).MsfHeader.PagesOfStreamTablePageList;
+                }
+                else
+                {
+                    var si = pdbFile.StreamTable.StreamInfos[siIndex];
+
+                    siPageList = si.PageList;
+                }
+
+                var currentIndex = siPageList.IndexOf(currentPage);
+
+                if (currentIndex == -1)
+                    throw new InvalidOperationException("Could not find the current page in the page list; this should be impossible");
+
+                /* Suppose you have a DBI section with the following pages:
+                 *     59: 0xEC00 - 0xF000
+                 *     58: 0xE800 - 0xEC00
+                 *
+                 * Observe that the second page is _before_ the first page. You then might have an OMFSegMap that proclaims
+                 * that it lies within 0xEFD4-0xF027. On the basis that 0xF027 is beyond the bounds of page 59 (0xF000) we determine
+                 * that a split is required here, and we would normally say that the cutoff point for performing the split is 0xF000.
+                 * However, when you look at the actual children of the OMFSegMap, you may have a bunch of items between 0xEFD4-0xEFFF
+                 * and another item perfectly after the start of the next page at 0xE800. This is going to cause issues when we go to
+                 * try and find the split point, because no child is actually ever after 0xF000; the parent OMFSegMap only reports that
+                 * this is the case because the total size is 84. So, when performing the split what we really need to do is _either_
+                 * look for values that are running over the edge of the current page, _or_ are perfectly situated at the start of
+                 * the current page
+                 */
+
+                if (previous)
+                {
+                    var previousPage = siPageList[currentIndex - 1];
+                    return previousPage * pdbFile.PageSize;
+                }
+                else
+                {
+                    //The next page in the list is the one that our split value begins from
+                    var nextPage = siPageList[currentIndex + 1];
+                    return nextPage * pdbFile.PageSize;
+                }
+            }
+            finally
+            {
+                if (pdbV2PageList != null)
+                    ArrayPool<PN>.Shared.Return(pdbV2PageList);
+            }
+        }
     }
 }

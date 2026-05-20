@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using PESpy.Native;
 
-namespace PESpy.View.Builder
+namespace PESpy.View
 {
     internal abstract unsafe class ByteViewProvider
     {

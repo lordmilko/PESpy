@@ -8,7 +8,6 @@ using System.Threading;
 using ClrDebug;
 using PESpy.Native;
 using PESpy.View;
-using PESpy.View.Builder;
 using PESpy.VB;
 using Stream = System.IO.Stream;
 using static ClrDebug.IMAGE_FILE_MACHINE;
@@ -2993,8 +2992,6 @@ namespace PESpy
 
         #endregion
 
-        public FileView GetViewOld() => GetViewOld(ViewMode.Default);
-
         private FileAccessor? _viewAccessorPhysical;
         private FileAccessor? _viewAccessorVirtual;
 
@@ -3203,31 +3200,6 @@ namespace PESpy
                 symbolReader = default;
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Gets a <see cref="FileView"/> that allows visualizing the physical structure of the <see cref="PEFile"/>.
-        /// </summary>
-        /// <param name="mode">Specifies the addressing mode that should be used in the returned view. If this value is <see cref="ViewMode.Default"/>,
-        /// <see cref="ViewMode.Virtual"/> or <see cref="ViewMode.Physical"/> will automatically be selected based on the value of <see cref="IsLoadedImage"/>.</param>
-        /// <returns>A <see cref="FileView"/> that provides a view over the structure of the PE File.</returns>
-        public FileView GetViewOld(ViewMode mode)
-        {
-            var writer = GetViewWriter(mode);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
-        public unsafe IView GetViewOld(IViewable viewable, ViewMode mode = ViewMode.Default)
-        {
-            var writer = GetViewWriter(mode);
-            viewable.WriteStruct(writer);
-
-            if (writer.Current.Count != 1)
-                throw new NotImplementedException();
-
-            return writer.Current[0];
         }
 
         private unsafe ViewWriter GetViewWriter(ViewMode mode)

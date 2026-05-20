@@ -581,6 +581,24 @@ namespace PESpy.View
         public void WriteField(string name, int relativeOffset, CV_LVAR_ADDR_RANGE value) =>
             RelayField(name, relativeOffset, value, sizeof(int) + sizeof(short) + sizeof(short));
 
+        public void WriteField(string name, int relativeOffset, TypType type)
+        {
+            var oldOffset = _viewWriter.UnmanagedOffset;
+            _viewWriter.UnmanagedOffset = _parentOffset + relativeOffset;
+
+            try
+            {
+                var view = _viewWriter.TypTypeDispatcher.Dispatch(type);
+
+                if (view != null)
+                    Field = new StructFieldView((IStructView) view, name, _viewWriter._fileAccessor);
+            }
+            finally
+            {
+                _viewWriter.UnmanagedOffset = oldOffset;
+            }
+        }
+
         public void WriteField(string name, int relativeOffset, BinaryAnnotationList value) =>
             RelayField(name, relativeOffset, value, value.RawLength);
 

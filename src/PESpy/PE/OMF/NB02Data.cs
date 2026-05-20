@@ -30,6 +30,9 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            //Ostensibly we should be writing an OMFSignature struct here, but the thing is we want to be able to capture
+            //the fact this is lfoDir which we can't do if it's in OMFSignature, since that type is generic and applies to
+            //both the start and end signatures
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, LfoDir, sizeof(int), ViewKind.LfoDir);
 

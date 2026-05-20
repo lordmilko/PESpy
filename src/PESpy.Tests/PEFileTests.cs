@@ -4002,9 +4002,12 @@ namespace PESpy.Tests
 
             var manifestMetadata = peFile.NgenManifestMetaData;
 
+            //There are two sets of ECMA-335 metadata in the file; the manifest metadata
+            //and the metadata pointed to by the IMAGE_COR20_HEADER. It's only the IMAGE_COR20_HEADER
+            //one that contains TestLib.Class1 in it
             var modelHeap = manifestMetadata.ModelHeap;
 
-            Assert.AreEqual("Class1", modelHeap.TypeDefTable.Single().ToString());
+            Assert.AreEqual("<Module>", modelHeap.TypeDefTable.Single().ToString());
         }
 
         [TestMethod]
@@ -4253,7 +4256,7 @@ namespace PESpy.Tests
                         c => c.VerifyField(name: "BundleHeaderOffset", value: (long) 12699859),
                         c => c.VerifyFieldIgnoreValue(name: "BundleSignature")
                     ),
-                    after: 64 //All of the nested files and the ECMA 335 metadata regions are written as "globals" and contribute to this count
+                    after: 54 //All of the nested files and the ECMA 335 metadata regions are written as "globals" and contribute to this count
                 )
             );
 

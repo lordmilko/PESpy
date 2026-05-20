@@ -1,5 +1,5 @@
 ﻿using System;
-using PESpy.View.Builder;
+using PESpy.View;
 
 namespace PESpy.Tests
 {

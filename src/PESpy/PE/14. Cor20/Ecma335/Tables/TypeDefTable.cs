@@ -217,9 +217,15 @@ namespace PESpy.Ecma335
 
         private void InitializeNestedTypesMap()
         {
-            var groupedNestedTypes = new Dictionary<TypeDefIndex, List<TypeDefIndex>>();
-
             var nestedClassTable = ModelHeap.NestedClassTable;
+
+            if (nestedClassTable == null)
+            {
+                _lazyNestedTypesMap = new();
+                return;
+            }
+
+            var groupedNestedTypes = new Dictionary<TypeDefIndex, List<TypeDefIndex>>();
 
             int numberOfNestedTypes = nestedClassTable.Count;
             List<TypeDefIndex>? builder = null;

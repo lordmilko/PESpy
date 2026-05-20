@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace PESpy.View.Builder
+namespace PESpy.View
 {
     [DebuggerDisplay("Name = {Name}, Start = 0x{Start.ToString(\"X\"),nq}, End = 0x{End.ToString(\"X\"),nq}")]
     struct DirectoryInfo

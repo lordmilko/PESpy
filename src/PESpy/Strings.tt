@@ -276,6 +276,7 @@ var strings = new[]{
     //MSF
     "MSF_HDR",
     "BIGMSF_HDR",
+    "OHDR",
     "SI_PERSIST",
     "Stream Table",
 
@@ -545,6 +546,8 @@ var strings = new[]{
 
     "mlMethod",
     "mlMethod_16t",
+
+    "C8REC",
 
     "Numeric Data",
 

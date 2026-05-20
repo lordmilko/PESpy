@@ -14,7 +14,6 @@ using PESpy.OBJ;
 using PESpy.PDB;
 using PESpy.PowerShell;
 using PESpy.View;
-using PESpy.View.Builder;
 using Stream = System.IO.Stream;
 
 namespace PESpy.Tests

@@ -4,10 +4,21 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using PESpy.View;
-using PESpy.View.Builder;
 
 namespace PESpy
 {
+    /* There's not much to DBG files. They're literally just
+     * - IMAGE_SEPARATE_DEBUG_HEADER
+     * - IMAGE_SECTION_HEADER
+     * - Exported Names
+     * - IMAGE_DEBUG_DIRECTORY
+     * - IMAGE_COFF_SYMBOLS_HEADER
+     * - Coff Symbol Table
+     * - IMAGE_DEBUG_MISC
+     * - NB10I
+     *
+     * and a bit of padding in-between. */
+
     public class DBGFile : IFileInternal, IViewable, IDisposable
     {
         public static DBGFile FromFile(string path)
@@ -205,14 +216,6 @@ namespace PESpy
             }
 
             return _viewAccessor.GetFileView();
-        }
-
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
         }
 
         public ISymbolAccessor GetSymbolAccessor(

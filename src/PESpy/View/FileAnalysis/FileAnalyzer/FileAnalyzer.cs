@@ -10,7 +10,6 @@ using ClrDebug.DIA;
 using ClrDebug.OMF;
 using ClrDebug.PDB;
 using PESpy.PDB;
-using PESpy.View.Builder;
 using static ClrDebug.PDB.SYM_ENUM_e;
 
 namespace PESpy.View
@@ -105,6 +104,7 @@ namespace PESpy.View
                 FileKind.LIB         => new LIBFileAnalyzer((LIBFileAccessor) fileAccessor, options),
                 FileKind.OMF         => new OMFFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 FileKind.OMFLIB      => new OMFLIBFileAnalyzer((DataFileAccessor) fileAccessor, options),
+                FileKind.OMFDBG      => new OMFDBGFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 FileKind.SYM         => new SYMFileAnalyzer((DataFileAccessor) fileAccessor, options),
                 _ => throw new NotImplementedException($"Don't know how to analyze a file of type '{fileAccessor.File.Kind}'")
             };

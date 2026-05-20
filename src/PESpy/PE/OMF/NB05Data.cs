@@ -65,6 +65,9 @@ namespace PESpy
 
         void IViewable.WriteGlobals(ViewWriter writer)
         {
+            //Ostensibly we should be writing an OMFSignature struct here, but the thing is we want to be able to capture
+            //the fact this is lfoDir which we can't do if it's in OMFSignature, since that type is generic and applies to
+            //both the start and end signatures
             writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + 4, LfoDir, sizeof(int), ViewKind.LfoDir);
 
@@ -149,6 +152,10 @@ namespace PESpy
 
             writer.WriteGlobal(DirHeader);
             writer.WriteGlobal(DirEntries);
+
+            //The file ends with an OMFSignature containing the same signature as is at the start of the OMF data, and lfoBase.
+            //We don't use OMFSignature, because it calls the offset "filepos". But the filepos is specifically either lfoDir or
+            //lfoBase depending on whether the signature is at the start or end of the file
 
             writer.WriteGlobal(Offset + LfoBase - 8, Signature, sizeof(int), ViewKind.CodeViewSig);
             writer.WriteGlobalField(Offset + LfoBase - 4, LfoBase, sizeof(int), ViewKind.LfoBase);

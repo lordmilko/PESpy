@@ -12,6 +12,9 @@ namespace PESpy.Tests
         public void FileAnalyzer_PEFile() => Test(Sample.VC20_EXE, FileKind.PE);
 
         [TestMethod]
+        public void FileAnalyzer_PEFile_Nested() => Test(Sample.SingleFileApp_EXE, FileKind.PE);
+
+        [TestMethod]
         public void FileAnalyzer_NEFile() => Test(Sample.NE, FileKind.NE);
 
         [TestMethod]

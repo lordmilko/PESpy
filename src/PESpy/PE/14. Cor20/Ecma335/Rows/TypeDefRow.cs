@@ -49,7 +49,12 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var rowId = table.ModelHeap.ClassLayoutTable.FindRow(RowIndex);
+                var classLayoutTable = table.ModelHeap.ClassLayoutTable;
+
+                if (classLayoutTable == null)
+                    return null;
+
+                var rowId = classLayoutTable.FindRow(RowIndex);
 
                 if (rowId.RowId == 0)
                     return default;
@@ -62,7 +67,12 @@ namespace PESpy.Ecma335
         {
             get
             {
-                var index = table.ModelHeap.NestedClassTable.FindEnclosingType(RowIndex);
+                var nestedClassTable = table.ModelHeap.NestedClassTable;
+
+                if (nestedClassTable == null)
+                    return null;
+
+                var index = nestedClassTable.FindEnclosingType(RowIndex);
 
                 if (index.RowId == 0)
                     return null;
@@ -71,7 +81,18 @@ namespace PESpy.Ecma335
             }
         }
 
-        public GenericParamList GenericParameters => table.ModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.TypeDef));
+        public GenericParamList GenericParameters
+        {
+            get
+            {
+                var genericParamTable = table.ModelHeap.GenericParamTable;
+
+                if (genericParamTable == null)
+                    return default;
+
+                return genericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.TypeDef));
+            }
+        }
 
         public MethodDefList Methods => new MethodDefList(RowIndex, table.ModelHeap);
 

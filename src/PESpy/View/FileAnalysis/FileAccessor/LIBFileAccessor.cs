@@ -51,16 +51,6 @@ namespace PESpy.View
             throw new NotImplementedException();
         }
 
-        public override bool TryGetTargetAddress(int rva, out int targetAddress, out int sectionIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override MemoryChunk GetMemoryChunkFromRVA(int rva)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override ViewWriter GetViewWriter()
         {
             if (_viewWriter == null)
@@ -77,16 +67,6 @@ namespace PESpy.View
             }
 
             return _viewWriter;
-        }
-
-        public override bool TryGetVirtualAddress(in SectionAccessor sectionAccessor, long targetAddress, out int rva)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor()
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -3,7 +3,6 @@ using PESpy.View;
 
 namespace PESpy
 {
-
     /// <summary>
     /// Represents the <see cref="Native.RSDSI"/> structure.
     /// </summary>

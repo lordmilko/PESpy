@@ -1,6 +1,5 @@
 ﻿using System;
 using PESpy.View;
-using PESpy.View.Builder;
 
 namespace PESpy.Tests
 {
@@ -13,11 +12,6 @@ namespace PESpy.Tests
         public ViewWriter.TryGetOffsetDelegate TryGetOffsetDelegate => SimpleViewWriterHelper.TryGetViewOffset;
 
         public Func<int, int> GetRealOffsetDelegate => null;
-
-        public IView Finalize(ViewWriter viewWriter)
-        {
-            throw new NotImplementedException();
-        }
 
         public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)
         {

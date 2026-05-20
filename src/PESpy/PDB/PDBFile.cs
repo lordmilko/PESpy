@@ -10,7 +10,6 @@ using ClrDebug.PDB;
 using PESpy.PDB;
 using PESpy.PDB.DIA;
 using PESpy.View;
-using PESpy.View.Builder;
 using SN = PESpy.PDB.SN;
 
 namespace PESpy
@@ -595,7 +594,7 @@ namespace PESpy
         #endregion
         #endregion
 
-        private MemoryMappedFileHolder mmf;
+        internal MemoryMappedFileHolder mmf;
         internal PDBGlobalMemoryBlock globalBlock;
         private ImageSectionHeader[]? fallbackSectionHeaders;
         private ISymbolAccessor symbolAccessor; //Separate type so you can dispose the accessor without accidentally disposing the main file
@@ -1383,14 +1382,6 @@ namespace PESpy
             return _viewAccessor.GetFileView();
         }
 
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
-        }
-
         public ISymbolAccessor GetSymbolAccessor(
             LocatorHttpPolicy httpPolicy = LocatorHttpPolicy.All,
             ILocatorProgress? progress = null,
@@ -1400,9 +1391,13 @@ namespace PESpy
 
         internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
-        unsafe void IFileInternal.GetRawHeaderData(out byte* ptr, out int remainingLength) => throw new NotSupportedException();
+        unsafe void IFileInternal.GetRawHeaderData(out byte* ptr, out int remainingLength) => GetRawHeaderData(out ptr, out remainingLength);
 
-        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) => throw new NotSupportedException();
+        protected virtual void GetRawHeaderData(out byte* ptr, out int remainingLength) => throw new NotSupportedException();
+
+        bool IFileInternal.TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) => TryGetValueChunkFromPhysicalOffset(offset, out chunk);
+
+        internal virtual bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk) => throw new NotSupportedException();
 
         #endregion
 

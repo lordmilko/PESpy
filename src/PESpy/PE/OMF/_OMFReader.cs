@@ -153,6 +153,7 @@ namespace PESpy
 
             var startPos = (endOfFile - lfoBase);
 
+            //Note that we don't write OMFSignature in the NB02/NB05 view. See NB02Data and NB05Data WriteGlobals for details
             var startSig = (OMFSignature*) startPos;
 
             //We would expect to have the same signature

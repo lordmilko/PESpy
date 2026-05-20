@@ -1,6 +1,4 @@
-﻿using PESpy.View.Builder;
-
-namespace PESpy.View
+﻿namespace PESpy.View
 {
     internal class NestedViewWriter : ViewWriter
     {

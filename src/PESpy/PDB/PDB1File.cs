@@ -67,7 +67,7 @@ namespace PESpy
 
                         recs.Add(rec);
 
-                        read += rec.type.len + 4; //len + sizeof(hash) + sizeof(len)
+                        read += rec.StructSize;
                     }
 
                     records = recs.ToArray();
@@ -224,9 +224,42 @@ namespace PESpy
 
         #endregion
 
+        protected override unsafe void GetRawHeaderData(out byte* pointer, out int length)
+        {
+            pointer = mmf.Address;
+            length = (int) mmf.Length;
+        }
+
+        internal override bool TryGetValueChunkFromPhysicalOffset(int offset, out MemoryChunk chunk)
+        {
+            if (offset < Length)
+            {
+                chunk = new MemoryChunk(globalBlock, offset);
+                return true;
+            }
+
+            chunk = default;
+            return false;
+        }
+
         protected override void WriteGlobals(ViewWriter writer)
         {
-            throw new System.NotImplementedException();
+            writer.WriteGlobal(hdr);
+
+            writer.UnmanagedOffset = OHDR.StructSize;
+
+            try
+            {
+                foreach (var record in Records)
+                {
+                    writer.WriteGlobal(record);
+                    writer.UnmanagedOffset += record.StructSize;
+                }
+            }
+            finally
+            {
+                writer.UnmanagedOffset = 0;
+            }
         }
     }
 }

@@ -7,7 +7,6 @@ using ClrDebug;
 using PESpy.LIB;
 using PESpy.Native;
 using PESpy.View;
-using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -260,14 +259,6 @@ namespace PESpy
             }
 
             return _viewAccessor.GetFileView();
-        }
-
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
         }
 
         internal LIBFileBuilder ToBuilder() => new LIBFileBuilder(this);

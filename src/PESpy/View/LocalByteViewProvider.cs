@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PESpy.View.Builder
+namespace PESpy.View
 {
     //Can just use the whole global MMF, without needing to worry about moving between individual sections
     internal unsafe class LocalByteViewProvider : ByteViewProvider

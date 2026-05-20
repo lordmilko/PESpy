@@ -1,7 +1,6 @@
 ﻿using System;
 using ClrDebug;
 using PESpy.Ecma335;
-using PESpy.View.Builder;
 
 namespace PESpy.View
 {
@@ -154,40 +153,6 @@ namespace PESpy.View
             }
 
             return v => v;
-        }
-
-        public IView Finalize(ViewWriter viewWriter)
-        {
-            if (viewWriter.viewStack.Count != 0)
-                throw new InvalidOperationException("Expected viewStack to be empty");
-
-            var structs = viewWriter.globalList;
-            structs.Sort((a, b) => a.Offset.CompareTo(b.Offset));
-
-            var dataDirectories = new ValueList<DirectoryInfo>();
-
-            try
-            {
-                CollectDataDirectories(ref dataDirectories);
-
-                using var merger = new Merger(peFile, viewWriter, structs, dataDirectories.Span, viewWriter.byteViewProvider);
-
-                var results = merger.MergePE(mode);
-
-                return new FileView(
-                    mode == ViewMode.Default
-                        ? (peFile.IsLoadedImage ? ViewMode.Virtual : ViewMode.Physical)
-                        : mode,
-                    peFile,
-                    results,
-                    viewWriter,
-                    ViewKind.PEFile
-                );
-            }
-            finally
-            {
-                dataDirectories.Dispose();
-            }
         }
 
         public void CollectDataDirectories(ref ValueList<DirectoryInfo> dataDirectories)

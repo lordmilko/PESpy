@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading;
 using PESpy.OMF;
 using PESpy.View;
-using PESpy.View.Builder;
 
 namespace PESpy
 {
@@ -181,14 +180,6 @@ namespace PESpy
             }
 
             return _viewAccessor.GetFileView();
-        }
-
-        public FileView GetViewOld()
-        {
-            var writer = new ViewWriter(this);
-            ((IViewable) this).WriteGlobals(writer);
-
-            return (FileView) writer.Finalize();
         }
 
         public ISymbolAccessor GetSymbolAccessor(

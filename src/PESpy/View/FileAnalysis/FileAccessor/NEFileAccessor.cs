@@ -55,10 +55,5 @@ namespace PESpy.View
             rva = default;
             return false;
         }
-
-        internal override ISectionDataAccessor CreateThreadLocalSectionDataAccessor()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

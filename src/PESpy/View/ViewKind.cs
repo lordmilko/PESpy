@@ -1674,6 +1674,12 @@ namespace PESpy.View
         [Description(nameof(Str.BIGMSF_HDR))]
         BigMsfHdr,
 
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.OHDR"/>.
+        /// </summary>
+        [Description(nameof(Str.OHDR))]
+        OHDR,
+
         [Description(nameof(Str.SI_PERSIST))]
         SI_PERSIST,
 
@@ -1880,6 +1886,12 @@ namespace PESpy.View
         //unlike with SYMTYPE where you have things like S_END which is just
         //a simple SYMTYPE
         TypType,
+
+        /// <summary>
+        /// An <see cref="IStructView"/> that represents a <see cref="PESpy.PDB.C8Rec"/>.
+        /// </summary>
+        [Description(nameof(Str.C8REC))]
+        C8REC,
 
         [Description(nameof(Str.NumericData))]
         NumericData,
