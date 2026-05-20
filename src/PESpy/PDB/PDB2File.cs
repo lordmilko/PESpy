@@ -32,7 +32,7 @@ namespace PESpy
 
         protected internal override int NumPages => msfHeader.NumPages;
 
-        private PN[] _streamTablePageListArray;
+        private PN[]? _streamTablePageListArray;
 
         //Cache the array so we can lookup the same block we create below in PDBFileAccessor.GetMemoryChunkFromAddress
         internal PN[] StreamTablePageListArray
@@ -55,7 +55,7 @@ namespace PESpy
             }
         }
 
-        internal PDB2File(string fileName, in MemoryMappedFileHolder mmf, string name = null) : base(fileName, mmf, PDBFileKind.V2, name)
+        internal PDB2File(string fileName, in MemoryMappedFileHolder mmf, string? name = null) : base(fileName, mmf, PDBFileKind.V2, name)
         {
 #if STRESS_TEST
             _ = PreviousStreamTable;

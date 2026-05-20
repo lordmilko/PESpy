@@ -5,7 +5,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using PInvoke;
+using static PESpy.NativeMethods;
 
 namespace PESpy
 {
@@ -167,7 +167,7 @@ namespace PESpy
             out Stream stream,
             out int statusCode)
         {
-            BOOL result;
+            int result; //BOOL
 
             stream = default;
             statusCode = default;
@@ -195,17 +195,17 @@ namespace PESpy
                         dwExtraInfoLength = 1,
                     };
 
-                    if (!WinHttp.WinHttpCrackUrl(pUri, uri.Length, 0, &components))
+                    if (WinHttpCrackUrl((IntPtr) pUri, uri.Length, 0, &components) == 0)
                         return WinHttpResult.WinHttpCrackUrl;
 
-                    var hostName = new FixedUtf16String(components.lpszHostName, components.dwHostNameLength);
-                    var urlPath = new FixedUtf16String(components.lpszUrlPath, components.dwUrlPathLength);
+                    var hostName = new FixedUtf16String((char*) components.lpszHostName, components.dwHostNameLength);
+                    var urlPath = new FixedUtf16String((char*) components.lpszUrlPath, components.dwUrlPathLength);
 
-                    hSession = WinHttp.WinHttpOpen(
-                        pszAgentW: (PCWSTR) default,
+                    hSession = WinHttpOpen(
+                        pszAgentW: default,
                         dwAccessType: WINHTTP_ACCESS_TYPE.WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, //This is the default setting in WinHttpHandler. AUTOMATIC_PROXY is only supported in Windows 8.1+. DEFAULT_PROXY is deprecated in 8.1 however which is a bit of an issue
-                        pszProxyW: null, //WINHTTP_NO_PROXY_NAME is just null
-                        pszProxyBypassW: null, //WINHTTP_NO_PROXY_BYPASS is just null
+                        pszProxyW: default, //WINHTTP_NO_PROXY_NAME is just null
+                        pszProxyBypassW: default, //WINHTTP_NO_PROXY_BYPASS is just null
                         dwFlags: 0 //WinHttpHandler specifies WINHTTP_FLAG_ASYNC, but we exclusively want to use this synchronously in NativeAOT
                     );
 
@@ -221,9 +221,9 @@ namespace PESpy
 
                         //I'm not sure how long I need to keep the pointer to the server name alive, but WinHttpHandler
                         //does not seem to worry about this
-                        hConnect = WinHttp.WinHttpConnect(
+                        hConnect = WinHttpConnect(
                             hSession: hSession,
-                            pswzServerName: pBuffer,
+                            pswzServerName: (IntPtr) pBuffer,
                             nServerPort: components.nPort,
                             dwReserved: 0
                         );
@@ -246,13 +246,13 @@ namespace PESpy
 
                         fixed (char* pGet = "GET")
                         {
-                            hRequest = WinHttp.WinHttpOpenRequest(
+                            hRequest = WinHttpOpenRequest(
                                 hConnect: hConnect,
-                                pwszVerb: pGet,
-                                pwszObjectName: pBuffer,
-                                pwszVersion: null, //Default will be HTTP/1.1
-                                pwszReferrer: null, //WINHTTP_NO_REFERER is just null
-                                ppwszAcceptTypes: null, //WINHTTP_DEFAULT_ACCEPT_TYPES is just null, also the default behavior of symsrv seems to be to specify null, despite the fact the docs say this means _no_ types are accepted
+                                pwszVerb: (IntPtr) pGet,
+                                pwszObjectName: (IntPtr) pBuffer,
+                                pwszVersion: default, //Default will be HTTP/1.1
+                                pwszReferrer: default, //WINHTTP_NO_REFERER is just null
+                                ppwszAcceptTypes: default, //WINHTTP_DEFAULT_ACCEPT_TYPES is just null, also the default behavior of symsrv seems to be to specify null, despite the fact the docs say this means _no_ types are accepted
                                 dwFlags: requestFlags
                             );
                         }
@@ -264,15 +264,18 @@ namespace PESpy
 
                         const int WINHTTP_ADDREQ_FLAG_ADD = 0x20000000;
 
-                        //By default, Azure DevOps will respond with a HTTP 203 response, and give you the sign in page. This is not what we want.
-                        //symsrv!StoreWinInet::get sets this header unconditionally in all requests. They also set "Accept-Encoding: gzip" but I'm
-                        //not sure if that would mean I'd need to add special decompression handling on my end or something
-                        result = WinHttp.WinHttpAddRequestHeaders(
-                            hRequest: hRequest,
-                            lpszHeaders: headers,
-                            dwHeadersLength: headers.Length,
-                            dwModifiers: WINHTTP_ADDREQ_FLAG_ADD
-                        );
+                        fixed (char* pHeaders = headers)
+                        {
+                            //By default, Azure DevOps will respond with a HTTP 203 response, and give you the sign in page. This is not what we want.
+                            //symsrv!StoreWinInet::get sets this header unconditionally in all requests. They also set "Accept-Encoding: gzip" but I'm
+                            //not sure if that would mean I'd need to add special decompression handling on my end or something
+                            result = WinHttpAddRequestHeaders(
+                                hRequest: hRequest,
+                                lpszHeaders: (IntPtr) pHeaders,
+                                dwHeadersLength: headers.Length,
+                                dwModifiers: WINHTTP_ADDREQ_FLAG_ADD
+                            );
+                        }
 
                         if (hRequest == default)
                             return WinHttpResult.WinHttpAddRequestHeaders;
@@ -280,9 +283,9 @@ namespace PESpy
                         hRequest.Parent = hConnect;
                         hConnect = null; //Ownership transferred to the request
 
-                        result = WinHttp.WinHttpSendRequest(
+                        result = WinHttpSendRequest(
                             hRequest: hRequest,
-                            lpszHeaders: (PCWSTR) default, //WINHTTP_NO_ADDITIONAL_HEADERS is just null
+                            lpszHeaders: default, //WINHTTP_NO_ADDITIONAL_HEADERS is just null
                             dwHeadersLength: 0,
                             lpOptional: null, //WINHTTP_NO_REQUEST_DATA is just null
                             dwOptionalLength: 0,
@@ -290,12 +293,12 @@ namespace PESpy
                             dwContext: default
                         );
 
-                        if (!result)
+                        if (result == 0)
                             return WinHttpResult.WinHttpSendRequest;
 
-                        result = WinHttp.WinHttpReceiveResponse(hRequest, default);
+                        result = WinHttpReceiveResponse(hRequest, default);
 
-                        if (!result)
+                        if (result == 0)
                             return WinHttpResult.WinHttpReceiveResponse;
 
                         const int WINHTTP_QUERY_CONTENT_LENGTH = 5;
@@ -307,10 +310,10 @@ namespace PESpy
                             int num;
                             int numSize = sizeof(int);
 
-                            var result = WinHttp.WinHttpQueryHeaders(
+                            var result = WinHttpQueryHeaders(
                                 hRequest: hRequest,
                                 dwInfoLevel: kind | WINHTTP_QUERY_FLAG_NUMBER,
-                                pwszName: null, //WINHTTP_HEADER_NAME_BY_INDEX is just null
+                                pwszName: default, //WINHTTP_HEADER_NAME_BY_INDEX is just null
                                 lpBuffer: &num,
                                 lpdwBufferLength: &numSize,
                                 lpdwIndex: default
@@ -318,7 +321,7 @@ namespace PESpy
 
                             value = num;
 
-                            return result;
+                            return result != 0;
                         }
 
                         if (!TryGetNumericHeader(hRequest, WINHTTP_QUERY_STATUS_CODE, out statusCode))

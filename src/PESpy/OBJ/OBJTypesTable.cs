@@ -30,7 +30,7 @@ namespace PESpy.OBJ
                     var sig = Signature;
                     var isLengthPrefixed = sig == CV_SIGNATURE.C7 || sig == CV_SIGNATURE.C11;
 
-                    ICodeViewAccessor codeViewAccessor = null;
+                    ICodeViewAccessor? codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
@@ -53,7 +53,7 @@ namespace PESpy.OBJ
         public long Offset => chunk.AbsoluteOffset;
 
         private readonly MemoryChunk chunk;
-        private int[] indexToOffsetMap;
+        private int[]? indexToOffsetMap;
 
         /// <summary>
         /// Gets the number of bytes contained in the table.
@@ -98,7 +98,7 @@ namespace PESpy.OBJ
                 indexToOffsetMap = results.ToArray();
             }
 
-            return types.GetTypeFromOffset(indexToOffsetMap[typeIndex - 0x1000]);
+            return types!.GetTypeFromOffset(indexToOffsetMap[typeIndex - 0x1000]);
         }
 
         public unsafe void CopyTo(Span<byte> destination)

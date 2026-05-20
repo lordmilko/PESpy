@@ -54,7 +54,12 @@ namespace PESpy.Ecma335
                 if (defaultValue.IsNil)
                     return null;
 
-                return table.ModelHeap.ConstantTable[DefaultValue];
+                var constantTable = table.ModelHeap.ConstantTable;
+
+                if (constantTable == null)
+                    return null;
+
+                return constantTable[DefaultValue];
             }
         }
 

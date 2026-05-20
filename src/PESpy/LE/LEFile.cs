@@ -148,10 +148,10 @@ namespace PESpy
         #endregion
         #region ResidentNameTable
 
-        private FixedAnsiString[] residentNameTable;
+        private FixedAnsiString[]? residentNameTable;
 
         //These are actually SymStrings, but the first one has 3 trailing \0's
-        public unsafe FixedAnsiString[] ResidentNameTable
+        public unsafe FixedAnsiString[]? ResidentNameTable
         {
             get
             {
@@ -246,9 +246,9 @@ namespace PESpy
         #endregion
         #region NonResidentNamesTable
 
-        private NameAndOrdinal[] nonResidentNamesTable;
+        private NameAndOrdinal[]? nonResidentNamesTable;
 
-        public NameAndOrdinal[] NonResidentNamesTable
+        public NameAndOrdinal[]? NonResidentNamesTable
         {
             get
             {
@@ -368,12 +368,12 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
-        private ISymbolAccessor symbolAccessor;
-        internal TableBounds[] tableBounds;
+        private ISymbolAccessor? symbolAccessor;
+        internal TableBounds[]? tableBounds;
 
         private bool disposed;
 
-        internal unsafe LEFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
+        internal unsafe LEFile(string fileName, in MemoryMappedFileHolder mmf, string? name = null)
         {
             this.mmf = mmf;
 
@@ -764,7 +764,7 @@ namespace PESpy
             disposed = true;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             if (Name != null)
                 return Name.ToString();

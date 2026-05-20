@@ -224,7 +224,6 @@ namespace PESpy
         ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [CLSCompliant(false)]
         public static int Log2(ulong value)
         {
             value |= 1;

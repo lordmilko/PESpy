@@ -34,7 +34,7 @@ namespace PESpy
 
             if (gsi != null)
             {
-                if (psgsi.TryGetSymbol(name, out var symType))
+                if (gsi.TryGetSymbol(name, out var symType))
                 {
                     if (symType.TryGetRVA(PDBFile, out targetAddress))
                         return true;
@@ -58,7 +58,7 @@ namespace PESpy
                 {
                     var sepCode = (SepCodeSym) symType;
 
-                    var codeViewModuleAccessor = PDBFile.DBI.Modules[imod].Symbols;
+                    var codeViewModuleAccessor = PDBFile.DBI!.Modules![imod].Symbols;
 
                     symType = sepCode.GetParent(codeViewModuleAccessor);
 

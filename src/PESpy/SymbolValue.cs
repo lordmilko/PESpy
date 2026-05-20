@@ -24,7 +24,7 @@ namespace PESpy
             Length = length;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             return Value.ToString();
         }

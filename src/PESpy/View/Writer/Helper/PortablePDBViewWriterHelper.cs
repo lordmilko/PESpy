@@ -13,7 +13,7 @@ namespace PESpy.View
             {
                 if (!hasMetadataSizes)
                 {
-                    metadataSizes = ((PortablePDBFile) file).EcmaMetadata.ModelHeap.Sizes;
+                    metadataSizes = ((PortablePDBFile) file).EcmaMetadata.ModelHeap!.Sizes;
                     hasMetadataSizes = true;
                 }
 

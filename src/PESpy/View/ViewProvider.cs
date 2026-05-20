@@ -9,6 +9,8 @@ using PESpy.PDB;
 using PESpy.OMF;
 using PESpy.View;
 
+#nullable disable
+
 namespace PESpy
 {
     internal partial class ViewProvider

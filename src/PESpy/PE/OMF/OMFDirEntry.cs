@@ -412,8 +412,8 @@ namespace PESpy
             NativeSpan<ushort> offsetCounts16 = default;
             NativeSpan<int> offsetCounts32 = default;
 
-            NativeSpan<(int symbolOffset, int sectionRelativeOffset)>[] offsetTable32 = default;
-            NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[] offsetTable16 = default;
+            NativeSpan<(int symbolOffset, int sectionRelativeOffset)>[]? offsetTable32 = default;
+            NativeSpan<(ushort symbolOffset, ushort sectionRelativeOffset)>[]? offsetTable16 = default;
 
             ushort segCountPadding = 0;
 
@@ -487,16 +487,16 @@ namespace PESpy
             switch (addrhash)
             {
                 case 4:
-                    return new AddrHash32v4(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable16);
+                    return new AddrHash32v4(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable16!);
 
                 case 5:
-                    return new AddrHash32v5(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, segCountPadding, offsetTable16);
+                    return new AddrHash32v5(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, segCountPadding, offsetTable16!);
 
                 case 8:
-                    return new AddrHash32v8(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable32);
+                    return new AddrHash32v8(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts16, offsetTable32!);
 
                 case 12:
-                    return new AddrHash32v12(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts32, offsetTable32);
+                    return new AddrHash32v12(chunk.AbsoluteOffset, cSeg, pad, segmentTable, offsetCounts32, offsetTable32!);
 
                 default:
                     throw new NotImplementedException();

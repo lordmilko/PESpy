@@ -57,7 +57,7 @@ namespace PESpy
         public FileNameOffsetsList FileNameOffsets => new FileNameOffsetsList(this);
 
         /// <summary>
-        /// Provides access to the file names pointed to by <see cref="FileNameOffsets"/> within the "names" data region of this <see cref="FileInfo"/> record.
+        /// Provides access to the file names pointed to by <see cref="FileNameOffsets"/> within the "names" data region of this <see cref="OMFFileIndex"/> record.
         /// There is one element in the outer array for each module in the PDB, with each module then containing a file name for each file name offset pointed to by
         /// <see cref="FileNameOffsets"/>.
         /// </summary>

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using PInvoke;
+using static PESpy.NativeMethods;
 
 namespace PESpy
 {
@@ -39,7 +39,7 @@ namespace PESpy
         {
             int bytesAvailable;
 
-            if (!WinHttp.WinHttpQueryDataAvailable(_hRequest, &bytesAvailable))
+            if (WinHttpQueryDataAvailable(_hRequest, &bytesAvailable) == 0)
                 return 0;
 
             var numBytesToRead = Math.Min(bytesAvailable, count);
@@ -48,14 +48,14 @@ namespace PESpy
 
             fixed (byte* pBuffer = buffer)
             {
-                var result = WinHttp.WinHttpReadData(
+                var result = WinHttpReadData(
                     _hRequest,
                     pBuffer,
                     numBytesToRead,
                     &numBytesRead
                 );
 
-                if (!result)
+                if (result == 0)
                     return 0;
 
                 totalRead += numBytesRead;

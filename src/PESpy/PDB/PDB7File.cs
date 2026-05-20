@@ -47,13 +47,11 @@ namespace PESpy
 
         internal override IStreamTable CreateStreamTable(in MemoryChunk chunk, int pageSize) => new BigMsfHdr.StreamTable(chunk, pageSize);
 
-        private MSFParms msfParms; //Only set when writing
-
         //Cache the array so we can lookup the same block we create below in PDBFileAccessor.GetMemoryChunkFromAddress
-        internal PN[] _pagesOfStreamTablePageListArray;
+        internal PN[]? _pagesOfStreamTablePageListArray;
 
         //Open an existing file
-        internal PDB7File(string fileName, in MemoryMappedFileHolder mmf, string name = null) : base(fileName, mmf, PDBFileKind.V7, name)
+        internal PDB7File(string fileName, in MemoryMappedFileHolder mmf, string? name = null) : base(fileName, mmf, PDBFileKind.V7, name)
         {
 #if STRESS_TEST
             _ = PreviousStreamTable;

@@ -68,7 +68,7 @@ namespace PESpy
                 foreach (var imageLineNumber in sectionHeader.PointerToLineNumbers.Value)
                     PointerToLineNumbers.Add(new ImageLineNumberBuilder(imageLineNumber));
 
-                _originalActualNumberOfRelocations = PointerToLineNumbers.Count;
+                _originalActualNumberOfLineNumbers = PointerToLineNumbers.Count;
             }
             else
                 PointerToLineNumbers = new List<ImageLineNumberBuilder>();

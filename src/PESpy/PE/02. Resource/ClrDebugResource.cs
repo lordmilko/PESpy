@@ -7,7 +7,7 @@ namespace PESpy
 {
     /// <summary>
     /// Represents the <see cref="CLR_DEBUG_RESOURCE"/> structure that describes the DBI/DAC module that is associated
-    /// with a CLR build. This structure is found in coreclr.dll <see cref="ResourceType.RCData"/> entries whose names begin with "CLRDEBUGINFO".
+    /// with a CLR build. This structure is found in coreclr.dll <see cref="RT.RT_RCDATA"/> entries whose names begin with "CLRDEBUGINFO".
     /// </summary>
     public class ClrDebugResource : IValue, IViewable //This gets boxed in an IValue anyway, so is a class
     {

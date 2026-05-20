@@ -84,8 +84,8 @@ namespace PESpy.View
         internal ViewOMFRecordDispatcher OMFRecordDispatcher => _omfRecordDispatcher ??= new ViewOMFRecordDispatcher(this);
 
         internal LocatorHttpPolicy _httpPolicy;
-        internal ILocatorProgress _progress;
-        internal readonly FileAccessor? _fileAccessor;
+        internal ILocatorProgress? _progress;
+        internal readonly FileAccessor _fileAccessor;
         internal IViewWriterHelper helper;
 
 

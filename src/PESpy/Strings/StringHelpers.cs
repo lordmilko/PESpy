@@ -547,7 +547,7 @@ namespace PESpy
                 length--;
             }
 
-        Equal:
+        //Equal:
             return true;
 
         NotEqual: // Workaround for https://github.com/dotnet/runtime/issues/8795

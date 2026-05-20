@@ -12,7 +12,7 @@ namespace PESpy
         /// <summary>
         /// Push a nonvolatile integer register, decrementing RSP by 8. The operation info is the number of the register.
         /// Because of the constraints on epilogs, UWOP_PUSH_NONVOL unwind codes must appear first in the prolog and correspondingly,
-        /// last in the unwind code array. This relative ordering applies to all other unwind codes except <see cref="PUSH_MACHFRAME"/>.
+        /// last in the unwind code array. This relative ordering applies to all other unwind codes except <see cref="UWOP_PUSH_MACHFRAME"/>.
         /// </summary>
         UWOP_PUSH_NONVOL = 0,
 

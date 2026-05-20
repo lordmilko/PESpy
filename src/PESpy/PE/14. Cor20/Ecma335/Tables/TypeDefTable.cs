@@ -252,7 +252,7 @@ namespace PESpy.Ecma335
                     Debug.Assert(builder == groupedNestedTypes[enclosingClass]);
                 }
 
-                builder.Add(nestedClassTable.GetNestedClass((NestedClassIndex) i));
+                builder!.Add(nestedClassTable.GetNestedClass((NestedClassIndex) i));
             }
 
             var nestedTypesMap = new Dictionary<TypeDefIndex, TypeDefIndex[]>();
@@ -272,7 +272,7 @@ namespace PESpy.Ecma335
                 Debug.Assert(_lazyNestedTypesMap != null);
             }
 
-            if (_lazyNestedTypesMap.TryGetValue(index, out var nestedTypes))
+            if (_lazyNestedTypesMap!.TryGetValue(index, out var nestedTypes))
             {
                 return nestedTypes;
             }

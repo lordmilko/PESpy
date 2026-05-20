@@ -9,7 +9,7 @@ namespace PESpy.Ecma335
         private readonly ModelHeap _modelHeap;
         private readonly ICustomAttributeTypeProvider<TType>? _provider;
 
-        internal CustomAttributeDecoder(ModelHeap modelHeap, ICustomAttributeTypeProvider<TType> provider)
+        internal CustomAttributeDecoder(ModelHeap modelHeap, ICustomAttributeTypeProvider<TType>? provider)
         {
             _modelHeap = modelHeap;
             _provider = provider;
@@ -24,17 +24,17 @@ namespace PESpy.Ecma335
             switch (ctorIndex.TableKind)
             {
                 case TableKind.MethodDef:
-                    var methodDef = _modelHeap.MethodDefTable[ctorIndex];
+                    var methodDef = _modelHeap.MethodDefTable![ctorIndex];
                     sigIndex = methodDef.Signature;
                     break;
 
                 case TableKind.MemberRef:
-                    var memberRef = _modelHeap.MemberRefTable[ctorIndex];
+                    var memberRef = _modelHeap.MemberRefTable![ctorIndex];
                     sigIndex = memberRef.Signature;
 
                     if (memberRef.Class.TableKind == TableKind.TypeSpec)
                     {
-                        var typeSpec = _modelHeap.TypeSpecTable[memberRef.Class];
+                        var typeSpec = _modelHeap.TypeSpecTable![memberRef.Class];
                         typeSpecSig = typeSpec.Signature;
                     }
 

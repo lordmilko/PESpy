@@ -605,7 +605,7 @@ namespace PESpy
         internal readonly PDBFileSymCache _symCache;
 
         //Open an existing file
-        internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind, string name)
+        internal PDBFile(string fileName, in MemoryMappedFileHolder mmf, PDBFileKind pdbKind, string? name)
         {
             this.mmf = mmf;
             PDBKind = pdbKind;

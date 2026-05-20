@@ -36,14 +36,14 @@ namespace PESpy
         public FileOverview.NativeSymbol? EntryPoint { get; set; }
 
         /// <summary>
-        /// Gets the entry point listed in <see cref="ImageCor20Header.EntryPointTokenOrRVA"/>
-        /// when the entry point is managed (<see cref="COMIMAGE_FLAGS.NATIVE_ENTRYPOINT"/> is not listed in <see cref="ImageCor20Header.Flags"/>).
+        /// Gets the entry point listed in <see cref="ImageCor20Header.EntryPointToken"/>
+        /// when the entry point is managed (<see cref="COMIMAGE_FLAGS_NATIVE_ENTRYPOINT"/> is not listed in <see cref="ImageCor20Header.Flags"/>).
         /// </summary>
         public FileOverview.ManagedSymbol? Cor20ManagedEntryPoint { get; set; }
 
         /// <summary>
-        /// Gets the entry point listed in <see cref="ImageCor20Header.EntryPointTokenOrRVA"/>
-        /// when the entry point is native (<see cref="COMIMAGE_FLAGS.NATIVE_ENTRYPOINT"/> is listed in <see cref="ImageCor20Header.Flags"/>).
+        /// Gets the entry point listed in <see cref="ImageCor20Header.EntryPointRVA"/>
+        /// when the entry point is native (<see cref="COMIMAGE_FLAGS_NATIVE_ENTRYPOINT"/> is listed in <see cref="ImageCor20Header.Flags"/>).
         /// </summary>
         public FileOverview.NativeSymbol? Cor20NativeEntryPoint { get; set; }
 

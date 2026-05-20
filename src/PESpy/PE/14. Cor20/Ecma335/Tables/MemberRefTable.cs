@@ -95,7 +95,7 @@ namespace PESpy.Ecma335
                     switch (item.Class.TableKind)
                     {
                         case TableKind.TypeDef:
-                            var typeDef = heap.TypeDefTable[item.Class];
+                            var typeDef = heap.TypeDefTable![item.Class];
 
                             if (typeDef.TypeNamespace.GetString() != ns || typeDef.TypeName.GetString() != type)
                                 continue;
@@ -103,7 +103,7 @@ namespace PESpy.Ecma335
                             break;
 
                         case TableKind.TypeRef:
-                            var typeRef = heap.TypeRefTable[item.Class];
+                            var typeRef = heap.TypeRefTable![item.Class];
 
                             if (typeRef.TypeNamespace.GetString() != ns || typeRef.TypeName.GetString() != type)
                                 continue;
@@ -117,7 +117,7 @@ namespace PESpy.Ecma335
                             throw new NotImplementedException();
 
                         case TableKind.TypeSpec:
-                            var typeSpec = heap.TypeSpecTable[item.Class];
+                            var typeSpec = heap.TypeSpecTable![item.Class];
 
                             //Matching TypeSpecs is not yet supported. I'm not exactly sure what I would do
                             continue;

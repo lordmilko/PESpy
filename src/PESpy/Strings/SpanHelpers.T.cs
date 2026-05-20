@@ -238,9 +238,9 @@ namespace System
                     }
                 }
             }
-#endif
 
             return -1;
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -507,9 +507,9 @@ namespace System
                     }
                 }
             }
-#endif
 
             return -1;
+#endif
         }
 
 #if NET9_0_OR_GREATER

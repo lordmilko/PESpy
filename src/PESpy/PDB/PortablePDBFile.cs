@@ -102,11 +102,11 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private GlobalMemoryBlock globalBlock;
-        private PortablePDBFileSymbolAccessor symbolAccessor;
+        private PortablePDBFileSymbolAccessor? symbolAccessor;
 
         private bool disposed;
 
-        internal unsafe PortablePDBFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
+        internal unsafe PortablePDBFile(string? fileName, in MemoryMappedFileHolder mmf, string? name = null)
         {
             this.mmf = mmf;
 
@@ -197,7 +197,7 @@ namespace PESpy
             disposed = true;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             if (Name != null)
                 return Name.ToString();

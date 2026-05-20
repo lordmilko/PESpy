@@ -49,7 +49,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(LocalScopeIndex localScope, out int firstConstantRowId, out int lastConstantRowId)
         {
-            firstConstantRowId = (int) ModelHeap.LocalScopeTable.GetConstantList(localScope);
+            firstConstantRowId = (int) ModelHeap.LocalScopeTable!.GetConstantList(localScope);
 
             if (firstConstantRowId == 0)
             {

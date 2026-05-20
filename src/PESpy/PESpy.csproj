@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(Build)ClrDebug.props" />
-  <Import Project="$(Build)PInvoke.props" />
 
   <PropertyGroup>
     <TargetFrameworks Condition="'$(UseLatestTargetFramework)' == 'yes'">netstandard2.0;net9.0</TargetFrameworks>

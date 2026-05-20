@@ -52,7 +52,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(MethodDefIndex methodDef, out int firstParamRowId, out int lastParamRowId)
         {
-            firstParamRowId = (int) ModelHeap.MethodDefTable.GetParamList(methodDef);
+            firstParamRowId = (int) ModelHeap.MethodDefTable!.GetParamList(methodDef);
 
             if (firstParamRowId == 0)
             {

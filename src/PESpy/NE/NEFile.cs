@@ -326,11 +326,12 @@ namespace PESpy
 
         private MemoryMappedFileHolder mmf;
         private readonly GlobalMemoryBlock globalBlock;
-        private TableBounds[] tableBounds;
+
+        private TableBounds[]? tableBounds;
 
         private bool disposed;
 
-        internal unsafe NEFile(string fileName, in MemoryMappedFileHolder mmf, string name = null)
+        internal unsafe NEFile(string fileName, in MemoryMappedFileHolder mmf, string? name = null)
         {
             this.mmf = mmf;
 
@@ -615,7 +616,7 @@ namespace PESpy
             disposed = true;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             if (Name != null)
                 return Name.ToString();

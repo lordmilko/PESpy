@@ -7,7 +7,7 @@ namespace PESpy.Overview
         public OverviewCell Property;
         public OverviewCell Value;
 
-        public string Source { get; }
+        public string? Source { get; }
 
         public RECT Rect { get; set; }
 
@@ -15,7 +15,7 @@ namespace PESpy.Overview
         //apply to the file
         public bool ForceEnabled { get; set; }
 
-        internal OverviewEntry(string property, string? value, string source, bool forceEnabled = false)
+        internal OverviewEntry(string property, string? value, string? source, bool forceEnabled = false)
         {
             Property = new OverviewCell(property);
             Value = new OverviewCell(value);

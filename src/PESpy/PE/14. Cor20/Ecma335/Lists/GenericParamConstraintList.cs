@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+#nullable disable
+
 namespace PESpy.Ecma335
 {
     internal class GenericParamConstraintListDebugView

@@ -22,7 +22,18 @@ namespace PESpy.Ecma335
 
         public ParamList Parameters => new ParamList(RowIndex, table.ModelHeap);
 
-        public GenericParamList GenericParameters => table.ModelHeap.GenericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.MethodDef));
+        public GenericParamList GenericParameters
+        {
+            get
+            {
+                var genericParamTable = table.ModelHeap.GenericParamTable;
+
+                if (genericParamTable == null)
+                    return default;
+
+                return genericParamTable.FindGenericParameters(TypeOrMethodDefTag.CreateIndex(RowIndex.RowId, TableKind.MethodDef));
+            }
+        }
 
         //System.Reflection.Metadata's MethodImport type basically just contains
         //all of the properties of the ImplMapRow type minus the MemberForwarded member
@@ -41,7 +52,7 @@ namespace PESpy.Ecma335
                 if (implIndex.RowId == 0)
                     return default;
 
-                return table.ModelHeap.ImplMapTable[implIndex];
+                return implMapTable[implIndex];
             }
         }
 

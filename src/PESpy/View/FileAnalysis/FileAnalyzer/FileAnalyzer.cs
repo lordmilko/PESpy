@@ -1616,7 +1616,7 @@ namespace PESpy.View
             _progress?.PhaseComplete(FileAnalyzerProgressPhase.Max, _stopwatch.ElapsedMilliseconds);
         }
 
-        internal void CreateOMFRegion(ImageDebugDirectory[] debugTable)
+        internal void CreateOMFRegion(ImageDebugDirectory[]? debugTable)
         {
             if (debugTable == null)
                 return;
@@ -1629,7 +1629,7 @@ namespace PESpy.View
                 {
                     //While NGEN files can contain multiple CodeView sections, for anything with OMF
                     //you would expect it to only have a single CodeView entry
-                    CreateOMFRegion((ICodeViewData) debugDir.Data);
+                    CreateOMFRegion((ICodeViewData) debugDir.Data!);
                     break;
                 }
             }

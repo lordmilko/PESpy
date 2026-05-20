@@ -85,7 +85,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(TypeDefIndex typeDef, out int firstMethodRowId, out int lastMethodRowId)
         {
-            firstMethodRowId = (int) ModelHeap.TypeDefTable.GetMethodList(typeDef);
+            firstMethodRowId = (int) ModelHeap.TypeDefTable!.GetMethodList(typeDef);
 
             if (firstMethodRowId == 0)
             {
@@ -94,7 +94,7 @@ namespace PESpy.Ecma335
             }
             else if (typeDef.RowId == ModelHeap.TypeDefTable.Count)
             {
-                lastMethodRowId = (ModelHeap.MethodPtrTable?.Count > 0 ? ModelHeap.MethodPtrTable.Count : ModelHeap.MethodDefTable.Count) + 1;
+                lastMethodRowId = (ModelHeap.MethodPtrTable?.Count > 0 ? ModelHeap.MethodPtrTable.Count : Count) + 1;
             }
             else
             {

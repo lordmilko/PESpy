@@ -3066,7 +3066,7 @@ namespace PESpy
                         return symbolAccessor;
 
                     case Locator.ArtifactKind.EmbeddedPortablePdb:
-                        symbolAccessor = new PortablePDBFileSymbolAccessor(PortablePDBFile.FromEmbeddedFile((EmbeddedPortablePdb) DebugTable[artifacts.EmbeddedPortablePdbIndex.Value].Data));
+                        symbolAccessor = new PortablePDBFileSymbolAccessor(PortablePDBFile.FromEmbeddedFile((EmbeddedPortablePdb) DebugTable![artifacts.EmbeddedPortablePdbIndex!.Value].Data!));
                         break;
 
                     case Locator.ArtifactKind.SYM:
@@ -3096,7 +3096,7 @@ namespace PESpy
 
                     if (coff != null)
                     {
-                        symbolAccessor = new CoffSymbolAccessor(coff, sectionHeaders);
+                        symbolAccessor = new CoffSymbolAccessor(coff, SectionHeaders);
                         return symbolAccessor;
                     }
                 }

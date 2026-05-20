@@ -55,7 +55,7 @@ namespace PESpy
                     //Its a PDB. We use ST strings if our version <= vc98
                     var pdb = ((PagedMemoryBlock) block).PDBFile;
 
-                    InsertEntry(block, pdb, codeViewModuleAccessor);
+                    InsertEntry(block, pdb!, codeViewModuleAccessor);
                 }
             }
             finally
@@ -79,7 +79,7 @@ namespace PESpy
                 if (rangeOwner.SymbolMemory.Add((long) memory))
                 {
                     //Its a PDB. We use ST strings if our version <= vc98
-                    var pdb = globalBlock.PDBFile;
+                    var pdb = globalBlock.PDBFile!;
 
                     InsertEntry(memory, length, pdb, codeViewModuleAccessor);
                 }
@@ -93,7 +93,7 @@ namespace PESpy
         internal static unsafe void RegisterCVSymbolMemory(
             in MemoryChunk chunk,
             ICodeViewAccessor codeViewAccessor,
-            ICodeViewModuleAccessor codeViewModuleAccessor)
+            ICodeViewModuleAccessor? codeViewModuleAccessor)
         {
             var block = chunk.block;
             var rangeOwner = (ISymbolMemoryBlock) block;
@@ -134,14 +134,14 @@ namespace PESpy
             }
         }
 
-        private static unsafe void InsertEntry(MemoryBlock block, ICodeViewAccessor value, ICodeViewModuleAccessor codeViewModuleAccessor) =>
+        private static unsafe void InsertEntry(MemoryBlock block, ICodeViewAccessor value, ICodeViewModuleAccessor? codeViewModuleAccessor) =>
             InsertEntry(block.LocalPointer, checked((int) block.Length), value, codeViewModuleAccessor);
 
         private static unsafe void InsertEntry(
             byte* memory,
             int length,
             ICodeViewAccessor codeViewAccessor,
-            ICodeViewModuleAccessor codeViewModuleAccessor)
+            ICodeViewModuleAccessor? codeViewModuleAccessor)
         {
             var start = (long) memory;
 

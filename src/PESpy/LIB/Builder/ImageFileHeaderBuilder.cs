@@ -10,7 +10,7 @@ namespace PESpy
 
         public Timestamp TimeDateStamp { get; set; }
 
-        public CoffSymbolTableBuilder PointerToSymbolTable { get; set; }
+        public CoffSymbolTableBuilder? PointerToSymbolTable { get; set; }
 
         public short SizeOfOptionalHeader { get; set; }
 

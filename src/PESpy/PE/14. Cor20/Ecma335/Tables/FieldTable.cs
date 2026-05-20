@@ -58,7 +58,7 @@ namespace PESpy.Ecma335
 
         internal void GetRange(TypeDefIndex typeDef, out int firstFieldRowId, out int lastFieldRowId)
         {
-            firstFieldRowId = (int) ModelHeap.TypeDefTable.GetFieldList(typeDef);
+            firstFieldRowId = (int) ModelHeap.TypeDefTable!.GetFieldList(typeDef);
 
             if (firstFieldRowId == 0)
             {

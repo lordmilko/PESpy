@@ -10,7 +10,7 @@ namespace PESpy
 {
     internal class LongImportLibraryMemberSymbolAccessor : ICodeViewAccessor
     {
-        private OBJTypesTable typesTable;
+        private OBJTypesTable? typesTable;
 
         public bool HasLengthPrefixedStrings { get; }
 

@@ -9,9 +9,9 @@ namespace PESpy.View
     {
         private List<IView> rawBytesResults = new List<IView>();
         private bool isLibFile;
-        private readonly FileAccessor _fileAccessor;
+        private readonly FileAccessor? _fileAccessor;
 
-        internal ByteViewProvider(FileAccessor fileAccessor, bool isLibFile)
+        internal ByteViewProvider(FileAccessor? fileAccessor, bool isLibFile)
         {
             _fileAccessor = fileAccessor;
             this.isLibFile = isLibFile;

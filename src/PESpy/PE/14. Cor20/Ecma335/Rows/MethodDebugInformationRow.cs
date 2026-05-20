@@ -25,7 +25,12 @@ namespace PESpy.Ecma335
                 if (document.IsNil)
                     return null;
 
-                return table.ModelHeap.DocumentTable[document];
+                var documentTable = table.ModelHeap.DocumentTable;
+
+                if (documentTable == null)
+                    return null;
+
+                return documentTable[document];
             }
         }
 

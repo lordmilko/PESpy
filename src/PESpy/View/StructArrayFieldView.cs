@@ -69,6 +69,7 @@ namespace PESpy.View
 
         public StructArrayFieldView(IStructView[] value, string fieldName, ViewWriter viewWriter)
         {
+            _viewWriter = viewWriter;
             _viewChildProvider = new ViewChildProvider<IStructView>(value);
             FieldName = fieldName;
         }

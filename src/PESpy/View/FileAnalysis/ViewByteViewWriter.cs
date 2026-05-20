@@ -30,10 +30,10 @@ namespace PESpy.View
             ByteViewProvider byteViewProvider,
             ViewMode mode,
             FileAccessor fileAccessor,
-            IFileDisassembler fileDisassembler,
+            IFileDisassembler? fileDisassembler,
             FileAnalyzer fileAnalyzer,
             LocatorHttpPolicy httpPolicy,
-            ILocatorProgress progress) : base(helper, byteViewProvider, mode, fileAccessor)
+            ILocatorProgress? progress) : base(helper, byteViewProvider, mode, fileAccessor)
         {
             _fileDisassembler = fileDisassembler;
             _fileAnalyzer = fileAnalyzer;

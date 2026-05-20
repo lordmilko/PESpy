@@ -4,7 +4,6 @@ namespace PESpy.OMF
 {
     /// <summary>
     /// List of Names Record
-
     /// </summary>
     public readonly unsafe struct LNAMES : IViewable
     {

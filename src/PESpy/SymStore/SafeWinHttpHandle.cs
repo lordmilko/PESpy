@@ -1,5 +1,5 @@
 ﻿using System;
-using PInvoke;
+using static PESpy.NativeMethods;
 
 namespace PESpy
 {
@@ -24,7 +24,7 @@ namespace PESpy
 
             if (_hInternet != default)
             {
-                WinHttp.WinHttpCloseHandle(_hInternet);
+                WinHttpCloseHandle(_hInternet);
                 _hInternet = default;
             }
         }

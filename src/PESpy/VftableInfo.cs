@@ -5,7 +5,7 @@ namespace PESpy
 {
     public struct VftableInfo
     {
-        private string _className;
+        private string? _className;
 
         /// <summary>
         /// Gets the name of the class that this vftable is used by.
@@ -21,7 +21,7 @@ namespace PESpy
             }
         }
 
-        private string _targetName;
+        private string? _targetName;
 
         /// <summary>
         /// Gets the name of the interface or base class that this vftable provides methods for.
@@ -44,7 +44,7 @@ namespace PESpy
 
         public NativeSpan<long> Slots64 { get; }
 
-        private SymType[] _slots;
+        private SymType[]? _slots;
 
         public SymType[] Slots
         {

@@ -53,7 +53,7 @@ namespace PESpy.OBJ
                     var block = chunk.block;
 
                     //C7 and C11 use ST strings
-                    ICodeViewAccessor codeViewAccessor = null;
+                    ICodeViewAccessor? codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
@@ -87,7 +87,7 @@ namespace PESpy.OBJ
                     var block = chunk.block;
 
                     //C7 and C11 use ST strings
-                    ICodeViewAccessor codeViewAccessor = null;
+                    ICodeViewAccessor? codeViewAccessor = null;
 
                     if (block is GlobalMemoryBlock b)
                     {
@@ -152,13 +152,13 @@ namespace PESpy.OBJ
                 {
                     case CV_SIGNATURE.C7:
                     case CV_SIGNATURE.C11:
-                        return C7Symbols;
+                        return C7Symbols!;
 
                     case CV_SIGNATURE.C13:
                         throw new InvalidOperationException("This object should not have been used to register symbol memory if it has C13 symbols");
 
                     default:
-                        return C6Symbols;
+                        return C6Symbols!;
                 }
             }
         }
@@ -200,7 +200,7 @@ namespace PESpy.OBJ
                 case CV_SIGNATURE.C7:
                 case CV_SIGNATURE.C11:
                     writer.WriteGlobal(Offset, Signature, sizeof(int), ViewKind.CvSignature);
-                    writer.WriteGlobal(Offset + 4, C7Symbols);
+                    writer.WriteGlobal(Offset + 4, C7Symbols!);
                     break;
 
                 case CV_SIGNATURE.C13:
@@ -210,7 +210,7 @@ namespace PESpy.OBJ
 
                 default:
                     //Garbage; must be C6
-                    writer.WriteGlobal(Offset, C6Symbols);
+                    writer.WriteGlobal(Offset, C6Symbols!);
                     break;
             }
         }

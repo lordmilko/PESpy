@@ -7,7 +7,6 @@ namespace PESpy.OMF
 
     /// <summary>
     /// Logical Enumerated Data Record
-
     /// </summary>
     public readonly unsafe struct LEDATA : IViewable
     {

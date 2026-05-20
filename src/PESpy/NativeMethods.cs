@@ -8,6 +8,7 @@ namespace PESpy
     {
         private const string kernel32 = "kernel32.dll";
         private const string ntdll = "ntdll.dll";
+        private const string winhttp = "winhttp.dll";
 
         #region kernel32
 
@@ -85,6 +86,88 @@ namespace PESpy
             [In] IntPtr UniqueProcessId,
             [In] RTL_QUERY_PROCESS Flags,
             [Out] RTL_DEBUG_INFORMATION* Buffer);
+
+        #endregion
+        #region WinHttp
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpAddRequestHeaders(
+            void* hRequest,
+            IntPtr lpszHeaders,
+            int dwHeadersLength,
+            int dwModifiers);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpCloseHandle(
+            void* hInternet);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe void* WinHttpConnect(
+            void* hSession,
+            IntPtr pswzServerName,
+            short nServerPort,
+            int dwReserved);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpCrackUrl(
+            IntPtr pwszUrl,
+            int dwUrlLength,
+            int dwFlags,
+            URL_COMPONENTS* lpUrlComponents);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpReadData(
+            void* hRequest,
+            void* lpBuffer,
+            int dwNumberOfBytesToRead,
+            int* lpdwNumberOfBytesRead);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe void* WinHttpOpen(
+            IntPtr pszAgentW,
+            WINHTTP_ACCESS_TYPE dwAccessType,
+            IntPtr pszProxyW,
+            IntPtr pszProxyBypassW,
+            int dwFlags);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe void* WinHttpOpenRequest(
+            void* hConnect,
+            IntPtr pwszVerb,
+            IntPtr pwszObjectName,
+            IntPtr pwszVersion,
+            IntPtr pwszReferrer,
+            IntPtr* ppwszAcceptTypes,
+            WINHTTP_OPEN_REQUEST_FLAGS dwFlags);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpQueryDataAvailable(
+            void* hRequest,
+            int* lpdwNumberOfBytesAvailable);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpQueryHeaders(
+            void* hRequest,
+            int dwInfoLevel,
+            IntPtr pwszName,
+            [Optional] void* lpBuffer,
+            int* lpdwBufferLength,
+            int* lpdwIndex);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpReceiveResponse(
+            void* hRequest,
+            void* lpReserved);
+
+        [DllImport(winhttp, SetLastError = true)]
+        public static extern unsafe int WinHttpSendRequest(
+            void* hRequest,
+            IntPtr lpszHeaders,
+            int dwHeadersLength,
+            [Optional] void* lpOptional,
+            int dwOptionalLength,
+            int dwTotalLength,
+            nuint dwContext);
 
         #endregion
         #region Helpers
@@ -246,6 +329,53 @@ namespace PESpy
             LOCKS = 0x00000020,
             MODULES32 = 0x00000040,
             NONINVASIVE = 0x80000000
+        }
+
+        public struct URL_COMPONENTS
+        {
+            public int dwStructSize;
+            public IntPtr lpszScheme;
+            public int dwSchemeLength;
+            public WINHTTP_INTERNET_SCHEME nScheme;
+            public IntPtr lpszHostName;
+            public int dwHostNameLength;
+            public short nPort;
+            public IntPtr lpszUserName;
+            public int dwUserNameLength;
+            public IntPtr lpszPassword;
+            public int dwPasswordLength;
+            public IntPtr lpszUrlPath;
+            public int dwUrlPathLength;
+            public IntPtr lpszExtraInfo;
+            public int dwExtraInfoLength;
+        }
+
+        public enum WINHTTP_ACCESS_TYPE : uint
+        {
+            WINHTTP_ACCESS_TYPE_NO_PROXY = 1U,
+            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY = 0U,
+            WINHTTP_ACCESS_TYPE_NAMED_PROXY = 3U,
+            WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY = 4U,
+        }
+
+        public enum WINHTTP_INTERNET_SCHEME
+        {
+            WINHTTP_INTERNET_SCHEME_HTTP = 1,
+            WINHTTP_INTERNET_SCHEME_HTTPS = 2,
+            WINHTTP_INTERNET_SCHEME_FTP = 3,
+            WINHTTP_INTERNET_SCHEME_SOCKS = 4,
+        }
+
+        [Flags]
+        public enum WINHTTP_OPEN_REQUEST_FLAGS : uint
+        {
+            WINHTTP_FLAG_BYPASS_PROXY_CACHE = 0x00000100,
+            WINHTTP_FLAG_ESCAPE_DISABLE = 0x00000040,
+            WINHTTP_FLAG_ESCAPE_DISABLE_QUERY = 0x00000080,
+            WINHTTP_FLAG_ESCAPE_PERCENT = 0x00000004,
+            WINHTTP_FLAG_NULL_CODEPAGE = 0x00000008,
+            WINHTTP_FLAG_REFRESH = 0x00000100,
+            WINHTTP_FLAG_SECURE = 0x00800000,
         }
 
         #endregion

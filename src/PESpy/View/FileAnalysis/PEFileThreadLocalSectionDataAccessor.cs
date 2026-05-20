@@ -3,7 +3,6 @@
     internal class PEFileThreadLocalSectionDataAccessor : ISectionDataAccessor
     {
         private PESectionLookupCache _lookupCache;
-        private bool _wantVirtual;
 
         public PEFileThreadLocalSectionDataAccessor(PEFile peFile, bool wantVirtual)
         {

@@ -32,7 +32,7 @@ namespace PESpy
 
         /// <summary>
         /// The time and date that the export data was created.<para/>
-        /// If this <see cref="PEFile"/> has an <see cref="ImageDebugDirectory"/> whose type is <see cref="ImageDebugType.Reproducible"/>, this value is not a TimeDateStamp, but rather a
+        /// If this <see cref="PEFile"/> has an <see cref="ImageDebugDirectory"/> whose type is <see cref="IMAGE_DEBUG_TYPE.IMAGE_DEBUG_TYPE_REPRO"/>, this value is not a TimeDateStamp, but rather a
         /// checksum derived from the executable's file contents, whose algorithm is an implementation detail of the tool that produced the file.
         /// </summary>
         public Timestamp TimeDateStamp => chunk.PeekUInt32(TimeDateStampOffset);

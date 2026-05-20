@@ -189,7 +189,7 @@ namespace PESpy
 
         ByteViewProvider IFileInternal.CreateByteViewProvider(FileAccessor fileAccessor) => CreateByteViewProvider(fileAccessor);
 
-        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
+        internal unsafe ByteViewProvider CreateByteViewProvider(FileAccessor? fileAccessor) => new LocalByteViewProvider(mmf.Address, mmf.Length, fileAccessor);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void GetRawHeaderData(out byte* ptr, out int remainingLength)

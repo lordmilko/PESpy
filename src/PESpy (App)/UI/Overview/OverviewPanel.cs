@@ -4,6 +4,7 @@ using PInvoke;
 using static PInvoke.DRAW_TEXT_FORMAT;
 using static PInvoke.DTTOPTS_FLAGS;
 using ReView;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PESpy.Overview
 {
@@ -11,6 +12,8 @@ namespace PESpy.Overview
     {
         private HTHEME _hTheme;
         private int _lastToolTipPos = -1;
+
+        [AllowNull]
         private NativeFont _font; //Don't dispose
         private int _lineHeight;
         private OverviewGroup[]? _groups;
@@ -596,11 +599,11 @@ namespace PESpy.Overview
             
             if (isRightMouseDown && target.columnIndex != -1)
             {
-                var row = _groups[target.groupIndex].Rows[target.rowIndex];
+                var row = _groups![target.groupIndex].Rows[target.rowIndex];
                 var entry = target.columnIndex == 0 ? row.Left : row.Right;
 
                 var hMenu = User32.CreatePopupMenu();
-                User32.AppendMenuW(hMenu, MENU_ITEM_FLAGS.MF_STRING, 1000, $"Copy \"{entry.Value.Value.Value}\"\tCtrl+C");
+                User32.AppendMenuW(hMenu, MENU_ITEM_FLAGS.MF_STRING, 1000, $"Copy \"{entry!.Value.Value.Value}\"\tCtrl+C");
                 User32.AppendMenuW(hMenu, MENU_ITEM_FLAGS.MF_STRING, 1002, "Open File Location");
                 User32.AppendMenuW(hMenu, MENU_ITEM_FLAGS.MF_SEPARATOR, 0, (PCWSTR) default);
                 User32.AppendMenuW(hMenu, MENU_ITEM_FLAGS.MF_STRING, 1001, $"Go to {entry.Value.Source}");
@@ -621,7 +624,7 @@ namespace PESpy.Overview
 
             var yPos = _yPad;
 
-            for (var i = 0; i < groups.Length; i++)
+            for (var i = 0; i < groups!.Length; i++)
             {
                 ref var group = ref groups[i];
 

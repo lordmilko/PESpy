@@ -75,8 +75,6 @@ namespace PESpy.SYM
 
             var dataChunk = chunk.Slice(ld_plinerec);
 
-            var read = 0;
-
             switch (ld_itype)
             {
                 case 0:

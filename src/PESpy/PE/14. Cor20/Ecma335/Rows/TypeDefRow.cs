@@ -59,7 +59,7 @@ namespace PESpy.Ecma335
                 if (rowId.RowId == 0)
                     return default;
 
-                return table.ModelHeap.ClassLayoutTable[rowId];
+                return classLayoutTable[rowId];
             }
         }
 

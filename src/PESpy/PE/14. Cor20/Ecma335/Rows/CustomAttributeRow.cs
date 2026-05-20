@@ -52,7 +52,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeType.Type == CorTokenType.mdtTypeDef)
             {
-                var typeDefRow = table.ModelHeap.TypeDefTable.FromToken(customAttributeType);
+                var typeDefRow = table.ModelHeap.TypeDefTable!.FromToken(customAttributeType);
 
                 nameIndex = typeDefRow.TypeName;
                 namespaceIndex = typeDefRow.TypeNamespace;
@@ -60,7 +60,7 @@ namespace PESpy.Ecma335
             }
             else if (customAttributeType.Type == CorTokenType.mdtTypeRef)
             {
-                var typeRefRow = table.ModelHeap.TypeRefTable.FromToken(customAttributeType);
+                var typeRefRow = table.ModelHeap.TypeRefTable!.FromToken(customAttributeType);
                 var resolutionScopeKind = typeRefRow.ResolutionScope.TableKind;
 
                 //If it's a nested type, it's too complex for us to resolve just based on simple metadata
@@ -74,7 +74,7 @@ namespace PESpy.Ecma335
             else if (customAttributeType.Type == CorTokenType.mdtTypeSpec)
             {
                 retry:
-                var typeSpecRow = table.ModelHeap.TypeSpecTable.FromToken(customAttributeType);
+                var typeSpecRow = table.ModelHeap.TypeSpecTable!.FromToken(customAttributeType);
 
                 //We aren't exactly able to get the full name, but we can at least try and get the generic type definition
 
@@ -95,14 +95,14 @@ namespace PESpy.Ecma335
                 switch (token.Type)
                 {
                     case CorTokenType.mdtTypeDef:
-                        var typeDefRow = table.ModelHeap.TypeDefTable.FromToken(token);
+                        var typeDefRow = table.ModelHeap.TypeDefTable!.FromToken(token);
 
                         nameIndex = typeDefRow.TypeName;
                         namespaceIndex = typeDefRow.TypeNamespace;
                         break;
 
                     case CorTokenType.mdtTypeRef:
-                        var typeRefRow = table.ModelHeap.TypeRefTable.FromToken(token);
+                        var typeRefRow = table.ModelHeap.TypeRefTable!.FromToken(token);
 
                         nameIndex = typeRefRow.TypeName;
                         namespaceIndex = typeRefRow.TypeNamespace;
@@ -128,7 +128,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeCtor.TableKind == TableKind.MemberRef)
             {
-                var type = table.ModelHeap.MemberRefTable[customAttributeCtor].Class;
+                var type = table.ModelHeap.MemberRefTable![customAttributeCtor].Class;
 
                 customAttributeType = (mdToken) type;
                 return true;
@@ -136,7 +136,7 @@ namespace PESpy.Ecma335
 
             if (customAttributeCtor.TableKind == TableKind.MethodDef)
             {
-                var declaringType = table.ModelHeap.MethodDefTable[customAttributeCtor].DeclaringType;
+                var declaringType = table.ModelHeap.MethodDefTable![customAttributeCtor].DeclaringType;
 
                 if (declaringType != null)
                 {

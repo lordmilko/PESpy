@@ -63,7 +63,7 @@
                 return default;
             }
 
-            return ModelHeap.TypeDefTable[GetParent((EventMapIndex)row)];
+            return ModelHeap.TypeDefTable[GetParent((EventMapIndex) row)];
         }
 
         internal void GetRange(TypeDefIndex typeDef, out int firstEventRowId, out int lastEventRowId)

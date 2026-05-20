@@ -76,9 +76,9 @@ namespace PESpy
                                 return false;
                             }
 
-                            ref var previousSymbol = ref symbols.Symbols32[i - 1];
+                            ref var previousSymbol = ref symbols.Symbols16[i - 1];
 
-                            length = symbol.sd16_val - previousSymbol.sd_lval;
+                            length = symbol.sd16_val - previousSymbol.sd16_val;
 
                             return true;
                         }
