@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using ClrDebug;
 using PESpy.Ecma335;
+using PESpy.IL;
 using PESpy.View;
 
 namespace PESpy
@@ -42,6 +43,8 @@ namespace PESpy
                 }
             }
         }
+
+        public ILEnumerator IL => new ILEnumerator(new ILDecoder(new ByteReader(ILBytes)));
 
         public mdSignature LocalVarSigTok { get; }
 

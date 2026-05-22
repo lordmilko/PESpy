@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using ClrDebug;
 
 namespace PESpy.Ecma335
 {
@@ -22,6 +23,8 @@ namespace PESpy.Ecma335
         }
 
         public UserString GetString(UserStringIndex offset) => GetString(offset.Offset);
+
+        internal UserString GetString(mdString token) => GetString(token.Rid);
 
         internal unsafe UserString GetString(int offset)
         {

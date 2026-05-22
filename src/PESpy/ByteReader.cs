@@ -21,9 +21,15 @@ namespace PESpy
         private readonly byte* endPointer;
         private byte* currentPointer;
 
+        public byte* CurrentPointer => currentPointer;
+
         public int Length => (int) (endPointer - startPointer);
 
-        public int Offset => (int) (currentPointer - startPointer);
+        public int Offset
+        {
+            get => (int) (currentPointer - startPointer);
+            set => currentPointer = startPointer + value;
+        }
 
         public int RemainingBytes => (int) (endPointer - currentPointer);
 
@@ -32,6 +38,10 @@ namespace PESpy
             startPointer = buffer;
             currentPointer = buffer;
             endPointer = buffer + length;
+        }
+
+        public ByteReader(NativeSpan<byte> bytes) : this((byte*) bytes, bytes.Length)
+        {
         }
 
         public bool ReadBoolean() => ReadByte() != 0;
@@ -101,16 +111,13 @@ namespace PESpy
             return *(double*) &val;
         }
 
-        //Yes we could potentially decode as FixedUtf8String instead, but when reading a value
-        //this is going to be boxed as object anyway so it kind of makes more sense to just
-        //make it a proper string
-        public string ReadSerString()
+        public FixedUtf8String ReadSerString()
         {
             var length = ReadCompressedIntegerOrInvalid();
 
             if (length != int.MaxValue)
             {
-                var str = Encoding.UTF8.GetString(currentPointer, length);
+                var str = new FixedUtf8String(currentPointer, length);
                 currentPointer += length;
                 return str;
             }
@@ -119,7 +126,14 @@ namespace PESpy
             if (ReadByte() != 0xFF)
                 throw new InvalidOperationException("Invalid serialized string");
 
-            return null;
+            return default;
+        }
+
+        public FixedUtf8String ReadSerString(int offset)
+        {
+            Offset = offset;
+
+            return ReadSerString();
         }
 
         public CorElementType ReadCorElementType() =>
@@ -190,7 +204,7 @@ namespace PESpy
         {
             byte* p = currentPointer;
 
-            if (p == endPointer)
+            if (p >= endPointer)
                 throw new InvalidOperationException("Attempted to read beyond the length of the buffer");
 
             currentPointer = p + 1;

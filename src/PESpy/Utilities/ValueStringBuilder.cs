@@ -407,19 +407,8 @@ namespace PESpy
             byte* pBuffer = stackalloc byte[max];
             var buffer = new Span<byte>(pBuffer, max);
 
-            var result = Utf8Formatter.TryFormat(size, buffer, out var bytesWritten, new StandardFormat('N', 2));
-            Debug.Assert(result);
-            var str = buffer.Slice(0, bytesWritten);
-
-            i = str.Length - 1;
-
-            while (i > 0 && str[i] == '0')
-                i--;
-
-            if (str[i] == '.')
-                i--;
-
-            Append(buffer.Slice(0, i + 1));
+            //Utf8Formatter.TryFormat doesn't support N2 unfortunately
+            Append(size.ToString(forceDecimal ? "N2" : "0.##"));
 #endif
 
             Append(' ');

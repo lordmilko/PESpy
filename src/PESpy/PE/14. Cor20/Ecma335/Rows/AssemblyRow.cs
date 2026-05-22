@@ -17,7 +17,17 @@ namespace PESpy.Ecma335
         public short BuildNumber => table.GetBuildNumber(RowIndex);
         public short RevisionNumber => table.GetRevisionNumber(RowIndex);
 
-        public Version Version => new Version(MajorVersion, MinorVersion, BuildNumber, RevisionNumber);
+        public Version Version
+        {
+            get
+            {
+                //mstat files specify -1 for these
+                var buildNumber = BuildNumber;
+                var revisionNumber = RevisionNumber;
+
+                return new Version(MajorVersion, MinorVersion, buildNumber == -1 ? 0 : buildNumber, revisionNumber == -1 ? 0 : revisionNumber);
+            }
+        }
 
         public CorAssemblyFlags Flags => table.GetFlags(RowIndex);
 

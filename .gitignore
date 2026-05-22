@@ -22,6 +22,7 @@ MockGraphics.cs
 .stfolder/
 .stignore
 Design/
+_GetDgmlFile.cs
 
 # NGEN unimplemented types
 CorCompileMethodProfileList.cs

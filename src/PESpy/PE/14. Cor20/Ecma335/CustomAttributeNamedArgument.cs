@@ -6,7 +6,7 @@ namespace PESpy.Ecma335
     [DebuggerDisplay("{Name,nq} = {Value}")]
     public readonly struct CustomAttributeNamedArgument<TType>
     {
-        public string Name { get; }
+        public FixedUtf8String Name { get; }
 
         public CorSerializationType Kind { get; }
 
@@ -14,7 +14,7 @@ namespace PESpy.Ecma335
 
         public object? Value { get; }
 
-        internal CustomAttributeNamedArgument(string name, CorSerializationType kind, TType type, object? value)
+        internal CustomAttributeNamedArgument(FixedUtf8String name, CorSerializationType kind, TType type, object? value)
         {
             Name = name;
             Kind = kind;

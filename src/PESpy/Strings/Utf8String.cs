@@ -106,6 +106,9 @@ namespace PESpy
         public static bool operator ==(Utf8String left, Utf8String right) => right.Equals(left);
         public static bool operator !=(Utf8String left, Utf8String right) => !right.Equals(left);
 
+        public static bool operator ==(Utf8String left, ReadOnlySpan<byte> right) => left.AsSpan().SequenceEqual(right);
+        public static bool operator !=(Utf8String left, ReadOnlySpan<byte> right) => !left.AsSpan().SequenceEqual(right);
+
         #endregion
 
         public override bool Equals(object? obj)

@@ -14,6 +14,7 @@ using static ClrDebug.IMAGE_FILE_MACHINE;
 using static ClrDebug.COMIMAGE_FLAGS;
 using static PESpy.IMAGE_DEBUG_TYPE;
 using static PESpy.NativeMethods;
+using PESpy.Mstat;
 
 namespace PESpy
 {
@@ -128,6 +129,8 @@ namespace PESpy
         public NativeAOT.DotNetRuntimeDebugHeader? DotNetRuntimeDebugHeader => peFile.DotNetRuntimeDebugHeader;
 
         public NativeAOTModulesList? NativeAOTModules => peFile.GetNativeAOTModules(debugger: true);
+
+        public MstatInfo? MstatInfo => peFile.MstatInfo;
 
         public SymbolValueList<RTTICompleteObjectLocator>? RTTICompleteObjectLocators => peFile.GetRTTICompleteObjectLocators(debugger: true);
 
@@ -2866,6 +2869,29 @@ namespace PESpy
             }
 
             return false;
+        }
+
+        #endregion
+        #region Mstat
+
+        private MstatInfo? mstatInfo;
+
+        /// <summary>
+        /// Gets an object that describes the encoded MSTAT information that describes the types that were included
+        /// in a NativeAOT compilation. This value is only valid when the current <see cref="PEFile"/> is an *.mstat
+        /// file emitted by specifying <c>&lt;IlcGenerateMstatFile&gt;true&lt;/IlcGenerateMstatFile&gt;</c>
+        /// when publishing a NativeAOT executable.<para/>
+        /// See also: <see href="https://github.com/dotnet/runtime/pull/73913"/>
+        /// </summary>
+        public MstatInfo? MstatInfo
+        {
+            get
+            {
+                if (mstatInfo == null)
+                    MstatInfo.TryCreate(this, out mstatInfo);
+
+                return mstatInfo;
+            }
         }
 
         #endregion

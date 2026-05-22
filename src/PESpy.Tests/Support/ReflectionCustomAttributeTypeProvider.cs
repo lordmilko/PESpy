@@ -37,9 +37,9 @@ namespace PESpy.Tests
             };
         }
 
-        public Type GetTypeFromSerializedName(string typeName)
+        public Type GetTypeFromSerializedName(FixedUtf8String typeName)
         {
-            return Type.GetType(typeName, throwOnError: true);
+            return Type.GetType(typeName.ToString(), throwOnError: true);
         }
 
         public CorElementType GetUnderlyingEnumType(Type type)

@@ -1,10 +1,11 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ClrDebug;
 
 namespace PESpy.Ecma335
 {
     [DebuggerDisplay("{DebuggerDisplay(),nq}")]
-    public readonly struct CodedIndex
+    public readonly struct CodedIndex : IEquatable<CodedIndex>
     {
         private string DebuggerDisplay()
         {
@@ -69,6 +70,27 @@ namespace PESpy.Ecma335
         {
             CodedIndexType = type;
             Value = value;
+        }
+
+        public static bool operator ==(CodedIndex left, CodedIndex right) => left.CodedIndexType == right.CodedIndexType && left.Value == right.Value;
+        public static bool operator !=(CodedIndex left, CodedIndex right) => !(left == right);
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not CodedIndex c)
+                return false;
+
+            return Equals(c);
+        }
+
+        public bool Equals(CodedIndex other) =>
+            CodedIndexType == other.CodedIndexType && Value == other.Value;
+
+        public override int GetHashCode()
+        {
+            var hashCode = CodedIndexType.GetHashCode();
+            hashCode = (hashCode ^ 397) ^ Value.GetHashCode();
+            return hashCode;
         }
 
         public object GetRow(ModelHeap heap)
@@ -140,6 +162,28 @@ namespace PESpy.Ecma335
         }
 
         public static explicit operator int(CodedIndex index) => index.Value;
+
+        public static explicit operator mdModule(CodedIndex index) => (mdModule) (mdToken) index;
+        public static explicit operator mdTypeRef(CodedIndex index) => (mdTypeRef) (mdToken) index;
+        public static explicit operator mdTypeDef(CodedIndex index) => (mdTypeDef) (mdToken) index;
+        public static explicit operator mdFieldDef(CodedIndex index) => (mdFieldDef) (mdToken) index;
+        public static explicit operator mdMethodDef(CodedIndex index) => (mdMethodDef) (mdToken) index;
+        public static explicit operator mdParamDef(CodedIndex index) => (mdParamDef) (mdToken) index;
+        public static explicit operator mdInterfaceImpl(CodedIndex index) => (mdInterfaceImpl) (mdToken) index;
+        public static explicit operator mdMemberRef(CodedIndex index) => (mdMemberRef) (mdToken) index;
+        public static explicit operator mdCustomAttribute(CodedIndex index) => (mdCustomAttribute) (mdToken) index;
+        public static explicit operator mdEvent(CodedIndex index) => (mdEvent) (mdToken) index;
+        public static explicit operator mdProperty(CodedIndex index) => (mdProperty) (mdToken) index;
+        public static explicit operator mdModuleRef(CodedIndex index) => (mdModuleRef) (mdToken) index;
+        public static explicit operator mdTypeSpec(CodedIndex index) => (mdTypeSpec) (mdToken) index;
+        public static explicit operator mdAssembly(CodedIndex index) => (mdAssembly) (mdToken) index;
+        public static explicit operator mdAssemblyRef(CodedIndex index) => (mdAssemblyRef) (mdToken) index;
+        public static explicit operator mdFile(CodedIndex index) => (mdFile) (mdToken) index;
+        public static explicit operator mdExportedType(CodedIndex index) => (mdExportedType) (mdToken) index;
+        public static explicit operator mdManifestResource(CodedIndex index) => (mdManifestResource) (mdToken) index;
+        public static explicit operator mdGenericParam(CodedIndex index) => (mdGenericParam) (mdToken) index;
+        public static explicit operator mdMethodSpec(CodedIndex index) => (mdMethodSpec) (mdToken) index;
+        public static explicit operator mdGenericParamConstraint(CodedIndex index) => (mdGenericParamConstraint) (mdToken) index;
 
         //Note that not all table kinds map onto token types, hence this is an explicit cast
         public static explicit operator mdToken(CodedIndex index)

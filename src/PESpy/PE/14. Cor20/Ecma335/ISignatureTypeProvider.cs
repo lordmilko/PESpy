@@ -23,7 +23,7 @@ namespace PESpy.Ecma335
 
         bool IsSystemType(TType type);
 
-        TType GetTypeFromSerializedName(string typeName);
+        TType GetTypeFromSerializedName(FixedUtf8String typeName);
 
         CorElementType GetUnderlyingEnumType(TType type);
     }

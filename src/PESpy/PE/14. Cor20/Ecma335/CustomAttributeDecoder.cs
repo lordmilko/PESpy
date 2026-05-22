@@ -287,7 +287,7 @@ namespace PESpy.Ecma335
                     break;
 
                 case CorSerializationType.SERIALIZATION_TYPE_STRING:
-                    value = valueSigReader.ReadSerString();
+                    value = valueSigReader.ReadSerString().ToString(); //It's going to be boxed, anyway, so just make it a full string
                     break;
 
                 case CorSerializationType.SERIALIZATION_TYPE_TYPE:
