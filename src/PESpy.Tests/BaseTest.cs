@@ -20,6 +20,48 @@ namespace PESpy.Tests
 {
     public abstract class BaseTest
     {
+        //When we don't have a given locator file yet, multiple tests trying to download that file
+        //at once will collide with each other; hence we need to synchronize
+        private static object _locatorLock = new();
+
+        public static string Locate(SymStoreKey key)
+        {
+            lock (_locatorLock)
+                return Locator.Locate(key);
+        }
+
+        public static string LocatePDB(SymStoreKey key)
+        {
+            lock (_locatorLock)
+                return Locator.LocatePDB(key);
+        }
+
+        public static PEFile PEFileFromKey(SymStoreKey key)
+        {
+            PEFile peFile;
+
+            lock (_locatorLock)
+                peFile = PEFile.FromKey(key);
+
+            return peFile;
+        }
+
+        public static PDBFile PDBFileFromKey(SymStoreKey key)
+        {
+            PDBFile pdbFile;
+
+            lock (_locatorLock)
+                pdbFile = PDBFile.FromKey(key);
+
+            return pdbFile;
+        }
+
+        public static ISymbolAccessor GetSymbolAccessor(IFile file)
+        {
+            lock (_locatorLock)
+                return file.GetSymbolAccessor();
+        }
+
         #region TestStruct
 
         protected void TestStruct<T>(params Expression<Func<T, bool>>[] asserts) =>
@@ -782,7 +824,7 @@ namespace PESpy.Tests
 
         protected static PEFile GetFile(SymStoreKey key, out Stream fs, out IFile file)
         {
-            var path = Locator.Locate(key);
+            var path = Locate(key);
 
             fs = File.OpenRead(path);
 
@@ -821,12 +863,16 @@ namespace PESpy.Tests
 
         private static PEFile GetNativeAOTProcessStream(out Stream stream, out IFile file)
         {
+#if DISABLE_CHAOSLIB
+            throw new AssertInconclusiveException();
+#else
             stream = ProcessHolderStream.New(Sample.NativeAOT_EXE);
 
             var peFile = PEFile.FromStream(stream, true);
             file = peFile;
 
             return peFile;
+#endif
         }
 
         private static T GetSymbol<T>(
@@ -836,12 +882,12 @@ namespace PESpy.Tests
             out Stream fs,
             out IFile file)
         {
-            var path = Locator.Locate(symStoreKey);
+            var path = Locate(symStoreKey);
 
             fs = File.OpenRead(path);
             var peFile = PEFile.FromStream(fs, false); //Don't dispose
 
-            var pdbFile = PDBFile.FromKey(symStoreKey);
+            using var pdbFile = PDBFileFromKey(symStoreKey);
 
             foreach (var symType in pdbFile.PSGSI.Symbols)
             {

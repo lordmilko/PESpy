@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(Build)ClrDebug.props" />
+  <Import Project="..\..\build\NuGet.props" />
 
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(UseLatestTargetFramework)' == 'yes'">netstandard2.0;net9.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(UseLatestTargetFramework)' != 'yes'">netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>annotations</Nullable>
@@ -13,12 +13,10 @@
 		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
 		<AnalysisLevel>none</AnalysisLevel>
     <CheckForOverflowUnderflow Condition="'$(Configuration)' == 'Debug'">true</CheckForOverflowUnderflow>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="_old\**" />
-    <None Include="_old\**" />
-
     <AdditionalFiles Include="BannedSymbols.txt" />
   </ItemGroup>
 
@@ -60,7 +58,7 @@
 
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" PrivateAssets="all" />
 
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
   </ItemGroup>
 
   <ItemGroup>

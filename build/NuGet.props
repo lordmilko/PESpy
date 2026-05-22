@@ -1,0 +1,42 @@
+﻿<Project>
+  <PropertyGroup>
+    <Title>PESpy</Title>
+    <Authors>lordmilko</Authors>
+    <Description>Reverse Engineering toolkit for Microsoft compiler generated files</Description>
+    <PackageReleaseNotes>
+      Release Notes: https://github.com/lordmilko/PESpy/releases/tag/v$(Version)
+
+---
+
+PESpy is a C#/PowerShell library for reverse engineering, analyzing and visualizing Microsoft compiler generated file formats.
+
+Given a file, PESpy aims to
+
+* Understand the meaning of *every single byte within that file*
+* Support parsing *all known entities*, no matter how obscure
+* Minimize abstractions, and mirror native type names wherever possible
+* Be highly performant while still being ergonomic. Allocations need be as low as possible!
+* Support *all known symbol formats*; COFF, OMF, CodeView, SYM, DBG, PDB files, DNDRB, NB00-NB10, RSDS - if symbols exist, PESpy will read and show them to you
+* Unironically provide *information at your fingertips*. The whole entire file hierarchy is exposed via properties; simply open a file, and then poke around in the Locals window
+* Support reading PE Files out of a remote debug target where the size of the PE File isn''t known upfront
+* Provide tools for performing various file operations, including
+* Detecting file types
+* Locating symbol files (no more `symsrv.dll`!)
+* Resolving RPC Servers
+* Manipulating Symbol Keys
+* Parsing vftables
+* Undecorating symbol names
+* Reading and decompressing files contained in Windows installation media
+* Be highly NativeAOT friendly
+
+PESpy is capable of interfacing with many different file types, including PE, PDB, OBJ, DOS, NE, LE, DBG, LIB, OMF OMFLIB, OMFDBG and SYM. For more information, please see the project website.
+    </PackageReleaseNotes>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/lordmilko/PESpy</PackageProjectUrl>
+    <PackageTags>pe pdb portable-executable symbols reverse-engineering dotnet metadata</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" Visible="false"/>
+  </ItemGroup>
+</Project>

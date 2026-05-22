@@ -7,13 +7,16 @@ using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PESpy.PDB;
 using PESpy.View;
+#if !DISABLE_SYMHELP
 using SymHelp;
 using SymHelp.Symbols.MicrosoftPdb;
 using SymHelp.Symbols.PDBFile;
+#endif
 using static ClrDebug.IMAGE_FILE_MACHINE;
 
 namespace PESpy.Tests
 {
+#if !DISABLE_SYMHELP
     struct ComparePDBContext
     {
         public DBI1 dbi;
@@ -25,10 +28,12 @@ namespace PESpy.Tests
         public PDBFile pdbFile;
         public int sizeOfImage;
     }
+#endif
 
     [TestClass]
     public class PDBFileTests : BaseTest
     {
+#if !DISABLE_SYMHELP
         [TestMethod]
         public unsafe void PDBFile_NearestSym_StressTest()
         {
@@ -201,7 +206,7 @@ namespace PESpy.Tests
             //This is an important test, but it takes several minutes!
             Assert.Inconclusive();
 
-            StressTestRVA(Locator.Locate(WellKnownTestModule.CppDebug));
+            StressTestRVA(Locate(WellKnownTestModule.CppDebug));
         }
 
         [TestMethod]
@@ -209,7 +214,7 @@ namespace PESpy.Tests
         {
             using var peFile = PEFile.FromFile(Sample.NB11);
 
-            var symbolAccessor = (NB09SymbolAccessor) peFile.GetSymbolAccessor();
+            var symbolAccessor = (NB09SymbolAccessor) BaseTest.GetSymbolAccessor(peFile);
 
             var sizeOfImage = peFile.OptionalHeader.SizeOfImage;
 
@@ -315,7 +320,7 @@ namespace PESpy.Tests
             ClrDebug.Extensions.DiaStringsUseComHeap = true;
 
             using var peFile = PEFile.FromFile(imageName);
-            using var pdbFile = PDBFile.FromFile(Locator.LocatePDB(imageName));
+            using var pdbFile = PDBFile.FromFile(LocatePDB(imageName));
 
             //Don't dispose the symbol module; there seems to be some sort of bug with DIA wherein its crashing
             //cleaning up a ModCache likely as a result of us touching every single address in the executable
@@ -341,6 +346,7 @@ namespace PESpy.Tests
 
             action(ctx);
         }
+#endif
 
         [TestMethod]
         public void BigMsfHdr_StreamTable_Test()
@@ -729,7 +735,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void GSI_Test_V7()
         {
-            using var pdbFile = PDBFile.FromKey(WellKnownTestModule.ntdll);
+            using var pdbFile = PDBFileFromKey(WellKnownTestModule.ntdll);
 
             var writer = new ViewWriter(pdbFile);
 
@@ -767,7 +773,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void OMAP_Test()
         {
-            var path = Locator.LocatePDB(WellKnownTestModule.ntdllWin7);
+            var path = LocatePDB(WellKnownTestModule.ntdllWin7);
 
             using var pdbFile = PDBFile.FromFile(path);
 

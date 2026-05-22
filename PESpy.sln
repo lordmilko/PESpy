@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_PESpyUI", "src\PESpyUI\_PESpyUI.csproj", "{F7F1727E-C359-4C38-8BC3-726AD07972A9}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy", "src\PESpy\PESpy.csproj", "{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.Tests", "src\PESpy.Tests\PESpy.Tests.csproj", "{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}"
@@ -15,17 +13,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.Benchmarks", "src\PESpy.Benchmarks\PESpy.Benchmarks.csproj", "{803D83FB-4BC1-424D-968C-BD3C95CA5451}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8A398498-8619-4E11-92BF-F358D9DFC882}"
 	ProjectSection(SolutionItems) = preProject
+		build\Bootstrap.ps1 = build\Bootstrap.ps1
+		build\Build.psd1 = build\Build.psd1
+		build\ChaosLib.props = build\ChaosLib.props
 		build\ClrDebug.props = build\ClrDebug.props
 		build\GhidraSharp.props = build\GhidraSharp.props
+		build\NuGet.props = build\NuGet.props
 		build\PInvoke.props = build\PInvoke.props
 		build\ReAnalyze.props = build\ReAnalyze.props
+		build\ReFlow.props = build\ReFlow.props
 		build\ReView.props = build\ReView.props
 		build\SizeHacks.props = build\SizeHacks.props
 		build\SymHelp.props = build\SymHelp.props
+		build\Version.props = build\Version.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PESpy.PowerShell", "src\PESpy.PowerShell\PESpy.PowerShell.csproj", "{548315CB-D76C-4E1C-BF2B-67A3334F333E}"
@@ -38,10 +40,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F7F1727E-C359-4C38-8BC3-726AD07972A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F7F1727E-C359-4C38-8BC3-726AD07972A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F7F1727E-C359-4C38-8BC3-726AD07972A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F7F1727E-C359-4C38-8BC3-726AD07972A9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7CA6A5A-F907-41B1-B10B-AE13568E27F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -50,10 +48,6 @@ Global
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1D4F6D2-9B79-4BC6-9747-65A6438BCDD4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{803D83FB-4BC1-424D-968C-BD3C95CA5451}.Release|Any CPU.Build.0 = Release|Any CPU
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{548315CB-D76C-4E1C-BF2B-67A3334F333E}.Release|Any CPU.ActiveCfg = Release|Any CPU

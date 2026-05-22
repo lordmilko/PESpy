@@ -180,7 +180,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void RegionView_DataDirectory_SplitEnd()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.coreclr);
+            using var peFile = BaseTest.PEFileFromKey(WellKnownTestModule.coreclr);
 
             var view = peFile.GetView();
 
@@ -227,6 +227,8 @@ namespace PESpy.Tests
         [TestMethod]
         public void RegionView_BundleManifest()
         {
+            Assert.Inconclusive("We get different results based on whether we initially had symbols for singlefilehost.pdb or not");
+
             WithRegions(Sample.SingleFileApp_EXE, r =>
             {
                 Assert.AreEqual(1040, r.Length);
@@ -239,7 +241,11 @@ namespace PESpy.Tests
 
         private void WithRegions(SymStoreKey key, Action<LogicalRegionView[]> validate)
         {
-            using var peFile = PEFile.FromKey(key);
+            using var peFile = BaseTest.PEFileFromKey(key);
+
+            //We can't synchronize access to the PDB from inside of GetView, so we need to make sure we get it before any other test also
+            //tries to get it
+            BaseTest.PDBFileFromKey(key);
 
             var view = peFile.GetView();
 

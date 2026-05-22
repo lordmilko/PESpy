@@ -18,7 +18,9 @@ namespace PESpy.Tests
         internal void Verify(string propertyName, int index, int fieldOffset, int targetOffset)
         {
             PEFile peFile = null;
+#if !DISABLE_CHAOSLIB
             ProcessHolderStream processStream = null;
+#endif
 
             PEFile GetSampleFile(string path)
             {
@@ -29,21 +31,25 @@ namespace PESpy.Tests
 
             PEFile GetStoreFile(SymStoreKey key, bool forceSymbols = false)
             {
-                peFile = PEFile.FromKey(key);
+                peFile = BaseTest.PEFileFromKey(key);
 
                 if (forceSymbols)
-                    _ = Locator.LocatePDB(key);
+                    _ = BaseTest.LocatePDB(key);
 
                 return peFile;
             }
 
             PEFile GetAOTFile()
             {
+#if DISABLE_CHAOSLIB
+                throw new AssertInconclusiveException();
+#else
                 processStream = ProcessHolderStream.New(Sample.NativeAOT_EXE);
 
                 peFile = PEFile.FromStream(processStream, true);
 
                 return peFile;
+#endif
             }
 
             try
@@ -326,7 +332,9 @@ namespace PESpy.Tests
             finally
             {
                 peFile?.Dispose();
+#if !DISABLE_CHAOSLIB
                 processStream?.Dispose();
+#endif
             }
         }
     }

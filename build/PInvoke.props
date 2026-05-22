@@ -1,12 +1,14 @@
 <Project>
   <PropertyGroup>
     <LocalPInvoke>$(MSBuildThisFileDirectory)\..\..\PInvoke\src\PInvoke\bin\Debug\netstandard2.0\PInvoke.dll</LocalPInvoke>
+
+    <DefineConstants Condition="!Exists('$(LocalReView)')">$(DefineConstants);DISABLE_PINVOKE</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup>
     <!-- If PInvoke has been cloned to the parent directory containing both PInvoke and ReDbg,
          prefer the local version for development purposes -->
-    <PackageReference Include="PInvoke" Version="$(PInvokeVersion)" Condition="!Exists('$(LocalPInvoke)')" />
+    <!--<PackageReference Include="PInvoke" Version="$(PInvokeVersion)" Condition="!Exists('$(LocalPInvoke)')" />-->
 
     <Reference Include="PInvoke" Condition="Exists('$(LocalPInvoke)')">
       <HintPath>$(LocalPInvoke)</HintPath>

@@ -842,14 +842,14 @@ namespace PESpy
             //Not implemented yet
             decompressionInfo = default;
             return false;
-#endif
-
+#else
             if (compressionMethod != KWAJCompressionMethod.JeffJohnson)
                 throw new NotImplementedException();
 
             //See libmspack documentation
 
             throw new NotImplementedException();
+#endif
         }
     }
 }

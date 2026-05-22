@@ -234,11 +234,22 @@ namespace PESpy
             var nameToLocate = Path.GetFileNameWithoutExtension(key.Index);
             var extToUse = Path.GetExtension(key.Index);
 
+            var searchPath = EnsureNTSymbolPath(null);
+
+            var result = LocateFileInPath(null, nameToLocate, searchPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken);
+
+            if (result.fileInPath != null)
+                return result.fileInPath;
+
+            if (searchPath != null)
+            {
+            }
+
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                var result = LocateFileInPath(null, nameToLocate, environmentPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken);
+                result = LocateFileInPath(null, nameToLocate, environmentPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken);
 
                 if (result.fileInPath != null)
                     return result.fileInPath;
@@ -258,11 +269,22 @@ namespace PESpy
             var nameToLocate = Path.GetFileNameWithoutExtension(key.Index);
             var extToUse = Path.GetExtension(key.Index);
 
+            var searchPath = EnsureNTSymbolPath(null);
+
+            var result = await LocateFileInPathAsync(null, nameToLocate, searchPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken).ConfigureAwait(false);
+
+            if (result.fileInPath != null)
+                return result.fileInPath;
+
+            if (searchPath != null)
+            {
+            }
+
             foreach (var environmentName in environmentNames)
             {
                 var environmentPath = Environment.GetEnvironmentVariable(environmentName);
 
-                var result = await LocateFileInPathAsync(null, nameToLocate, environmentPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken).ConfigureAwait(false);
+                result = await LocateFileInPathAsync(null, nameToLocate, environmentPath, extToUse, key, null, allowRemote: true, LocatorHttpPolicy.All, progress, cancellationToken).ConfigureAwait(false);
 
                 if (result.fileInPath != null)
                     return result.fileInPath;
@@ -609,6 +631,21 @@ namespace PESpy
                     throw new ArgumentException("The specifid file does not have a FileName");
             }
 
+            searchPath = EnsureNTSymbolPath(searchPath);
+
+            state = State.None;
+
+            ctx = new LocatorContext
+            {
+                Flags = flags,
+                SearchPath = searchPath,
+            };
+
+            run = true;
+        }
+
+        private static string EnsureNTSymbolPath(string? searchPath)
+        {
             /* Systems often don't have _NT_SYMBOL_PATH defined, so it's up to us to define it for them. The way we'll do this is we'll say if it's not defined,
              * we'll append it to the user's custom search path and store any symbols we locate in %temp%
              *
@@ -631,15 +668,7 @@ namespace PESpy
                 }
             }
 
-            state = State.None;
-
-            ctx = new LocatorContext
-            {
-                Flags = flags,
-                SearchPath = searchPath,
-            };
-
-            run = true;
+            return searchPath;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

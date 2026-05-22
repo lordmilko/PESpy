@@ -1,4 +1,5 @@
-﻿using ReView;
+﻿#if !DISABLE_REVIEW
+using ReView;
 
 namespace PESpy.ListView
 {
@@ -10,3 +11,4 @@ namespace PESpy.ListView
         }
     }
 }
+#endif

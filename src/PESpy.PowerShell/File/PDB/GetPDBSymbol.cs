@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Management.Automation;
-using SymHelp.Symbols;
-using PESpy.PDB;
 using System.Collections.Generic;
+using System.Management.Automation;
+using PESpy.PDB;
 using ClrDebug.PDB;
 
 namespace PESpy.PowerShell.PDB

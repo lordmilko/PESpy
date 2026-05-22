@@ -1,5 +1,7 @@
 using System;
+#if !DISABLE_PINVOKE
 using PInvoke;
+#endif
 
 namespace PESpy
 {
@@ -13,6 +15,9 @@ namespace PESpy
 
             try
             {
+#if DISABLE_REVIEW
+                throw new InvalidOperationException("This program depends on unreleased libraries and cannot be run");
+#else
                 var mainWindow = new MainWindow();
                 App.MainWindow = mainWindow;
 
@@ -25,6 +30,7 @@ namespace PESpy
                     User32.TranslateMessage(msg);
                     User32.DispatchMessageW(msg);
                 }
+#endif
             }
             catch (Exception ex)
             {

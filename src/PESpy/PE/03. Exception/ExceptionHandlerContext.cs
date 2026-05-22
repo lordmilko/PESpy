@@ -637,12 +637,12 @@ namespace PESpy
             {
                 var rva = *(int*) pExceptionData;
 
-                if (peFile.TryGetValueChunkFromSection(rva, out var valueChunk))
+                if (peFile.TryGetValueChunkFromSection(rva, out var funcInfoValueChunk))
                 {
                     //At a minimum we need enough space to store a FuncInfoV1
-                    if (FuncInfo.StructSizeV1 < valueChunk.Remaining)
+                    if (FuncInfo.StructSizeV1 < funcInfoValueChunk.Remaining)
                     {
-                        var magicNumberAndBBTFlags = valueChunk.PeekInt32(FuncInfo.magicNumberAndBBTFlagsOffset);
+                        var magicNumberAndBBTFlags = funcInfoValueChunk.PeekInt32(FuncInfo.magicNumberAndBBTFlagsOffset);
 
                         var magicNumber = (EH_MAGIC_NUMBER) (magicNumberAndBBTFlags & ((1 << 29) - 1));
 
@@ -664,7 +664,7 @@ namespace PESpy
                                  * to the FuncInfo. So in this case we need to check whether any entities are pointing to
                                  * the position directly after the RVA to the FuncInfo */
 
-                                if (CanHaveFuncInfoGSData(exceptionDataLength, valueChunk, pExceptionData, block))
+                                if (CanHaveFuncInfoGSData(exceptionDataLength, funcInfoValueChunk, pExceptionData, block))
                                 {
                                     //I've seen some strange data after both __CxxFrameHandler3 and __GSHandlerCheck_EH in msedsge.dll
                                     //that ends in 4 bytes of 0xFF. I'm not sure what that data is yet
@@ -686,7 +686,7 @@ namespace PESpy
                     //If it's EH_MAGIC_NUMBER it 100% can't be FuncInfo4, so if we failed to match that above, continue on below.
                     //When FuncInfo4 is present, the exception data contains an RVA to the FuncInfo4. However, often
                     //the data is situated directly after the RVA
-                    var funcInfo = new FuncInfo4(valueChunk, functionAddress: 0); //FunctionAddress is not important here
+                    var funcInfo = new FuncInfo4(funcInfoValueChunk, functionAddress: 0); //FunctionAddress is not important here
 
                     /* FuncInfo4 utilizes a variable length encoding system wherein there is a header with certain bits set, and then
                      * optional RVA fields may follow based on this header. Sanity check that all RVAs we have on the object do indeed
@@ -723,11 +723,12 @@ namespace PESpy
 
                     //If the FuncInfo4 was located right after the RVA, the ValueChunk we got wil simply be 4 bytes
                     //ahead of the pExceptionData, in which case we don't want to try and interpret the data as being
-                    //_GS_HANDLER_DATA
+                    //_GS_HANDLER_DATA. However, another possibility is we could have our RVA, the _GS_HANDLER_DATA,
+                    //and _then_ the FuncInfo4
 
-                    if (CanHaveFuncInfo4GSData(exceptionDataLength, valueChunk, pExceptionData))
+                    if (CanHaveFuncInfo4GSData(exceptionDataLength, funcInfoValueChunk, pExceptionData, out var has4ByteGap))
                     {
-                        DetectGSHandlerData(ref analysis.HasFuncInfoGSHandlerData, pExceptionData + sizeof(int), exceptionDataLength - sizeof(int), allocationSize);
+                        DetectGSHandlerData(ref analysis.HasFuncInfoGSHandlerData, pExceptionData + sizeof(int), has4ByteGap ? 4 : exceptionDataLength - sizeof(int), allocationSize);
                     }
                 }
             }
@@ -735,15 +736,20 @@ namespace PESpy
 
         private static unsafe bool CanHaveFuncInfoGSData(
             uint exceptionDataLength,
-            in MemoryChunk valueChunk,
+            in MemoryChunk funcInfoValueChunk,
             byte* pExceptionData,
             MemoryBlock block)
         {
             if (exceptionDataLength < 8)
                 return false; //Not enough room for an RVA<FuncInfo> + _GS_HANDLER_DATA
 
-            if ((valueChunk.Pointer - pExceptionData) == sizeof(int))
+            var distanceToFuncInfo = funcInfoValueChunk.Pointer - pExceptionData;
+
+            if (distanceToFuncInfo == sizeof(int))
                 return false; //The FuncInfo was directly after the RVA<FuncInfo>
+
+            if (distanceToFuncInfo == 8)
+                return true; //We have the RVA<FuncInfo>, a 4 byte gap, and then the FuncInfo itself. _GS_HANDLER_DATA could fit in the gap!
 
             //The FuncInfo is somewhere else...but the entities that descend from the FuncInfo
             //may decide to have RVAs then point back into the exception data area, despite the fact
@@ -755,7 +761,7 @@ namespace PESpy
             var rvaToFuncInfoOffset = (int) (pExceptionData - block.LocalPointer) + (int) block.RemoteStartOffset;
             var dataAfterRvaOffset = rvaToFuncInfoOffset + sizeof(int);
 
-            var funcInfo = new FuncInfo(valueChunk);
+            var funcInfo = new FuncInfo(funcInfoValueChunk);
 
             if (HasItemAtOffset(funcInfo.dispUnwindMap, dataAfterRvaOffset))
                 return false;
@@ -791,14 +797,25 @@ namespace PESpy
 
         private static unsafe bool CanHaveFuncInfo4GSData(
             uint exceptionDataLength,
-            in MemoryChunk valueChunk,
-            byte* pExceptionData)
+            in MemoryChunk funcInfoValueChunk,
+            byte* pExceptionData,
+            out bool has4ByteGap)
         {
+            has4ByteGap = default;
+
             if (exceptionDataLength < 8)
                 return false; //Not enough room for an RVA<FuncInfo4> + _GS_HANDLER_DATA
 
-            if ((valueChunk.Pointer - pExceptionData) == sizeof(int))
-                return false; //The FuncInfo was directly after the RVA<FuncInfo4>
+            var distanceToFuncInfo = funcInfoValueChunk.Pointer - pExceptionData;
+
+            if (distanceToFuncInfo == sizeof(int))
+                return false; //The FuncInfo4 was directly after the RVA<FuncInfo4>
+
+            if (distanceToFuncInfo == 8)
+            {
+                has4ByteGap = true;
+                return true; //We have the RVA<FuncInfo4>, a 4 byte gap, and then the FuncInfo4 itself. _GS_HANDLER_DATA could fit in the gap!
+            }
 
             //The FuncInfo4 is somewhere else...but the entities that descend from the FuncInfo
             //may decide to have RVAs then point back into the exception data area, despite the fact

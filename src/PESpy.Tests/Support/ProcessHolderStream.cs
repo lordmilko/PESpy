@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_CHAOSLIB
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -39,3 +40,4 @@ namespace PESpy.Tests
         }
     }
 }
+#endif

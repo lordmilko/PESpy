@@ -1,12 +1,14 @@
 <Project>
   <PropertyGroup>
     <LocalReFlow>$(MSBuildThisFileDirectory)\..\..\ReFlow\src\ReFlow\bin\Debug\netstandard2.0\ReFlow.dll</LocalReFlow>
+
+    <DefineConstants Condition="!Exists('$(LocalReView)')">$(DefineConstants);DISABLE_REFLOW</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup>
-    <!-- If ReFlow has been cloned to the parent directory containing both ReFlow and ReDbg,
+    <!-- If ReFlow has been cloned to the parent directory containing both ReFlow and PESpy,
          prefer the local version for development purposes -->
-    <PackageReference Include="ReFlow" Version="$(ReFlowVersion)" Condition="!Exists('$(LocalReFlow)')" />
+    <!--<PackageReference Include="ReFlow" Version="$(ReFlowVersion)" Condition="!Exists('$(LocalReFlow)')" />-->
 
     <Reference Include="ReFlow" Condition="Exists('$(LocalReFlow)')">
       <HintPath>$(LocalReFlow)</HintPath>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if FALSE
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -153,3 +154,4 @@ namespace PESpy.PowerShell
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_PINVOKE
+using System;
 using System.IO;
 using ClrDebug.PDB;
 using PInvoke;
@@ -84,3 +85,4 @@ namespace PESpy.Tests
         }
     }
 }
+#endif

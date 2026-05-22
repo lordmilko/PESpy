@@ -3969,13 +3969,13 @@ namespace PESpy.Tests
                     DEBUG_S_SUBSECTION_TYPE.DEBUG_S_STRINGTABLE          => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out file, out fs).SectionData[1]).C13SubSections[5],
                     DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FILECHKSMS           =>                    GetSampleFile<PDBFile>(Sample.VS22_PDB, out file, out fs).DBI.Modules[1].C13Lines[1],
                     DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FRAMEDATA            => ((OBJSymbolsTable) GetSampleFile<OBJFile>(Sample.VS22_OBJ, out file, out fs).SectionData[1]).C13SubSections[1],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES         => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[25].C13Lines[1],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS    => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[112].C13Lines[1],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS    => GetSampleFile<PDBFile>(Locator.LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[112].C13Lines[0],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES             => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[1],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104775],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104774],
-                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT => GetSampleFile<PDBFile>(Locator.Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104776],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_INLINEELINES         => GetSampleFile<PDBFile>(LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[25].C13Lines[1],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEIMPORTS    => GetSampleFile<PDBFile>(LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[112].C13Lines[1],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_CROSSSCOPEEXPORTS    => GetSampleFile<PDBFile>(LocatePDB(WellKnownTestModule.coreclr), out file, out fs).DBI.Modules[112].C13Lines[0],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES             => GetSampleFile<PDBFile>(Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[1],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_FUNC_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104775],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_TYPE_MDTOKEN_MAP     => GetSampleFile<PDBFile>(Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104774],
+                    DEBUG_S_SUBSECTION_TYPE.DEBUG_S_MERGED_ASSEMBLYINPUT => GetSampleFile<PDBFile>(Locate(WellKnownTestModule.SharedLibraryPDB), out file, out fs).DBI.Modules[0].C13Lines[104776],
                 };
 
                 var value = sectionHeader.Data;
@@ -4035,7 +4035,6 @@ namespace PESpy.Tests
                         {
                             if (header.Type == DEBUG_S_SUBSECTION_TYPE.DEBUG_S_IL_LINES)
                             {
-                                var xx = 0;
                             }
                         }
                     }

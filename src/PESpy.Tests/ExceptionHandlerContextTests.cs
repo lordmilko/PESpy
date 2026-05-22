@@ -7,14 +7,14 @@ using PESpy.View;
 namespace PESpy.Tests
 {
     [TestClass]
-    public class ExceptionHandlerContextTests
+    public class ExceptionHandlerContextTests : BaseTest
     {
         #region GSHandlerCheck
 
         [TestMethod]
         public void ExceptionHandlerContext_GSHandlerCheck()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.ntdll);
+            using var peFile = PEFileFromKey(WellKnownTestModule.ntdll);
 
             var exceptionData = (GsHandlerData) peFile.ExceptionTable[0].UnwindData.Value.ExceptionData;
 
@@ -36,7 +36,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_GSHandlerCheck_SEH()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.ntdll);
+            using var peFile = PEFileFromKey(WellKnownTestModule.ntdll);
 
             var exceptionData = (ScopeTableAndGsHandlerData) peFile.ExceptionTable[28].UnwindData.Value.ExceptionData;
 
@@ -62,7 +62,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_GSHandlerCheck_EH()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.DbgEng);
+            using var peFile = PEFileFromKey(WellKnownTestModule.DbgEng);
 
             var exceptionData = (FuncInfoAndGsHandlerData) peFile.ExceptionTable[39].UnwindData.Value.ExceptionData;
 
@@ -92,7 +92,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_GSHandlerCheck_EH4()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.AzureAttest);
+            using var peFile = PEFileFromKey(WellKnownTestModule.AzureAttest);
 
             var exceptionData = (FuncInfo4AndGsHandlerData) peFile.ExceptionTable[512].UnwindData.Value.ExceptionData;
 
@@ -125,7 +125,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_C_specific_handler()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.ntdll);
+            using var peFile = PEFileFromKey(WellKnownTestModule.ntdll);
 
             var exceptionData = (ScopeTable) peFile.ExceptionTable[3].UnwindData.Value.ExceptionData;
 
@@ -148,7 +148,7 @@ namespace PESpy.Tests
         {
             //Check that all various xrefs were written
 
-            using var peFile = PEFile.FromKey(WellKnownTestModule._7z);
+            using var peFile = PEFileFromKey(WellKnownTestModule._7z);
 
             var view = peFile.GetView(ViewMode.Physical, trackXRefs: true);
 
@@ -183,7 +183,7 @@ namespace PESpy.Tests
 
             //UnwindInfo at 0x1544D0
 
-            using var peFile = PEFile.FromKey(WellKnownTestModule._7z);
+            using var peFile = PEFileFromKey(WellKnownTestModule._7z);
 
             var runtimeFunction = peFile.ExceptionTable[2594];
             var unwindInfo = runtimeFunction.UnwindData.Value;
@@ -198,7 +198,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_CxxFrameHandler3()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.AuthExt);
+            using var peFile = PEFileFromKey(WellKnownTestModule.AuthExt);
 
             var exceptionData = (RVA<FuncInfo>) peFile.ExceptionTable[74].UnwindData.Value.ExceptionData;
 
@@ -228,7 +228,7 @@ namespace PESpy.Tests
         [TestMethod]
         public void ExceptionHandlerContext_CxxFrameHandler4()
         {
-            using var peFile = PEFile.FromKey(WellKnownTestModule.AzureAttest);
+            using var peFile = PEFileFromKey(WellKnownTestModule.AzureAttest);
 
             var exceptionData = (RVA<FuncInfo4>) peFile.ExceptionTable[316].UnwindData.Value.ExceptionData;
 
@@ -257,7 +257,7 @@ namespace PESpy.Tests
 
         private static (WellKnownExceptionHandlerKind kind, int index)[] GetExceptionHandlerKinds(SymStoreKey key)
         {
-            using var peFile = PEFile.FromKey(key);
+            using var peFile = PEFileFromKey(key);
 
             var seen = new Dictionary<WellKnownExceptionHandlerKind, int>();
 

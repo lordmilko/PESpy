@@ -228,6 +228,10 @@ namespace PESpy
             new ReadOnlySpan<byte>(str1, GetStringLength(str1)).EqualsOrdinalIgnoreCaseUtf8(str2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool EqualsIgnoreCase(ReadOnlySpan<byte> str1, ReadOnlySpan<byte> str2) =>
+            str1.EqualsOrdinalIgnoreCaseUtf8(str2);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfIgnoreCase(byte* str1, ReadOnlySpan<byte> str2) =>
             System.Globalization.Ordinal.IndexOfOrdinalIgnoreCase(new ReadOnlySpan<byte>(str1, GetStringLength(str1)), str2);
 
@@ -339,7 +343,7 @@ namespace PESpy
             return str1.Length - str2.Length;
         }
 
-#endregion
+        #endregion
         #region Exact (ANSI/UTF-8 -> String)
 
         //Compare an ANSI/UTF-8 pointer against a UTF-16 String, with the assumption that both strings only

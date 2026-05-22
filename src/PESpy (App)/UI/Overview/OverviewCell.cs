@@ -1,4 +1,5 @@
-﻿using PInvoke;
+﻿#if !DISABLE_PINVOKE
+using PInvoke;
 
 namespace PESpy.Overview
 {
@@ -29,3 +30,4 @@ namespace PESpy.Overview
         }
     }
 }
+#endif

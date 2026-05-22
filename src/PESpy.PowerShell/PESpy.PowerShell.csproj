@@ -1,23 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(Build)ClrDebug.props" />
-  <Import Project="$(Build)ReFlow.props" />
+  <!--<Import Project="$(Build)ReFlow.props" />-->
 
   <PropertyGroup>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)\PESpy\</OutputPath>
+    
+    <!-- We need this to ensure that our netstandard2.0 folder includes ClrDebug when we create our coreclr folder
+         during publish. This also seems to bring in a bunch of other System level DLLs we don't need, but they didn't
+         seem to cause an issue in pwsh.exe -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)\$(Configuration)\$(TargetFramework.ToLowerInvariant())\</IntermediateOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\SymHelp\src\SymHelp\Symbols\NameMatcher.cs" Link="NameMatcher.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
-    <PackageReference Include="Iced" Version="1.21.0" />
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <!--<PackageReference Include="Iced" Version="1.21.0" />-->
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
   </ItemGroup>
 
   <ItemGroup>

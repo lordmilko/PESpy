@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_REVIEW
+using System;
 using System.Diagnostics;
 using PInvoke;
 using static PInvoke.DRAW_TEXT_FORMAT;
@@ -11,7 +12,7 @@ namespace PESpy.Overview
     public class OverviewPanel : UIElement
     {
         private HTHEME _hTheme;
-        private int _lastToolTipPos = -1;
+        //private int _lastToolTipPos = -1;
 
         [AllowNull]
         private NativeFont _font; //Don't dispose
@@ -926,3 +927,4 @@ namespace PESpy.Overview
         #endregion
     }
 }
+#endif

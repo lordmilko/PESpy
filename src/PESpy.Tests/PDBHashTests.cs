@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_SYMHELP
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using ClrDebug.PDB;
@@ -18,7 +19,7 @@ namespace PESpy.Tests
         [TestMethod]
         public unsafe void PDBHash_Globals_V7()
         {
-            TestHashSym(Locator.LocatePDB(WellKnownTestModule.ntdll));
+            TestHashSym(LocatePDB(WellKnownTestModule.ntdll));
         }
 
         //There's no GSIHashHdr
@@ -78,7 +79,7 @@ namespace PESpy.Tests
 
         [TestMethod]
         public void TpiHash_impv80_StressTest() =>
-            TestTpiHash(Locator.LocatePDB(WellKnownTestModule.coreclr));
+            TestTpiHash(LocatePDB(WellKnownTestModule.coreclr));
 
         [TestMethod]
         public void TpiHash_impv80() =>
@@ -162,7 +163,7 @@ namespace PESpy.Tests
         {
             Assert.Inconclusive();
 
-            using var symbolModule = SymbolProvider.LoadModule(Locator.Locate(WellKnownTestModule.WinForms), false);
+            using var symbolModule = SymbolProvider.LoadModule(Locate(WellKnownTestModule.WinForms), false);
 
             throw new NotImplementedException();
         }
@@ -190,3 +191,4 @@ namespace PESpy.Tests
         #endregion
     }
 }
+#endif

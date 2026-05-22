@@ -1,12 +1,14 @@
 <Project>
   <PropertyGroup>
     <LocalReAnalyze>$(MSBuildThisFileDirectory)\..\..\ReAnalyze\ReAnalyze\bin\Debug\netstandard2.0\ReAnalyze.dll</LocalReAnalyze>
+
+    <DefineConstants Condition="!Exists('$(LocalReAnalyze)')">$(DefineConstants);DISABLE_REANALYZE</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup>
-    <!-- If ReAnalyze has been cloned to the parent directory containing both ReAnalyze and ReDbg,
+    <!-- If ReAnalyze has been cloned to the parent directory containing both ReAnalyze and PESpy,
          prefer the local version for development purposes -->
-    <PackageReference Include="ReAnalyze" Version="$(ReAnalyzeVersion)" Condition="!Exists('$(LocalReAnalyze)')" />
+    <!--<PackageReference Include="ReAnalyze" Version="$(ReAnalyzeVersion)" Condition="!Exists('$(LocalReAnalyze)')" />-->
 
     <Reference Include="ReAnalyze" Condition="Exists('$(LocalReAnalyze)')">
       <HintPath>$(LocalReAnalyze)</HintPath>

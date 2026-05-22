@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading;
+#if !DISABLE_CHAOSLIB
 using ChaosLib;
+#endif
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace PESpy.Tests
@@ -72,10 +74,12 @@ namespace PESpy.Tests
             {
                 if (item.TestFailureException != null)
                 {
+#if !DISABLE_CHAOSLIB
                     if (item.TestFailureException.InnerException != null)
                         Log.Error<TestResult>(item.TestFailureException.InnerException, "Test '{testName}' failed: {message}", testMethod.TestMethodName, item.TestFailureException.InnerException.Message);
                     else
                         Log.Error<TestResult>(item.TestFailureException, item.TestFailureException.Message);
+#endif
                 }
             }
 

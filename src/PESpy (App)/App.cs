@@ -1,26 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using PESpy.View;
+#if !DISABLE_REVIEW
 using PInvoke;
 using ReView;
+#endif
 
 namespace PESpy
 {
     internal class App
     {
+#if !DISABLE_REVIEW
         [AllowNull]
         internal static MainWindow MainWindow;
+#endif
 
         private static object _fatalErrorLock = new object();
 
         public static event EventHandler<FileOpenedEventArgs>? FileOpened;
         public static event EventHandler? FileClosed;
 
-        public static event EventHandler<int>? PositionChanged;
+        //public static event EventHandler<int>? PositionChanged;
 
         private static RefCounted<FileAccessor> FileAccessor = new();
 
@@ -52,7 +55,9 @@ namespace PESpy
 
         static App()
         {
+#if !DISABLE_REVIEW
             NativeWindow.OnFatalError += (s, e) => FatalError(e);
+#endif
         }
 
         public static void OpenFile(string fileName)
@@ -138,7 +143,9 @@ namespace PESpy
 
         public static void RaiseError(string message)
         {
+#if !DISABLE_REVIEW
             User32.MessageBoxW(MainWindow?.NativeHandle ?? default, message, "PESpy", MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONWARNING);
+#endif
         }
 
         internal static void FatalError(Exception ex)
@@ -146,10 +153,12 @@ namespace PESpy
             //If multiple background threads have fatal errors simultaneously, we don't want to spam the user with popups
             lock (_fatalErrorLock)
             {
+#if !DISABLE_REVIEW
 #if DEBUG
                 Debug.Assert(false, ex.ToString());
 #else
-                User32.MessageBoxW(MainWindow?.NativeHandle ?? default, ex.ToString(), "ReDbg Fatal Error", MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+                User32.MessageBoxW(MainWindow?.NativeHandle ?? default, ex.ToString(), "PESpy Fatal Error", MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+#endif
 #endif
 
                 Environment.Exit(ex.HResult);

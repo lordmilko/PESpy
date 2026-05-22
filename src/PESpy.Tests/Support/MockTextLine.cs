@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿#if !DISABLE_PINVOKE
+using System.Diagnostics;
 using PInvoke;
 
 namespace PESpy.Tests
@@ -58,3 +59,4 @@ namespace PESpy.Tests
         }
     }
 }
+#endif

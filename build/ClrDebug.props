@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- If ClrDebug has been cloned to the parent directory containing both ClrDebug and ReDbg,
+    <!-- If ClrDebug has been cloned to the parent directory containing both ClrDebug and PESpy,
          prefer the local version for development purposes -->
     <PackageReference Include="ClrDebug" Version="$(ClrDebugVersion)" Condition="!Exists('$(LocalClrDebug)')" />
 

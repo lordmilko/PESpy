@@ -7,8 +7,6 @@
 [assembly: InternalsVisibleTo("PESpy (App)")]
 [assembly: InternalsVisibleTo("ReAnalyze")]
 [assembly: InternalsVisibleTo("ReFlow")]
-[assembly: InternalsVisibleTo("ReDbg")]
-[assembly: InternalsVisibleTo("ReDbg.Engine")]
 [assembly: InternalsVisibleTo("SymHelp")]
 [assembly: InternalsVisibleTo("SymHelp.Tests")]
 

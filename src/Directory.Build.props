@@ -1,4 +1,6 @@
 ﻿<Project>
+  <Import Project="..\build\Version.props" />
+
   <PropertyGroup>
     <Build>$(MSBuildThisFileDirectory)..\build\</Build>
 
@@ -7,9 +9,7 @@
 
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
-
-    <UseLatestTargetFramework Condition="'$(VisualStudioVersion)' != '15.0' And '$(VisualStudioVersion)' != '16.0'">true</UseLatestTargetFramework>
-    <UseLatestTargetFramework Condition="'$(UseLatestTargetFramework)' == ''">false</UseLatestTargetFramework>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
 
     <DefineConstants Condition="'$(_IsPublishing)' == 'yes'">$(DefineConstants);NATIVEAOT</DefineConstants>
     <!--<DefineConstants>$(DefineConstants);NATIVEAOT</DefineConstants>-->
@@ -19,7 +19,10 @@
     <NoWarn>$(NoWarn);1591;8509;8524;8981;1701;1702;MSB3042;NU1510</NoWarn>
   </PropertyGroup>
 
+  <!-- Package Versions -->
+
   <PropertyGroup>
     <SystemReflectionMetadataVersion>10.0.0</SystemReflectionMetadataVersion>
+    <ClrDebugVersion>0.4.0</ClrDebugVersion>
   </PropertyGroup>
 </Project>

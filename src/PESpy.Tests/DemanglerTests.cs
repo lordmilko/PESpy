@@ -1,4 +1,5 @@
-﻿using ClrDebug.DIA;
+﻿#if !DISABLE_PINVOKE
+using ClrDebug.DIA;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PInvoke;
 
@@ -124,3 +125,4 @@ namespace PESpy.Tests
         }
     }
 }
+#endif

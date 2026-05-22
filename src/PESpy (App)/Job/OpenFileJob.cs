@@ -2,7 +2,9 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 using PESpy.View;
+#if !DISABLE_REFLOW
 using ReFlow.FileAnalysis;
+#endif
 
 namespace PESpy
 {
@@ -37,7 +39,9 @@ namespace PESpy
 
                 FileAnalyzer.Analyze(fileAccessor, new FileAnalyzerOptions
                 {
+#if !DISABLE_REFLOW
                     Disassembler = IntelFileDisassembler.Instance,
+#endif
                     HttpPolicy = LocatorHttpPolicy.All,
                     Progress = App.Progress,
                     TrackXRefs = true,

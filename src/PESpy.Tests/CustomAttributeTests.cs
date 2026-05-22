@@ -51,11 +51,13 @@ namespace PESpy.Tests
     [Generic<int, object>(1, 2)]
     public class Dummy<[System.ComponentModel.Description("Test")] T> : IDisposable where T : struct
     {
+#pragma warning disable CS0067
         [System.ComponentModel.Description("Test")]
         public event EventHandler Handler;
 
         [System.ComponentModel.Description("Test")]
         public int Property { get; } = 1;
+#pragma warning restore CS0067
 
         public void Foo<T1>(T1 a)
         {

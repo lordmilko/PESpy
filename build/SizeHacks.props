@@ -1,0 +1,58 @@
+<Project>
+  <!-- Michal Strehovsky's sizoscope (https://github.com/MichalStrehovsky/sizoscope) uses
+       every trick in the book to get its file size down as much as possible. A stock WinForms NativeAOT
+       publish is 18,467 KB.
+       
+       Using Michal's hacks, we can get the size down to 6,251 KB. This file lists each of these hacks,
+       and details what each hack exactly does, and how much space it saves.
+       
+       Sizes were calculated by removing each hack individually and observing how much the space _increases_
+       from the smallest possible file size. Due to the interactions that may apply between each hack,
+       the observed savings exceed the actual savings of 12,216 KB
+       
+       In order to publish WinForms NativeAOT you must additionally declare the following properties
+       
+       <PublishAot>true</PublishAot>
+       <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+   -->
+
+  <PropertyGroup>
+    <!-- 0 -->
+    <!--<XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
+
+    <!-- 4589 KB -->
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+
+    <!-- 265 KB -->
+    <OptimizationPreference>Size</OptimizationPreference>
+
+    <!-- 195 KB -->
+    <!--<InvariantGlobalization>true</InvariantGlobalization>-->
+
+    <!-- 694 KB -->
+    <!--<StackTraceSupport>false</StackTraceSupport>-->
+
+    <!-- 23 KB -->
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+
+    <!-- +6 KB (might be needed for something?) -->
+    <EnableUnsafeBinaryFormatterSerialization Condition="'$(UseWinForms)' == 'true'">true</EnableUnsafeBinaryFormatterSerialization>
+
+    <!-- +8 KB. Needed for ResourceManager reflection support -->
+    <CustomResourceTypesSupport Condition="'$(UseWinForms)' == 'true'">true</CustomResourceTypesSupport>
+
+    <!--<_ExtraTrimmerArgs>dash dash link-attributes $(MSBuildThisFileDirectory)ILLink.LinkAttributes.xml</_ExtraTrimmerArgs>-->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 3000 KB  -->
+    <!-- NativeAOT requires that this be specified as TrimmerRootDescriptor, else we hit an exception trying to load resources
+         (I would guess it's something to do with System.Resources.Extensions) -->
+
+    <!-- 3486 KB -->
+    <!--<IlcArg Include="dash dash substitution:$(MSBuildThisFileDirectory)ILLink.SizeHacks.xml" />-->
+    <!-- System.Resources.Extensions has several types used to deserialize resources. They're not explicitly
+         referenced, and are instead constructed via reflection -->
+    <!--<TrimmerRootDescriptor Condition="'$(UseWinForms)' == 'true'" Include="$(MSBuildThisFileDirectory)ILLink.Descriptors.xml" />-->
+  </ItemGroup>
+</Project>

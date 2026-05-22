@@ -5,6 +5,7 @@ namespace PESpy.Tests
 {
     internal static class VerifyExtensions
     {
+#if !DISABLE_PINVOKE
         internal static void Verify(this MockTextLine[] lines, params string[] expected)
         {
             Assert.AreEqual(expected.Length, lines.Length);
@@ -38,6 +39,7 @@ namespace PESpy.Tests
                 Assert.AreEqual(expectedStr, actualStr);
             }
         }
+#endif
 
         internal static void Verify<T>(this T[] @this, params string[] expected)
         {

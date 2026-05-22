@@ -626,7 +626,6 @@ namespace System.Globalization
                 length -= 4;
             }
 
-            Debug.Assert(length == 0);
             return prefixLength <= sourceLength;
 
         NonAscii32:

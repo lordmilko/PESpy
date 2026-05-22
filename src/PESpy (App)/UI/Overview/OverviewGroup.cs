@@ -1,4 +1,5 @@
-﻿namespace PESpy.Overview
+﻿#if !DISABLE_PINVOKE
+namespace PESpy.Overview
 {
     struct OverviewGroup
     {
@@ -18,3 +19,4 @@
         }
     }
 }
+#endif

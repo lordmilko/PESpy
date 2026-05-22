@@ -1,4 +1,5 @@
-﻿using PInvoke;
+﻿#if !DISABLE_REVIEW
+using PInvoke;
 using ReView;
 
 namespace PESpy.TextView
@@ -17,3 +18,4 @@ namespace PESpy.TextView
         }
     }
 }
+#endif

@@ -9,8 +9,10 @@ namespace PESpy.Tests
 {
     struct MarshalStruct
     {
+#pragma warning disable CS0649
         [MarshalAs(UnmanagedType.LPWStr)]
         public string Name;
+#pragma warning restore CS0649
     }
 
     //For testing marshalling
@@ -170,7 +172,13 @@ namespace PESpy.Tests
                 var type = heap.TypeDefTable["PESpy.Tests.Dummy`1"];
                 var field = type.Fields["<Property>k__BackingField"];
 
+                //In Release, despite what dotPeek says, it seems we only have the CompilerGeneratedAttribute;
+                //the DebuggerBrowsableAttribute is not present
+#if DEBUG
                 Assert.AreEqual(2, field.CustomAttributes.Count);
+#else
+                Assert.AreEqual(1, field.CustomAttributes.Count);
+#endif
             });
         }
 
@@ -445,6 +453,8 @@ namespace PESpy.Tests
         [TestMethod]
         public void Ecma335_StandAloneSigRow_DecodeLocalSignature()
         {
+            //In release, we the signature is optimized away
+#if DEBUG
             Test(heap =>
             {
                 var type = heap.TypeDefTable["PESpy.Tests.Dummy`1"];
@@ -454,6 +464,9 @@ namespace PESpy.Tests
                 Assert.AreEqual(1, types.Length);
                 Assert.AreEqual("string", types[0]);
             });
+#else
+            Assert.Inconclusive();
+#endif
         }
 
         #endregion

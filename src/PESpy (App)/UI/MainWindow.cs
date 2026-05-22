@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_REVIEW
+using System;
 using PESpy.ListView;
 using PESpy.NavBar;
 using PESpy.Overview;
@@ -23,7 +24,7 @@ namespace PESpy
         private NativePanel _textAndNavPanel;
 
         private OverviewPanel _overviewPanel;
-        private ListViewPanel _listView;
+        //private ListViewPanel _listView;
 
         public MainWindow()
         {
@@ -242,3 +243,4 @@ namespace PESpy
         }
     }
 }
+#endif

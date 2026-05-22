@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_REVIEW
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PESpy.View;
@@ -421,3 +422,4 @@ namespace PESpy.ViewMap
         }
     }
 }
+#endif

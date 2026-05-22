@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !DISABLE_REVIEW
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Threading;
@@ -16,7 +17,7 @@ namespace PESpy.ViewMap
 
         internal VisualSection[]? _visualSections;
         private int _scale = 1;
-        private bool _isMaxScroll;
+        //private bool _isMaxScroll;
         private long _arrowAddress;
         private int _arrowXPos;
         private int _arrowSectionIndex;
@@ -99,7 +100,7 @@ namespace PESpy.ViewMap
             App.FileOpened += App_FileOpened;
             App.FileClosed += App_FileClosed;
 
-            App.PositionChanged += App_PositionChanged;
+            //App.PositionChanged += App_PositionChanged;
         }
 
         private unsafe void App_FileOpened(object? sender, FileOpenedEventArgs e)
@@ -588,7 +589,7 @@ namespace PESpy.ViewMap
                     //We're so zoomed in we want to show more pixels than we have bytes! Clamp to our actual width
                     effectiveWidth = sectionAccessor.Length;
                     visualSection.Width = effectiveWidth;
-                    _isMaxScroll = true;
+                    //_isMaxScroll = true;
 
                     bytesPerPixel = 1;
                 }
@@ -606,7 +607,7 @@ namespace PESpy.ViewMap
 
                     if (bytesPerPixel == 1)
                     {
-                        _isMaxScroll = true;
+                        //_isMaxScroll = true;
                     }
                 }
 
@@ -1002,3 +1003,4 @@ namespace PESpy.ViewMap
         }
     }
 }
+#endif

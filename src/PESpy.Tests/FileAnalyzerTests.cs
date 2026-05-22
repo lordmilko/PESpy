@@ -86,7 +86,7 @@ namespace PESpy.Tests
             //When symbols aren't available, known entities should still have names applied to them.
             //i.e. many entities pointed to by the load config table
 
-            using var peFile = PEFile.FromKey(WellKnownTestModule.ntdll);
+            using var peFile = BaseTest.PEFileFromKey(WellKnownTestModule.ntdll);
 
             var view = peFile.GetView(excludeSymbols: true);
 
