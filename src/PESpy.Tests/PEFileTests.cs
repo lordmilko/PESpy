@@ -15,6 +15,8 @@ using static PESpy.IMAGE_DLLCHARACTERISTICS;
 using static PESpy.IMAGE_DLLCHARACTERISTICS_EX;
 using static PESpy.IMAGE_DYNAMIC_RELOCATION_KIND;
 using static PESpy.IMAGE_SYM_TYPE;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PESpy.Tests
 {
@@ -4559,19 +4561,24 @@ namespace PESpy.Tests
             {
                 var files = Directory.EnumerateFiles("C:\\Windows\\system32", ext);
 
-                foreach (var fileName in files)
+                var options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Debugger.IsAttached ? 1 : -1
+                };
+
+                Parallel.ForEach(files, options, fileName =>
                 {
                     using var file = Detector.TryOpenFile(fileName);
 
                     if (file.Kind != FileKind.PE)
-                        continue;
+                        return;
 
                     var peFile = (PEFile) file;
 
                     var rpcInfo = peFile.RpcInfo;
 
                     if (rpcInfo == null)
-                        continue;
+                        return;
 
                     foreach (var iface in rpcInfo.ClientInterfaces)
                     {
@@ -4616,7 +4623,7 @@ namespace PESpy.Tests
                             syntaxInfos
                         );
                     }
-                }
+                });
             }
         }
 

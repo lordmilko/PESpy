@@ -205,7 +205,9 @@ namespace PESpy.View
             {
                 var kind = Kind;
 
-                if (kind != ViewByteKind.Data)
+                //It's possible for us to race clearing the DataKind in ExpandUnclaimedCode between the various
+                //threads trying to process various code chunks that may or may not overlap
+                if (kind != ViewByteKind.Data && DataKind != value)
                     throw new NotImplementedException($"Don't know how to handle setting the data kind of a byte of type '{Kind}'"); //A public we thought was code but wasn't?
 
                 _value = (byte) (((byte) (_value & ~DataKindMask)) | (byte) value);

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1140,18 +1141,23 @@ namespace PESpy.Tests
         [TestMethod]
         public void SampleStressTest()
         {
-            foreach (var field in typeof(Sample).GetFields())
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Debugger.IsAttached ? 1 : -1
+            };
+
+            Parallel.ForEach(typeof(Sample).GetFields(), options, field =>
             {
                 var path = (string) field.GetValue(null);
 
                 if (path.EndsWith(".MAP") || path.EndsWith(".COM"))
-                    continue;
+                    return;
 
                 using var file = Detector.OpenFile(path);
 
                 var view = file.GetView();
                 view.Accept(NullViewWalker.Instance);
-            }
+            });
         }
 
         private void WithSemanticModels(Action<SemanticModel> action, string projectName = "PESpy")

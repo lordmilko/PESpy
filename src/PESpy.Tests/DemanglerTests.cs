@@ -7,6 +7,8 @@ namespace PESpy.Tests
     [TestClass]
     public class DemanglerTests
     {
+        private static object dbgHelpLock = new();
+
         [TestMethod]
         public void Demangler_Const_NullSuperType()
         {
@@ -110,7 +112,10 @@ namespace PESpy.Tests
 
         private void Test(string mangled, string expected)
         {
-            var dbgHelpResult = DbgHelp.UnDecorateSymbolName(mangled, UNDNAME.UNDNAME_COMPLETE, expected.Length);
+            string dbgHelpResult;
+
+            lock (dbgHelpLock)
+                dbgHelpResult = DbgHelp.UnDecorateSymbolName(mangled, UNDNAME.UNDNAME_COMPLETE, expected.Length);
 
             var ourStr = Demangler.ParseString(mangled);
 

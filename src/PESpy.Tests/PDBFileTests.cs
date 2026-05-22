@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using ClrDebug.DIA;
 using ClrDebug.PDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -211,10 +213,15 @@ namespace PESpy.Tests
 
             var sizeOfImage = peFile.OptionalHeader.SizeOfImage;
 
-            for (var i = 0; i < sizeOfImage; i++)
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Debugger.IsAttached ? 1 : -1
+            };
+
+            Parallel.For(0, sizeOfImage, options, i =>
             {
                 symbolAccessor.TryGetSymbolByRVA(i, out var symType, out var displacement);
-            }
+            });
         }
 
         private unsafe void StressTestRVA(string imageName)

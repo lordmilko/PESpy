@@ -1916,7 +1916,7 @@ namespace PESpy.View
                                     {
                                         case ViewByteDataKind.String:
                                             //Get rid of this string
-                                            pViewByte->DataKind = default;
+                                            pViewByte->DataKind = default; //Note that it's possible for us to race with another thread also trying to clear the data kind of this byte
                                             break;
 
                                         case ViewByteDataKind.Unknown:
