@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Title>PESpy</Title>
     <Authors>lordmilko</Authors>
-    <Description>Reverse Engineering toolkit for Microsoft compiler generated files</Description>
+    <Description>Reverse engineering toolkit for Microsoft compiler generated files</Description>
     <PackageReleaseNotes>
       Release Notes: https://github.com/lordmilko/PESpy/releases/tag/v$(Version)
 

@@ -30,7 +30,7 @@ CompanyName = 'Unknown'
 Copyright = '(c) 2023 lordmilko. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Reverse Engineering toolkit for Microsoft compiler generated files'
+Description = 'Reverse engineering toolkit for Microsoft compiler generated files'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '5.1'
