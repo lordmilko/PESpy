@@ -2508,41 +2508,23 @@ namespace PESpy
             {
                 if (clrEngineMetrics == null && !hasTriedClrEngineMetrics)
                 {
-                    ImageExportDirectory.Export export = default;
-
                     /* CLR_ENGINE_METRICS are exported by g_CLREngineMetrics, however they're also found at ordinal 2.
                      * You can locate metrics much faster by just jumping straight to the target ordinal rather than trying
                      * to specifically search for g_CLREngineMetrics. However, the issue we have is that we need to be able
-                     * to parse any random PE File, so just blindly trusting ordinal 2 isn't going to cut it */
+                     * to parse any random PE File, so just blindly trusting ordinal 2 isn't going to cut it; we also need
+                     * to validate the name */
 
                     var exportTable = ExportTable;
 
                     const int kOrdinalForMetrics = 2;
 
-                    if (exportTable != null)
+                    if (exportTable != null &&
+                        exportTable.TryGetExport(kOrdinalForMetrics, out var export) &&
+                        !export.ForwardOrAddress.IsForward &&
+                        export.Name == "g_CLREngineMetrics"u8 &&
+                        TryGetValueChunkFromSection(export.ForwardOrAddress.Address, out var valueChunk))
                     {
-                        var realIndex = kOrdinalForMetrics - exportTable.Base;
-
-                        if (unchecked((uint) realIndex < exportTable.NumberOfFunctions))
-                        {
-                            var rvaOfRva = exportTable.RawAddressOfFunctions + (realIndex * sizeof(int));
-
-                            if (TryGetValueChunkFromSection(rvaOfRva, out var chunk))
-                            {
-                                var rva = chunk.PeekInt32(0);
-
-                                if (TryGetValueChunkFromSection(rva, out var valueChunk) && valueChunk.PeekInt32(0) == ClrEngineMetrics.StructSize(Is32Bit))
-                                {
-                                    //It's looking good that this might be g_CLREngineMetrics, but now let's actually check that
-                                    //ordinal 2 actually is g_CLREngineMetrics
-
-                                    //Doesn't seem like the base matters; if the base is 2, g_CLREngineMetrics is still at ordinal 2
-                                    //after factoring in ordinal + base (which is what export.Ordinal shows)
-                                    if (exportTable.TryGetExport("g_CLREngineMetrics", out export) == true && !export.ForwardOrAddress.IsForward && export.Ordinal == 2)
-                                        clrEngineMetrics = new ClrEngineMetrics(valueChunk);
-                                }
-                            }
-                        }
+                        clrEngineMetrics = new ClrEngineMetrics(valueChunk);
                     }
 
                     hasTriedClrEngineMetrics = true;

@@ -117,6 +117,9 @@ namespace PESpy
         public static bool operator ==(AnsiString left, AnsiString right) => right.Equals(left);
         public static bool operator !=(AnsiString left, AnsiString right) => !right.Equals(left);
 
+        public static bool operator ==(AnsiString left, ReadOnlySpan<byte> right) => left.AsSpan().SequenceEqual(right);
+        public static bool operator !=(AnsiString left, ReadOnlySpan<byte> right) => !left.AsSpan().SequenceEqual(right);
+
         #endregion
 
         public override bool Equals(object? obj)

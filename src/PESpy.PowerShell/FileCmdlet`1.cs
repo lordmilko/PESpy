@@ -25,7 +25,7 @@ namespace PESpy.PowerShell
         [Parameter(Mandatory = true, ParameterSetName = ParameterSet.FromFile)]
         public T File { get; private set; }
 
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSet.FromPath)]
+        [Parameter(Mandatory = true, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSet.FromPath)]
         [Alias("PSPath")] //ValueFromPipelineByPropertyName applies to this, and FileInfo objects have a PSPath
         public string Path
         {

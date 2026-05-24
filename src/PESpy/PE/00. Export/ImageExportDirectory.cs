@@ -380,6 +380,52 @@ namespace PESpy
             return false;
         }
 
+        public bool TryGetExport(ushort ordinal, out Export export)
+        {
+            var @base = Base;
+
+            if (ordinal < @base)
+            {
+                export = default;
+                return false;
+            }
+
+            var realIndex = (ushort) (ordinal - @base);
+
+            var addressOfFunctions = AddressOfFunctions;
+
+            if (addressOfFunctions.IsValid)
+            {
+                if (realIndex < addressOfFunctions.Value.Length)
+                {
+                    var nameOrAddress = addressOfFunctions.Value[realIndex];
+
+                    //The export may or may not have a name associated with it
+
+                    AnsiString name = default;
+
+                    var addressOfNames = AddressOfNames;
+                    var addressOfNameOrdinals = AddressOfNameOrdinals;
+
+                    if (addressOfNames.IsValid && addressOfNameOrdinals.IsValid)
+                    {
+                        var nameIndex = Array.IndexOf(addressOfNameOrdinals.Value, realIndex);
+
+                        if (nameIndex != -1 && nameIndex >= 0 && nameIndex < addressOfNames.Value.Length)
+                        {
+                            name = addressOfNames.Value[nameIndex].ValueOrDefault;
+                        }
+                    }
+
+                    export = new Export(name, realIndex, nameOrAddress, ordinal);
+                    return true;
+                }
+            }
+
+            export = default;
+            return false;
+        }
+
         private bool TryProcessExportAtIndex(AnsiString name, int i, out Export export)
         {
             //The name of this function exists at index "i". The ordinal that is also at index "i"
