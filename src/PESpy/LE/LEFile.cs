@@ -75,7 +75,7 @@ namespace PESpy
                 if (dosStub.Offset == 0)
                 {
                     var start = ImageDosHeader.StructSize;
-                    var end = DosHeader.FileAddressOfNewExeHeader;
+                    var end = DosHeader.e_lfanew;
 
                     var length = (int) (end - start);
 
@@ -517,7 +517,7 @@ namespace PESpy
         private unsafe void ReadVXDHeaders()
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
-            vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
+            vxdHeader = new ImageVXDHeader(new MemoryChunk(globalBlock, dosHeader.e_lfanew));
 
             tableBounds = ComputeTableBounds();
         }
@@ -527,7 +527,7 @@ namespace PESpy
             //The end of each table is relative to the start of the section after it, which may or may not have been present;
             //as such we need to build up a complete picture of all present tables so we can easily lookup the contents of each table later on
 
-            var sizeOfHeaders = DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
+            var sizeOfHeaders = DosHeader.e_lfanew + ImageVXDHeader.StructSize;
 
             var lastSectionEnd = sizeOfHeaders;
 

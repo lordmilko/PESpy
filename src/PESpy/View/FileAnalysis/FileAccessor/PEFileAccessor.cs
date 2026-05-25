@@ -22,7 +22,7 @@ namespace PESpy.View
          * we're constantly looking up values that likely all belong to the same section */
         internal PESectionLookupCache _lookupCache;
         internal ISymbolAccessor _symbolAccessor;
-        private readonly bool _wantVirtual;
+        private bool _wantVirtual;
         internal Dictionary<int, int> _rvaToMethodDefMap = new();
 
         internal bool OwnsPEFile = true;
@@ -32,13 +32,6 @@ namespace PESpy.View
             PEFile = peFile;
             ViewMode = viewMode;
             FileViewKind = ViewKind.PEFile;
-
-            _wantVirtual = viewMode switch
-            {
-                ViewMode.Default => IsLoaded,
-                ViewMode.Physical => false,
-                ViewMode.Virtual => true
-            };
 
             _isManaged = peFile.Cor20Header != null;
 
@@ -55,6 +48,13 @@ namespace PESpy.View
              * exists too */
 
             var peFile = (PEFile) File;
+
+            _wantVirtual = viewMode switch
+            {
+                ViewMode.Default => peFile.IsLoadedImage,
+                ViewMode.Physical => false,
+                ViewMode.Virtual => true
+            };
 
             var sectionHeaders = peFile.SectionHeaders;
 

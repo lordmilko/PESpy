@@ -1,34 +1,7 @@
-﻿using System.Diagnostics;
-using System.Text;
-
-namespace PESpy
+﻿namespace PESpy
 {
-    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly struct ProductInfo
     {
-        internal string DebuggerDisplay()
-        {
-            var builder = new StringBuilder();
-
-            builder.Append(Kind.ToString()).Append(" ");
-
-            if (ToolMajorVersion != 0 || ToolMinorVersion != 0 || ToolBuild != 0)
-                builder.Append(ToolMajorVersion).Append(".").Append(ToolMinorVersion).Append(".").Append(ToolBuild);
-            else
-                builder.Append("(No Version)");
-
-            var toolsetFullName = ToolsetFullName;
-
-            if (toolsetFullName != null)
-            {
-                builder.Append(", ");
-
-                builder.Append(toolsetFullName);
-            }
-
-            return builder.ToString();
-        }
-
         /// <summary>
         /// Gets the major version of the tool that this product item describes, e.g. <see cref="PRODID.prodidLinker511"/> describes LINK 5.11.
         /// </summary>
@@ -159,6 +132,36 @@ namespace PESpy
             ToolsetBuild = toolsetBuild;
             ToolsetReleaseType = toolsetReleaseType;
             FoundToolBuild = foundToolBuild;
+        }
+
+        public override string ToString()
+        {
+            using var builder = new ValueStringBuilder();
+
+            builder.Append(Kind.ToString());
+            builder.Append(' ');
+
+            if (ToolMajorVersion != 0 || ToolMinorVersion != 0 || ToolBuild != 0)
+            {
+                builder.Append(ToolMajorVersion);
+                builder.Append('.');
+                builder.Append(ToolMinorVersion);
+                builder.Append('.');
+                builder.Append(ToolBuild);
+            }
+            else
+                builder.Append("(No Version)");
+
+            var toolsetFullName = ToolsetFullName;
+
+            if (toolsetFullName != null)
+            {
+                builder.Append(", ");
+
+                builder.Append(toolsetFullName);
+            }
+
+            return builder.ToString();
         }
     }
 }

@@ -79,7 +79,7 @@ namespace PESpy.Tests
         public void ShortImportLibraryMember_Test()
         {
             TestStruct<ShortImportLibraryMember>(
-                v => v.FileName == null,
+                v => v.FileName == default(AnsiString),
                 v => v.ImportName == "_main",
                 v => v.DllName == "TestApp.exe"
             );
@@ -91,7 +91,7 @@ namespace PESpy.Tests
         public void LongImportLibraryMember_Test()
         {
             TestStruct<LongImportLibraryMember>(
-                v => v.FileName == null
+                v => v.FileName == default(AnsiString)
             );
 
             //LongImportLibraryMember is not a struct; it just contains other structs

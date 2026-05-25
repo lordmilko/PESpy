@@ -13,7 +13,7 @@ namespace PESpy.OBJ
     {
         private const int SignatureOffset = 0;
 
-        public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(SignatureOffset);
+        public CV_SIGNATURE Signature => unchecked((CV_SIGNATURE) chunk.PeekUInt32(SignatureOffset));
 
         private TypTypeList? types;
 

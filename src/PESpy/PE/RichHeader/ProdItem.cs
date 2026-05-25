@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 using PESpy.Native;
 using PESpy.View;
 
@@ -28,42 +27,8 @@ namespace PESpy
     /// <summary>
     /// Represents the <see cref="PRODITEM"/> structure which describes an entry in the Rich Header.
     /// </summary>
-    [DebuggerDisplay("{DebuggerDisplay(),nq}")]
     public readonly partial struct ProdItem : IValue, IViewable //Stored in an array, so can be a struct
     {
-        private string DebuggerDisplay()
-        {
-            var info = ProductInfo;
-
-            if (info != null)
-            {
-                var builder = new StringBuilder();
-
-                var mainKind = (ProductKind) ((int) info.Value.Kind & ~ProductKindFlags.LanguageMask);
-
-                builder.Append("[").Append(mainKind);
-
-                var language = info.Value.LanguageKind;
-
-                if (language != ProductKind.None)
-                    builder.Append(":").Append(language);
-
-                builder.Append("] ");
-
-                var toolsetFullName = info.Value.ToolsetFullName;
-
-                if (toolsetFullName != null)
-                    builder.Append(toolsetFullName).Append(" / ");
-
-                builder.Append(info.Value.ToolFullName).Append(" / ");
-                builder.Append(ProdId);
-
-                return builder.ToString();
-            }
-            else
-                return ProdId.ToString();
-        }
-
         internal bool TryGetProductInfo(PRODID prodId, int buildId, out ProductInfo productInfo)
         {
             /* There's two aspects to the PRODITEM
@@ -271,6 +236,15 @@ namespace PESpy
             Count = dwCount;
         }
 
+        public ProdItem(uint compId)
+        {
+            Offset = 0;
+
+            ProdId = (PRODID) ((compId & 0xFFFF0000) >> 16);
+            BuildId = (ushort) ((compId & 0x0000FFFF));
+            Count = 0;
+        }
+
         void IViewable.WriteGlobals(ViewWriter writer)
         {
             //No globals
@@ -300,6 +274,47 @@ namespace PESpy
                 default:
                     throw new IndexOutOfRangeException();
             }
+        }
+
+        public override string ToString()
+        {
+            var info = ProductInfo;
+
+            if (info != null)
+            {
+                using var builder = new ValueStringBuilder();
+
+                var mainKind = (ProductKind) ((int) info.Value.Kind & ~ProductKindFlags.LanguageMask);
+
+                builder.Append('[');
+                builder.Append(mainKind.ToString());
+
+                var language = info.Value.LanguageKind;
+
+                if (language != ProductKind.None)
+                {
+                    builder.Append(':');
+                    builder.Append(language.ToString());
+                }
+
+                builder.Append("] ");
+
+                var toolsetFullName = info.Value.ToolsetFullName;
+
+                if (toolsetFullName != null)
+                {
+                    builder.Append(toolsetFullName);
+                    builder.Append(" / ");
+                }
+
+                builder.Append(info.Value.ToolFullName);
+                builder.Append(" / ");
+                builder.Append(ProdId.ToString());
+
+                return builder.ToString();
+            }
+            else
+                return ProdId.ToString();
         }
     }
 }

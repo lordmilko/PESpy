@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace PESpy
 {
@@ -93,6 +94,19 @@ namespace PESpy
             IsValid = false;
             ActualOffset = 0;
             this.value = default;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetValue(out T value)
+        {
+            if (IsValid)
+            {
+                value = this.value;
+                return true;
+            }
+
+            value = default;
+            return false;
         }
 
 #if !NATIVEAOT

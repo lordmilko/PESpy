@@ -110,7 +110,7 @@ namespace PESpy.PDB
                 //Note that sn could potentially be snNil
                 if (pdbFile.TryGetStreamChunk(modi.sn, out var symbolsChunk))
                 {
-                    var signature = (CV_SIGNATURE) symbolsChunk.PeekInt32(0);
+                    var signature = unchecked((CV_SIGNATURE) symbolsChunk.PeekInt32(0));
 
                     var ptr = symbolsChunk.Pointer;
                     Debug.Assert(symbolsChunk.RelativeOffset == 0);

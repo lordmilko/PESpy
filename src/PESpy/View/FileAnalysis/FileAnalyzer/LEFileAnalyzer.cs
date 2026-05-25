@@ -110,7 +110,7 @@
         {
             //The LE Header may be followed by several additional sections at locations relative to the start of the LE Header itself
 
-            var sizeOfHeaders = _leFile.DosHeader.FileAddressOfNewExeHeader + ImageVXDHeader.StructSize;
+            var sizeOfHeaders = _leFile.DosHeader.e_lfanew + ImageVXDHeader.StructSize;
 
             _extraRegions.Add(new RegionBuilder
             {

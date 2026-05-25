@@ -22,8 +22,8 @@ namespace PESpy.PowerShell
         [Parameter(Mandatory = true, ParameterSetName = ParameterSet.FromKey)]
         public SymStoreKey Index { get; set; }
 
-        [Parameter(Mandatory = true, ParameterSetName = ParameterSet.FromFile)]
-        public T File { get; private set; }
+        [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSet.FromFile)]
+        public T File { get; set; }
 
         [Parameter(Mandatory = true, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSet.FromPath)]
         [Alias("PSPath")] //ValueFromPipelineByPropertyName applies to this, and FileInfo objects have a PSPath
@@ -80,7 +80,7 @@ namespace PESpy.PowerShell
 
         internal CancellationToken CancellationToken => TokenSource.Token;
 
-        private FileKind _requiredKind;
+        private FileKind? _requiredKind;
         private bool _dispose; //If we emit the file from this cmdlet, we can't dispose it
 
         protected FileCmdlet()
@@ -88,11 +88,13 @@ namespace PESpy.PowerShell
             _requiredKind = typeof(T).Name switch
             {
                 nameof(PEFile) => FileKind.PE,
-                nameof(PDBFile) => FileKind.PDB
+                nameof(PDBFile) => FileKind.PDB,
+                nameof(OBJFile) => FileKind.OBJ,
+                nameof(IFile) => null
             };
         }
 
-        protected override void ProcessRecord()
+        protected sealed override void ProcessRecord()
         {
             string path = null;
 

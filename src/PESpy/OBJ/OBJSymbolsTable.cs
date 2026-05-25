@@ -28,7 +28,7 @@ namespace PESpy.OBJ
 
         private const int SignatureOffset = 0;
 
-        public CV_SIGNATURE Signature => (CV_SIGNATURE) chunk.PeekUInt32(SignatureOffset);
+        public CV_SIGNATURE Signature => unchecked((CV_SIGNATURE) chunk.PeekUInt32(SignatureOffset));
 
         private unsafe SymTypeList? c6Symbols;
 
@@ -73,7 +73,7 @@ namespace PESpy.OBJ
             }
         }
 
-        public SymTypeList? c7Symbols;
+        private SymTypeList? c7Symbols;
 
         //C7 or C11
         public unsafe SymTypeList? C7Symbols

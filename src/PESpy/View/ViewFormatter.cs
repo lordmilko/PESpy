@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace PESpy.View
@@ -549,7 +549,24 @@ namespace PESpy.View
                 return;
             }
 
-            var fields = view.Children.OfType<IFieldView>().ToDictionary(v => v.Name, v => v);
+            //IMAGE_BASE_RELOCATION has multiple Type and Offset fields, so we need to construct
+            //the dictionary manually. We don't care about those two fields so it's not a problem
+            //that they'll overwrite each other
+            var fields = new Dictionary<string, IFieldView>();
+
+            foreach (var child in view.Children)
+            {
+                switch (child.ImplKind)
+                {
+                    case ViewImplKind.Field:
+                    case ViewImplKind.BitField:
+                    case ViewImplKind.StructField:
+                    case ViewImplKind.StructArrayField:
+                        var fieldView = (IFieldView) child;
+                        fields[fieldView.Name] = fieldView;
+                        break;
+                }
+            }
 
             if (view.Name == "OMFDirEntry" || view.Name == "dnt")
             {
@@ -765,8 +782,6 @@ namespace PESpy.View
                 var valueStart = builder.Length;
 
                 ValueToString(value, ref builder, smallHexNumbers: true);
-
-                builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
             }
 
             if (view is ISplitView)
@@ -927,7 +942,7 @@ namespace PESpy.View
                 var str = Unsafe.As<T, string>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
+                builder.AppendEscaped(str);
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(AnsiString))
@@ -935,8 +950,8 @@ namespace PESpy.View
                 var str = (FixedUtf8String) Unsafe.As<T, AnsiString>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
-                builder.Append('\0');
+                builder.AppendEscaped(str);
+                builder.Append("\\0");
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedAnsiString))
@@ -944,7 +959,7 @@ namespace PESpy.View
                 var str = (FixedUtf8String) Unsafe.As<T, FixedAnsiString>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
+                builder.AppendEscaped(str);
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(Utf8String))
@@ -952,8 +967,8 @@ namespace PESpy.View
                 var str = (FixedUtf8String) Unsafe.As<T, Utf8String>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
-                builder.Append('\0');
+                builder.AppendEscaped(str);
+                builder.Append("\\0");
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedUtf8String))
@@ -961,7 +976,7 @@ namespace PESpy.View
                 var str = Unsafe.As<T, FixedUtf8String>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
+                builder.AppendEscaped(str);
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(Utf16String))
@@ -969,8 +984,8 @@ namespace PESpy.View
                 var str = Unsafe.As<T, Utf16String>(ref value);
 
                 builder.Append("L\"");
-                builder.Append(str);
-                builder.Append('\0');
+                builder.AppendEscaped(str);
+                builder.Append("\\0");
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(FixedUtf16String))
@@ -978,7 +993,7 @@ namespace PESpy.View
                 var str = Unsafe.As<T, FixedUtf16String>(ref value);
 
                 builder.Append("L\"");
-                builder.Append(str);
+                builder.AppendEscaped(str);
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(NullTerminatedString))
@@ -990,8 +1005,8 @@ namespace PESpy.View
                 else
                     builder.Append("\"");
 
-                builder.Append(str);
-                builder.Append('\0');
+                builder.AppendEscaped(str);
+                builder.Append("\\0");
                 builder.Append("\"");
             }
             else if (typeof(T) == typeof(SymString))
@@ -999,10 +1014,10 @@ namespace PESpy.View
                 var str = Unsafe.As<T, SymString>(ref value);
 
                 builder.Append("\"");
-                builder.Append(str);
+                builder.AppendEscaped(str);
 
                 if (!str.IsLengthPrefixed)
-                    builder.Append('\0');
+                    builder.Append("\\0");
 
                 builder.Append("\"");
             }
@@ -1137,8 +1152,6 @@ namespace PESpy.View
                 var valueStart = builder.Length;
 
                 ValueToString(value, ref builder, smallHexNumbers: false);
-
-                builder.Replace("\0".AsSpan(), "\\0".AsSpan(), valueStart, builder.Length - valueStart);
             }
 
             if (view is ISplitView)
@@ -1179,45 +1192,45 @@ namespace PESpy.View
             {
                 case string v1:
                     builder.Append("\"");
-                    builder.Append(v1);
+                    builder.AppendEscaped(v1);
                     builder.Append("\"");
                     break;
 
                 case AnsiString v2:
                     builder.Append("\"");
-                    builder.Append((FixedUtf8String) v2);
+                    builder.AppendEscaped((FixedUtf8String) v2);
                     builder.Append("\"");
                     break;
 
                 case FixedAnsiString v3:
                     builder.Append("\"");
-                    builder.Append(v3.AsSpan());
+                    builder.AppendEscaped(v3.AsSpan());
                     builder.Append("\"");
                     break;
 
                 case Utf8String v4:
                     builder.Append("\"");
-                    builder.Append((FixedUtf8String) v4);
-                    builder.Append('\0');
+                    builder.AppendEscaped((FixedUtf8String) v4);
+                    builder.Append("\\0");
                     builder.Append("\"");
                     break;
 
                 case FixedUtf8String v5:
                     builder.Append("\"");
-                    builder.Append(v5);
+                    builder.AppendEscaped(v5);
                     builder.Append("\"");
                     break;
 
                 case Utf16String v6:
                     builder.Append("L\"");
-                    builder.Append(v6);
-                    builder.Append('\0');
+                    builder.AppendEscaped(v6);
+                    builder.Append("\\0");
                     builder.Append("\"");
                     break;
 
                 case FixedUtf16String v7:
                     builder.Append("L\"");
-                    builder.Append(v7);
+                    builder.AppendEscaped(v7);
                     builder.Append("\"");
                     break;
 
@@ -1227,17 +1240,17 @@ namespace PESpy.View
                     else
                         builder.Append("L\"");
 
-                    builder.Append(v8);
-                    builder.Append('\0');
+                    builder.AppendEscaped(v8);
+                    builder.Append("\\0");
                     builder.Append("\"");
                     break;
 
                 case SymString v9:
                     builder.Append("L\"");
-                    builder.Append(v9);
+                    builder.AppendEscaped(v9);
 
                     if (!v9.IsLengthPrefixed)
-                        builder.Append('\0');
+                        builder.Append("\\0");
 
                     builder.Append("\"");
                     break;

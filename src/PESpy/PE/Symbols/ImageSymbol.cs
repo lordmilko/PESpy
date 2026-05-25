@@ -48,6 +48,21 @@ namespace PESpy
 
         public ImageAuxSymbol[] AuxSymbols { get; }
 
+        /// <summary>
+        /// Gets additional contextual data about this symbol based on its <see cref="Name"/>.<para/>
+        /// When the name is "@comp.id", this value will be a <see cref="ProdItem"/>.
+        /// </summary>
+        public object Data
+        {
+            get
+            {
+                if (Name.Name == "@comp.id"u8)
+                    return new ProdItem(Value);
+
+                return null;
+            }
+        }
+
         public long Offset => chunk.AbsoluteOffset;
 
         internal const int StructSize =
@@ -183,6 +198,26 @@ namespace PESpy
                     Short = @short;
                     Long = @long;
                 }
+            }
+
+            public static bool operator ==(NameOrOffset left, string right) => left.Name == right;
+            public static bool operator !=(NameOrOffset left, string right) => left.Name != right;
+
+            public override bool Equals(object obj)
+            {
+                if (obj is not NameOrOffset o)
+                    return false;
+
+                return Short == o.Short && Long == o.Long;
+            }
+
+            public override int GetHashCode()
+            {
+                var hashCode = Short.GetHashCode();
+
+                hashCode = (hashCode ^ 397) ^ Long.GetHashCode();
+
+                return hashCode;
             }
 
             public override string ToString()

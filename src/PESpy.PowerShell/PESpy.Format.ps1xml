@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Configuration>
+    <DefaultSettings>
+        <ShowError>true</ShowError>
+        <DisplayError>true</DisplayError>
+    </DefaultSettings>
+    <ViewDefinitions>
+        <View>
+            <Name>Default</Name>
+            <ViewSelectedBy>
+                <TypeName>PESpy.ProdItem</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader /> <!-- ProdId -->
+                    <TableColumnHeader /> <!-- BuildId -->
+                    <TableColumnHeader /> <!-- CompId -->
+                    <TableColumnHeader /> <!-- Count -->
+                    <TableColumnHeader /> <!-- ProductInfo -->
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>ProdId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>BuildId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                              <PropertyName>CompId</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                              <PropertyName>Count</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                              <PropertyName>ProductInfo</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+    </ViewDefinitions>
+</Configuration>

@@ -331,8 +331,8 @@ namespace PESpy
 
                         if (targetName.EqualsOrdinalIgnoreCaseUtf8(currentName))
                         {
-                            hModule = pFallbackModule->ImageBase;
-                            fileName = new AnsiString(pFallbackModule->FullPathName).ToString();
+                            hModule = moduleInfo->ImageBase;
+                            fileName = new AnsiString(moduleInfo->FullPathName).ToString();
                             return true;
                         }
 
@@ -856,7 +856,7 @@ namespace PESpy
                     else
                     {
                         //We know there isn't a RichHeader. Read up until the start of the new PE Header
-                        end = DosHeader.FileAddressOfNewExeHeader;
+                        end = DosHeader.e_lfanew;
                     }
 
                     var length = (int) (end - start);
@@ -887,7 +887,7 @@ namespace PESpy
                 {
                     //We already know we're a PE file, as the NT Headers have already been loaded
 
-                    richHeader = RichHeader.New(dosHeader.FileAddressOfNewExeHeader, headerBlock);
+                    richHeader = RichHeader.New(dosHeader.e_lfanew, headerBlock);
                     hasTriedRichHeader = true;
                 }
 
@@ -967,7 +967,7 @@ namespace PESpy
                     var list = new ImageSectionHeader[numberOfSections];
 
                     //FileAddressOfNewExeHeader + sizeof(int) + ImageFileHeader.StructSize + SizeOfOptionalHeader should give this
-                    var offset = dosHeader.FileAddressOfNewExeHeader + NtHeaders.StructSize(headerBlock.Is32Bit);
+                    var offset = dosHeader.e_lfanew + NtHeaders.StructSize(headerBlock.Is32Bit);
 
                     for (var i = 0; i < numberOfSections; i++)
                         list[i] = new ImageSectionHeader(new MemoryChunk(headerBlock, offset + (i * ImageSectionHeader.StructSize)));
@@ -3344,7 +3344,7 @@ namespace PESpy
         private void InitializeHeaders()
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(headerBlock, 0));
-            ntHeaders = new ImageNtHeaders(new MemoryChunk(headerBlock, dosHeader.FileAddressOfNewExeHeader));
+            ntHeaders = new ImageNtHeaders(new MemoryChunk(headerBlock, dosHeader.e_lfanew));
 
             ImageSectionHeader[] sectionHeaders;
             SectionRange[] sectionRanges;

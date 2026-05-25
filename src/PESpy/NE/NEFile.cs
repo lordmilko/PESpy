@@ -69,7 +69,7 @@ namespace PESpy
                 if (dosStub.Offset == 0)
                 {
                     var start = ImageDosHeader.StructSize;
-                    var end =  DosHeader.FileAddressOfNewExeHeader;
+                    var end =  DosHeader.e_lfanew;
 
                     var length = (int) (end - start);
 
@@ -410,14 +410,14 @@ namespace PESpy
         {
             dosHeader = new ImageDosHeader(new MemoryChunk(globalBlock, 0));
 
-            os2Header = new ImageOS2Header(new MemoryChunk(globalBlock, dosHeader.FileAddressOfNewExeHeader));
+            os2Header = new ImageOS2Header(new MemoryChunk(globalBlock, dosHeader.e_lfanew));
 
             tableBounds = ComputeTableBounds();
         }
 
         private TableBounds[] ComputeTableBounds()
         {
-            var sizeOfHeaders = DosHeader.FileAddressOfNewExeHeader + ImageOS2Header.StructSize;
+            var sizeOfHeaders = DosHeader.e_lfanew + ImageOS2Header.StructSize;
 
             var tableBounds = new TableBounds[7];
 

@@ -93,7 +93,7 @@ namespace PESpy
 
                 case SST.sstTypes:
                 {
-                    var signature = (CV_SIGNATURE) valueChunk.PeekInt32(0);
+                    var signature = unchecked((CV_SIGNATURE)valueChunk.PeekInt32(0));
 
                     switch (signature)
                     {
@@ -125,7 +125,7 @@ namespace PESpy
                 case SST.sstAlignSym: //Once symbols have been written from an obj file, the sstSymbols section becomes sstAlignSym
                 {
                     //I would expect all subsections within a given module to have the same signature
-                    var signature = (CV_SIGNATURE) valueChunk.PeekInt32(0);
+                    var signature = unchecked((CV_SIGNATURE)valueChunk.PeekInt32(0));
 
                     switch (signature)
                     {

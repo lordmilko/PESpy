@@ -679,18 +679,34 @@ namespace PESpy
             _pos = pos;
         }
 
-        public void AppendEscaped(FixedUtf16String value)
+        public void AppendEscaped(string value) => AppendEscaped(value.AsSpan());
+        public void AppendEscaped(Utf16String value) => AppendEscaped(value.AsSpan());
+        public void AppendEscaped(FixedUtf16String value) => AppendEscaped(value.AsSpan());
+
+        public void AppendEscaped(AnsiString value) => AppendEscaped(value.AsSpan());
+        public void AppendEscaped(Utf8String value) => AppendEscaped(value.AsSpan());
+        public void AppendEscaped(FixedAnsiString value) => AppendEscaped(value.AsSpan());
+        public void AppendEscaped(FixedUtf8String value) => AppendEscaped(value.AsSpan());
+
+        public void AppendEscaped(NullTerminatedString value)
+        {
+            if (value.Kind == StringKind.UTF16)
+                AppendEscaped(value.AsWideSpan());
+            else
+                AppendEscaped(value.AsSpan());
+        }
+
+
+        public void AppendEscaped(ReadOnlySpan<char> value)
         {
             var index = -1;
 
-            var span = value.AsSpan();
-
-            while ((index = span.IndexOfAny(ValueStringBuilder._escapeCharsUtf16)) != -1)
+            while ((index = value.IndexOfAny(ValueStringBuilder._escapeCharsUtf16)) != -1)
             {
                 //Write all chars up to the escape chars
                 if (index == 0)
                 {
-                    switch (span[0])
+                    switch (value[0])
                     {
                         case '\n':
                             Append("\\n");
@@ -713,31 +729,29 @@ namespace PESpy
                             break;
                     }
 
-                    span = span.Slice(1);
+                    value = value.Slice(1);
                 }
                 else
                 {
-                    Append(span.Slice(0, index));
-                    span = span.Slice(index);
+                    Append(value.Slice(0, index));
+                    value = value.Slice(index);
                 }
             }
 
             //Append anything remaining
-            Append(span);
+            Append(value);
         }
 
-        public void AppendEscaped(FixedUtf8String value)
+        public void AppendEscaped(ReadOnlySpan<byte> value)
         {
             var index = -1;
 
-            var span = value.AsSpan();
-
-            while ((index = span.IndexOfAny(ValueStringBuilder._escapeCharsUtf8)) != -1)
+            while ((index = value.IndexOfAny(ValueStringBuilder._escapeCharsUtf8)) != -1)
             {
                 //Write all chars up to the escape chars
                 if (index == 0)
                 {
-                    switch (span[0])
+                    switch (value[0])
                     {
                         case (byte) '\n':
                             Append("\\n");
@@ -760,17 +774,17 @@ namespace PESpy
                             break;
                     }
 
-                    span = span.Slice(1);
+                    value = value.Slice(1);
                 }
                 else
                 {
-                    Append(span.Slice(0, index));
-                    span = span.Slice(index);
+                    Append(value.Slice(0, index));
+                    value = value.Slice(index);
                 }
             }
 
             //Append anything remaining
-            Append(span);
+            Append(value);
         }
 
         public void Replace(char oldChar, char newChar) => Replace(oldChar, newChar, 0, Length);
@@ -838,7 +852,11 @@ namespace PESpy
                     var valueToReplace = chars.Slice(valueToReplaceStartIndex, valueToReplaceLength);
 
                     var contentAfterValueStartIndex = valueToReplaceStartIndex + valueToReplaceLength;
-                    var contentAfterValueLength = (i < indices.Count - 1 ? indices[i + 1] : originalLength) - contentAfterValueStartIndex;
+                    var contentAfterValueLength = (
+                        i < indices.Count - 1
+                            ? indices[i + 1] + startIndex
+                            : originalLength
+                        ) - contentAfterValueStartIndex;
 
                     var contentAfterValue = chars.Slice(contentAfterValueStartIndex, contentAfterValueLength);
 

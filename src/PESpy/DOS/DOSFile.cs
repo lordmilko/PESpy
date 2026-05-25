@@ -78,7 +78,7 @@ namespace PESpy
         }
 
         public Span<DosRelocation> Relocations =>
-            chunk.PeekSpan<DosRelocation>(dosHeader.FileAddressOfRelocationTable, dosHeader.Relocations);
+            chunk.PeekSpan<DosRelocation>(dosHeader.e_lfarlc, dosHeader.e_crlc);
 
         private readonly MemoryChunk chunk;
 
@@ -108,20 +108,20 @@ namespace PESpy
             dosHeader = new ImageDosHeader(chunk);
 
             //e_lfarlc + 4 * e_crlc
-            var endOfRelocationTable = dosHeader.FileAddressOfRelocationTable + DosRelocation.StructSize * dosHeader.Relocations;
+            var endOfRelocationTable = dosHeader.e_lfarlc + DosRelocation.StructSize * dosHeader.e_crlc;
 
             //16 * e_cparhdr
-            SizeOfHeaders = ParagraphSize * dosHeader.SizeOfHeaderInParagraphs;
+            SizeOfHeaders = ParagraphSize * dosHeader.e_cparhdr;
 
             //16 * e_cparhdr + 16 * e_cs + e_ip
-            EntryPoint = ParagraphSize * dosHeader.SizeOfHeaderInParagraphs +
-                             ParagraphSize * dosHeader.InitialRelativeCSValue +
-                             dosHeader.InitialIPValue;
+            EntryPoint = ParagraphSize * dosHeader.e_cparhdr +
+                             ParagraphSize * dosHeader.e_cs +
+                             dosHeader.e_ip;
 
             //e_cblp == 0 ? 512 * e_cp : 512 * (e_cp - 1) + e_cblp;
-            StartOfOverlay = dosHeader.BytesOnLastPageOfFile == 0
-                ? PageSize * dosHeader.PagesInFile
-                : PageSize * (dosHeader.PagesInFile - 1) + dosHeader.BytesOnLastPageOfFile;
+            StartOfOverlay = dosHeader.e_cblp == 0
+                ? PageSize * dosHeader.e_cp
+                : PageSize * (dosHeader.e_cp - 1) + dosHeader.e_cblp;
         }
 
         ~DOSFile()

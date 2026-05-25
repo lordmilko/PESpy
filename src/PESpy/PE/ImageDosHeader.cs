@@ -34,120 +34,101 @@ namespace PESpy
         internal const int FileAddressOfNewExeHeaderOffset = 60;
 
         /// <summary>
-        /// Magic number<para/>
-        /// e_magic
+        /// Magic number
         /// </summary>
-        public ushort Magic => chunk.PeekUInt16(MagicOffset);
+        public ushort e_magic => chunk.PeekUInt16(MagicOffset);
 
         /// <summary>
-        /// Bytes on last page of file<para/>
-        /// e_cblp
+        /// Bytes on last page of file
         /// </summary>
-        public short BytesOnLastPageOfFile => chunk.PeekInt16(BytesOnLastPageOfFileOffset);
+        public short e_cblp => chunk.PeekInt16(BytesOnLastPageOfFileOffset);
 
         /// <summary>
-        /// Pages in file<para/>
-        /// e_cp
+        /// Pages in file
         /// </summary>
-        public short PagesInFile => chunk.PeekInt16(PagesInFileOffset);
+        public short e_cp => chunk.PeekInt16(PagesInFileOffset);
 
         /// <summary>
-        /// Relocations<para/>
-        /// e_crlc
+        /// Relocations
         /// </summary>
-        public short Relocations => chunk.PeekInt16(RelocationsOffset);
+        public short e_crlc => chunk.PeekInt16(RelocationsOffset);
 
         /// <summary>
-        /// Size of header in paragraphs<para/>
-        /// e_cparhdr
+        /// Size of header in paragraphs
         /// </summary>
-        public short SizeOfHeaderInParagraphs => chunk.PeekInt16(SizeOfHeaderInParagraphsOffset);
+        public short e_cparhdr => chunk.PeekInt16(SizeOfHeaderInParagraphsOffset);
 
         /// <summary>
-        /// Minimum extra paragraphs needed<para/>
-        /// e_minalloc
+        /// Minimum extra paragraphs needed
         /// </summary>
-        public ushort MinimumExtraParagraphsNeeded => chunk.PeekUInt16(MinimumExtraParagraphsNeededOffset);
+        public ushort e_minalloc => chunk.PeekUInt16(MinimumExtraParagraphsNeededOffset);
 
         /// <summary>
-        /// Maximum extra paragraphs needed<para/>
-        /// e_maxalloc
+        /// Maximum extra paragraphs needed
         /// </summary>
-        public ushort MaximumExtraParagraphsNeeded => chunk.PeekUInt16(MaximumExtraParagraphsNeededOffset);
+        public ushort e_maxalloc => chunk.PeekUInt16(MaximumExtraParagraphsNeededOffset);
 
         /// <summary>
-        /// Initial (relative) SS value<para/>
-        /// e_ss
+        /// Initial (relative) SS value
         /// </summary>
-        public short InitialRelativeSSValue => chunk.PeekInt16(InitialRelativeSSValueOffset);
+        public short e_ss => chunk.PeekInt16(InitialRelativeSSValueOffset);
 
         /// <summary>
-        /// Initial SP value<para/>
-        /// e_sp
+        /// Initial SP value
         /// </summary>
-        public short InitialSPValue => chunk.PeekInt16(InitialSPValueOffset);
+        public short e_sp => chunk.PeekInt16(InitialSPValueOffset);
 
         /// <summary>
-        /// Checksum<para/>
-        /// e_csum
+        /// Checksum
         /// </summary>
-        public short Checksum => chunk.PeekInt16(ChecksumOffset);
+        public short e_csum => chunk.PeekInt16(ChecksumOffset);
 
         /// <summary>
-        /// Initial IP value<para/>
-        /// e_ip
+        /// Initial IP value
         /// </summary>
-        public short InitialIPValue => chunk.PeekInt16(InitialIPValueOffset);
+        public short e_ip => chunk.PeekInt16(InitialIPValueOffset);
 
         /// <summary>
-        /// Initial (relative) CS value<para/>
-        /// e_cs
+        /// Initial (relative) CS value
         /// </summary>
-        public short InitialRelativeCSValue => chunk.PeekInt16(InitialRelativeCSValueOffset);
+        public short e_cs => chunk.PeekInt16(InitialRelativeCSValueOffset);
 
         /// <summary>
-        /// File address of relocation table<para/>
-        /// e_lfarlc
+        /// File address of relocation table
         /// </summary>
-        public short FileAddressOfRelocationTable => chunk.PeekInt16(FileAddressOfRelocationTableOffset);
+        public short e_lfarlc => chunk.PeekInt16(FileAddressOfRelocationTableOffset);
 
         /// <summary>
-        /// Overlay number<para/>
-        /// e_ovno
+        /// Overlay number
         /// </summary>
-        public short OverlayNumber => chunk.PeekInt16(OverlayNumberOffset);
+        public short e_ovno => chunk.PeekInt16(OverlayNumberOffset);
 
         //Extended Header
 
         /// <summary>
-        /// Reserved words<para/>
-        /// e_res
+        /// Reserved words
         /// </summary>
-        public NativeSpan<short> ReservedWords => chunk.PeekNativeSpan<short>(ReservedWordsOffset, 4);
+        public NativeSpan<short> e_res => chunk.PeekNativeSpan<short>(ReservedWordsOffset, 4);
 
         /// <summary>
-        /// OEM identifier (for e_oeminfo)<para/>
-        /// e_oemid
+        /// OEM identifier (for e_oeminfo)
         /// </summary>
-        public short OEMIdentifier => chunk.PeekInt16(OEMIdentifierOffset);
+        public short e_oemid => chunk.PeekInt16(OEMIdentifierOffset);
 
         /// <summary>
-        /// OEM information; e_oemid specific<para/>
-        /// e_oeminfo
+        /// OEM information; e_oemid specific
         /// </summary>
-        public short OEMInformation => chunk.PeekInt16(OEMInformationOffset);
+        public short e_oeminfo => chunk.PeekInt16(OEMInformationOffset);
 
         /// <summary>
-        /// Reserved words<para/>
-        /// e_res2
+        /// Reserved words
         /// </summary>
-        public NativeSpan<short> ReservedWords2 => chunk.PeekNativeSpan<short>(ReservedWords2Offset, 10);
+        public NativeSpan<short> e_res2 => chunk.PeekNativeSpan<short>(ReservedWords2Offset, 10);
 
         /// <summary>
-        /// File address of new exe header<para/>
-        /// e_lfanew
+        /// File address of new exe header
         /// </summary>
-        public int FileAddressOfNewExeHeader => chunk.PeekInt32(FileAddressOfNewExeHeaderOffset);
+        public int e_lfanew => chunk.PeekInt32(FileAddressOfNewExeHeaderOffset);
 
         public long Offset => chunk.AbsoluteOffset;
 
@@ -178,41 +159,41 @@ namespace PESpy
         {
             this.chunk = chunk;
 
-            if (Magic != IMAGE_DOS_SIGNATURE)
+            if (e_magic != IMAGE_DOS_SIGNATURE)
             {
-                if (Magic != 0 || BytesOnLastPageOfFile != -1)
+                if (e_magic != 0 || e_cblp != -1)
                     throw new BadImageFormatException($"The specified file is not a valid {chunk.File().Kind}.");
 
                 throw new BadImageFormatException("Unknown file format.");
             }
 
             //Note that you can't rely on FileAddressOfRelocationTable alone; some tools may zero this out and just set FileAddressOfNewExeHeader
-            Debug.Assert(FileAddressOfRelocationTable > 0x1C || FileAddressOfNewExeHeader != 0, "Encountered a file without an extended header. Consider making the getters for the extended headers return default values when the extended header is known to be not present");
+            Debug.Assert(e_lfarlc > 0x1C || e_lfanew != 0, "Encountered a file without an extended header. Consider making the getters for the extended headers return default values when the extended header is known to be not present");
         }
 
         internal static string GetDescription(string fieldName)
         {
             return fieldName switch
             {
-                nameof(IMAGE_DOS_HEADER.e_magic) => "Magic number",
-                nameof(IMAGE_DOS_HEADER.e_cblp) => "Bytes on last page of file",
-                nameof(IMAGE_DOS_HEADER.e_cp) => "Pages in file",
-                nameof(IMAGE_DOS_HEADER.e_crlc) => "Relocations",
-                nameof(IMAGE_DOS_HEADER.e_cparhdr) => "Size of header in paragraphs",
-                nameof(IMAGE_DOS_HEADER.e_minalloc) => "Minimum extra paragraphs needed",
-                nameof(IMAGE_DOS_HEADER.e_maxalloc) => "Maximum extra paragraphs needed",
-                nameof(IMAGE_DOS_HEADER.e_ss) => "Initial (relative) SS value",
-                nameof(IMAGE_DOS_HEADER.e_sp) => "Initial SP value",
-                nameof(IMAGE_DOS_HEADER.e_csum) => "Checksum",
-                nameof(IMAGE_DOS_HEADER.e_ip) => "Initial IP value",
-                nameof(IMAGE_DOS_HEADER.e_cs) => "Initial (relative) CS value",
-                nameof(IMAGE_DOS_HEADER.e_lfarlc) => "File address of relocation table",
-                nameof(IMAGE_DOS_HEADER.e_ovno) => "Overlay number",
-                nameof(IMAGE_DOS_HEADER.e_res) => "Reserved words",
-                nameof(IMAGE_DOS_HEADER.e_oemid) => "OEM identifier (for e_oeminfo)",
-                nameof(IMAGE_DOS_HEADER.e_oeminfo) => "OEM information; e_oemid specific",
-                nameof(IMAGE_DOS_HEADER.e_res2) => "Reserved words",
-                nameof(IMAGE_DOS_HEADER.e_lfanew) => "File address of new exe header",
+                nameof(e_magic) => "Magic number",
+                nameof(e_cblp) => "Bytes on last page of file",
+                nameof(e_cp) => "Pages in file",
+                nameof(e_crlc) => "Relocations",
+                nameof(e_cparhdr) => "Size of header in paragraphs",
+                nameof(e_minalloc) => "Minimum extra paragraphs needed",
+                nameof(e_maxalloc) => "Maximum extra paragraphs needed",
+                nameof(e_ss) => "Initial (relative) SS value",
+                nameof(e_sp) => "Initial SP value",
+                nameof(e_csum) => "Checksum",
+                nameof(e_ip) => "Initial IP value",
+                nameof(e_cs) => "Initial (relative) CS value",
+                nameof(e_lfarlc) => "File address of relocation table",
+                nameof(e_ovno) => "Overlay number",
+                nameof(e_res) => "Reserved words",
+                nameof(e_oemid) => "OEM identifier (for e_oeminfo)",
+                nameof(e_oeminfo) => "OEM information; e_oemid specific",
+                nameof(e_res2) => "Reserved words",
+                nameof(e_lfanew) => "File address of new exe header",
             };
         }
 
@@ -225,7 +206,7 @@ namespace PESpy
                 case FileKind.PE:
                 case FileKind.NE:
                 case FileKind.LE:
-                    writer.WriteOffsetXRef(structOffset, FileAddressOfNewExeHeaderOffset, FileAddressOfNewExeHeader);
+                    writer.WriteOffsetXRef(structOffset, FileAddressOfNewExeHeaderOffset, e_lfanew);
                     break;
             }
         }
@@ -240,79 +221,79 @@ namespace PESpy
             switch (index)
             {
                 case 0:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_magic), MagicOffset, Magic, FieldViewFlags.HexString);
+                    structWriter.WriteField(nameof(e_magic), MagicOffset, e_magic, FieldViewFlags.HexString);
                     break;
 
                 case 1:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_cblp), BytesOnLastPageOfFileOffset, BytesOnLastPageOfFile);
+                    structWriter.WriteField(nameof(e_cblp), BytesOnLastPageOfFileOffset, e_cblp);
                     break;
 
                 case 2:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_cp), PagesInFileOffset, PagesInFile);
+                    structWriter.WriteField(nameof(e_cp), PagesInFileOffset, e_cp);
                     break;
 
                 case 3:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_crlc), RelocationsOffset, Relocations);
+                    structWriter.WriteField(nameof(e_crlc), RelocationsOffset, e_crlc);
                     break;
 
                 case 4:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_cparhdr), SizeOfHeaderInParagraphsOffset, SizeOfHeaderInParagraphs);
+                    structWriter.WriteField(nameof(e_cparhdr), SizeOfHeaderInParagraphsOffset, e_cparhdr);
                     break;
 
                 case 5:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_minalloc), MinimumExtraParagraphsNeededOffset, MinimumExtraParagraphsNeeded);
+                    structWriter.WriteField(nameof(e_minalloc), MinimumExtraParagraphsNeededOffset, e_minalloc);
                     break;
 
                 case 6:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_maxalloc), MaximumExtraParagraphsNeededOffset, MaximumExtraParagraphsNeeded);
+                    structWriter.WriteField(nameof(e_maxalloc), MaximumExtraParagraphsNeededOffset, e_maxalloc);
                     break;
 
                 case 7:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_ss), InitialRelativeSSValueOffset, InitialRelativeSSValue);
+                    structWriter.WriteField(nameof(e_ss), InitialRelativeSSValueOffset, e_ss);
                     break;
 
                 case 8:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_sp), InitialSPValueOffset, InitialSPValue);
+                    structWriter.WriteField(nameof(e_sp), InitialSPValueOffset, e_sp);
                     break;
 
                 case 9:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_csum), ChecksumOffset, Checksum);
+                    structWriter.WriteField(nameof(e_csum), ChecksumOffset, e_csum);
                     break;
 
                 case 10:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_ip), InitialIPValueOffset, InitialIPValue);
+                    structWriter.WriteField(nameof(e_ip), InitialIPValueOffset, e_ip);
                     break;
 
                 case 11:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_cs), InitialRelativeCSValueOffset, InitialRelativeCSValue);
+                    structWriter.WriteField(nameof(e_cs), InitialRelativeCSValueOffset, e_cs);
                     break;
 
                 case 12:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfarlc), FileAddressOfRelocationTableOffset, FileAddressOfRelocationTable, FieldViewFlags.Address);
+                    structWriter.WriteField(nameof(e_lfarlc), FileAddressOfRelocationTableOffset, e_lfarlc, FieldViewFlags.Address);
                     break;
 
                 case 13:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_ovno), OverlayNumberOffset, OverlayNumber);
+                    structWriter.WriteField(nameof(e_ovno), OverlayNumberOffset, e_ovno);
                     break;
 
                 case 14:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_res), ReservedWordsOffset, ReservedWords);
+                    structWriter.WriteField(nameof(e_res), ReservedWordsOffset, e_res);
                     break;
 
                 case 15:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_oemid), OEMIdentifierOffset, OEMIdentifier);
+                    structWriter.WriteField(nameof(e_oemid), OEMIdentifierOffset, e_oemid);
                     break;
 
                 case 16:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_oeminfo), OEMInformationOffset, OEMInformation);
+                    structWriter.WriteField(nameof(e_oeminfo), OEMInformationOffset, e_oeminfo);
                     break;
 
                 case 17:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_res2), ReservedWords2Offset, ReservedWords2);
+                    structWriter.WriteField(nameof(e_res2), ReservedWords2Offset, e_res2);
                     break;
 
                 case 18:
-                    structWriter.WriteField(nameof(IMAGE_DOS_HEADER.e_lfanew), FileAddressOfNewExeHeaderOffset, (int) FileAddressOfNewExeHeader, FieldViewFlags.Address);
+                    structWriter.WriteField(nameof(e_lfanew), FileAddressOfNewExeHeaderOffset, (int) e_lfanew, FieldViewFlags.Address);
                     break;
 
                 default:
